@@ -1,33 +1,36 @@
 ﻿using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
-public class PZ_PlayerController : MonoBehaviour
+[RequireComponent(typeof(Rigidbody2D))] // Bắt buộc dùng Rigidbody2D thay vì 3D
+public class PZ_PlayerController2D : MonoBehaviour
 {
     [Header("--- Movement Settings ---")]
     public float walkSpeed = 4f;
-    public float runSpeed = 7f;      // Tốc độ khi giữ Shift
-    public float aimSpeed = 2f;      // Đi chậm khi giữ Chuột phải (PZ chuẩn)
+    public float runSpeed = 7f;
+    public float aimSpeed = 2f;
     public float rotationSpeed = 15f;
 
+    [Header("--- 2.5D Setup ---")]
+    [Tooltip("Kéo GameObject Con (chứa mô hình 3D) vào đây")]
+    public Transform modelTransform;
+
     [Header("--- Aiming & Visuals ---")]
-    [Tooltip("Kéo một GameObject hình tròn (Sprite/Decal) vào đây làm tâm ngắm")]
-    public GameObject aimReticle;    // Tâm ngắm (bóng) dưới chuột của game PZ
+    public GameObject aimReticle;
 
     [Header("--- Animations ---")]
-    public Animator anim; // Kéo Animator của nhân vật vào đây
+    public Animator anim;
 
-    private Rigidbody rb;
+    private Rigidbody2D rb;
     private Camera mainCam;
-    private Vector3 moveInput;
+    private Vector2 moveInput; // Chuyển sang dùng Vector2 cho hệ trục X-Y
     private bool isAiming;
     private bool isRunning;
 
     void Awake()
     {
-        rb = GetComponent<Rigidbody>();
+        rb = GetComponent<Rigidbody2D>();
         mainCam = Camera.main;
 
-        // Khóa hoàn toàn xoay vật lý để nhân vật KHÔNG BAO GIỜ bị đổ hay nghiêng làm mất Shadow
+        // Khóa hoàn toàn xoay vật lý để nhân vật KHÔNG BAO GIỜ bị lộn vòng
         rb.freezeRotation = true;
 
         if (aimReticle != null) aimReticle.SetActive(false);
@@ -37,7 +40,6 @@ public class PZ_PlayerController : MonoBehaviour
     {
         HandleInputs();
         HandleRotationAndReticle();
-
         UpdateAnimation();
     }
 
@@ -46,96 +48,75 @@ public class PZ_PlayerController : MonoBehaviour
         HandleMovement();
     }
 
-    // 1. Lấy và Xử lý Input theo góc Camera (Isometric)
+    // 1. Lấy và Xử lý Input cho mặt phẳng 2D
     private void HandleInputs()
     {
-        float hor = Input.GetAxisRaw("Horizontal");
-        float ver = Input.GetAxisRaw("Vertical");
+        // Trong 2D X-Y, Input ánh xạ thẳng lên trục X và Y
+        moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
 
-        // Lấy hướng của Camera, ép trục Y về 0 để nhân vật chỉ đi trên mặt phẳng
-        Vector3 camForward = mainCam.transform.forward;
-        Vector3 camRight = mainCam.transform.right;
-        camForward.y = 0f;
-        camRight.y = 0f;
-        camForward.Normalize();
-        camRight.Normalize();
-
-        moveInput = (camForward * ver + camRight * hor).normalized;
-
-        // Ưu tiên Aiming hơn Running giống PZ
         isAiming = Input.GetMouseButton(1);
         isRunning = Input.GetKey(KeyCode.LeftShift) && !isAiming;
     }
 
-    // 2. Di chuyển vật lý
+    // 2. Di chuyển vật lý bằng Rigidbody2D
     private void HandleMovement()
     {
         float currentSpeed = walkSpeed;
-    if (isAiming) currentSpeed = aimSpeed;
-    else if (isRunning) currentSpeed = runSpeed;
+        if (isAiming) currentSpeed = aimSpeed;
+        else if (isRunning) currentSpeed = runSpeed;
 
-    if (moveInput == Vector3.zero) 
-    {
-        // Khi không bấm nút, cho vận tốc về 0 nhưng giữ nguyên vận tốc rơi (Y)
-        rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
-        return;
+        // Tính toán vị trí tiếp theo và di chuyển
+        Vector2 nextPosition = rb.position + moveInput * currentSpeed * Time.fixedDeltaTime;
+        rb.MovePosition(nextPosition);
     }
 
-    // Dùng MovePosition để di chuyển vật lý mượt mà nhất
-    Vector3 nextPosition = rb.position + moveInput * currentSpeed * Time.fixedDeltaTime;
-    rb.MovePosition(nextPosition);
-    }
-
-    // 3. Xử lý xoay người và hiển thị Bóng ngắm (Reticle)
+    // 3. Xoay MÔ HÌNH 3D (Con) và hiển thị Bóng ngắm
     private void HandleRotationAndReticle()
     {
+        if (modelTransform == null) return; // Nếu quên kéo mô hình 3D vào thì bỏ qua
+
         if (isAiming)
         {
-            // --- CHẾ ĐỘ THỦ THẾ (AIM MODE) ---
-            Vector3 mouseHitPoint = GetMouseWorldPosition();
+            Vector3 mouseWorldPos = GetMouseWorldPosition2D();
 
-            // Cập nhật vị trí bóng ngắm (Aim Reticle) tại chuột
             if (aimReticle != null)
             {
                 if (!aimReticle.activeSelf) aimReticle.SetActive(true);
-                aimReticle.transform.position = mouseHitPoint + Vector3.up * 0.6f; // Nâng nhẹ lên để không chìm xuống đất
+                aimReticle.transform.position = new Vector3(mouseWorldPos.x, mouseWorldPos.y, 0f);
             }
 
-            // Xoay nhân vật về phía chuột
-            Vector3 lookDir = mouseHitPoint - transform.position;
-            lookDir.y = 0f; // CHỐNG NGHIÊNG MODEL: Ép cứng Y = 0 để model không chìm làm mất bóng
+            // Hướng mặt về phía chuột
+            Vector3 lookDir = mouseWorldPos - modelTransform.position;
+            lookDir.z = 0f;
 
             if (lookDir != Vector3.zero)
             {
-                Quaternion targetRot = Quaternion.LookRotation(lookDir);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+                // Dùng LookRotation: Trục Z hướng về chuột, trục Y hướng về Camera (Vector3.back)
+                Quaternion targetRot = Quaternion.LookRotation(lookDir, Vector3.back);
+                modelTransform.rotation = Quaternion.Slerp(modelTransform.rotation, targetRot, rotationSpeed * Time.deltaTime);
             }
         }
         else
         {
-            // --- CHẾ ĐỘ BÌNH THƯỜNG (NORMAL MODE) ---
             if (aimReticle != null && aimReticle.activeSelf)
-                aimReticle.SetActive(false); // Tắt bóng ngắm khi nhả chuột
+                aimReticle.SetActive(false);
 
-            // Xoay theo hướng di chuyển
-            if (moveInput != Vector3.zero)
+            // Hướng mặt theo hướng di chuyển
+            if (moveInput != Vector2.zero)
             {
-                Quaternion targetRot = Quaternion.LookRotation(moveInput);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+                Vector3 moveDir = new Vector3(moveInput.x, moveInput.y, 0f);
+                Quaternion targetRot = Quaternion.LookRotation(moveDir, Vector3.back);
+                modelTransform.rotation = Quaternion.Slerp(modelTransform.rotation, targetRot, rotationSpeed * Time.deltaTime);
             }
         }
     }
 
-    // Hàm lấy vị trí chuột trên mặt đất (Y=0) cực kỳ chính xác
-    private Vector3 GetMouseWorldPosition()
+    // Hàm lấy vị trí chuột chuẩn cho 2D
+    private Vector3 GetMouseWorldPosition2D()
     {
-        Ray ray = mainCam.ScreenPointToRay(Input.mousePosition);
-        Plane groundPlane = new Plane(Vector3.up, Vector3.zero); // Mặt phẳng ảo tại Y=0
-        if (groundPlane.Raycast(ray, out float enter))
-        {
-            return ray.GetPoint(enter);
-        }
-        return transform.position; // Trả về vị trí hiện tại nếu lỗi (hiếm gặp)
+        Vector3 worldPos = mainCam.ScreenToWorldPoint(Input.mousePosition);
+        worldPos.z = 0f; // Ép cứng tọa độ Z về 0 để ngang bằng với mặt đất
+        return worldPos;
     }
 
     private void UpdateAnimation()
@@ -144,22 +125,13 @@ public class PZ_PlayerController : MonoBehaviour
 
         float targetSpeed = 0f;
 
-        // Nếu có bấm di chuyển
         if (moveInput.magnitude > 0.1f)
         {
-            if (isAiming)
-                targetSpeed = 0.3f; // Dáng đi chậm khi nhắm
-            else if (isRunning)
-                targetSpeed = 1.0f; // Chạy nhanh (Sprint)
-            else
-                targetSpeed = 0.5f; // Đi bộ bình thường
-        }
-        else
-        {
-            targetSpeed = 0f; // Đứng yên
+            if (isAiming) targetSpeed = 0.3f;
+            else if (isRunning) targetSpeed = 1.0f;
+            else targetSpeed = 0.5f;
         }
 
-        // Làm mượt con số Speed để Animation không bị đổi đột ngột
         float currentAnimSpeed = anim.GetFloat("Speed");
         anim.SetFloat("Speed", Mathf.Lerp(currentAnimSpeed, targetSpeed, Time.deltaTime * 8f));
     }
