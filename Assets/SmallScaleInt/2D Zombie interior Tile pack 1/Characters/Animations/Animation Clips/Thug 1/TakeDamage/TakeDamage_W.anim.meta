@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: fed867982f92241459d00c33c897603a
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 7400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 327298
+  packageName: Zombie Interior - HD Isometric Tileset
+  packageVersion: 1.0
+  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Characters/Animations/Animation
+    Clips/Thug 1/TakeDamage/TakeDamage_W.anim
+  uploadId: 777992
