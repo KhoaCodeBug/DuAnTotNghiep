@@ -1,5 +1,13 @@
 fileFormatVersion: 2
 guid: 040555f1bf4c5804fa953835d66279e6
+AssetOrigin:
+  serializedVersion: 1
+  productId: 327298
+  packageName: Zombie Interior - HD Isometric Tileset
+  packageVersion: 1.0
+  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Characters/Animations/Spritesheets/Survivor
+    3/StrafeRight.png
+  uploadId: 777992
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -2888,11 +2896,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 327298
-  packageName: Zombie Interior - HD Isometric Tileset
-  packageVersion: 1.0
-  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Characters/Animations/Spritesheets/Survivor
-    3/StrafeRight.png
-  uploadId: 777992
