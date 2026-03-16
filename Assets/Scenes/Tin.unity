@@ -1170,8 +1170,13 @@ MonoBehaviour:
   walkSpeed: 2
   runSpeed: 4
   aimSpeed: 3
-  aimReticle: {fileID: 32019343}
   turnSpeed: 15
+  maxStamina: 100
+  currentStamina: 100
+  staminaDrain: 20
+  staminaRecoverIdle: 20
+  staminaRecoverWalk: 5
+  aimReticle: {fileID: 32019343}
   anim: {fileID: 1931305629}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
