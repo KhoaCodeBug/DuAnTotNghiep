@@ -82,10 +82,10 @@ public class InventorySystem : MonoBehaviour
     // ĐÃ THÊM MỚI TỪ ĐÂY XUỐNG DƯỚI: Hàm để báo cho UI biết cần vẽ lại lưới đồ
     private void UpdateUI()
     {
-        // Kiểm tra xem UI có đang tồn tại không thì gọi nó vẽ lại
-        if (InventoryUI.Instance != null)
+        if (AutoUIManager.Instance != null)
         {
-            InventoryUI.Instance.RefreshUI(this);
+            // Truyền danh sách đồ vào để UIManager vẽ lại
+            AutoUIManager.Instance.RefreshUI(this.slots);
         }
     }
 }
