@@ -76396,6 +76396,7 @@ GameObject:
   - component: {fileID: 1497146805}
   - component: {fileID: 1497146804}
   - component: {fileID: 1497146806}
+  - component: {fileID: 1497146807}
   m_Layer: 0
   m_Name: ZombieTest
   m_TagString: Untagged
@@ -76469,15 +76470,15 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 368746673022191736, guid: 0e06bab137573be49a8509cbcfaf24ce, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 1.28, y: 1.28}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!4 &1497146803
@@ -76548,11 +76549,52 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0.3
-  detectionRange: 2
+  detectionRange: 3
   viewAngle: 180
   obstacleMask:
     serializedVersion: 2
     m_Bits: 0
+  loseTime: 5
+  attackRange: 0.1
+  attackDuration: 1
+  attackCooldown: 1.5
+--- !u!70 &1497146807
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1497146800}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0.012878418, y: -0.19152212}
+  m_Size: {x: 0.1415596, y: 0.21704578}
+  m_Direction: 0
 --- !u!1 &1557255322
 GameObject:
   m_ObjectHideFlags: 0
