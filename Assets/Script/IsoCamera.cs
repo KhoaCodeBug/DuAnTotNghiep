@@ -38,7 +38,6 @@ public class PZ_CameraController : MonoBehaviour
     {
         HandleZoom();
     }
-
     void LateUpdate()
     {
         if (player == null) return;

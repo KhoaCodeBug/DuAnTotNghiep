@@ -76555,7 +76555,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   loseTime: 5
-  attackRange: 0.1
+  attackRange: 0.03
   attackDuration: 1
   attackCooldown: 1.5
 --- !u!70 &1497146807

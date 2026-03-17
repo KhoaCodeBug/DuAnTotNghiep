@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
-public class PZ_PlayerController2D : MonoBehaviour
+[RequireComponent(typeof(PlayerStamina))] // Đảm bảo luôn có script Stamina đi kèm
+public class PlayerMovement : MonoBehaviour
 {
     [Header("--- Movement Settings ---")]
     public float walkSpeed = 4f;
@@ -9,19 +10,6 @@ public class PZ_PlayerController2D : MonoBehaviour
     public float aimSpeed = 2f;
     [Tooltip("Tốc độ quay mặt")]
     public float turnSpeed = 12f;
-
-    [Header("--- Stamina System ---")]
-    public float maxStamina = 100f;
-    public float currentStamina = 100f;
-    public float staminaDrain = 20f;       // Mất bao nhiêu Stamina mỗi giây khi chạy
-
-    [Tooltip("Tốc độ hồi Stamina khi ĐỨNG YÊN thở")]
-    public float staminaRecoverIdle = 15f;
-
-    [Tooltip("Tốc độ hồi Stamina khi ĐI BỘ/LẾT")]
-    public float staminaRecoverWalk = 5f;
-
-    private bool isExhausted = false;      // Trạng thái mệt mỏi
 
     [Header("--- Aiming & Visuals ---")]
     public GameObject aimReticle;
@@ -38,9 +26,13 @@ public class PZ_PlayerController2D : MonoBehaviour
     private Vector2 lastLookDir = Vector2.down;
     private Vector2 smoothLookDir;
 
+    // Thêm tham chiếu đến hệ thống Stamina
+    private PlayerStamina staminaSystem;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
+        staminaSystem = GetComponent<PlayerStamina>(); // Khởi tạo kết nối
         mainCam = Camera.main;
         rb.freezeRotation = true;
         smoothLookDir = lastLookDir;
@@ -50,9 +42,13 @@ public class PZ_PlayerController2D : MonoBehaviour
     void Update()
     {
         HandleInputs();
-        HandleStamina(); // Quản lý thể lực
+
+        bool isMovingNow = moveInput.magnitude > 0.1f;
+        // Báo cho Stamina biết trạng thái di chuyển để nó tự tính toán
+        staminaSystem.UpdateStamina(isRunning, isMovingNow);
+
         HandleRotationAndReticle();
-        UpdateAnimation();
+        UpdateAnimation(isMovingNow); // Tui truyền isMovingNow vào luôn cho gọn
         HandleCombat();
     }
 
@@ -69,8 +65,8 @@ public class PZ_PlayerController2D : MonoBehaviour
 
         isAiming = Input.GetMouseButton(1);
 
-        // NẾU ĐANG MỆT (EXHAUSTED) THÌ CẤM CHẠY
-        if (isExhausted)
+        // NẾU ĐANG MỆT (Đọc từ PlayerStamina) THÌ CẤM CHẠY
+        if (staminaSystem.IsExhausted)
         {
             isRunning = false;
         }
@@ -80,44 +76,12 @@ public class PZ_PlayerController2D : MonoBehaviour
         }
     }
 
-    private void HandleStamina()
-    {
-        // 1. Trừ thể lực khi đang chạy
-        if (isRunning && moveInput.magnitude > 0.1f)
-        {
-            currentStamina -= staminaDrain * Time.deltaTime;
-            if (currentStamina <= 0)
-            {
-                currentStamina = 0;
-                isExhausted = true; // Cạn kiệt thể lực
-            }
-        }
-        // 2. Hồi thể lực khi không chạy (Đi bộ hoặc Đứng yên)
-        else
-        {
-            // Kiểm tra xem nhân vật có đang di chuyển không
-            bool isMovingNow = moveInput.magnitude > 0.1f;
-
-            // Chọn tốc độ hồi phục tương ứng
-            float currentRecoverRate = isMovingNow ? staminaRecoverWalk : staminaRecoverIdle;
-
-            // Cộng thể lực
-            currentStamina += currentRecoverRate * Time.deltaTime;
-
-            if (currentStamina >= maxStamina)
-            {
-                currentStamina = maxStamina;
-                isExhausted = false; // Đầy thể lực, xốc lại súng và sẵn sàng chạy tiếp
-            }
-        }
-    }
-
     private void HandleMovement()
     {
         float currentSpeed = walkSpeed;
 
         // Nếu mệt, đi bộ chậm lại (còn 60% tốc độ gốc)
-        if (isExhausted && !isAiming)
+        if (staminaSystem.IsExhausted && !isAiming)
         {
             currentSpeed = walkSpeed * 0.6f;
         }
@@ -163,26 +127,17 @@ public class PZ_PlayerController2D : MonoBehaviour
 
     private void HandleCombat()
     {
-        // TẤT CẢ hành động tấn công CHỈ ĐƯỢC PHÉP khi đang đè chuột phải ngắm (Aiming)
         if (isAiming)
         {
-            // 1. BẮN SÚNG (Chuột Trái)
             if (Input.GetMouseButtonDown(0))
             {
                 anim.SetTrigger("Shoot");
-                // Sau này viết thêm code trừ đạn, sinh tia lửa ở đây...
             }
 
-            // 2. ĐẬP BẰNG SÚNG (Phím Space)
             if (Input.GetKeyDown(KeyCode.Space))
             {
-                // Random ra 1 số từ 2 đến 4 (tương ứng với Attack 2, 3, 4)
                 int randomAttack = Random.Range(2, 5);
-
-                // Gửi số random vào Animator để chọn đòn đánh
                 anim.SetInteger("RandomBash", randomAttack);
-
-                // Kích hoạt đánh
                 anim.SetTrigger("GunBash");
             }
         }
@@ -195,17 +150,16 @@ public class PZ_PlayerController2D : MonoBehaviour
         return mainCam.ScreenToWorldPoint(mousePos);
     }
 
-    private void UpdateAnimation()
+    private void UpdateAnimation(bool isMovingNow)
     {
         if (anim == null) return;
 
-        bool isMovingNow = moveInput.magnitude > 0.1f;
         anim.SetBool("IsMoving", isMovingNow);
         anim.SetBool("IsRunning", isRunning);
         anim.SetBool("IsAiming", isAiming);
 
-        // Báo cho Animator biết nhân vật đang thở dốc
-        anim.SetBool("IsExhausted", isExhausted);
+        // Báo cho Animator biết nhân vật đang thở dốc dựa trên Stamina
+        anim.SetBool("IsExhausted", staminaSystem.IsExhausted);
 
         bool isMovingBackwards = false;
         if (isAiming && isMovingNow)
@@ -220,7 +174,7 @@ public class PZ_PlayerController2D : MonoBehaviour
         anim.SetFloat("MoveY", smoothLookDir.y);
 
         // Phát chậm animation đi bộ nếu đang mệt
-        if (isExhausted && isMovingNow && !isAiming)
+        if (staminaSystem.IsExhausted && isMovingNow && !isAiming)
         {
             anim.speed = 0.7f;
         }
