@@ -353,6 +353,9 @@ GameObject:
   - component: {fileID: 8762421789751151386}
   - component: {fileID: 76553097535974651}
   - component: {fileID: 6027786628438645557}
+  - component: {fileID: 8486142591583179744}
+  - component: {fileID: 2460234225545820196}
+  - component: {fileID: 1644029633153542868}
   m_Layer: 2
   m_Name: Player
   m_TagString: Player
@@ -554,6 +557,49 @@ MonoBehaviour:
   staminaDrain: 20
   staminaRecoverIdle: 15
   staminaRecoverWalk: 5
+--- !u!114 &8486142591583179744
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 663ce5986f8bb8e4c82b1cfa98ea3d79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxSlots: 20
+  gameFont: {fileID: 11400000, guid: d36faa2d399037544b1fd0e60bcec31a, type: 2}
+--- !u!114 &2460234225545820196
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9d242a7360b49bf4386a6cb5424ca1cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxSlots: 20
+  slots: []
+--- !u!114 &1644029633153542868
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94176fa1daef1244bbb5cd817c91f297, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  inventory: {fileID: 2460234225545820196}
+  itemToPickup: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
+  amount: 1
 --- !u!1 &9213073195809154038
 GameObject:
   m_ObjectHideFlags: 0

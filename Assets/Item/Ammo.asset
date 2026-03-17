@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45658c3055c88304eb95446d7a980e81, type: 3}
-  m_Name: Dan
+  m_Name: Ammo
   m_EditorClassIdentifier: 
-  itemName: "\u0110\u1EA1n"
-  icon: {fileID: 0}
+  itemName: Ammo
+  icon: {fileID: -8704383721093287524, guid: b654856c042e05e4fb15ef768ae926be, type: 3}
   category: 0
   isStackable: 1
-  maxStack: 30
+  maxStack: 60
   healAmount: 0
   staminaRegen: 0
   useTime: 0
