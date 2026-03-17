@@ -39,8 +39,7 @@ public class PZ_CameraController : MonoBehaviour
         HandleZoom();
     }
 
-    // FixedUpdate dùng để bám theo Player di chuyển bằng vật lý
-    void FixedUpdate()
+    void LateUpdate()
     {
         if (player == null) return;
         HandleCameraFollowAndPan();

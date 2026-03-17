@@ -1168,8 +1168,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   walkSpeed: 2
-  runSpeed: 4
-  aimSpeed: 3
+  runSpeed: 3
+  aimSpeed: 1
   turnSpeed: 15
   maxStamina: 100
   currentStamina: 100
