@@ -353,6 +353,8 @@ GameObject:
   - component: {fileID: 8762421789751151386}
   - component: {fileID: 76553097535974651}
   - component: {fileID: 6027786628438645557}
+  - component: {fileID: 7126942027890368006}
+  - component: {fileID: 5426569587065415619}
   - component: {fileID: 8486142591583179744}
   - component: {fileID: 2460234225545820196}
   - component: {fileID: 1644029633153542868}
@@ -557,6 +559,39 @@ MonoBehaviour:
   staminaDrain: 20
   staminaRecoverIdle: 15
   staminaRecoverWalk: 5
+--- !u!114 &7126942027890368006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2217d06c07bb87041a63779eb7b0d99c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 100
+  currentHealth: 0
+--- !u!114 &5426569587065415619
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f7dd8af34ed75f4ab504655ca8a63fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHunger: 100
+  currentHunger: 0
+  hungerDrainRate: 0.5
+  maxThirst: 100
+  currentThirst: 0
+  thirstDrainRate: 0.8
+  damageOverTime: 2
 --- !u!114 &8486142591583179744
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -570,7 +605,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxSlots: 20
-  gameFont: {fileID: 11400000, guid: d36faa2d399037544b1fd0e60bcec31a, type: 2}
+  gameFont: {fileID: 11400000, guid: aed8f0b682a2225499d29bdbb6ed0598, type: 2}
 --- !u!114 &2460234225545820196
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -585,6 +620,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxSlots: 20
   slots: []
+  droppedItemPrefab: {fileID: 8793482473757737979, guid: 3aee0678cab032d43993017e75ae352d, type: 3}
 --- !u!114 &1644029633153542868
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -598,7 +634,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   inventory: {fileID: 2460234225545820196}
-  itemToPickup: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
+  itemToPickup: {fileID: 11400000, guid: fae581eeb7321c5489edd85a61c3a320, type: 2}
   amount: 1
 --- !u!1 &9213073195809154038
 GameObject:

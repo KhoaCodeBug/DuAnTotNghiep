@@ -10,13 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45658c3055c88304eb95446d7a980e81, type: 3}
-  m_Name: EnergyWater
+  m_Name: Bandage
   m_EditorClassIdentifier: 
-  itemName: EnergyWater
-  icon: {fileID: -5026307117483157257, guid: eda09366117815040a568144bc66ccbe, type: 3}
-  category: 2
+  itemName: Bandage
+  icon: {fileID: 2676128305404206751, guid: 7172b78c22e8157459938e5456610a7b, type: 3}
+  category: 1
   isStackable: 1
   maxStack: 5
-  healAmount: 0
-  staminaRegen: 50
-  useTime: 2
+  healAmount: 15
+  staminaRegen: 0
+  buffDuration: 0
+  speedMultiplier: 0

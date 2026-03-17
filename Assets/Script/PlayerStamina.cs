@@ -1,11 +1,12 @@
 ﻿using UnityEngine;
+using System.Collections; // Bắt buộc phải có để dùng Coroutine
 
 public class PlayerStamina : MonoBehaviour
 {
     [Header("--- Stamina System ---")]
     public float maxStamina = 100f;
     public float currentStamina = 100f;
-    public float staminaDrain = 20f;       // Mất bao nhiêu Stamina mỗi giây khi chạy
+    public float staminaDrain = 20f;
 
     [Tooltip("Tốc độ hồi Stamina khi ĐỨNG YÊN thở")]
     public float staminaRecoverIdle = 15f;
@@ -13,36 +14,85 @@ public class PlayerStamina : MonoBehaviour
     [Tooltip("Tốc độ hồi Stamina khi ĐI BỘ/LẾT")]
     public float staminaRecoverWalk = 5f;
 
-    // Biến này được đóng gói (Encapsulation), các script khác chỉ được ĐỌC chứ không được SỬA
     public bool IsExhausted { get; private set; } = false;
 
-    // Hàm này sẽ được PlayerMovement gọi liên tục để cập nhật thể lực
+    // --- BIẾN QUẢN LÝ BUFF ---
+    public bool HasEnergyBuff { get; private set; } = false;
+    public float CurrentSpeedMultiplier { get; private set; } = 1f;
+    private Coroutine buffCoroutine;
+
     public void UpdateStamina(bool isRunning, bool isMovingNow)
     {
         // 1. Trừ thể lực khi đang chạy
         if (isRunning && isMovingNow)
         {
-            currentStamina -= staminaDrain * Time.deltaTime;
-            if (currentStamina <= 0)
+            // CHỈ TRỪ KHI KHÔNG CÓ BUFF
+            if (!HasEnergyBuff)
             {
-                currentStamina = 0;
-                IsExhausted = true; // Cạn kiệt thể lực
+                currentStamina -= staminaDrain * Time.deltaTime;
+                if (currentStamina <= 0)
+                {
+                    currentStamina = 0;
+                    IsExhausted = true;
+                }
             }
         }
-        // 2. Hồi thể lực khi không chạy (Đi bộ hoặc Đứng yên)
+        // 2. Hồi thể lực khi không chạy
         else
         {
-            // Chọn tốc độ hồi phục tương ứng
             float currentRecoverRate = isMovingNow ? staminaRecoverWalk : staminaRecoverIdle;
 
-            // Cộng thể lực
+            // NẾU CÓ BUFF, HỒI THỂ LỰC NHANH GẤP 3 LẦN
+            if (HasEnergyBuff) currentRecoverRate *= 3f;
+
             currentStamina += currentRecoverRate * Time.deltaTime;
 
             if (currentStamina >= maxStamina)
             {
                 currentStamina = maxStamina;
-                IsExhausted = false; // Đầy thể lực, sẵn sàng chạy tiếp
+                IsExhausted = false;
             }
         }
+    }
+
+    public void RestoreStamina(float amount)
+    {
+        currentStamina += amount;
+        if (currentStamina >= maxStamina) currentStamina = maxStamina;
+        if (currentStamina > 0) IsExhausted = false;
+    }
+
+    // --- HÀM KÍCH HOẠT NƯỚC TĂNG LỰC ---
+    public void ApplyEnergyBuff(float duration, float speedBoost, float staminaBoost)
+    {
+        if (buffCoroutine != null) StopCoroutine(buffCoroutine);
+        buffCoroutine = StartCoroutine(EnergyBuffRoutine(duration, speedBoost, staminaBoost));
+    }
+
+    private IEnumerator EnergyBuffRoutine(float duration, float speedBoost, float staminaBoost)
+    {
+        HasEnergyBuff = true;
+        IsExhausted = false;
+        CurrentSpeedMultiplier = speedBoost;
+
+        // 1. NỚI RỘNG MAX STAMINA (Ví dụ: 100 + 50 = 150)
+        maxStamina += staminaBoost;
+        // Bơm luôn 50 thể lực đó cho người chơi tràn trề năng lượng
+        currentStamina += staminaBoost;
+
+        Debug.Log($"⚡ BẮT ĐẦU BUFF: Tốc độ x{speedBoost}, Giới hạn Thể lực tăng lên {maxStamina} trong {duration}s!");
+
+        // Chờ hết thời gian tác dụng
+        yield return new WaitForSeconds(duration);
+
+        // 2. HẾT GIỜ -> TRẢ MỌI THỨ VỀ CŨ
+        HasEnergyBuff = false;
+        CurrentSpeedMultiplier = 1f;
+        maxStamina -= staminaBoost; // Trả về 100
+
+        // Nếu lúc hết buff mà thể lực đang lố 100 thì ép nó về 100
+        if (currentStamina > maxStamina) currentStamina = maxStamina;
+
+        Debug.Log($"❌ HẾT BUFF: Giới hạn Thể lực tụt về lại {maxStamina}.");
     }
 }

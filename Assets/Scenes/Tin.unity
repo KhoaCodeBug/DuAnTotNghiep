@@ -365,10 +365,10 @@ PrefabInstance:
       propertyPath: aimReticle
       value: 
       objectReference: {fileID: 32019343}
-    - target: {fileID: 1644029633153542868, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
-      propertyPath: itemToPickup
+    - target: {fileID: 2460234225545820196, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: droppedItemPrefab
       value: 
-      objectReference: {fileID: 11400000, guid: 9b2a48c8c18d6294ca217fec6afbd2fe, type: 2}
+      objectReference: {fileID: 4808553861604040599, guid: dcd50cc0af7b9e9439fa8a85c2f495ac, type: 3}
     - target: {fileID: 4457333233239025546, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
       propertyPath: m_Name
       value: Player
@@ -414,9 +414,21 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8486142591583179744, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
-      propertyPath: gameFont
+      propertyPath: iconHealth
       value: 
-      objectReference: {fileID: 11400000, guid: aed8f0b682a2225499d29bdbb6ed0598, type: 2}
+      objectReference: {fileID: -3593005430731049587, guid: 7e2ea5478717f0441a02eda3455f54c2, type: 3}
+    - target: {fileID: 8486142591583179744, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: iconHunger
+      value: 
+      objectReference: {fileID: 1472325951620093286, guid: 7ed714081dc587347a28931f5ed7ec45, type: 3}
+    - target: {fileID: 8486142591583179744, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: iconThirst
+      value: 
+      objectReference: {fileID: -174445121998448974, guid: 5f741344fdd9e5a48a672bcf8fb84606, type: 3}
+    - target: {fileID: 8486142591583179744, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: iconStamina
+      value: 
+      objectReference: {fileID: -5381133741501535216, guid: 3f34cf25e5e084f4e901f5d791acd992, type: 3}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

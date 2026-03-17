@@ -86,8 +86,22 @@ public class PlayerMovement : MonoBehaviour
             currentSpeed = walkSpeed * 0.6f;
         }
 
-        if (isAiming) currentSpeed = aimSpeed;
-        else if (isRunning) currentSpeed = runSpeed;
+        // Chọn tốc độ cơ bản tùy trạng thái
+        if (isAiming)
+        {
+            currentSpeed = aimSpeed;
+        }
+        else if (isRunning)
+        {
+            currentSpeed = runSpeed;
+        }
+
+        // --- ĐÃ SỬA LỖI Ở ĐÂY ---
+        // Áp dụng bùa chú (Buff) nhân tốc độ cho cả lúc ĐI BỘ và CHẠY (Miễn là không ngắm súng)
+        if (!isAiming && staminaSystem.CurrentSpeedMultiplier > 1f)
+        {
+            currentSpeed *= staminaSystem.CurrentSpeedMultiplier;
+        }
 
         if (moveInput == Vector2.zero)
         {
@@ -169,7 +183,7 @@ public class PlayerMovement : MonoBehaviour
         }
         anim.SetBool("IsMovingBackwards", isMovingBackwards);
 
-        smoothLookDir = Vector2.Lerp(smoothLookDir, lastLookDir, turnSpeed * Time.deltaTime);
+        smoothLookDir = Vector3.Lerp(smoothLookDir, lastLookDir, turnSpeed * Time.deltaTime);
         anim.SetFloat("MoveX", smoothLookDir.x);
         anim.SetFloat("MoveY", smoothLookDir.y);
 

@@ -28,6 +28,9 @@ public class InventorySystem : MonoBehaviour
     [Header("Danh sách các ô đang chứa đồ")]
     public List<InventorySlot> slots = new List<InventorySlot>();
 
+    [Header("Cài đặt Rớt Đồ")]
+    public GameObject droppedItemPrefab;
+
     // Hàm dùng để nhặt đồ vào túi
     public bool AddItem(ItemData itemToAdd, int amountToAdd)
     {
@@ -77,6 +80,122 @@ public class InventorySystem : MonoBehaviour
         }
 
         return true;
+    }
+
+    public void UseItem(int index)
+    {
+        if (index < 0 || index >= slots.Count) return;
+
+        InventorySlot slot = slots[index];
+        ItemData item = slot.item;
+        bool itemUsed = false;
+
+        // 1. TÌM TẤT CẢ SCRIPT CẦN THIẾT (Chỉ tìm một lần duy nhất ở đây)
+        PlayerHealth health = Object.FindAnyObjectByType<PlayerHealth>();
+        PlayerStamina stamina = Object.FindAnyObjectByType<PlayerStamina>();
+        PlayerSurvival survival = Object.FindAnyObjectByType<PlayerSurvival>();
+
+        // 2. PHÂN LOẠI XỬ LÝ
+        if (item.category == ItemCategory.Medical)
+        {
+            if (health == null)
+            {
+                Debug.LogError("LỖI: Không tìm thấy script PlayerHealth!");
+            }
+            else if (health.currentHealth < health.maxHealth)
+            {
+                health.Heal(item.healAmount);
+                itemUsed = true;
+            }
+            else
+            {
+                Debug.Log("⚠️ Máu đang đầy!");
+            }
+        }
+        else if (item.category == ItemCategory.Consumable)
+        {
+            // Kiểm tra script Survival để hồi Đói/Khát
+            if (survival != null)
+            {
+                if (item.hungerRestore > 0) survival.RestoreHunger(item.hungerRestore);
+                if (item.thirstRestore > 0) survival.RestoreThirst(item.thirstRestore);
+                itemUsed = true;
+            }
+
+            // Kiểm tra script Stamina để dùng Buff (Nước tăng lực)
+            if (stamina != null && item.buffDuration > 0)
+            {
+                stamina.ApplyEnergyBuff(item.buffDuration, item.speedMultiplier, item.maxStaminaBoost);
+                itemUsed = true;
+            }
+
+            if (itemUsed) Debug.Log("Đã nốc xong nhu yếu phẩm: " + item.itemName);
+        }
+        else if (item.category == ItemCategory.Ammunition)
+        {
+            Debug.Log("⚠️ Đạn dược không thể sử dụng trực tiếp!");
+        }
+
+        // 3. TRỪ ĐỒ NẾU DÙNG THÀNH CÔNG
+        if (itemUsed)
+        {
+            slot.amount--;
+            if (slot.amount <= 0) slots.RemoveAt(index);
+            UpdateUI();
+        }
+    }
+
+    public void DropItem(int index)
+    {
+        // 1. Kiểm tra vị trí ô hợp lệ
+        if (index < 0 || index >= slots.Count) return;
+
+        InventorySlot slot = slots[index];
+        ItemData itemToDrop = slot.item;
+
+        // 2. Trừ đồ trong túi và cập nhật giao diện
+        slot.amount--;
+        if (slot.amount <= 0)
+        {
+            slots.RemoveAt(index);
+        }
+        UpdateUI();
+
+        // 3. XÁC ĐỊNH PREFAB NÀO SẼ ĐƯỢC RỚT RA
+        // Ưu tiên dùng Prefab riêng của món đồ (nếu có cài trong cục ItemData), 
+        // Nếu không cài, nó sẽ xài cái droppedItemPrefab dùng chung của Ba lô.
+        GameObject prefabToSpawn = itemToDrop.specificDropPrefab != null ? itemToDrop.specificDropPrefab : droppedItemPrefab;
+
+        if (prefabToSpawn != null)
+        {
+            // SỬA LỖI VĂNG XA: Dùng Random.insideUnitCircle * 0.3f để tạo một điểm ngẫu nhiên 
+            // cực kỳ gần (bán kính 0.3) ngay xung quanh tâm nhân vật.
+            Vector2 randomOffset = Random.insideUnitCircle * 0.3f;
+
+            // Giữ cho trục Z bằng 0 để đồ không bị chìm xuống dưới map
+            Vector3 spawnPos = transform.position + new Vector3(randomOffset.x, randomOffset.y, 0f);
+
+            // Đẻ cục đồ ra map
+            GameObject droppedGO = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
+
+            // Tự động "thay áo" (Sprite) của cục đồ rớt ra cho giống với icon của món đó trong túi
+            SpriteRenderer sr = droppedGO.GetComponent<SpriteRenderer>();
+            if (sr != null) sr.sprite = itemToDrop.icon;
+
+            // Gán dữ liệu cho cục đồ để lụm lại được
+            ItemPickup pickup = droppedGO.GetComponent<ItemPickup>();
+            if (pickup != null)
+            {
+                pickup.item = itemToDrop;
+                pickup.amount = 1; // Vứt ra 1 món thì gán số lượng là 1
+            }
+
+            Debug.Log("Đã vứt " + itemToDrop.itemName + " ra ngay dưới chân!");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ Bạn chưa cài đặt Prefab rớt đồ cho hệ thống!");
+        }
     }
 
     // ĐÃ THÊM MỚI TỪ ĐÂY XUỐNG DƯỚI: Hàm để báo cho UI biết cần vẽ lại lưới đồ
