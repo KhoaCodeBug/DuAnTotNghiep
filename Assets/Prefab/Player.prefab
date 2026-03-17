@@ -606,6 +606,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxSlots: 20
   gameFont: {fileID: 11400000, guid: aed8f0b682a2225499d29bdbb6ed0598, type: 2}
+  iconHealth: {fileID: -3593005430731049587, guid: 7e2ea5478717f0441a02eda3455f54c2, type: 3}
+  iconStamina: {fileID: -5381133741501535216, guid: 3f34cf25e5e084f4e901f5d791acd992, type: 3}
+  iconHunger: {fileID: 1472325951620093286, guid: 7ed714081dc587347a28931f5ed7ec45, type: 3}
+  iconThirst: {fileID: -4455688734036498157, guid: cd33713cff23916469e03c071645e3bb, type: 3}
 --- !u!114 &2460234225545820196
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -620,7 +624,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxSlots: 20
   slots: []
-  droppedItemPrefab: {fileID: 8793482473757737979, guid: 3aee0678cab032d43993017e75ae352d, type: 3}
+  droppedItemPrefab: {fileID: 4808553861604040599, guid: dcd50cc0af7b9e9439fa8a85c2f495ac, type: 3}
 --- !u!114 &1644029633153542868
 MonoBehaviour:
   m_ObjectHideFlags: 0

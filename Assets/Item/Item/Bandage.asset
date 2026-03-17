@@ -15,9 +15,12 @@ MonoBehaviour:
   itemName: Bandage
   icon: {fileID: 2676128305404206751, guid: 7172b78c22e8157459938e5456610a7b, type: 3}
   category: 1
+  specificDropPrefab: {fileID: 0}
   isStackable: 1
   maxStack: 5
   healAmount: 15
-  staminaRegen: 0
+  hungerRestore: 0
+  thirstRestore: 0
   buffDuration: 0
   speedMultiplier: 0
+  maxStaminaBoost: 0
