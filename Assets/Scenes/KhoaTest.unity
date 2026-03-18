@@ -1519,6 +1519,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8762421789751151386, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: m_Offset.y
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
@@ -77336,7 +77340,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   loseTime: 5
-  attackRange: 0.03
+  attackRange: 0.04
   attackDuration: 1
   attackCooldown: 1.5
 --- !u!70 &1497146807
