@@ -12,8 +12,12 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Tốc độ quay mặt")]
     public float turnSpeed = 12f;
 
-    [Header("--- Aiming & Visuals ---")]
-    public GameObject aimReticle;
+    [Header("--- Aiming & Hardware Cursor ---")]
+    // 🔥 SỬA: Thay thế GameObject bằng Texture2D để dùng Hardware Cursor
+    public Texture2D crosshairTexture;
+    [Tooltip("Tọa độ tâm của tấm hình. Ví dụ hình 32x32 thì tâm là X:16, Y:16")]
+    public Vector2 crosshairHotSpot = new Vector2(16, 16);
+    private bool isCurrentlyAimingCursor = false;
 
     [Header("--- Animations ---")]
     public Animator anim;
@@ -40,7 +44,8 @@ public class PlayerMovement : MonoBehaviour
         mainCam = Camera.main;
         rb.freezeRotation = true;
         smoothLookDir = lastLookDir;
-        if (aimReticle != null) aimReticle.SetActive(false);
+
+        // Đã xóa dòng aimReticle.SetActive ở đây
     }
 
     void Update()
@@ -56,9 +61,8 @@ public class PlayerMovement : MonoBehaviour
         bool isMovingNow = moveInput.magnitude > 0.1f;
         staminaSystem.UpdateStamina(isRunning, isMovingNow);
 
-        HandleRotationAndReticle();
+        HandleRotationAndAiming(); // Đã đổi tên hàm cho chuẩn xác hơn
         UpdateAnimation(isMovingNow);
-        HandleCombat();
     }
 
     void FixedUpdate()
@@ -139,35 +143,38 @@ public class PlayerMovement : MonoBehaviour
         rb.MovePosition(nextPosition);
     }
 
-    private void HandleRotationAndReticle()
+    // 🔥 SỬA: Cập nhật hàm này để xử lý Crosshair xịn
+    private void HandleRotationAndAiming()
     {
         if (isAiming)
         {
+            // Tính toán hướng nhìn của nhân vật
             Vector2 mouseHitPoint = GetMouseWorldPosition();
-            if (aimReticle != null)
-            {
-                if (!aimReticle.activeSelf) aimReticle.SetActive(true);
-                aimReticle.transform.position = mouseHitPoint;
-            }
-
             Vector2 lookVector = mouseHitPoint - (Vector2)transform.position;
             if (lookVector.sqrMagnitude > 0.1f)
             {
                 lastLookDir = lookVector.normalized;
             }
+
+            // --- BẬT HARDWARE CURSOR ---
+            if (!isCurrentlyAimingCursor)
+            {
+                Cursor.SetCursor(crosshairTexture, crosshairHotSpot, CursorMode.Auto);
+                isCurrentlyAimingCursor = true;
+            }
         }
         else
         {
-            if (aimReticle != null && aimReticle.activeSelf)
-                aimReticle.SetActive(false);
-
+            // Di chuyển thì nhìn theo hướng di chuyển
             if (moveInput != Vector2.zero) lastLookDir = moveInput;
-        }
-    }
 
-    private void HandleCombat()
-    {
-        // Hàm này đã trống vì code combat nằm ở PlayerCombat.cs
+            // --- TẮT HARDWARE CURSOR ---
+            if (isCurrentlyAimingCursor)
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+                isCurrentlyAimingCursor = false;
+            }
+        }
     }
 
     private Vector2 GetMouseWorldPosition()
@@ -187,35 +194,19 @@ public class PlayerMovement : MonoBehaviour
         anim.SetBool("IsExhausted", staminaSystem.IsExhausted);
         anim.SetBool("IsCrouching", isCrouching);
 
-        // 🔥 MỚI: Khai báo 2 biến để gửi sang Blend Tree ngắm bắn
         float strafeX = 0f;
         float strafeY = 0f;
 
         if (isAiming && isMovingNow)
         {
-            // === TOÁN VECTOR "NÃO LÒNG" BẮT ĐẦU TỪ ĐÂY ===
-
-            // 1. Lấy hướng súng đang chỉa (lastLookDir) làm "Trục Tới"
             Vector2 forwardDir = lastLookDir.normalized;
+            // Đã đổi dấu để X=1 là sang Phải, X=-1 là sang Trái cho khớp Blend Tree
+            Vector2 rightDir = new Vector2(forwardDir.y, -forwardDir.x);
 
-            // 2. Tính "Trục Ngang" vuông góc với Trục Tới (Xoay 90 độ)
-            // Vector (x, y) xoay 90 độ thành (-y, x)
-            Vector2 rightDir = new Vector2(-forwardDir.y, forwardDir.x);
-
-            // 3. Phân tích moveInput (hướng bấm phím WASD) lên 2 trục vừa tìm được
-            // Dùng Dot Product để xem moveInput "giống" trục nào hơn
-            strafeY = Vector2.Dot(moveInput.normalized, forwardDir); // Giá trị Tiến/Lùi (-1 đến 1)
-            strafeX = Vector2.Dot(moveInput.normalized, rightDir);   // Giá trị Ngang Trái/Phải (-1 đến 1)
-
-            // Ví dụ: Súng chỉa lên (0,1). Bấm nút D (1,0). 
-            // forwardDir=(0,1), rightDir=(-1,0).
-            // strafeY = Dot((1,0), (0,1)) = 0.
-            // strafeX = Dot((1,0), (-1,0)) = -1 (Nghĩa là đang đi sang PHẢI so với hướng súng).
-
-            // === TOÁN VECTOR KẾT THÚC ===
+            strafeY = Vector2.Dot(moveInput.normalized, forwardDir);
+            strafeX = Vector2.Dot(moveInput.normalized, rightDir);
         }
 
-        // 🔥 MỚI: Gửi 2 giá trị này sang Animator
         anim.SetFloat("StrafeX", strafeX);
         anim.SetFloat("StrafeY", strafeY);
 
