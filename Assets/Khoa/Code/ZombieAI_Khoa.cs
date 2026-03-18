@@ -4,8 +4,9 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 {
     [Header("Movement")]
     public float speed = 2f;
-    Collider2D playerCol; // mới nè
-    Collider2D myCol; // mới nè
+    Collider2D playerCol;
+    Collider2D myCol;
+
     [Header("Vision")]
     public float detectionRange = 3f;
     public float viewAngle = 90f;
@@ -74,14 +75,21 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             if (loseTimer <= 0)
                 isChasing = false;
         }
- 
-        // ===== 2. DISTANCE =====
-        float distance = Vector2.Distance(myCol.ClosestPoint(player.position), playerCol.ClosestPoint(transform.position)); // mới nè
 
-        // 🔥 FIX: luôn cập nhật hướng nhìn khi đang chase hoặc gần player
-        if (distance > 0.2f) // 🔥 tránh jitter khi quá gần
+        // ===== 2. DISTANCE =====
+        // 🔥 FIX: Dùng Physics2D.Distance để lấy khoảng cách mép-mép chính xác nhất
+        ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
+        float distance = collDist.distance;
+        if (distance < 0) distance = 0f; // Tránh lỗi số âm khi 2 collider vô tình đè lên nhau
+
+        // Lấy tọa độ tâm của 2 collider để tính toán hướng đi chuẩn xác
+        Vector2 targetPos = playerCol.bounds.center;
+        Vector2 myPos = myCol.bounds.center;
+
+        // Cập nhật hướng nhìn khi đang chase hoặc gần player
+        if (distance > 0.2f) // Tránh jitter khi quá gần
         {
-            Vector2 dir = (player.position - transform.position).normalized;
+            Vector2 dir = (targetPos - myPos).normalized;
             if (dir != Vector2.zero)
                 lastMove = dir;
         }
@@ -104,12 +112,13 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         {
             if (distance > attackRange)
             {
-                Vector2 direction = (player.position - transform.position).normalized;
+                // 🔥 FIX: Nhắm vào giữa người Player thay vì nhắm vào gót chân
+                Vector2 direction = (targetPos - myPos).normalized;
                 movement = direction;
             }
             else
             {
-                movement = Vector2.zero; // 🔥 ĐỨNG YÊN KHI ĐỦ TẦM
+                movement = Vector2.zero; // ĐỨNG YÊN KHI ĐỦ TẦM
             }
         }
         else
@@ -121,7 +130,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         anim.SetFloat("MoveX", lastMove.x);
         anim.SetFloat("MoveY", lastMove.y);
         anim.SetFloat("Speed", movement.magnitude);
-        anim.SetInteger("AttackIndex", attackIndex);
+        // Đã xóa anim.SetInteger ở đây để tránh đè logic của Trigger Attack
     }
 
     void FixedUpdate()
@@ -132,13 +141,16 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     // ===== VISION SYSTEM =====
     bool CanSeePlayer()
     {
-        Vector2 toPlayer = player.position - transform.position;
+        // 🔥 FIX: Mắt zombie (tâm) nhìn vào người player (tâm)
+        Vector2 myPos = myCol.bounds.center;
+        Vector2 targetPos = playerCol.bounds.center;
+
+        Vector2 toPlayer = targetPos - myPos;
         float distance = toPlayer.magnitude;
 
         if (distance > detectionRange)
             return false;
 
-        // 🔥 FIX: nếu đang chase thì luôn nhìn về player
         Vector2 forward;
         if (isChasing)
             forward = toPlayer.normalized;
@@ -150,16 +162,27 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         if (angle > viewAngle * 0.5f)
             return false;
 
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, toPlayer.normalized, distance, obstacleMask);
+        // Bắn tia raycast xem có bị tường cản không
+        RaycastHit2D hit = Physics2D.Raycast(myPos, toPlayer.normalized, distance, obstacleMask);
 
-        if (hit.collider != null)
+        // Nếu tia ray đụng vật cản (và vật cản đó không phải là chính Player) thì ko nhìn thấy
+        if (hit.collider != null && hit.collider.gameObject != player.gameObject)
             return false;
 
         return true;
     }
+
     void OnDrawGizmosSelected()
     {
+        // Vẽ vòng tầm đánh từ tâm của Zombie để dễ nhìn hơn trên Scene
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        if (Application.isPlaying && myCol != null)
+        {
+            Gizmos.DrawWireSphere(myCol.bounds.center, attackRange);
+        }
+        else
+        {
+            Gizmos.DrawWireSphere(transform.position, attackRange);
+        }
     }
 }
