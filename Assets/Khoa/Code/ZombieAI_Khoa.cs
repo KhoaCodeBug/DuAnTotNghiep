@@ -7,6 +7,10 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     Collider2D playerCol;
     Collider2D myCol;
 
+    [Header("Damage")]
+    public float zombieDamage = 15f; // Lượng máu trừ đi mỗi lần cào
+    private PlayerHealth playerHealth;
+
     [Header("Vision")]
     public float detectionRange = 3f;
     public float viewAngle = 90f;
@@ -39,6 +43,8 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
 
+        // MỚI: Lấy component máu của player
+        playerHealth = player.GetComponent<PlayerHealth>();
         playerCol = player.GetComponent<Collider2D>();
         myCol = GetComponent<Collider2D>();
 
@@ -101,6 +107,8 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
             anim.SetInteger("AttackIndex", attackIndex);
             anim.SetTrigger("Attack");
+
+
 
             isAttacking = true;
             attackTimer = attackDuration;
@@ -183,6 +191,19 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         else
         {
             Gizmos.DrawWireSphere(transform.position, attackRange);
+        }
+    }
+    public void TriggerAttackDamage()
+    {
+        // Kiểm tra xem Player còn đứng trong tầm cào không (Player có thể lùi lại né đòn lúc Zombie vung tay)
+        // Cộng thêm 0.2f bù trừ (leniency) để game không bị quá khó
+        ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
+        if (collDist.distance <= attackRange + 0.2f)
+        {
+            if (playerHealth != null)
+            {
+                playerHealth.TakeDamage(zombieDamage);
+            }
         }
     }
 }

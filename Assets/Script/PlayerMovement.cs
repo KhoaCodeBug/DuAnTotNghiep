@@ -29,6 +29,10 @@ public class PlayerMovement : MonoBehaviour
     // Thêm tham chiếu đến hệ thống Stamina
     private PlayerStamina staminaSystem;
 
+    // 🔥 MỚI: Các biến dùng để xử lý khi bị Zombie cào
+    private bool isStunned = false;
+    private float stunTimer = 0f;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -41,6 +45,13 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        // 🔥 MỚI: Đếm lùi thời gian bị choáng
+        if (stunTimer > 0)
+        {
+            stunTimer -= Time.deltaTime;
+            isStunned = stunTimer > 0;
+        }
+
         HandleInputs();
 
         bool isMovingNow = moveInput.magnitude > 0.1f;
@@ -59,6 +70,15 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleInputs()
     {
+        // 🔥 MỚI: NẾU ĐANG BỊ CHOÁNG -> KHÔNG CHO LÀM GÌ HẾT
+        if (isStunned)
+        {
+            moveInput = Vector2.zero;
+            isAiming = false;
+            isRunning = false;
+            return; // Thoát hàm sớm, không đọc nút bấm nữa
+        }
+
         float hor = Input.GetAxisRaw("Horizontal");
         float ver = Input.GetAxisRaw("Vertical");
         moveInput = new Vector2(hor, ver).normalized;
@@ -96,7 +116,6 @@ public class PlayerMovement : MonoBehaviour
             currentSpeed = runSpeed;
         }
 
-        // --- ĐÃ SỬA LỖI Ở ĐÂY ---
         // Áp dụng bùa chú (Buff) nhân tốc độ cho cả lúc ĐI BỘ và CHẠY (Miễn là không ngắm súng)
         if (!isAiming && staminaSystem.CurrentSpeedMultiplier > 1f)
         {
@@ -112,6 +131,10 @@ public class PlayerMovement : MonoBehaviour
         Vector2 nextPosition = rb.position + moveInput * currentSpeed * Time.fixedDeltaTime;
         rb.MovePosition(nextPosition);
     }
+
+    // =========================================================================
+    // 🔥 DƯỚI ĐÂY LÀ 4 CÁI HÀM CŨ CỦA BẠN MÌNH ĐÃ LẤY LẠI ĐỂ KHÔNG BỊ LỖI
+    // =========================================================================
 
     private void HandleRotationAndReticle()
     {
@@ -196,5 +219,14 @@ public class PlayerMovement : MonoBehaviour
         {
             anim.speed = 1f;
         }
+    }
+
+    // 🔥 MỚI: Hàm để PlayerHealth gọi khi bị ăn tát
+    public void LockMovement(float duration)
+    {
+        stunTimer = duration;
+        isStunned = true;
+        rb.linearVelocity = Vector2.zero; // Ép dừng lại ngay lập tức
+        moveInput = Vector2.zero;
     }
 }

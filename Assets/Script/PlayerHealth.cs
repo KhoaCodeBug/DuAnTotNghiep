@@ -6,9 +6,17 @@ public class PlayerHealth : MonoBehaviour
     public float maxHealth = 100f;
     public float currentHealth;
 
+    [Header("Hiệu ứng khi bị đánh")]
+    [Tooltip("Thời gian bị khóa di chuyển (giây) khi trúng đòn")]
+    public float stunDuration = 0.4f; // 🔥 MỚI: Biến này sẽ hiện ra ở Inspector
+
+    // Lấy component di chuyển
+    private PlayerMovement movementScript;
+
     private void Start()
     {
-        currentHealth = maxHealth; // Mới vào game thì đầy máu
+        currentHealth = maxHealth;
+        movementScript = GetComponent<PlayerMovement>(); // Tìm script movement
     }
 
     // Hàm gọi khi bị zombie cào
@@ -19,18 +27,22 @@ public class PlayerHealth : MonoBehaviour
 
         Debug.Log("Bị thương! Máu còn: " + currentHealth);
 
+        // 🔥 MỚI: Đã thay 0.4f cứng nhắc bằng biến stunDuration
+        if (movementScript != null)
+        {
+            movementScript.LockMovement(stunDuration);
+        }
+
         if (currentHealth <= 0)
         {
             Die();
         }
     }
 
-    // Hàm gọi khi xài Băng gạc / Medkit
     public void Heal(float amount)
     {
         currentHealth += amount;
-        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth); // Không cho hồi lố 100
-
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         Debug.Log("Đã hồi máu! Máu hiện tại: " + currentHealth);
     }
 

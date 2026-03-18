@@ -1472,6 +1472,22 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 76553097535974651, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: aimSpeed
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 76553097535974651, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: runSpeed
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 76553097535974651, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: turnSpeed
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 76553097535974651, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: walkSpeed
+      value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 76553097535974651, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
       propertyPath: aimReticle
       value: 
       objectReference: {fileID: 1507976155}
@@ -77334,6 +77350,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0.3
+  zombieDamage: 15
   detectionRange: 3
   viewAngle: 180
   obstacleMask:
