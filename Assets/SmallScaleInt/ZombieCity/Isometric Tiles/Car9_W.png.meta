@@ -1,0 +1,559 @@
+fileFormatVersion: 2
+guid: 7f5f4c7367f70f64a823e990839281e5
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8149089220589506282
+    second: Car9_W_0
+  - first:
+      213: -1660685481073767296
+    second: Car9_W_1
+  - first:
+      213: -2168239507233498386
+    second: Car9_W_2
+  - first:
+      213: 8999348213791860699
+    second: Car9_W_3
+  - first:
+      213: -4714502147772585793
+    second: Car9_W_4
+  - first:
+      213: -2020519851124891398
+    second: Car9_W_5
+  - first:
+      213: -7894353167643110959
+    second: Car9_W_6
+  - first:
+      213: -3673521886558220002
+    second: Car9_W_7
+  - first:
+      213: -154387482776744414
+    second: Car9_W_8
+  - first:
+      213: 4880618448286198201
+    second: Car9_W_9
+  - first:
+      213: -184669257365235473
+    second: Car9_W_10
+  - first:
+      213: 6479864517026648016
+    second: Car9_W_11
+  - first:
+      213: -3506065437416444946
+    second: Car9_W_12
+  - first:
+      213: 5705658067034191777
+    second: Car9_W_13
+  - first:
+      213: -1442490790815224335
+    second: Car9_W_14
+  - first:
+      213: -4341533301484200481
+    second: Car9_W_15
+  - first:
+      213: 3556251109309971139
+    second: Car9_W_16
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Car9_W_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 232
+        width: 240
+        height: 280
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aeec33c6871671170800000000000000
+      internalID: 8149089220589506282
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 256
+        height: 503
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 08c03f88a5f04f8e0800000000000000
+      internalID: -1660685481073767296
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_2
+      rect:
+        serializedVersion: 2
+        x: 34
+        y: 228
+        width: 9
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eea116fe7add8e1e0800000000000000
+      internalID: -2168239507233498386
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_3
+      rect:
+        serializedVersion: 2
+        x: 38
+        y: 237
+        width: 28
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bd72c15158b14ec70800000000000000
+      internalID: 8999348213791860699
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_4
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 215
+        width: 14
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fb8e23d6649b29eb0800000000000000
+      internalID: -4714502147772585793
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_5
+      rect:
+        serializedVersion: 2
+        x: 51
+        y: 224
+        width: 20
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: af0631c86eba5f3e0800000000000000
+      internalID: -2020519851124891398
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_6
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 242
+        width: 18
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1d1172fbe9f917290800000000000000
+      internalID: -7894353167643110959
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_7
+      rect:
+        serializedVersion: 2
+        x: 67
+        y: 223
+        width: 12
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e11131dae47050dc0800000000000000
+      internalID: -3673521886558220002
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_8
+      rect:
+        serializedVersion: 2
+        x: 70
+        y: 245
+        width: 14
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 22e435307618bddf0800000000000000
+      internalID: -154387482776744414
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_9
+      rect:
+        serializedVersion: 2
+        x: 79
+        y: 238
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9b9215ebe907bb340800000000000000
+      internalID: 4880618448286198201
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_10
+      rect:
+        serializedVersion: 2
+        x: 81
+        y: 205
+        width: 175
+        height: 79
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe85fc1f94cef6df0800000000000000
+      internalID: -184669257365235473
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_11
+      rect:
+        serializedVersion: 2
+        x: 82
+        y: 229
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0df080a427a1de950800000000000000
+      internalID: 6479864517026648016
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_12
+      rect:
+        serializedVersion: 2
+        x: 83
+        y: 243
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eeba4838f04f75fc0800000000000000
+      internalID: -3506065437416444946
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_13
+      rect:
+        serializedVersion: 2
+        x: 89
+        y: 241
+        width: 6
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1a73a6738c19e2f40800000000000000
+      internalID: 5705658067034191777
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_14
+      rect:
+        serializedVersion: 2
+        x: 90
+        y: 235
+        width: 7
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1fdafa5b44e3bfbe0800000000000000
+      internalID: -1442490790815224335
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_15
+      rect:
+        serializedVersion: 2
+        x: 100
+        y: 235
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fdd5188f676cfb3c0800000000000000
+      internalID: -4341533301484200481
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car9_W_16
+      rect:
+        serializedVersion: 2
+        x: 243
+        y: 466
+        width: 13
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3ca7286ca875a5130800000000000000
+      internalID: 3556251109309971139
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Car9_W_0: 8149089220589506282
+      Car9_W_1: -1660685481073767296
+      Car9_W_10: -184669257365235473
+      Car9_W_11: 6479864517026648016
+      Car9_W_12: -3506065437416444946
+      Car9_W_13: 5705658067034191777
+      Car9_W_14: -1442490790815224335
+      Car9_W_15: -4341533301484200481
+      Car9_W_16: 3556251109309971139
+      Car9_W_2: -2168239507233498386
+      Car9_W_3: 8999348213791860699
+      Car9_W_4: -4714502147772585793
+      Car9_W_5: -2020519851124891398
+      Car9_W_6: -7894353167643110959
+      Car9_W_7: -3673521886558220002
+      Car9_W_8: -154387482776744414
+      Car9_W_9: 4880618448286198201
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

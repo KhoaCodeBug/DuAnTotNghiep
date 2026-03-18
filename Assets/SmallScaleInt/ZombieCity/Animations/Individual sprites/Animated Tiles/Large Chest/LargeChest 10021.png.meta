@@ -1,0 +1,507 @@
+fileFormatVersion: 2
+guid: ce4989d1717681f45982a6de09a73acd
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4513914478870575027
+    second: LargeChest 10021_0
+  - first:
+      213: -1681461486068179170
+    second: LargeChest 10021_1
+  - first:
+      213: -8371646836619545671
+    second: LargeChest 10021_2
+  - first:
+      213: 5021939966931375960
+    second: LargeChest 10021_3
+  - first:
+      213: 8305831346906952157
+    second: LargeChest 10021_4
+  - first:
+      213: 7583595741522545428
+    second: LargeChest 10021_5
+  - first:
+      213: -4268261336730292022
+    second: LargeChest 10021_6
+  - first:
+      213: -979624553649361576
+    second: LargeChest 10021_7
+  - first:
+      213: 7515197490097028657
+    second: LargeChest 10021_8
+  - first:
+      213: -7101377864703617748
+    second: LargeChest 10021_9
+  - first:
+      213: 8380052416172611304
+    second: LargeChest 10021_10
+  - first:
+      213: 5356462320120958768
+    second: LargeChest 10021_11
+  - first:
+      213: -5743863517700794843
+    second: LargeChest 10021_12
+  - first:
+      213: 1078366486310371070
+    second: LargeChest 10021_13
+  - first:
+      213: -3498846577993147903
+    second: LargeChest 10021_14
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: LargeChest 10021_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 107
+        width: 115
+        height: 149
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b7b2938d45a4ae30800000000000000
+      internalID: 4513914478870575027
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 128
+        height: 247
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e1fd76befaf3aa8e0800000000000000
+      internalID: -1681461486068179170
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_2
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 101
+        width: 6
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9b3f4469e8fe1db80800000000000000
+      internalID: -8371646836619545671
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_3
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 106
+        width: 14
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8571844eac381b540800000000000000
+      internalID: 5021939966931375960
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_4
+      rect:
+        serializedVersion: 2
+        x: 29
+        y: 118
+        width: 49
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dd171b49a9d344370800000000000000
+      internalID: 8305831346906952157
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_5
+      rect:
+        serializedVersion: 2
+        x: 34
+        y: 97
+        width: 13
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 41bcd95b5285e3960800000000000000
+      internalID: 7583595741522545428
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_6
+      rect:
+        serializedVersion: 2
+        x: 69
+        y: 125
+        width: 25
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac038afade614c4c0800000000000000
+      internalID: -4268261336730292022
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_7
+      rect:
+        serializedVersion: 2
+        x: 84
+        y: 120
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 85daa72a8aca762f0800000000000000
+      internalID: -979624553649361576
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_8
+      rect:
+        serializedVersion: 2
+        x: 86
+        y: 109
+        width: 25
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 13ef32ecc485b4860800000000000000
+      internalID: 7515197490097028657
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_9
+      rect:
+        serializedVersion: 2
+        x: 90
+        y: 111
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c25d48ee476d27d90800000000000000
+      internalID: -7101377864703617748
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_10
+      rect:
+        serializedVersion: 2
+        x: 110
+        y: 106
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8e65f19e54deb4470800000000000000
+      internalID: 8380052416172611304
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_11
+      rect:
+        serializedVersion: 2
+        x: 114
+        y: 102
+        width: 13
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 03f0393b91af55a40800000000000000
+      internalID: 5356462320120958768
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_12
+      rect:
+        serializedVersion: 2
+        x: 115
+        y: 210
+        width: 13
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5265e1d1092b940b0800000000000000
+      internalID: -5743863517700794843
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_13
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 5
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: efe373a1b9027fe00800000000000000
+      internalID: 1078366486310371070
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: LargeChest 10021_14
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 1
+        width: 17
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 10a90233399917fc0800000000000000
+      internalID: -3498846577993147903
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      LargeChest 10021_0: 4513914478870575027
+      LargeChest 10021_1: -1681461486068179170
+      LargeChest 10021_10: 8380052416172611304
+      LargeChest 10021_11: 5356462320120958768
+      LargeChest 10021_12: -5743863517700794843
+      LargeChest 10021_13: 1078366486310371070
+      LargeChest 10021_14: -3498846577993147903
+      LargeChest 10021_2: -8371646836619545671
+      LargeChest 10021_3: 5021939966931375960
+      LargeChest 10021_4: 8305831346906952157
+      LargeChest 10021_5: 7583595741522545428
+      LargeChest 10021_6: -4268261336730292022
+      LargeChest 10021_7: -979624553649361576
+      LargeChest 10021_8: 7515197490097028657
+      LargeChest 10021_9: -7101377864703617748
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,455 @@
+fileFormatVersion: 2
+guid: d6dd4cc99f063e34488c5dcfacf0d0ad
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 5745106394566947601
+    second: Flora B8_N_0
+  - first:
+      213: 3117979572463368924
+    second: Flora B8_N_1
+  - first:
+      213: -4820688785404463806
+    second: Flora B8_N_2
+  - first:
+      213: -8937903031753989401
+    second: Flora B8_N_3
+  - first:
+      213: 5515388049886818035
+    second: Flora B8_N_4
+  - first:
+      213: 5677667400499166280
+    second: Flora B8_N_5
+  - first:
+      213: 5158943244477196379
+    second: Flora B8_N_6
+  - first:
+      213: 5464015795262801096
+    second: Flora B8_N_7
+  - first:
+      213: 1229836520761562587
+    second: Flora B8_N_8
+  - first:
+      213: 3404625265199882924
+    second: Flora B8_N_9
+  - first:
+      213: 4533294739458428167
+    second: Flora B8_N_10
+  - first:
+      213: 915420502314590215
+    second: Flora B8_N_11
+  - first:
+      213: -5540424324047508499
+    second: Flora B8_N_12
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Flora B8_N_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 86
+        width: 115
+        height: 170
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 113fcf4b3d7babf40800000000000000
+      internalID: 5745106394566947601
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 128
+        height: 89
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cda7a91c6e9454b20800000000000000
+      internalID: 3117979572463368924
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_2
+      rect:
+        serializedVersion: 2
+        x: 30
+        y: 125
+        width: 56
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 245f14d3719791db0800000000000000
+      internalID: -4820688785404463806
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_3
+      rect:
+        serializedVersion: 2
+        x: 39
+        y: 79
+        width: 10
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7e2aa633c8036f380800000000000000
+      internalID: -8937903031753989401
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_4
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 82
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3fe20f7a5389a8c40800000000000000
+      internalID: 5515388049886818035
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_5
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 80
+        width: 9
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 84c719f4b602bce40800000000000000
+      internalID: 5677667400499166280
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_6
+      rect:
+        serializedVersion: 2
+        x: 78
+        y: 123
+        width: 25
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b58e67f2c8f389740800000000000000
+      internalID: 5158943244477196379
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_7
+      rect:
+        serializedVersion: 2
+        x: 89
+        y: 119
+        width: 9
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8c443cb8a6514db40800000000000000
+      internalID: 5464015795262801096
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_8
+      rect:
+        serializedVersion: 2
+        x: 97
+        y: 115
+        width: 9
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bd59bc7bcc1411110800000000000000
+      internalID: 1229836520761562587
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_9
+      rect:
+        serializedVersion: 2
+        x: 105
+        y: 107
+        width: 13
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ca22f85e3a8af3f20800000000000000
+      internalID: 3404625265199882924
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_10
+      rect:
+        serializedVersion: 2
+        x: 115
+        y: 91
+        width: 13
+        height: 165
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 70d019f0c8f79ee30800000000000000
+      internalID: 4533294739458428167
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_11
+      rect:
+        serializedVersion: 2
+        x: 122
+        y: 30
+        width: 6
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7002294c81a34bc00800000000000000
+      internalID: 915420502314590215
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Flora B8_N_12
+      rect:
+        serializedVersion: 2
+        x: 119
+        y: 0
+        width: 9
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: debe6348e657c13b0800000000000000
+      internalID: -5540424324047508499
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Flora B8_N_0: 5745106394566947601
+      Flora B8_N_1: 3117979572463368924
+      Flora B8_N_10: 4533294739458428167
+      Flora B8_N_11: 915420502314590215
+      Flora B8_N_12: -5540424324047508499
+      Flora B8_N_2: -4820688785404463806
+      Flora B8_N_3: -8937903031753989401
+      Flora B8_N_4: 5515388049886818035
+      Flora B8_N_5: 5677667400499166280
+      Flora B8_N_6: 5158943244477196379
+      Flora B8_N_7: 5464015795262801096
+      Flora B8_N_8: 1229836520761562587
+      Flora B8_N_9: 3404625265199882924
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

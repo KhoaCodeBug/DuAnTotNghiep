@@ -1,0 +1,1729 @@
+fileFormatVersion: 2
+guid: 31d53e0a9a045c94fba12f4035506fe2
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 4457142072167438258
+    second: Fire barrel_0
+  - first:
+      213: -6920193387130142190
+    second: Fire barrel_1
+  - first:
+      213: -5225084356620355672
+    second: Fire barrel_2
+  - first:
+      213: 7498610530368640289
+    second: Fire barrel_3
+  - first:
+      213: -1553220357913840028
+    second: Fire barrel_4
+  - first:
+      213: -6790794931149156997
+    second: Fire barrel_5
+  - first:
+      213: 6268245510445818054
+    second: Fire barrel_6
+  - first:
+      213: -3507700170403549149
+    second: Fire barrel_7
+  - first:
+      213: -8769568126560582935
+    second: Fire barrel_8
+  - first:
+      213: -6109615875746281844
+    second: Fire barrel_9
+  - first:
+      213: 3144138797359173944
+    second: Fire barrel_10
+  - first:
+      213: 5924644890823823631
+    second: Fire barrel_11
+  - first:
+      213: 409064574145183270
+    second: Fire barrel_12
+  - first:
+      213: -6157224748709431568
+    second: Fire barrel_13
+  - first:
+      213: -7034485733982438108
+    second: Fire barrel_14
+  - first:
+      213: -3425608114412872963
+    second: Fire barrel_15
+  - first:
+      213: -8731825296149033766
+    second: Fire barrel_16
+  - first:
+      213: 3883112454784232716
+    second: Fire barrel_17
+  - first:
+      213: -2586926532849115312
+    second: Fire barrel_18
+  - first:
+      213: -839956556635639069
+    second: Fire barrel_19
+  - first:
+      213: 2703300313672710955
+    second: Fire barrel_20
+  - first:
+      213: -2199588614623361994
+    second: Fire barrel_21
+  - first:
+      213: -7161809424721805061
+    second: Fire barrel_22
+  - first:
+      213: 3792392253927830905
+    second: Fire barrel_23
+  - first:
+      213: -6587131662018411516
+    second: Fire barrel_24
+  - first:
+      213: -8014567151447284225
+    second: Fire barrel_25
+  - first:
+      213: -1777033937723636493
+    second: Fire barrel_26
+  - first:
+      213: -1281776507081376564
+    second: Fire barrel_27
+  - first:
+      213: -5609114575548179637
+    second: Fire barrel_28
+  - first:
+      213: 122455563086143180
+    second: Fire barrel_29
+  - first:
+      213: 3929466801420326396
+    second: Fire barrel_30
+  - first:
+      213: -9018640256692927614
+    second: Fire barrel_31
+  - first:
+      213: 4220004433724101283
+    second: Fire barrel_32
+  - first:
+      213: -9068547773800233772
+    second: Fire barrel_33
+  - first:
+      213: -5175099962747213308
+    second: Fire barrel_34
+  - first:
+      213: 8248466105495668000
+    second: Fire barrel_35
+  - first:
+      213: -1287226675417376600
+    second: Fire barrel_36
+  - first:
+      213: 3639228956715271772
+    second: Fire barrel_37
+  - first:
+      213: -3395296279004206573
+    second: Fire barrel_38
+  - first:
+      213: -3690901753559089473
+    second: Fire barrel_39
+  - first:
+      213: -1358780087768577608
+    second: Fire barrel_40
+  - first:
+      213: 8158749245440769936
+    second: Fire barrel_41
+  - first:
+      213: 4379205385700248931
+    second: Fire barrel_42
+  - first:
+      213: -8942396203401437756
+    second: Fire barrel_43
+  - first:
+      213: 1455304383546242142
+    second: Fire barrel_44
+  - first:
+      213: 2775685312446587848
+    second: Fire barrel_45
+  - first:
+      213: 2951662286288607916
+    second: Fire barrel_46
+  - first:
+      213: 107361041588646293
+    second: Fire barrel_47
+  - first:
+      213: 971517743054944050
+    second: Fire barrel_48
+  - first:
+      213: -160796198918630101
+    second: Fire barrel_49
+  - first:
+      213: 7089456246370021855
+    second: Fire barrel_50
+  - first:
+      213: 8154661348723999622
+    second: Fire barrel_51
+  - first:
+      213: -8599676859465934554
+    second: Fire barrel_52
+  - first:
+      213: -3367267375783895018
+    second: Fire barrel_53
+  - first:
+      213: -2434943266485232371
+    second: Fire barrel_54
+  - first:
+      213: -685851133155209250
+    second: Fire barrel_55
+  - first:
+      213: -1239348783273597101
+    second: Fire barrel_56
+  - first:
+      213: 3784449570652356887
+    second: Fire barrel_57
+  - first:
+      213: 3022244971179759208
+    second: Fire barrel_58
+  - first:
+      213: 8488568399666550244
+    second: Fire barrel_59
+  - first:
+      213: 7390573256319743165
+    second: Fire barrel_60
+  - first:
+      213: -4803565738942832681
+    second: Fire barrel_61
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Fire barrel_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 100
+        width: 114
+        height: 156
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2b71df48913fadd30800000000000000
+      internalID: 4457142072167438258
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 133
+        height: 107
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 212c91777c886ff90800000000000000
+      internalID: -6920193387130142190
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_2
+      rect:
+        serializedVersion: 2
+        x: 31
+        y: 120
+        width: 72
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a7713a1675cc77b0800000000000000
+      internalID: -5225084356620355672
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_3
+      rect:
+        serializedVersion: 2
+        x: 86
+        y: 121
+        width: 9
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 12550ab4c8a601860800000000000000
+      internalID: 7498610530368640289
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_4
+      rect:
+        serializedVersion: 2
+        x: 93
+        y: 117
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 466f3a4505ad17ae0800000000000000
+      internalID: -1553220357913840028
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_5
+      rect:
+        serializedVersion: 2
+        x: 106
+        y: 109
+        width: 13
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b7dc4524dff32c1a0800000000000000
+      internalID: -6790794931149156997
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_6
+      rect:
+        serializedVersion: 2
+        x: 113
+        y: 104
+        width: 127
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6c06f07c4184df650800000000000000
+      internalID: 6268245510445818054
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_7
+      rect:
+        serializedVersion: 2
+        x: 133
+        y: 0
+        width: 128
+        height: 104
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 320f4849745225fc0800000000000000
+      internalID: -3507700170403549149
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_8
+      rect:
+        serializedVersion: 2
+        x: 222
+        y: 109
+        width: 25
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9e2c4c6804c3c4680800000000000000
+      internalID: -8769568126560582935
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_9
+      rect:
+        serializedVersion: 2
+        x: 242
+        y: 100
+        width: 126
+        height: 156
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c864e0c2bb8463ba0800000000000000
+      internalID: -6109615875746281844
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_10
+      rect:
+        serializedVersion: 2
+        x: 262
+        y: 0
+        width: 128
+        height: 108
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8311e1de39932ab20800000000000000
+      internalID: 3144138797359173944
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_11
+      rect:
+        serializedVersion: 2
+        x: 350
+        y: 109
+        width: 25
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f0113e95321983250800000000000000
+      internalID: 5924644890823823631
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_12
+      rect:
+        serializedVersion: 2
+        x: 370
+        y: 105
+        width: 128
+        height: 151
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 62ebe18101a4da500800000000000000
+      internalID: 409064574145183270
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_13
+      rect:
+        serializedVersion: 2
+        x: 390
+        y: 0
+        width: 127
+        height: 102
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0f63ee2a6b42d8aa0800000000000000
+      internalID: -6157224748709431568
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_14
+      rect:
+        serializedVersion: 2
+        x: 446
+        y: 100
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42d7c68ce7c706e90800000000000000
+      internalID: -7034485733982438108
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_15
+      rect:
+        serializedVersion: 2
+        x: 486
+        y: 109
+        width: 17
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dfa99b0d19bc570d0800000000000000
+      internalID: -3425608114412872963
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_16
+      rect:
+        serializedVersion: 2
+        x: 497
+        y: 99
+        width: 127
+        height: 157
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: adc4446082352d680800000000000000
+      internalID: -8731825296149033766
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_17
+      rect:
+        serializedVersion: 2
+        x: 518
+        y: 0
+        width: 127
+        height: 108
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c0d2f4a343693e530800000000000000
+      internalID: 3883112454784232716
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_18
+      rect:
+        serializedVersion: 2
+        x: 606
+        y: 109
+        width: 25
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 05fde754604691cd0800000000000000
+      internalID: -2586926532849115312
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_19
+      rect:
+        serializedVersion: 2
+        x: 626
+        y: 104
+        width: 126
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e2f8f646ffd754f0800000000000000
+      internalID: -839956556635639069
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_20
+      rect:
+        serializedVersion: 2
+        x: 629
+        y: 105
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b2bf9a5005d048520800000000000000
+      internalID: 2703300313672710955
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_21
+      rect:
+        serializedVersion: 2
+        x: 646
+        y: 0
+        width: 127
+        height: 107
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63481651fcd7971e0800000000000000
+      internalID: -2199588614623361994
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_22
+      rect:
+        serializedVersion: 2
+        x: 734
+        y: 109
+        width: 25
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bf0896ae5442c9c90800000000000000
+      internalID: -7161809424721805061
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_23
+      rect:
+        serializedVersion: 2
+        x: 754
+        y: 104
+        width: 126
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 975bf4879a841a430800000000000000
+      internalID: 3792392253927830905
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_24
+      rect:
+        serializedVersion: 2
+        x: 774
+        y: 0
+        width: 128
+        height: 108
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4040aac47aec594a0800000000000000
+      internalID: -6587131662018411516
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_25
+      rect:
+        serializedVersion: 2
+        x: 862
+        y: 109
+        width: 25
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ff5687583a986c090800000000000000
+      internalID: -8014567151447284225
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_26
+      rect:
+        serializedVersion: 2
+        x: 882
+        y: 98
+        width: 131
+        height: 158
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3f44b2c7c05b657e0800000000000000
+      internalID: -1777033937723636493
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_27
+      rect:
+        serializedVersion: 2
+        x: 902
+        y: 0
+        width: 127
+        height: 108
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ccc39f5de07363ee0800000000000000
+      internalID: -1281776507081376564
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_28
+      rect:
+        serializedVersion: 2
+        x: 1002
+        y: 109
+        width: 13
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b4b1cfb030c6822b0800000000000000
+      internalID: -5609114575548179637
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_29
+      rect:
+        serializedVersion: 2
+        x: 1011
+        y: 98
+        width: 130
+        height: 158
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cce15829fac03b100800000000000000
+      internalID: 122455563086143180
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_30
+      rect:
+        serializedVersion: 2
+        x: 1030
+        y: 0
+        width: 128
+        height: 107
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf559579c35488630800000000000000
+      internalID: 3929466801420326396
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_31
+      rect:
+        serializedVersion: 2
+        x: 1130
+        y: 109
+        width: 13
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 283c7c6287a57d280800000000000000
+      internalID: -9018640256692927614
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_32
+      rect:
+        serializedVersion: 2
+        x: 1139
+        y: 104
+        width: 127
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a2d2b68ca7709a30800000000000000
+      internalID: 4220004433724101283
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_33
+      rect:
+        serializedVersion: 2
+        x: 1158
+        y: 0
+        width: 126
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4d44af1d8db062280800000000000000
+      internalID: -9068547773800233772
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_34
+      rect:
+        serializedVersion: 2
+        x: 1258
+        y: 109
+        width: 13
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 40aa053b00a5e28b0800000000000000
+      internalID: -5175099962747213308
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_35
+      rect:
+        serializedVersion: 2
+        x: 1265
+        y: 98
+        width: 132
+        height: 158
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0254bef7830787270800000000000000
+      internalID: 8248466105495668000
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_36
+      rect:
+        serializedVersion: 2
+        x: 1286
+        y: 0
+        width: 126
+        height: 107
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a81752a82ad22ee0800000000000000
+      internalID: -1287226675417376600
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_37
+      rect:
+        serializedVersion: 2
+        x: 1386
+        y: 109
+        width: 13
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c5644556473218230800000000000000
+      internalID: 3639228956715271772
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_38
+      rect:
+        serializedVersion: 2
+        x: 1395
+        y: 104
+        width: 127
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 31aafb6f50c71e0d0800000000000000
+      internalID: -3395296279004206573
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_39
+      rect:
+        serializedVersion: 2
+        x: 1414
+        y: 0
+        width: 128
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fbe7e3e096847ccc0800000000000000
+      internalID: -3690901753559089473
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_40
+      rect:
+        serializedVersion: 2
+        x: 1514
+        y: 109
+        width: 13
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8b90ea495b4a42de0800000000000000
+      internalID: -1358780087768577608
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_41
+      rect:
+        serializedVersion: 2
+        x: 1521
+        y: 100
+        width: 132
+        height: 156
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 09fbbf93633b93170800000000000000
+      internalID: 8158749245440769936
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_42
+      rect:
+        serializedVersion: 2
+        x: 1542
+        y: 0
+        width: 126
+        height: 108
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 36d0425a81016cc30800000000000000
+      internalID: 4379205385700248931
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_43
+      rect:
+        serializedVersion: 2
+        x: 1642
+        y: 109
+        width: 13
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4cd9477280a36e380800000000000000
+      internalID: -8942396203401437756
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_44
+      rect:
+        serializedVersion: 2
+        x: 1651
+        y: 104
+        width: 130
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e54b75550a7423410800000000000000
+      internalID: 1455304383546242142
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_45
+      rect:
+        serializedVersion: 2
+        x: 1670
+        y: 0
+        width: 128
+        height: 108
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8c3e5a0e517358620800000000000000
+      internalID: 2775685312446587848
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_46
+      rect:
+        serializedVersion: 2
+        x: 1770
+        y: 109
+        width: 13
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: caa5627f53966f820800000000000000
+      internalID: 2951662286288607916
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_47
+      rect:
+        serializedVersion: 2
+        x: 1779
+        y: 104
+        width: 139
+        height: 152
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5917b9a6c4c6d7100800000000000000
+      internalID: 107361041588646293
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_48
+      rect:
+        serializedVersion: 2
+        x: 1798
+        y: 0
+        width: 122
+        height: 247
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23777cf6d368b7d00800000000000000
+      internalID: 971517743054944050
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_49
+      rect:
+        serializedVersion: 2
+        x: 1886
+        y: 109
+        width: 25
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b25d83285bcb4cdf0800000000000000
+      internalID: -160796198918630101
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_50
+      rect:
+        serializedVersion: 2
+        x: 1907
+        y: 246
+        width: 13
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd13f8ff4eec26260800000000000000
+      internalID: 7089456246370021855
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_51
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 36
+        width: 6
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6834d4a9a4d2b2170800000000000000
+      internalID: 8154661348723999622
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_52
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 35
+        width: 6
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 629d268957fc7a880800000000000000
+      internalID: -8599676859465934554
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_53
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 35
+        width: 6
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 610a3aa89201541d0800000000000000
+      internalID: -3367267375783895018
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_54
+      rect:
+        serializedVersion: 2
+        x: 512
+        y: 35
+        width: 6
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d0d1be00008553ed0800000000000000
+      internalID: -2434943266485232371
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_55
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 36
+        width: 6
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: edf0c77370e5b76f0800000000000000
+      internalID: -685851133155209250
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_56
+      rect:
+        serializedVersion: 2
+        x: 768
+        y: 35
+        width: 6
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3572a2419d2fccee0800000000000000
+      internalID: -1239348783273597101
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_57
+      rect:
+        serializedVersion: 2
+        x: 1024
+        y: 35
+        width: 6
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7110d1965d0158430800000000000000
+      internalID: 3784449570652356887
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_58
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 35
+        width: 6
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 866516be9cb21f920800000000000000
+      internalID: 3022244971179759208
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_59
+      rect:
+        serializedVersion: 2
+        x: 1408
+        y: 35
+        width: 6
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e51bb13cf37dc570800000000000000
+      internalID: 8488568399666550244
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_60
+      rect:
+        serializedVersion: 2
+        x: 1664
+        y: 35
+        width: 6
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: db4b07d3837909660800000000000000
+      internalID: 7390573256319743165
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Fire barrel_61
+      rect:
+        serializedVersion: 2
+        x: 1792
+        y: 35
+        width: 6
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7df531b296e465db0800000000000000
+      internalID: -4803565738942832681
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Fire barrel_0: 4457142072167438258
+      Fire barrel_1: -6920193387130142190
+      Fire barrel_10: 3144138797359173944
+      Fire barrel_11: 5924644890823823631
+      Fire barrel_12: 409064574145183270
+      Fire barrel_13: -6157224748709431568
+      Fire barrel_14: -7034485733982438108
+      Fire barrel_15: -3425608114412872963
+      Fire barrel_16: -8731825296149033766
+      Fire barrel_17: 3883112454784232716
+      Fire barrel_18: -2586926532849115312
+      Fire barrel_19: -839956556635639069
+      Fire barrel_2: -5225084356620355672
+      Fire barrel_20: 2703300313672710955
+      Fire barrel_21: -2199588614623361994
+      Fire barrel_22: -7161809424721805061
+      Fire barrel_23: 3792392253927830905
+      Fire barrel_24: -6587131662018411516
+      Fire barrel_25: -8014567151447284225
+      Fire barrel_26: -1777033937723636493
+      Fire barrel_27: -1281776507081376564
+      Fire barrel_28: -5609114575548179637
+      Fire barrel_29: 122455563086143180
+      Fire barrel_3: 7498610530368640289
+      Fire barrel_30: 3929466801420326396
+      Fire barrel_31: -9018640256692927614
+      Fire barrel_32: 4220004433724101283
+      Fire barrel_33: -9068547773800233772
+      Fire barrel_34: -5175099962747213308
+      Fire barrel_35: 8248466105495668000
+      Fire barrel_36: -1287226675417376600
+      Fire barrel_37: 3639228956715271772
+      Fire barrel_38: -3395296279004206573
+      Fire barrel_39: -3690901753559089473
+      Fire barrel_4: -1553220357913840028
+      Fire barrel_40: -1358780087768577608
+      Fire barrel_41: 8158749245440769936
+      Fire barrel_42: 4379205385700248931
+      Fire barrel_43: -8942396203401437756
+      Fire barrel_44: 1455304383546242142
+      Fire barrel_45: 2775685312446587848
+      Fire barrel_46: 2951662286288607916
+      Fire barrel_47: 107361041588646293
+      Fire barrel_48: 971517743054944050
+      Fire barrel_49: -160796198918630101
+      Fire barrel_5: -6790794931149156997
+      Fire barrel_50: 7089456246370021855
+      Fire barrel_51: 8154661348723999622
+      Fire barrel_52: -8599676859465934554
+      Fire barrel_53: -3367267375783895018
+      Fire barrel_54: -2434943266485232371
+      Fire barrel_55: -685851133155209250
+      Fire barrel_56: -1239348783273597101
+      Fire barrel_57: 3784449570652356887
+      Fire barrel_58: 3022244971179759208
+      Fire barrel_59: 8488568399666550244
+      Fire barrel_6: 6268245510445818054
+      Fire barrel_60: 7390573256319743165
+      Fire barrel_61: -4803565738942832681
+      Fire barrel_7: -3507700170403549149
+      Fire barrel_8: -8769568126560582935
+      Fire barrel_9: -6109615875746281844
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

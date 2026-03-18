@@ -1,0 +1,3679 @@
+fileFormatVersion: 2
+guid: 28051a7338c80b7459bb0a1cec08d1df
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -2903973233715666744
+    second: GunFire_Shadowless_0
+  - first:
+      213: 7006077195203797573
+    second: GunFire_Shadowless_1
+  - first:
+      213: 3315119731682525369
+    second: GunFire_Shadowless_2
+  - first:
+      213: -931920743683799004
+    second: GunFire_Shadowless_3
+  - first:
+      213: -1699612135852929071
+    second: GunFire_Shadowless_4
+  - first:
+      213: 9096921193824036826
+    second: GunFire_Shadowless_5
+  - first:
+      213: 1252200442477959355
+    second: GunFire_Shadowless_6
+  - first:
+      213: 3575011681426554951
+    second: GunFire_Shadowless_7
+  - first:
+      213: -7081574296234183720
+    second: GunFire_Shadowless_8
+  - first:
+      213: 1809986318282309058
+    second: GunFire_Shadowless_9
+  - first:
+      213: -3152723268544772767
+    second: GunFire_Shadowless_10
+  - first:
+      213: -7072644772459993380
+    second: GunFire_Shadowless_11
+  - first:
+      213: -3542503637072906736
+    second: GunFire_Shadowless_12
+  - first:
+      213: -5334649010952926483
+    second: GunFire_Shadowless_13
+  - first:
+      213: 8643804093318096557
+    second: GunFire_Shadowless_14
+  - first:
+      213: -2739657701174718123
+    second: GunFire_Shadowless_15
+  - first:
+      213: 1424855014565124336
+    second: GunFire_Shadowless_16
+  - first:
+      213: 9097178055409342729
+    second: GunFire_Shadowless_17
+  - first:
+      213: 2656355408534896773
+    second: GunFire_Shadowless_18
+  - first:
+      213: 4535741940812029658
+    second: GunFire_Shadowless_19
+  - first:
+      213: -4866432671174522406
+    second: GunFire_Shadowless_20
+  - first:
+      213: -6442932460185346334
+    second: GunFire_Shadowless_21
+  - first:
+      213: 2713688717251832555
+    second: GunFire_Shadowless_22
+  - first:
+      213: 1666321110779836195
+    second: GunFire_Shadowless_23
+  - first:
+      213: 772072013260291392
+    second: GunFire_Shadowless_24
+  - first:
+      213: -1100512921222971881
+    second: GunFire_Shadowless_25
+  - first:
+      213: -3885918242388070675
+    second: GunFire_Shadowless_26
+  - first:
+      213: 955093425325667355
+    second: GunFire_Shadowless_27
+  - first:
+      213: 4020373121653540416
+    second: GunFire_Shadowless_28
+  - first:
+      213: -7519628833645609405
+    second: GunFire_Shadowless_29
+  - first:
+      213: -8787861664632064048
+    second: GunFire_Shadowless_30
+  - first:
+      213: 3786945924163186622
+    second: GunFire_Shadowless_31
+  - first:
+      213: -82900904161759586
+    second: GunFire_Shadowless_32
+  - first:
+      213: 6235683603933530800
+    second: GunFire_Shadowless_33
+  - first:
+      213: 7085279982620172069
+    second: GunFire_Shadowless_34
+  - first:
+      213: -2210941716039355783
+    second: GunFire_Shadowless_35
+  - first:
+      213: 4231405345000672519
+    second: GunFire_Shadowless_36
+  - first:
+      213: -4524718882745104117
+    second: GunFire_Shadowless_37
+  - first:
+      213: 6575684057054793879
+    second: GunFire_Shadowless_38
+  - first:
+      213: -600771460711570640
+    second: GunFire_Shadowless_39
+  - first:
+      213: -776310972816989408
+    second: GunFire_Shadowless_40
+  - first:
+      213: 7799552398947401816
+    second: GunFire_Shadowless_41
+  - first:
+      213: -8067634682984145055
+    second: GunFire_Shadowless_42
+  - first:
+      213: -1334648273847439648
+    second: GunFire_Shadowless_43
+  - first:
+      213: -8391260068524675882
+    second: GunFire_Shadowless_44
+  - first:
+      213: 6611227412452290909
+    second: GunFire_Shadowless_45
+  - first:
+      213: 4974984351127402078
+    second: GunFire_Shadowless_46
+  - first:
+      213: 6054093251054727849
+    second: GunFire_Shadowless_47
+  - first:
+      213: -163664452555389333
+    second: GunFire_Shadowless_48
+  - first:
+      213: -7031800893064408462
+    second: GunFire_Shadowless_49
+  - first:
+      213: 8135312006268924858
+    second: GunFire_Shadowless_50
+  - first:
+      213: 6197234331488893026
+    second: GunFire_Shadowless_51
+  - first:
+      213: 8514561048870879603
+    second: GunFire_Shadowless_52
+  - first:
+      213: -4194245694867038206
+    second: GunFire_Shadowless_53
+  - first:
+      213: 3099474949184843674
+    second: GunFire_Shadowless_54
+  - first:
+      213: 3442165304592424318
+    second: GunFire_Shadowless_55
+  - first:
+      213: 1296842478836296711
+    second: GunFire_Shadowless_56
+  - first:
+      213: -7537032184353692734
+    second: GunFire_Shadowless_57
+  - first:
+      213: 6929797989355833823
+    second: GunFire_Shadowless_58
+  - first:
+      213: 4982029156127703870
+    second: GunFire_Shadowless_59
+  - first:
+      213: 5409249721321302048
+    second: GunFire_Shadowless_60
+  - first:
+      213: -7857489006964677484
+    second: GunFire_Shadowless_61
+  - first:
+      213: 4616596772185508149
+    second: GunFire_Shadowless_62
+  - first:
+      213: 191721725318753965
+    second: GunFire_Shadowless_63
+  - first:
+      213: 2351114108117917143
+    second: GunFire_Shadowless_64
+  - first:
+      213: -6679167628162457816
+    second: GunFire_Shadowless_65
+  - first:
+      213: -5014286630206553898
+    second: GunFire_Shadowless_66
+  - first:
+      213: 4013614257361098314
+    second: GunFire_Shadowless_67
+  - first:
+      213: -2332442592955034038
+    second: GunFire_Shadowless_68
+  - first:
+      213: -3840016345518089376
+    second: GunFire_Shadowless_69
+  - first:
+      213: 641863880023776166
+    second: GunFire_Shadowless_70
+  - first:
+      213: -5477043267444958500
+    second: GunFire_Shadowless_71
+  - first:
+      213: 8326132982556769059
+    second: GunFire_Shadowless_72
+  - first:
+      213: 4119449060226511357
+    second: GunFire_Shadowless_73
+  - first:
+      213: -9109731846837961452
+    second: GunFire_Shadowless_74
+  - first:
+      213: -2422180209290390722
+    second: GunFire_Shadowless_75
+  - first:
+      213: -8975752763180400927
+    second: GunFire_Shadowless_76
+  - first:
+      213: -466621350285158463
+    second: GunFire_Shadowless_77
+  - first:
+      213: 6533065006813270234
+    second: GunFire_Shadowless_78
+  - first:
+      213: 8830810282484349210
+    second: GunFire_Shadowless_79
+  - first:
+      213: 8495630936441958234
+    second: GunFire_Shadowless_80
+  - first:
+      213: 814198186606015000
+    second: GunFire_Shadowless_81
+  - first:
+      213: -4138802446039131550
+    second: GunFire_Shadowless_82
+  - first:
+      213: 9049620080079893910
+    second: GunFire_Shadowless_83
+  - first:
+      213: 946332489979966758
+    second: GunFire_Shadowless_84
+  - first:
+      213: -5478537758413124081
+    second: GunFire_Shadowless_85
+  - first:
+      213: 1289864531065642472
+    second: GunFire_Shadowless_86
+  - first:
+      213: 4836073164887829805
+    second: GunFire_Shadowless_87
+  - first:
+      213: -6904141592455132313
+    second: GunFire_Shadowless_88
+  - first:
+      213: 8467341882738575682
+    second: GunFire_Shadowless_89
+  - first:
+      213: -4044925032304013707
+    second: GunFire_Shadowless_90
+  - first:
+      213: 6766952505309909983
+    second: GunFire_Shadowless_91
+  - first:
+      213: -6056586939140886295
+    second: GunFire_Shadowless_92
+  - first:
+      213: -5336393145443540074
+    second: GunFire_Shadowless_93
+  - first:
+      213: 2780973692203075837
+    second: GunFire_Shadowless_94
+  - first:
+      213: 2202174931270766408
+    second: GunFire_Shadowless_95
+  - first:
+      213: 1088055286650167780
+    second: GunFire_Shadowless_96
+  - first:
+      213: 2722742826454790233
+    second: GunFire_Shadowless_97
+  - first:
+      213: -8119990531707932427
+    second: GunFire_Shadowless_98
+  - first:
+      213: 1830814965141032123
+    second: GunFire_Shadowless_99
+  - first:
+      213: 1771323599344964392
+    second: GunFire_Shadowless_100
+  - first:
+      213: -6969869339846362286
+    second: GunFire_Shadowless_101
+  - first:
+      213: 6961707488337888693
+    second: GunFire_Shadowless_102
+  - first:
+      213: 3831493960122436206
+    second: GunFire_Shadowless_103
+  - first:
+      213: -4503360725720477071
+    second: GunFire_Shadowless_104
+  - first:
+      213: -1673888032769162791
+    second: GunFire_Shadowless_105
+  - first:
+      213: 8252811652846317168
+    second: GunFire_Shadowless_106
+  - first:
+      213: 7053218397565396544
+    second: GunFire_Shadowless_107
+  - first:
+      213: 5388978238327894652
+    second: GunFire_Shadowless_108
+  - first:
+      213: -6560688768278789313
+    second: GunFire_Shadowless_109
+  - first:
+      213: -5868092125213087225
+    second: GunFire_Shadowless_110
+  - first:
+      213: -2092424226670277908
+    second: GunFire_Shadowless_111
+  - first:
+      213: 6884692501945520594
+    second: GunFire_Shadowless_112
+  - first:
+      213: 32291187135758476
+    second: GunFire_Shadowless_113
+  - first:
+      213: -558424784404556445
+    second: GunFire_Shadowless_114
+  - first:
+      213: -1043112915012765639
+    second: GunFire_Shadowless_115
+  - first:
+      213: 2327915219162935744
+    second: GunFire_Shadowless_116
+  - first:
+      213: 648199990354731960
+    second: GunFire_Shadowless_117
+  - first:
+      213: 505592946080771285
+    second: GunFire_Shadowless_118
+  - first:
+      213: -8766219008285064047
+    second: GunFire_Shadowless_119
+  - first:
+      213: -878837777524639455
+    second: GunFire_Shadowless_120
+  - first:
+      213: 9140347226882526431
+    second: GunFire_Shadowless_121
+  - first:
+      213: 4605984330894970051
+    second: GunFire_Shadowless_122
+  - first:
+      213: 7656668126657620541
+    second: GunFire_Shadowless_123
+  - first:
+      213: -1346901736875806491
+    second: GunFire_Shadowless_124
+  - first:
+      213: -6602237191792903345
+    second: GunFire_Shadowless_125
+  - first:
+      213: -4499922915797698804
+    second: GunFire_Shadowless_126
+  - first:
+      213: -1581108751303150588
+    second: GunFire_Shadowless_127
+  - first:
+      213: -474148770471758311
+    second: GunFire_Shadowless_128
+  - first:
+      213: 6696439931200919470
+    second: GunFire_Shadowless_129
+  - first:
+      213: 1137470589366137392
+    second: GunFire_Shadowless_130
+  - first:
+      213: -3885589118086028080
+    second: GunFire_Shadowless_131
+  - first:
+      213: -8025175813409698590
+    second: GunFire_Shadowless_132
+  - first:
+      213: -1446471194823776609
+    second: GunFire_Shadowless_133
+  - first:
+      213: -5690072883983601627
+    second: GunFire_Shadowless_134
+  - first:
+      213: 1361970782725437438
+    second: GunFire_Shadowless_135
+  - first:
+      213: 8550413105239662661
+    second: GunFire_Shadowless_136
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: GunFire_Shadowless_0
+      rect:
+        serializedVersion: 2
+        x: 93
+        y: 962
+        width: 20
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8c0a227dab303b7d0800000000000000
+      internalID: -2903973233715666744
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_1
+      rect:
+        serializedVersion: 2
+        x: 215
+        y: 969
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5426619d6169a3160800000000000000
+      internalID: 7006077195203797573
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_2
+      rect:
+        serializedVersion: 2
+        x: 221
+        y: 963
+        width: 10
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9b043dae4dba10e20800000000000000
+      internalID: 3315119731682525369
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_3
+      rect:
+        serializedVersion: 2
+        x: 342
+        y: 963
+        width: 14
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 428c8e965072113f0800000000000000
+      internalID: -931920743683799004
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_4
+      rect:
+        serializedVersion: 2
+        x: 476
+        y: 961
+        width: 25
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1df0b8274c3c968e0800000000000000
+      internalID: -1699612135852929071
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_5
+      rect:
+        serializedVersion: 2
+        x: 597
+        y: 968
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ad7aa93d0a1ce3e70800000000000000
+      internalID: 9096921193824036826
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_6
+      rect:
+        serializedVersion: 2
+        x: 605
+        y: 961
+        width: 23
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bb85c710ba5b06110800000000000000
+      internalID: 1252200442477959355
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_7
+      rect:
+        serializedVersion: 2
+        x: 725
+        y: 963
+        width: 12
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7404d4bde2efc9130800000000000000
+      internalID: 3575011681426554951
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_8
+      rect:
+        serializedVersion: 2
+        x: 860
+        y: 960
+        width: 29
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8d3bc6682b139bd90800000000000000
+      internalID: -7081574296234183720
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_9
+      rect:
+        serializedVersion: 2
+        x: 980
+        y: 963
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2cdb88d77fc5e1910800000000000000
+      internalID: 1809986318282309058
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_10
+      rect:
+        serializedVersion: 2
+        x: 981
+        y: 970
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 165c74f14e64f34d0800000000000000
+      internalID: -3152723268544772767
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_11
+      rect:
+        serializedVersion: 2
+        x: 988
+        y: 961
+        width: 134
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cd6affa4d0be8dd90800000000000000
+      internalID: -7072644772459993380
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_12
+      rect:
+        serializedVersion: 2
+        x: 1244
+        y: 960
+        width: 32
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0167db806bf76dec0800000000000000
+      internalID: -3542503637072906736
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_13
+      rect:
+        serializedVersion: 2
+        x: 1366
+        y: 969
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dea03cc1df487f5b0800000000000000
+      internalID: -5334649010952926483
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_14
+      rect:
+        serializedVersion: 2
+        x: 1373
+        y: 961
+        width: 12
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: da6ea4aa606f4f770800000000000000
+      internalID: 8643804093318096557
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_15
+      rect:
+        serializedVersion: 2
+        x: 1495
+        y: 965
+        width: 11
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 551515b06d7caf9d0800000000000000
+      internalID: -2739657701174718123
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_16
+      rect:
+        serializedVersion: 2
+        x: 1628
+        y: 960
+        width: 32
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0f89697261a16c310800000000000000
+      internalID: 1424855014565124336
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_17
+      rect:
+        serializedVersion: 2
+        x: 1749
+        y: 963
+        width: 8
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 90917231e3baf3e70800000000000000
+      internalID: 9097178055409342729
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_18
+      rect:
+        serializedVersion: 2
+        x: 1757
+        y: 961
+        width: 128
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 58009ea8b254dd420800000000000000
+      internalID: 2656355408534896773
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_19
+      rect:
+        serializedVersion: 2
+        x: 213
+        y: 963
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ade11f6834132fe30800000000000000
+      internalID: 4535741940812029658
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_20
+      rect:
+        serializedVersion: 2
+        x: 596
+        y: 962
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ad9894fd445f67cb0800000000000000
+      internalID: -4866432671174522406
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_21
+      rect:
+        serializedVersion: 2
+        x: 1364
+        y: 962
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2ee91d6401b1696a0800000000000000
+      internalID: -6442932460185346334
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_22
+      rect:
+        serializedVersion: 2
+        x: 1493
+        y: 963
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: beae7c6b285f8a520800000000000000
+      internalID: 2713688717251832555
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_23
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 816
+        width: 18
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 32734c1c836ff1710800000000000000
+      internalID: 1666321110779836195
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_24
+      rect:
+        serializedVersion: 2
+        x: 201
+        y: 819
+        width: 145
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 04d766bc763f6ba00800000000000000
+      internalID: 772072013260291392
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_25
+      rect:
+        serializedVersion: 2
+        x: 464
+        y: 816
+        width: 20
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 71ef6c334513ab0f0800000000000000
+      internalID: -1100512921222971881
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_26
+      rect:
+        serializedVersion: 2
+        x: 583
+        y: 815
+        width: 144
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: deeaf3072f1721ac0800000000000000
+      internalID: -3885918242388070675
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_27
+      rect:
+        serializedVersion: 2
+        x: 848
+        y: 813
+        width: 23
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b14f8d7f86c214d00800000000000000
+      internalID: 955093425325667355
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_28
+      rect:
+        serializedVersion: 2
+        x: 968
+        y: 817
+        width: 16
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 04600b4ad0c3bc730800000000000000
+      internalID: 4020373121653540416
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_29
+      rect:
+        serializedVersion: 2
+        x: 976
+        y: 818
+        width: 136
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 34eb4cf9a69e4a790800000000000000
+      internalID: -7519628833645609405
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_30
+      rect:
+        serializedVersion: 2
+        x: 1231
+        y: 812
+        width: 26
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0d73558406e3b0680800000000000000
+      internalID: -8787861664632064048
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_31
+      rect:
+        serializedVersion: 2
+        x: 1352
+        y: 817
+        width: 16
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ebf2c51014fed8430800000000000000
+      internalID: 3786945924163186622
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_32
+      rect:
+        serializedVersion: 2
+        x: 1364
+        y: 818
+        width: 132
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e9e21ef111a79def0800000000000000
+      internalID: -82900904161759586
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_33
+      rect:
+        serializedVersion: 2
+        x: 1615
+        y: 812
+        width: 26
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0ba8f202339998650800000000000000
+      internalID: 6235683603933530800
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_34
+      rect:
+        serializedVersion: 2
+        x: 1736
+        y: 819
+        width: 140
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 52fd242da98f35260800000000000000
+      internalID: 7085279982620172069
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_35
+      rect:
+        serializedVersion: 2
+        x: 54
+        y: 679
+        width: 14
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 972b16c29382151e0800000000000000
+      internalID: -2210941716039355783
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_36
+      rect:
+        serializedVersion: 2
+        x: 181
+        y: 688
+        width: 9
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 70d44790eb8f8ba30800000000000000
+      internalID: 4231405345000672519
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_37
+      rect:
+        serializedVersion: 2
+        x: 189
+        y: 686
+        width: 7
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b09c97d2628f431c0800000000000000
+      internalID: -4524718882745104117
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_38
+      rect:
+        serializedVersion: 2
+        x: 309
+        y: 690
+        width: 9
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 79053f77fc5814b50800000000000000
+      internalID: 6575684057054793879
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_39
+      rect:
+        serializedVersion: 2
+        x: 317
+        y: 689
+        width: 7
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 033281d1a81a9a7f0800000000000000
+      internalID: -600771460711570640
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_40
+      rect:
+        serializedVersion: 2
+        x: 438
+        y: 680
+        width: 16
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0236106884df935f0800000000000000
+      internalID: -776310972816989408
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_41
+      rect:
+        serializedVersion: 2
+        x: 565
+        y: 573
+        width: 143
+        height: 134
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8504e4245939d3c60800000000000000
+      internalID: 7799552398947401816
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_42
+      rect:
+        serializedVersion: 2
+        x: 821
+        y: 676
+        width: 18
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 16fdb1ffff00a0090800000000000000
+      internalID: -8067634682984145055
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_43
+      rect:
+        serializedVersion: 2
+        x: 948
+        y: 684
+        width: 14
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0ee2c3957706a7de0800000000000000
+      internalID: -1334648273847439648
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_44
+      rect:
+        serializedVersion: 2
+        x: 958
+        y: 571
+        width: 134
+        height: 132
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6dcaaad2d614c8b80800000000000000
+      internalID: -8391260068524675882
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_45
+      rect:
+        serializedVersion: 2
+        x: 1204
+        y: 674
+        width: 19
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d513b88cd4ccfbb50800000000000000
+      internalID: 6611227412452290909
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_46
+      rect:
+        serializedVersion: 2
+        x: 1332
+        y: 683
+        width: 14
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e567314a8e1ba0540800000000000000
+      internalID: 4974984351127402078
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_47
+      rect:
+        serializedVersion: 2
+        x: 1342
+        y: 571
+        width: 132
+        height: 131
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9a2f4326cb5740450800000000000000
+      internalID: 6054093251054727849
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_48
+      rect:
+        serializedVersion: 2
+        x: 1588
+        y: 674
+        width: 20
+        height: 27
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b66c31b2c0c8abdf0800000000000000
+      internalID: -163664452555389333
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_49
+      rect:
+        serializedVersion: 2
+        x: 1717
+        y: 688
+        width: 9
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2721f9508560a6e90800000000000000
+      internalID: -7031800893064408462
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_50
+      rect:
+        serializedVersion: 2
+        x: 1726
+        y: 216
+        width: 143
+        height: 486
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ab331aeba2f66e070800000000000000
+      internalID: 8135312006268924858
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_51
+      rect:
+        serializedVersion: 2
+        x: 27
+        y: 564
+        width: 18
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26830464acff00650800000000000000
+      internalID: 6197234331488893026
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_52
+      rect:
+        serializedVersion: 2
+        x: 161
+        y: 571
+        width: 18
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3718350792cc92670800000000000000
+      internalID: 8514561048870879603
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_53
+      rect:
+        serializedVersion: 2
+        x: 168
+        y: 578
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2002db833cb0bc5c0800000000000000
+      internalID: -4194245694867038206
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_54
+      rect:
+        serializedVersion: 2
+        x: 291
+        y: 569
+        width: 15
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a9f62686b0c830b20800000000000000
+      internalID: 3099474949184843674
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_55
+      rect:
+        serializedVersion: 2
+        x: 410
+        y: 563
+        width: 20
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e7dd76e6b1705cf20800000000000000
+      internalID: 3442165304592424318
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_56
+      rect:
+        serializedVersion: 2
+        x: 539
+        y: 562
+        width: 25
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 70caca01d5f4ff110800000000000000
+      internalID: 1296842478836296711
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_57
+      rect:
+        serializedVersion: 2
+        x: 791
+        y: 561
+        width: 22
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2c369e64925176790800000000000000
+      internalID: -7537032184353692734
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_58
+      rect:
+        serializedVersion: 2
+        x: 926
+        y: 565
+        width: 22
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd945c04e869b2060800000000000000
+      internalID: 6929797989355833823
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_59
+      rect:
+        serializedVersion: 2
+        x: 1173
+        y: 560
+        width: 25
+        height: 23
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3381af1f19b32540800000000000000
+      internalID: 4982029156127703870
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_60
+      rect:
+        serializedVersion: 2
+        x: 1309
+        y: 564
+        width: 22
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 028acbc46f3811b40800000000000000
+      internalID: 5409249721321302048
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_61
+      rect:
+        serializedVersion: 2
+        x: 1557
+        y: 560
+        width: 25
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4946551016794f290800000000000000
+      internalID: -7857489006964677484
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_62
+      rect:
+        serializedVersion: 2
+        x: 1697
+        y: 571
+        width: 19
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5390555fd42711040800000000000000
+      internalID: 4616596772185508149
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_63
+      rect:
+        serializedVersion: 2
+        x: 1704
+        y: 578
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dae6955b4e129a200800000000000000
+      internalID: 191721725318753965
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_64
+      rect:
+        serializedVersion: 2
+        x: 165
+        y: 567
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7dd17c813d5d0a020800000000000000
+      internalID: 2351114108117917143
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_65
+      rect:
+        serializedVersion: 2
+        x: 1703
+        y: 566
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 82f96101e64de43a0800000000000000
+      internalID: -6679167628162457816
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_66
+      rect:
+        serializedVersion: 2
+        x: 14
+        y: 457
+        width: 24
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6d04c8c60eca96ab0800000000000000
+      internalID: -5014286630206553898
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_67
+      rect:
+        serializedVersion: 2
+        x: 156
+        y: 457
+        width: 9
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a46937be6e833b730800000000000000
+      internalID: 4013614257361098314
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_68
+      rect:
+        serializedVersion: 2
+        x: 166
+        y: 464
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a469cebc1df71afd0800000000000000
+      internalID: -2332442592955034038
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_69
+      rect:
+        serializedVersion: 2
+        x: 166
+        y: 458
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 06b53b1aa7585bac0800000000000000
+      internalID: -3840016345518089376
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_70
+      rect:
+        serializedVersion: 2
+        x: 286
+        y: 458
+        width: 8
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6ab98f25ccb58e800800000000000000
+      internalID: 641863880023776166
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_71
+      rect:
+        serializedVersion: 2
+        x: 294
+        y: 458
+        width: 7
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cda9f78ba22adf3b0800000000000000
+      internalID: -5477043267444958500
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_72
+      rect:
+        serializedVersion: 2
+        x: 398
+        y: 456
+        width: 25
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 32bb5f975dd5c8370800000000000000
+      internalID: 8326132982556769059
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_73
+      rect:
+        serializedVersion: 2
+        x: 524
+        y: 455
+        width: 26
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: df13e1138193b2930800000000000000
+      internalID: 4119449060226511357
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_74
+      rect:
+        serializedVersion: 2
+        x: 551
+        y: 463
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 41df826962bb39180800000000000000
+      internalID: -9109731846837961452
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_75
+      rect:
+        serializedVersion: 2
+        x: 673
+        y: 458
+        width: 13
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e33d343deefa26ed0800000000000000
+      internalID: -2422180209290390722
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_76
+      rect:
+        serializedVersion: 2
+        x: 679
+        y: 464
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1eeb6eeda68bf6380800000000000000
+      internalID: -8975752763180400927
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_77
+      rect:
+        serializedVersion: 2
+        x: 777
+        y: 456
+        width: 30
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1c7d3abaa5a3689f0800000000000000
+      internalID: -466621350285158463
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_78
+      rect:
+        serializedVersion: 2
+        x: 922
+        y: 455
+        width: 12
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ad0d3a1920c1aaa50800000000000000
+      internalID: 6533065006813270234
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_79
+      rect:
+        serializedVersion: 2
+        x: 934
+        y: 458
+        width: 8
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a19b85e0a275d8a70800000000000000
+      internalID: 8830810282484349210
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_80
+      rect:
+        serializedVersion: 2
+        x: 1057
+        y: 455
+        width: 134
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5f217d235b86e570800000000000000
+      internalID: 8495630936441958234
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_81
+      rect:
+        serializedVersion: 2
+        x: 1305
+        y: 455
+        width: 13
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8123b69dfec9c4b00800000000000000
+      internalID: 814198186606015000
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_82
+      rect:
+        serializedVersion: 2
+        x: 1318
+        y: 458
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26ad1588a150096c0800000000000000
+      internalID: -4138802446039131550
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_83
+      rect:
+        serializedVersion: 2
+        x: 1319
+        y: 463
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 69577611485b69d70800000000000000
+      internalID: 9049620080079893910
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_84
+      rect:
+        serializedVersion: 2
+        x: 1440
+        y: 455
+        width: 134
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 625baa0c26c022d00800000000000000
+      internalID: 946332489979966758
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_85
+      rect:
+        serializedVersion: 2
+        x: 1692
+        y: 455
+        width: 10
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f0e883d6fe258f3b0800000000000000
+      internalID: -5478537758413124081
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_86
+      rect:
+        serializedVersion: 2
+        x: 1702
+        y: 457
+        width: 8
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8ed1b8ef4f486e110800000000000000
+      internalID: 1289864531065642472
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_87
+      rect:
+        serializedVersion: 2
+        x: 550
+        y: 457
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d2d20fcbbee2d1340800000000000000
+      internalID: 4836073164887829805
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_88
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 345
+        width: 18
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 76b46b62dcf8f20a0800000000000000
+      internalID: -6904141592455132313
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_89
+      rect:
+        serializedVersion: 2
+        x: 62
+        y: 221
+        width: 15
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2498b68949a028570800000000000000
+      internalID: 8467341882738575682
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_90
+      rect:
+        serializedVersion: 2
+        x: 166
+        y: 345
+        width: 13
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 57e0f623d1a8dd7c0800000000000000
+      internalID: -4044925032304013707
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_91
+      rect:
+        serializedVersion: 2
+        x: 175
+        y: 339
+        width: 12
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd3dfe2637b09ed50800000000000000
+      internalID: 6766952505309909983
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_92
+      rect:
+        serializedVersion: 2
+        x: 190
+        y: 223
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9e0bc3d944ea2fba0800000000000000
+      internalID: -6056586939140886295
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_93
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 216
+        width: 14
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 693220825b251f5b0800000000000000
+      internalID: -5336393145443540074
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_94
+      rect:
+        serializedVersion: 2
+        x: 295
+        y: 216
+        width: 38
+        height: 140
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: df8887db6d0089620800000000000000
+      internalID: 2780973692203075837
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_95
+      rect:
+        serializedVersion: 2
+        x: 414
+        y: 344
+        width: 21
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 84f0aafae62bf8e10800000000000000
+      internalID: 2202174931270766408
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_96
+      rect:
+        serializedVersion: 2
+        x: 445
+        y: 220
+        width: 16
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e1e4c8b48c891f00800000000000000
+      internalID: 1088055286650167780
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_97
+      rect:
+        serializedVersion: 2
+        x: 543
+        y: 344
+        width: 20
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 950b499cc2029c520800000000000000
+      internalID: 2722742826454790233
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_98
+      rect:
+        serializedVersion: 2
+        x: 559
+        y: 339
+        width: 12
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5f0730a02afff4f80800000000000000
+      internalID: -8119990531707932427
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_99
+      rect:
+        serializedVersion: 2
+        x: 572
+        y: 211
+        width: 17
+        height: 29
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bbc43beb28c586910800000000000000
+      internalID: 1830814965141032123
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_100
+      rect:
+        serializedVersion: 2
+        x: 683
+        y: 216
+        width: 135
+        height: 147
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8231931cd61059810800000000000000
+      internalID: 1771323599344964392
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_101
+      rect:
+        serializedVersion: 2
+        x: 827
+        y: 220
+        width: 19
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 25b329b63cc064f90800000000000000
+      internalID: -6969869339846362286
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_102
+      rect:
+        serializedVersion: 2
+        x: 931
+        y: 344
+        width: 19
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5b58e807314fc9060800000000000000
+      internalID: 6961707488337888693
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_103
+      rect:
+        serializedVersion: 2
+        x: 943
+        y: 339
+        width: 13
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e6a0724e4733c2530800000000000000
+      internalID: 3831493960122436206
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_104
+      rect:
+        serializedVersion: 2
+        x: 957
+        y: 223
+        width: 8
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1725cff9749d081c0800000000000000
+      internalID: -4503360725720477071
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_105
+      rect:
+        serializedVersion: 2
+        x: 959
+        y: 213
+        width: 9
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9d1440de3b725c8e0800000000000000
+      internalID: -1673888032769162791
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_106
+      rect:
+        serializedVersion: 2
+        x: 961
+        y: 217
+        width: 13
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 07eeb161970e78270800000000000000
+      internalID: 8252811652846317168
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_107
+      rect:
+        serializedVersion: 2
+        x: 1067
+        y: 215
+        width: 137
+        height: 149
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 046a22653c012e160800000000000000
+      internalID: 7053218397565396544
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_108
+      rect:
+        serializedVersion: 2
+        x: 1211
+        y: 220
+        width: 20
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c7238ddd72f79ca40800000000000000
+      internalID: 5388978238327894652
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_109
+      rect:
+        serializedVersion: 2
+        x: 1314
+        y: 339
+        width: 24
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f3309d44350c3f4a0800000000000000
+      internalID: -6560688768278789313
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_110
+      rect:
+        serializedVersion: 2
+        x: 1340
+        y: 223
+        width: 9
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 70a28677d49509ea0800000000000000
+      internalID: -5868092125213087225
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_111
+      rect:
+        serializedVersion: 2
+        x: 1342
+        y: 215
+        width: 16
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cea85e1804736f2e0800000000000000
+      internalID: -2092424226670277908
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_112
+      rect:
+        serializedVersion: 2
+        x: 1450
+        y: 216
+        width: 138
+        height: 148
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2d112469a575b8f50800000000000000
+      internalID: 6884692501945520594
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_113
+      rect:
+        serializedVersion: 2
+        x: 1595
+        y: 220
+        width: 20
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c804a92e9a8b27000800000000000000
+      internalID: 32291187135758476
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_114
+      rect:
+        serializedVersion: 2
+        x: 1701
+        y: 344
+        width: 12
+        height: 14
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 365dac30e931048f0800000000000000
+      internalID: -558424784404556445
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_115
+      rect:
+        serializedVersion: 2
+        x: 1710
+        y: 341
+        width: 12
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 938ba08945e1681f0800000000000000
+      internalID: -1043112915012765639
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_116
+      rect:
+        serializedVersion: 2
+        x: 1725
+        y: 223
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c1be69de8a6e4020800000000000000
+      internalID: 2327915219162935744
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_117
+      rect:
+        serializedVersion: 2
+        x: 1726
+        y: 216
+        width: 15
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8b36188f47edef800800000000000000
+      internalID: 648199990354731960
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_118
+      rect:
+        serializedVersion: 2
+        x: 86
+        y: 84
+        width: 18
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5dc66101b1a340700800000000000000
+      internalID: 505592946080771285
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_119
+      rect:
+        serializedVersion: 2
+        x: 208
+        y: 84
+        width: 18
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 19444e3e142285680800000000000000
+      internalID: -8766219008285064047
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_120
+      rect:
+        serializedVersion: 2
+        x: 211
+        y: 80
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 129337792bdbdc3f0800000000000000
+      internalID: -878837777524639455
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_121
+      rect:
+        serializedVersion: 2
+        x: 339
+        y: 85
+        width: 13
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fdc4f0e006909de70800000000000000
+      internalID: 9140347226882526431
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_122
+      rect:
+        serializedVersion: 2
+        x: 339
+        y: 80
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3cc820c685ebbef30800000000000000
+      internalID: 4605984330894970051
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_123
+      rect:
+        serializedVersion: 2
+        x: 469
+        y: 83
+        width: 20
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d3aab7c2813f14a60800000000000000
+      internalID: 7656668126657620541
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_124
+      rect:
+        serializedVersion: 2
+        x: 591
+        y: 79
+        width: 140
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e0392aa108de4de0800000000000000
+      internalID: -1346901736875806491
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_125
+      rect:
+        serializedVersion: 2
+        x: 594
+        y: 79
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f4bbf4411442064a0800000000000000
+      internalID: -6602237191792903345
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_126
+      rect:
+        serializedVersion: 2
+        x: 854
+        y: 83
+        width: 22
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c07fc3f13ff0d81c0800000000000000
+      internalID: -4499922915797698804
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_127
+      rect:
+        serializedVersion: 2
+        x: 973
+        y: 79
+        width: 143
+        height: 19
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 404705fb7f5ce0ae0800000000000000
+      internalID: -1581108751303150588
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_128
+      rect:
+        serializedVersion: 2
+        x: 977
+        y: 78
+        width: 9
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 916b755943c7b69f0800000000000000
+      internalID: -474148770471758311
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_129
+      rect:
+        serializedVersion: 2
+        x: 1237
+        y: 82
+        width: 24
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ea7d8fe53a88eec50800000000000000
+      internalID: 6696439931200919470
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_130
+      rect:
+        serializedVersion: 2
+        x: 1358
+        y: 83
+        width: 23
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0327f95797b19cf00800000000000000
+      internalID: 1137470589366137392
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_131
+      rect:
+        serializedVersion: 2
+        x: 1362
+        y: 79
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0d4eb59a84d931ac0800000000000000
+      internalID: -3885589118086028080
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_132
+      rect:
+        serializedVersion: 2
+        x: 1489
+        y: 80
+        width: 11
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2ec88aded19d0a090800000000000000
+      internalID: -8025175813409698590
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_133
+      rect:
+        serializedVersion: 2
+        x: 1621
+        y: 82
+        width: 24
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f96a1beac1a1debe0800000000000000
+      internalID: -1446471194823776609
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_134
+      rect:
+        serializedVersion: 2
+        x: 1743
+        y: 85
+        width: 17
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 520331cfbdcc801b0800000000000000
+      internalID: -5690072883983601627
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_135
+      rect:
+        serializedVersion: 2
+        x: 1747
+        y: 80
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef77fcaf531b6e210800000000000000
+      internalID: 1361970782725437438
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: GunFire_Shadowless_136
+      rect:
+        serializedVersion: 2
+        x: 1754
+        y: 80
+        width: 127
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 540a7acca6b29a670800000000000000
+      internalID: 8550413105239662661
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      GunFire_Shadowless_0: -2903973233715666744
+      GunFire_Shadowless_1: 7006077195203797573
+      GunFire_Shadowless_10: -3152723268544772767
+      GunFire_Shadowless_100: 1771323599344964392
+      GunFire_Shadowless_101: -6969869339846362286
+      GunFire_Shadowless_102: 6961707488337888693
+      GunFire_Shadowless_103: 3831493960122436206
+      GunFire_Shadowless_104: -4503360725720477071
+      GunFire_Shadowless_105: -1673888032769162791
+      GunFire_Shadowless_106: 8252811652846317168
+      GunFire_Shadowless_107: 7053218397565396544
+      GunFire_Shadowless_108: 5388978238327894652
+      GunFire_Shadowless_109: -6560688768278789313
+      GunFire_Shadowless_11: -7072644772459993380
+      GunFire_Shadowless_110: -5868092125213087225
+      GunFire_Shadowless_111: -2092424226670277908
+      GunFire_Shadowless_112: 6884692501945520594
+      GunFire_Shadowless_113: 32291187135758476
+      GunFire_Shadowless_114: -558424784404556445
+      GunFire_Shadowless_115: -1043112915012765639
+      GunFire_Shadowless_116: 2327915219162935744
+      GunFire_Shadowless_117: 648199990354731960
+      GunFire_Shadowless_118: 505592946080771285
+      GunFire_Shadowless_119: -8766219008285064047
+      GunFire_Shadowless_12: -3542503637072906736
+      GunFire_Shadowless_120: -878837777524639455
+      GunFire_Shadowless_121: 9140347226882526431
+      GunFire_Shadowless_122: 4605984330894970051
+      GunFire_Shadowless_123: 7656668126657620541
+      GunFire_Shadowless_124: -1346901736875806491
+      GunFire_Shadowless_125: -6602237191792903345
+      GunFire_Shadowless_126: -4499922915797698804
+      GunFire_Shadowless_127: -1581108751303150588
+      GunFire_Shadowless_128: -474148770471758311
+      GunFire_Shadowless_129: 6696439931200919470
+      GunFire_Shadowless_13: -5334649010952926483
+      GunFire_Shadowless_130: 1137470589366137392
+      GunFire_Shadowless_131: -3885589118086028080
+      GunFire_Shadowless_132: -8025175813409698590
+      GunFire_Shadowless_133: -1446471194823776609
+      GunFire_Shadowless_134: -5690072883983601627
+      GunFire_Shadowless_135: 1361970782725437438
+      GunFire_Shadowless_136: 8550413105239662661
+      GunFire_Shadowless_14: 8643804093318096557
+      GunFire_Shadowless_15: -2739657701174718123
+      GunFire_Shadowless_16: 1424855014565124336
+      GunFire_Shadowless_17: 9097178055409342729
+      GunFire_Shadowless_18: 2656355408534896773
+      GunFire_Shadowless_19: 4535741940812029658
+      GunFire_Shadowless_2: 3315119731682525369
+      GunFire_Shadowless_20: -4866432671174522406
+      GunFire_Shadowless_21: -6442932460185346334
+      GunFire_Shadowless_22: 2713688717251832555
+      GunFire_Shadowless_23: 1666321110779836195
+      GunFire_Shadowless_24: 772072013260291392
+      GunFire_Shadowless_25: -1100512921222971881
+      GunFire_Shadowless_26: -3885918242388070675
+      GunFire_Shadowless_27: 955093425325667355
+      GunFire_Shadowless_28: 4020373121653540416
+      GunFire_Shadowless_29: -7519628833645609405
+      GunFire_Shadowless_3: -931920743683799004
+      GunFire_Shadowless_30: -8787861664632064048
+      GunFire_Shadowless_31: 3786945924163186622
+      GunFire_Shadowless_32: -82900904161759586
+      GunFire_Shadowless_33: 6235683603933530800
+      GunFire_Shadowless_34: 7085279982620172069
+      GunFire_Shadowless_35: -2210941716039355783
+      GunFire_Shadowless_36: 4231405345000672519
+      GunFire_Shadowless_37: -4524718882745104117
+      GunFire_Shadowless_38: 6575684057054793879
+      GunFire_Shadowless_39: -600771460711570640
+      GunFire_Shadowless_4: -1699612135852929071
+      GunFire_Shadowless_40: -776310972816989408
+      GunFire_Shadowless_41: 7799552398947401816
+      GunFire_Shadowless_42: -8067634682984145055
+      GunFire_Shadowless_43: -1334648273847439648
+      GunFire_Shadowless_44: -8391260068524675882
+      GunFire_Shadowless_45: 6611227412452290909
+      GunFire_Shadowless_46: 4974984351127402078
+      GunFire_Shadowless_47: 6054093251054727849
+      GunFire_Shadowless_48: -163664452555389333
+      GunFire_Shadowless_49: -7031800893064408462
+      GunFire_Shadowless_5: 9096921193824036826
+      GunFire_Shadowless_50: 8135312006268924858
+      GunFire_Shadowless_51: 6197234331488893026
+      GunFire_Shadowless_52: 8514561048870879603
+      GunFire_Shadowless_53: -4194245694867038206
+      GunFire_Shadowless_54: 3099474949184843674
+      GunFire_Shadowless_55: 3442165304592424318
+      GunFire_Shadowless_56: 1296842478836296711
+      GunFire_Shadowless_57: -7537032184353692734
+      GunFire_Shadowless_58: 6929797989355833823
+      GunFire_Shadowless_59: 4982029156127703870
+      GunFire_Shadowless_6: 1252200442477959355
+      GunFire_Shadowless_60: 5409249721321302048
+      GunFire_Shadowless_61: -7857489006964677484
+      GunFire_Shadowless_62: 4616596772185508149
+      GunFire_Shadowless_63: 191721725318753965
+      GunFire_Shadowless_64: 2351114108117917143
+      GunFire_Shadowless_65: -6679167628162457816
+      GunFire_Shadowless_66: -5014286630206553898
+      GunFire_Shadowless_67: 4013614257361098314
+      GunFire_Shadowless_68: -2332442592955034038
+      GunFire_Shadowless_69: -3840016345518089376
+      GunFire_Shadowless_7: 3575011681426554951
+      GunFire_Shadowless_70: 641863880023776166
+      GunFire_Shadowless_71: -5477043267444958500
+      GunFire_Shadowless_72: 8326132982556769059
+      GunFire_Shadowless_73: 4119449060226511357
+      GunFire_Shadowless_74: -9109731846837961452
+      GunFire_Shadowless_75: -2422180209290390722
+      GunFire_Shadowless_76: -8975752763180400927
+      GunFire_Shadowless_77: -466621350285158463
+      GunFire_Shadowless_78: 6533065006813270234
+      GunFire_Shadowless_79: 8830810282484349210
+      GunFire_Shadowless_8: -7081574296234183720
+      GunFire_Shadowless_80: 8495630936441958234
+      GunFire_Shadowless_81: 814198186606015000
+      GunFire_Shadowless_82: -4138802446039131550
+      GunFire_Shadowless_83: 9049620080079893910
+      GunFire_Shadowless_84: 946332489979966758
+      GunFire_Shadowless_85: -5478537758413124081
+      GunFire_Shadowless_86: 1289864531065642472
+      GunFire_Shadowless_87: 4836073164887829805
+      GunFire_Shadowless_88: -6904141592455132313
+      GunFire_Shadowless_89: 8467341882738575682
+      GunFire_Shadowless_9: 1809986318282309058
+      GunFire_Shadowless_90: -4044925032304013707
+      GunFire_Shadowless_91: 6766952505309909983
+      GunFire_Shadowless_92: -6056586939140886295
+      GunFire_Shadowless_93: -5336393145443540074
+      GunFire_Shadowless_94: 2780973692203075837
+      GunFire_Shadowless_95: 2202174931270766408
+      GunFire_Shadowless_96: 1088055286650167780
+      GunFire_Shadowless_97: 2722742826454790233
+      GunFire_Shadowless_98: -8119990531707932427
+      GunFire_Shadowless_99: 1830814965141032123
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
