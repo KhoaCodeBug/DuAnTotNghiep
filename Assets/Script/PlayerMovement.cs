@@ -1,13 +1,14 @@
 ﻿using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(PlayerStamina))] // Đảm bảo luôn có script Stamina đi kèm
+[RequireComponent(typeof(PlayerStamina))]
 public class PlayerMovement : MonoBehaviour
 {
     [Header("--- Movement Settings ---")]
     public float walkSpeed = 4f;
     public float runSpeed = 7f;
     public float aimSpeed = 2f;
+    public float crouchSpeed = 2.5f; // 🔥 MỚI: Tốc độ khi ngồi xổm
     [Tooltip("Tốc độ quay mặt")]
     public float turnSpeed = 12f;
 
@@ -22,21 +23,20 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 moveInput;
     private bool isAiming;
     private bool isRunning;
+    private bool isCrouching; // 🔥 MỚI: Biến kiểm tra xem có đang ngồi không
 
     private Vector2 lastLookDir = Vector2.down;
     private Vector2 smoothLookDir;
 
-    // Thêm tham chiếu đến hệ thống Stamina
     private PlayerStamina staminaSystem;
 
-    // 🔥 MỚI: Các biến dùng để xử lý khi bị Zombie cào
     private bool isStunned = false;
     private float stunTimer = 0f;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-        staminaSystem = GetComponent<PlayerStamina>(); // Khởi tạo kết nối
+        staminaSystem = GetComponent<PlayerStamina>();
         mainCam = Camera.main;
         rb.freezeRotation = true;
         smoothLookDir = lastLookDir;
@@ -45,7 +45,6 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // 🔥 MỚI: Đếm lùi thời gian bị choáng
         if (stunTimer > 0)
         {
             stunTimer -= Time.deltaTime;
@@ -55,12 +54,11 @@ public class PlayerMovement : MonoBehaviour
         HandleInputs();
 
         bool isMovingNow = moveInput.magnitude > 0.1f;
-        // Báo cho Stamina biết trạng thái di chuyển để nó tự tính toán
         staminaSystem.UpdateStamina(isRunning, isMovingNow);
 
         HandleRotationAndReticle();
-        UpdateAnimation(isMovingNow); // Tui truyền isMovingNow vào luôn cho gọn
-        HandleCombat();
+        UpdateAnimation(isMovingNow);
+        //HandleCombat();
     }
 
     void FixedUpdate()
@@ -70,13 +68,12 @@ public class PlayerMovement : MonoBehaviour
 
     private void HandleInputs()
     {
-        // 🔥 MỚI: NẾU ĐANG BỊ CHOÁNG -> KHÔNG CHO LÀM GÌ HẾT
         if (isStunned)
         {
             moveInput = Vector2.zero;
             isAiming = false;
             isRunning = false;
-            return; // Thoát hàm sớm, không đọc nút bấm nữa
+            return;
         }
 
         float hor = Input.GetAxisRaw("Horizontal");
@@ -85,8 +82,19 @@ public class PlayerMovement : MonoBehaviour
 
         isAiming = Input.GetMouseButton(1);
 
-        // NẾU ĐANG MỆT (Đọc từ PlayerStamina) THÌ CẤM CHẠY
-        if (staminaSystem.IsExhausted)
+        // 🔥 MỚI: Nhấn nút C để bật/tắt ngồi xổm
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            isCrouching = !isCrouching;
+        }
+
+        // Tự động hủy ngồi xổm nếu ngắm súng
+        if (isAiming)
+        {
+            isCrouching = false;
+        }
+
+        if (staminaSystem.IsExhausted || isCrouching) // Đang mệt HOẶC đang ngồi thì KHÔNG được chạy
         {
             isRunning = false;
         }
@@ -100,13 +108,12 @@ public class PlayerMovement : MonoBehaviour
     {
         float currentSpeed = walkSpeed;
 
-        // Nếu mệt, đi bộ chậm lại (còn 60% tốc độ gốc)
         if (staminaSystem.IsExhausted && !isAiming)
         {
             currentSpeed = walkSpeed * 0.6f;
         }
 
-        // Chọn tốc độ cơ bản tùy trạng thái
+        // 🔥 SỬA LẠI CHỖ CHỌN TỐC ĐỘ: Thêm ưu tiên cho tốc độ ngồi xổm
         if (isAiming)
         {
             currentSpeed = aimSpeed;
@@ -115,8 +122,11 @@ public class PlayerMovement : MonoBehaviour
         {
             currentSpeed = runSpeed;
         }
+        else if (isCrouching)
+        {
+            currentSpeed = crouchSpeed; // Áp dụng tốc độ ngồi
+        }
 
-        // Áp dụng bùa chú (Buff) nhân tốc độ cho cả lúc ĐI BỘ và CHẠY (Miễn là không ngắm súng)
         if (!isAiming && staminaSystem.CurrentSpeedMultiplier > 1f)
         {
             currentSpeed *= staminaSystem.CurrentSpeedMultiplier;
@@ -131,10 +141,6 @@ public class PlayerMovement : MonoBehaviour
         Vector2 nextPosition = rb.position + moveInput * currentSpeed * Time.fixedDeltaTime;
         rb.MovePosition(nextPosition);
     }
-
-    // =========================================================================
-    // 🔥 DƯỚI ĐÂY LÀ 4 CÁI HÀM CŨ CỦA BẠN MÌNH ĐÃ LẤY LẠI ĐỂ KHÔNG BỊ LỖI
-    // =========================================================================
 
     private void HandleRotationAndReticle()
     {
@@ -162,14 +168,11 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void HandleCombat()
+    /*private void HandleCombat()
     {
         if (isAiming)
         {
-            if (Input.GetMouseButtonDown(0))
-            {
-                anim.SetTrigger("Shoot");
-            }
+            if (Input.GetMouseButtonDown(0)) anim.SetTrigger("Shoot");
 
             if (Input.GetKeyDown(KeyCode.Space))
             {
@@ -178,7 +181,7 @@ public class PlayerMovement : MonoBehaviour
                 anim.SetTrigger("GunBash");
             }
         }
-    }
+    }*/
 
     private Vector2 GetMouseWorldPosition()
     {
@@ -194,9 +197,8 @@ public class PlayerMovement : MonoBehaviour
         anim.SetBool("IsMoving", isMovingNow);
         anim.SetBool("IsRunning", isRunning);
         anim.SetBool("IsAiming", isAiming);
-
-        // Báo cho Animator biết nhân vật đang thở dốc dựa trên Stamina
         anim.SetBool("IsExhausted", staminaSystem.IsExhausted);
+        anim.SetBool("IsCrouching", isCrouching);
 
         bool isMovingBackwards = false;
         if (isAiming && isMovingNow)
@@ -206,11 +208,21 @@ public class PlayerMovement : MonoBehaviour
         }
         anim.SetBool("IsMovingBackwards", isMovingBackwards);
 
-        smoothLookDir = Vector3.Lerp(smoothLookDir, lastLookDir, turnSpeed * Time.deltaTime);
+        // --- 🔥 SỬA CHÍNH LÀ Ở ĐÂY NÈ ---
+        if (isAiming)
+        {
+            // Chỉ xoay mượt theo chuột khi đang ngắm súng
+            smoothLookDir = Vector3.RotateTowards(smoothLookDir, lastLookDir, turnSpeed * Time.deltaTime, 0f);
+        }
+        else
+        {
+            // Đi bình thường thì gán thẳng luôn, đổi phím A sang D là lật mặt ngay lập tức!
+            smoothLookDir = lastLookDir;
+        }
+
         anim.SetFloat("MoveX", smoothLookDir.x);
         anim.SetFloat("MoveY", smoothLookDir.y);
 
-        // Phát chậm animation đi bộ nếu đang mệt
         if (staminaSystem.IsExhausted && isMovingNow && !isAiming)
         {
             anim.speed = 0.7f;
@@ -221,12 +233,11 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // 🔥 MỚI: Hàm để PlayerHealth gọi khi bị ăn tát
     public void LockMovement(float duration)
     {
         stunTimer = duration;
         isStunned = true;
-        rb.linearVelocity = Vector2.zero; // Ép dừng lại ngay lập tức
+        rb.linearVelocity = Vector2.zero;
         moveInput = Vector2.zero;
     }
 }
