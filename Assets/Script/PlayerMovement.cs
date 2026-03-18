@@ -8,7 +8,7 @@ public class PlayerMovement : MonoBehaviour
     public float walkSpeed = 4f;
     public float runSpeed = 7f;
     public float aimSpeed = 2f;
-    public float crouchSpeed = 2.5f; // 🔥 MỚI: Tốc độ khi ngồi xổm
+    public float crouchSpeed = 2.5f;
     [Tooltip("Tốc độ quay mặt")]
     public float turnSpeed = 12f;
 
@@ -23,7 +23,7 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 moveInput;
     private bool isAiming;
     private bool isRunning;
-    private bool isCrouching; // 🔥 MỚI: Biến kiểm tra xem có đang ngồi không
+    private bool isCrouching;
 
     private Vector2 lastLookDir = Vector2.down;
     private Vector2 smoothLookDir;
@@ -58,7 +58,7 @@ public class PlayerMovement : MonoBehaviour
 
         HandleRotationAndReticle();
         UpdateAnimation(isMovingNow);
-        //HandleCombat();
+        HandleCombat();
     }
 
     void FixedUpdate()
@@ -82,19 +82,17 @@ public class PlayerMovement : MonoBehaviour
 
         isAiming = Input.GetMouseButton(1);
 
-        // 🔥 MỚI: Nhấn nút C để bật/tắt ngồi xổm
         if (Input.GetKeyDown(KeyCode.C))
         {
             isCrouching = !isCrouching;
         }
 
-        // Tự động hủy ngồi xổm nếu ngắm súng
         if (isAiming)
         {
             isCrouching = false;
         }
 
-        if (staminaSystem.IsExhausted || isCrouching) // Đang mệt HOẶC đang ngồi thì KHÔNG được chạy
+        if (staminaSystem.IsExhausted || isCrouching)
         {
             isRunning = false;
         }
@@ -113,7 +111,6 @@ public class PlayerMovement : MonoBehaviour
             currentSpeed = walkSpeed * 0.6f;
         }
 
-        // 🔥 SỬA LẠI CHỖ CHỌN TỐC ĐỘ: Thêm ưu tiên cho tốc độ ngồi xổm
         if (isAiming)
         {
             currentSpeed = aimSpeed;
@@ -124,7 +121,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else if (isCrouching)
         {
-            currentSpeed = crouchSpeed; // Áp dụng tốc độ ngồi
+            currentSpeed = crouchSpeed;
         }
 
         if (!isAiming && staminaSystem.CurrentSpeedMultiplier > 1f)
@@ -168,20 +165,10 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    /*private void HandleCombat()
+    private void HandleCombat()
     {
-        if (isAiming)
-        {
-            if (Input.GetMouseButtonDown(0)) anim.SetTrigger("Shoot");
-
-            if (Input.GetKeyDown(KeyCode.Space))
-            {
-                int randomAttack = Random.Range(2, 5);
-                anim.SetInteger("RandomBash", randomAttack);
-                anim.SetTrigger("GunBash");
-            }
-        }
-    }*/
+        // Hàm này đã trống vì code combat nằm ở PlayerCombat.cs
+    }
 
     private Vector2 GetMouseWorldPosition()
     {
@@ -200,23 +187,44 @@ public class PlayerMovement : MonoBehaviour
         anim.SetBool("IsExhausted", staminaSystem.IsExhausted);
         anim.SetBool("IsCrouching", isCrouching);
 
-        bool isMovingBackwards = false;
+        // 🔥 MỚI: Khai báo 2 biến để gửi sang Blend Tree ngắm bắn
+        float strafeX = 0f;
+        float strafeY = 0f;
+
         if (isAiming && isMovingNow)
         {
-            float dotProduct = Vector2.Dot(lastLookDir.normalized, moveInput.normalized);
-            if (dotProduct < -0.05f) isMovingBackwards = true;
-        }
-        anim.SetBool("IsMovingBackwards", isMovingBackwards);
+            // === TOÁN VECTOR "NÃO LÒNG" BẮT ĐẦU TỪ ĐÂY ===
 
-        // --- 🔥 SỬA CHÍNH LÀ Ở ĐÂY NÈ ---
+            // 1. Lấy hướng súng đang chỉa (lastLookDir) làm "Trục Tới"
+            Vector2 forwardDir = lastLookDir.normalized;
+
+            // 2. Tính "Trục Ngang" vuông góc với Trục Tới (Xoay 90 độ)
+            // Vector (x, y) xoay 90 độ thành (-y, x)
+            Vector2 rightDir = new Vector2(-forwardDir.y, forwardDir.x);
+
+            // 3. Phân tích moveInput (hướng bấm phím WASD) lên 2 trục vừa tìm được
+            // Dùng Dot Product để xem moveInput "giống" trục nào hơn
+            strafeY = Vector2.Dot(moveInput.normalized, forwardDir); // Giá trị Tiến/Lùi (-1 đến 1)
+            strafeX = Vector2.Dot(moveInput.normalized, rightDir);   // Giá trị Ngang Trái/Phải (-1 đến 1)
+
+            // Ví dụ: Súng chỉa lên (0,1). Bấm nút D (1,0). 
+            // forwardDir=(0,1), rightDir=(-1,0).
+            // strafeY = Dot((1,0), (0,1)) = 0.
+            // strafeX = Dot((1,0), (-1,0)) = -1 (Nghĩa là đang đi sang PHẢI so với hướng súng).
+
+            // === TOÁN VECTOR KẾT THÚC ===
+        }
+
+        // 🔥 MỚI: Gửi 2 giá trị này sang Animator
+        anim.SetFloat("StrafeX", strafeX);
+        anim.SetFloat("StrafeY", strafeY);
+
         if (isAiming)
         {
-            // Chỉ xoay mượt theo chuột khi đang ngắm súng
             smoothLookDir = Vector3.RotateTowards(smoothLookDir, lastLookDir, turnSpeed * Time.deltaTime, 0f);
         }
         else
         {
-            // Đi bình thường thì gán thẳng luôn, đổi phím A sang D là lật mặt ngay lập tức!
             smoothLookDir = lastLookDir;
         }
 

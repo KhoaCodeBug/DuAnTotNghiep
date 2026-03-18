@@ -144,12 +144,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 0}
   offset: {x: 0, y: 0.1, z: 0}
-  smoothFollow: 0.15
+  smoothFollow: 0.25
   maxLookAhead: 8
   zoomSpeed: 1
   zoomSmoothTime: 0.15
   minZoomSize: 1
-  maxZoomSize: 14
+  maxZoomSize: 3
 --- !u!1 &8245185756362271531
 GameObject:
   m_ObjectHideFlags: 0
