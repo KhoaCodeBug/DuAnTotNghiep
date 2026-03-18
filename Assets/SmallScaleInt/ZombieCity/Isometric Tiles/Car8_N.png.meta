@@ -1,0 +1,949 @@
+fileFormatVersion: 2
+guid: ff008f1159ea8fc4e82513ace6ee8644
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 7365798791943725058
+    second: Car8_N_0
+  - first:
+      213: -2157087601921181021
+    second: Car8_N_1
+  - first:
+      213: -1061019872132395319
+    second: Car8_N_2
+  - first:
+      213: 988606918811314758
+    second: Car8_N_3
+  - first:
+      213: 8074707916325318198
+    second: Car8_N_4
+  - first:
+      213: 8366296375439059546
+    second: Car8_N_5
+  - first:
+      213: 705028232889104306
+    second: Car8_N_6
+  - first:
+      213: 2823430407556717756
+    second: Car8_N_7
+  - first:
+      213: 7864509529499099702
+    second: Car8_N_8
+  - first:
+      213: 2641240125120339380
+    second: Car8_N_9
+  - first:
+      213: 2256735345229121869
+    second: Car8_N_10
+  - first:
+      213: -2647720375479774745
+    second: Car8_N_11
+  - first:
+      213: 3075773282281973098
+    second: Car8_N_12
+  - first:
+      213: 9043818699308416159
+    second: Car8_N_13
+  - first:
+      213: 6251126376289894242
+    second: Car8_N_14
+  - first:
+      213: 4883602667160325542
+    second: Car8_N_15
+  - first:
+      213: -2863976802413015318
+    second: Car8_N_16
+  - first:
+      213: -7619290524311493487
+    second: Car8_N_17
+  - first:
+      213: 2054128011206646482
+    second: Car8_N_18
+  - first:
+      213: -6016879569555907084
+    second: Car8_N_19
+  - first:
+      213: -1591936229722924808
+    second: Car8_N_20
+  - first:
+      213: 6249691457075900101
+    second: Car8_N_21
+  - first:
+      213: -4495949799542050864
+    second: Car8_N_22
+  - first:
+      213: 4503979430273287367
+    second: Car8_N_23
+  - first:
+      213: -6305821876207772202
+    second: Car8_N_24
+  - first:
+      213: 8314716806123294281
+    second: Car8_N_25
+  - first:
+      213: 8236024884626460161
+    second: Car8_N_26
+  - first:
+      213: 3823276881955694449
+    second: Car8_N_27
+  - first:
+      213: 8203042440151273654
+    second: Car8_N_28
+  - first:
+      213: -8346629263093502150
+    second: Car8_N_29
+  - first:
+      213: -4730720807675491406
+    second: Car8_N_30
+  - first:
+      213: -3781145121282354113
+    second: Car8_N_31
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Car8_N_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 209
+        width: 240
+        height: 303
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 200aec0c9f2983660800000000000000
+      internalID: 7365798791943725058
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 211
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3aab61a314c7012e0800000000000000
+      internalID: -2157087601921181021
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_2
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 256
+        height: 216
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9ce0bed3c008641f0800000000000000
+      internalID: -1061019872132395319
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_3
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 207
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 64aed3a31cc38bd00800000000000000
+      internalID: 988606918811314758
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_4
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 222
+        width: 7
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63eea9971102f0070800000000000000
+      internalID: 8074707916325318198
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_5
+      rect:
+        serializedVersion: 2
+        x: 26
+        y: 199
+        width: 11
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5aeea71a3e0b1470800000000000000
+      internalID: 8366296375439059546
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_6
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 226
+        width: 10
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2b7f9f14173c8c900800000000000000
+      internalID: 705028232889104306
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_7
+      rect:
+        serializedVersion: 2
+        x: 38
+        y: 237
+        width: 28
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cbc547a1ff6de2720800000000000000
+      internalID: 2823430407556717756
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_8
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 232
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 632e776cfb9542d60800000000000000
+      internalID: 7864509529499099702
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_9
+      rect:
+        serializedVersion: 2
+        x: 47
+        y: 207
+        width: 8
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4bd5e4066e197a420800000000000000
+      internalID: 2641240125120339380
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_10
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 216
+        width: 14
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d49437cf6d8815f10800000000000000
+      internalID: 2256735345229121869
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_11
+      rect:
+        serializedVersion: 2
+        x: 57
+        y: 229
+        width: 8
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7e1d6f2c858614bd0800000000000000
+      internalID: -2647720375479774745
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_12
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 240
+        width: 23
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a65ed0c01875faa20800000000000000
+      internalID: 3075773282281973098
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_13
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 224
+        width: 8
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f9c3059d039128d70800000000000000
+      internalID: 9043818699308416159
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_14
+      rect:
+        serializedVersion: 2
+        x: 62
+        y: 205
+        width: 13
+        height: 17
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26f75d0c15670c650800000000000000
+      internalID: 6251126376289894242
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_15
+      rect:
+        serializedVersion: 2
+        x: 82
+        y: 211
+        width: 7
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6adcd3850ca06c340800000000000000
+      internalID: 4883602667160325542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_16
+      rect:
+        serializedVersion: 2
+        x: 83
+        y: 233
+        width: 99
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aee863fa54c1148d0800000000000000
+      internalID: -2863976802413015318
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_17
+      rect:
+        serializedVersion: 2
+        x: 83
+        y: 244
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 194e9e903a7d24690800000000000000
+      internalID: -7619290524311493487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_18
+      rect:
+        serializedVersion: 2
+        x: 89
+        y: 213
+        width: 12
+        height: 15
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2dad62ffa8ab18c10800000000000000
+      internalID: 2054128011206646482
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_19
+      rect:
+        serializedVersion: 2
+        x: 90
+        y: 237
+        width: 7
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4fd905809efbf7ca0800000000000000
+      internalID: -6016879569555907084
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_20
+      rect:
+        serializedVersion: 2
+        x: 98
+        y: 202
+        width: 11
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8f85a4afe6e48e9e0800000000000000
+      internalID: -1591936229722924808
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_21
+      rect:
+        serializedVersion: 2
+        x: 162
+        y: 209
+        width: 6
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5ce6dc6944d5bb650800000000000000
+      internalID: 6249691457075900101
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_22
+      rect:
+        serializedVersion: 2
+        x: 164
+        y: 238
+        width: 8
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0dfae465a7d2b91c0800000000000000
+      internalID: -4495949799542050864
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_23
+      rect:
+        serializedVersion: 2
+        x: 171
+        y: 217
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7c40b11cd69518e30800000000000000
+      internalID: 4503979430273287367
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_24
+      rect:
+        serializedVersion: 2
+        x: 172
+        y: 236
+        width: 26
+        height: 21
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6dd9fbbc9683d78a0800000000000000
+      internalID: -6305821876207772202
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_25
+      rect:
+        serializedVersion: 2
+        x: 173
+        y: 208
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 94e03f4c1eec36370800000000000000
+      internalID: 8314716806123294281
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_26
+      rect:
+        serializedVersion: 2
+        x: 187
+        y: 211
+        width: 68
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 10e00790ffc3c4270800000000000000
+      internalID: 8236024884626460161
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_27
+      rect:
+        serializedVersion: 2
+        x: 190
+        y: 224
+        width: 6
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 177aeea41120f0530800000000000000
+      internalID: 3823276881955694449
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_28
+      rect:
+        serializedVersion: 2
+        x: 243
+        y: 213
+        width: 13
+        height: 299
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6b09ba243af07d170800000000000000
+      internalID: 8203042440151273654
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_29
+      rect:
+        serializedVersion: 2
+        x: 251
+        y: 206
+        width: 5
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a3f6e6558e0da2c80800000000000000
+      internalID: -8346629263093502150
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_30
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 13
+        height: 18
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2bb04f66d7a195eb0800000000000000
+      internalID: -4730720807675491406
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Car8_N_31
+      rect:
+        serializedVersion: 2
+        x: 246
+        y: 0
+        width: 10
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f3493c9ab8ca68bc0800000000000000
+      internalID: -3781145121282354113
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Car8_N_0: 7365798791943725058
+      Car8_N_1: -2157087601921181021
+      Car8_N_10: 2256735345229121869
+      Car8_N_11: -2647720375479774745
+      Car8_N_12: 3075773282281973098
+      Car8_N_13: 9043818699308416159
+      Car8_N_14: 6251126376289894242
+      Car8_N_15: 4883602667160325542
+      Car8_N_16: -2863976802413015318
+      Car8_N_17: -7619290524311493487
+      Car8_N_18: 2054128011206646482
+      Car8_N_19: -6016879569555907084
+      Car8_N_2: -1061019872132395319
+      Car8_N_20: -1591936229722924808
+      Car8_N_21: 6249691457075900101
+      Car8_N_22: -4495949799542050864
+      Car8_N_23: 4503979430273287367
+      Car8_N_24: -6305821876207772202
+      Car8_N_25: 8314716806123294281
+      Car8_N_26: 8236024884626460161
+      Car8_N_27: 3823276881955694449
+      Car8_N_28: 8203042440151273654
+      Car8_N_29: -8346629263093502150
+      Car8_N_3: 988606918811314758
+      Car8_N_30: -4730720807675491406
+      Car8_N_31: -3781145121282354113
+      Car8_N_4: 8074707916325318198
+      Car8_N_5: 8366296375439059546
+      Car8_N_6: 705028232889104306
+      Car8_N_7: 2823430407556717756
+      Car8_N_8: 7864509529499099702
+      Car8_N_9: 2641240125120339380
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

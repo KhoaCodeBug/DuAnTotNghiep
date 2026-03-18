@@ -1,0 +1,1963 @@
+fileFormatVersion: 2
+guid: 2d37f456cb246444889c912ad9377262
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8522695814907486176
+    second: Small Chest left_0
+  - first:
+      213: 6922958760782505209
+    second: Small Chest left_1
+  - first:
+      213: 8734798843784091205
+    second: Small Chest left_2
+  - first:
+      213: -6078267161717198559
+    second: Small Chest left_3
+  - first:
+      213: 1792788542640480534
+    second: Small Chest left_4
+  - first:
+      213: 7031464576099662513
+    second: Small Chest left_5
+  - first:
+      213: -8252237415723703542
+    second: Small Chest left_6
+  - first:
+      213: -79079779111846036
+    second: Small Chest left_7
+  - first:
+      213: -5642003624832224333
+    second: Small Chest left_8
+  - first:
+      213: 5616806953903751648
+    second: Small Chest left_9
+  - first:
+      213: -9077754554655311263
+    second: Small Chest left_10
+  - first:
+      213: 2968139046319428589
+    second: Small Chest left_11
+  - first:
+      213: -3785240814961874152
+    second: Small Chest left_12
+  - first:
+      213: 44343700792765800
+    second: Small Chest left_13
+  - first:
+      213: -7311566378712931882
+    second: Small Chest left_14
+  - first:
+      213: 1236029934671476647
+    second: Small Chest left_15
+  - first:
+      213: 6630142207312028451
+    second: Small Chest left_16
+  - first:
+      213: -1524986500967756373
+    second: Small Chest left_17
+  - first:
+      213: -3005016684428913179
+    second: Small Chest left_18
+  - first:
+      213: 3524478209010670608
+    second: Small Chest left_19
+  - first:
+      213: 5823248828657857034
+    second: Small Chest left_20
+  - first:
+      213: -8269883609823640411
+    second: Small Chest left_21
+  - first:
+      213: 8370943404029660731
+    second: Small Chest left_22
+  - first:
+      213: 687425104560734079
+    second: Small Chest left_23
+  - first:
+      213: 3920169448796270454
+    second: Small Chest left_24
+  - first:
+      213: 8809530089587388707
+    second: Small Chest left_25
+  - first:
+      213: -3350077838055439709
+    second: Small Chest left_26
+  - first:
+      213: 893884843294398691
+    second: Small Chest left_27
+  - first:
+      213: -6527917320209048731
+    second: Small Chest left_28
+  - first:
+      213: 3826871131403131008
+    second: Small Chest left_29
+  - first:
+      213: 7550783838814857977
+    second: Small Chest left_30
+  - first:
+      213: -7084401580541661359
+    second: Small Chest left_31
+  - first:
+      213: 8002759953445157738
+    second: Small Chest left_32
+  - first:
+      213: -7323432165099043538
+    second: Small Chest left_33
+  - first:
+      213: 6688004905525119347
+    second: Small Chest left_34
+  - first:
+      213: -4391655904282830825
+    second: Small Chest left_35
+  - first:
+      213: 3377956540324694551
+    second: Small Chest left_36
+  - first:
+      213: -2609579879647665627
+    second: Small Chest left_37
+  - first:
+      213: -1508907122189262735
+    second: Small Chest left_38
+  - first:
+      213: -8784913955738152427
+    second: Small Chest left_39
+  - first:
+      213: 6554350719942189846
+    second: Small Chest left_40
+  - first:
+      213: -5926563607266286654
+    second: Small Chest left_41
+  - first:
+      213: 5644379449993637733
+    second: Small Chest left_42
+  - first:
+      213: 9158237907750121569
+    second: Small Chest left_43
+  - first:
+      213: 8511301363952025321
+    second: Small Chest left_44
+  - first:
+      213: -1071590589374299051
+    second: Small Chest left_45
+  - first:
+      213: 2624032620155620074
+    second: Small Chest left_46
+  - first:
+      213: -4662833854157021699
+    second: Small Chest left_47
+  - first:
+      213: -9032851086160141612
+    second: Small Chest left_48
+  - first:
+      213: -1683677111331099125
+    second: Small Chest left_49
+  - first:
+      213: -1919672351836749153
+    second: Small Chest left_50
+  - first:
+      213: 5136645107858083850
+    second: Small Chest left_51
+  - first:
+      213: 1991630230934055944
+    second: Small Chest left_52
+  - first:
+      213: 2018619599836387643
+    second: Small Chest left_53
+  - first:
+      213: 3715934780514166298
+    second: Small Chest left_54
+  - first:
+      213: -1621714156709792221
+    second: Small Chest left_55
+  - first:
+      213: -660027039790835505
+    second: Small Chest left_56
+  - first:
+      213: 800767130003850338
+    second: Small Chest left_57
+  - first:
+      213: 2928578663935601884
+    second: Small Chest left_58
+  - first:
+      213: -4492491208318652372
+    second: Small Chest left_59
+  - first:
+      213: -5960217659328325762
+    second: Small Chest left_60
+  - first:
+      213: 3055924923919376978
+    second: Small Chest left_61
+  - first:
+      213: 696121515993322728
+    second: Small Chest left_62
+  - first:
+      213: -2495779383866859164
+    second: Small Chest left_63
+  - first:
+      213: 5600105705701127071
+    second: Small Chest left_64
+  - first:
+      213: -6822124389048950818
+    second: Small Chest left_65
+  - first:
+      213: -7245086209061457974
+    second: Small Chest left_66
+  - first:
+      213: 427809787864212836
+    second: Small Chest left_67
+  - first:
+      213: -2695101866310820701
+    second: Small Chest left_68
+  - first:
+      213: -3435682796256859992
+    second: Small Chest left_69
+  - first:
+      213: -236852802941936085
+    second: Small Chest left_70
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Small Chest left_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 44
+        width: 114
+        height: 212
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0efd44040b2b64670800000000000000
+      internalID: 8522695814907486176
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 104
+        width: 9
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9f4ae13405a431060800000000000000
+      internalID: 6922958760782505209
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_2
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 133
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5465e3cf44d383970800000000000000
+      internalID: 8734798843784091205
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_3
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 25
+        width: 7
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 121bcef6838a5aba0800000000000000
+      internalID: -6078267161717198559
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_4
+      rect:
+        serializedVersion: 2
+        x: 4
+        y: 43
+        width: 8
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 611e9715ea341e810800000000000000
+      internalID: 1792788542640480534
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_5
+      rect:
+        serializedVersion: 2
+        x: 31
+        y: 117
+        width: 72
+        height: 28
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1bab92517c7c49160800000000000000
+      internalID: 7031464576099662513
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_6
+      rect:
+        serializedVersion: 2
+        x: 77
+        y: 125
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a03e999eac92a7d80800000000000000
+      internalID: -8252237415723703542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_7
+      rect:
+        serializedVersion: 2
+        x: 97
+        y: 113
+        width: 14
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c6f3f112c5d07eef0800000000000000
+      internalID: -79079779111846036
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_8
+      rect:
+        serializedVersion: 2
+        x: 107
+        y: 104
+        width: 19
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b3b868889393b1b0800000000000000
+      internalID: -5642003624832224333
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_9
+      rect:
+        serializedVersion: 2
+        x: 112
+        y: 36
+        width: 132
+        height: 220
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0e1806b5a28e2fd40800000000000000
+      internalID: 5616806953903751648
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_10
+      rect:
+        serializedVersion: 2
+        x: 121
+        y: 51
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 16af59b1456550280800000000000000
+      internalID: -9077754554655311263
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_11
+      rect:
+        serializedVersion: 2
+        x: 132
+        y: 44
+        width: 8
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: de316db9cb2f03920800000000000000
+      internalID: 2968139046319428589
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_12
+      rect:
+        serializedVersion: 2
+        x: 133
+        y: 0
+        width: 127
+        height: 89
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 81b23eaa88f187bc0800000000000000
+      internalID: -3785240814961874152
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_13
+      rect:
+        serializedVersion: 2
+        x: 237
+        y: 105
+        width: 17
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 86d67c56c5a8d9000800000000000000
+      internalID: 44343700792765800
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_14
+      rect:
+        serializedVersion: 2
+        x: 242
+        y: 60
+        width: 130
+        height: 196
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6d1602ded19188a90800000000000000
+      internalID: -7311566378712931882
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_15
+      rect:
+        serializedVersion: 2
+        x: 249
+        y: 52
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7a7b7d34da2472110800000000000000
+      internalID: 1236029934671476647
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_16
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 0
+        width: 128
+        height: 89
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3236825a53ff20c50800000000000000
+      internalID: 6630142207312028451
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_17
+      rect:
+        serializedVersion: 2
+        x: 365
+        y: 105
+        width: 17
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bad0d8a6bd826dae0800000000000000
+      internalID: -1524986500967756373
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_18
+      rect:
+        serializedVersion: 2
+        x: 370
+        y: 60
+        width: 130
+        height: 196
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e51e7c2f390c46d0800000000000000
+      internalID: -3005016684428913179
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_19
+      rect:
+        serializedVersion: 2
+        x: 376
+        y: 0
+        width: 140
+        height: 89
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 01c9fa2f14679e030800000000000000
+      internalID: 3524478209010670608
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_20
+      rect:
+        serializedVersion: 2
+        x: 377
+        y: 52
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a027cdee4f550d050800000000000000
+      internalID: 5823248828657857034
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_21
+      rect:
+        serializedVersion: 2
+        x: 493
+        y: 105
+        width: 17
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5a403ae2ca87b3d80800000000000000
+      internalID: -8269883609823640411
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_22
+      rect:
+        serializedVersion: 2
+        x: 498
+        y: 60
+        width: 130
+        height: 196
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b3e4610cca09b2470800000000000000
+      internalID: 8370943404029660731
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_23
+      rect:
+        serializedVersion: 2
+        x: 505
+        y: 52
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f7f370f8d793a8900800000000000000
+      internalID: 687425104560734079
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_24
+      rect:
+        serializedVersion: 2
+        x: 509
+        y: 1
+        width: 125
+        height: 88
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 67f27def75d376630800000000000000
+      internalID: 3920169448796270454
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_25
+      rect:
+        serializedVersion: 2
+        x: 586
+        y: 0
+        width: 186
+        height: 89
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 321b8fb01fcb14a70800000000000000
+      internalID: 8809530089587388707
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_26
+      rect:
+        serializedVersion: 2
+        x: 621
+        y: 105
+        width: 17
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a20ccca4f12281d0800000000000000
+      internalID: -3350077838055439709
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_27
+      rect:
+        serializedVersion: 2
+        x: 626
+        y: 60
+        width: 130
+        height: 196
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e81baa6787b76c00800000000000000
+      internalID: 893884843294398691
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_28
+      rect:
+        serializedVersion: 2
+        x: 633
+        y: 52
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 56bd1dd98cd2865a0800000000000000
+      internalID: -6527917320209048731
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_29
+      rect:
+        serializedVersion: 2
+        x: 639
+        y: 37
+        width: 6
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0881b74b407cb1530800000000000000
+      internalID: 3826871131403131008
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_30
+      rect:
+        serializedVersion: 2
+        x: 749
+        y: 105
+        width: 17
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9fae15845e5c9c860800000000000000
+      internalID: 7550783838814857977
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_31
+      rect:
+        serializedVersion: 2
+        x: 754
+        y: 90
+        width: 129
+        height: 166
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 15f29991c462fad90800000000000000
+      internalID: -7084401580541661359
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_32
+      rect:
+        serializedVersion: 2
+        x: 761
+        y: 60
+        width: 6
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a6bf1d7f6c38f0f60800000000000000
+      internalID: 8002759953445157738
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_33
+      rect:
+        serializedVersion: 2
+        x: 761
+        y: 52
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e250a9e3f31fd5a90800000000000000
+      internalID: -7323432165099043538
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_34
+      rect:
+        serializedVersion: 2
+        x: 765
+        y: 0
+        width: 126
+        height: 90
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 37905e9e60190dc50800000000000000
+      internalID: 6688004905525119347
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_35
+      rect:
+        serializedVersion: 2
+        x: 878
+        y: 106
+        width: 14
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 71899791934bd03c0800000000000000
+      internalID: -4391655904282830825
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_36
+      rect:
+        serializedVersion: 2
+        x: 882
+        y: 81
+        width: 129
+        height: 175
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 71ac2c48399e0ee20800000000000000
+      internalID: 3377956540324694551
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_37
+      rect:
+        serializedVersion: 2
+        x: 889
+        y: 44
+        width: 15
+        height: 47
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5222894fce8e8cbd0800000000000000
+      internalID: -2609579879647665627
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_38
+      rect:
+        serializedVersion: 2
+        x: 890
+        y: 0
+        width: 140
+        height: 91
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1702ad687f84f0be0800000000000000
+      internalID: -1508907122189262735
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_39
+      rect:
+        serializedVersion: 2
+        x: 895
+        y: 38
+        width: 6
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5121bdd3d47b51680800000000000000
+      internalID: -8784913955738152427
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_40
+      rect:
+        serializedVersion: 2
+        x: 1006
+        y: 109
+        width: 9
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 613ea7bd04bb5fa50800000000000000
+      internalID: 6554350719942189846
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_41
+      rect:
+        serializedVersion: 2
+        x: 1010
+        y: 89
+        width: 129
+        height: 167
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2c3a22aaccd90cda0800000000000000
+      internalID: -5926563607266286654
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_42
+      rect:
+        serializedVersion: 2
+        x: 1031
+        y: 0
+        width: 132
+        height: 97
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 56fa26e543dd45e40800000000000000
+      internalID: 5644379449993637733
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_43
+      rect:
+        serializedVersion: 2
+        x: 1138
+        y: 53
+        width: 129
+        height: 203
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 16076fbcad8981f70800000000000000
+      internalID: 9158237907750121569
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_44
+      rect:
+        serializedVersion: 2
+        x: 1145
+        y: 46
+        width: 6
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9ee78a6ee773e1670800000000000000
+      internalID: 8511301363952025321
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_45
+      rect:
+        serializedVersion: 2
+        x: 1159
+        y: 66
+        width: 6
+        height: 12
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 55481b75902f021f0800000000000000
+      internalID: -1071590589374299051
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_46
+      rect:
+        serializedVersion: 2
+        x: 1164
+        y: 83
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aeac96be3cf6a6420800000000000000
+      internalID: 2624032620155620074
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_47
+      rect:
+        serializedVersion: 2
+        x: 1165
+        y: 2
+        width: 103
+        height: 105
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dfd1e4c70594a4fb0800000000000000
+      internalID: -4662833854157021699
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_48
+      rect:
+        serializedVersion: 2
+        x: 1253
+        y: 113
+        width: 12
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4d26c649bcdd4a280800000000000000
+      internalID: -9032851086160141612
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_49
+      rect:
+        serializedVersion: 2
+        x: 1262
+        y: 0
+        width: 23
+        height: 76
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b0e67a6769062a8e0800000000000000
+      internalID: -1683677111331099125
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_50
+      rect:
+        serializedVersion: 2
+        x: 1265
+        y: 52
+        width: 9
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f92c1a7ba24fb55e0800000000000000
+      internalID: -1919672351836749153
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_51
+      rect:
+        serializedVersion: 2
+        x: 1266
+        y: 77
+        width: 129
+        height: 179
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a00112fa287094740800000000000000
+      internalID: 5136645107858083850
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_52
+      rect:
+        serializedVersion: 2
+        x: 1270
+        y: 44
+        width: 7
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 80ce0c69421b3ab10800000000000000
+      internalID: 1991630230934055944
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_53
+      rect:
+        serializedVersion: 2
+        x: 1286
+        y: 4
+        width: 110
+        height: 116
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b3993e8b4d3930c10800000000000000
+      internalID: 2018619599836387643
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_54
+      rect:
+        serializedVersion: 2
+        x: 1386
+        y: 108
+        width: 9
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a16e019bef6a19330800000000000000
+      internalID: 3715934780514166298
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_55
+      rect:
+        serializedVersion: 2
+        x: 1390
+        y: 0
+        width: 22
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 326371211938e79e0800000000000000
+      internalID: -1621714156709792221
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_56
+      rect:
+        serializedVersion: 2
+        x: 1391
+        y: 85
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fc85d1f77ec17d6f0800000000000000
+      internalID: -660027039790835505
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_57
+      rect:
+        serializedVersion: 2
+        x: 1392
+        y: 90
+        width: 128
+        height: 166
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26440bb4675ec1b00800000000000000
+      internalID: 800767130003850338
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_58
+      rect:
+        serializedVersion: 2
+        x: 1400
+        y: 85
+        width: 11
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cdc6ba057c664a820800000000000000
+      internalID: 2928578663935601884
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_59
+      rect:
+        serializedVersion: 2
+        x: 1401
+        y: 73
+        width: 8
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c20f99b5c0777a1c0800000000000000
+      internalID: -4492491208318652372
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_60
+      rect:
+        serializedVersion: 2
+        x: 1401
+        y: 59
+        width: 8
+        height: 16
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e7799bf0e9d094da0800000000000000
+      internalID: -5960217659328325762
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_61
+      rect:
+        serializedVersion: 2
+        x: 1402
+        y: 48
+        width: 9
+        height: 13
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2522a7ef683d86a20800000000000000
+      internalID: 3055924923919376978
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_62
+      rect:
+        serializedVersion: 2
+        x: 1423
+        y: 0
+        width: 226
+        height: 256
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8e4d941a4de19a900800000000000000
+      internalID: 696121515993322728
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_63
+      rect:
+        serializedVersion: 2
+        x: 1554
+        y: 0
+        width: 222
+        height: 256
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4616fd2afd53d5dd0800000000000000
+      internalID: -2495779383866859164
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_64
+      rect:
+        serializedVersion: 2
+        x: 1681
+        y: 0
+        width: 224
+        height: 256
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f9334fcf77297bd40800000000000000
+      internalID: 5600105705701127071
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_65
+      rect:
+        serializedVersion: 2
+        x: 1806
+        y: 0
+        width: 114
+        height: 247
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: edf55396302f251a0800000000000000
+      internalID: -6822124389048950818
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_66
+      rect:
+        serializedVersion: 2
+        x: 1907
+        y: 246
+        width: 13
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: acf6fcd9a78447b90800000000000000
+      internalID: -7245086209061457974
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_67
+      rect:
+        serializedVersion: 2
+        x: 511
+        y: 37
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 465e4154cb2efe500800000000000000
+      internalID: 427809787864212836
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_68
+      rect:
+        serializedVersion: 2
+        x: 53
+        y: 18
+        width: 11
+        height: 9
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3ac1d01c123199ad0800000000000000
+      internalID: -2695101866310820701
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_69
+      rect:
+        serializedVersion: 2
+        x: 312
+        y: 20
+        width: 8
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8a8603823b00250d0800000000000000
+      internalID: -3435682796256859992
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest left_70
+      rect:
+        serializedVersion: 2
+        x: 1030
+        y: 3
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b2e179071a786bcf0800000000000000
+      internalID: -236852802941936085
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Small Chest left_0: 8522695814907486176
+      Small Chest left_1: 6922958760782505209
+      Small Chest left_10: -9077754554655311263
+      Small Chest left_11: 2968139046319428589
+      Small Chest left_12: -3785240814961874152
+      Small Chest left_13: 44343700792765800
+      Small Chest left_14: -7311566378712931882
+      Small Chest left_15: 1236029934671476647
+      Small Chest left_16: 6630142207312028451
+      Small Chest left_17: -1524986500967756373
+      Small Chest left_18: -3005016684428913179
+      Small Chest left_19: 3524478209010670608
+      Small Chest left_2: 8734798843784091205
+      Small Chest left_20: 5823248828657857034
+      Small Chest left_21: -8269883609823640411
+      Small Chest left_22: 8370943404029660731
+      Small Chest left_23: 687425104560734079
+      Small Chest left_24: 3920169448796270454
+      Small Chest left_25: 8809530089587388707
+      Small Chest left_26: -3350077838055439709
+      Small Chest left_27: 893884843294398691
+      Small Chest left_28: -6527917320209048731
+      Small Chest left_29: 3826871131403131008
+      Small Chest left_3: -6078267161717198559
+      Small Chest left_30: 7550783838814857977
+      Small Chest left_31: -7084401580541661359
+      Small Chest left_32: 8002759953445157738
+      Small Chest left_33: -7323432165099043538
+      Small Chest left_34: 6688004905525119347
+      Small Chest left_35: -4391655904282830825
+      Small Chest left_36: 3377956540324694551
+      Small Chest left_37: -2609579879647665627
+      Small Chest left_38: -1508907122189262735
+      Small Chest left_39: -8784913955738152427
+      Small Chest left_4: 1792788542640480534
+      Small Chest left_40: 6554350719942189846
+      Small Chest left_41: -5926563607266286654
+      Small Chest left_42: 5644379449993637733
+      Small Chest left_43: 9158237907750121569
+      Small Chest left_44: 8511301363952025321
+      Small Chest left_45: -1071590589374299051
+      Small Chest left_46: 2624032620155620074
+      Small Chest left_47: -4662833854157021699
+      Small Chest left_48: -9032851086160141612
+      Small Chest left_49: -1683677111331099125
+      Small Chest left_5: 7031464576099662513
+      Small Chest left_50: -1919672351836749153
+      Small Chest left_51: 5136645107858083850
+      Small Chest left_52: 1991630230934055944
+      Small Chest left_53: 2018619599836387643
+      Small Chest left_54: 3715934780514166298
+      Small Chest left_55: -1621714156709792221
+      Small Chest left_56: -660027039790835505
+      Small Chest left_57: 800767130003850338
+      Small Chest left_58: 2928578663935601884
+      Small Chest left_59: -4492491208318652372
+      Small Chest left_6: -8252237415723703542
+      Small Chest left_60: -5960217659328325762
+      Small Chest left_61: 3055924923919376978
+      Small Chest left_62: 696121515993322728
+      Small Chest left_63: -2495779383866859164
+      Small Chest left_64: 5600105705701127071
+      Small Chest left_65: -6822124389048950818
+      Small Chest left_66: -7245086209061457974
+      Small Chest left_67: 427809787864212836
+      Small Chest left_68: -2695101866310820701
+      Small Chest left_69: -3435682796256859992
+      Small Chest left_7: -79079779111846036
+      Small Chest left_70: -236852802941936085
+      Small Chest left_8: -5642003624832224333
+      Small Chest left_9: 5616806953903751648
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
