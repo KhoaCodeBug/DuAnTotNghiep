@@ -25,7 +25,13 @@ public class PlayerSurvival : MonoBehaviour
 
     void Update()
     {
-        // 1. Tụt chỉ số theo thời gian
+        // 🔥 THÊM 3 DÒNG NÀY: Nếu đã chết thì NGỪNG mọi hoạt động đói khát
+        if (healthScript != null && healthScript.isDead)
+        {
+            return; // Lập tức thoát hàm, không chạy đoạn code trừ máu/đói/khát ở dưới nữa
+        }
+
+        // 1. Tụt chỉ số theo thời gian (Code cũ của bạn giữ nguyên)
         currentHunger -= hungerDrainRate * Time.deltaTime;
         currentThirst -= thirstDrainRate * Time.deltaTime;
 
@@ -40,7 +46,7 @@ public class PlayerSurvival : MonoBehaviour
             {
                 // Trừ máu mỗi giây
                 healthScript.TakeDamage(damageOverTime * Time.deltaTime);
-                Debug.LogWarning("⚠️ Bạn đang chết dần vì đói hoặc khát!");
+                // Ghi chú: Chỗ này tui tắt Debug.LogWarning đi vì nó sẽ spam liên tục mỗi frame gây lag màn hình Console
             }
         }
     }
