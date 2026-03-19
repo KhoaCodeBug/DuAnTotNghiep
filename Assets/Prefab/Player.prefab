@@ -352,7 +352,6 @@ GameObject:
   - component: {fileID: 8090428113333063069}
   - component: {fileID: 8762421789751151386}
   - component: {fileID: 76553097535974651}
-  - component: {fileID: 7029421067931453041}
   - component: {fileID: 1505858520728203951}
   - component: {fileID: 6027786628438645557}
   - component: {fileID: 7126942027890368006}
@@ -546,27 +545,6 @@ MonoBehaviour:
   crosshairTexture: {fileID: 2800000, guid: da68e33b91596184bb586d61fb44e663, type: 3}
   crosshairHotSpot: {x: 16, y: 16}
   anim: {fileID: 8571460307203640203}
---- !u!114 &7029421067931453041
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4457333233239025546}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2ad4a628701191468b200a6f1b9b22b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gunDamage: 20
-  fireRate: 0.2
-  weaponRange: 15
-  enemyLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  bashDamage: 10
-  bashRange: 1
-  bashCooldown: 0.8
 --- !u!114 &1505858520728203951
 MonoBehaviour:
   m_ObjectHideFlags: 0
