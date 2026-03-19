@@ -225,21 +225,38 @@ public class AutoUIManager : MonoBehaviour
     {
         GameObject btnObj = new GameObject(objName);
         btnObj.transform.SetParent(contextMenuPanel.transform, false);
+
+        // --- ĐÃ SỬA: Add Image TRƯỚC ---
+        Image btnImage = btnObj.AddComponent<Image>();
+        btnImage.color = Color.white; // Màu nền trắng tinh để hiển thị màu hover chuẩn nhất
+
+        // --- ĐÃ SỬA: Add Button SAU và gán mục tiêu đổi màu ---
         Button btn = btnObj.AddComponent<Button>();
-        btnObj.AddComponent<Image>();
+        btn.targetGraphic = btnImage;
+
+        // Cài đặt màu sắc nút bấm
         ColorBlock cb = btn.colors;
-        cb.normalColor = new Color(0.12f, 0.12f, 0.12f, 1f);
+        cb.normalColor = Color.white; // Bình thường là màu trắng
+        // Rê chuột vào: Use ra màu xanh, Drop ra màu đỏ
         cb.highlightedColor = text == "Drop" ? new Color(0.85f, 0.2f, 0.2f, 1f) : new Color(0.15f, 0.5f, 0.85f, 1f);
-        cb.pressedColor = new Color(0.1f, 0.1f, 0.1f, 1f);
-        cb.selectedColor = new Color(0.12f, 0.12f, 0.12f, 1f);
-        cb.fadeDuration = 0.15f; btn.colors = cb;
+        cb.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f); // Hơi xám lại khi click
+        cb.selectedColor = Color.white;
+        cb.fadeDuration = 0.15f;
+        btn.colors = cb;
         btn.onClick.AddListener(action);
 
+        // --- Cài đặt Chữ (Text) ---
         GameObject txtObj = new GameObject("Text");
         txtObj.transform.SetParent(btnObj.transform, false);
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
-        txt.text = text; txt.fontSize = 15; txt.fontStyle = FontStyles.Bold;
-        txt.alignment = TextAlignmentOptions.Center; txt.color = Color.white;
+        txt.text = text;
+        txt.fontSize = 15;
+        txt.fontStyle = FontStyles.Bold;
+        txt.alignment = TextAlignmentOptions.Center;
+
+        // --- ĐÃ SỬA: Chữ màu Đen Xám để đọc được trên nền Trắng ---
+        txt.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+
         RectTransform txtRect = txtObj.GetComponent<RectTransform>();
         txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one;
         txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero;
