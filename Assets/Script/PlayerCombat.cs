@@ -62,15 +62,16 @@ public class PlayerCombat : MonoBehaviour
         // 2. Tính hướng bắn: Kéo 1 đường thẳng tắp TỪ TÂM NHÂN VẬT tới DẤU CHẤM AIM
         Vector2 shootDirection = (mousePos - transform.position).normalized;
 
-        // 3. Phóng tia Raycast quét xem có trúng con nào thuộc EnemyLayer không
+        // 3. Phóng tia Raycast MỎNG DÍNH (NHƯ Ý BẠN) quét xem có trúng con nào thuộc EnemyLayer không
         RaycastHit2D hit = Physics2D.Raycast(transform.position, shootDirection, weaponRange, enemyLayer);
 
         if (hit.collider != null)
         {
-            Debug.Log("🔫 Bắn trúng ngay đầu: " + hit.collider.name);
+            Debug.Log("🔫 Bắn trúng ngay đầu (Raycast Mỏng): " + hit.collider.name);
 
-            // Mở comment 2 dòng này khi bạn code xong EnemyHealth nhé
-            ZOmbieAI_Khoa enemy = hit.collider.GetComponent<ZOmbieAI_Khoa>();
+            // 🔥 FIX: Dùng GetComponentInParent phòng trường hợp bắn trúng bia "EnemyBody" con
+            ZOmbieAI_Khoa enemy = hit.collider.GetComponentInParent<ZOmbieAI_Khoa>();
+
             if (enemy != null) enemy.TakeDamage(gunDamage);
         }
     }
@@ -90,8 +91,9 @@ public class PlayerCombat : MonoBehaviour
         {
             Debug.Log("💥 Đập báng súng trúng: " + enemy.name);
 
-            // Gọi script ZOmbieAI_Khoa từ biến "enemy"
-            ZOmbieAI_Khoa enemyStats = enemy.GetComponent<ZOmbieAI_Khoa>();
+            // 🔥 FIX: Tận dụng cơ chế cha con cho cả cận chiến
+            // Gọi script ZOmbieAI_Khoa từ cha của biến "enemy"
+            ZOmbieAI_Khoa enemyStats = enemy.GetComponentInParent<ZOmbieAI_Khoa>();
             if (enemyStats != null)
             {
                 enemyStats.TakeDamage(bashDamage);
