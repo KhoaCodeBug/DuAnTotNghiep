@@ -77204,7 +77204,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!95 &1497146801
 Animator:
   serializedVersion: 7
@@ -78529,8 +78529,8 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.012878418, y: -0.021661043}
-  m_Size: {x: 0.1415596, y: 0.45485163}
+  m_Offset: {x: -0.022027016, y: -0.13923383}
+  m_Size: {x: 0.13788795, y: 0.21970606}
   m_Direction: 0
 --- !u!114 &1611119452
 MonoBehaviour:
@@ -78670,7 +78670,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.28, y: 1.28}
+  m_Size: {x: 0.2, y: 0.46}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -78685,7 +78685,7 @@ Transform:
   m_GameObject: {fileID: 1611119450}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -22.422, y: -4.291759, z: -0.00024285287}
+  m_LocalPosition: {x: -22.622, y: -4.748, z: -0.00024285287}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
