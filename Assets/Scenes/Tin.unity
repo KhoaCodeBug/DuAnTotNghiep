@@ -366,6 +366,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 0
   loseTime: 5
+  isInvestigating: 0
   attackRange: 0.04
   attackDuration: 1
   attackCooldown: 1.5

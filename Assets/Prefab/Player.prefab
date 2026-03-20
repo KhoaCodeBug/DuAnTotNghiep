@@ -544,6 +544,11 @@ MonoBehaviour:
   turnSpeed: 15
   crosshairTexture: {fileID: 2800000, guid: da68e33b91596184bb586d61fb44e663, type: 3}
   crosshairHotSpot: {x: 16, y: 16}
+  zombieLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  walkNoiseRadius: 4
+  runNoiseRadius: 8
   anim: {fileID: 8571460307203640203}
 --- !u!114 &1505858520728203951
 MonoBehaviour:
@@ -563,9 +568,11 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
+  shootNoiseRadius: 20
   bashDamage: 10
   bashRange: 1
   bashCooldown: 0.8
+  bashNoiseRadius: 5
 --- !u!114 &6027786628438645557
 MonoBehaviour:
   m_ObjectHideFlags: 0

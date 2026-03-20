@@ -19,6 +19,13 @@ public class PlayerMovement : MonoBehaviour
     public Vector2 crosshairHotSpot = new Vector2(16, 16);
     private bool isCurrentlyAimingCursor = false;
 
+    // 🔥 MỚI: HỆ THỐNG TIẾNG ỒN DI CHUYỂN
+    [Header("--- Noise Generation ---")]
+    public LayerMask zombieLayer; // NHỚ CHỌN LAYER CỦA ZOMBIE VÀO ĐÂY TRONG INSPECTOR
+    public float walkNoiseRadius = 4f;
+    public float runNoiseRadius = 8f;
+    private float noiseEmitTimer = 0f; // Tránh việc phát tiếng ồn 60 lần/giây gây lag
+
     [Header("--- Animations ---")]
     public Animator anim;
 
@@ -61,8 +68,11 @@ public class PlayerMovement : MonoBehaviour
         bool isMovingNow = moveInput.magnitude > 0.1f;
         staminaSystem.UpdateStamina(isRunning, isMovingNow);
 
-        HandleRotationAndAiming(); // Đã đổi tên hàm cho chuẩn xác hơn
+        HandleRotationAndAiming();
         UpdateAnimation(isMovingNow);
+
+        // 🔥 MỚI: Liên tục phát ra tiếng động khi di chuyển
+        HandleMovementNoise(isMovingNow);
     }
 
     void FixedUpdate()
@@ -232,11 +242,49 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    // 🔥 MỚI: Hàm quản lý phát tiếng bước chân
+    private void HandleMovementNoise(bool isMoving)
+    {
+        // Nếu đứng im, bị choáng, hoặc đang NGỒI XỔM (Lén lút) thì tàng hình âm thanh
+        if (!isMoving || isCrouching || isStunned) return;
+
+        // Chỉ phát tiếng mỗi 0.2 giây một lần để tiết kiệm hiệu năng
+        if (noiseEmitTimer > 0)
+        {
+            noiseEmitTimer -= Time.deltaTime;
+            return;
+        }
+        noiseEmitTimer = 0.2f;
+
+        if (isRunning) MakeNoise(runNoiseRadius);
+        else MakeNoise(walkNoiseRadius);
+    }
     public void LockMovement(float duration)
     {
         stunTimer = duration;
         isStunned = true;
         rb.linearVelocity = Vector2.zero;
         moveInput = Vector2.zero;
+    }
+
+    public void MakeNoise(float radius)
+    {
+        // Quét vòng tròn xem có dính con Zombie nào không
+        Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, radius, zombieLayer);
+        foreach (Collider2D z in zombies)
+        {
+            ZOmbieAI_Khoa ai = z.GetComponentInParent<ZOmbieAI_Khoa>();
+            // Báo cho con AI tọa độ của mình để nó chạy tới kiểm tra
+            if (ai != null) ai.HearSound(transform.position);
+        }
+    }
+
+    // Vẽ vòng tròn Vàng (Đi) và Cam (Chạy) trong Scene để bạn dễ hình dung tầm nghe
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, walkNoiseRadius);
+        Gizmos.color = new Color(1f, 0.5f, 0f); // Màu cam
+        Gizmos.DrawWireSphere(transform.position, runNoiseRadius);
     }
 }
