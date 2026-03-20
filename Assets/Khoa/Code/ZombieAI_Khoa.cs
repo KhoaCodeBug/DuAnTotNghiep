@@ -22,6 +22,12 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     float loseTimer = 0f;
     bool isChasing = false;
 
+    // 🔥 MỚI: HỆ THỐNG THÍNH GIÁC (HEARING)
+    [Header("--- Hearing ---")]
+    public bool isInvestigating = false;
+    private Vector2 investigateTarget;
+    private float investigateTimer = 0f; // Thời gian đứng ngó nghiêng khi tới nơi
+
     [Header("Attack")]
     public float attackRange = 1.2f;
     public float attackDuration = 0.8f;
@@ -29,36 +35,27 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
     float attackTimer = 0f;
     float cooldownTimer = 0f;
-
     bool isAttacking = false;
     int attackIndex = 0;
 
     Transform player;
     Rigidbody2D rb;
     Animator anim;
-
     Vector2 movement;
     Vector2 lastMove;
 
-    // =======================================================
-    // 🔥 MỚI: PHẦN CODE CỦA BẠN (MÁU, SÁT THƯƠNG, HIỆU ỨNG)
-    // =======================================================
-    [Header("--- Zombie Stats (MỚI) ---")]
+    [Header("--- Zombie Stats ---")]
     public float maxHealth = 100f;
     public float currentHealth;
-
-    [Tooltip("Thời gian zombie bị khựng lại khi trúng đạn")]
     public float stunDuration = 0.3f;
     public Color hurtColor = Color.red;
 
     public bool isDead { get; private set; } = false;
     private bool isStunned = false;
     private float stunTimer = 0f;
-
     private SpriteRenderer spriteRend;
     private Color originalColor;
     private bool isFlashing = false;
-    // =======================================================
 
     void Start()
     {
@@ -70,7 +67,6 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
 
-        // 🔥 MỚI: Khởi tạo máu và màu sắc cho Zombie
         currentHealth = maxHealth;
         spriteRend = GetComponentInChildren<SpriteRenderer>();
         if (spriteRend != null) originalColor = spriteRend.color;
@@ -78,10 +74,8 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
     void Update()
     {
-        // 🔥 MỚI: Chết rồi thì không làm gì cả
         if (isDead) return;
 
-        // 🔥 MỚI: Đếm lùi thời gian choáng. Nếu đang choáng thì đứng im chịu trận!
         if (stunTimer > 0)
         {
             stunTimer -= Time.deltaTime;
@@ -89,11 +83,10 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             if (isStunned)
             {
                 movement = Vector2.zero;
-                return; // Cắt ngang logic, không cho đuổi hay cắn
+                return;
             }
         }
 
-        // ===== TIMER =====
         if (cooldownTimer > 0) cooldownTimer -= Time.deltaTime;
 
         if (isAttacking)
@@ -106,6 +99,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         if (CanSeePlayer())
         {
             isChasing = true;
+            isInvestigating = false; // Thấy rồi thì dẹp tò mò, dí luôn!
             loseTimer = loseTime;
         }
         else if (isChasing)
@@ -114,7 +108,6 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             if (loseTimer <= 0) isChasing = false;
         }
 
-        // ===== 2. DISTANCE =====
         ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
         float distance = collDist.distance;
         if (distance < 0) distance = 0f;
@@ -122,17 +115,17 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         Vector2 targetPos = playerCol.bounds.center;
         Vector2 myPos = myCol.bounds.center;
 
-        if (distance > 0.2f)
+        // Cập nhật lastMove cho animation
+        if (isChasing && distance > 0.2f)
         {
             Vector2 dir = (targetPos - myPos).normalized;
             if (dir != Vector2.zero) lastMove = dir;
         }
 
         // ===== 3. ATTACK =====
-        if (distance <= attackRange && !isAttacking && cooldownTimer <= 0)
+        if (distance <= attackRange && isChasing && !isAttacking && cooldownTimer <= 0)
         {
             attackIndex = Random.Range(1, 3);
-
             anim.SetInteger("AttackIndex", attackIndex);
             anim.SetTrigger("Attack");
 
@@ -141,17 +134,32 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             cooldownTimer = attackCooldown;
         }
 
-        // ===== 4. MOVEMENT =====
+        // ===== 4. MOVEMENT LOGIC TỔNG HỢP =====
         if (isChasing && !isAttacking)
         {
+            // CHẠY THEO PLAYER
             if (distance > attackRange)
-            {
-                Vector2 direction = (targetPos - myPos).normalized;
-                movement = direction;
-            }
+                movement = (targetPos - myPos).normalized;
             else
+                movement = Vector2.zero;
+        }
+        else if (isInvestigating && !isAttacking && !isChasing)
+        {
+            // 🔥 MỚI: ĐI ĐẾN CHỖ CÓ TIẾNG ỒN
+            float distToSound = Vector2.Distance(myPos, investigateTarget);
+            if (distToSound > 0.5f) // Chưa tới nơi
+            {
+                movement = (investigateTarget - myPos).normalized;
+                lastMove = movement; // Cập nhật mặt quay về hướng tiếng ồn
+            }
+            else // Tới nơi rồi
             {
                 movement = Vector2.zero;
+                investigateTimer -= Time.deltaTime; // Đứng ngó nghiêng
+                if (investigateTimer <= 0)
+                {
+                    isInvestigating = false; // Xong, hết tò mò
+                }
             }
         }
         else
@@ -167,22 +175,28 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
     void FixedUpdate()
     {
-        // 🔥 MỚI: Chết hoặc Choáng thì không di chuyển vật lý
         if (isDead || isStunned) return;
-
-        rb.MovePosition(rb.position + movement * speed * Time.fixedDeltaTime);
+        // Đi chậm lại một nửa nếu đang trong trạng thái tò mò (Investigate)
+        float currentSpeed = isInvestigating ? (speed * 0.5f) : speed;
+        rb.MovePosition(rb.position + movement * currentSpeed * Time.fixedDeltaTime);
     }
 
-    // =======================================================
-    // 🔥 MỚI: HÀM NHẬN SÁT THƯƠNG VÀ CHẾT DÀNH CHO ZOMBIE
-    // =======================================================
+    // 🔥 MỚI: Hàm để Player gọi khi gây ra tiếng ồn
+    public void HearSound(Vector2 soundPos)
+    {
+        // Đang dí hoặc chết rồi thì không cần nghe nữa
+        if (isDead || isChasing) return;
+
+        isInvestigating = true;
+        investigateTarget = soundPos;
+        investigateTimer = 3f; // Tới nơi sẽ đứng tìm 3 giây
+    }
+
     public void TakeDamage(float damage)
     {
         if (isDead) return;
-
         currentHealth -= damage;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
-        Debug.Log("Zombie trúng đạn! Máu còn: " + currentHealth);
 
         if (currentHealth <= 0)
         {
@@ -190,15 +204,11 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             return;
         }
 
-        // Gây choáng và gọi animation giật mình
         stunTimer = stunDuration;
         isStunned = true;
         if (anim != null) anim.SetTrigger("TakeDamage");
 
-        if (spriteRend != null && !isFlashing)
-        {
-            StartCoroutine(FlashHurtRoutine());
-        }
+        if (spriteRend != null && !isFlashing) StartCoroutine(FlashHurtRoutine());
     }
 
     private IEnumerator FlashHurtRoutine()
@@ -214,28 +224,21 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
-        Debug.Log("Zombie đã bị tiêu diệt!");
-
         if (anim != null) anim.SetBool("IsDead", true);
 
-        // Nằm im, tắt va chạm để không cản đường Player
         rb.linearVelocity = Vector2.zero;
         if (myCol != null) myCol.enabled = false;
 
         StopAllCoroutines();
         if (spriteRend != null) spriteRend.color = originalColor;
-
-        // Bắt đầu quy trình nằm chờ 5 giây rồi xóa xác
         StartCoroutine(VanishRoutine());
     }
 
-    // ĐÃ SỬA: Bỏ chớp chớp, nằm im 5 giây rồi biến mất
     private IEnumerator VanishRoutine()
     {
-        yield return new WaitForSeconds(5f); // Chờ 5 giây (Bạn có thể đổi số này tùy ý)
-        Destroy(gameObject); // Bụp! Xác biến mất.
+        yield return new WaitForSeconds(5f);
+        Destroy(gameObject);
     }
-    // =======================================================
 
     bool CanSeePlayer()
     {
