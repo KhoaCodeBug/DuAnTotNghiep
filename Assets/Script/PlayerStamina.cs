@@ -14,6 +14,11 @@ public class PlayerStamina : MonoBehaviour
     [Tooltip("Tốc độ hồi Stamina khi ĐI BỘ/LẾT")]
     public float staminaRecoverWalk = 5f;
 
+    // 🔥 MỚI: Cài đặt thời gian "khựng" hồi thể lực sau khi đập súng
+    [Header("--- Combat Penalty ---")]
+    public float bashRegenDelay = 3f;
+    private float currentRegenDelayTimer = 0f;
+
     public bool IsExhausted { get; private set; } = false;
 
     // --- BIẾN QUẢN LÝ BUFF ---
@@ -23,6 +28,12 @@ public class PlayerStamina : MonoBehaviour
 
     public void UpdateStamina(bool isRunning, bool isMovingNow)
     {
+        // 🔥 MỚI: Luôn giảm đồng hồ đếm ngược (nếu có) theo thời gian thực
+        if (currentRegenDelayTimer > 0)
+        {
+            currentRegenDelayTimer -= Time.deltaTime;
+        }
+
         // 1. Trừ thể lực khi đang chạy
         if (isRunning && isMovingNow)
         {
@@ -40,6 +51,9 @@ public class PlayerStamina : MonoBehaviour
         // 2. Hồi thể lực khi không chạy
         else
         {
+            // 🔥 MỚI: CHỐT CHẶN - Nếu vẫn đang trong 3 giây mệt do vung súng thì KHÔNG CHO HỒI!
+            if (currentRegenDelayTimer > 0) return;
+
             float currentRecoverRate = isMovingNow ? staminaRecoverWalk : staminaRecoverIdle;
 
             // NẾU CÓ BUFF, HỒI THỂ LỰC NHANH GẤP 3 LẦN
@@ -51,6 +65,24 @@ public class PlayerStamina : MonoBehaviour
             {
                 currentStamina = maxStamina;
                 IsExhausted = false;
+            }
+        }
+    }
+
+    public void ConsumeStamina(float amount)
+    {
+        // Nếu đang uống nước tăng lực (có Buff) thì đánh không biết mệt
+        if (!HasEnergyBuff)
+        {
+            currentStamina -= amount;
+
+            // 🔥 MỚI: Vừa đập súng xong, kích hoạt đồng hồ 3 giây cấm hồi thể lực
+            currentRegenDelayTimer = bashRegenDelay;
+
+            if (currentStamina <= 0)
+            {
+                currentStamina = 0;
+                IsExhausted = true; // Hết sạch thể lực thì chuyển sang thở dốc
             }
         }
     }

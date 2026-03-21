@@ -42,8 +42,10 @@ public class PlayerMovement : MonoBehaviour
     private bool isStunned = false;
     private float stunTimer = 0f;
 
-    // Đang xài đồ (Nhận tín hiệu từ AutoUIManager)
     public bool isUsingItem = false;
+
+    // 🔥 MỚI: Biến đếm thời gian khóa chân dành riêng cho Tấn Công
+    private float attackLockTimer = 0f;
 
     void Awake()
     {
@@ -62,7 +64,19 @@ public class PlayerMovement : MonoBehaviour
             isStunned = stunTimer > 0;
         }
 
+        // 🔥 MỚI: Đếm ngược thời gian khóa chân khi đánh
+        if (attackLockTimer > 0)
+        {
+            attackLockTimer -= Time.deltaTime;
+        }
+
         HandleInputs();
+
+        // 🔥 CHÌA KHÓA: Nếu đang vung súng đập, ép vận tốc bằng 0 nhưng VẪN GIỮ isAiming
+        if (attackLockTimer > 0)
+        {
+            moveInput = Vector2.zero;
+        }
 
         bool isMovingNow = moveInput.magnitude > 0.1f;
         staminaSystem.UpdateStamina(isRunning, isMovingNow);
@@ -92,14 +106,13 @@ public class PlayerMovement : MonoBehaviour
         float ver = Input.GetAxisRaw("Vertical");
         moveInput = new Vector2(hor, ver).normalized;
 
-        // 🔥 ĐÃ SỬA: Chặn chức năng ngắm nếu đang bật UI
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen())
         {
-            isAiming = false; // Cấm ngắm
+            isAiming = false;
         }
         else
         {
-            isAiming = Input.GetMouseButton(1); // Bình thường thì cho phép ngắm
+            isAiming = Input.GetMouseButton(1);
         }
 
         if (Input.GetKeyDown(KeyCode.C))
@@ -118,7 +131,6 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            // PUBG: Cấm chạy nhanh (Shift) khi đang dùng đồ
             isRunning = Input.GetKey(KeyCode.LeftShift) && !isAiming && !isUsingItem;
         }
     }
@@ -127,7 +139,6 @@ public class PlayerMovement : MonoBehaviour
     {
         float currentSpeed = walkSpeed;
 
-        // Ưu tiên 1: Đang dùng đồ là lết chậm 35%
         if (isUsingItem)
         {
             currentSpeed = walkSpeed * 0.35f;
@@ -237,18 +248,17 @@ public class PlayerMovement : MonoBehaviour
         anim.SetFloat("MoveX", smoothLookDir.x);
         anim.SetFloat("MoveY", smoothLookDir.y);
 
-        // 🔥 ĐÃ SỬA: Tinh chỉnh lại tốc độ Animation cho mượt mắt
         if (isUsingItem && isMovingNow)
         {
-            anim.speed = 0.5f; // Chân bước chậm lại cho khớp với tốc độ lết
+            anim.speed = 0.5f;
         }
         else if (staminaSystem.IsExhausted && isMovingNow && !isAiming)
         {
-            anim.speed = 0.7f; // Thở dốc thì bước chậm
+            anim.speed = 0.7f;
         }
         else
         {
-            anim.speed = 1f; // Chạy bộ/Đi bộ bình thường
+            anim.speed = 1f;
         }
     }
 
@@ -273,6 +283,13 @@ public class PlayerMovement : MonoBehaviour
         isStunned = true;
         rb.linearVelocity = Vector2.zero;
         moveInput = Vector2.zero;
+    }
+
+    // 🔥 MỚI: Hàm khóa chân chuyên dụng cho đánh đấm, không làm gãy Animation
+    public void LockMovementForAttack(float duration)
+    {
+        attackLockTimer = duration;
+        rb.linearVelocity = Vector2.zero;
     }
 
     public void MakeNoise(float radius)

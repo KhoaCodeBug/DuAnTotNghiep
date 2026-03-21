@@ -1175,6 +1175,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1032763661400503366, guid: 9825ebb2b3551454e824139e839de879, type: 3}
+      propertyPath: orthographic size
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 7731154587422345801, guid: 9825ebb2b3551454e824139e839de879, type: 3}
       propertyPath: player
       value: 
@@ -1185,11 +1189,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7931984690800547180, guid: 9825ebb2b3551454e824139e839de879, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -29.103
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7931984690800547180, guid: 9825ebb2b3551454e824139e839de879, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 10.625001
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7931984690800547180, guid: 9825ebb2b3551454e824139e839de879, type: 3}
       propertyPath: m_LocalPosition.z
@@ -1240,9 +1244,29 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1505858520728203951, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: bashDuration
+      value: 1.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1505858520728203951, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: bashStaminaCost
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: 4457333233239025546, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
       propertyPath: m_Name
       value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 6027786628438645557, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: staminaDrain
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 6027786628438645557, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: staminaRecoverIdle
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 6027786628438645557, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: staminaRecoverWalk
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 7151529957679168258, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
       propertyPath: m_LocalPosition.x

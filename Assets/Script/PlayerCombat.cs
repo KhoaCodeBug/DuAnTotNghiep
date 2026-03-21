@@ -7,19 +7,22 @@ public class PlayerCombat : MonoBehaviour
     public float fireRate = 0.2f;
     public float weaponRange = 15f;
     public LayerMask enemyLayer;
-    // 🔥 MỚI: Bán kính tiếng súng nổ
     public float shootNoiseRadius = 20f;
 
     [Header("--- Cận Chiến (Gun Bash) ---")]
     public float bashDamage = 10f;
     public float bashRange = 1f;
     public float bashCooldown = 0.8f;
-    // 🔥 MỚI: Đập báng súng cũng có tiếng động nhẹ
     public float bashNoiseRadius = 5f;
+    public float bashStaminaCost = 15f;
+
+    [Tooltip("Khóa chân bao nhiêu giây khi đập súng (Nên nhỏ hơn Cooldown)")]
+    public float bashDuration = 0.5f;
 
     private Animator anim;
     private Camera mainCam;
-    private PlayerMovement playerMove; // Lấy script Movement để mượn hàm tiếng ồn
+    private PlayerMovement playerMove;
+    private PlayerStamina staminaSystem;
 
     private float nextFireTime = 0f;
     private float nextBashTime = 0f;
@@ -29,6 +32,7 @@ public class PlayerCombat : MonoBehaviour
         anim = GetComponent<Animator>();
         mainCam = Camera.main;
         playerMove = GetComponent<PlayerMovement>();
+        staminaSystem = GetComponent<PlayerStamina>();
     }
 
     void Update()
@@ -45,6 +49,12 @@ public class PlayerCombat : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Space) && Time.time >= nextBashTime)
         {
+            if (staminaSystem != null && staminaSystem.IsExhausted)
+            {
+                Debug.Log("Kiệt sức rồi, không đập báng súng nổi!");
+                return;
+            }
+
             nextBashTime = Time.time + bashCooldown;
             Bash();
         }
@@ -54,7 +64,6 @@ public class PlayerCombat : MonoBehaviour
     {
         anim.SetTrigger("Shoot");
 
-        // 🔥 MỚI: Phát ra tiếng súng vang dội gọi nguyên bầy zombie tới
         if (playerMove != null) playerMove.MakeNoise(shootNoiseRadius);
 
         Vector3 mousePos = mainCam.ScreenToWorldPoint(Input.mousePosition);
@@ -76,8 +85,18 @@ public class PlayerCombat : MonoBehaviour
         anim.SetInteger("RandomBash", randomAttack);
         anim.SetTrigger("GunBash");
 
-        // 🔥 MỚI: Phát tiếng động nhỏ khi cận chiến
-        if (playerMove != null) playerMove.MakeNoise(bashNoiseRadius);
+        if (playerMove != null)
+        {
+            playerMove.MakeNoise(bashNoiseRadius);
+
+            // 🔥 ĐÃ SỬA: Gọi đúng hàm khóa chân tấn công mới
+            playerMove.LockMovementForAttack(bashDuration);
+        }
+
+        if (staminaSystem != null)
+        {
+            staminaSystem.ConsumeStamina(bashStaminaCost);
+        }
 
         Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, bashRange, enemyLayer);
 
@@ -93,11 +112,9 @@ public class PlayerCombat : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        // Vẽ vòng cận chiến (Màu đỏ)
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, bashRange);
 
-        // 🔥 MỚI: Vẽ vòng tiếng súng (Màu tím cánh sen cho dễ nhìn từ xa)
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, shootNoiseRadius);
     }
