@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: e8137daeaad8b764a82c41d93f130909
+guid: e78216c145b77f747826725a2fc7a73c
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 7400000
@@ -12,5 +12,5 @@ AssetOrigin:
   packageName: Zombie Interior - HD Isometric Tileset
   packageVersion: 1.0
   assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Characters/Animations/Animation
-    Clips/Survivor 3/StrafeRight/StrafeRight_SE.anim
+    Clips/Survivor 3/StrafeLeft/StrafeLeft_SE.anim
   uploadId: 777992

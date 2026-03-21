@@ -13,18 +13,16 @@ public class PlayerMovement : MonoBehaviour
     public float turnSpeed = 12f;
 
     [Header("--- Aiming & Hardware Cursor ---")]
-    // 🔥 SỬA: Thay thế GameObject bằng Texture2D để dùng Hardware Cursor
     public Texture2D crosshairTexture;
     [Tooltip("Tọa độ tâm của tấm hình. Ví dụ hình 32x32 thì tâm là X:16, Y:16")]
     public Vector2 crosshairHotSpot = new Vector2(16, 16);
     private bool isCurrentlyAimingCursor = false;
 
-    // 🔥 MỚI: HỆ THỐNG TIẾNG ỒN DI CHUYỂN
     [Header("--- Noise Generation ---")]
-    public LayerMask zombieLayer; // NHỚ CHỌN LAYER CỦA ZOMBIE VÀO ĐÂY TRONG INSPECTOR
+    public LayerMask zombieLayer;
     public float walkNoiseRadius = 4f;
     public float runNoiseRadius = 8f;
-    private float noiseEmitTimer = 0f; // Tránh việc phát tiếng ồn 60 lần/giây gây lag
+    private float noiseEmitTimer = 0f;
 
     [Header("--- Animations ---")]
     public Animator anim;
@@ -44,6 +42,9 @@ public class PlayerMovement : MonoBehaviour
     private bool isStunned = false;
     private float stunTimer = 0f;
 
+    // Đang xài đồ (Nhận tín hiệu từ AutoUIManager)
+    public bool isUsingItem = false;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -51,8 +52,6 @@ public class PlayerMovement : MonoBehaviour
         mainCam = Camera.main;
         rb.freezeRotation = true;
         smoothLookDir = lastLookDir;
-
-        // Đã xóa dòng aimReticle.SetActive ở đây
     }
 
     void Update()
@@ -71,7 +70,6 @@ public class PlayerMovement : MonoBehaviour
         HandleRotationAndAiming();
         UpdateAnimation(isMovingNow);
 
-        // 🔥 MỚI: Liên tục phát ra tiếng động khi di chuyển
         HandleMovementNoise(isMovingNow);
     }
 
@@ -94,7 +92,15 @@ public class PlayerMovement : MonoBehaviour
         float ver = Input.GetAxisRaw("Vertical");
         moveInput = new Vector2(hor, ver).normalized;
 
-        isAiming = Input.GetMouseButton(1);
+        // 🔥 ĐÃ SỬA: Chặn chức năng ngắm nếu đang bật UI
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen())
+        {
+            isAiming = false; // Cấm ngắm
+        }
+        else
+        {
+            isAiming = Input.GetMouseButton(1); // Bình thường thì cho phép ngắm
+        }
 
         if (Input.GetKeyDown(KeyCode.C))
         {
@@ -112,7 +118,8 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            isRunning = Input.GetKey(KeyCode.LeftShift) && !isAiming;
+            // PUBG: Cấm chạy nhanh (Shift) khi đang dùng đồ
+            isRunning = Input.GetKey(KeyCode.LeftShift) && !isAiming && !isUsingItem;
         }
     }
 
@@ -120,12 +127,16 @@ public class PlayerMovement : MonoBehaviour
     {
         float currentSpeed = walkSpeed;
 
-        if (staminaSystem.IsExhausted && !isAiming)
+        // Ưu tiên 1: Đang dùng đồ là lết chậm 35%
+        if (isUsingItem)
+        {
+            currentSpeed = walkSpeed * 0.35f;
+        }
+        else if (staminaSystem.IsExhausted && !isAiming)
         {
             currentSpeed = walkSpeed * 0.6f;
         }
-
-        if (isAiming)
+        else if (isAiming)
         {
             currentSpeed = aimSpeed;
         }
@@ -138,7 +149,7 @@ public class PlayerMovement : MonoBehaviour
             currentSpeed = crouchSpeed;
         }
 
-        if (!isAiming && staminaSystem.CurrentSpeedMultiplier > 1f)
+        if (!isAiming && !isUsingItem && staminaSystem.CurrentSpeedMultiplier > 1f)
         {
             currentSpeed *= staminaSystem.CurrentSpeedMultiplier;
         }
@@ -153,12 +164,10 @@ public class PlayerMovement : MonoBehaviour
         rb.MovePosition(nextPosition);
     }
 
-    // 🔥 SỬA: Cập nhật hàm này để xử lý Crosshair xịn
     private void HandleRotationAndAiming()
     {
         if (isAiming)
         {
-            // Tính toán hướng nhìn của nhân vật
             Vector2 mouseHitPoint = GetMouseWorldPosition();
             Vector2 lookVector = mouseHitPoint - (Vector2)transform.position;
             if (lookVector.sqrMagnitude > 0.1f)
@@ -166,7 +175,6 @@ public class PlayerMovement : MonoBehaviour
                 lastLookDir = lookVector.normalized;
             }
 
-            // --- BẬT HARDWARE CURSOR ---
             if (!isCurrentlyAimingCursor)
             {
                 Cursor.SetCursor(crosshairTexture, crosshairHotSpot, CursorMode.Auto);
@@ -175,10 +183,8 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            // Di chuyển thì nhìn theo hướng di chuyển
             if (moveInput != Vector2.zero) lastLookDir = moveInput;
 
-            // --- TẮT HARDWARE CURSOR ---
             if (isCurrentlyAimingCursor)
             {
                 Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
@@ -210,7 +216,6 @@ public class PlayerMovement : MonoBehaviour
         if (isAiming && isMovingNow)
         {
             Vector2 forwardDir = lastLookDir.normalized;
-            // Đã đổi dấu để X=1 là sang Phải, X=-1 là sang Trái cho khớp Blend Tree
             Vector2 rightDir = new Vector2(forwardDir.y, -forwardDir.x);
 
             strafeY = Vector2.Dot(moveInput.normalized, forwardDir);
@@ -232,23 +237,25 @@ public class PlayerMovement : MonoBehaviour
         anim.SetFloat("MoveX", smoothLookDir.x);
         anim.SetFloat("MoveY", smoothLookDir.y);
 
-        if (staminaSystem.IsExhausted && isMovingNow && !isAiming)
+        // 🔥 ĐÃ SỬA: Tinh chỉnh lại tốc độ Animation cho mượt mắt
+        if (isUsingItem && isMovingNow)
         {
-            anim.speed = 0.7f;
+            anim.speed = 0.5f; // Chân bước chậm lại cho khớp với tốc độ lết
+        }
+        else if (staminaSystem.IsExhausted && isMovingNow && !isAiming)
+        {
+            anim.speed = 0.7f; // Thở dốc thì bước chậm
         }
         else
         {
-            anim.speed = 1f;
+            anim.speed = 1f; // Chạy bộ/Đi bộ bình thường
         }
     }
 
-    // 🔥 MỚI: Hàm quản lý phát tiếng bước chân
     private void HandleMovementNoise(bool isMoving)
     {
-        // Nếu đứng im, bị choáng, hoặc đang NGỒI XỔM (Lén lút) thì tàng hình âm thanh
         if (!isMoving || isCrouching || isStunned) return;
 
-        // Chỉ phát tiếng mỗi 0.2 giây một lần để tiết kiệm hiệu năng
         if (noiseEmitTimer > 0)
         {
             noiseEmitTimer -= Time.deltaTime;
@@ -259,6 +266,7 @@ public class PlayerMovement : MonoBehaviour
         if (isRunning) MakeNoise(runNoiseRadius);
         else MakeNoise(walkNoiseRadius);
     }
+
     public void LockMovement(float duration)
     {
         stunTimer = duration;
@@ -269,22 +277,19 @@ public class PlayerMovement : MonoBehaviour
 
     public void MakeNoise(float radius)
     {
-        // Quét vòng tròn xem có dính con Zombie nào không
         Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, radius, zombieLayer);
         foreach (Collider2D z in zombies)
         {
             ZOmbieAI_Khoa ai = z.GetComponentInParent<ZOmbieAI_Khoa>();
-            // Báo cho con AI tọa độ của mình để nó chạy tới kiểm tra
             if (ai != null) ai.HearSound(transform.position);
         }
     }
 
-    // Vẽ vòng tròn Vàng (Đi) và Cam (Chạy) trong Scene để bạn dễ hình dung tầm nghe
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, walkNoiseRadius);
-        Gizmos.color = new Color(1f, 0.5f, 0f); // Màu cam
+        Gizmos.color = new Color(1f, 0.5f, 0f);
         Gizmos.DrawWireSphere(transform.position, runNoiseRadius);
     }
 }

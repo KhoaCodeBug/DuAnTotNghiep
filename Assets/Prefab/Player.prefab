@@ -523,8 +523,8 @@ CircleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: -0.053425126}
-  m_Radius: 0.058510147
+  m_Offset: {x: 0, y: 0}
+  m_Radius: 0.1
 --- !u!114 &76553097535974651
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -550,6 +550,7 @@ MonoBehaviour:
   walkNoiseRadius: 4
   runNoiseRadius: 8
   anim: {fileID: 8571460307203640203}
+  isUsingItem: 0
 --- !u!114 &1505858520728203951
 MonoBehaviour:
   m_ObjectHideFlags: 0

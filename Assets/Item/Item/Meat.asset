@@ -15,6 +15,7 @@ MonoBehaviour:
   itemName: Meat
   icon: {fileID: 1472325951620093286, guid: 7ed714081dc587347a28931f5ed7ec45, type: 3}
   category: 2
+  useTime: 3
   specificDropPrefab: {fileID: 0}
   isStackable: 1
   maxStack: 30

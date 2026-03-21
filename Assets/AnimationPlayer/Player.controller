@@ -262,7 +262,7 @@ BlendTree:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Strafe Left Tree
+  m_Name: Strafe Right Tree
   m_Childs:
   - serializedVersion: 2
     m_Motion: {fileID: 7400000, guid: 231fc52ed8b08314dbc2b38b350846bf, type: 2}
@@ -679,7 +679,7 @@ BlendTree:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Strafe Right Attack
+  m_Name: Strafe Left Attack
   m_Childs:
   - serializedVersion: 2
     m_Motion: {fileID: 7400000, guid: 07ea4757d9dbdff4dae93ba73f65b21a, type: 2}
@@ -752,13 +752,39 @@ BlendTree:
   m_UseAutomaticThresholds: 1
   m_NormalizedBlendValues: 0
   m_BlendType: 1
+--- !u!1102 &-4733147191387104015
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Taunt_E
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 0
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 7400000, guid: 41152df128c56ff4e8e8467f8c0cec12, type: 2}
+  m_Tag: 
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
 --- !u!206 &-4314851810715767970
 BlendTree:
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Strafe Left Attack
+  m_Name: Strafe Right Attack
   m_Childs:
   - serializedVersion: 2
     m_Motion: {fileID: 7400000, guid: 22ccbd7e276e85645a0f4d47c9668663, type: 2}
@@ -2008,7 +2034,7 @@ BlendTree:
     m_DirectBlendParameter: MoveX
     m_Mirror: 0
   - serializedVersion: 2
-    m_Motion: {fileID: -4807031593732476563}
+    m_Motion: {fileID: -4314851810715767970}
     m_Threshold: 0.75
     m_Position: {x: 1, y: 0}
     m_TimeScale: 1
@@ -2016,7 +2042,7 @@ BlendTree:
     m_DirectBlendParameter: MoveX
     m_Mirror: 0
   - serializedVersion: 2
-    m_Motion: {fileID: -4314851810715767970}
+    m_Motion: {fileID: -4807031593732476563}
     m_Threshold: 1
     m_Position: {x: -1, y: 0}
     m_TimeScale: 1
@@ -2201,7 +2227,7 @@ BlendTree:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Strafe Right Tree
+  m_Name: Strafe Left Tree
   m_Childs:
   - serializedVersion: 2
     m_Motion: {fileID: 7400000, guid: f4094dce90438e04aa122a1cf5f64d95, type: 2}
@@ -2684,6 +2710,9 @@ AnimatorStateMachine:
   - serializedVersion: 1
     m_State: {fileID: 8436697275583280776}
     m_Position: {x: 600, y: 280, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: -4733147191387104015}
+    m_Position: {x: -830, y: 100, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions:
   - {fileID: 4344487065907795746}
@@ -3048,7 +3077,7 @@ BlendTree:
     m_DirectBlendParameter: MoveX
     m_Mirror: 0
   - serializedVersion: 2
-    m_Motion: {fileID: 2242987013607033924}
+    m_Motion: {fileID: -7036801227615483506}
     m_Threshold: 0.75
     m_Position: {x: 1, y: 0}
     m_TimeScale: 1
@@ -3056,7 +3085,7 @@ BlendTree:
     m_DirectBlendParameter: MoveX
     m_Mirror: 0
   - serializedVersion: 2
-    m_Motion: {fileID: -7036801227615483506}
+    m_Motion: {fileID: 2242987013607033924}
     m_Threshold: 1
     m_Position: {x: -1, y: 0}
     m_TimeScale: 1

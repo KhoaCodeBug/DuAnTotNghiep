@@ -15,6 +15,7 @@ MonoBehaviour:
   itemName: EnergyWater
   icon: {fileID: -5026307117483157257, guid: eda09366117815040a568144bc66ccbe, type: 3}
   category: 2
+  useTime: 4
   specificDropPrefab: {fileID: 0}
   isStackable: 1
   maxStack: 5
