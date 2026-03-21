@@ -22,7 +22,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     float loseTimer = 0f;
     bool isChasing = false;
 
-    // 🔥 MỚI: HỆ THỐNG THÍNH GIÁC (HEARING)
+    // 🔥 HỆ THỐNG THÍNH GIÁC (HEARING)
     [Header("--- Hearing ---")]
     public bool isInvestigating = false;
     private Vector2 investigateTarget;
@@ -30,6 +30,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
     [Header("Attack")]
     public float attackRange = 1.2f;
+    [Tooltip("Phải set thời gian này BẰNG VỚI độ dài của clip animation Attack nhé!")]
     public float attackDuration = 0.8f;
     public float attackCooldown = 1.5f;
 
@@ -55,8 +56,19 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     private float stunTimer = 0f;
     private SpriteRenderer spriteRend;
     private Color originalColor;
-    private bool isFlashing = false;
 
+    public enum ZombieState
+    {
+        Idle,
+        Wander,
+        Chase,
+        Investigate,
+        Attack,
+        Stunned,
+        Dead
+    }
+
+    public ZombieState currentState = ZombieState.Idle;
     void Start()
     {
         player = GameObject.FindGameObjectWithTag("Player").transform;
@@ -76,6 +88,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     {
         if (isDead) return;
 
+        // ===== XỬ LÝ CHOÁNG =====
         if (stunTimer > 0)
         {
             stunTimer -= Time.deltaTime;
@@ -83,16 +96,20 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             if (isStunned)
             {
                 movement = Vector2.zero;
-                return;
+                return; // Đang choáng thì bỏ qua mọi tư duy đuổi/đánh
             }
         }
 
+        // ===== XỬ LÝ THỜI GIAN ĐÁNH =====
         if (cooldownTimer > 0) cooldownTimer -= Time.deltaTime;
 
         if (isAttacking)
         {
             attackTimer -= Time.deltaTime;
-            if (attackTimer <= 0) isAttacking = false;
+            if (attackTimer <= 0)
+            {
+                isAttacking = false; // Hết thời gian vung tay, cho phép đi tiếp
+            }
         }
 
         // ===== 1. VISION =====
@@ -108,6 +125,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             if (loseTimer <= 0) isChasing = false;
         }
 
+        // ===== 2. DISTANCE =====
         ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
         float distance = collDist.distance;
         if (distance < 0) distance = 0f;
@@ -115,11 +133,18 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         Vector2 targetPos = playerCol.bounds.center;
         Vector2 myPos = myCol.bounds.center;
 
-        // Cập nhật lastMove cho animation
-        if (isChasing && distance > 0.2f)
+        // 🔥 FIX: HỆ THỐNG XOAY MẶT THÔNG MINH
+        // Cập nhật hướng nhìn liên tục khi đang đuổi HOẶC đang đánh
+        if (isChasing || isAttacking)
         {
-            Vector2 dir = (targetPos - myPos).normalized;
-            if (dir != Vector2.zero) lastMove = dir;
+            Vector2 dirToPlayer = (targetPos - myPos).normalized;
+
+            // Chỉ cập nhật mặt nếu khoảng cách > 0.1 để tránh giật mặt khi đứng quá sát nhau đè lên nhau
+            if (distance > 0.1f)
+            {
+                // Thêm tí "độ trễ" (Lerp) nhẹ để khi xoay mặt nó không bị giật cục đùng 1 cái
+                lastMove = Vector2.Lerp(lastMove, dirToPlayer, 15f * Time.deltaTime).normalized;
+            }
         }
 
         // ===== 3. ATTACK =====
@@ -134,10 +159,9 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             cooldownTimer = attackCooldown;
         }
 
-        // ===== 4. MOVEMENT LOGIC TỔNG HỢP =====
+        // ===== 4. MOVEMENT LOGIC =====
         if (isChasing && !isAttacking)
         {
-            // CHẠY THEO PLAYER
             if (distance > attackRange)
                 movement = (targetPos - myPos).normalized;
             else
@@ -145,20 +169,19 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         }
         else if (isInvestigating && !isAttacking && !isChasing)
         {
-            // 🔥 MỚI: ĐI ĐẾN CHỖ CÓ TIẾNG ỒN
             float distToSound = Vector2.Distance(myPos, investigateTarget);
             if (distToSound > 0.5f) // Chưa tới nơi
             {
                 movement = (investigateTarget - myPos).normalized;
-                lastMove = movement; // Cập nhật mặt quay về hướng tiếng ồn
+                lastMove = movement;
             }
             else // Tới nơi rồi
             {
                 movement = Vector2.zero;
-                investigateTimer -= Time.deltaTime; // Đứng ngó nghiêng
+                investigateTimer -= Time.deltaTime;
                 if (investigateTimer <= 0)
                 {
-                    isInvestigating = false; // Xong, hết tò mò
+                    isInvestigating = false;
                 }
             }
         }
@@ -168,30 +191,39 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         }
 
         // ===== 5. ANIMATOR =====
+        // Mặc dù đứng im đánh, nhưng truyền lastMove vào để Blend Tree xoay đúng hướng
         anim.SetFloat("MoveX", lastMove.x);
         anim.SetFloat("MoveY", lastMove.y);
-        anim.SetFloat("Speed", movement.magnitude);
+
+        // Nếu đang đánh thì ép speed về 0 để chân không bước (không trượt)
+        anim.SetFloat("Speed", isAttacking ? 0f : movement.magnitude);
     }
 
     void FixedUpdate()
     {
-        if (isDead || isStunned) return;
-        // Đi chậm lại một nửa nếu đang trong trạng thái tò mò (Investigate)
+        // 🔥 FIX "TRƯỢT BĂNG/VỪA ĐI VỪA ĐÁNH":
+        // Nếu Đang Chết OR Đang Choáng OR Đang Đánh -> Bắt chôn chân tại chỗ!
+        if (isDead || isStunned || isAttacking)
+        {
+            rb.linearVelocity = Vector2.zero; // Cắt đứt hoàn toàn quán tính trôi dạt
+            return;
+        }
+
         float currentSpeed = isInvestigating ? (speed * 0.5f) : speed;
         rb.MovePosition(rb.position + movement * currentSpeed * Time.fixedDeltaTime);
     }
 
-    // 🔥 MỚI: Hàm để Player gọi khi gây ra tiếng ồn
+    // Hàm nghe tiếng động
     public void HearSound(Vector2 soundPos)
     {
-        // Đang dí hoặc chết rồi thì không cần nghe nữa
         if (isDead || isChasing) return;
 
         isInvestigating = true;
         investigateTarget = soundPos;
-        investigateTimer = 3f; // Tới nơi sẽ đứng tìm 3 giây
+        investigateTimer = 3f;
     }
 
+    // Hàm nhận sát thương
     public void TakeDamage(float damage)
     {
         if (isDead) return;
@@ -206,18 +238,10 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
         stunTimer = stunDuration;
         isStunned = true;
+        // Quá trình bị choáng sẽ ngắt luôn quá trình đang tấn công (nếu có)
+        isAttacking = false;
+
         if (anim != null) anim.SetTrigger("TakeDamage");
-
-        if (spriteRend != null && !isFlashing) StartCoroutine(FlashHurtRoutine());
-    }
-
-    private IEnumerator FlashHurtRoutine()
-    {
-        isFlashing = true;
-        spriteRend.color = hurtColor;
-        yield return new WaitForSeconds(0.1f);
-        spriteRend.color = originalColor;
-        isFlashing = false;
     }
 
     private void Die()
@@ -231,9 +255,11 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
         StopAllCoroutines();
         if (spriteRend != null) spriteRend.color = originalColor;
+
         StartCoroutine(VanishRoutine());
     }
 
+    // 🔥 Đã dẹp bỏ trò chớp chớp rẻ tiền, giờ chết nằm im 5 giây rồi tan biến
     private IEnumerator VanishRoutine()
     {
         yield return new WaitForSeconds(5f);
@@ -271,10 +297,40 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
     public void TriggerAttackDamage()
     {
+        // 1. Kiểm tra khoảng cách
         ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
         if (collDist.distance <= attackRange + 0.2f)
         {
-            if (playerHealth != null) playerHealth.TakeDamage(zombieDamage);
+            // 2. 🔥 MỚI: KIỂM TRA GÓC ĐÁNH (Chỉ chém trúng kẻ thù trước mặt)
+            Vector2 myPos = myCol.bounds.center;
+            Vector2 targetPos = playerCol.bounds.center;
+
+            // Hướng từ Zombie tới Player
+            Vector2 dirToPlayer = (targetPos - myPos).normalized;
+            // Hướng mặt hiện tại của Zombie (đã được lưu ở lastMove)
+            Vector2 zombieFacingDir = lastMove.normalized;
+
+            // Tính góc lệch giữa mặt Zombie và vị trí Player
+            float angle = Vector2.Angle(zombieFacingDir, dirToPlayer);
+
+            // Nếu Player đứng trong vùng 120 độ trước mặt (mỗi bên 60 độ)
+            if (angle <= 60f)
+            {
+                if (playerHealth != null)
+                {
+                    playerHealth.TakeDamage(zombieDamage);
+                }
+            }
+            else
+            {
+                // Player đã luồn ra sau lưng kịp lúc!
+                Debug.Log("Né đẹp! Zombie vồ hụt vào không khí!");
+            }
+        }
+        else
+        {
+            // Player đã lùi ra khỏi tầm kịp lúc!
+            Debug.Log("Lùi hay! Zombie cào hụt!");
         }
     }
 }
