@@ -33,6 +33,8 @@ public class PlayerCombat : MonoBehaviour
 
     void Update()
     {
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()) return;
+
         if (!Input.GetMouseButton(1)) return;
 
         if (Input.GetMouseButtonDown(0) && Time.time >= nextFireTime)

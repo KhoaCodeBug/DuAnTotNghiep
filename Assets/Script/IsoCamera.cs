@@ -50,7 +50,8 @@ public class PZ_CameraController : MonoBehaviour
         Vector3 targetPos = player.position + offset;
 
         // 🔥 SỬA CHỖ NÀY: Xử lý lia Camera chuẩn 2D
-        if (Input.GetMouseButton(1)) // Khi đang đè chuột phải (Aim)
+        // 🔥 ĐÃ SỬA: Cấm Camera lia theo chuột nếu túi đồ đang mở
+        if (Input.GetMouseButton(1) && !(AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()))
         {
             // 1. Lấy thẳng tọa độ chuột trong thế giới 2D
             Vector3 mouseWorldPos = cam.ScreenToWorldPoint(Input.mousePosition);

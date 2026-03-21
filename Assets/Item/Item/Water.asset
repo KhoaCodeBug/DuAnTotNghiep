@@ -15,6 +15,7 @@ MonoBehaviour:
   itemName: Water
   icon: {fileID: -174445121998448974, guid: 5f741344fdd9e5a48a672bcf8fb84606, type: 3}
   category: 2
+  useTime: 2
   specificDropPrefab: {fileID: 0}
   isStackable: 1
   maxStack: 30

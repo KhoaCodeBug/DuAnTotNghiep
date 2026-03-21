@@ -9,6 +9,11 @@ public class ItemData : ScriptableObject
     public Sprite icon;
     public ItemCategory category;
 
+    // 🔥 MỚI: Chỉ số thời gian để dùng vật phẩm này (Tính bằng giây)
+    [Header("--- Thời gian Sử dụng ---")]
+    [Tooltip("Ví dụ: Băng gạc = 3 giây, Nước = 1.5 giây")]
+    public float useTime = 1f;
+
     [Header("Cài đặt rớt đồ (Tùy chọn)")]
     public GameObject specificDropPrefab;
 
@@ -20,8 +25,8 @@ public class ItemData : ScriptableObject
     public float healAmount;
 
     [Header("Chỉ số Dinh dưỡng")]
-    public float hungerRestore; // Lượng đói hồi lại
-    public float thirstRestore; // Lượng khát hồi lại
+    public float hungerRestore;
+    public float thirstRestore;
 
     [Header("Cài đặt Buff (Cho Nhu yếu phẩm)")]
     public float buffDuration;
