@@ -547,8 +547,8 @@ MonoBehaviour:
   zombieLayer:
     serializedVersion: 2
     m_Bits: 8
-  walkNoiseRadius: 4
-  runNoiseRadius: 8
+  walkNoiseRadius: 1.5
+  runNoiseRadius: 3
   anim: {fileID: 8571460307203640203}
   isUsingItem: 0
 --- !u!114 &1505858520728203951
@@ -569,11 +569,13 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
-  shootNoiseRadius: 20
+  shootNoiseRadius: 5.5
   bashDamage: 10
   bashRange: 1
   bashCooldown: 0.8
-  bashNoiseRadius: 5
+  bashNoiseRadius: 1
+  bashStaminaCost: 20
+  bashDuration: 1.5
 --- !u!114 &6027786628438645557
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -591,6 +593,7 @@ MonoBehaviour:
   staminaDrain: 10
   staminaRecoverIdle: 15
   staminaRecoverWalk: 5
+  bashRegenDelay: 3
 --- !u!114 &7126942027890368006
 MonoBehaviour:
   m_ObjectHideFlags: 0
