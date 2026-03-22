@@ -133,7 +133,7 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 1
+  m_Mass: 1001
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_GravityScale: 0
@@ -254,7 +254,7 @@ MonoBehaviour:
   staminaDrain: 10
   staminaRecoverIdle: 15
   staminaRecoverWalk: 5
-  bashRegenDelay: 3
+  bashRegenDelay: 2
 --- !u!114 &7126942027890368006
 MonoBehaviour:
   m_ObjectHideFlags: 0
