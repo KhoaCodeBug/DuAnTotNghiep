@@ -225,17 +225,17 @@ MonoBehaviour:
   muzzleFlashRenderer: {fileID: 6790703689816908153}
   muzzleFlashDuration: 0.1
   gunDamage: 20
-  fireRate: 0.2
+  fireRate: 0.1
   weaponRange: 15
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
   shootNoiseRadius: 5.5
-  bashDamage: 10
+  bashDamage: 50
   bashRange: 1
   bashCooldown: 0.8
   bashNoiseRadius: 1
-  bashStaminaCost: 20
+  bashStaminaCost: 10
   bashDuration: 1.5
 --- !u!114 &6027786628438645557
 MonoBehaviour:

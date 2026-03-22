@@ -366,14 +366,13 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     Collider2D playerCol;
     Collider2D myCol;
 
-    // 🔥 ĐÃ FIX: Chỉnh lực đẩy nhẹ lại để đi mượt hơn
     [Header("--- Crowd Control (Separation) ---")]
-    public float separationRadius = 1.0f; // Bán kính né
-    public float separationWeight = 0.8f; // Lực né (Chỉ nên để 0.6 - 1.0 để không lấn át việc đuổi Player)
+    public float separationRadius = 1.0f;
+    public float separationWeight = 0.8f;
     public LayerMask zombieLayer;
 
     [Header("Damage")]
-    public float zombieDamage = 15f;
+    public float zombieDamage = 5f;
     private PlayerHealth playerHealth;
 
     [Header("Vision")]
@@ -399,6 +398,9 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     float attackTimer = 0f;
     float cooldownTimer = 0f;
     bool isAttacking = false;
+
+    // 🔥 BIẾN MỚI: Dùng để kiểm tra xem Zombie đã gây sát thương trong đòn đánh này chưa
+    bool hasAppliedDamage = false;
     int attackIndex = 0;
 
     Transform player;
@@ -508,11 +510,12 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             anim.SetTrigger("Attack");
 
             isAttacking = true;
+            hasAppliedDamage = false; // 🔥 RESET: Bắt đầu đòn đánh mới, cho phép gây sát thương lại
             attackTimer = attackDuration;
             cooldownTimer = attackCooldown;
         }
 
-        // ===== 4. MOVEMENT LOGIC (🔥 ĐÃ FIX TẢN BẦY MƯỢT MÀ) =====
+        // ===== 4. MOVEMENT LOGIC =====
         if (isChasing && !isAttacking)
         {
             if (distance > attackRange)
@@ -520,15 +523,11 @@ public class ZOmbieAI_Khoa : MonoBehaviour
                 Vector2 dirToPlayer = (targetPos - myPos).normalized;
                 Vector2 separationMove = GetSeparationVector();
 
-                // Trộn 2 hướng lại
                 Vector2 targetMovement = (dirToPlayer + separationMove * separationWeight).normalized;
-
-                // Bo tròn hướng đi từ từ (Lerp) khi ở xa
                 movement = Vector2.Lerp(movement, targetMovement, 10f * Time.deltaTime);
             }
             else
             {
-                // 🔥 ĐÃ FIX: Khi tới tầm cắn, THẮNG GẤP (Phanh tắp lự)! Không cho trượt thêm!
                 movement = Vector2.zero;
                 rb.linearVelocity = Vector2.zero;
             }
@@ -547,7 +546,6 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             }
             else
             {
-                // 🔥 ĐÃ FIX: Thắng gấp khi mò tới điểm có tiếng động
                 movement = Vector2.zero;
                 rb.linearVelocity = Vector2.zero;
 
@@ -560,7 +558,6 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         }
         else
         {
-            // 🔥 ĐÃ FIX: Đứng im là đứng im tuyệt đối
             movement = Vector2.zero;
             rb.linearVelocity = Vector2.zero;
         }
@@ -583,7 +580,6 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         rb.MovePosition(rb.position + movement * currentSpeed * Time.fixedDeltaTime);
     }
 
-    // 🔥 ĐÃ FIX: Thuật toán Lực đẩy mềm (Soft Push)
     private Vector2 GetSeparationVector()
     {
         Vector2 separation = Vector2.zero;
@@ -600,7 +596,6 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
                 if (dist > 0f && dist < separationRadius)
                 {
-                    // Lực đẩy mềm: Nếu ở rìa bán kính thì đẩy nhẹ (0), áp sát vào nhau thì đẩy mạnh (1)
                     float pushForce = (separationRadius - dist) / separationRadius;
                     separation += (diff.normalized * pushForce);
                     count++;
@@ -717,6 +712,9 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
     public void TriggerAttackDamage()
     {
+        // 🔥 KIỂM TRA: Nếu đã trừ máu rồi (hoặc Zombie đã chết) thì bỏ qua, không trừ tiếp
+        if (hasAppliedDamage || isDead) return;
+
         ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
         if (collDist.distance <= attackRange + 0.2f)
         {
@@ -732,6 +730,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
                 if (playerHealth != null)
                 {
                     playerHealth.TakeDamage(zombieDamage);
+                    hasAppliedDamage = true; // 🔥 KHÓA LẠI: Đánh trúng rồi, khóa không cho trừ máu thêm lần 2
                 }
             }
             else
