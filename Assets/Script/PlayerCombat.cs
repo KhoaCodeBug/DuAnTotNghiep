@@ -48,9 +48,11 @@ public class PlayerCombat : MonoBehaviour
     {
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()) return;
 
+        // Phải giữ chuột phải để ngắm
         if (!Input.GetMouseButton(1)) return;
 
-        if (Input.GetMouseButtonDown(0) && Time.time >= nextFireTime)
+        // 🔥 ĐÃ SỬA: Đổi từ GetMouseButtonDown sang GetMouseButton để "Sấy" (Bắn liên thanh)
+        if (Input.GetMouseButton(0) && Time.time >= nextFireTime)
         {
             nextFireTime = Time.time + fireRate;
             Shoot();
