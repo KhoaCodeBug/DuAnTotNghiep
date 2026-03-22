@@ -238,10 +238,36 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
         stunTimer = stunDuration;
         isStunned = true;
-        // Quá trình bị choáng sẽ ngắt luôn quá trình đang tấn công (nếu có)
+
+        // Quá trình bị choáng sẽ ngắt luôn quá trình đang tấn công
         isAttacking = false;
 
-        if (anim != null) anim.SetTrigger("TakeDamage");
+        if (anim != null)
+        {
+            // 🔥 FIX: Hủy bỏ các Trigger cũ đang bị xếp hàng chờ
+            anim.ResetTrigger("Attack");
+            anim.ResetTrigger("TakeDamage");
+
+            // Gọi Trigger mới
+            anim.SetTrigger("TakeDamage");
+        }
+
+        // 🔥 THÊM: Gọi hiệu ứng chớp đỏ khi trúng đạn
+        if (spriteRend != null)
+        {
+            StopCoroutine("FlashRedRoutine");
+            StartCoroutine("FlashRedRoutine");
+        }
+    }
+
+    // Coroutine xử lý chớp đỏ cực nhanh
+    private IEnumerator FlashRedRoutine()
+    {
+        spriteRend.color = hurtColor; // Đổi sang màu đỏ
+        yield return new WaitForSeconds(0.1f); // Giữ trong 0.1 giây
+
+        // Trả lại màu gốc (nếu nó chưa chết)
+        if (!isDead) spriteRend.color = originalColor;
     }
 
     private void Die()
