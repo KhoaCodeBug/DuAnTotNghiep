@@ -605,7 +605,10 @@ public class AutoUIManager : MonoBehaviour
         }
     }
 
-    public void HideTooltip() { if (tooltipPanel != null) tooltipPanel.SetActive(false); }
+    public void HideTooltip() 
+    { 
+        if (tooltipPanel != null) tooltipPanel.SetActive(false); 
+    }
 
     public void ShowContextMenu(int index)
     {
@@ -617,7 +620,11 @@ public class AutoUIManager : MonoBehaviour
         }
     }
 
-    public void HideContextMenu() { if (contextMenuPanel != null) contextMenuPanel.SetActive(false); selectedSlotIndex = -1; }
+    public void HideContextMenu() 
+    { 
+        if (contextMenuPanel != null) contextMenuPanel.SetActive(false); 
+        selectedSlotIndex = -1; 
+    }
 
     private void OnDropClicked()
     {

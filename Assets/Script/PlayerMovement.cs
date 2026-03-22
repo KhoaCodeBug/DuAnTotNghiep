@@ -9,8 +9,6 @@ public class PlayerMovement : MonoBehaviour
     public float runSpeed = 7f;
     public float aimSpeed = 2f;
     public float crouchSpeed = 2.5f;
-    [Tooltip("Tốc độ quay mặt")]
-    public float turnSpeed = 12f;
 
     [Header("--- Aiming & Hardware Cursor ---")]
     public Texture2D crosshairTexture;
@@ -34,8 +32,7 @@ public class PlayerMovement : MonoBehaviour
     private bool isRunning;
     private bool isCrouching;
 
-    private Vector2 lastLookDir = Vector2.down;
-    private Vector2 smoothLookDir;
+    private Vector2 lastLookDir = Vector2.down; // Mặc định nhìn xuống
 
     private PlayerStamina staminaSystem;
 
@@ -44,7 +41,6 @@ public class PlayerMovement : MonoBehaviour
 
     public bool isUsingItem = false;
 
-    // 🔥 MỚI: Biến đếm thời gian khóa chân dành riêng cho Tấn Công
     private float attackLockTimer = 0f;
 
     void Awake()
@@ -53,7 +49,6 @@ public class PlayerMovement : MonoBehaviour
         staminaSystem = GetComponent<PlayerStamina>();
         mainCam = Camera.main;
         rb.freezeRotation = true;
-        smoothLookDir = lastLookDir;
     }
 
     void Update()
@@ -64,7 +59,6 @@ public class PlayerMovement : MonoBehaviour
             isStunned = stunTimer > 0;
         }
 
-        // 🔥 MỚI: Đếm ngược thời gian khóa chân khi đánh
         if (attackLockTimer > 0)
         {
             attackLockTimer -= Time.deltaTime;
@@ -72,7 +66,6 @@ public class PlayerMovement : MonoBehaviour
 
         HandleInputs();
 
-        // 🔥 CHÌA KHÓA: Nếu đang vung súng đập, ép vận tốc bằng 0 nhưng VẪN GIỮ isAiming
         if (attackLockTimer > 0)
         {
             moveInput = Vector2.zero;
@@ -183,7 +176,8 @@ public class PlayerMovement : MonoBehaviour
             Vector2 lookVector = mouseHitPoint - (Vector2)transform.position;
             if (lookVector.sqrMagnitude > 0.1f)
             {
-                lastLookDir = lookVector.normalized;
+                // 🔥 ĐÃ SỬA: Ép Vector thô từ chuột về chuẩn 8 hướng của Blend Tree
+                lastLookDir = SnapTo8Way(lookVector);
             }
 
             if (!isCurrentlyAimingCursor)
@@ -194,7 +188,11 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
-            if (moveInput != Vector2.zero) lastLookDir = moveInput;
+            if (moveInput != Vector2.zero)
+            {
+                // 🔥 ĐÃ SỬA: Ép hướng khi di chuyển về chuẩn 8 hướng
+                lastLookDir = SnapTo8Way(moveInput);
+            }
 
             if (isCurrentlyAimingCursor)
             {
@@ -202,6 +200,24 @@ public class PlayerMovement : MonoBehaviour
                 isCurrentlyAimingCursor = false;
             }
         }
+    }
+
+    // 🔥 MỚI: Thước đo góc chuẩn 100% đồng bộ với hiệu ứng Lửa Đạn
+    private Vector2 SnapTo8Way(Vector2 dir)
+    {
+        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
+        angle = (angle + 360) % 360;
+
+        if (angle < 15f || angle >= 345f) return new Vector2(1, 0); // East
+        else if (angle >= 15f && angle < 75f) return new Vector2(1, 1); // NorthEast
+        else if (angle >= 75f && angle < 105f) return new Vector2(0, 1); // North
+        else if (angle >= 105f && angle < 165f) return new Vector2(-1, 1); // NorthWest
+        else if (angle >= 165f && angle < 195f) return new Vector2(-1, 0); // West
+        else if (angle >= 195f && angle < 255f) return new Vector2(-1, -1); // SouthWest
+        else if (angle >= 255f && angle < 285f) return new Vector2(0, -1); // South
+        else if (angle >= 285f && angle < 345f) return new Vector2(1, -1); // SouthEast
+
+        return new Vector2(1, 0);
     }
 
     private Vector2 GetMouseWorldPosition()
@@ -236,17 +252,9 @@ public class PlayerMovement : MonoBehaviour
         anim.SetFloat("StrafeX", strafeX);
         anim.SetFloat("StrafeY", strafeY);
 
-        if (isAiming)
-        {
-            smoothLookDir = Vector3.RotateTowards(smoothLookDir, lastLookDir, turnSpeed * Time.deltaTime, 0f);
-        }
-        else
-        {
-            smoothLookDir = lastLookDir;
-        }
-
-        anim.SetFloat("MoveX", smoothLookDir.x);
-        anim.SetFloat("MoveY", smoothLookDir.y);
+        // 🔥 ĐÃ SỬA: Loại bỏ độ trễ (smoothing) để nhân vật xoay súng khớp hoàn toàn với chuột
+        anim.SetFloat("MoveX", lastLookDir.x);
+        anim.SetFloat("MoveY", lastLookDir.y);
 
         if (isUsingItem && isMovingNow)
         {
@@ -285,7 +293,6 @@ public class PlayerMovement : MonoBehaviour
         moveInput = Vector2.zero;
     }
 
-    // 🔥 MỚI: Hàm khóa chân chuyên dụng cho đánh đấm, không làm gãy Animation
     public void LockMovementForAttack(float duration)
     {
         attackLockTimer = duration;
