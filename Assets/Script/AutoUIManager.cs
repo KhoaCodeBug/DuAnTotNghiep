@@ -59,6 +59,7 @@ public class AutoUIManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         GenerateEntireUI();
+        CreateAmmoUI();
     }
 
     private void Update()
@@ -640,5 +641,115 @@ public class AutoUIManager : MonoBehaviour
     public bool IsInventoryOpen()
     {
         return inventoryPanel != null && inventoryPanel.activeSelf;
+    }
+
+    // ==========================================
+    // 🔥 HỆ THỐNG GIAO DIỆN ĐẠN (AMMO HUD)
+    // ==========================================
+
+    [Header("--- Icon Đạn ---")]
+    public Sprite iconAmmo; // 🔥 MỚI: Nhớ ra ngoài Unity kéo hình viên đạn vào ô này nhé!
+
+    private GameObject ammoContainer; // Khung gom chung cả Hình và Chữ
+    private TextMeshProUGUI ammoText;
+
+    // Hàm này sẽ tự động tạo UI Đạn có cả Icon
+    public void CreateAmmoUI()
+    {
+        if (mainCanvas == null) mainCanvas = FindAnyObjectByType<Canvas>();
+        if (mainCanvas == null) return;
+
+        // 1. TẠO CÁI KHUNG CHỨA (Container)
+        ammoContainer = new GameObject("AmmoDisplayContainer");
+        ammoContainer.transform.SetParent(mainCanvas.transform, false);
+
+        // Đặt Container ở góc Trái - Dưới
+        RectTransform containerRt = ammoContainer.AddComponent<RectTransform>();
+        containerRt.anchorMin = new Vector2(0, 0);
+        containerRt.anchorMax = new Vector2(0, 0);
+        containerRt.pivot = new Vector2(0, 0);
+        containerRt.anchoredPosition = new Vector2(10, 15); // Cách lề trái 15px
+        containerRt.sizeDelta = new Vector2(250, 25);
+
+        // 2. TẠO HÌNH ẢNH (Icon)
+        GameObject iconObj = new GameObject("AmmoIcon");
+        iconObj.transform.SetParent(ammoContainer.transform, false);
+
+        Image ammoImage = iconObj.AddComponent<Image>();
+        if (iconAmmo != null) ammoImage.sprite = iconAmmo;
+
+        // Đặt Icon bên trong Container (Canh lề Trái - Giữa)
+        RectTransform iconRt = iconObj.GetComponent<RectTransform>();
+        iconRt.anchorMin = new Vector2(0, 0.5f);
+        iconRt.anchorMax = new Vector2(0, 0.5f);
+        iconRt.pivot = new Vector2(0, 0.5f);
+        iconRt.anchoredPosition = new Vector2(15, 0); // Thụt vào 10px
+        iconRt.sizeDelta = new Vector2(15, 30); // Chỉnh kích thước icon là 30x30
+
+        // 3. TẠO CHỮ (Text)
+        GameObject textObj = new GameObject("AmmoText");
+        textObj.transform.SetParent(ammoContainer.transform, false);
+
+        ammoText = textObj.AddComponent<TextMeshProUGUI>();
+
+        TMP_FontAsset defaultFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        if (defaultFont != null) ammoText.font = defaultFont;
+        else if (gameFont != null) ammoText.font = gameFont;
+
+        ammoText.fontSize = 20;
+        ammoText.color = Color.white;
+        ammoText.alignment = TextAlignmentOptions.MidlineLeft;
+
+        // Đặt Chữ bên trong Container (Nằm kế bên Icon)
+        RectTransform textRt = textObj.GetComponent<RectTransform>();
+        textRt.anchorMin = new Vector2(0, 0.5f);
+        textRt.anchorMax = new Vector2(0, 0.5f);
+        textRt.pivot = new Vector2(0, 0.5f);
+        textRt.anchoredPosition = new Vector2(50, 0); // Đẩy chữ sang phải 50px để chừa chỗ cho Icon
+        textRt.sizeDelta = new Vector2(200, 25);
+
+        ammoText.text = "-- / --";
+    }
+
+    // Hàm cập nhật số đạn siêu gọn gàng
+    public void UpdateAmmoUI(int current, int reserve)
+    {
+        if (ammoText == null) return;
+
+        // Xóa hết màu mè, chỉ hiện số
+        ammoText.text = $"{current} / {reserve}";
+    }
+
+    // ==========================================
+    // 🔥 CÁC HÀM CHO MƯỢN THANH ACTION BAR (Dùng cho Nạp Đạn)
+    // ==========================================
+    public void ShowReloadUI(float currentTimer, float maxDuration)
+    {
+        // Tắt nguyên cái Khung (Cả hình lẫn chữ đều biến mất)
+        if (ammoContainer != null) ammoContainer.SetActive(false);
+
+        if (actionBarPanel != null && !actionBarPanel.activeSelf)
+        {
+            actionBarPanel.SetActive(true);
+        }
+
+        if (actionBarFill != null)
+        {
+            actionBarFill.fillAmount = currentTimer / maxDuration;
+        }
+
+        float timeLeft = maxDuration - currentTimer;
+        if (actionBarText != null)
+        {
+            actionBarText.text = $"Reloading... {timeLeft:F1}s";
+        }
+    }
+
+    public void HideReloadUI()
+    {
+        if (actionBarPanel != null) actionBarPanel.SetActive(false);
+
+        // Nạp xong thì bật Khung đạn hiện trở lại
+        if (ammoContainer != null) ammoContainer.SetActive(true);
     }
 }

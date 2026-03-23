@@ -231,6 +231,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   shootNoiseRadius: 5.5
+  ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
+  magazineSize: 30
+  currentAmmo: 30
   bashDamage: 50
   bashRange: 1
   bashCooldown: 0.8
@@ -309,6 +312,7 @@ MonoBehaviour:
   iconStamina: {fileID: -5381133741501535216, guid: 3f34cf25e5e084f4e901f5d791acd992, type: 3}
   iconHunger: {fileID: 1472325951620093286, guid: 7ed714081dc587347a28931f5ed7ec45, type: 3}
   iconThirst: {fileID: -4455688734036498157, guid: cd33713cff23916469e03c071645e3bb, type: 3}
+  iconAmmo: {fileID: -8887718091561183247, guid: a7c2c1c06d263df48a6affeddb16b9f6, type: 3}
 --- !u!114 &2460234225545820196
 MonoBehaviour:
   m_ObjectHideFlags: 0

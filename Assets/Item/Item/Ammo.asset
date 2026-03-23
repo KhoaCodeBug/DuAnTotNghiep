@@ -15,9 +15,10 @@ MonoBehaviour:
   itemName: Ammo
   icon: {fileID: -8704383721093287524, guid: b654856c042e05e4fb15ef768ae926be, type: 3}
   category: 0
+  useTime: 1
   specificDropPrefab: {fileID: 0}
   isStackable: 1
-  maxStack: 60
+  maxStack: 30
   healAmount: 0
   hungerRestore: 0
   thirstRestore: 0

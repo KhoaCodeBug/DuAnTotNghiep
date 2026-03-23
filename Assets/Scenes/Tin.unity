@@ -2232,6 +2232,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1505858520728203951, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: bashDamage
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 1505858520728203951, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: bashStaminaCost
+      value: 50
+      objectReference: {fileID: 0}
     - target: {fileID: 4457333233239025546, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
       propertyPath: m_Name
       value: Player

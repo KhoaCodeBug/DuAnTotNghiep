@@ -207,4 +207,47 @@ public class InventorySystem : MonoBehaviour
             AutoUIManager.Instance.RefreshUI(this.slots);
         }
     }
+    // 🔥 ĐÃ FIX: So sánh bằng TÊN (itemName) để dứt điểm vụ Unity không nhận diện được đạn
+    public int GetItemCount(ItemData itemToCount)
+    {
+        if (itemToCount == null) return 0;
+        int total = 0;
+        foreach (var slot in slots)
+        {
+            if (slot.item != null && slot.item.itemName == itemToCount.itemName)
+            {
+                total += slot.amount;
+            }
+        }
+        return total;
+    }
+
+    // 🔥 ĐÃ FIX: Rút đạn cực chuẩn, tự động dọn ô trống
+    public int ConsumeItem(ItemData itemToConsume, int amountNeeded)
+    {
+        if (itemToConsume == null) return 0;
+        int amountExtracted = 0;
+        for (int i = slots.Count - 1; i >= 0; i--)
+        {
+            if (slots[i].item != null && slots[i].item.itemName == itemToConsume.itemName)
+            {
+                int availableInSlot = slots[i].amount;
+                int amountToTakeFromSlot = Mathf.Min(availableInSlot, amountNeeded - amountExtracted);
+
+                slots[i].amount -= amountToTakeFromSlot;
+                amountExtracted += amountToTakeFromSlot;
+
+                // Nếu rút cạn ô đó thì xóa ô đó đi
+                if (slots[i].amount <= 0)
+                {
+                    slots.RemoveAt(i);
+                }
+
+                // Đã lấy đủ số đạn cần thiết thì dừng
+                if (amountExtracted >= amountNeeded) break;
+            }
+        }
+
+        return amountExtracted;
+    }
 }
