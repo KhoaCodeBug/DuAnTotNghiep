@@ -176,6 +176,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8771916304542637518, guid: d43f93de8117d3245b7769f5646d081f, type: 3}
+      propertyPath: SortKey
+      value: 2221609956
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -189,6 +193,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 676293076}
     m_Modifications:
+    - target: {fileID: -6264623747171305324, guid: 05432b00d694b934a9ebf55b516973b8, type: 3}
+      propertyPath: SortKey
+      value: 88853470
+      objectReference: {fileID: 0}
     - target: {fileID: 2517896408327900111, guid: 05432b00d694b934a9ebf55b516973b8, type: 3}
       propertyPath: m_Name
       value: EnergyWater
@@ -246,6 +254,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 676293076}
     m_Modifications:
+    - target: {fileID: -6264623747171305324, guid: 05432b00d694b934a9ebf55b516973b8, type: 3}
+      propertyPath: SortKey
+      value: 3983426657
+      objectReference: {fileID: 0}
     - target: {fileID: 2517896408327900111, guid: 05432b00d694b934a9ebf55b516973b8, type: 3}
       propertyPath: m_Name
       value: EnergyWater (1)
@@ -383,11 +395,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0.5
-  separationRadius: 1.2
-  separationWeight: 0.8
-  zombieLayer:
-    serializedVersion: 2
-    m_Bits: 8
   zombieDamage: 15
   detectionRange: 1
   viewAngle: 180
@@ -1099,6 +1106,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Ammo
       objectReference: {fileID: 0}
+    - target: {fileID: 6778875387054156885, guid: bd466c457ddf8a448bc4da9d75ff11d7, type: 3}
+      propertyPath: SortKey
+      value: 361881202
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1155,6 +1166,10 @@ PrefabInstance:
     - target: {fileID: 5648922945656709364, guid: bd466c457ddf8a448bc4da9d75ff11d7, type: 3}
       propertyPath: m_Name
       value: Ammo (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 6778875387054156885, guid: bd466c457ddf8a448bc4da9d75ff11d7, type: 3}
+      propertyPath: SortKey
+      value: 1942406915
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1287,6 +1302,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8771916304542637518, guid: d43f93de8117d3245b7769f5646d081f, type: 3}
+      propertyPath: SortKey
+      value: 4101880357
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1315,6 +1334,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 676293076}
     m_Modifications:
+    - target: {fileID: 2448250358506508598, guid: 3aee0678cab032d43993017e75ae352d, type: 3}
+      propertyPath: SortKey
+      value: 2327534795
+      objectReference: {fileID: 0}
     - target: {fileID: 7139357531524802298, guid: 3aee0678cab032d43993017e75ae352d, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.5820605
@@ -1411,6 +1434,10 @@ PrefabInstance:
     - target: {fileID: 4301075511363866360, guid: f46fb4cc541a1294ea633f72b146a67b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5845392657347227695, guid: f46fb4cc541a1294ea633f72b146a67b, type: 3}
+      propertyPath: SortKey
+      value: 1272096910
       objectReference: {fileID: 0}
     - target: {fileID: 7646748714549182365, guid: f46fb4cc541a1294ea633f72b146a67b, type: 3}
       propertyPath: m_Name
@@ -1548,6 +1575,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5845392657347227695, guid: f46fb4cc541a1294ea633f72b146a67b, type: 3}
+      propertyPath: SortKey
+      value: 298063026
+      objectReference: {fileID: 0}
     - target: {fileID: 7646748714549182365, guid: f46fb4cc541a1294ea633f72b146a67b, type: 3}
       propertyPath: m_Name
       value: WaterBottle
@@ -1562,6 +1593,57 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8925448945995484035, guid: 05432b00d694b934a9ebf55b516973b8, type: 3}
   m_PrefabInstance: {fileID: 78399306}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1728030485
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1728030487}
+  - component: {fileID: 1728030486}
+  m_Layer: 0
+  m_Name: GameManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1728030486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1728030485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 663ce5986f8bb8e4c82b1cfa98ea3d79, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxSlots: 20
+  gameFont: {fileID: 11400000, guid: aed8f0b682a2225499d29bdbb6ed0598, type: 2}
+  iconHealth: {fileID: -3593005430731049587, guid: 7e2ea5478717f0441a02eda3455f54c2, type: 3}
+  iconStamina: {fileID: -5381133741501535216, guid: 3f34cf25e5e084f4e901f5d791acd992, type: 3}
+  iconHunger: {fileID: 1472325951620093286, guid: 7ed714081dc587347a28931f5ed7ec45, type: 3}
+  iconThirst: {fileID: -4455688734036498157, guid: cd33713cff23916469e03c071645e3bb, type: 3}
+  iconAmmo: {fileID: -8887718091561183247, guid: a7c2c1c06d263df48a6affeddb16b9f6, type: 3}
+--- !u!4 &1728030487
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1728030485}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -5.9597545, y: -0.59341055, z: -0.018403152}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1845930827 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7139357531524802298, guid: 3aee0678cab032d43993017e75ae352d, type: 3}
@@ -1655,11 +1737,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0.5
-  separationRadius: 1.2
-  separationWeight: 0.8
-  zombieLayer:
-    serializedVersion: 2
-    m_Bits: 8
   zombieDamage: 5
   detectionRange: 1
   viewAngle: 180
@@ -1865,11 +1942,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0.5
-  separationRadius: 1.2
-  separationWeight: 0.8
-  zombieLayer:
-    serializedVersion: 2
-    m_Bits: 8
   zombieDamage: 5
   detectionRange: 1
   viewAngle: 180
@@ -2096,6 +2168,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 676293076}
     m_Modifications:
+    - target: {fileID: 2448250358506508598, guid: 3aee0678cab032d43993017e75ae352d, type: 3}
+      propertyPath: SortKey
+      value: 3966878055
+      objectReference: {fileID: 0}
     - target: {fileID: 7139357531524802298, guid: 3aee0678cab032d43993017e75ae352d, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.8096687
@@ -2217,11 +2293,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0.5
-  separationRadius: 1.2
-  separationWeight: 0.8
-  zombieLayer:
-    serializedVersion: 2
-    m_Bits: 8
   zombieDamage: 5
   detectionRange: 1
   viewAngle: 180
@@ -2460,3 +2531,4 @@ SceneRoots:
   - {fileID: 273623722}
   - {fileID: 338689891}
   - {fileID: 722484865}
+  - {fileID: 1728030487}

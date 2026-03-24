@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6678952639027240747}
   - component: {fileID: 9064257998360768379}
   - component: {fileID: 6874392213252319883}
+  - component: {fileID: 6778875387054156885}
   m_Layer: 0
   m_Name: Ammo
   m_TagString: Untagged
@@ -149,3 +150,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   item: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
   amount: 30
+--- !u!114 &6778875387054156885
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5648922945656709364}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 100276371
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 6874392213252319883}
+  ForceRemoteRenderTimeframe: 0

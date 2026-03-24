@@ -1,30 +1,32 @@
 ﻿using UnityEngine;
+using Fusion; // Bắt buộc dùng mạng
 
-[RequireComponent(typeof(Collider2D))] // Bắt buộc phải có Collider để xét va chạm
-public class ItemPickup : MonoBehaviour
+[RequireComponent(typeof(Collider2D))]
+public class ItemPickup : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang NetworkBehaviour
 {
-    public ItemData item;   // Món đồ chứa bên trong
-    public int amount = 1;  // Số lượng
+    public ItemData item;
+    public int amount = 1;
 
-    // Hàm này tự động chạy khi có 1 Collider khác chạm vào cục đồ này
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Kiểm tra xem vật thể chạm vào có Tag là "Player" không
         if (collision.CompareTag("Player"))
         {
-            // Lấy túi đồ của Player
             InventorySystem inventory = collision.GetComponent<InventorySystem>();
 
-            if (inventory != null)
+            // 🔥 ĐÃ FIX: CHỈ CHO PHÉP MÁY ĐANG ĐIỀU KHIỂN NHÂN VẬT ĐÓ ĐƯỢC QUYỀN LỤM ĐỒ
+            if (inventory != null && inventory.HasInputAuthority)
             {
-                // Gọi hàm nhặt đồ. Hàm AddItem sẽ trả về TRUE nếu nhặt được, FALSE nếu túi đầy
                 bool pickedUp = inventory.AddItem(item, amount);
 
-                // Nếu túi CÒN CHỖ và lụm thành công -> Xóa cục đồ trên mặt đất đi
                 if (pickedUp)
                 {
                     Debug.Log("Đã lụm: " + item.itemName);
-                    Destroy(gameObject);
+
+                    // Xin Server xóa cục đồ này trên mọi máy tính
+                    if (Object != null && Object.IsValid)
+                        RPC_RequestDespawn();
+                    else
+                        Destroy(gameObject); // Dự phòng cho đồ offline chưa gắn NetworkObject
                 }
                 else
                 {
@@ -32,5 +34,13 @@ public class ItemPickup : MonoBehaviour
                 }
             }
         }
+    }
+
+    // Lệnh xin Server xóa đồ để mọi người cùng thấy nó biến mất
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestDespawn()
+    {
+        if (Object != null && Object.IsValid)
+            Runner.Despawn(Object);
     }
 }
