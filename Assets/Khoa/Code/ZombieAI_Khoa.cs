@@ -1,122 +1,123 @@
 ﻿using UnityEngine;
-using UnityEngine.AI; // 🔥 1. THƯ VIỆN BẮT BUỘC CỦA NAVMESH
+using UnityEngine.AI;
 using System.Collections;
 
 public class ZOmbieAI_Khoa : MonoBehaviour
 {
-    [Header("Movement (NavMesh lo)")]
-    public float speed = 2f;
-    Collider2D playerCol;
-    Collider2D myCol;
+    [Header("=== Movement (NavMesh 2D) ===")]
+    [SerializeField] private float speed = 2.5f;
+    private NavMeshAgent agent;
 
-    [Header("Damage")]
-    public float zombieDamage = 5f;
+    [Header("=== Damage ===")]
+    [SerializeField] private float zombieDamage = 15f;
     private PlayerHealth playerHealth;
 
-    [Header("Vision")]
-    public float detectionRange = 3f;
-    public float viewAngle = 90f;
-    public LayerMask obstacleMask;
+    [Header("=== Vision ===")]
+    [SerializeField] private float detectionRange = 5f;
+    [SerializeField] private float viewAngle = 90f;
+    [SerializeField] private LayerMask obstacleMask;
 
-    [Header("Chase Memory")]
-    public float loseTime = 5f;
-    float loseTimer = 0f;
-    bool isChasing = false;
+    [Header("=== Chase Memory ===")]
+    [SerializeField] private float loseTime = 8f;          // Trí nhớ sau khi mất tầm nhìn
+    private float loseTimer;
+    private bool isChasing;
 
-    [Header("--- Hearing ---")]
-    public bool isInvestigating = false;
+    [Header("=== Hearing ===")]
+    private bool isInvestigating;
     private Vector2 investigateTarget;
-    private float investigateTimer = 0f;
+    private float investigateTimer;
 
-    [Header("Attack")]
-    public float attackRange = 1.2f;
-    public float attackDuration = 0.8f;
-    public float attackCooldown = 1.5f;
+    [Header("=== Attack ===")]
+    [SerializeField] private float attackRange = 1.2f;
+    [SerializeField] private float attackDuration = 0.8f;
+    [SerializeField] private float attackCooldown = 1.5f;
 
-    float attackTimer = 0f;
-    float cooldownTimer = 0f;
-    bool isAttacking = false;
+    private float attackTimer;
+    private float cooldownTimer;
+    private bool isAttacking;
+    private bool hasAppliedDamage;
 
-    bool hasAppliedDamage = false;
-    int attackIndex = 0;
+    [Header("=== Zombie Stats ===")]
+    [SerializeField] private float maxHealth = 100f;
+    private float currentHealth;
+    [SerializeField] private float stunDuration = 0.3f;
+    [SerializeField] private Color hurtColor = Color.red;
 
-    Transform player;
-    Rigidbody2D rb;
-    Animator anim;
+    public bool isDead { get; private set; }
+    private bool isStunned;
+    private float stunTimer;
 
-    // 🔥 2. KHAI BÁO BỘ NÃO AI
-    NavMeshAgent agent;
-    Vector2 lastMove;
-
-    [Header("--- Zombie Stats ---")]
-    public float maxHealth = 100f;
-    public float currentHealth;
-    public float stunDuration = 0.3f;
-    public Color hurtColor = Color.red;
-
-    public bool isDead { get; private set; } = false;
-    private bool isStunned = false;
-    private float stunTimer = 0f;
+    // References
+    private Transform player;
+    private Collider2D playerCol;
+    private Collider2D myCol;
+    private Rigidbody2D rb;
+    private Animator anim;
     private SpriteRenderer spriteRend;
     private Color originalColor;
 
-    public enum ZombieState
-    {
-        Idle, Wander, Chase, Investigate, Attack, Stunned, Dead
-    }
+    // Helpers
+    private Vector2 lastMoveDirection;
+    private float searchTargetTimer = 0f;
+    private float pathRecalcTimer = 0f;           // 🔥 Fix pathing
 
-    public ZombieState currentState = ZombieState.Idle;
-
-    void Start()
+    private void Start()
     {
-        player = GameObject.FindGameObjectWithTag("Player").transform;
-        playerHealth = player.GetComponent<PlayerHealth>();
-        playerCol = player.GetComponent<Collider2D>();
         myCol = GetComponent<Collider2D>();
-
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        spriteRend = GetComponentInChildren<SpriteRenderer>();
 
-        // 🔥 3. KHỞI TẠO NÃO AI VÀ KHÓA TRỤC 3D (Y HỆT TUTORIAL)
         agent = GetComponent<NavMeshAgent>();
         agent.updateRotation = false;
         agent.updateUpAxis = false;
-        agent.speed = speed; // Đồng bộ tốc độ
+        agent.speed = speed;
+
+        if (spriteRend != null) originalColor = spriteRend.color;
 
         currentHealth = maxHealth;
-        spriteRend = GetComponentInChildren<SpriteRenderer>();
-        if (spriteRend != null) originalColor = spriteRend.color;
     }
 
-    void Update()
+    private void Update()
     {
         if (isDead) return;
 
-        // ===== XỬ LÝ CHOÁNG =====
-        if (stunTimer > 0)
+        // 1. Tìm Player multiplayer (target lock)
+        searchTargetTimer -= Time.deltaTime;
+        if (searchTargetTimer <= 0f)
+        {
+            UpdateTargetMultiplayer();
+            searchTargetTimer = 0.5f;
+        }
+
+        if (player == null)
+        {
+            if (agent.isOnNavMesh) agent.isStopped = true;
+            anim.SetFloat("Speed", 0f);
+            return;
+        }
+
+        // 2. Xử lý stun & cooldown
+        if (stunTimer > 0f)
         {
             stunTimer -= Time.deltaTime;
-            isStunned = stunTimer > 0;
+            isStunned = stunTimer > 0f;
             if (isStunned)
             {
-                agent.isStopped = true; // 🔥 Bị choáng thì phanh AI lại
+                agent.isStopped = true;
                 return;
             }
         }
 
-        // ===== XỬ LÝ THỜI GIAN ĐÁNH =====
-        if (cooldownTimer > 0) cooldownTimer -= Time.deltaTime;
+        if (cooldownTimer > 0f) cooldownTimer -= Time.deltaTime;
 
         if (isAttacking)
         {
             attackTimer -= Time.deltaTime;
-            if (attackTimer <= 0)
-            {
-                isAttacking = false;
-            }
+            if (attackTimer <= 0f) isAttacking = false;
         }
 
-        // ===== 1. VISION =====
+        // 3. Vision + Chase logic
         if (CanSeePlayer())
         {
             isChasing = true;
@@ -126,36 +127,26 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         else if (isChasing)
         {
             loseTimer -= Time.deltaTime;
-            if (loseTimer <= 0) isChasing = false;
+            if (loseTimer <= 0f) isChasing = false;
         }
 
-        // ===== 2. DISTANCE =====
+        // Khoảng cách & vị trí
         ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
-        float distance = collDist.distance;
-        if (distance < 0) distance = 0f;
+        float distance = Mathf.Max(collDist.distance, 0f);
 
         Vector2 targetPos = playerCol.bounds.center;
         Vector2 myPos = myCol.bounds.center;
+        Vector2 dirToPlayer = (targetPos - myPos).normalized;
 
-        // Xoay mặt nhìn thẳng Player HOẶC nhìn theo hướng di chuyển của AI
-        if (isChasing || isAttacking)
-        {
-            Vector2 dirToPlayer = (targetPos - myPos).normalized;
-            if (distance > 0.1f)
-            {
-                lastMove = Vector2.Lerp(lastMove, dirToPlayer, 15f * Time.deltaTime).normalized;
-            }
-        }
-        else if (agent.velocity.sqrMagnitude > 0.1f)
-        {
-            // Khi không đuổi player (như lúc investigate), nhìn theo hướng AI đang đi
-            lastMove = Vector2.Lerp(lastMove, agent.velocity.normalized, 15f * Time.deltaTime).normalized;
-        }
+        // Wall check
+        RaycastHit2D wallCheck = Physics2D.Raycast(myPos, dirToPlayer, distance, obstacleMask);
+        bool noWallInBetween = wallCheck.collider == null;
 
-        // ===== 3. ATTACK =====
-        if (distance <= attackRange && isChasing && !isAttacking && cooldownTimer <= 0)
+        // 4. Attack or Chase
+        if (distance <= attackRange && noWallInBetween && isChasing && !isAttacking && cooldownTimer <= 0f)
         {
-            attackIndex = Random.Range(1, 3);
+            // === ATTACK ===
+            int attackIndex = Random.Range(1, 3);
             anim.SetInteger("AttackIndex", attackIndex);
             anim.SetTrigger("Attack");
 
@@ -164,41 +155,36 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             attackTimer = attackDuration;
             cooldownTimer = attackCooldown;
 
-            agent.isStopped = true; // 🔥 Đang đánh thì dừng đi
+            agent.isStopped = true;
         }
-
-        // ===== 4. MOVEMENT LOGIC (BÀN GIAO CHO AI) =====
-        if (isChasing && !isAttacking)
+        else if (isChasing && !isAttacking)
         {
-            if (distance > attackRange)
+            // === CHASE - Đi vòng tường thông minh ===
+            agent.isStopped = false;
+            agent.speed = speed;
+
+            pathRecalcTimer -= Time.deltaTime;
+            if (pathRecalcTimer <= 0f)
             {
-                // 🔥 THẦN CHÚ TỪ TUTORIAL: Chỉ đường cho AI chạy
-                agent.isStopped = false;
-                agent.speed = speed;
                 agent.SetDestination(targetPos);
-            }
-            else
-            {
-                agent.isStopped = true;
+                pathRecalcTimer = 0.2f;        // Chỉ set 5 lần/giây
             }
         }
         else if (isInvestigating && !isAttacking && !isChasing)
         {
+            // === Đi nghe tiếng ===
             float distToSound = Vector2.Distance(myPos, investigateTarget);
             if (distToSound > 0.5f)
             {
                 agent.isStopped = false;
-                agent.speed = speed * 0.5f; // Đi chậm khi đi tìm tiếng ồn
+                agent.speed = speed * 0.7f;
                 agent.SetDestination(investigateTarget);
             }
             else
             {
                 agent.isStopped = true;
                 investigateTimer -= Time.deltaTime;
-                if (investigateTimer <= 0)
-                {
-                    isInvestigating = false;
-                }
+                if (investigateTimer <= 0f) isInvestigating = false;
             }
         }
         else if (!isAttacking)
@@ -206,26 +192,91 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             agent.isStopped = true;
         }
 
-        // ===== 5. ANIMATOR =====
-        anim.SetFloat("MoveX", lastMove.x);
-        anim.SetFloat("MoveY", lastMove.y);
-        // Lấy chính tốc độ thực của AI truyền vào Animator
+        // 5. Xoay mặt (đã fix triệt để theo yêu cầu của bạn)
+        if (isAttacking)
+        {
+            // Đang đánh → nhìn thẳng Player
+            lastMoveDirection = Vector2.Lerp(lastMoveDirection, dirToPlayer, 20f * Time.deltaTime);
+        }
+        else if (agent.velocity.sqrMagnitude > 0.01f)
+        {
+            // Đang đi vòng tường → nhìn theo hướng di chuyển (KHÔNG nhìn xuyên tường)
+            lastMoveDirection = Vector2.Lerp(lastMoveDirection, agent.velocity.normalized, 15f * Time.deltaTime);
+        }
+
+        // 6. Animation
+        anim.SetFloat("MoveX", lastMoveDirection.x);
+        anim.SetFloat("MoveY", lastMoveDirection.y);
         anim.SetFloat("Speed", isAttacking ? 0f : agent.velocity.magnitude);
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
-        // 🔥 Đã dẹp bỏ hàm rb.MovePosition. NavMesh sẽ lo chuyện di chuyển!
-        // Chỉ dùng FixedUpdate để triệt tiêu các lực đẩy vật lý bậy bạ
         if (isDead || isStunned || isAttacking || agent.isStopped)
         {
             rb.linearVelocity = Vector2.zero;
         }
     }
 
+    // ====================== MULTIPLAYER TARGET LOCK ======================
+    private void UpdateTargetMultiplayer()
+    {
+        if (isChasing && player != null && player.gameObject.activeInHierarchy) return;
+
+        GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
+        if (allPlayers.Length == 0)
+        {
+            player = null; playerCol = null; playerHealth = null;
+            return;
+        }
+
+        Vector2 myPos = transform.position;
+        float minDist = Mathf.Infinity;
+        GameObject closest = null;
+
+        foreach (GameObject p in allPlayers)
+        {
+            float dist = Vector2.Distance(myPos, p.transform.position);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                closest = p;
+            }
+        }
+
+        if (closest != null && closest.transform != player)
+        {
+            player = closest.transform;
+            playerCol = closest.GetComponent<Collider2D>();
+            playerHealth = closest.GetComponent<PlayerHealth>();
+        }
+    }
+
+    // ====================== VISION ======================
+    private bool CanSeePlayer()
+    {
+        if (playerCol == null) return false;
+
+        Vector2 myPos = myCol.bounds.center;
+        Vector2 targetPos = playerCol.bounds.center;
+        Vector2 toPlayer = targetPos - myPos;
+        float distance = toPlayer.magnitude;
+
+        if (distance > detectionRange) return false;
+
+        Vector2 forward = isChasing ? toPlayer.normalized : (lastMoveDirection == Vector2.zero ? Vector2.up : lastMoveDirection.normalized);
+
+        if (Vector2.Angle(forward, toPlayer) > viewAngle * 0.5f) return false;
+
+        RaycastHit2D hit = Physics2D.Raycast(myPos, toPlayer.normalized, distance, obstacleMask);
+        return hit.collider == null || hit.collider.gameObject == player.gameObject;
+    }
+
+    // ====================== PUBLIC INTERFACE ======================
     public void HearSound(Vector2 soundPos)
     {
         if (isDead || isChasing) return;
+
         isInvestigating = true;
         investigateTarget = soundPos;
         investigateTimer = 3f;
@@ -234,10 +285,11 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     public void TakeDamage(float damage)
     {
         if (isDead) return;
-        currentHealth -= damage;
-        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
 
-        if (currentHealth <= 0)
+        currentHealth -= damage;
+        currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+
+        if (currentHealth <= 0f)
         {
             Die();
             return;
@@ -246,27 +298,25 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         stunTimer = stunDuration;
         isStunned = true;
         isAttacking = false;
-
-        if (agent != null) agent.isStopped = true; // Trúng đạn thì khựng AI lại
+        agent.isStopped = true;
 
         if (anim != null)
         {
             anim.ResetTrigger("Attack");
-            anim.ResetTrigger("TakeDamage");
             anim.SetTrigger("TakeDamage");
         }
 
         if (spriteRend != null)
         {
-            StopCoroutine("FlashRedRoutine");
-            StartCoroutine("FlashRedRoutine");
+            StopCoroutine(FlashRedRoutine());
+            StartCoroutine(FlashRedRoutine());
         }
     }
 
     private IEnumerator FlashRedRoutine()
     {
         spriteRend.color = hurtColor;
-        yield return new WaitForSeconds(0.1f);
+        yield return new WaitForSeconds(0.12f);
         if (!isDead) spriteRend.color = originalColor;
     }
 
@@ -274,16 +324,14 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
-        if (anim != null) anim.SetBool("IsDead", true);
+
+        anim.SetBool("IsDead", true);
 
         rb.linearVelocity = Vector2.zero;
-        if (myCol != null) myCol.enabled = false;
-
-        if (agent != null) agent.enabled = false; // Tắt não đi để khỏi tính toán đường nữa
+        myCol.enabled = false;
+        agent.enabled = false;
 
         StopAllCoroutines();
-        if (spriteRend != null) spriteRend.color = originalColor;
-
         StartCoroutine(VanishRoutine());
     }
 
@@ -293,59 +341,20 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         Destroy(gameObject);
     }
 
-    bool CanSeePlayer()
-    {
-        Vector2 myPos = myCol.bounds.center;
-        Vector2 targetPos = playerCol.bounds.center;
-        Vector2 toPlayer = targetPos - myPos;
-        float distance = toPlayer.magnitude;
-
-        if (distance > detectionRange) return false;
-
-        Vector2 forward;
-        if (isChasing) forward = toPlayer.normalized;
-        else forward = lastMove == Vector2.zero ? Vector2.up : lastMove.normalized;
-
-        float angle = Vector2.Angle(forward, toPlayer);
-        if (angle > viewAngle * 0.5f) return false;
-
-        RaycastHit2D hit = Physics2D.Raycast(myPos, toPlayer.normalized, distance, obstacleMask);
-        if (hit.collider != null && hit.collider.gameObject != player.gameObject) return false;
-
-        return true;
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.red;
-        if (Application.isPlaying && myCol != null) Gizmos.DrawWireSphere(myCol.bounds.center, attackRange);
-        else Gizmos.DrawWireSphere(transform.position, attackRange);
-    }
-
     public void TriggerAttackDamage()
     {
-        if (hasAppliedDamage || isDead) return;
+        if (hasAppliedDamage || isDead || playerCol == null) return;
 
-        ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
-        if (collDist.distance <= attackRange + 0.2f)
+        if (Physics2D.Distance(myCol, playerCol).distance <= attackRange + 0.2f)
         {
-            Vector2 myPos = myCol.bounds.center;
-            Vector2 targetPos = playerCol.bounds.center;
+            Vector2 dirToPlayer = (playerCol.bounds.center - myCol.bounds.center).normalized;
+            float angle = Vector2.Angle(lastMoveDirection.normalized, dirToPlayer);
 
-            Vector2 dirToPlayer = (targetPos - myPos).normalized;
-            Vector2 zombieFacingDir = lastMove.normalized;
-            float angle = Vector2.Angle(zombieFacingDir, dirToPlayer);
-
-            if (angle <= 60f)
+            if (angle <= 60f && playerHealth != null)
             {
-                if (playerHealth != null)
-                {
-                    playerHealth.TakeDamage(zombieDamage);
-                    hasAppliedDamage = true;
-                }
+                playerHealth.TakeDamage(zombieDamage);
+                hasAppliedDamage = true;
             }
-            else Debug.Log("Né đẹp! Zombie vồ hụt vào không khí!");
         }
-        else Debug.Log("Lùi hay! Zombie cào hụt!");
     }
 }
