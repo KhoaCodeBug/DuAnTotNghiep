@@ -41,6 +41,8 @@ public class AutoUIManager : MonoBehaviour
     private PlayerStamina playerStamina;
     private PlayerSurvival playerSurvival;
 
+    private GameObject localPlayer;
+
     private GameObject actionBarPanel;
     private Image actionBarFill;
     private TextMeshProUGUI actionBarText;
@@ -318,8 +320,11 @@ public class AutoUIManager : MonoBehaviour
             }
             else
             {
-                InventorySystem inv = Object.FindAnyObjectByType<InventorySystem>();
-                if (inv != null) inv.UseItem(indexToUse);
+                // 🔥 ĐÃ FIX: Chỉ lấy túi đồ của MÌNH
+                if (localPlayer != null)
+                {
+                    localPlayer.GetComponent<InventorySystem>().UseItem(indexToUse);
+                }
             }
         }
     }
@@ -535,10 +540,30 @@ public class AutoUIManager : MonoBehaviour
 
     private void UpdateSurvivalUI()
     {
-        if (playerHealth == null) playerHealth = Object.FindAnyObjectByType<PlayerHealth>();
-        if (playerStamina == null) playerStamina = Object.FindAnyObjectByType<PlayerStamina>();
-        if (playerSurvival == null) playerSurvival = Object.FindAnyObjectByType<PlayerSurvival>();
+        // 🔥 ĐÃ SỬA: Tìm ĐÚNG nhân vật của MÌNH (người đang điều khiển máy này)
+        if (playerHealth == null || playerHealth.Object == null || !playerHealth.HasInputAuthority)
+        {
+            // Lấy danh sách TẤT CẢ PlayerHealth trong map
+            var allPlayers = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+            foreach (var p in allPlayers)
+            {
+                // Chọn đúng thằng mà máy mình đang cầm quyền điều khiển
+                if (p.Object != null && p.HasInputAuthority)
+                {
+                    playerHealth = p;
+                    playerStamina = p.GetComponent<PlayerStamina>();
+                    playerSurvival = p.GetComponent<PlayerSurvival>();
 
+                    localPlayer = p.gameObject;
+                    break;
+                }
+            }
+        }
+
+        // Nếu vẫn chưa tìm thấy ai (chưa spawn) thì không làm gì cả để tránh lỗi đỏ
+        if (playerHealth == null) return;
+
+        // --- Phần cập nhật UI giữ nguyên ---
         if (playerHealth != null && healthFill != null)
             UpdateHorizontalBar(healthFill, playerHealth.currentHealth, playerHealth.maxHealth, 220f);
 
