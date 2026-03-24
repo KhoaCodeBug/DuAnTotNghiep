@@ -1,0 +1,1833 @@
+fileFormatVersion: 2
+guid: a2ff4a92f349120468b9545f52903b20
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 5986108632699247492
+    second: T_X_Retro_Sprite_0
+  - first:
+      213: -6991380653512474262
+    second: T_X_Retro_Sprite_1
+  - first:
+      213: 188587786920033096
+    second: T_X_Retro_Sprite_2
+  - first:
+      213: 7554577386076967305
+    second: T_X_Retro_Sprite_3
+  - first:
+      213: -8345818766004557820
+    second: T_X_Retro_Sprite_4
+  - first:
+      213: 991451525391713609
+    second: T_X_Retro_Sprite_5
+  - first:
+      213: -4258156690962963137
+    second: T_X_Retro_Sprite_6
+  - first:
+      213: -5613992126619778075
+    second: T_X_Retro_Sprite_7
+  - first:
+      213: 6543397894228065403
+    second: T_X_Retro_Sprite_8
+  - first:
+      213: 519730937112412673
+    second: T_X_Retro_Sprite_9
+  - first:
+      213: 8676088688019680846
+    second: T_X_Retro_Sprite_10
+  - first:
+      213: 8250212356276811303
+    second: T_X_Retro_Sprite_11
+  - first:
+      213: 1158901119878684953
+    second: T_X_Retro_Sprite_12
+  - first:
+      213: 448256370608410085
+    second: T_X_Retro_Sprite_13
+  - first:
+      213: -8748806700421345232
+    second: T_X_Retro_Sprite_14
+  - first:
+      213: -8155566873091830547
+    second: T_X_Retro_Sprite_15
+  - first:
+      213: -2179966225782648894
+    second: T_X_Retro_Sprite_16
+  - first:
+      213: -1327453830669627430
+    second: T_X_Retro_Sprite_17
+  - first:
+      213: 6335541868869220106
+    second: T_X_Retro_Sprite_18
+  - first:
+      213: 7007184022383232944
+    second: T_X_Retro_Sprite_19
+  - first:
+      213: -395837192741004765
+    second: T_X_Retro_Sprite_20
+  - first:
+      213: -1448965825269909725
+    second: T_X_Retro_Sprite_21
+  - first:
+      213: -9157848989121557019
+    second: T_X_Retro_Sprite_22
+  - first:
+      213: 9140656324951777932
+    second: T_X_Retro_Sprite_23
+  - first:
+      213: -2057868111397187068
+    second: T_X_Retro_Sprite_24
+  - first:
+      213: -2644184241242522203
+    second: T_X_Retro_Sprite_25
+  - first:
+      213: -1798623328730902117
+    second: T_X_Retro_Sprite_26
+  - first:
+      213: 7535017727124625756
+    second: T_X_Retro_Sprite_27
+  - first:
+      213: -1358784407061383572
+    second: T_X_Retro_Sprite_28
+  - first:
+      213: -5620117755724493369
+    second: T_X_Retro_Sprite_29
+  - first:
+      213: 3652614444169700256
+    second: T_X_Retro_Sprite_30
+  - first:
+      213: -4711317448776739423
+    second: T_X_Retro_Sprite_31
+  - first:
+      213: -6947535634122702340
+    second: T_X_Retro_Sprite_32
+  - first:
+      213: -3984487083022905784
+    second: T_X_Retro_Sprite_33
+  - first:
+      213: -2224424802213832605
+    second: T_X_Retro_Sprite_34
+  - first:
+      213: 1390662225438537485
+    second: T_X_Retro_Sprite_35
+  - first:
+      213: 6052700756172122314
+    second: T_X_Retro_Sprite_36
+  - first:
+      213: -8853872967243392813
+    second: T_X_Retro_Sprite_37
+  - first:
+      213: 5513007908485159501
+    second: T_X_Retro_Sprite_38
+  - first:
+      213: -2552131714725654750
+    second: T_X_Retro_Sprite_39
+  - first:
+      213: 2563780044770256014
+    second: T_X_Retro_Sprite_40
+  - first:
+      213: -5520400778274618773
+    second: T_X_Retro_Sprite_41
+  - first:
+      213: -2397417032295672709
+    second: T_X_Retro_Sprite_42
+  - first:
+      213: 3289760077716176734
+    second: T_X_Retro_Sprite_43
+  - first:
+      213: 4901675527849620611
+    second: T_X_Retro_Sprite_44
+  - first:
+      213: -2587239021760839919
+    second: T_X_Retro_Sprite_45
+  - first:
+      213: -3855258217877476259
+    second: T_X_Retro_Sprite_46
+  - first:
+      213: -361630808564424560
+    second: T_X_Retro_Sprite_47
+  - first:
+      213: -6665123498011934988
+    second: T_X_Retro_Sprite_48
+  - first:
+      213: -6916828398986175222
+    second: T_X_Retro_Sprite_49
+  - first:
+      213: 5680123639948356042
+    second: T_X_Retro_Sprite_50
+  - first:
+      213: 5856146386798069821
+    second: T_X_Retro_Sprite_51
+  - first:
+      213: -7344596591599833241
+    second: T_X_Retro_Sprite_52
+  - first:
+      213: -962724525763880902
+    second: T_X_Retro_Sprite_53
+  - first:
+      213: 5003898678799286628
+    second: T_X_Retro_Sprite_54
+  - first:
+      213: -4102499799974172475
+    second: T_X_Retro_Sprite_55
+  - first:
+      213: 2434026501352783525
+    second: T_X_Retro_Sprite_56
+  - first:
+      213: 8454843005109988221
+    second: T_X_Retro_Sprite_57
+  - first:
+      213: -7851986421258347681
+    second: T_X_Retro_Sprite_58
+  - first:
+      213: -6058844173114563345
+    second: T_X_Retro_Sprite_59
+  - first:
+      213: -1417314546302043956
+    second: T_X_Retro_Sprite_60
+  - first:
+      213: -8825952822926184650
+    second: T_X_Retro_Sprite_61
+  - first:
+      213: -7769245536396478849
+    second: T_X_Retro_Sprite_62
+  - first:
+      213: -7507426183926868422
+    second: T_X_Retro_Sprite_63
+  - first:
+      213: -6114582604572619540
+    second: T_X_Retro_Sprite_64
+  - first:
+      213: 6461892312430315570
+    second: T_X_Retro_Sprite_65
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_0
+      rect:
+        serializedVersion: 2
+        x: 3
+        y: 479
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 48b10fee51ee21350800000000000000
+      internalID: 5986108632699247492
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_1
+      rect:
+        serializedVersion: 2
+        x: 51
+        y: 479
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a61c9d96650a9fe90800000000000000
+      internalID: -6991380653512474262
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_2
+      rect:
+        serializedVersion: 2
+        x: 98
+        y: 479
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 84b7850d79ffd9200800000000000000
+      internalID: 188587786920033096
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_3
+      rect:
+        serializedVersion: 2
+        x: 146
+        y: 479
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 98111555b1047d860800000000000000
+      internalID: 7554577386076967305
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_4
+      rect:
+        serializedVersion: 2
+        x: 3
+        y: 431
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4086284ec02bd2c80800000000000000
+      internalID: -8345818766004557820
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_5
+      rect:
+        serializedVersion: 2
+        x: 51
+        y: 431
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9450efec8e752cd00800000000000000
+      internalID: 991451525391713609
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_6
+      rect:
+        serializedVersion: 2
+        x: 98
+        y: 431
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f35233ddc0df7e4c0800000000000000
+      internalID: -4258156690962963137
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_7
+      rect:
+        serializedVersion: 2
+        x: 146
+        y: 431
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e30df0b7e71712b0800000000000000
+      internalID: -5613992126619778075
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_8
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 385
+        width: 38
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b7cb08567b1deca50800000000000000
+      internalID: 6543397894228065403
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_9
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 385
+        width: 39
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 102cd5d9884763700800000000000000
+      internalID: 519730937112412673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_10
+      rect:
+        serializedVersion: 2
+        x: 98
+        y: 381
+        width: 31
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e4ea231a1b8a76870800000000000000
+      internalID: 8676088688019680846
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_11
+      rect:
+        serializedVersion: 2
+        x: 145
+        y: 381
+        width: 31
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 726fa613d64ae7270800000000000000
+      internalID: 8250212356276811303
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_12
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 333
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 911eb2cad6e351010800000000000000
+      internalID: 1158901119878684953
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_13
+      rect:
+        serializedVersion: 2
+        x: 47
+        y: 333
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5ed8b6a4bc6883600800000000000000
+      internalID: 448256370608410085
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_14
+      rect:
+        serializedVersion: 2
+        x: 95
+        y: 333
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 03014dcb8aef59680800000000000000
+      internalID: -8748806700421345232
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_15
+      rect:
+        serializedVersion: 2
+        x: 142
+        y: 333
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dec0b63932b91de80800000000000000
+      internalID: -8155566873091830547
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_16
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 291
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2cf40e184443fb1e0800000000000000
+      internalID: -2179966225782648894
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_17
+      rect:
+        serializedVersion: 2
+        x: 51
+        y: 288
+        width: 30
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: adf843f26cfe39de0800000000000000
+      internalID: -1327453830669627430
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_18
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 315
+        width: 11
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a07709933cd5ce750800000000000000
+      internalID: 6335541868869220106
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_19
+      rect:
+        serializedVersion: 2
+        x: 101
+        y: 291
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0b702f12eb48e3160800000000000000
+      internalID: 7007184022383232944
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_20
+      rect:
+        serializedVersion: 2
+        x: 148
+        y: 291
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 32ad8c1ab24b18af0800000000000000
+      internalID: -395837192741004765
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_21
+      rect:
+        serializedVersion: 2
+        x: 156
+        y: 315
+        width: 10
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3273b15424d34ebe0800000000000000
+      internalID: -1448965825269909725
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_22
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 298
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5ed4db06dd8c8e080800000000000000
+      internalID: -9157848989121557019
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_23
+      rect:
+        serializedVersion: 2
+        x: 77
+        y: 298
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c82adae8f722ade70800000000000000
+      internalID: 9140656324951777932
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_24
+      rect:
+        serializedVersion: 2
+        x: 94
+        y: 298
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 40211911bdbf073e0800000000000000
+      internalID: -2057868111397187068
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_25
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 298
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5adbd0c2178fd4bd0800000000000000
+      internalID: -2644184241242522203
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_26
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 284
+        width: 11
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b91934eac910a07e0800000000000000
+      internalID: -1798623328730902117
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_27
+      rect:
+        serializedVersion: 2
+        x: 156
+        y: 284
+        width: 10
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c59d88953b2c19860800000000000000
+      internalID: 7535017727124625756
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_28
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 243
+        width: 25
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c6634cae7c0a42de0800000000000000
+      internalID: -1358784407061383572
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_29
+      rect:
+        serializedVersion: 2
+        x: 13
+        y: 268
+        width: 11
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7cd0d268da45102b0800000000000000
+      internalID: -5620117755724493369
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_30
+      rect:
+        serializedVersion: 2
+        x: 53
+        y: 243
+        width: 25
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0a3223e0c71b0b230800000000000000
+      internalID: 3652614444169700256
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_31
+      rect:
+        serializedVersion: 2
+        x: 101
+        y: 243
+        width: 25
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1a51091fdb90e9eb0800000000000000
+      internalID: -4711317448776739423
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_32
+      rect:
+        serializedVersion: 2
+        x: 148
+        y: 243
+        width: 25
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cf18fbf7625659f90800000000000000
+      internalID: -6947535634122702340
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_33
+      rect:
+        serializedVersion: 2
+        x: 94
+        y: 251
+        width: 8
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 84e8944db1244b8c0800000000000000
+      internalID: -3984487083022905784
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_34
+      rect:
+        serializedVersion: 2
+        x: 173
+        y: 251
+        width: 6
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 368d97a8d614121e0800000000000000
+      internalID: -2224424802213832605
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_35
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 236
+        width: 11
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d0771dd0def9c4310800000000000000
+      internalID: 1390662225438537485
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_36
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 196
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac8a067e4438ff350800000000000000
+      internalID: 6052700756172122314
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_37
+      rect:
+        serializedVersion: 2
+        x: 50
+        y: 193
+        width: 31
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3d816053279b02580800000000000000
+      internalID: -8853872967243392813
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_38
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 220
+        width: 11
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d4a5d2dcb73228c40800000000000000
+      internalID: 5513007908485159501
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_39
+      rect:
+        serializedVersion: 2
+        x: 101
+        y: 196
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 22fc4cb2ab1059cd0800000000000000
+      internalID: -2552131714725654750
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_40
+      rect:
+        serializedVersion: 2
+        x: 148
+        y: 196
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e8424c20e50649320800000000000000
+      internalID: 2563780044770256014
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_41
+      rect:
+        serializedVersion: 2
+        x: 156
+        y: 220
+        width: 10
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b62c6219db89363b0800000000000000
+      internalID: -5520400778274618773
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_42
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 203
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b749b8349e9aabed0800000000000000
+      internalID: -2397417032295672709
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_43
+      rect:
+        serializedVersion: 2
+        x: 77
+        y: 203
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e5fb88c5c5397ad20800000000000000
+      internalID: 3289760077716176734
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_44
+      rect:
+        serializedVersion: 2
+        x: 94
+        y: 203
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 384b3b12cef360440800000000000000
+      internalID: 4901675527849620611
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_45
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 203
+        width: 8
+        height: 11
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 11f7ae641d7481cd0800000000000000
+      internalID: -2587239021760839919
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_46
+      rect:
+        serializedVersion: 2
+        x: 60
+        y: 189
+        width: 11
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d5ce10ea31f5f7ac0800000000000000
+      internalID: -3855258217877476259
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_47
+      rect:
+        serializedVersion: 2
+        x: 155
+        y: 189
+        width: 11
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0902ea312ba3bfaf0800000000000000
+      internalID: -361630808564424560
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_48
+      rect:
+        serializedVersion: 2
+        x: 6
+        y: 148
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4feb3eced79b083a0800000000000000
+      internalID: -6665123498011934988
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_49
+      rect:
+        serializedVersion: 2
+        x: 13
+        y: 173
+        width: 10
+        height: 7
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a0d5812d73d7200a0800000000000000
+      internalID: -6916828398986175222
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_50
+      rect:
+        serializedVersion: 2
+        x: 53
+        y: 148
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac9ab6f1b5ad3de40800000000000000
+      internalID: 5680123639948356042
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_51
+      rect:
+        serializedVersion: 2
+        x: 101
+        y: 148
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d3849c19c16354150800000000000000
+      internalID: 5856146386798069821
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_52
+      rect:
+        serializedVersion: 2
+        x: 148
+        y: 148
+        width: 25
+        height: 25
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 76fa5233050c21a90800000000000000
+      internalID: -7344596591599833241
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_53
+      rect:
+        serializedVersion: 2
+        x: 94
+        y: 156
+        width: 8
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a3899410527b3a2f0800000000000000
+      internalID: -962724525763880902
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_54
+      rect:
+        serializedVersion: 2
+        x: 173
+        y: 156
+        width: 6
+        height: 10
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 461c0e9265b617540800000000000000
+      internalID: 5003898678799286628
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_55
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 141
+        width: 10
+        height: 8
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5c8ad6bfa2ef017c0800000000000000
+      internalID: -4102499799974172475
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_56
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 95
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5aef40bf43667c120800000000000000
+      internalID: 2434026501352783525
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_57
+      rect:
+        serializedVersion: 2
+        x: 47
+        y: 95
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d7be64fdae2a55570800000000000000
+      internalID: 8454843005109988221
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_58
+      rect:
+        serializedVersion: 2
+        x: 95
+        y: 95
+        width: 37
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f5b94b393f3280390800000000000000
+      internalID: -7851986421258347681
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_59
+      rect:
+        serializedVersion: 2
+        x: 144
+        y: 102
+        width: 34
+        height: 22
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe4af006359aaeba0800000000000000
+      internalID: -6058844173114563345
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_60
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 46
+        width: 38
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cc83cacedefa45ce0800000000000000
+      internalID: -1417314546302043956
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_61
+      rect:
+        serializedVersion: 2
+        x: 46
+        y: 46
+        width: 39
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63fe0216baae38580800000000000000
+      internalID: -8825952822926184650
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_62
+      rect:
+        serializedVersion: 2
+        x: 94
+        y: 46
+        width: 39
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f767c4e09581e2490800000000000000
+      internalID: -7769245536396478849
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_63
+      rect:
+        serializedVersion: 2
+        x: 141
+        y: 46
+        width: 38
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a36929969a340d790800000000000000
+      internalID: -7507426183926868422
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_64
+      rect:
+        serializedVersion: 2
+        x: 3
+        y: 3
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cec8aa08483a42ba0800000000000000
+      internalID: -6114582604572619540
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_X_Retro_Sprite_65
+      rect:
+        serializedVersion: 2
+        x: 51
+        y: 3
+        width: 30
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2388c3352d04da950800000000000000
+      internalID: 6461892312430315570
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      T_X_Retro_Sprite_0: 5986108632699247492
+      T_X_Retro_Sprite_1: -6991380653512474262
+      T_X_Retro_Sprite_10: 8676088688019680846
+      T_X_Retro_Sprite_11: 8250212356276811303
+      T_X_Retro_Sprite_12: 1158901119878684953
+      T_X_Retro_Sprite_13: 448256370608410085
+      T_X_Retro_Sprite_14: -8748806700421345232
+      T_X_Retro_Sprite_15: -8155566873091830547
+      T_X_Retro_Sprite_16: -2179966225782648894
+      T_X_Retro_Sprite_17: -1327453830669627430
+      T_X_Retro_Sprite_18: 6335541868869220106
+      T_X_Retro_Sprite_19: 7007184022383232944
+      T_X_Retro_Sprite_2: 188587786920033096
+      T_X_Retro_Sprite_20: -395837192741004765
+      T_X_Retro_Sprite_21: -1448965825269909725
+      T_X_Retro_Sprite_22: -9157848989121557019
+      T_X_Retro_Sprite_23: 9140656324951777932
+      T_X_Retro_Sprite_24: -2057868111397187068
+      T_X_Retro_Sprite_25: -2644184241242522203
+      T_X_Retro_Sprite_26: -1798623328730902117
+      T_X_Retro_Sprite_27: 7535017727124625756
+      T_X_Retro_Sprite_28: -1358784407061383572
+      T_X_Retro_Sprite_29: -5620117755724493369
+      T_X_Retro_Sprite_3: 7554577386076967305
+      T_X_Retro_Sprite_30: 3652614444169700256
+      T_X_Retro_Sprite_31: -4711317448776739423
+      T_X_Retro_Sprite_32: -6947535634122702340
+      T_X_Retro_Sprite_33: -3984487083022905784
+      T_X_Retro_Sprite_34: -2224424802213832605
+      T_X_Retro_Sprite_35: 1390662225438537485
+      T_X_Retro_Sprite_36: 6052700756172122314
+      T_X_Retro_Sprite_37: -8853872967243392813
+      T_X_Retro_Sprite_38: 5513007908485159501
+      T_X_Retro_Sprite_39: -2552131714725654750
+      T_X_Retro_Sprite_4: -8345818766004557820
+      T_X_Retro_Sprite_40: 2563780044770256014
+      T_X_Retro_Sprite_41: -5520400778274618773
+      T_X_Retro_Sprite_42: -2397417032295672709
+      T_X_Retro_Sprite_43: 3289760077716176734
+      T_X_Retro_Sprite_44: 4901675527849620611
+      T_X_Retro_Sprite_45: -2587239021760839919
+      T_X_Retro_Sprite_46: -3855258217877476259
+      T_X_Retro_Sprite_47: -361630808564424560
+      T_X_Retro_Sprite_48: -6665123498011934988
+      T_X_Retro_Sprite_49: -6916828398986175222
+      T_X_Retro_Sprite_5: 991451525391713609
+      T_X_Retro_Sprite_50: 5680123639948356042
+      T_X_Retro_Sprite_51: 5856146386798069821
+      T_X_Retro_Sprite_52: -7344596591599833241
+      T_X_Retro_Sprite_53: -962724525763880902
+      T_X_Retro_Sprite_54: 5003898678799286628
+      T_X_Retro_Sprite_55: -4102499799974172475
+      T_X_Retro_Sprite_56: 2434026501352783525
+      T_X_Retro_Sprite_57: 8454843005109988221
+      T_X_Retro_Sprite_58: -7851986421258347681
+      T_X_Retro_Sprite_59: -6058844173114563345
+      T_X_Retro_Sprite_6: -4258156690962963137
+      T_X_Retro_Sprite_60: -1417314546302043956
+      T_X_Retro_Sprite_61: -8825952822926184650
+      T_X_Retro_Sprite_62: -7769245536396478849
+      T_X_Retro_Sprite_63: -7507426183926868422
+      T_X_Retro_Sprite_64: -6114582604572619540
+      T_X_Retro_Sprite_65: 6461892312430315570
+      T_X_Retro_Sprite_7: -5613992126619778075
+      T_X_Retro_Sprite_8: 6543397894228065403
+      T_X_Retro_Sprite_9: 519730937112412673
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

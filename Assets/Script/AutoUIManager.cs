@@ -8,7 +8,11 @@ using UnityEngine.UI;
 public class AutoUIManager : MonoBehaviour
 {
     public static AutoUIManager Instance { get; private set; }
+    [Header("Armor UI")]
+    public Sprite armorIcon;
 
+    private List<Image> armorIcons = new List<Image>();
+    private GameObject armorPanel;
     [Header("Cài đặt tự động")]
     public int maxSlots = 20;
 
@@ -110,12 +114,71 @@ public class AutoUIManager : MonoBehaviour
         canvasGO.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         canvasGO.AddComponent<GraphicRaycaster>();
         DontDestroyOnLoad(canvasGO);
-
+        GenerateArmorUI(canvasGO);
         GenerateSurvivalBars(canvasGO);
         GenerateInventoryUI(canvasGO);
         GenerateActionBar(canvasGO);
     }
+    private void GenerateArmorUI(GameObject canvasGO)
+    {
+        armorPanel = new GameObject("ArmorPanel");
+        armorPanel.transform.SetParent(canvasGO.transform, false);
 
+        RectTransform rect = armorPanel.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0, 1);
+        rect.anchorMax = new Vector2(0, 1);
+        rect.pivot = new Vector2(0, 1);
+        rect.anchoredPosition = new Vector2(15, -60); // 🔥 cách lề trái 15px
+
+        HorizontalLayoutGroup layout = armorPanel.AddComponent<HorizontalLayoutGroup>();
+        layout.spacing = 5;
+        layout.childControlWidth = false;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = false;
+
+        // Tạo 8 slot cố định (maxVisibleArmor)
+        for (int i = 0; i < 8; i++)
+        {
+            GameObject iconGO = new GameObject("Armor_" + i);
+            iconGO.transform.SetParent(armorPanel.transform, false);
+
+            Image img = iconGO.AddComponent<Image>();
+            img.sprite = armorIcon; // default icon
+            img.enabled = false;
+            img.preserveAspect = true;
+
+            RectTransform rt = iconGO.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(25, 25); // giữ tỉ lệ icon
+
+            armorIcons.Add(img);
+        }
+    }
+    public void UpdateArmorUI(int amount)
+    {
+        for (int i = 0; i < armorIcons.Count; i++)
+        {
+            armorIcons[i].enabled = i < Mathf.Min(amount, 8); // giới hạn hiển thị 8
+        }
+    }
+    public void SetArmorIcons(List<Sprite> icons)
+    {
+        int count = Mathf.Min(icons.Count, 8); // Giới hạn hiển thị 8
+
+        for (int i = 0; i < count; i++)
+        {
+            var img = armorIcons[i];
+            img.enabled = true;
+            img.sprite = icons[i] != null ? icons[i] : armorIcon;
+            img.preserveAspect = true;
+        }
+
+        // Tắt các icon còn lại
+        for (int i = count; i < armorIcons.Count; i++)
+        {
+            armorIcons[i].enabled = false;
+        }
+    }
     private void GenerateInventoryUI(GameObject canvasGO)
     {
         inventoryPanel = new GameObject("InventoryPanel");
@@ -155,7 +218,7 @@ public class AutoUIManager : MonoBehaviour
 
         GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
         gridLayout.cellSize = new Vector2(75, 75);
-        gridLayout.spacing = new Vector2(10, 10);
+        gridLayout.spacing = new Vector2(5, 5);
         gridLayout.childAlignment = TextAnchor.UpperCenter;
 
         for (int i = 0; i < maxSlots; i++)

@@ -1,0 +1,3887 @@
+fileFormatVersion: 2
+guid: 691fec6ea2c93064880fd7419ca90ad5
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8030942149843173573
+    second: T_P4_Retro_Sprite_0
+  - first:
+      213: -2010347048361851903
+    second: T_P4_Retro_Sprite_1
+  - first:
+      213: 1539401192234629705
+    second: T_P4_Retro_Sprite_2
+  - first:
+      213: -8295035215484364813
+    second: T_P4_Retro_Sprite_3
+  - first:
+      213: 824142808757481837
+    second: T_P4_Retro_Sprite_4
+  - first:
+      213: -9185780657075384507
+    second: T_P4_Retro_Sprite_5
+  - first:
+      213: -2513401132440826167
+    second: T_P4_Retro_Sprite_6
+  - first:
+      213: 2910333836940681941
+    second: T_P4_Retro_Sprite_7
+  - first:
+      213: -2509172041271678018
+    second: T_P4_Retro_Sprite_8
+  - first:
+      213: 2835197687678131503
+    second: T_P4_Retro_Sprite_9
+  - first:
+      213: -4519537191129473808
+    second: T_P4_Retro_Sprite_10
+  - first:
+      213: 8582416574307895886
+    second: T_P4_Retro_Sprite_11
+  - first:
+      213: -5806445229595810267
+    second: T_P4_Retro_Sprite_12
+  - first:
+      213: 5651876591548341523
+    second: T_P4_Retro_Sprite_13
+  - first:
+      213: 702821604128143865
+    second: T_P4_Retro_Sprite_14
+  - first:
+      213: -2059788203829233888
+    second: T_P4_Retro_Sprite_15
+  - first:
+      213: -1346054414726629781
+    second: T_P4_Retro_Sprite_16
+  - first:
+      213: -4184546943187769909
+    second: T_P4_Retro_Sprite_17
+  - first:
+      213: 8831397813660984411
+    second: T_P4_Retro_Sprite_18
+  - first:
+      213: 7342593731925344147
+    second: T_P4_Retro_Sprite_19
+  - first:
+      213: -9175626013886742036
+    second: T_P4_Retro_Sprite_20
+  - first:
+      213: -7837465674958249238
+    second: T_P4_Retro_Sprite_21
+  - first:
+      213: 71391709607484598
+    second: T_P4_Retro_Sprite_22
+  - first:
+      213: 5210606685342744530
+    second: T_P4_Retro_Sprite_23
+  - first:
+      213: -7359663182728529504
+    second: T_P4_Retro_Sprite_24
+  - first:
+      213: -8527163411630750817
+    second: T_P4_Retro_Sprite_25
+  - first:
+      213: 2195029383499474361
+    second: T_P4_Retro_Sprite_26
+  - first:
+      213: -5673624528049504542
+    second: T_P4_Retro_Sprite_27
+  - first:
+      213: -849813917073942556
+    second: T_P4_Retro_Sprite_28
+  - first:
+      213: -5817001337300714437
+    second: T_P4_Retro_Sprite_29
+  - first:
+      213: -7660063933515572962
+    second: T_P4_Retro_Sprite_30
+  - first:
+      213: 1223119867069766054
+    second: T_P4_Retro_Sprite_31
+  - first:
+      213: -8986049933875268011
+    second: T_P4_Retro_Sprite_32
+  - first:
+      213: 6979519105433584117
+    second: T_P4_Retro_Sprite_33
+  - first:
+      213: -477438348288296425
+    second: T_P4_Retro_Sprite_34
+  - first:
+      213: 6649990818220160565
+    second: T_P4_Retro_Sprite_35
+  - first:
+      213: -2552340418867073554
+    second: T_P4_Retro_Sprite_36
+  - first:
+      213: -8920585822621051600
+    second: T_P4_Retro_Sprite_37
+  - first:
+      213: -2971769851615134471
+    second: T_P4_Retro_Sprite_38
+  - first:
+      213: -5705645353190252900
+    second: T_P4_Retro_Sprite_39
+  - first:
+      213: 977340759270005372
+    second: T_P4_Retro_Sprite_40
+  - first:
+      213: 5443727647375499988
+    second: T_P4_Retro_Sprite_41
+  - first:
+      213: 4033541465797083647
+    second: T_P4_Retro_Sprite_42
+  - first:
+      213: -8850222173632063465
+    second: T_P4_Retro_Sprite_43
+  - first:
+      213: -6562547878800438438
+    second: T_P4_Retro_Sprite_44
+  - first:
+      213: 6836833234705538929
+    second: T_P4_Retro_Sprite_45
+  - first:
+      213: -7406179384234025848
+    second: T_P4_Retro_Sprite_46
+  - first:
+      213: -8532080487094013245
+    second: T_P4_Retro_Sprite_47
+  - first:
+      213: 6254249999373307797
+    second: T_P4_Retro_Sprite_48
+  - first:
+      213: -8849553214058006811
+    second: T_P4_Retro_Sprite_49
+  - first:
+      213: -1444570884235611624
+    second: T_P4_Retro_Sprite_50
+  - first:
+      213: 3998218211672109092
+    second: T_P4_Retro_Sprite_51
+  - first:
+      213: -5920614216629385931
+    second: T_P4_Retro_Sprite_52
+  - first:
+      213: 4356741436981633055
+    second: T_P4_Retro_Sprite_53
+  - first:
+      213: -8054320065499330781
+    second: T_P4_Retro_Sprite_54
+  - first:
+      213: 7600774782038010988
+    second: T_P4_Retro_Sprite_55
+  - first:
+      213: -1229736105117613491
+    second: T_P4_Retro_Sprite_56
+  - first:
+      213: 554784047727926849
+    second: T_P4_Retro_Sprite_57
+  - first:
+      213: 8445848677087807354
+    second: T_P4_Retro_Sprite_58
+  - first:
+      213: 1696996487703927411
+    second: T_P4_Retro_Sprite_59
+  - first:
+      213: 4506163730197414563
+    second: T_P4_Retro_Sprite_60
+  - first:
+      213: 2429313494975866838
+    second: T_P4_Retro_Sprite_61
+  - first:
+      213: 2609007533813229545
+    second: T_P4_Retro_Sprite_62
+  - first:
+      213: 338003337328454564
+    second: T_P4_Retro_Sprite_63
+  - first:
+      213: -8634242737663027741
+    second: T_P4_Retro_Sprite_64
+  - first:
+      213: -3772169493297622363
+    second: T_P4_Retro_Sprite_65
+  - first:
+      213: -3124986129043759879
+    second: T_P4_Retro_Sprite_66
+  - first:
+      213: -7838292112704580579
+    second: T_P4_Retro_Sprite_67
+  - first:
+      213: -2782534252896366078
+    second: T_P4_Retro_Sprite_68
+  - first:
+      213: 8446569260260701009
+    second: T_P4_Retro_Sprite_69
+  - first:
+      213: 2062668473971706654
+    second: T_P4_Retro_Sprite_70
+  - first:
+      213: -6930994022764272325
+    second: T_P4_Retro_Sprite_71
+  - first:
+      213: -4904554431001255962
+    second: T_P4_Retro_Sprite_72
+  - first:
+      213: 2112170687448995432
+    second: T_P4_Retro_Sprite_73
+  - first:
+      213: 4563189148037459781
+    second: T_P4_Retro_Sprite_74
+  - first:
+      213: -945100128480914641
+    second: T_P4_Retro_Sprite_75
+  - first:
+      213: -2868287944857058497
+    second: T_P4_Retro_Sprite_76
+  - first:
+      213: -2649469320482366507
+    second: T_P4_Retro_Sprite_77
+  - first:
+      213: 1639954084783426135
+    second: T_P4_Retro_Sprite_78
+  - first:
+      213: -1971681166860288192
+    second: T_P4_Retro_Sprite_79
+  - first:
+      213: 3997181822493321306
+    second: T_P4_Retro_Sprite_80
+  - first:
+      213: -6110078179335917432
+    second: T_P4_Retro_Sprite_81
+  - first:
+      213: 2565001623459364644
+    second: T_P4_Retro_Sprite_82
+  - first:
+      213: 52949739455892926
+    second: T_P4_Retro_Sprite_83
+  - first:
+      213: 7739175346928905053
+    second: T_P4_Retro_Sprite_84
+  - first:
+      213: 487110894564753096
+    second: T_P4_Retro_Sprite_85
+  - first:
+      213: 6935632046856693418
+    second: T_P4_Retro_Sprite_86
+  - first:
+      213: 2301648653792725218
+    second: T_P4_Retro_Sprite_87
+  - first:
+      213: -284241398227548910
+    second: T_P4_Retro_Sprite_88
+  - first:
+      213: -6727078830378944670
+    second: T_P4_Retro_Sprite_89
+  - first:
+      213: -4344331362089149637
+    second: T_P4_Retro_Sprite_90
+  - first:
+      213: -8913270495627563385
+    second: T_P4_Retro_Sprite_91
+  - first:
+      213: 4735267674261467852
+    second: T_P4_Retro_Sprite_92
+  - first:
+      213: 1425700593921093173
+    second: T_P4_Retro_Sprite_93
+  - first:
+      213: 8667011390462276711
+    second: T_P4_Retro_Sprite_94
+  - first:
+      213: 7744592154848080597
+    second: T_P4_Retro_Sprite_95
+  - first:
+      213: 4304254597049619915
+    second: T_P4_Retro_Sprite_96
+  - first:
+      213: 287673148655271611
+    second: T_P4_Retro_Sprite_97
+  - first:
+      213: 2938479032162414981
+    second: T_P4_Retro_Sprite_98
+  - first:
+      213: -7606740354178158166
+    second: T_P4_Retro_Sprite_99
+  - first:
+      213: -3535374138743007416
+    second: T_P4_Retro_Sprite_100
+  - first:
+      213: -8390637360142782711
+    second: T_P4_Retro_Sprite_101
+  - first:
+      213: 6158860805402825247
+    second: T_P4_Retro_Sprite_102
+  - first:
+      213: 7874174513908082261
+    second: T_P4_Retro_Sprite_103
+  - first:
+      213: 7762075645509961502
+    second: T_P4_Retro_Sprite_104
+  - first:
+      213: -5891022419421618042
+    second: T_P4_Retro_Sprite_105
+  - first:
+      213: -5523178168831918094
+    second: T_P4_Retro_Sprite_106
+  - first:
+      213: -5781498569345249320
+    second: T_P4_Retro_Sprite_107
+  - first:
+      213: 4602787983495226783
+    second: T_P4_Retro_Sprite_108
+  - first:
+      213: -1551271874643168985
+    second: T_P4_Retro_Sprite_109
+  - first:
+      213: 9069566733930346944
+    second: T_P4_Retro_Sprite_110
+  - first:
+      213: -6191491348971572379
+    second: T_P4_Retro_Sprite_111
+  - first:
+      213: -6238185398629009099
+    second: T_P4_Retro_Sprite_112
+  - first:
+      213: -9209577610958385748
+    second: T_P4_Retro_Sprite_113
+  - first:
+      213: -730751143240637766
+    second: T_P4_Retro_Sprite_114
+  - first:
+      213: 8053972146544355336
+    second: T_P4_Retro_Sprite_115
+  - first:
+      213: -8695379587901022206
+    second: T_P4_Retro_Sprite_116
+  - first:
+      213: 8878834964126927458
+    second: T_P4_Retro_Sprite_117
+  - first:
+      213: 5197246418297695580
+    second: T_P4_Retro_Sprite_118
+  - first:
+      213: -5443257946052214688
+    second: T_P4_Retro_Sprite_119
+  - first:
+      213: -3895980178615065367
+    second: T_P4_Retro_Sprite_120
+  - first:
+      213: -473323440246071054
+    second: T_P4_Retro_Sprite_121
+  - first:
+      213: 9073518693940801463
+    second: T_P4_Retro_Sprite_122
+  - first:
+      213: -4587178195519274289
+    second: T_P4_Retro_Sprite_123
+  - first:
+      213: 520989171721769324
+    second: T_P4_Retro_Sprite_124
+  - first:
+      213: -1318648862989388406
+    second: T_P4_Retro_Sprite_125
+  - first:
+      213: 1294469929345950238
+    second: T_P4_Retro_Sprite_126
+  - first:
+      213: 3386628465910680638
+    second: T_P4_Retro_Sprite_127
+  - first:
+      213: -3214102137173129259
+    second: T_P4_Retro_Sprite_128
+  - first:
+      213: 606948868361471353
+    second: T_P4_Retro_Sprite_129
+  - first:
+      213: -2044564707409483044
+    second: T_P4_Retro_Sprite_130
+  - first:
+      213: -7536448725131595130
+    second: T_P4_Retro_Sprite_131
+  - first:
+      213: -4632299094833132778
+    second: T_P4_Retro_Sprite_132
+  - first:
+      213: -7044332319460421688
+    second: T_P4_Retro_Sprite_133
+  - first:
+      213: -4092257852850139709
+    second: T_P4_Retro_Sprite_134
+  - first:
+      213: 6443778732771353411
+    second: T_P4_Retro_Sprite_135
+  - first:
+      213: 5696455373891267947
+    second: T_P4_Retro_Sprite_136
+  - first:
+      213: 8092862984131394819
+    second: T_P4_Retro_Sprite_137
+  - first:
+      213: 3164162472739979019
+    second: T_P4_Retro_Sprite_138
+  - first:
+      213: -6125418528490737317
+    second: T_P4_Retro_Sprite_139
+  - first:
+      213: -6044294854002239122
+    second: T_P4_Retro_Sprite_140
+  - first:
+      213: 702329810493969487
+    second: T_P4_Retro_Sprite_141
+  - first:
+      213: -4197286039041050442
+    second: T_P4_Retro_Sprite_142
+  - first:
+      213: 874621326703277109
+    second: T_P4_Retro_Sprite_143
+  - first:
+      213: -1775133335737060982
+    second: T_P4_Retro_Sprite_144
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_0
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 2535
+        width: 98
+        height: 98
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5c04d15e553a37f60800000000000000
+      internalID: 8030942149843173573
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_1
+      rect:
+        serializedVersion: 2
+        x: 183
+        y: 2535
+        width: 98
+        height: 98
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1040323c200d914e0800000000000000
+      internalID: -2010347048361851903
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_2
+      rect:
+        serializedVersion: 2
+        x: 351
+        y: 2535
+        width: 98
+        height: 98
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 94a35fd6a3d0d5510800000000000000
+      internalID: 1539401192234629705
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_3
+      rect:
+        serializedVersion: 2
+        x: 519
+        y: 2535
+        width: 98
+        height: 98
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3f7d2b5ab6d12ec80800000000000000
+      internalID: -8295035215484364813
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_4
+      rect:
+        serializedVersion: 2
+        x: 15
+        y: 2367
+        width: 98
+        height: 98
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d61be20a481ff6b00800000000000000
+      internalID: 824142808757481837
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_5
+      rect:
+        serializedVersion: 2
+        x: 183
+        y: 2367
+        width: 98
+        height: 98
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 54f0e56292d858080800000000000000
+      internalID: -9185780657075384507
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_6
+      rect:
+        serializedVersion: 2
+        x: 351
+        y: 2367
+        width: 98
+        height: 98
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9ceccc29cfa9e1dd0800000000000000
+      internalID: -2513401132440826167
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_7
+      rect:
+        serializedVersion: 2
+        x: 519
+        y: 2367
+        width: 98
+        height: 98
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5d226a08435936820800000000000000
+      internalID: 2910333836940681941
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_8
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 2206
+        width: 129
+        height: 83
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ebbe8a79251ad2dd0800000000000000
+      internalID: -2509172041271678018
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_9
+      rect:
+        serializedVersion: 2
+        x: 167
+        y: 2206
+        width: 130
+        height: 83
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f2d50128645a85720800000000000000
+      internalID: 2835197687678131503
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_10
+      rect:
+        serializedVersion: 2
+        x: 339
+        y: 2184
+        width: 122
+        height: 129
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0fc9f85ced06741c0800000000000000
+      internalID: -4519537191129473808
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_11
+      rect:
+        serializedVersion: 2
+        x: 507
+        y: 2184
+        width: 122
+        height: 129
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e4a0c0a176eda1770800000000000000
+      internalID: 8582416574307895886
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_12
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 2125
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5262e2ad3dc5b6fa0800000000000000
+      internalID: -5806445229595810267
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_13
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 2125
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 31d9599a0df7f6e40800000000000000
+      internalID: 5651876591548341523
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_14
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 2039
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9f93786768ce0c900800000000000000
+      internalID: 702821604128143865
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_15
+      rect:
+        serializedVersion: 2
+        x: 167
+        y: 2064
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 027f736ba892a63e0800000000000000
+      internalID: -2059788203829233888
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_16
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 2039
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b667fd934aad15de0800000000000000
+      internalID: -1346054414726629781
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_17
+      rect:
+        serializedVersion: 2
+        x: 277
+        y: 2065
+        width: 20
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bc5a851d9b08de5c0800000000000000
+      internalID: -4184546943187769909
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_18
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 2064
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b54ac61558d6f8a70800000000000000
+      internalID: 8831397813660984411
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_19
+      rect:
+        serializedVersion: 2
+        x: 359
+        y: 2039
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 39f7b61b81226e560800000000000000
+      internalID: 7342593731925344147
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_20
+      rect:
+        serializedVersion: 2
+        x: 445
+        y: 2065
+        width: 20
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ce1827241c0a9a080800000000000000
+      internalID: -9175626013886742036
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_21
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 2039
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ae2ebc84e7abb3390800000000000000
+      internalID: -7837465674958249238
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_22
+      rect:
+        serializedVersion: 2
+        x: 217
+        y: 2015
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6bcdf03b162adf000800000000000000
+      internalID: 71391709607484598
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_23
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 2016
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2df31206c2bcf4840800000000000000
+      internalID: 5210606685342744530
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_24
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 1957
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0a9f1f614593dd990800000000000000
+      internalID: -7359663182728529504
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_25
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 1871
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f938a045e0e69a980800000000000000
+      internalID: -8527163411630750817
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_26
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 1871
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9b5e703389f467e10800000000000000
+      internalID: 2195029383499474361
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_27
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 1896
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2ee7aa84d8c3341b0800000000000000
+      internalID: -5673624528049504542
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_28
+      rect:
+        serializedVersion: 2
+        x: 359
+        y: 1871
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4e7df93bebad434f0800000000000000
+      internalID: -849813917073942556
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_29
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 1871
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b3cf7308a1cd54fa0800000000000000
+      internalID: -5817001337300714437
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_30
+      rect:
+        serializedVersion: 2
+        x: 613
+        y: 1897
+        width: 19
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e19d50eef6cf1b590800000000000000
+      internalID: -7660063933515572962
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_31
+      rect:
+        serializedVersion: 2
+        x: 217
+        y: 1847
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6a99a6ae90569f010800000000000000
+      internalID: 1223119867069766054
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_32
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 1789
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 556317df1332b4380800000000000000
+      internalID: -8986049933875268011
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_33
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 1789
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5f1cb66b5ab3cd060800000000000000
+      internalID: 6979519105433584117
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_34
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 1703
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 71a70201a5ccf59f0800000000000000
+      internalID: -477438348288296425
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_35
+      rect:
+        serializedVersion: 2
+        x: 167
+        y: 1728
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5363f9f7a63894c50800000000000000
+      internalID: 6649990818220160565
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_36
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 1703
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eed6e8379e3449cd0800000000000000
+      internalID: -2552340418867073554
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_37
+      rect:
+        serializedVersion: 2
+        x: 277
+        y: 1729
+        width: 20
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 03559462576b33480800000000000000
+      internalID: -8920585822621051600
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_38
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 1728
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9fcb348a01722c6d0800000000000000
+      internalID: -2971769851615134471
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_39
+      rect:
+        serializedVersion: 2
+        x: 359
+        y: 1703
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c9e9cb4f7c971d0b0800000000000000
+      internalID: -5705645353190252900
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_40
+      rect:
+        serializedVersion: 2
+        x: 445
+        y: 1729
+        width: 20
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c7a9ccc0e36309d00800000000000000
+      internalID: 977340759270005372
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_41
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 1703
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4d22ac304710c8b40800000000000000
+      internalID: 5443727647375499988
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_42
+      rect:
+        serializedVersion: 2
+        x: 217
+        y: 1679
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ff1c4afa7940af730800000000000000
+      internalID: 4033541465797083647
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_43
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 1680
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7181065d2d1bd2580800000000000000
+      internalID: -8850222173632063465
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_44
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 1621
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a5b4b9e59752de4a0800000000000000
+      internalID: -6562547878800438438
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_45
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 1535
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 17f55379a9f41ee50800000000000000
+      internalID: 6836833234705538929
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_46
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 1535
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 88cd8e3f617f73990800000000000000
+      internalID: -7406179384234025848
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_47
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 1560
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3c238bb7006f79980800000000000000
+      internalID: -8532080487094013245
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_48
+      rect:
+        serializedVersion: 2
+        x: 359
+        y: 1535
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 59f022dec3f8bc650800000000000000
+      internalID: 6254249999373307797
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_49
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 1535
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e6f72f1d32103580800000000000000
+      internalID: -8849553214058006811
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_50
+      rect:
+        serializedVersion: 2
+        x: 613
+        y: 1561
+        width: 19
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 812b3483f6ad3fbe0800000000000000
+      internalID: -1444570884235611624
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_51
+      rect:
+        serializedVersion: 2
+        x: 217
+        y: 1511
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 420b631b7468c7730800000000000000
+      internalID: 3998218211672109092
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_52
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 1453
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5358dad1db0c5dda0800000000000000
+      internalID: -5920614216629385931
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_53
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 1453
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f10e3810141467c30800000000000000
+      internalID: 4356741436981633055
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_54
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 1367
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3278c94f29e493090800000000000000
+      internalID: -8054320065499330781
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_55
+      rect:
+        serializedVersion: 2
+        x: 167
+        y: 1392
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c6c6f15c4606b7960800000000000000
+      internalID: 7600774782038010988
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_56
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 1367
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d420efe17891feee0800000000000000
+      internalID: -1229736105117613491
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_57
+      rect:
+        serializedVersion: 2
+        x: 277
+        y: 1393
+        width: 20
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 14e50ebe62df2b700800000000000000
+      internalID: 554784047727926849
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_58
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 1392
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a778580bf9ea53570800000000000000
+      internalID: 8445848677087807354
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_59
+      rect:
+        serializedVersion: 2
+        x: 359
+        y: 1367
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 37a9da28051fc8710800000000000000
+      internalID: 1696996487703927411
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_60
+      rect:
+        serializedVersion: 2
+        x: 445
+        y: 1393
+        width: 20
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3a28a26b90c198e30800000000000000
+      internalID: 4506163730197414563
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_61
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 1367
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6d7691ca0c7a6b120800000000000000
+      internalID: 2429313494975866838
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_62
+      rect:
+        serializedVersion: 2
+        x: 217
+        y: 1343
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9e76145678e053420800000000000000
+      internalID: 2609007533813229545
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_63
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 1344
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4abeb569e34d0b400800000000000000
+      internalID: 338003337328454564
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_64
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 1285
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e5591de9f10d2880800000000000000
+      internalID: -8634242737663027741
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_65
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 1199
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5a21e67e4df86abc0800000000000000
+      internalID: -3772169493297622363
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_66
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 1199
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9fcd25a2ca1d1a4d0800000000000000
+      internalID: -3124986129043759879
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_67
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 1224
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d145f704adac83390800000000000000
+      internalID: -7838292112704580579
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_68
+      rect:
+        serializedVersion: 2
+        x: 359
+        y: 1199
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 20251c8e6d37269d0800000000000000
+      internalID: -2782534252896366078
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_69
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 1199
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 153b2988dfd383570800000000000000
+      internalID: 8446569260260701009
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_70
+      rect:
+        serializedVersion: 2
+        x: 613
+        y: 1225
+        width: 19
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e1b0b707c0210ac10800000000000000
+      internalID: 2062668473971706654
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_71
+      rect:
+        serializedVersion: 2
+        x: 217
+        y: 1175
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b35a7c488a920df90800000000000000
+      internalID: -6930994022764272325
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_72
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 1117
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6ef1a9efab58febb0800000000000000
+      internalID: -4904554431001255962
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_73
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 1117
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 866d36aac00ff4d10800000000000000
+      internalID: 2112170687448995432
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_74
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 1031
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 54fa0b37a54b35f30800000000000000
+      internalID: 4563189148037459781
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_75
+      rect:
+        serializedVersion: 2
+        x: 167
+        y: 1056
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f2318b4c07452e2f0800000000000000
+      internalID: -945100128480914641
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_76
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 1031
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f33824d9f4bc138d0800000000000000
+      internalID: -2868287944857058497
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_77
+      rect:
+        serializedVersion: 2
+        x: 277
+        y: 1057
+        width: 20
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5db5a55c0b13b3bd0800000000000000
+      internalID: -2649469320482366507
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_78
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 1056
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 75a877f1d8942c610800000000000000
+      internalID: 1639954084783426135
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_79
+      rect:
+        serializedVersion: 2
+        x: 359
+        y: 1031
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 04ff6f6dc6e23a4e0800000000000000
+      internalID: -1971681166860288192
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_80
+      rect:
+        serializedVersion: 2
+        x: 445
+        y: 1057
+        width: 20
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a58ec5880b7d87730800000000000000
+      internalID: 3997181822493321306
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_81
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 1031
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 88031dab444a43ba0800000000000000
+      internalID: -6110078179335917432
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_82
+      rect:
+        serializedVersion: 2
+        x: 217
+        y: 1007
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42f7896f267b89320800000000000000
+      internalID: 2565001623459364644
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_83
+      rect:
+        serializedVersion: 2
+        x: 552
+        y: 1008
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ebdc73be18d1cb000800000000000000
+      internalID: 52949739455892926
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_84
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 949
+        width: 31
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d5b682069f2176b60800000000000000
+      internalID: 7739175346928905053
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_85
+      rect:
+        serializedVersion: 2
+        x: 23
+        y: 863
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8ce31cc17c092c600800000000000000
+      internalID: 487110894564753096
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_86
+      rect:
+        serializedVersion: 2
+        x: 191
+        y: 863
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aa665bd9990504060800000000000000
+      internalID: 6935632046856693418
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_87
+      rect:
+        serializedVersion: 2
+        x: 335
+        y: 888
+        width: 20
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2e84217814911ff10800000000000000
+      internalID: 2301648653792725218
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_88
+      rect:
+        serializedVersion: 2
+        x: 359
+        y: 863
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 215cf2c44fb2e0cf0800000000000000
+      internalID: -284241398227548910
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_89
+      rect:
+        serializedVersion: 2
+        x: 527
+        y: 863
+        width: 82
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2677633027d94a2a0800000000000000
+      internalID: -6727078830378944670
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_90
+      rect:
+        serializedVersion: 2
+        x: 613
+        y: 889
+        width: 19
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b3b5618b4a5d5b3c0800000000000000
+      internalID: -4344331362089149637
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_91
+      rect:
+        serializedVersion: 2
+        x: 217
+        y: 839
+        width: 30
+        height: 20
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 78e262175b3bd4480800000000000000
+      internalID: -8913270495627563385
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_92
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 713
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cc2beb87cdc07b140800000000000000
+      internalID: 4735267674261467852
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_93
+      rect:
+        serializedVersion: 2
+        x: 43
+        y: 740
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 53eeab0f22b19c310800000000000000
+      internalID: 1425700593921093173
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_94
+      rect:
+        serializedVersion: 2
+        x: 70
+        y: 713
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 764b4c890f8674870800000000000000
+      internalID: 8667011390462276711
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_95
+      rect:
+        serializedVersion: 2
+        x: 173
+        y: 713
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5d23fff38815a7b60800000000000000
+      internalID: 7744592154848080597
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_96
+      rect:
+        serializedVersion: 2
+        x: 211
+        y: 740
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bc51cf740c8cbbb30800000000000000
+      internalID: 4304254597049619915
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_97
+      rect:
+        serializedVersion: 2
+        x: 238
+        y: 713
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bbef30d54350ef300800000000000000
+      internalID: 287673148655271611
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_98
+      rect:
+        serializedVersion: 2
+        x: 341
+        y: 713
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 58179fb6c1397c820800000000000000
+      internalID: 2938479032162414981
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_99
+      rect:
+        serializedVersion: 2
+        x: 379
+        y: 740
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: aa1f49a33fd6f6690800000000000000
+      internalID: -7606740354178158166
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_100
+      rect:
+        serializedVersion: 2
+        x: 406
+        y: 713
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 847de18b3f3dfeec0800000000000000
+      internalID: -3535374138743007416
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_101
+      rect:
+        serializedVersion: 2
+        x: 509
+        y: 713
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 90f6195c6c77e8b80800000000000000
+      internalID: -8390637360142782711
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_102
+      rect:
+        serializedVersion: 2
+        x: 547
+        y: 740
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f129c1f754ba87550800000000000000
+      internalID: 6158860805402825247
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_103
+      rect:
+        serializedVersion: 2
+        x: 574
+        y: 713
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 556ece05000b64d60800000000000000
+      internalID: 7874174513908082261
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_104
+      rect:
+        serializedVersion: 2
+        x: 43
+        y: 675
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e170552acae68bb60800000000000000
+      internalID: 7762075645509961502
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_105
+      rect:
+        serializedVersion: 2
+        x: 211
+        y: 675
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 680238e4252ee3ea0800000000000000
+      internalID: -5891022419421618042
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_106
+      rect:
+        serializedVersion: 2
+        x: 379
+        y: 675
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2ffb49fe7bab953b0800000000000000
+      internalID: -5523178168831918094
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_107
+      rect:
+        serializedVersion: 2
+        x: 547
+        y: 675
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8df4fb0deadf3cfa0800000000000000
+      internalID: -5781498569345249320
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_108
+      rect:
+        serializedVersion: 2
+        x: 5
+        y: 545
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f956bacc84360ef30800000000000000
+      internalID: 4602787983495226783
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_109
+      rect:
+        serializedVersion: 2
+        x: 43
+        y: 572
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 721f6d1f276c87ae0800000000000000
+      internalID: -1551271874643168985
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_110
+      rect:
+        serializedVersion: 2
+        x: 70
+        y: 545
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0c93e9254e29ddd70800000000000000
+      internalID: 9069566733930346944
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_111
+      rect:
+        serializedVersion: 2
+        x: 173
+        y: 545
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 56335aa0c67631aa0800000000000000
+      internalID: -6191491348971572379
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_112
+      rect:
+        serializedVersion: 2
+        x: 211
+        y: 572
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 53970b76e638d69a0800000000000000
+      internalID: -6238185398629009099
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_113
+      rect:
+        serializedVersion: 2
+        x: 238
+        y: 545
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cad4f6f05f1013080800000000000000
+      internalID: -9209577610958385748
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_114
+      rect:
+        serializedVersion: 2
+        x: 343
+        y: 547
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ab26ee7f4b9dbd5f0800000000000000
+      internalID: -730751143240637766
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_115
+      rect:
+        serializedVersion: 2
+        x: 381
+        y: 574
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 808aaa9def475cf60800000000000000
+      internalID: 8053972146544355336
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_116
+      rect:
+        serializedVersion: 2
+        x: 408
+        y: 547
+        width: 53
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2002afbb55ec35780800000000000000
+      internalID: -8695379587901022206
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_117
+      rect:
+        serializedVersion: 2
+        x: 507
+        y: 527
+        width: 122
+        height: 82
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26a8a189b55f73b70800000000000000
+      internalID: 8878834964126927458
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_118
+      rect:
+        serializedVersion: 2
+        x: 43
+        y: 507
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c5d2eccc414502840800000000000000
+      internalID: 5197246418297695580
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_119
+      rect:
+        serializedVersion: 2
+        x: 211
+        y: 507
+        width: 42
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0604cb8dcb9a574b0800000000000000
+      internalID: -5443257946052214688
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_120
+      rect:
+        serializedVersion: 2
+        x: 381
+        y: 509
+        width: 44
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9e4afa95ba2bee9c0800000000000000
+      internalID: -3895980178615065367
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_121
+      rect:
+        serializedVersion: 2
+        x: 22
+        y: 391
+        width: 40
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2f06440c6da6e69f0800000000000000
+      internalID: -473323440246071054
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_122
+      rect:
+        serializedVersion: 2
+        x: 61
+        y: 390
+        width: 46
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bf2537bd2d9bed70800000000000000
+      internalID: 9073518693940801463
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_123
+      rect:
+        serializedVersion: 2
+        x: 187
+        y: 391
+        width: 47
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fc208ae2cb11750c0800000000000000
+      internalID: -4587178195519274289
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_124
+      rect:
+        serializedVersion: 2
+        x: 231
+        y: 390
+        width: 47
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c611d4034ecea3700800000000000000
+      internalID: 520989171721769324
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_125
+      rect:
+        serializedVersion: 2
+        x: 358
+        y: 391
+        width: 40
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a857b0a78d733bde0800000000000000
+      internalID: -1318648862989388406
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_126
+      rect:
+        serializedVersion: 2
+        x: 397
+        y: 390
+        width: 46
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e122717da81e6f110800000000000000
+      internalID: 1294469929345950238
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_127
+      rect:
+        serializedVersion: 2
+        x: 523
+        y: 391
+        width: 47
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3c05d885a8bffe20800000000000000
+      internalID: 3386628465910680638
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_128
+      rect:
+        serializedVersion: 2
+        x: 567
+        y: 390
+        width: 47
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5d7c8f1a2273563d0800000000000000
+      internalID: -3214102137173129259
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_129
+      rect:
+        serializedVersion: 2
+        x: 7
+        y: 335
+        width: 114
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 975c28fa7c05c6800800000000000000
+      internalID: 606948868361471353
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_130
+      rect:
+        serializedVersion: 2
+        x: 175
+        y: 335
+        width: 114
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cdaae8e2b3f30a3e0800000000000000
+      internalID: -2044564707409483044
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_131
+      rect:
+        serializedVersion: 2
+        x: 343
+        y: 335
+        width: 114
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 682f59670d7296790800000000000000
+      internalID: -7536448725131595130
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_132
+      rect:
+        serializedVersion: 2
+        x: 511
+        y: 335
+        width: 114
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 61b8b172484c6bfb0800000000000000
+      internalID: -4632299094833132778
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_133
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 223
+        width: 41
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8cf02c2f3118d3e90800000000000000
+      internalID: -7044332319460421688
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_134
+      rect:
+        serializedVersion: 2
+        x: 210
+        y: 223
+        width: 47
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3cd809f1a216537c0800000000000000
+      internalID: -4092257852850139709
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_135
+      rect:
+        serializedVersion: 2
+        x: 380
+        y: 223
+        width: 41
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 343ad0aed96ec6950800000000000000
+      internalID: 6443778732771353411
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_136
+      rect:
+        serializedVersion: 2
+        x: 546
+        y: 223
+        width: 47
+        height: 57
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b6d67af3bffdd0f40800000000000000
+      internalID: 5696455373891267947
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_137
+      rect:
+        serializedVersion: 2
+        x: 7
+        y: 167
+        width: 114
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 30d3f099100af4070800000000000000
+      internalID: 8092862984131394819
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_138
+      rect:
+        serializedVersion: 2
+        x: 175
+        y: 167
+        width: 114
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b0fb947210d59eb20800000000000000
+      internalID: 3164162472739979019
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_139
+      rect:
+        serializedVersion: 2
+        x: 343
+        y: 167
+        width: 114
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b51b6bc5d442efaa0800000000000000
+      internalID: -6125418528490737317
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_140
+      rect:
+        serializedVersion: 2
+        x: 511
+        y: 167
+        width: 114
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e699975bad95e1ca0800000000000000
+      internalID: -6044294854002239122
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_141
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 54
+        width: 32
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f4419a5dd3d2fb900800000000000000
+      internalID: 702329810493969487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_142
+      rect:
+        serializedVersion: 2
+        x: 216
+        y: 54
+        width: 32
+        height: 59
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6b8704ee59e30c5c0800000000000000
+      internalID: -4197286039041050442
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_143
+      rect:
+        serializedVersion: 2
+        x: 2
+        y: 14
+        width: 124
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 53431237677432c00800000000000000
+      internalID: 874621326703277109
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: T_P4_Retro_Sprite_144
+      rect:
+        serializedVersion: 2
+        x: 184
+        y: 14
+        width: 96
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a81307ed2a57d57e0800000000000000
+      internalID: -1775133335737060982
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      T_P4_Retro_Sprite_0: 8030942149843173573
+      T_P4_Retro_Sprite_1: -2010347048361851903
+      T_P4_Retro_Sprite_10: -4519537191129473808
+      T_P4_Retro_Sprite_100: -3535374138743007416
+      T_P4_Retro_Sprite_101: -8390637360142782711
+      T_P4_Retro_Sprite_102: 6158860805402825247
+      T_P4_Retro_Sprite_103: 7874174513908082261
+      T_P4_Retro_Sprite_104: 7762075645509961502
+      T_P4_Retro_Sprite_105: -5891022419421618042
+      T_P4_Retro_Sprite_106: -5523178168831918094
+      T_P4_Retro_Sprite_107: -5781498569345249320
+      T_P4_Retro_Sprite_108: 4602787983495226783
+      T_P4_Retro_Sprite_109: -1551271874643168985
+      T_P4_Retro_Sprite_11: 8582416574307895886
+      T_P4_Retro_Sprite_110: 9069566733930346944
+      T_P4_Retro_Sprite_111: -6191491348971572379
+      T_P4_Retro_Sprite_112: -6238185398629009099
+      T_P4_Retro_Sprite_113: -9209577610958385748
+      T_P4_Retro_Sprite_114: -730751143240637766
+      T_P4_Retro_Sprite_115: 8053972146544355336
+      T_P4_Retro_Sprite_116: -8695379587901022206
+      T_P4_Retro_Sprite_117: 8878834964126927458
+      T_P4_Retro_Sprite_118: 5197246418297695580
+      T_P4_Retro_Sprite_119: -5443257946052214688
+      T_P4_Retro_Sprite_12: -5806445229595810267
+      T_P4_Retro_Sprite_120: -3895980178615065367
+      T_P4_Retro_Sprite_121: -473323440246071054
+      T_P4_Retro_Sprite_122: 9073518693940801463
+      T_P4_Retro_Sprite_123: -4587178195519274289
+      T_P4_Retro_Sprite_124: 520989171721769324
+      T_P4_Retro_Sprite_125: -1318648862989388406
+      T_P4_Retro_Sprite_126: 1294469929345950238
+      T_P4_Retro_Sprite_127: 3386628465910680638
+      T_P4_Retro_Sprite_128: -3214102137173129259
+      T_P4_Retro_Sprite_129: 606948868361471353
+      T_P4_Retro_Sprite_13: 5651876591548341523
+      T_P4_Retro_Sprite_130: -2044564707409483044
+      T_P4_Retro_Sprite_131: -7536448725131595130
+      T_P4_Retro_Sprite_132: -4632299094833132778
+      T_P4_Retro_Sprite_133: -7044332319460421688
+      T_P4_Retro_Sprite_134: -4092257852850139709
+      T_P4_Retro_Sprite_135: 6443778732771353411
+      T_P4_Retro_Sprite_136: 5696455373891267947
+      T_P4_Retro_Sprite_137: 8092862984131394819
+      T_P4_Retro_Sprite_138: 3164162472739979019
+      T_P4_Retro_Sprite_139: -6125418528490737317
+      T_P4_Retro_Sprite_14: 702821604128143865
+      T_P4_Retro_Sprite_140: -6044294854002239122
+      T_P4_Retro_Sprite_141: 702329810493969487
+      T_P4_Retro_Sprite_142: -4197286039041050442
+      T_P4_Retro_Sprite_143: 874621326703277109
+      T_P4_Retro_Sprite_144: -1775133335737060982
+      T_P4_Retro_Sprite_15: -2059788203829233888
+      T_P4_Retro_Sprite_16: -1346054414726629781
+      T_P4_Retro_Sprite_17: -4184546943187769909
+      T_P4_Retro_Sprite_18: 8831397813660984411
+      T_P4_Retro_Sprite_19: 7342593731925344147
+      T_P4_Retro_Sprite_2: 1539401192234629705
+      T_P4_Retro_Sprite_20: -9175626013886742036
+      T_P4_Retro_Sprite_21: -7837465674958249238
+      T_P4_Retro_Sprite_22: 71391709607484598
+      T_P4_Retro_Sprite_23: 5210606685342744530
+      T_P4_Retro_Sprite_24: -7359663182728529504
+      T_P4_Retro_Sprite_25: -8527163411630750817
+      T_P4_Retro_Sprite_26: 2195029383499474361
+      T_P4_Retro_Sprite_27: -5673624528049504542
+      T_P4_Retro_Sprite_28: -849813917073942556
+      T_P4_Retro_Sprite_29: -5817001337300714437
+      T_P4_Retro_Sprite_3: -8295035215484364813
+      T_P4_Retro_Sprite_30: -7660063933515572962
+      T_P4_Retro_Sprite_31: 1223119867069766054
+      T_P4_Retro_Sprite_32: -8986049933875268011
+      T_P4_Retro_Sprite_33: 6979519105433584117
+      T_P4_Retro_Sprite_34: -477438348288296425
+      T_P4_Retro_Sprite_35: 6649990818220160565
+      T_P4_Retro_Sprite_36: -2552340418867073554
+      T_P4_Retro_Sprite_37: -8920585822621051600
+      T_P4_Retro_Sprite_38: -2971769851615134471
+      T_P4_Retro_Sprite_39: -5705645353190252900
+      T_P4_Retro_Sprite_4: 824142808757481837
+      T_P4_Retro_Sprite_40: 977340759270005372
+      T_P4_Retro_Sprite_41: 5443727647375499988
+      T_P4_Retro_Sprite_42: 4033541465797083647
+      T_P4_Retro_Sprite_43: -8850222173632063465
+      T_P4_Retro_Sprite_44: -6562547878800438438
+      T_P4_Retro_Sprite_45: 6836833234705538929
+      T_P4_Retro_Sprite_46: -7406179384234025848
+      T_P4_Retro_Sprite_47: -8532080487094013245
+      T_P4_Retro_Sprite_48: 6254249999373307797
+      T_P4_Retro_Sprite_49: -8849553214058006811
+      T_P4_Retro_Sprite_5: -9185780657075384507
+      T_P4_Retro_Sprite_50: -1444570884235611624
+      T_P4_Retro_Sprite_51: 3998218211672109092
+      T_P4_Retro_Sprite_52: -5920614216629385931
+      T_P4_Retro_Sprite_53: 4356741436981633055
+      T_P4_Retro_Sprite_54: -8054320065499330781
+      T_P4_Retro_Sprite_55: 7600774782038010988
+      T_P4_Retro_Sprite_56: -1229736105117613491
+      T_P4_Retro_Sprite_57: 554784047727926849
+      T_P4_Retro_Sprite_58: 8445848677087807354
+      T_P4_Retro_Sprite_59: 1696996487703927411
+      T_P4_Retro_Sprite_6: -2513401132440826167
+      T_P4_Retro_Sprite_60: 4506163730197414563
+      T_P4_Retro_Sprite_61: 2429313494975866838
+      T_P4_Retro_Sprite_62: 2609007533813229545
+      T_P4_Retro_Sprite_63: 338003337328454564
+      T_P4_Retro_Sprite_64: -8634242737663027741
+      T_P4_Retro_Sprite_65: -3772169493297622363
+      T_P4_Retro_Sprite_66: -3124986129043759879
+      T_P4_Retro_Sprite_67: -7838292112704580579
+      T_P4_Retro_Sprite_68: -2782534252896366078
+      T_P4_Retro_Sprite_69: 8446569260260701009
+      T_P4_Retro_Sprite_7: 2910333836940681941
+      T_P4_Retro_Sprite_70: 2062668473971706654
+      T_P4_Retro_Sprite_71: -6930994022764272325
+      T_P4_Retro_Sprite_72: -4904554431001255962
+      T_P4_Retro_Sprite_73: 2112170687448995432
+      T_P4_Retro_Sprite_74: 4563189148037459781
+      T_P4_Retro_Sprite_75: -945100128480914641
+      T_P4_Retro_Sprite_76: -2868287944857058497
+      T_P4_Retro_Sprite_77: -2649469320482366507
+      T_P4_Retro_Sprite_78: 1639954084783426135
+      T_P4_Retro_Sprite_79: -1971681166860288192
+      T_P4_Retro_Sprite_8: -2509172041271678018
+      T_P4_Retro_Sprite_80: 3997181822493321306
+      T_P4_Retro_Sprite_81: -6110078179335917432
+      T_P4_Retro_Sprite_82: 2565001623459364644
+      T_P4_Retro_Sprite_83: 52949739455892926
+      T_P4_Retro_Sprite_84: 7739175346928905053
+      T_P4_Retro_Sprite_85: 487110894564753096
+      T_P4_Retro_Sprite_86: 6935632046856693418
+      T_P4_Retro_Sprite_87: 2301648653792725218
+      T_P4_Retro_Sprite_88: -284241398227548910
+      T_P4_Retro_Sprite_89: -6727078830378944670
+      T_P4_Retro_Sprite_9: 2835197687678131503
+      T_P4_Retro_Sprite_90: -4344331362089149637
+      T_P4_Retro_Sprite_91: -8913270495627563385
+      T_P4_Retro_Sprite_92: 4735267674261467852
+      T_P4_Retro_Sprite_93: 1425700593921093173
+      T_P4_Retro_Sprite_94: 8667011390462276711
+      T_P4_Retro_Sprite_95: 7744592154848080597
+      T_P4_Retro_Sprite_96: 4304254597049619915
+      T_P4_Retro_Sprite_97: 287673148655271611
+      T_P4_Retro_Sprite_98: 2938479032162414981
+      T_P4_Retro_Sprite_99: -7606740354178158166
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
