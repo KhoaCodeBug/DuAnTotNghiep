@@ -13,14 +13,16 @@ GameObject:
   - component: {fileID: 8571460307203640203}
   - component: {fileID: 8090428113333063069}
   - component: {fileID: 8762421789751151386}
+  - component: {fileID: 707117992471886643}
+  - component: {fileID: 2529962990091390442}
   - component: {fileID: 76553097535974651}
   - component: {fileID: 1505858520728203951}
   - component: {fileID: 6027786628438645557}
   - component: {fileID: 7126942027890368006}
   - component: {fileID: 5426569587065415619}
-  - component: {fileID: 8486142591583179744}
   - component: {fileID: 2460234225545820196}
   - component: {fileID: 1644029633153542868}
+  - component: {fileID: 2317674058347788996}
   m_Layer: 2
   m_Name: Player
   m_TagString: Player
@@ -184,6 +186,51 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.1
+--- !u!114 &707117992471886643
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SortKey: 2069159445
+  ObjectInterest: 1
+  Flags: 262145
+  NestedObjects: []
+  NetworkedBehaviours:
+  - {fileID: 2529962990091390442}
+  - {fileID: 76553097535974651}
+  - {fileID: 1505858520728203951}
+  - {fileID: 2317674058347788996}
+  ForceRemoteRenderTimeframe: 0
+--- !u!114 &2529962990091390442
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5e690b5fb1084f5ab1c86457af401d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _stateAuthorityChangeErrorCorrectionDelta: 0
+  SyncScale: 0
+  SyncParent: 1
+  _interpolationTarget: {fileID: 0}
+  UsePreciseRotation: 0
+  UseRenderSleepThresholds: 1
+  RenderThresholds:
+    UseEnergy: 1
+    Position: 0.01
+    Rotation: 0.01
+    Scale: 0.01
 --- !u!114 &76553097535974651
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -208,7 +255,19 @@ MonoBehaviour:
   walkNoiseRadius: 1.5
   runNoiseRadius: 3
   anim: {fileID: 8571460307203640203}
-  isUsingItem: 0
+  _NetLastLookDir: {x: 0, y: 0}
+  _NetIsMoving:
+    _value: 0
+  _NetIsRunning:
+    _value: 0
+  _NetIsAiming:
+    _value: 0
+  _NetIsCrouching:
+    _value: 0
+  _NetIsUsingItem:
+    _value: 0
+  _NetStunTimer: 0
+  _NetAttackLockTimer: 0
 --- !u!114 &1505858520728203951
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -233,7 +292,7 @@ MonoBehaviour:
   shootNoiseRadius: 5.5
   ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
   magazineSize: 30
-  currentAmmo: 30
+  _currentAmmo: 30
   bashDamage: 50
   bashRange: 1
   bashCooldown: 0.8
@@ -294,25 +353,6 @@ MonoBehaviour:
   currentThirst: 0
   thirstDrainRate: 0.4
   damageOverTime: 1
---- !u!114 &8486142591583179744
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4457333233239025546}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 663ce5986f8bb8e4c82b1cfa98ea3d79, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  maxSlots: 20
-  gameFont: {fileID: 11400000, guid: aed8f0b682a2225499d29bdbb6ed0598, type: 2}
-  iconHealth: {fileID: -3593005430731049587, guid: 7e2ea5478717f0441a02eda3455f54c2, type: 3}
-  iconStamina: {fileID: -5381133741501535216, guid: 3f34cf25e5e084f4e901f5d791acd992, type: 3}
-  iconHunger: {fileID: 1472325951620093286, guid: 7ed714081dc587347a28931f5ed7ec45, type: 3}
-  iconThirst: {fileID: -4455688734036498157, guid: cd33713cff23916469e03c071645e3bb, type: 3}
-  iconAmmo: {fileID: -8887718091561183247, guid: a7c2c1c06d263df48a6affeddb16b9f6, type: 3}
 --- !u!114 &2460234225545820196
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -343,6 +383,18 @@ MonoBehaviour:
   inventory: {fileID: 2460234225545820196}
   itemToPickup: {fileID: 11400000, guid: fae581eeb7321c5489edd85a61c3a320, type: 2}
   amount: 1
+--- !u!114 &2317674058347788996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee721ddef92d8484d90e2aab909fcf40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &5379801450265819794
 GameObject:
   m_ObjectHideFlags: 0
