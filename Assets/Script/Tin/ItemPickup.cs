@@ -1,8 +1,8 @@
 ﻿using UnityEngine;
-using Fusion; // Bắt buộc dùng mạng
+using Fusion; // Vẫn cần Fusion để kiểm tra NetworkObject
 
 [RequireComponent(typeof(Collider2D))]
-public class ItemPickup : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang NetworkBehaviour
+public class ItemPickup : MonoBehaviour // 🔥 ĐÃ ĐỔI: Trở lại làm MonoBehaviour bình thường
 {
     public ItemData item;
     public int amount = 1;
@@ -13,7 +13,7 @@ public class ItemPickup : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang NetworkBehav
         {
             InventorySystem inventory = collision.GetComponent<InventorySystem>();
 
-            // 🔥 ĐÃ FIX: CHỈ CHO PHÉP MÁY ĐANG ĐIỀU KHIỂN NHÂN VẬT ĐÓ ĐƯỢC QUYỀN LỤM ĐỒ
+            // 🔥 ĐÃ FIX: Chỉ máy tính của người chơi đó mới được quyền lụm (Chặn Host lụm giùm)
             if (inventory != null && inventory.HasInputAuthority)
             {
                 bool pickedUp = inventory.AddItem(item, amount);
@@ -22,11 +22,24 @@ public class ItemPickup : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang NetworkBehav
                 {
                     Debug.Log("Đã lụm: " + item.itemName);
 
-                    // Xin Server xóa cục đồ này trên mọi máy tính
-                    if (Object != null && Object.IsValid)
-                        RPC_RequestDespawn();
+                    // 1. Tắt hình ảnh và va chạm ngay lập tức trên máy mình để tạo cảm giác mượt mà (Không bị lag delay)
+                    Collider2D col = GetComponent<Collider2D>();
+                    if (col != null) col.enabled = false;
+                    SpriteRenderer sr = GetComponent<SpriteRenderer>();
+                    if (sr != null) sr.enabled = false;
+
+                    // 2. Kiểm tra xem cục đồ này có danh tính mạng hay không
+                    NetworkObject netObj = GetComponent<NetworkObject>();
+                    if (netObj != null && netObj.IsValid)
+                    {
+                        // Đồ xịn (rớt từ quái hoặc ném ra bằng mạng) -> Nhờ túi đồ gọi Server xóa
+                        inventory.RPC_RequestDespawnItem(netObj);
+                    }
                     else
-                        Destroy(gameObject); // Dự phòng cho đồ offline chưa gắn NetworkObject
+                    {
+                        // Đồ dỏm (8 món bạn đặt tay vào Scene để test) -> Tự hủy ngay trên máy
+                        Destroy(gameObject);
+                    }
                 }
                 else
                 {
@@ -34,13 +47,5 @@ public class ItemPickup : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang NetworkBehav
                 }
             }
         }
-    }
-
-    // Lệnh xin Server xóa đồ để mọi người cùng thấy nó biến mất
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_RequestDespawn()
-    {
-        if (Object != null && Object.IsValid)
-            Runner.Despawn(Object);
     }
 }
