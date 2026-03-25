@@ -40,7 +40,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     [Header("=== Zombie Stats ===")]
     [SerializeField] private float maxHealth = 100f;
     private float currentHealth;
-    [SerializeField] private float stunDuration = 0.3f;
+    [SerializeField] private float stunDuration = 1f;
     [SerializeField] private Color hurtColor = Color.red;
 
     public bool isDead { get; private set; }
