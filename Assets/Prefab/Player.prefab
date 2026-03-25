@@ -338,8 +338,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0fd855727ee0664a954e3e0be74bde6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkSpeed: 0.5
-  runSpeed: 1
+  walkSpeed: 0.7
+  runSpeed: 1.5
   aimSpeed: 0.2
   crouchSpeed: 0.3
   crosshairTexture: {fileID: 2800000, guid: da68e33b91596184bb586d61fb44e663, type: 3}
@@ -387,8 +387,8 @@ MonoBehaviour:
     m_Bits: 8
   shootNoiseRadius: 5.5
   ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
-  magazineSize: 30
-  _currentAmmo: 30
+  magazineSize: 60
+  _currentAmmo: 60
   bashDamage: 50
   bashRange: 1
   bashCooldown: 0.8
@@ -409,9 +409,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxStamina: 100
   currentStamina: 100
-  staminaDrain: 10
+  staminaDrain: 15
   staminaRecoverIdle: 20
-  staminaRecoverWalk: 5
+  staminaRecoverWalk: 10
   bashRegenDelay: 2
 --- !u!114 &7126942027890368006
 MonoBehaviour:
@@ -450,7 +450,7 @@ MonoBehaviour:
   maxThirst: 100
   _currentThirst: 0
   thirstDrainRate: 0.4
-  damageOverTime: 1
+  damageOverTime: 2
 --- !u!114 &2460234225545820196
 MonoBehaviour:
   m_ObjectHideFlags: 0
