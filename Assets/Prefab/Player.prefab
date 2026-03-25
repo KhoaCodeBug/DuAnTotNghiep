@@ -363,7 +363,7 @@ MonoBehaviour:
   maxStamina: 100
   currentStamina: 100
   staminaDrain: 10
-  staminaRecoverIdle: 15
+  staminaRecoverIdle: 20
   staminaRecoverWalk: 5
   bashRegenDelay: 2
 --- !u!114 &7126942027890368006
@@ -417,6 +417,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxSlots: 20
+  pickupRadius: 0.1
   slots: []
   droppedItemPrefab: {fileID: 4808553861604040599, guid: dcd50cc0af7b9e9439fa8a85c2f495ac, type: 3}
 --- !u!114 &1644029633153542868

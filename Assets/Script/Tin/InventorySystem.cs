@@ -16,10 +16,13 @@ public class InventorySlot
     public void AddAmount(int value) { amount += value; }
 }
 
-public class InventorySystem : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang NetworkBehaviour
+public class InventorySystem : NetworkBehaviour
 {
     [Header("Cài đặt Ba lô")]
     public int maxSlots = 20;
+
+    [Header("Cài đặt Nhặt Đồ (Mới)")]
+    public float pickupRadius = 0.5f; // Tầm quét nhặt đồ dưới chân
 
     [Header("Danh sách các ô đang chứa đồ")]
     public List<InventorySlot> slots = new List<InventorySlot>();
@@ -27,9 +30,61 @@ public class InventorySystem : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang Network
     [Header("Cài đặt Rớt Đồ")]
     public GameObject droppedItemPrefab;
 
+    // 🔥 MẮT THẦN QUÉT ĐỒ: Bỏ qua lỗi vật lý mạng, tự đi tìm đồ dưới chân
+    // 🔥 MẮT THẦN QUÉT ĐỒ: Bỏ qua lỗi vật lý mạng, tự đi tìm đồ dưới chân
+    public override void FixedUpdateNetwork()
+    {
+        // 1. Chỉ quét đồ trên máy tính của người đang chơi nhân vật này
+        if (!HasInputAuthority) return;
+
+        // 🔥 2. ĐÃ FIX: CHỐT CHẶN CHỐNG NHẶT ĐỒ Ở TƯƠNG LAI (Chống Resimulation)
+        // Dòng này ép Clone không được phép "cầm đèn chạy trước ô tô", giải quyết triệt để vụ lụm đồ từ xa!
+        if (!Runner.IsForward) return;
+
+        Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, pickupRadius);
+        foreach (Collider2D col in colliders)
+        {
+            ItemPickup pickup = col.GetComponent<ItemPickup>();
+
+            // Nhặt nếu thấy đồ và đồ chưa bị tắt
+            if (pickup != null && pickup.isActiveAndEnabled)
+            {
+                bool pickedUp = AddItem(pickup.item, pickup.amount);
+                if (pickedUp)
+                {
+                    Debug.Log("Đã lụm: " + pickup.item.itemName);
+
+                    // Tắt cục đồ ngay lập tức trên màn hình của mình cho mượt
+                    pickup.enabled = false;
+                    col.enabled = false;
+                    SpriteRenderer sr = pickup.GetComponent<SpriteRenderer>();
+                    if (sr != null) sr.enabled = false;
+
+                    // Nhờ Server xóa cục đồ trên toàn mạng
+                    NetworkObject netObj = pickup.GetComponent<NetworkObject>();
+                    if (netObj != null && netObj.IsValid)
+                    {
+                        RPC_RequestDespawnItem(netObj);
+                    }
+                    else
+                    {
+                        Destroy(pickup.gameObject); // Xóa đồ test tự đặt
+                    }
+                }
+            }
+        }
+    }
+
+    // 🔥 MỚI: Thêm hàm này xuống cuối cùng của file InventorySystem (Dưới cùng, trước dấu ngoặc nhọn kết thúc class)
+    // Hàm này giúp bạn NHÌN THẤY vòng tròn nhặt đồ trong Unity
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, pickupRadius);
+    }
+
     public bool AddItem(ItemData itemToAdd, int amountToAdd)
     {
-        // 🔥 CHỐT CHẶN: Ép Host không được phép nhặt nhầm đồ vào túi của Clone
         if (!HasInputAuthority) return false;
 
         if (itemToAdd.isStackable)
@@ -74,16 +129,13 @@ public class InventorySystem : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang Network
 
     public void UseItem(int index)
     {
-        // 🔥 CHỐT CHẶN: Chỉ máy mình mới được dùng đồ trong túi mình
         if (!HasInputAuthority) return;
-
         if (index < 0 || index >= slots.Count) return;
 
         InventorySlot slot = slots[index];
         ItemData item = slot.item;
         bool itemUsed = false;
 
-        // 🔥 ĐÃ FIX LỖI BƠM MÁU SAI NGƯỜI: Lấy script từ đúng bản thân nhân vật này!
         PlayerHealth health = GetComponent<PlayerHealth>();
         PlayerStamina stamina = GetComponent<PlayerStamina>();
         PlayerSurvival survival = GetComponent<PlayerSurvival>();
@@ -114,6 +166,10 @@ public class InventorySystem : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang Network
 
             if (itemUsed) Debug.Log("Đã nốc xong: " + item.itemName);
         }
+        else if (item.category == ItemCategory.Ammunition)
+        {
+            Debug.Log("⚠️ Đạn dược không thể sử dụng trực tiếp!");
+        }
 
         if (itemUsed)
         {
@@ -135,28 +191,36 @@ public class InventorySystem : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang Network
         if (slot.amount <= 0) slots.RemoveAt(index);
         UpdateUI();
 
-        GameObject prefabToSpawn = itemToDrop.specificDropPrefab != null ? itemToDrop.specificDropPrefab : droppedItemPrefab;
-
-        if (prefabToSpawn != null)
+        if (droppedItemPrefab != null)
         {
-            Vector2 randomOffset = Random.insideUnitCircle * 0.3f;
-            Vector3 spawnPos = transform.position + new Vector3(randomOffset.x, randomOffset.y, 0f);
-
-            // Tạm thời để Instantiate, cục đồ rớt ra sẽ chỉ thấy trên máy của người vứt.
-            // Nếu muốn mọi người cùng thấy, sau này đổi thành Runner.Spawn
-            GameObject droppedGO = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
-
-            SpriteRenderer sr = droppedGO.GetComponent<SpriteRenderer>();
-            if (sr != null) sr.sprite = itemToDrop.icon;
-
-            ItemPickup pickup = droppedGO.GetComponent<ItemPickup>();
-            if (pickup != null) { pickup.item = itemToDrop; pickup.amount = 1; }
+            // 🔥 LẤY TÊN FILE của món đồ để gửi cho Server
+            string fileName = itemToDrop.name;
+            RPC_RequestDropItem(fileName, 1, transform.position);
         }
+    }
+
+    // Yêu cầu Server đẻ đồ ra cho mọi người cùng thấy
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestDropItem(NetworkString<_64> fileName, int dropAmount, Vector3 dropPos)
+    {
+        Vector2 randomOffset = Random.insideUnitCircle * 0.4f;
+        Vector3 spawnPos = dropPos + new Vector3(randomOffset.x, randomOffset.y, 0f);
+
+        // Runner.Spawn sẽ đẻ cục đồ rỗng ra trên toàn Server
+        Runner.Spawn(droppedItemPrefab, spawnPos, Quaternion.identity, null, (runner, obj) =>
+        {
+            // 🔥 TRƯỚC KHI hiện ra màn hình, nhét cái Tên File và Số lượng vào cục đồ
+            NetworkDropItem netDrop = obj.GetComponent<NetworkDropItem>();
+            if (netDrop != null)
+            {
+                netDrop.NetItemName = fileName;
+                netDrop.NetAmount = dropAmount;
+            }
+        });
     }
 
     private void UpdateUI()
     {
-        // 🔥 CHỐT CHẶN: Chỉ gọi cập nhật UI khi đây là đồ của MÌNH
         if (!HasInputAuthority) return;
         if (AutoUIManager.Instance != null) AutoUIManager.Instance.RefreshUI(this.slots);
     }
@@ -169,7 +233,6 @@ public class InventorySystem : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang Network
         return total;
     }
 
-    // 🔥 ĐÃ FIX: Rút đạn cực chuẩn, tự động dọn ô trống và BÁO CÁO NGAY CHO UI
     public int ConsumeItem(ItemData itemToConsume, int amountNeeded)
     {
         if (itemToConsume == null) return 0;
@@ -191,9 +254,16 @@ public class InventorySystem : NetworkBehaviour // 🔥 ĐÃ ĐỔI sang Network
             }
         }
 
-        // 🔥 THÊM DÒNG NÀY: Báo cho túi đồ vẽ lại hình ảnh ngay lập tức!
         UpdateUI();
-
         return amountExtracted;
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_RequestDespawnItem(NetworkObject itemNetObj)
+    {
+        if (itemNetObj != null && itemNetObj.IsValid)
+        {
+            Runner.Despawn(itemNetObj);
+        }
     }
 }

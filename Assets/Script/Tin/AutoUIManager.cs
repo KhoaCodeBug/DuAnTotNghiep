@@ -462,17 +462,22 @@ public class AutoUIManager : MonoBehaviour
         PlayerMovement pm = localPlayer != null ? localPlayer.GetComponent<PlayerMovement>() : null;
         if (pm != null) pm.isUsingItem = true;
 
+        // 🔥 BƯỚC NGOẶT QUAN TRỌNG: Đợi 1 frame để bạn nhả phím Chuột Trái (vừa bấm Use) ra
+        yield return null;
+
         float timer = 0f; float duration = itemToUse.useTime;
         while (timer < duration)
         {
             timer += Time.deltaTime; actionBarFill.fillAmount = timer / duration;
             actionBarText.text = $"Using {itemToUse.itemName}... {(duration - timer):F1}s";
 
-            if (Input.GetKey(KeyCode.LeftShift) || Input.GetMouseButton(1) || Input.GetMouseButton(0))
+            // 🔥 ĐÃ FIX: Đổi thành GetMouseButtonDown để không bị dính phím click oan uổng
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(0))
             {
                 actionBarPanel.SetActive(false); isDoingAction = false;
                 if (pm != null) pm.isUsingItem = false;
-                Debug.Log("Đã hủy dùng đồ!"); yield break;
+                Debug.Log("Đã hủy dùng đồ!");
+                yield break; // Thoát ngang, KHÔNG trừ đồ!
             }
             yield return null;
         }
@@ -480,24 +485,8 @@ public class AutoUIManager : MonoBehaviour
         actionBarPanel.SetActive(false); isDoingAction = false;
         if (pm != null) pm.isUsingItem = false;
 
-        if (localPlayer != null) localPlayer.GetComponent<InventorySystem>().UseItem(slotIndex); // CHỈ DÙNG ĐỒ CỦA MÌNH
-    }
-
-    // --- CÁC HÀM TIỆN ÍCH DÀNH CHO UI ĐẠN (Giữ nguyên) ---
-    public void RefreshUI(List<InventorySlot> playerSlots)
-    {
-        currentSlots = playerSlots;
-        for (int i = 0; i < maxSlots; i++)
-        {
-            SlotUIElements ui = slotUIList[i];
-            if (i < playerSlots.Count && playerSlots[i] != null && playerSlots[i].amount > 0)
-            {
-                ui.iconImage.gameObject.SetActive(true); ui.iconImage.sprite = playerSlots[i].item.icon;
-                if (playerSlots[i].amount > 1) { ui.amountText.gameObject.SetActive(true); ui.amountText.text = playerSlots[i].amount.ToString(); }
-                else ui.amountText.gameObject.SetActive(false);
-            }
-            else { ui.iconImage.gameObject.SetActive(false); ui.amountText.gameObject.SetActive(false); }
-        }
+        // Chạy hết thời gian thì mới gọi gọi trừ đồ
+        if (localPlayer != null) localPlayer.GetComponent<InventorySystem>().UseItem(slotIndex);
     }
 
     public void ShowTooltip(int index)
@@ -557,5 +546,37 @@ public class AutoUIManager : MonoBehaviour
     {
         if (actionBarPanel != null) actionBarPanel.SetActive(false);
         if (ammoContainer != null) ammoContainer.SetActive(true);
+    }
+
+    // ==========================================
+    // 🔥 HÀM VẼ LẠI TÚI ĐỒ (VỪA BỊ THẤT LẠC)
+    // ==========================================
+    public void RefreshUI(List<InventorySlot> playerSlots)
+    {
+        currentSlots = playerSlots;
+        for (int i = 0; i < maxSlots; i++)
+        {
+            SlotUIElements ui = slotUIList[i];
+            if (i < playerSlots.Count && playerSlots[i] != null && playerSlots[i].amount > 0)
+            {
+                ui.iconImage.gameObject.SetActive(true);
+                ui.iconImage.sprite = playerSlots[i].item.icon;
+
+                if (playerSlots[i].amount > 1)
+                {
+                    ui.amountText.gameObject.SetActive(true);
+                    ui.amountText.text = playerSlots[i].amount.ToString();
+                }
+                else
+                {
+                    ui.amountText.gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+                ui.iconImage.gameObject.SetActive(false);
+                ui.amountText.gameObject.SetActive(false);
+            }
+        }
     }
 }
