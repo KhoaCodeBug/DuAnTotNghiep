@@ -247,7 +247,8 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
         foreach (Collider2D z in zombies)
         {
             ZOmbieAI_Khoa ai = z.GetComponentInParent<ZOmbieAI_Khoa>();
-            if (ai != null) ai.HearSound(transform.position);
+            // 🔥 ĐÃ SỬA TÊN HÀM Ở ĐÂY THÀNH RPC_HearSound
+            if (ai != null) ai.RPC_HearSound(transform.position);
         }
     }
 

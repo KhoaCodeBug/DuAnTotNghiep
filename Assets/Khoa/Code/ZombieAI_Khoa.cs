@@ -1,8 +1,9 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
+using Fusion;
 
-public class ZOmbieAI_Khoa : MonoBehaviour
+public class ZOmbieAI_Khoa : NetworkBehaviour
 {
     [Header("=== Movement (NavMesh 2D) ===")]
     [SerializeField] private float speed = 2.5f;
@@ -29,7 +30,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
     [Header("=== Attack ===")]
     [SerializeField] private float attackRange = 1.2f;
-    [SerializeField] private float attackDuration = 1.4f;     // Zombie đứng yên đánh 1.4s
+    [SerializeField] private float attackDuration = 1.4f;
     [SerializeField] private float attackCooldown = 1.5f;
 
     private float attackTimer;
@@ -39,11 +40,17 @@ public class ZOmbieAI_Khoa : MonoBehaviour
 
     [Header("=== Zombie Stats ===")]
     [SerializeField] private float maxHealth = 100f;
-    private float currentHealth;
-    [SerializeField] private float stunDuration = 5f;         // ← ĐÃ SET 5 GIÂY
+    [SerializeField] private float stunDuration = 5f;
     [SerializeField] private Color hurtColor = Color.red;
 
-    public bool isDead { get; private set; }
+    // 🔥 CÁC BIẾN MẠNG
+    [Networked] public float CurrentHealth { get; set; }
+    [Networked] public NetworkBool NetIsDead { get; set; }
+    [Networked] public NetworkBool NetIsAttacking { get; set; }
+    [Networked] public int NetAttackIndex { get; set; }
+    [Networked] public float NetSpeed { get; set; }
+    [Networked] public Vector2 NetMoveDir { get; set; }
+
     private bool isStunned;
     private float stunTimer;
 
@@ -61,7 +68,13 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     private float searchTargetTimer = 0f;
     private float pathRecalcTimer = 0f;
 
-    private void Start()
+    // Biến làm mượt Animation chống "cứng đờ"
+    private float smoothMoveX, smoothMoveY, smoothSpeed;
+    private bool lastIsAttacking;
+    private bool lastIsDead;
+    private int lastAttackIndex;
+
+    private void Awake()
     {
         myCol = GetComponent<Collider2D>();
         rb = GetComponent<Rigidbody2D>();
@@ -74,15 +87,26 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         agent.speed = speed;
 
         if (spriteRend != null) originalColor = spriteRend.color;
-        currentHealth = maxHealth;
     }
 
-    private void Update()
+    public override void Spawned()
     {
-        if (isDead) return;
+        CurrentHealth = maxHealth;
 
-        // 1. Tìm Player multiplayer
-        searchTargetTimer -= Time.deltaTime;
+        if (!HasStateAuthority)
+        {
+            if (agent != null) agent.enabled = false;
+            if (rb != null) rb.bodyType = RigidbodyType2D.Kinematic;
+        }
+    }
+
+    public override void FixedUpdateNetwork()
+    {
+        if (!HasStateAuthority) return;
+
+        if (NetIsDead) return;
+
+        searchTargetTimer -= Runner.DeltaTime;
         if (searchTargetTimer <= 0f)
         {
             UpdateTargetMultiplayer();
@@ -92,35 +116,37 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         if (player == null)
         {
             if (agent.isOnNavMesh) agent.isStopped = true;
-            anim.SetFloat("Speed", 0f);
+            NetSpeed = 0f;
             return;
         }
 
-        // 2. STUN LOGIC (đã kiểm tra kỹ - sẽ dừng đúng 5 giây)
         if (stunTimer > 0f)
         {
-            stunTimer -= Time.deltaTime;
+            stunTimer -= Runner.DeltaTime;
             isStunned = stunTimer > 0f;
             if (isStunned)
             {
                 agent.isStopped = true;
+                rb.linearVelocity = Vector2.zero;
                 return;
             }
         }
 
-        if (cooldownTimer > 0f) cooldownTimer -= Time.deltaTime;
+        if (cooldownTimer > 0f) cooldownTimer -= Runner.DeltaTime;
 
         if (isAttacking)
         {
-            attackTimer -= Time.deltaTime;
+            attackTimer -= Runner.DeltaTime;
+
+            // XÓA TIMER TRỪ MÁU, ĐỂ DÀNH TRỪ MÁU CHO ANIMATION EVENT
+
             if (attackTimer <= 0f)
             {
                 isAttacking = false;
-                anim.SetBool("IsAttacking", false);
+                NetIsAttacking = false;
             }
         }
 
-        // 3. Vision + Chase
         if (CanSeePlayer())
         {
             isChasing = true;
@@ -129,7 +155,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         }
         else if (isChasing)
         {
-            loseTimer -= Time.deltaTime;
+            loseTimer -= Runner.DeltaTime;
             if (loseTimer <= 0f) isChasing = false;
         }
 
@@ -143,26 +169,26 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         RaycastHit2D wallCheck = Physics2D.Raycast(myPos, dirToPlayer, distance, obstacleMask);
         bool noWallInBetween = wallCheck.collider == null;
 
-        // 4. Attack hoặc Chase
         if (distance <= attackRange && noWallInBetween && isChasing && !isAttacking && cooldownTimer <= 0f)
         {
             int attackIndex = Random.Range(1, 3);
-            anim.SetInteger("AttackIndex", attackIndex);
-            anim.SetBool("IsAttacking", true);
+            NetAttackIndex = attackIndex;
+            NetIsAttacking = true;
 
             isAttacking = true;
-            hasAppliedDamage = false;
+            hasAppliedDamage = false; // Mở khóa sát thương cho cú cào mới
             attackTimer = attackDuration;
             cooldownTimer = attackCooldown;
 
             agent.isStopped = true;
+            rb.linearVelocity = Vector2.zero;
         }
         else if (isChasing && !isAttacking)
         {
             agent.isStopped = false;
             agent.speed = speed;
 
-            pathRecalcTimer -= Time.deltaTime;
+            pathRecalcTimer -= Runner.DeltaTime;
             if (pathRecalcTimer <= 0f)
             {
                 agent.SetDestination(targetPos);
@@ -181,7 +207,7 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             else
             {
                 agent.isStopped = true;
-                investigateTimer -= Time.deltaTime;
+                investigateTimer -= Runner.DeltaTime;
                 if (investigateTimer <= 0f) isInvestigating = false;
             }
         }
@@ -190,31 +216,51 @@ public class ZOmbieAI_Khoa : MonoBehaviour
             agent.isStopped = true;
         }
 
-        // 5. Xoay mặt
         if (isAttacking)
         {
-            lastMoveDirection = Vector2.Lerp(lastMoveDirection, dirToPlayer, 20f * Time.deltaTime);
+            lastMoveDirection = Vector2.Lerp(lastMoveDirection, dirToPlayer, 20f * Runner.DeltaTime);
         }
         else if (agent.velocity.sqrMagnitude > 0.01f)
         {
-            lastMoveDirection = Vector2.Lerp(lastMoveDirection, agent.velocity.normalized, 15f * Time.deltaTime);
+            lastMoveDirection = Vector2.Lerp(lastMoveDirection, agent.velocity.normalized, 15f * Runner.DeltaTime);
         }
 
-        // 6. Animation
-        anim.SetFloat("MoveX", lastMoveDirection.x);
-        anim.SetFloat("MoveY", lastMoveDirection.y);
-        anim.SetFloat("Speed", isAttacking ? 0f : agent.velocity.magnitude);
+        NetMoveDir = lastMoveDirection;
+        NetSpeed = isAttacking ? 0f : agent.velocity.magnitude;
     }
 
-    private void FixedUpdate()
+    public override void Render()
     {
-        if (isDead || isStunned || isAttacking || agent.isStopped)
+        if (anim != null)
         {
-            rb.linearVelocity = Vector2.zero;
+            smoothMoveX = Mathf.Lerp(smoothMoveX, NetMoveDir.x, Time.deltaTime * 12f);
+            smoothMoveY = Mathf.Lerp(smoothMoveY, NetMoveDir.y, Time.deltaTime * 12f);
+            smoothSpeed = Mathf.Lerp(smoothSpeed, NetSpeed, Time.deltaTime * 15f);
+
+            anim.SetFloat("MoveX", smoothMoveX);
+            anim.SetFloat("MoveY", smoothMoveY);
+            anim.SetFloat("Speed", smoothSpeed);
+
+            if (lastIsAttacking != NetIsAttacking)
+            {
+                anim.SetBool("IsAttacking", NetIsAttacking);
+                lastIsAttacking = NetIsAttacking;
+            }
+
+            if (lastIsDead != NetIsDead)
+            {
+                anim.SetBool("IsDead", NetIsDead);
+                lastIsDead = NetIsDead;
+            }
+
+            if (NetIsAttacking && lastAttackIndex != NetAttackIndex)
+            {
+                anim.SetInteger("AttackIndex", NetAttackIndex);
+                lastAttackIndex = NetAttackIndex;
+            }
         }
     }
 
-    // ====================== MULTIPLAYER & VISION (giữ nguyên) ======================
     private void UpdateTargetMultiplayer()
     {
         if (isChasing && player != null && player.gameObject.activeInHierarchy) return;
@@ -267,39 +313,42 @@ public class ZOmbieAI_Khoa : MonoBehaviour
         return hit.collider == null || hit.collider.gameObject == player.gameObject;
     }
 
-    // ====================== PUBLIC ======================
-    public void HearSound(Vector2 soundPos)
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_HearSound(Vector2 soundPos)
     {
-        if (isDead || isChasing) return;
+        if (NetIsDead || isChasing) return;
         isInvestigating = true;
         investigateTarget = soundPos;
         investigateTimer = 3f;
     }
 
-    public void TakeDamage(float damage)
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_TakeDamage(float damage)
     {
-        if (isDead) return;
+        if (NetIsDead) return;
 
-        currentHealth -= damage;
-        currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
+        CurrentHealth -= damage;
+        CurrentHealth = Mathf.Clamp(CurrentHealth, 0f, maxHealth);
 
-        if (currentHealth <= 0f)
+        if (CurrentHealth <= 0f)
         {
             Die();
             return;
         }
 
-        stunTimer = stunDuration;           // ← Set lại 5 giây mỗi lần bị đạn
+        stunTimer = stunDuration;
         isStunned = true;
         isAttacking = false;
-        anim.SetBool("IsAttacking", false);
+        NetIsAttacking = false;
         agent.isStopped = true;
 
-        if (anim != null)
-        {
-            anim.SetTrigger("TakeDamage");
-        }
+        RPC_PlayHitEffect();
+    }
 
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_PlayHitEffect()
+    {
+        if (anim != null) anim.SetTrigger("TakeDamage");
         if (spriteRend != null)
         {
             StopCoroutine(FlashRedRoutine());
@@ -311,45 +360,43 @@ public class ZOmbieAI_Khoa : MonoBehaviour
     {
         spriteRend.color = hurtColor;
         yield return new WaitForSeconds(0.12f);
-        if (!isDead) spriteRend.color = originalColor;
+        if (!NetIsDead) spriteRend.color = originalColor;
     }
 
     private void Die()
     {
-        if (isDead) return;
-        isDead = true;
-
-        anim.SetBool("IsDead", true);
-        anim.SetBool("IsAttacking", false);
+        if (NetIsDead) return;
+        NetIsDead = true;
 
         rb.linearVelocity = Vector2.zero;
         myCol.enabled = false;
-        agent.enabled = false;
+        if (agent != null) agent.enabled = false;
 
-        StopAllCoroutines();
         StartCoroutine(VanishRoutine());
     }
 
     private IEnumerator VanishRoutine()
     {
         yield return new WaitForSeconds(5f);
-        Destroy(gameObject);
+        if (HasStateAuthority) Runner.Despawn(Object);
     }
 
+    // ========================================================
+    // 🔥 ĐẠO DIỄN ĐÃ GỌI TỪ ANIMATION EVENT THÌ XÀI HÀM NÀY!
+    // ========================================================
     public void TriggerAttackDamage()
     {
-        if (hasAppliedDamage || isDead || playerCol == null) return;
+        // CHỈ SERVER ĐƯỢC PHÉP TRỪ MÁU ĐỂ TRÁNH CLONE TỰ TRỪ GÂY LỆCH MẠNG
+        if (!HasStateAuthority) return;
 
-        if (Physics2D.Distance(myCol, playerCol).distance <= attackRange + 0.2f)
+        if (hasAppliedDamage || NetIsDead || playerHealth == null || playerCol == null) return;
+
+        // Cộng thêm 0.5 khoảng cách để bù trừ trễ mạng (Ping)
+        float currentDist = Vector2.Distance(myCol.bounds.center, playerCol.bounds.center);
+        if (currentDist <= attackRange + 0.5f)
         {
-            Vector2 dirToPlayer = (playerCol.bounds.center - myCol.bounds.center).normalized;
-            float angle = Vector2.Angle(lastMoveDirection.normalized, dirToPlayer);
-
-            if (angle <= 60f && playerHealth != null)
-            {
-                playerHealth.TakeDamage(zombieDamage);
-                hasAppliedDamage = true;
-            }
+            playerHealth.TakeDamage(zombieDamage);
+            hasAppliedDamage = true; // 1 cú vung tay chỉ cắn 1 lần
         }
     }
 }
