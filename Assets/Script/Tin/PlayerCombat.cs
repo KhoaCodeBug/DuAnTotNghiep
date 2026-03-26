@@ -204,7 +204,8 @@ public class PlayerCombat : NetworkBehaviour // 🔥 ĐÃ ĐỔI TỪ MonoBehavi
             if (hit.collider != null)
             {
                 ZOmbieAI_Khoa enemy = hit.collider.GetComponentInParent<ZOmbieAI_Khoa>();
-                if (enemy != null) enemy.TakeDamage(gunDamage);
+                // 🔥 ĐÃ SỬA: Đổi TakeDamage thành RPC_TakeDamage
+                if (enemy != null) enemy.RPC_TakeDamage(gunDamage);
             }
         }
     }
@@ -233,7 +234,8 @@ public class PlayerCombat : NetworkBehaviour // 🔥 ĐÃ ĐỔI TỪ MonoBehavi
                 ZOmbieAI_Khoa enemyStats = enemy.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemyStats != null && !alreadyHitZombies.Contains(enemyStats))
                 {
-                    enemyStats.TakeDamage(bashDamage);
+                    // 🔥 ĐÃ SỬA: Đổi TakeDamage thành RPC_TakeDamage
+                    enemyStats.RPC_TakeDamage(bashDamage);
                     alreadyHitZombies.Add(enemyStats);
                 }
             }
