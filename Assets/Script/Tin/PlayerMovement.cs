@@ -63,6 +63,24 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
             NetLastLookDir = Vector2.down; // Mặc định nhìn xuống
         }
 
+        // =========================================================
+        // 🔥 THÊM MỚI: TỰ ĐỘNG GÁN INTERPOLATION TARGET ĐỂ CHỐNG GIẬT
+        // =========================================================
+        Fusion.Addons.Physics.NetworkRigidbody2D netRb = GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>();
+        SpriteRenderer sprite = GetComponentInChildren<SpriteRenderer>();
+
+        // Kiểm tra xem có Cục Con chứa hình ảnh không, và phải đảm bảo nó KHÔNG nằm chung ở Cục Gốc
+        if (netRb != null && sprite != null && sprite.transform != this.transform)
+        {
+            netRb.InterpolationTarget = sprite.transform;
+            Debug.Log("✅ Đã gán Hình Ảnh vào Interpolation Target thành công. Sẵn sàng lướt êm!");
+        }
+        else
+        {
+            Debug.LogWarning("⚠️ Cảnh báo: Không tìm thấy Cục Con Hình Ảnh. Máy Client sẽ vẫn bị giật!");
+        }
+        // =========================================================
+
         // Tự động tìm Camera bắt nét cho riêng nhân vật của mình
         if (HasInputAuthority)
         {
