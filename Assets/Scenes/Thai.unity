@@ -224,7 +224,7 @@ GameObject:
   - component: {fileID: 1286076281}
   - component: {fileID: 1286076280}
   m_Layer: 0
-  m_Name: Idle_0_001
+  m_Name: Zombie
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -391,6 +391,10 @@ PrefabInstance:
       propertyPath: aimReticle
       value: 
       objectReference: {fileID: 2853711570091877283, guid: acfb76a1d71801d47bcd5fb4ee9053fc, type: 3}
+    - target: {fileID: 707117992471886643, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
+      propertyPath: SortKey
+      value: 2732566307
+      objectReference: {fileID: 0}
     - target: {fileID: 4457333233239025546, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
       propertyPath: m_Name
       value: Player
