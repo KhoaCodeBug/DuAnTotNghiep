@@ -508,19 +508,53 @@ public class AutoUIManager : MonoBehaviour
                 return;
             }
 
+            // =======================================================
+            // 🔥 THÊM HARDCORE: CHỈ CHO XÀI THUỐC KHI CÓ BỆNH TRONG NGƯỜI
+            // =======================================================
             if (itemToUse.category == ItemCategory.Medical)
             {
-                if (playerHealth != null && playerHealth.currentHealth >= playerHealth.maxHealth)
+                if (playerHealth != null)
                 {
-                    Debug.Log("Máu đang đầy, không cần dùng đồ y tế!");
-                    return;
+                    string itemNameLower = itemToUse.itemName.ToLower();
+
+                    // TRƯỜNG HỢP 1: Xài Băng Gạc
+                    if (itemNameLower.Contains("bandage") || itemNameLower.Contains("băng"))
+                    {
+                        if (!playerHealth.isBleeding)
+                        {
+                            Debug.Log("Không bị chảy máu, tốn băng gạc làm gì!");
+                            return;
+                        }
+                    }
+                    // TRƯỜNG HỢP 2: Xài Thuốc giảm đau
+                    else if (itemNameLower.Contains("painkiller") || itemNameLower.Contains("thuốc") || itemNameLower.Contains("đau"))
+                    {
+                        if (!playerHealth.isInPain)
+                        {
+                            Debug.Log("Đang khỏe re, uống thuốc vào lờn sao!");
+                            return;
+                        }
+                    }
+                    // TRƯỜNG HỢP 3: Các đồ y tế thông thường khác
+                    else
+                    {
+                        if (playerHealth.currentHealth >= playerHealth.maxHealth)
+                        {
+                            Debug.Log("Máu đang đầy, không cần dùng đồ y tế!");
+                            return;
+                        }
+                    }
                 }
             }
 
+            // Tiến hành sử dụng đồ
             if (itemToUse.useTime > 0)
                 StartCoroutine(ActionTimerRoutine(index, itemToUse));
             else
+            {
                 localPlayer.GetComponent<InventorySystem>().UseItem(index);
+                ApplyMedicalCure(itemToUse.itemName); // Nếu thuốc ko có thời gian chờ (useTime=0) thì cắn phát hết bệnh luôn
+            }
         }
     }
 
@@ -532,6 +566,26 @@ public class AutoUIManager : MonoBehaviour
         if (indexToDrop != -1 && localPlayer != null)
         {
             localPlayer.GetComponent<InventorySystem>().DropItem(indexToDrop);
+        }
+    }
+
+    // ==================================================
+    // 🔥 THÊM HARDCORE: HÀM GIẢI ĐỘC SAU KHI DÙNG THUỐC
+    // ==================================================
+    private void ApplyMedicalCure(string itemName)
+    {
+        if (playerHealth == null) return;
+
+        string nameLower = itemName.ToLower();
+        if (nameLower.Contains("bandage") || nameLower.Contains("băng"))
+        {
+            playerHealth.UseBandage();
+            Debug.Log("Đã quấn băng gạc, cầm máu thành công!");
+        }
+        else if (nameLower.Contains("painkiller") || nameLower.Contains("thuốc") || nameLower.Contains("đau"))
+        {
+            playerHealth.UsePainkiller();
+            Debug.Log("Đã uống thuốc, hết đau nhức!");
         }
     }
     #endregion
@@ -1164,7 +1218,11 @@ public class AutoUIManager : MonoBehaviour
         if (pm != null) pm.isUsingItem = false;
 
         if (localPlayer != null)
+        {
             localPlayer.GetComponent<InventorySystem>().UseItem(slotIndex);
+            // 🔥 THÊM: ĐÃ DÙNG XONG THUỐC, BẮT ĐẦU GIẢI ĐỘC!
+            ApplyMedicalCure(itemToUse.itemName);
+        }
     }
     #endregion
 

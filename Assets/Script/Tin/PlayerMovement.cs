@@ -136,6 +136,16 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
                 currentSpeed *= staminaSystem.CurrentSpeedMultiplier;
             }
 
+            // ==================================================
+            // === THÊM CHỨC NĂNG HARDCORE: BỊ ĐAU THÌ ĐI CHẬM ==
+            // ==================================================
+            PlayerHealth health = GetComponent<PlayerHealth>();
+            if (health != null && health.isInPain)
+            {
+                currentSpeed *= 0.6f; // Giảm tốc độ còn 60% khi bị đau
+            }
+            // ==================================================
+
             // Di chuyển nhân vật
             if (input.moveInput == Vector2.zero)
             {

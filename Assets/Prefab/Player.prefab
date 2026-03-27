@@ -527,12 +527,12 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
-  shootNoiseRadius: 5.5
+  shootNoiseRadius: 6
   ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
   magazineSize: 60
   _currentAmmo: 60
   bashDamage: 50
-  bashRange: 1
+  bashRange: 0.2
   bashCooldown: 0.8
   bashNoiseRadius: 1
   bashStaminaCost: 10
@@ -572,6 +572,12 @@ MonoBehaviour:
   stunDuration: 0.4
   hurtColor: {r: 1, g: 0, b: 0, a: 1}
   flashDuration: 0.1
+  bleedDamagePerSecond: 5
+  passiveHealPerSecond: 2
+  _isBleeding:
+    _value: 0
+  _isInPain:
+    _value: 0
   _isDead:
     _value: 0
 --- !u!114 &5426569587065415619
