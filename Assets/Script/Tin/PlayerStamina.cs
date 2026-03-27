@@ -1,11 +1,14 @@
-﻿using UnityEngine;
-using System.Collections; // Bắt buộc phải có để dùng Coroutine
+﻿using Fusion;
+using UnityEngine;
 
-public class PlayerStamina : MonoBehaviour
+// 🔥 1. ĐỔI THÀNH NetworkBehaviour ĐỂ CHẠY ĐƯỢC MẠNG
+public class PlayerStamina : NetworkBehaviour
 {
     [Header("--- Stamina System ---")]
-    public float maxStamina = 100f;
-    public float currentStamina = 100f;
+    // 🔥 2. ĐỔI CÁC CHỈ SỐ QUAN TRỌNG THÀNH BIẾN MẠNG
+    [Networked] public float maxStamina { get; set; }
+    [Networked] public float currentStamina { get; set; }
+
     public float staminaDrain = 20f;
 
     [Tooltip("Tốc độ hồi Stamina khi ĐỨNG YÊN thở")]
@@ -14,33 +17,66 @@ public class PlayerStamina : MonoBehaviour
     [Tooltip("Tốc độ hồi Stamina khi ĐI BỘ/LẾT")]
     public float staminaRecoverWalk = 5f;
 
-    // 🔥 MỚI: Cài đặt thời gian "khựng" hồi thể lực sau khi đập súng
     [Header("--- Combat Penalty ---")]
     public float bashRegenDelay = 3f;
-    private float currentRegenDelayTimer = 0f;
+    [Networked] private float currentRegenDelayTimer { get; set; }
 
-    public bool IsExhausted { get; private set; } = false;
+    // 🔥 Dùng NetworkBool thay cho bool thường
+    [Networked] public NetworkBool IsExhausted { get; private set; }
 
-    // --- BIẾN QUẢN LÝ BUFF ---
-    public bool HasEnergyBuff { get; private set; } = false;
-    public float CurrentSpeedMultiplier { get; private set; } = 1f;
-    private Coroutine buffCoroutine;
+    // --- BIẾN QUẢN LÝ BUFF CHUẨN MẠNG ---
+    [Networked] public NetworkBool HasEnergyBuff { get; private set; }
+    [Networked] public float CurrentSpeedMultiplier { get; private set; }
+
+    // Thay thế Coroutine bằng Đồng hồ mạng (TickTimer)
+    [Networked] private TickTimer buffTimer { get; set; }
+    [Networked] private float activeStaminaBoost { get; set; }
+
+    public override void Spawned()
+    {
+        // Máy chủ thiết lập các chỉ số gốc khi mới đẻ ra
+        if (HasStateAuthority)
+        {
+            maxStamina = 100f;
+            currentStamina = 100f;
+            CurrentSpeedMultiplier = 1f;
+            IsExhausted = false;
+            HasEnergyBuff = false;
+        }
+    }
+
+    // 🔥 HÀM MẠNG: Dùng để check xem cái Buff hết giờ chưa
+    public override void FixedUpdateNetwork()
+    {
+        // Nếu đang có Buff và cái đồng hồ mạng báo Hết Giờ
+        if (HasEnergyBuff && buffTimer.Expired(Runner))
+        {
+            // HẾT GIỜ -> TRẢ MỌI THỨ VỀ CŨ
+            HasEnergyBuff = false;
+            CurrentSpeedMultiplier = 1f;
+            maxStamina -= activeStaminaBoost;
+
+            if (currentStamina > maxStamina) currentStamina = maxStamina;
+            activeStaminaBoost = 0f;
+
+            Debug.Log($"❌ HẾT BUFF: Giới hạn Thể lực tụt về lại {maxStamina}.");
+        }
+    }
 
     public void UpdateStamina(bool isRunning, bool isMovingNow)
     {
-        // 🔥 MỚI: Luôn giảm đồng hồ đếm ngược (nếu có) theo thời gian thực
+        // 🔥 3. THAY TOÀN BỘ Time.deltaTime THÀNH Runner.DeltaTime
         if (currentRegenDelayTimer > 0)
         {
-            currentRegenDelayTimer -= Time.deltaTime;
+            currentRegenDelayTimer -= Runner.DeltaTime;
         }
 
         // 1. Trừ thể lực khi đang chạy
         if (isRunning && isMovingNow)
         {
-            // CHỈ TRỪ KHI KHÔNG CÓ BUFF
             if (!HasEnergyBuff)
             {
-                currentStamina -= staminaDrain * Time.deltaTime;
+                currentStamina -= staminaDrain * Runner.DeltaTime;
                 if (currentStamina <= 0)
                 {
                     currentStamina = 0;
@@ -51,15 +87,13 @@ public class PlayerStamina : MonoBehaviour
         // 2. Hồi thể lực khi không chạy
         else
         {
-            // 🔥 MỚI: CHỐT CHẶN - Nếu vẫn đang trong 3 giây mệt do vung súng thì KHÔNG CHO HỒI!
             if (currentRegenDelayTimer > 0) return;
 
             float currentRecoverRate = isMovingNow ? staminaRecoverWalk : staminaRecoverIdle;
 
-            // NẾU CÓ BUFF, HỒI THỂ LỰC NHANH GẤP 3 LẦN
             if (HasEnergyBuff) currentRecoverRate *= 3f;
 
-            currentStamina += currentRecoverRate * Time.deltaTime;
+            currentStamina += currentRecoverRate * Runner.DeltaTime;
 
             if (currentStamina >= maxStamina)
             {
@@ -71,18 +105,15 @@ public class PlayerStamina : MonoBehaviour
 
     public void ConsumeStamina(float amount)
     {
-        // Nếu đang uống nước tăng lực (có Buff) thì đánh không biết mệt
         if (!HasEnergyBuff)
         {
             currentStamina -= amount;
-
-            // 🔥 MỚI: Vừa đập súng xong, kích hoạt đồng hồ 3 giây cấm hồi thể lực
             currentRegenDelayTimer = bashRegenDelay;
 
             if (currentStamina <= 0)
             {
                 currentStamina = 0;
-                IsExhausted = true; // Hết sạch thể lực thì chuyển sang thở dốc
+                IsExhausted = true;
             }
         }
     }
@@ -94,37 +125,20 @@ public class PlayerStamina : MonoBehaviour
         if (currentStamina > 0) IsExhausted = false;
     }
 
-    // --- HÀM KÍCH HOẠT NƯỚC TĂNG LỰC ---
+    // --- HÀM KÍCH HOẠT NƯỚC TĂNG LỰC (Không dùng Coroutine nữa) ---
     public void ApplyEnergyBuff(float duration, float speedBoost, float staminaBoost)
-    {
-        if (buffCoroutine != null) StopCoroutine(buffCoroutine);
-        buffCoroutine = StartCoroutine(EnergyBuffRoutine(duration, speedBoost, staminaBoost));
-    }
-
-    private IEnumerator EnergyBuffRoutine(float duration, float speedBoost, float staminaBoost)
     {
         HasEnergyBuff = true;
         IsExhausted = false;
         CurrentSpeedMultiplier = speedBoost;
 
-        // 1. NỚI RỘNG MAX STAMINA (Ví dụ: 100 + 50 = 150)
+        activeStaminaBoost = staminaBoost;
         maxStamina += staminaBoost;
-        // Bơm luôn 50 thể lực đó cho người chơi tràn trề năng lượng
         currentStamina += staminaBoost;
 
-        Debug.Log($"⚡ BẮT ĐẦU BUFF: Tốc độ x{speedBoost}, Giới hạn Thể lực tăng lên {maxStamina} trong {duration}s!");
+        // Vặn đồng hồ báo thức trên mạng
+        buffTimer = TickTimer.CreateFromSeconds(Runner, duration);
 
-        // Chờ hết thời gian tác dụng
-        yield return new WaitForSeconds(duration);
-
-        // 2. HẾT GIỜ -> TRẢ MỌI THỨ VỀ CŨ
-        HasEnergyBuff = false;
-        CurrentSpeedMultiplier = 1f;
-        maxStamina -= staminaBoost; // Trả về 100
-
-        // Nếu lúc hết buff mà thể lực đang lố 100 thì ép nó về 100
-        if (currentStamina > maxStamina) currentStamina = maxStamina;
-
-        Debug.Log($"❌ HẾT BUFF: Giới hạn Thể lực tụt về lại {maxStamina}.");
+        Debug.Log($"⚡ BẮT ĐẦU BUFF: Tốc độ x{speedBoost}, Giới hạn Thể lực lên {maxStamina} trong {duration}s!");
     }
 }
