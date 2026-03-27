@@ -10,15 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 45658c3055c88304eb95446d7a980e81, type: 3}
-  m_Name: Bandage
+  m_Name: PainKiller
   m_EditorClassIdentifier: 
-  itemName: Bandage
-  icon: {fileID: 2676128305404206751, guid: 7172b78c22e8157459938e5456610a7b, type: 3}
+  itemName: PainKiller
+  icon: {fileID: 5772943431270805095, guid: 3a557a0ff637fde469441c869d0d62d6, type: 3}
   category: 1
-  useTime: 3
+  useTime: 2
   specificDropPrefab: {fileID: 0}
   isStackable: 1
-  maxStack: 5
+  maxStack: 3
   healAmount: 0
   hungerRestore: 0
   thirstRestore: 0

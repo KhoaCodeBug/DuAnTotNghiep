@@ -3,7 +3,7 @@ using Fusion;
 using System.Collections;
 using System.Collections.Generic;
 
-public class PlayerCombat : NetworkBehaviour // 🔥 ĐÃ ĐỔI TỪ MonoBehaviour SANG NetworkBehaviour
+public class PlayerCombat : NetworkBehaviour
 {
     [Header("--- Hiệu ứng Lửa đạn (Muzzle Flash) ---")]
     public Animator muzzleAnimator;
@@ -76,7 +76,6 @@ public class PlayerCombat : NetworkBehaviour // 🔥 ĐÃ ĐỔI TỪ MonoBehavi
         }
     }
 
-    // 🔥 HÀM XỬ LÝ CHIẾN ĐẤU MẠNG: Đọc phím từ bộ gom phím
     // 🔥 HÀM XỬ LÝ CHIẾN ĐẤU MẠNG
     public override void FixedUpdateNetwork()
     {
@@ -204,8 +203,22 @@ public class PlayerCombat : NetworkBehaviour // 🔥 ĐÃ ĐỔI TỪ MonoBehavi
             if (hit.collider != null)
             {
                 ZOmbieAI_Khoa enemy = hit.collider.GetComponentInParent<ZOmbieAI_Khoa>();
-                // 🔥 ĐÃ SỬA: Đổi TakeDamage thành RPC_TakeDamage
-                if (enemy != null) enemy.RPC_TakeDamage(gunDamage);
+                if (enemy != null)
+                {
+                    // ==================================================
+                    // === THÊM HARDCORE: BỊ ĐAU THÌ BẮN SÚNG YẾU ĐI ====
+                    // ==================================================
+                    float finalGunDamage = gunDamage;
+                    PlayerHealth health = GetComponent<PlayerHealth>();
+
+                    if (health != null && health.isInPain)
+                    {
+                        finalGunDamage *= 0.7f; // Giảm 30% sát thương súng khi bị đau
+                    }
+
+                    enemy.RPC_TakeDamage(finalGunDamage);
+                    // ==================================================
+                }
             }
         }
     }
@@ -234,8 +247,20 @@ public class PlayerCombat : NetworkBehaviour // 🔥 ĐÃ ĐỔI TỪ MonoBehavi
                 ZOmbieAI_Khoa enemyStats = enemy.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemyStats != null && !alreadyHitZombies.Contains(enemyStats))
                 {
-                    // 🔥 ĐÃ SỬA: Đổi TakeDamage thành RPC_TakeDamage
-                    enemyStats.RPC_TakeDamage(bashDamage);
+                    // ==================================================
+                    // === THÊM HARDCORE: BỊ ĐAU THÌ ĐẬP BÁNG YẾU ĐI ====
+                    // ==================================================
+                    float finalBashDamage = bashDamage;
+                    PlayerHealth health = GetComponent<PlayerHealth>();
+
+                    if (health != null && health.isInPain)
+                    {
+                        finalBashDamage *= 0.7f; // Giảm 30% lực đập khi bị đau
+                    }
+
+                    enemyStats.RPC_TakeDamage(finalBashDamage);
+                    // ==================================================
+
                     alreadyHitZombies.Add(enemyStats);
                 }
             }
