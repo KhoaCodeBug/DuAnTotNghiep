@@ -146,16 +146,18 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
             }
             // ==================================================
 
-            // Di chuyển nhân vật
-            if (input.moveInput == Vector2.zero)
-            {
-                rb.linearVelocity = Vector2.zero;
-            }
-            else
-            {
+            // BỎ ĐOẠN NÀY ĐI:
+            /*
+            if (input.moveInput == Vector2.zero) { rb.linearVelocity = Vector2.zero; }
+            else {
                 Vector2 nextPosition = rb.position + input.moveInput * currentSpeed * Runner.DeltaTime;
                 rb.MovePosition(nextPosition);
             }
+            */
+
+            // VÀ THAY BẰNG ĐÚNG 1 DÒNG NÀY:
+            // Gán thẳng Vận Tốc (Velocity), đây là cách chuẩn nhất để đi mượt trên mạng
+            rb.linearVelocity = input.moveInput * currentSpeed;
 
             // Xử lý Thể lực và Tiếng ồn
             staminaSystem.UpdateStamina(NetIsRunning, NetIsMoving);

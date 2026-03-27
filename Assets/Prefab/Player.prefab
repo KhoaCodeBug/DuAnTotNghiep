@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2224461580676256955}
   - component: {fileID: 3315343261813753972}
   - component: {fileID: 9066814935520926888}
-  m_Layer: 2
+  m_Layer: 9
   m_Name: NameText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -148,7 +148,7 @@ GameObject:
   - component: {fileID: 6091963985824110802}
   - component: {fileID: 2212894825378016607}
   - component: {fileID: 57689461277362611}
-  m_Layer: 2
+  m_Layer: 9
   m_Name: Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -253,7 +253,7 @@ GameObject:
   - component: {fileID: 2317674058347788996}
   - component: {fileID: 1644029633153542868}
   - component: {fileID: 4082368852035321095}
-  m_Layer: 2
+  m_Layer: 9
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -438,6 +438,7 @@ MonoBehaviour:
   - {fileID: 2529962990091390442}
   - {fileID: 76553097535974651}
   - {fileID: 1505858520728203951}
+  - {fileID: 6027786628438645557}
   - {fileID: 7126942027890368006}
   - {fileID: 5426569587065415619}
   - {fileID: 2460234225545820196}
@@ -549,12 +550,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3abd109232fb3446843a51cc89f6870, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxStamina: 100
-  currentStamina: 100
+  _maxStamina: 0
+  _currentStamina: 0
   staminaDrain: 15
   staminaRecoverIdle: 20
   staminaRecoverWalk: 10
   bashRegenDelay: 2
+  _IsExhausted:
+    _value: 0
+  _HasEnergyBuff:
+    _value: 0
+  _CurrentSpeedMultiplier: 0
 --- !u!114 &7126942027890368006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -695,7 +701,7 @@ GameObject:
   - component: {fileID: 3409663119796948031}
   - component: {fileID: 6790703689816908153}
   - component: {fileID: 6160437081971209414}
-  m_Layer: 2
+  m_Layer: 9
   m_Name: MuzzleFlash
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -806,7 +812,7 @@ GameObject:
   - component: {fileID: 4068655313682660420}
   - component: {fileID: 3680566215819499059}
   - component: {fileID: 315989037582757839}
-  m_Layer: 2
+  m_Layer: 9
   m_Name: NameTagCanvas
   m_TagString: Untagged
   m_Icon: {fileID: 0}
