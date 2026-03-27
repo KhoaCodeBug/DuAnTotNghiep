@@ -3,11 +3,9 @@
 public class PZ_CameraController : MonoBehaviour
 {
     [Header("--- Target Setup ---")]
-    // 🔥 ĐÃ SỬA: Chuyển thành private để không phải kéo thả tay, tránh nhầm lẫn khi chơi mạng
     private Transform player;
-    private bool hasTarget = false; // Cờ đánh dấu xem camera đã có mục tiêu chưa
+    private bool hasTarget = false;
 
-    // Đảm bảo offset có Z là số âm (VD: -10) để camera lùi lại nhìn thấy cảnh 2D
     public Vector3 offset = new Vector3(0, 0, -10f);
 
     [Header("--- PZ Camera Panning ---")]
@@ -25,13 +23,28 @@ public class PZ_CameraController : MonoBehaviour
     private float targetZoom;
     private float zoomVelocity;
 
-    // 🔥 MỚI: Cửa nạp để cục Player (sau khi được sinh ra mạng) gọi và báo "Bám theo tui!"
     public void SetTarget(Transform targetTransform)
     {
-        player = targetTransform;
-        hasTarget = true;
+        // =========================================================
+        // 🔥 BÍ KÍP TRỊ KINH PHONG (JITTER) MẠNG:
+        // Cố gắng tìm cục con chứa hình ảnh (SpriteRenderer) để bám theo.
+        // Vì hình ảnh đã được Fusion làm mượt (Interpolated), còn cục gốc thì giật cục.
+        // =========================================================
+        SpriteRenderer sprite = targetTransform.GetComponentInChildren<SpriteRenderer>();
 
-        // Dịch chuyển camera ngay lập tức tới chỗ nhân vật lúc vừa đẻ ra để khỏi bị khựng
+        // Nếu tìm thấy SpriteRenderer và nó thực sự nằm ở cục con (chứ không phải cục gốc)
+        if (sprite != null && sprite.transform != targetTransform)
+        {
+            player = sprite.transform;
+            Debug.Log("🎥 Camera đang bám theo Hình ảnh (Interpolated) để chống giật!");
+        }
+        else
+        {
+            player = targetTransform;
+            Debug.LogWarning("⚠️ Cảnh báo: Camera đang bám theo Cục Gốc vật lý, máy Client có thể vẫn bị giật!");
+        }
+
+        hasTarget = true;
         transform.position = player.position + offset;
     }
 
@@ -44,17 +57,14 @@ public class PZ_CameraController : MonoBehaviour
 
     void Update()
     {
-        // 🔥 MỚI: Nếu chưa có nhân vật thì không cho phép Zoom
         if (!hasTarget || player == null) return;
-
         HandleZoom();
     }
 
+    // Camera bám đuôi thì bắt buộc phải để ở LateUpdate để chạy sau cùng
     void LateUpdate()
     {
-        // 🔥 MỚI: Nếu chưa có nhân vật thì Camera đứng im, không báo lỗi
         if (!hasTarget || player == null) return;
-
         HandleCameraFollowAndPan();
     }
 
@@ -62,64 +72,51 @@ public class PZ_CameraController : MonoBehaviour
     {
         Vector3 targetPos = player.position + offset;
 
-        // 🔥 Xử lý lia Camera chuẩn 2D
-        // Cấm Camera lia theo chuột nếu túi đồ đang mở
         if (Input.GetMouseButton(1) && !(AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()))
         {
-            // 1. Lấy thẳng tọa độ chuột trong thế giới 2D
             Vector3 mouseWorldPos = cam.ScreenToWorldPoint(Input.mousePosition);
-            mouseWorldPos.z = player.position.z; // Ép trục Z bằng với Player để tránh lỗi
+            mouseWorldPos.z = player.position.z;
 
-            // 2. Tính khoảng cách từ chuột tới nhân vật
             Vector3 directionToMouse = mouseWorldPos - player.position;
-
-            // 3. Giới hạn khoảng cách camera vươn ra (không cho camera chạy tuốt luốt ra ngoài mép)
             Vector3 panOffset = Vector3.ClampMagnitude(directionToMouse, maxLookAhead);
 
-            // 4. Cộng dồn offset (Chia 2 để camera nằm ở quãng giữa Player và con trỏ chuột)
             targetPos += (panOffset / 2f);
         }
 
+        // Ép buộc dùng Time.deltaTime để tránh Camera bị lạc nhịp với khung hình
         transform.position = Vector3.SmoothDamp(
             transform.position,
             targetPos,
             ref velocity,
-            smoothFollow
+            smoothFollow,
+            Mathf.Infinity,
+            Time.deltaTime
         );
     }
 
     private void HandleZoom()
     {
-        // LỚP BẢO VỆ 1: Chặn đứng mọi hành vi đọc phím/chuột nếu cửa sổ Game không được chọn (Focus)
         if (!Application.isFocused) return;
 
-        // LỚP BẢO VỆ 2: Vẫn giữ chặn tọa độ đề phòng
         Vector3 mousePos = Input.mousePosition;
-        if (mousePos.x < 0 || mousePos.y < 0 || mousePos.x > Screen.width || mousePos.y > Screen.height)
-        {
-            return;
-        }
+        if (mousePos.x < 0 || mousePos.y < 0 || mousePos.x > Screen.width || mousePos.y > Screen.height) return;
 
-        // LỚP BẢO VỆ 3: Sửa lỗi "Xả đê" cuộn chuột
-        // Dùng GetAxis mượt hơn mouseScrollDelta. 1 nấc lăn trả về khoảng 0.1 hoặc -0.1
         float scroll = Input.GetAxis("Mouse ScrollWheel");
-
-        // Dùng Clamp khóa cứng giá trị. Nếu Unity bị điên xả ra số 5.0, nó sẽ bị gọt về 0.1 ngay lập tức.
         scroll = Mathf.Clamp(scroll, -0.2f, 0.2f);
 
         if (scroll != 0)
         {
-            // Do lúc này scroll là số thập phân nhỏ (0.1), nên nhân với zoomSpeed (15f) sẽ rất mượt, không bị giật cái đùng
             targetZoom -= scroll * zoomSpeed;
             targetZoom = Mathf.Clamp(targetZoom, minZoomSize, maxZoomSize);
         }
 
-        // Làm mượt hình ảnh hiển thị
         cam.orthographicSize = Mathf.SmoothDamp(
             cam.orthographicSize,
             targetZoom,
             ref zoomVelocity,
-            zoomSmoothTime
+            zoomSmoothTime,
+            Mathf.Infinity,
+            Time.deltaTime
         );
     }
 }
