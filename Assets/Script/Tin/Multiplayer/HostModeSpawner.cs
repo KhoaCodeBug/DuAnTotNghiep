@@ -1,63 +1,63 @@
-﻿using System.Collections.Generic;
-using Fusion;
+﻿using Fusion;
 using UnityEngine;
+using System.Collections.Generic;
 
-// 🔥 NÂNG CẤP 1: Đổi thành NetworkBehaviour để có thể dùng bộ đàm (RPC) gọi cho Host
-public class HostModeSpawner : NetworkBehaviour, IPlayerJoined, IPlayerLeft
+public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 {
-    [Header("--- Lò Đẻ 2.0 (Danh sách Tướng) ---")]
-    [Tooltip("Kéo thả các Prefab nhân vật vào đây (0 = Nam, 1 = Nữ...)")]
-    [SerializeField] private NetworkPrefabRef[] playerPrefabs;
+    [Header("--- Lò Đẻ Kép (Nam & Nữ) ---")]
+    [Tooltip("Kéo thả 2 cái Prefab vào đây (0: Nam, 1: Nữ)")]
+    public NetworkPrefabRef[] playerPrefabs;
 
-    private readonly Dictionary<PlayerRef, NetworkObject> _spawnedCharacters = new();
+    private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
 
-    public void PlayerJoined(PlayerRef player)
+    // 🔥 BÍ KÍP TỐI THƯỢNG: Dùng hàm Spawned thay vì PlayerJoined
+    // Nó đảm bảo 100% Lò Đẻ đã hiện hồn rồi mới bắt đầu đẻ, không bao giờ bị hụt nhịp!
+    public override void Spawned()
     {
-        // Hàm này tự động chạy trên mọi máy khi có người bước vào phòng
-        // TÔI chỉ quan tâm khi TÔI là người vừa vào phòng (Chính chủ)
-        if (player == Runner.LocalPlayer)
-        {
-            // Tự móc túi lấy cái tờ giấy ghi nhớ lúc nãy chọn ai ở Menu
-            int myCharacterID = PlayerPrefs.GetInt("SelectedCharacterID", 0);
+        // Móc RAM ra xem hồi nãy ở ngoài Menu chọn nhân vật số mấy
+        int myCharacterID = CharacterSelectionMenu.LocalSelectedCharacterID;
 
-            // Gọi điện thoại thẳng cho máy Host báo cáo số ID
-            RPC_RequestSpawn(player, myCharacterID);
+        if (Runner.IsServer)
+        {
+            // Nếu TÔI là Host: Tự lấy tay đẻ luôn cho bản thân, khỏi cần gọi điện!
+            SpawnCharacter(Runner.LocalPlayer, myCharacterID);
+        }
+        else
+        {
+            // Nếu TÔI là Client (Clone): Lò đẻ vừa tải xong, gọi điện réo Host đẻ cho em!
+            RPC_RequestSpawn(Runner.LocalPlayer, myCharacterID);
         }
     }
 
-    // 🔥 NÂNG CẤP 2: Cục phát sóng RPC (Mọi người đều gọi được, nhưng chỉ Host nghe và làm)
+    // Cục phát sóng: Chỉ Host mới có quyền xử lý lệnh này
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_RequestSpawn(PlayerRef player, int characterID)
     {
-        // Chốt chặn an toàn: Chỉ máy Host mới được quyền đẻ
         if (!Runner.IsServer) return;
+        SpawnCharacter(player, characterID);
+    }
 
-        // Chống hack/lỗi: Nếu ID gửi lên xạo xạo (không có trong danh sách) thì ép về 0
-        if (characterID < 0 || characterID >= playerPrefabs.Length)
-        {
-            characterID = 0;
-            Debug.LogWarning("⚠️ Có người đòi đẻ nhân vật không tồn tại. Đã ép về mặc định!");
-        }
+    // Hàm đẻ thực tế (Chỉ Host mới được chạy hàm này)
+    private void SpawnCharacter(PlayerRef player, int characterID)
+    {
+        // Chống lỗi nhập bậy
+        if (characterID < 0 || characterID >= playerPrefabs.Length) characterID = 0;
 
-        // Chọn vị trí đẻ ngẫu nhiên (Ép Z = 0 cho game 2D)
-        var spawnPosition = new Vector3(UnityEngine.Random.Range(-2f, 2f), UnityEngine.Random.Range(-2f, 2f), 0f);
+        Vector3 spawnPos = new Vector3(Random.Range(-2f, 2f), Random.Range(-2f, 2f), 0f);
 
-        // 🔥 ĐÚC NHÂN VẬT TỪ ĐÚNG CÁI KHUÔN ĐÃ CHỌN
-        var networkObject = Runner.Spawn(playerPrefabs[characterID], spawnPosition, Quaternion.identity, player);
+        // Đẻ ra đúng nhân vật đã chọn và giao quyền điều khiển (Input Authority) cho thằng gọi
+        NetworkObject netObj = Runner.Spawn(playerPrefabs[characterID], spawnPos, Quaternion.identity, player);
 
-        _spawnedCharacters[player] = networkObject;
-        Debug.Log($"✅ Đã giao hàng: Đẻ nhân vật số {characterID} thành công cho người chơi {player}");
+        spawnedPlayers.Add(player, netObj);
+        Debug.Log($"✅ Máy chủ đã đẻ nhân vật số {characterID} cho {player}");
     }
 
     public void PlayerLeft(PlayerRef player)
     {
-        if (!Runner.IsServer) return;
-
-        if (_spawnedCharacters.TryGetValue(player, out var networkObject))
+        if (Runner.IsServer && spawnedPlayers.TryGetValue(player, out NetworkObject netObj))
         {
-            Runner.Despawn(networkObject);
-            _spawnedCharacters.Remove(player);
-            Debug.Log($"👋 Người chơi {player} đã thoát, dọn dẹp nhân vật.");
+            Runner.Despawn(netObj);
+            spawnedPlayers.Remove(player);
         }
     }
 }

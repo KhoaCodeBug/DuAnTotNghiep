@@ -2,49 +2,67 @@
 
 public class CharacterSelectionMenu : MonoBehaviour
 {
-    private string[] characterNames = { "Player 1 (Nam)", "Player 2 (Nữ)" };
-    private int selectedID = 0;
+    [Header("Kéo cục Photon Fusion vào đây!")]
+    public GameObject fusionManager;
 
-    // 🔥 CÔNG TẮC: Đánh dấu xem đã chọn xong chưa
+    private string[] characterNames = { "Player 1", "Player 2" };
+    public static int LocalSelectedCharacterID = 0;
     private bool isSelectionDone = false;
 
     void Start()
     {
-        selectedID = PlayerPrefs.GetInt("SelectedCharacterID", 0);
+        // Chỉ làm đúng 1 việc: Tắt Fusion từ đầu
+        if (fusionManager != null)
+        {
+            fusionManager.SetActive(false);
+        }
     }
 
     void OnGUI()
     {
-        // Nếu đã chọn xong rồi thì KHÔNG VẼ GÌ NỮA CẢ (Tàng hình)
         if (isSelectionDone) return;
 
-        float boxWidth = 300;
-        float boxHeight = 100 + (characterNames.Length * 50);
+        GUIStyle boxStyle = new GUIStyle(GUI.skin.box);
+        boxStyle.fontSize = 26;
+        boxStyle.fontStyle = FontStyle.Bold;
+
+        GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
+        buttonStyle.fontSize = 22;
+        buttonStyle.fontStyle = FontStyle.Bold;
+
+        float boxWidth = 500;
+        float buttonHeight = 60;
+        float spacing = 80;
+        float boxHeight = 120 + (characterNames.Length * spacing);
 
         float startX = (Screen.width - boxWidth) / 2;
         float startY = (Screen.height - boxHeight) / 2;
 
-        GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "CHỌN NHÂN VẬT (AUTO UI)");
+        GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "\nCHỌN NHÂN VẬT", boxStyle);
 
         for (int i = 0; i < characterNames.Length; i++)
         {
             string buttonText = characterNames[i];
 
-            if (i == selectedID)
+            if (i == LocalSelectedCharacterID)
             {
-                buttonText = ">>> " + buttonText + " <<< (Đang chọn)";
+                buttonText = ">>>" + buttonText + "<<< (Đang chọn)";
             }
 
-            if (GUI.Button(new Rect(startX + 20, startY + 40 + (i * 50), boxWidth - 40, 40), buttonText))
+            float btnX = startX + 40;
+            float btnY = startY + 80 + (i * spacing);
+            float btnWidth = boxWidth - 80;
+
+            if (GUI.Button(new Rect(btnX, btnY, btnWidth, buttonHeight), buttonText, buttonStyle))
             {
-                selectedID = i;
-                PlayerPrefs.SetInt("SelectedCharacterID", selectedID);
-                PlayerPrefs.Save();
-
+                LocalSelectedCharacterID = i;
                 Debug.Log($"✅ ĐÃ CHỐT ĐƠN: Thay đồ sang {characterNames[i]}");
-
-                // 🔥 ĐÓNG MENU SAU KHI CHỌN
                 isSelectionDone = true;
+
+                if (fusionManager != null)
+                {
+                    fusionManager.SetActive(true);
+                }
             }
         }
     }

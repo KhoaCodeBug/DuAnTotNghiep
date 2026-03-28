@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
 using Fusion;
-using Fusion.Addons.Physics; // Bắt buộc để dùng NetworkRigidbody2D
+using Fusion.Addons.Physics;
 
-[RequireComponent(typeof(NetworkRigidbody2D))] // Đã đổi sang mạng
+[RequireComponent(typeof(NetworkRigidbody2D))]
 [RequireComponent(typeof(PlayerStamina))]
-public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
+public class PlayerMovement : NetworkBehaviour
 {
     [Header("--- Movement Settings ---")]
     public float walkSpeed = 4f;
@@ -31,7 +31,7 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
     private PlayerStamina staminaSystem;
 
     // ==========================================
-    // 🔥 BIẾN ĐỒNG BỘ MẠNG (ĐẢM BẢO MỌI MÁY THẤY GIỐNG NHAU)
+    // 🔥 BIẾN ĐỒNG BỘ MẠNG
     // ==========================================
     [Networked] public Vector2 NetMoveInput { get; set; }
     [Networked] public Vector2 NetLastLookDir { get; set; }
@@ -44,14 +44,15 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
     [Networked] public float NetStunTimer { get; set; }
     [Networked] public float NetAttackLockTimer { get; set; }
 
-    // Giữ nguyên property này để các script UI/Inventory cũ vẫn gọi được bình thường
+    // 🔥 THÊM BIẾN NÀY ĐỂ XỬ LÝ CROUCH TOGGLE
+    [Networked] private NetworkBool PrevInputCrouch { get; set; }
+
     public bool isUsingItem
     {
         get => NetIsUsingItem;
         set => NetIsUsingItem = value;
     }
 
-    // Tương đương hàm Awake/Start trong mạng
     public override void Spawned()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -60,28 +61,17 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
 
         if (HasStateAuthority)
         {
-            NetLastLookDir = Vector2.down; // Mặc định nhìn xuống
+            NetLastLookDir = Vector2.down;
         }
 
-        // =========================================================
-        // 🔥 THÊM MỚI: TỰ ĐỘNG GÁN INTERPOLATION TARGET ĐỂ CHỐNG GIẬT
-        // =========================================================
         Fusion.Addons.Physics.NetworkRigidbody2D netRb = GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>();
         SpriteRenderer sprite = GetComponentInChildren<SpriteRenderer>();
 
-        // Kiểm tra xem có Cục Con chứa hình ảnh không, và phải đảm bảo nó KHÔNG nằm chung ở Cục Gốc
         if (netRb != null && sprite != null && sprite.transform != this.transform)
         {
             netRb.InterpolationTarget = sprite.transform;
-            Debug.Log("✅ Đã gán Hình Ảnh vào Interpolation Target thành công. Sẵn sàng lướt êm!");
         }
-        else
-        {
-            Debug.LogWarning("⚠️ Cảnh báo: Không tìm thấy Cục Con Hình Ảnh. Máy Client sẽ vẫn bị giật!");
-        }
-        // =========================================================
 
-        // Tự động tìm Camera bắt nét cho riêng nhân vật của mình
         if (HasInputAuthority)
         {
             var cameraController = FindAnyObjectByType<PZ_CameraController>();
@@ -89,48 +79,49 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
         }
     }
 
-    // Tương đương FixedUpdate (Trái tim xử lý vật lý và input mạng)
     public override void FixedUpdateNetwork()
     {
-        // 1. Chạy thời gian choáng và khóa đòn đánh
         if (NetStunTimer > 0) NetStunTimer -= Runner.DeltaTime;
         if (NetAttackLockTimer > 0) NetAttackLockTimer -= Runner.DeltaTime;
 
-        // 2. Mở bưu kiện Input từ script PlayerInputHandler2D
         if (GetInput(out PlayerNetworkInput input))
         {
-            // --- XỬ LÝ KHÓA (STUN / ATTACK LOCK) ---
             if (NetStunTimer > 0)
             {
-                // Bị quái cắn: Đứng im, bỏ ngắm, bỏ chạy
                 input.moveInput = Vector2.zero;
                 input.isAiming = false;
                 input.isRunning = false;
             }
             if (NetAttackLockTimer > 0)
             {
-                // Đang đập báng súng: Khóa chân, KHÔNG HỦY NGẮM (Fix lỗi GunBash của bạn)
                 input.moveInput = Vector2.zero;
-            }
-
-            // Hết thể lực hoặc đang ngồi thì không được chạy
-            if (staminaSystem.IsExhausted || input.isCrouching)
-            {
-                input.isRunning = false;
             }
 
             // Gắn vào biến mạng
             NetIsAiming = input.isAiming;
             NetMoveInput = input.moveInput;
             NetIsMoving = input.moveInput.magnitude > 0.1f;
-
-            // 🔥 FIX LỖI CHẠY TẠI CHỖ TẠI ĐÂY: 
-            // Cài điều kiện: Phải đè Shift (input.isRunning) VÀ đang di chuyển (NetIsMoving) thì mới tính là Đang Chạy
             NetIsRunning = input.isRunning && NetIsMoving;
 
-            NetIsCrouching = input.isCrouching;
+            // =========================================================
+            // 🔥 CHUYỂN CROUCH TỪ HOLD SANG TOGGLE
+            // =========================================================
+            // Kiểm tra khoảnh khắc nút Crouch vừa được ấn xuống (Khác với frame trước)
+            if (input.isCrouching && !PrevInputCrouch)
+            {
+                NetIsCrouching = !NetIsCrouching; // Đảo trạng thái: Đứng -> Ngồi, Ngồi -> Đứng
+            }
+            // Lưu lại trạng thái nút bấm để frame mạng sau mang ra so sánh
+            PrevInputCrouch = input.isCrouching;
+            // =========================================================
 
-            // Xử lý góc nhìn (Chuột hoặc Hướng đi)
+            // Hết thể lực hoặc đang ngồi thì không được chạy
+            if (staminaSystem.IsExhausted || NetIsCrouching)
+            {
+                NetIsRunning = false;
+            }
+
+            // Xử lý góc nhìn
             if (input.isAiming)
             {
                 Vector2 lookVector = input.mouseWorldPos - (Vector2)transform.position;
@@ -158,41 +149,23 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
                 currentSpeed *= staminaSystem.CurrentSpeedMultiplier;
             }
 
-            // ==================================================
-            // === THÊM CHỨC NĂNG HARDCORE: BỊ ĐAU THÌ ĐI CHẬM ==
-            // ==================================================
             PlayerHealth health = GetComponent<PlayerHealth>();
             if (health != null && health.isInPain)
             {
-                currentSpeed *= 0.6f; // Giảm tốc độ còn 60% khi bị đau
+                currentSpeed *= 0.6f;
             }
-            // ==================================================
 
-            // BỎ ĐOẠN NÀY ĐI:
-            /*
-            if (input.moveInput == Vector2.zero) { rb.linearVelocity = Vector2.zero; }
-            else {
-                Vector2 nextPosition = rb.position + input.moveInput * currentSpeed * Runner.DeltaTime;
-                rb.MovePosition(nextPosition);
-            }
-            */
-
-            // VÀ THAY BẰNG ĐÚNG 1 DÒNG NÀY:
-            // Gán thẳng Vận Tốc (Velocity), đây là cách chuẩn nhất để đi mượt trên mạng
             rb.linearVelocity = input.moveInput * currentSpeed;
 
-            // Xử lý Thể lực và Tiếng ồn
             staminaSystem.UpdateStamina(NetIsRunning, NetIsMoving);
             HandleMovementNoise(NetIsMoving);
         }
     }
 
-    // Tương đương Update (Chỉ dùng để vẽ Hình Ảnh, Animation mượt mà trên khung hình)
     public override void Render()
     {
         UpdateAnimation();
 
-        // Chuột chỉ thay đổi trên máy của người đang chơi
         if (HasInputAuthority)
         {
             if (NetIsAiming && !isCurrentlyAimingCursor)
@@ -208,7 +181,6 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
         }
     }
 
-    // 🔥 PHỤC HỒI 100% LOGIC ANIMATION HOÀN HẢO CỦA BẠN
     private void UpdateAnimation()
     {
         if (anim == null) return;
@@ -224,7 +196,6 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
         float strafeX = 0f;
         float strafeY = 0f;
 
-        // Xử lý bước chân ngang/lùi chuẩn xác
         if (NetIsAiming && isMovingNow)
         {
             Vector2 forwardDir = NetLastLookDir.normalized;
@@ -240,7 +211,6 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
         anim.SetFloat("MoveX", NetLastLookDir.x);
         anim.SetFloat("MoveY", NetLastLookDir.y);
 
-        // Chỉnh tốc độ Frame
         if (NetIsUsingItem && isMovingNow)
         {
             anim.speed = 0.5f;
@@ -254,10 +224,6 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
             anim.speed = 1f;
         }
     }
-
-    // ==========================================
-    // CÁC HÀM TIỆN ÍCH GIỮ NGUYÊN BẢN GỐC
-    // ==========================================
 
     public void LockMovement(float duration)
     {
@@ -273,15 +239,12 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
 
     public void MakeNoise(float radius)
     {
-        // TRÁNH LỖI MẠNG: Chỉ có máy chủ (Host) mới được gọi Zombie, 
-        // để tránh việc 2 máy cùng gọi làm Zombie nghe thấy âm thanh x2
         if (!HasStateAuthority) return;
 
         Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, radius, zombieLayer);
         foreach (Collider2D z in zombies)
         {
             ZOmbieAI_Khoa ai = z.GetComponentInParent<ZOmbieAI_Khoa>();
-            // 🔥 ĐÃ SỬA TÊN HÀM Ở ĐÂY THÀNH RPC_HearSound
             if (ai != null) ai.RPC_HearSound(transform.position);
         }
     }
@@ -306,14 +269,14 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
         angle = (angle + 360) % 360;
 
-        if (angle < 15f || angle >= 345f) return new Vector2(1, 0); // East
-        else if (angle >= 15f && angle < 75f) return new Vector2(1, 1); // NorthEast
-        else if (angle >= 75f && angle < 105f) return new Vector2(0, 1); // North
-        else if (angle >= 105f && angle < 165f) return new Vector2(-1, 1); // NorthWest
-        else if (angle >= 165f && angle < 195f) return new Vector2(-1, 0); // West
-        else if (angle >= 195f && angle < 255f) return new Vector2(-1, -1); // SouthWest
-        else if (angle >= 255f && angle < 285f) return new Vector2(0, -1); // South
-        else if (angle >= 285f && angle < 345f) return new Vector2(1, -1); // SouthEast
+        if (angle < 15f || angle >= 345f) return new Vector2(1, 0);
+        else if (angle >= 15f && angle < 75f) return new Vector2(1, 1);
+        else if (angle >= 75f && angle < 105f) return new Vector2(0, 1);
+        else if (angle >= 105f && angle < 165f) return new Vector2(-1, 1);
+        else if (angle >= 165f && angle < 195f) return new Vector2(-1, 0);
+        else if (angle >= 195f && angle < 255f) return new Vector2(-1, -1);
+        else if (angle >= 255f && angle < 285f) return new Vector2(0, -1);
+        else if (angle >= 285f && angle < 345f) return new Vector2(1, -1);
 
         return new Vector2(1, 0);
     }
