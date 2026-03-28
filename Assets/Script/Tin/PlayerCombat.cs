@@ -22,7 +22,6 @@ public class PlayerCombat : NetworkBehaviour
     public ItemData ammoType;
     public int magazineSize = 30;
 
-    // 🔥 BIẾN MẠNG: Đảm bảo số đạn đồng bộ chính xác trên toàn server
     [Networked] public int currentAmmo { get; set; } = 30;
     private bool isReloading = false;
 
@@ -40,7 +39,6 @@ public class PlayerCombat : NetworkBehaviour
     private PlayerStamina staminaSystem;
     private InventorySystem invSys;
 
-    // 🔥 BIẾN MẠNG: Timer đồng bộ thời gian chờ bắn và đập
     [Networked] private TickTimer nextFireTimer { get; set; }
     [Networked] private TickTimer nextBashTimer { get; set; }
 
@@ -50,20 +48,14 @@ public class PlayerCombat : NetworkBehaviour
         mainCam = Camera.main;
         playerMove = GetComponent<PlayerMovement>();
         staminaSystem = GetComponent<PlayerStamina>();
-
-        // Tìm túi đồ ngay khi vào game
         invSys = FindAnyObjectByType<InventorySystem>();
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
-
-        // Máy chủ (Host) gán số đạn khởi điểm
         if (HasStateAuthority) currentAmmo = magazineSize;
     }
 
-    // 🔥 HÀM UPDATE: Giữ lại để xử lý UI và lệnh nạp đạn cục bộ của máy người chơi
     void Update()
     {
-        // Chỉ chạy các chức năng này cho nhân vật của máy mình
         if (!HasInputAuthority) return;
 
         UpdateAmmoHUD();
@@ -76,32 +68,35 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
-    // 🔥 HÀM XỬ LÝ CHIẾN ĐẤU MẠNG
     public override void FixedUpdateNetwork()
     {
         if (GetInput(out PlayerNetworkInput input))
         {
-            // Đang nạp đạn thì khóa tay, không cho ngắm bắn hay đập báng súng
             if (isReloading) return;
-
-            // TỪ ĐÂY TRỞ XUỐNG BẮT BUỘC PHẢI GIỮ CHUỘT PHẢI ĐỂ NGẮM
             if (!input.isAiming) return;
 
-            // 🔥 ĐÃ FIX: Lấy biến đếm thời gian từ PlayerMovement để xem có đang bận đập báng súng không
-            // Nếu NetAttackLockTimer > 0 nghĩa là đang trong quá trình vung súng đập (0.5 giây)
             bool isMeleeAttacking = playerMove != null && playerMove.NetAttackLockTimer > 0;
 
-            // 1. XỬ LÝ BẮN SÚNG (Thêm chốt chặn !isMeleeAttacking để cấm bắn khi đang đập)
+            // ====================================================
+            // 🔥 HỎI THĂM SKILL: Lục xem có Bậc Thầy Vũ Khí không và đang bật không?
+            // ====================================================
+            bool isWeaponMasterActive = false;
+            if (TryGetComponent(out Skill_WeaponMaster skillWM) && skillWM.IsWeaponMasterActive)
+            {
+                isWeaponMasterActive = true;
+            }
+
+            // 1. XỬ LÝ BẮN SÚNG
             if (input.isShooting && nextFireTimer.ExpiredOrNotRunning(Runner) && !isMeleeAttacking)
             {
-                if (currentAmmo > 0)
+                // 🔥 ĐÃ SỬA: Băng đạn > 0 HOẶC đang bật Bậc Thầy Vũ Khí (dù hết đạn vẫn cho bắn)
+                if (currentAmmo > 0 || isWeaponMasterActive)
                 {
                     nextFireTimer = TickTimer.CreateFromSeconds(Runner, fireRate);
                     Shoot(input.mouseWorldPos);
                 }
                 else
                 {
-                    // Hết đạn - Chỉ báo log trên máy của người chơi đó
                     if (HasInputAuthority)
                     {
                         nextFireTimer = TickTimer.CreateFromSeconds(Runner, fireRate);
@@ -110,7 +105,7 @@ public class PlayerCombat : NetworkBehaviour
                 }
             }
 
-            // 2. XỬ LÝ ĐẬP BÁNG SÚNG (Thêm chốt chặn !isMeleeAttacking cho chắc cú)
+            // 2. XỬ LÝ ĐẬP BÁNG SÚNG
             if (input.isBashing && nextBashTimer.ExpiredOrNotRunning(Runner) && !isMeleeAttacking)
             {
                 if (staminaSystem != null && staminaSystem.currentStamina < bashStaminaCost) return;
@@ -159,7 +154,6 @@ public class PlayerCombat : NetworkBehaviour
         int ammoNeeded = magazineSize - currentAmmo;
         int ammoExtracted = invSys.ConsumeItem(ammoType, ammoNeeded);
 
-        // Gửi lệnh qua mạng để cộng đạn (Nếu là Host thì cộng thẳng, nếu là Client thì xin Host cộng)
         if (HasStateAuthority)
         {
             currentAmmo += ammoExtracted;
@@ -174,7 +168,6 @@ public class PlayerCombat : NetworkBehaviour
         UpdateAmmoHUD();
     }
 
-    // RPC: Hàm này để Client xin Server cho nạp đạn
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_RequestReload(int amountAdded)
     {
@@ -186,17 +179,27 @@ public class PlayerCombat : NetworkBehaviour
         // 1. Máy chủ (Host) trừ đạn và gọi quái nghe tiếng súng
         if (HasStateAuthority)
         {
-            currentAmmo--;
+            // ====================================================
+            // 🔥 TRỪ ĐẠN THÔNG MINH
+            // ====================================================
+            bool consumeAmmo = true;
+            if (TryGetComponent(out Skill_WeaponMaster skillWM) && skillWM.IsWeaponMasterActive)
+            {
+                consumeAmmo = false; // Phá luật, không trừ đạn!
+            }
+
+            if (consumeAmmo)
+            {
+                currentAmmo--;
+            }
+            // ====================================================
+
             if (playerMove != null) playerMove.MakeNoise(shootNoiseRadius);
         }
 
-        // 2. Tính toán hướng bắn dựa trên tọa độ chuột 
         Vector2 shootDirection = (mouseWorldPos - (Vector2)transform.position).normalized;
-
-        // 3. Gọi RPC để MỌI MÁY cùng thấy tia lửa đạn nháy lên
         RPC_ShowMuzzleFlash(shootDirection);
 
-        // 4. MÁY CHỦ QUYẾT ĐỊNH SÁT THƯƠNG
         if (HasStateAuthority)
         {
             RaycastHit2D hit = Physics2D.Raycast(transform.position, shootDirection, weaponRange, enemyLayer);
@@ -205,19 +208,15 @@ public class PlayerCombat : NetworkBehaviour
                 ZOmbieAI_Khoa enemy = hit.collider.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemy != null)
                 {
-                    // ==================================================
-                    // === THÊM HARDCORE: BỊ ĐAU THÌ BẮN SÚNG YẾU ĐI ====
-                    // ==================================================
                     float finalGunDamage = gunDamage;
                     PlayerHealth health = GetComponent<PlayerHealth>();
 
                     if (health != null && health.isInPain)
                     {
-                        finalGunDamage *= 0.7f; // Giảm 30% sát thương súng khi bị đau
+                        finalGunDamage *= 0.7f;
                     }
 
-                    enemy.RPC_TakeDamage(finalGunDamage);
-                    // ==================================================
+                    enemy.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
                 }
             }
         }
@@ -226,15 +225,11 @@ public class PlayerCombat : NetworkBehaviour
     private void Bash()
     {
         int randomAttack = Random.Range(2, 5);
-
-        // Gọi RPC báo cho mọi người thấy mình đang múa báng súng
         RPC_PlayBashAnimation(randomAttack);
 
-        // Trừ thể lực và khóa di chuyển (Client tự làm cho mượt)
         if (playerMove != null) playerMove.LockMovementForAttack(bashDuration);
         if (staminaSystem != null) staminaSystem.ConsumeStamina(bashStaminaCost);
 
-        // Xử lý sát thương và tiếng ồn CỦA MÁY CHỦ
         if (HasStateAuthority)
         {
             if (playerMove != null) playerMove.MakeNoise(bashNoiseRadius);
@@ -247,29 +242,20 @@ public class PlayerCombat : NetworkBehaviour
                 ZOmbieAI_Khoa enemyStats = enemy.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemyStats != null && !alreadyHitZombies.Contains(enemyStats))
                 {
-                    // ==================================================
-                    // === THÊM HARDCORE: BỊ ĐAU THÌ ĐẬP BÁNG YẾU ĐI ====
-                    // ==================================================
                     float finalBashDamage = bashDamage;
                     PlayerHealth health = GetComponent<PlayerHealth>();
 
                     if (health != null && health.isInPain)
                     {
-                        finalBashDamage *= 0.7f; // Giảm 30% lực đập khi bị đau
+                        finalBashDamage *= 0.7f;
                     }
 
-                    enemyStats.RPC_TakeDamage(finalBashDamage);
-                    // ==================================================
-
+                    enemyStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority);
                     alreadyHitZombies.Add(enemyStats);
                 }
             }
         }
     }
-
-    // ==========================================
-    // 🔥 CÁC HÀM ĐỒNG BỘ RPC HÌNH ẢNH MẠNG
-    // ==========================================
 
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
     public void RPC_PlayBashAnimation(int randomAttack)
@@ -302,10 +288,6 @@ public class PlayerCombat : NetworkBehaviour
             StartCoroutine("HideMuzzleFlash");
         }
     }
-
-    // ==========================================
-    // CÁC HÀM TIỆN ÍCH GIỮ NGUYÊN
-    // ==========================================
 
     public void UpdateAmmoHUD()
     {

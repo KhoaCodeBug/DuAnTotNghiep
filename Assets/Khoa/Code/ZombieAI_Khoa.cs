@@ -138,8 +138,6 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         {
             attackTimer -= Runner.DeltaTime;
 
-            // XÓA TIMER TRỪ MÁU, ĐỂ DÀNH TRỪ MÁU CHO ANIMATION EVENT
-
             if (attackTimer <= 0f)
             {
                 isAttacking = false;
@@ -176,7 +174,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             NetIsAttacking = true;
 
             isAttacking = true;
-            hasAppliedDamage = false; // Mở khóa sát thương cho cú cào mới
+            hasAppliedDamage = false;
             attackTimer = attackDuration;
             cooldownTimer = attackCooldown;
 
@@ -263,7 +261,22 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
     private void UpdateTargetMultiplayer()
     {
-        if (isChasing && player != null && player.gameObject.activeInHierarchy) return;
+        if (isChasing && player != null && player.gameObject.activeInHierarchy)
+        {
+            // ====================================================
+            // 🔥 NẾU MỤC TIÊU HIỆN TẠI ĐANG TÀNG HÌNH -> BỎ ĐUỔI
+            // ====================================================
+            if (player.TryGetComponent(out Skill_StealthCrouch currentTargetStealth) && currentTargetStealth.IsInvisible)
+            {
+                isChasing = false;
+                player = null;
+                // Bắt nó phải quét lại từ đầu
+            }
+            else
+            {
+                return; // Nếu mục tiêu bình thường thì cứ đuổi tiếp
+            }
+        }
 
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
         if (allPlayers.Length == 0)
@@ -278,6 +291,14 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         foreach (GameObject p in allPlayers)
         {
+            // ====================================================
+            // 🔥 NẾU ĐỨA NÀY ĐANG BẬT TÀNG HÌNH -> BỎ QUA KHÔNG TÍNH KHOẢNG CÁCH
+            // ====================================================
+            if (p.TryGetComponent(out Skill_StealthCrouch stealth) && stealth.IsInvisible)
+            {
+                continue; // Lướt qua đứa này, đi tìm đứa khác
+            }
+
             float dist = Vector2.Distance(myPos, p.transform.position);
             if (dist < minDist)
             {
@@ -291,6 +312,13 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             player = closest.transform;
             playerCol = closest.GetComponent<Collider2D>();
             playerHealth = closest.GetComponent<PlayerHealth>();
+        }
+        else if (closest == null)
+        {
+            // Nếu quét xong mà không thấy ai (do tất cả đều tàng hình hoặc không có ai)
+            player = null;
+            playerCol = null;
+            playerHealth = null;
         }
     }
 
@@ -322,8 +350,9 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         investigateTimer = 3f;
     }
 
+    // 🔥 CẬP NHẬT HÀM SÁT THƯƠNG ĐỂ NHẬN BIẾT "AI LÀ NGƯỜI BẮN MÌNH"
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_TakeDamage(float damage)
+    public void RPC_TakeDamage(float damage, PlayerRef shooter = default)
     {
         if (NetIsDead) return;
 
@@ -332,7 +361,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         if (CurrentHealth <= 0f)
         {
-            Die();
+            Die(shooter); // Gửi cái tên kẻ bắn mình vào hàm Die
             return;
         }
 
@@ -363,7 +392,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         if (!NetIsDead) spriteRend.color = originalColor;
     }
 
-    private void Die()
+    private void Die(PlayerRef shooter)
     {
         if (NetIsDead) return;
         NetIsDead = true;
@@ -371,6 +400,25 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         rb.linearVelocity = Vector2.zero;
         myCol.enabled = false;
         if (agent != null) agent.enabled = false;
+
+        // ====================================================
+        // 🔥 BÁO CÁO THÀNH TÍCH (CHUẨN UNITY MỚI NHẤT + FUSION 2)
+        // ====================================================
+        if (shooter != PlayerRef.None)
+        {
+            // Thay bằng hàm mới, gắn thêm FindObjectsSortMode.None để tốc độ quét cực nhanh, không gây giật lag
+            Skill_WeaponMaster[] allWeaponMasters = FindObjectsByType<Skill_WeaponMaster>(FindObjectsSortMode.None);
+
+            foreach (var master in allWeaponMasters)
+            {
+                // Kiểm tra xem cuốn bí kíp này có thuộc về cái thằng vừa bắn mình không?
+                if (master.Object != null && master.Object.InputAuthority == shooter)
+                {
+                    master.AddKill(); // Cộng điểm cho nó!
+                    break; // Xong việc thì thoát vòng lặp ngay cho nhẹ máy
+                }
+            }
+        }
 
         StartCoroutine(VanishRoutine());
     }
@@ -381,22 +429,17 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         if (HasStateAuthority) Runner.Despawn(Object);
     }
 
-    // ========================================================
-    // 🔥 ĐẠO DIỄN ĐÃ GỌI TỪ ANIMATION EVENT THÌ XÀI HÀM NÀY!
-    // ========================================================
     public void TriggerAttackDamage()
     {
-        // CHỈ SERVER ĐƯỢC PHÉP TRỪ MÁU ĐỂ TRÁNH CLONE TỰ TRỪ GÂY LỆCH MẠNG
         if (!HasStateAuthority) return;
 
         if (hasAppliedDamage || NetIsDead || playerHealth == null || playerCol == null) return;
 
-        // Cộng thêm 0.5 khoảng cách để bù trừ trễ mạng (Ping)
         float currentDist = Vector2.Distance(myCol.bounds.center, playerCol.bounds.center);
         if (currentDist <= attackRange + 0.5f)
         {
             playerHealth.TakeDamage(zombieDamage);
-            hasAppliedDamage = true; // 1 cú vung tay chỉ cắn 1 lần
+            hasAppliedDamage = true;
         }
     }
 }
