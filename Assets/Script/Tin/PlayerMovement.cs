@@ -121,10 +121,14 @@ public class PlayerMovement : NetworkBehaviour // Kế thừa mạng
 
             // Gắn vào biến mạng
             NetIsAiming = input.isAiming;
-            NetIsRunning = input.isRunning;
-            NetIsCrouching = input.isCrouching;
             NetMoveInput = input.moveInput;
             NetIsMoving = input.moveInput.magnitude > 0.1f;
+
+            // 🔥 FIX LỖI CHẠY TẠI CHỖ TẠI ĐÂY: 
+            // Cài điều kiện: Phải đè Shift (input.isRunning) VÀ đang di chuyển (NetIsMoving) thì mới tính là Đang Chạy
+            NetIsRunning = input.isRunning && NetIsMoving;
+
+            NetIsCrouching = input.isCrouching;
 
             // Xử lý góc nhìn (Chuột hoặc Hướng đi)
             if (input.isAiming)
