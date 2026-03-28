@@ -394,7 +394,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -460,10 +460,10 @@ TextureImporter:
       name: AttackRun_0
       rect:
         serializedVersion: 2
-        x: 56
-        y: 932
-        width: 41
-        height: 42
+        x: 0
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -482,10 +482,10 @@ TextureImporter:
       name: AttackRun_1
       rect:
         serializedVersion: 2
-        x: 184
-        y: 932
-        width: 40
-        height: 42
+        x: 128
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -504,10 +504,10 @@ TextureImporter:
       name: AttackRun_2
       rect:
         serializedVersion: 2
-        x: 312
-        y: 932
-        width: 39
-        height: 42
+        x: 256
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -526,10 +526,10 @@ TextureImporter:
       name: AttackRun_3
       rect:
         serializedVersion: 2
-        x: 439
-        y: 932
-        width: 42
-        height: 42
+        x: 384
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -548,10 +548,10 @@ TextureImporter:
       name: AttackRun_4
       rect:
         serializedVersion: 2
-        x: 564
-        y: 932
-        width: 45
-        height: 42
+        x: 512
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -570,10 +570,10 @@ TextureImporter:
       name: AttackRun_5
       rect:
         serializedVersion: 2
-        x: 692
-        y: 932
-        width: 44
-        height: 42
+        x: 640
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -592,10 +592,10 @@ TextureImporter:
       name: AttackRun_6
       rect:
         serializedVersion: 2
-        x: 823
-        y: 933
-        width: 42
-        height: 40
+        x: 768
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -614,10 +614,10 @@ TextureImporter:
       name: AttackRun_7
       rect:
         serializedVersion: 2
-        x: 951
-        y: 933
-        width: 42
-        height: 41
+        x: 896
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -636,10 +636,10 @@ TextureImporter:
       name: AttackRun_8
       rect:
         serializedVersion: 2
-        x: 1079
-        y: 933
-        width: 41
-        height: 41
+        x: 1024
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -658,10 +658,10 @@ TextureImporter:
       name: AttackRun_9
       rect:
         serializedVersion: 2
-        x: 1207
-        y: 933
-        width: 41
-        height: 42
+        x: 1152
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -680,10 +680,10 @@ TextureImporter:
       name: AttackRun_10
       rect:
         serializedVersion: 2
-        x: 1335
-        y: 933
-        width: 42
-        height: 42
+        x: 1280
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -702,10 +702,10 @@ TextureImporter:
       name: AttackRun_11
       rect:
         serializedVersion: 2
-        x: 1461
-        y: 933
-        width: 44
-        height: 42
+        x: 1408
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -724,10 +724,10 @@ TextureImporter:
       name: AttackRun_12
       rect:
         serializedVersion: 2
-        x: 1588
-        y: 932
-        width: 45
-        height: 42
+        x: 1536
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -746,10 +746,10 @@ TextureImporter:
       name: AttackRun_13
       rect:
         serializedVersion: 2
-        x: 1718
-        y: 933
-        width: 43
-        height: 41
+        x: 1664
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -768,10 +768,10 @@ TextureImporter:
       name: AttackRun_14
       rect:
         serializedVersion: 2
-        x: 1849
-        y: 932
-        width: 40
-        height: 42
+        x: 1792
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -790,10 +790,10 @@ TextureImporter:
       name: AttackRun_15
       rect:
         serializedVersion: 2
-        x: 54
-        y: 801
-        width: 28
-        height: 42
+        x: 0
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -812,10 +812,10 @@ TextureImporter:
       name: AttackRun_16
       rect:
         serializedVersion: 2
-        x: 182
-        y: 802
-        width: 30
-        height: 42
+        x: 128
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -834,10 +834,10 @@ TextureImporter:
       name: AttackRun_17
       rect:
         serializedVersion: 2
-        x: 309
-        y: 802
-        width: 31
-        height: 42
+        x: 256
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -856,10 +856,10 @@ TextureImporter:
       name: AttackRun_18
       rect:
         serializedVersion: 2
-        x: 437
-        y: 802
-        width: 29
-        height: 42
+        x: 384
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -878,10 +878,10 @@ TextureImporter:
       name: AttackRun_19
       rect:
         serializedVersion: 2
-        x: 566
-        y: 801
-        width: 29
-        height: 43
+        x: 512
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -900,10 +900,10 @@ TextureImporter:
       name: AttackRun_20
       rect:
         serializedVersion: 2
-        x: 693
-        y: 802
-        width: 32
-        height: 41
+        x: 640
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -922,10 +922,10 @@ TextureImporter:
       name: AttackRun_21
       rect:
         serializedVersion: 2
-        x: 822
-        y: 802
-        width: 30
-        height: 41
+        x: 768
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -944,10 +944,10 @@ TextureImporter:
       name: AttackRun_22
       rect:
         serializedVersion: 2
-        x: 950
-        y: 801
-        width: 29
-        height: 42
+        x: 896
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -966,10 +966,10 @@ TextureImporter:
       name: AttackRun_23
       rect:
         serializedVersion: 2
-        x: 1079
-        y: 802
-        width: 30
-        height: 42
+        x: 1024
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -988,10 +988,10 @@ TextureImporter:
       name: AttackRun_24
       rect:
         serializedVersion: 2
-        x: 1207
-        y: 802
-        width: 29
-        height: 42
+        x: 1152
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1010,10 +1010,10 @@ TextureImporter:
       name: AttackRun_25
       rect:
         serializedVersion: 2
-        x: 1335
-        y: 801
-        width: 29
-        height: 43
+        x: 1280
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1032,10 +1032,10 @@ TextureImporter:
       name: AttackRun_26
       rect:
         serializedVersion: 2
-        x: 1463
-        y: 801
-        width: 29
-        height: 43
+        x: 1408
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1054,10 +1054,10 @@ TextureImporter:
       name: AttackRun_27
       rect:
         serializedVersion: 2
-        x: 1592
-        y: 802
-        width: 29
-        height: 42
+        x: 1536
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1076,10 +1076,10 @@ TextureImporter:
       name: AttackRun_28
       rect:
         serializedVersion: 2
-        x: 1720
-        y: 802
-        width: 29
-        height: 41
+        x: 1664
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1098,10 +1098,10 @@ TextureImporter:
       name: AttackRun_29
       rect:
         serializedVersion: 2
-        x: 1848
-        y: 801
-        width: 28
-        height: 42
+        x: 1792
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1120,10 +1120,10 @@ TextureImporter:
       name: AttackRun_30
       rect:
         serializedVersion: 2
-        x: 52
-        y: 670
-        width: 23
-        height: 47
+        x: 0
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1142,10 +1142,10 @@ TextureImporter:
       name: AttackRun_31
       rect:
         serializedVersion: 2
-        x: 182
-        y: 671
-        width: 20
-        height: 47
+        x: 128
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1164,10 +1164,10 @@ TextureImporter:
       name: AttackRun_32
       rect:
         serializedVersion: 2
-        x: 308
-        y: 671
-        width: 22
-        height: 48
+        x: 256
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1186,10 +1186,10 @@ TextureImporter:
       name: AttackRun_33
       rect:
         serializedVersion: 2
-        x: 437
-        y: 670
-        width: 21
-        height: 49
+        x: 384
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1208,10 +1208,10 @@ TextureImporter:
       name: AttackRun_34
       rect:
         serializedVersion: 2
-        x: 563
-        y: 670
-        width: 23
-        height: 48
+        x: 512
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1230,10 +1230,10 @@ TextureImporter:
       name: AttackRun_35
       rect:
         serializedVersion: 2
-        x: 692
-        y: 671
-        width: 23
-        height: 47
+        x: 640
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1252,10 +1252,10 @@ TextureImporter:
       name: AttackRun_36
       rect:
         serializedVersion: 2
-        x: 820
-        y: 670
-        width: 24
-        height: 48
+        x: 768
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1274,10 +1274,10 @@ TextureImporter:
       name: AttackRun_37
       rect:
         serializedVersion: 2
-        x: 949
-        y: 670
-        width: 23
-        height: 47
+        x: 896
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1296,10 +1296,10 @@ TextureImporter:
       name: AttackRun_38
       rect:
         serializedVersion: 2
-        x: 1077
-        y: 671
-        width: 24
-        height: 46
+        x: 1024
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1318,10 +1318,10 @@ TextureImporter:
       name: AttackRun_39
       rect:
         serializedVersion: 2
-        x: 1205
-        y: 671
-        width: 24
-        height: 47
+        x: 1152
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1340,10 +1340,10 @@ TextureImporter:
       name: AttackRun_40
       rect:
         serializedVersion: 2
-        x: 1332
-        y: 670
-        width: 24
-        height: 49
+        x: 1280
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1362,10 +1362,10 @@ TextureImporter:
       name: AttackRun_41
       rect:
         serializedVersion: 2
-        x: 1460
-        y: 670
-        width: 24
-        height: 48
+        x: 1408
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1384,10 +1384,10 @@ TextureImporter:
       name: AttackRun_42
       rect:
         serializedVersion: 2
-        x: 1589
-        y: 671
-        width: 23
-        height: 47
+        x: 1536
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1406,10 +1406,10 @@ TextureImporter:
       name: AttackRun_43
       rect:
         serializedVersion: 2
-        x: 1716
-        y: 671
-        width: 23
-        height: 47
+        x: 1664
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1428,10 +1428,10 @@ TextureImporter:
       name: AttackRun_44
       rect:
         serializedVersion: 2
-        x: 1844
-        y: 670
-        width: 23
-        height: 48
+        x: 1792
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1450,10 +1450,10 @@ TextureImporter:
       name: AttackRun_45
       rect:
         serializedVersion: 2
-        x: 37
-        y: 547
-        width: 37
-        height: 47
+        x: 0
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1472,10 +1472,10 @@ TextureImporter:
       name: AttackRun_46
       rect:
         serializedVersion: 2
-        x: 168
-        y: 546
-        width: 34
-        height: 49
+        x: 128
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1494,10 +1494,10 @@ TextureImporter:
       name: AttackRun_47
       rect:
         serializedVersion: 2
-        x: 294
-        y: 546
-        width: 36
-        height: 50
+        x: 256
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1516,10 +1516,10 @@ TextureImporter:
       name: AttackRun_48
       rect:
         serializedVersion: 2
-        x: 421
-        y: 546
-        width: 37
-        height: 50
+        x: 384
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1538,10 +1538,10 @@ TextureImporter:
       name: AttackRun_49
       rect:
         serializedVersion: 2
-        x: 550
-        y: 545
-        width: 36
-        height: 51
+        x: 512
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1560,10 +1560,10 @@ TextureImporter:
       name: AttackRun_50
       rect:
         serializedVersion: 2
-        x: 680
-        y: 547
-        width: 34
-        height: 48
+        x: 640
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1582,10 +1582,10 @@ TextureImporter:
       name: AttackRun_51
       rect:
         serializedVersion: 2
-        x: 806
-        y: 547
-        width: 36
-        height: 48
+        x: 768
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1604,10 +1604,10 @@ TextureImporter:
       name: AttackRun_52
       rect:
         serializedVersion: 2
-        x: 934
-        y: 547
-        width: 36
-        height: 47
+        x: 896
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1626,10 +1626,10 @@ TextureImporter:
       name: AttackRun_53
       rect:
         serializedVersion: 2
-        x: 1064
-        y: 547
-        width: 35
-        height: 47
+        x: 1024
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1648,10 +1648,10 @@ TextureImporter:
       name: AttackRun_54
       rect:
         serializedVersion: 2
-        x: 1192
-        y: 547
-        width: 35
-        height: 48
+        x: 1152
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1670,10 +1670,10 @@ TextureImporter:
       name: AttackRun_55
       rect:
         serializedVersion: 2
-        x: 1318
-        y: 547
-        width: 37
-        height: 48
+        x: 1280
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1692,10 +1692,10 @@ TextureImporter:
       name: AttackRun_56
       rect:
         serializedVersion: 2
-        x: 1446
-        y: 547
-        width: 38
-        height: 48
+        x: 1408
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1714,10 +1714,10 @@ TextureImporter:
       name: AttackRun_57
       rect:
         serializedVersion: 2
-        x: 1576
-        y: 546
-        width: 37
-        height: 48
+        x: 1536
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1736,10 +1736,10 @@ TextureImporter:
       name: AttackRun_58
       rect:
         serializedVersion: 2
-        x: 1703
-        y: 547
-        width: 36
-        height: 48
+        x: 1664
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1758,10 +1758,10 @@ TextureImporter:
       name: AttackRun_59
       rect:
         serializedVersion: 2
-        x: 1829
-        y: 547
-        width: 37
-        height: 47
+        x: 1792
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1780,10 +1780,10 @@ TextureImporter:
       name: AttackRun_60
       rect:
         serializedVersion: 2
-        x: 32
-        y: 422
-        width: 42
-        height: 48
+        x: 0
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1802,10 +1802,10 @@ TextureImporter:
       name: AttackRun_61
       rect:
         serializedVersion: 2
-        x: 165
-        y: 422
-        width: 37
-        height: 49
+        x: 128
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1824,10 +1824,10 @@ TextureImporter:
       name: AttackRun_62
       rect:
         serializedVersion: 2
-        x: 290
-        y: 422
-        width: 41
-        height: 49
+        x: 256
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1846,10 +1846,10 @@ TextureImporter:
       name: AttackRun_63
       rect:
         serializedVersion: 2
-        x: 416
-        y: 423
-        width: 44
-        height: 49
+        x: 384
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1868,10 +1868,10 @@ TextureImporter:
       name: AttackRun_64
       rect:
         serializedVersion: 2
-        x: 544
-        y: 423
-        width: 46
-        height: 48
+        x: 512
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1890,10 +1890,10 @@ TextureImporter:
       name: AttackRun_65
       rect:
         serializedVersion: 2
-        x: 674
-        y: 422
-        width: 44
-        height: 50
+        x: 640
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1912,10 +1912,10 @@ TextureImporter:
       name: AttackRun_66
       rect:
         serializedVersion: 2
-        x: 800
-        y: 422
-        width: 43
-        height: 49
+        x: 768
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1934,10 +1934,10 @@ TextureImporter:
       name: AttackRun_67
       rect:
         serializedVersion: 2
-        x: 929
-        y: 422
-        width: 41
-        height: 48
+        x: 896
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1956,10 +1956,10 @@ TextureImporter:
       name: AttackRun_68
       rect:
         serializedVersion: 2
-        x: 1058
-        y: 421
-        width: 40
-        height: 49
+        x: 1024
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1978,10 +1978,10 @@ TextureImporter:
       name: AttackRun_69
       rect:
         serializedVersion: 2
-        x: 1187
-        y: 421
-        width: 39
-        height: 50
+        x: 1152
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2000,10 +2000,10 @@ TextureImporter:
       name: AttackRun_70
       rect:
         serializedVersion: 2
-        x: 1313
-        y: 422
-        width: 42
-        height: 49
+        x: 1280
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2022,10 +2022,10 @@ TextureImporter:
       name: AttackRun_71
       rect:
         serializedVersion: 2
-        x: 1440
-        y: 422
-        width: 45
-        height: 50
+        x: 1408
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2044,10 +2044,10 @@ TextureImporter:
       name: AttackRun_72
       rect:
         serializedVersion: 2
-        x: 1572
-        y: 422
-        width: 42
-        height: 49
+        x: 1536
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2066,10 +2066,10 @@ TextureImporter:
       name: AttackRun_73
       rect:
         serializedVersion: 2
-        x: 1698
-        y: 422
-        width: 42
-        height: 49
+        x: 1664
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2088,10 +2088,10 @@ TextureImporter:
       name: AttackRun_74
       rect:
         serializedVersion: 2
-        x: 1825
-        y: 422
-        width: 41
-        height: 48
+        x: 1792
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2110,10 +2110,10 @@ TextureImporter:
       name: AttackRun_75
       rect:
         serializedVersion: 2
-        x: 47
-        y: 295
-        width: 28
-        height: 55
+        x: 0
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2132,10 +2132,10 @@ TextureImporter:
       name: AttackRun_76
       rect:
         serializedVersion: 2
-        x: 175
-        y: 295
-        width: 28
-        height: 55
+        x: 128
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2154,10 +2154,10 @@ TextureImporter:
       name: AttackRun_77
       rect:
         serializedVersion: 2
-        x: 303
-        y: 295
-        width: 28
-        height: 56
+        x: 256
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2176,10 +2176,10 @@ TextureImporter:
       name: AttackRun_78
       rect:
         serializedVersion: 2
-        x: 432
-        y: 295
-        width: 27
-        height: 56
+        x: 384
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2198,10 +2198,10 @@ TextureImporter:
       name: AttackRun_79
       rect:
         serializedVersion: 2
-        x: 559
-        y: 294
-        width: 29
-        height: 57
+        x: 512
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2220,10 +2220,10 @@ TextureImporter:
       name: AttackRun_80
       rect:
         serializedVersion: 2
-        x: 686
-        y: 294
-        width: 32
-        height: 57
+        x: 640
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2242,10 +2242,10 @@ TextureImporter:
       name: AttackRun_81
       rect:
         serializedVersion: 2
-        x: 814
-        y: 294
-        width: 30
-        height: 56
+        x: 768
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2264,10 +2264,10 @@ TextureImporter:
       name: AttackRun_82
       rect:
         serializedVersion: 2
-        x: 943
-        y: 294
-        width: 28
-        height: 56
+        x: 896
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2286,10 +2286,10 @@ TextureImporter:
       name: AttackRun_83
       rect:
         serializedVersion: 2
-        x: 1070
-        y: 294
-        width: 29
-        height: 56
+        x: 1024
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2308,10 +2308,10 @@ TextureImporter:
       name: AttackRun_84
       rect:
         serializedVersion: 2
-        x: 1198
-        y: 294
-        width: 29
-        height: 56
+        x: 1152
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2330,10 +2330,10 @@ TextureImporter:
       name: AttackRun_85
       rect:
         serializedVersion: 2
-        x: 1327
-        y: 294
-        width: 28
-        height: 56
+        x: 1280
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2352,10 +2352,10 @@ TextureImporter:
       name: AttackRun_86
       rect:
         serializedVersion: 2
-        x: 1455
-        y: 293
-        width: 27
-        height: 57
+        x: 1408
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2374,10 +2374,10 @@ TextureImporter:
       name: AttackRun_87
       rect:
         serializedVersion: 2
-        x: 1582
-        y: 293
-        width: 28
-        height: 57
+        x: 1536
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2396,10 +2396,10 @@ TextureImporter:
       name: AttackRun_88
       rect:
         serializedVersion: 2
-        x: 1710
-        y: 294
-        width: 28
-        height: 56
+        x: 1664
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2418,10 +2418,10 @@ TextureImporter:
       name: AttackRun_89
       rect:
         serializedVersion: 2
-        x: 1839
-        y: 294
-        width: 28
-        height: 56
+        x: 1792
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2440,10 +2440,10 @@ TextureImporter:
       name: AttackRun_90
       rect:
         serializedVersion: 2
-        x: 55
-        y: 167
-        width: 22
-        height: 57
+        x: 0
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2462,10 +2462,10 @@ TextureImporter:
       name: AttackRun_91
       rect:
         serializedVersion: 2
-        x: 183
-        y: 166
-        width: 21
-        height: 60
+        x: 128
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2484,10 +2484,10 @@ TextureImporter:
       name: AttackRun_92
       rect:
         serializedVersion: 2
-        x: 311
-        y: 166
-        width: 22
-        height: 60
+        x: 256
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2506,10 +2506,10 @@ TextureImporter:
       name: AttackRun_93
       rect:
         serializedVersion: 2
-        x: 440
-        y: 165
-        width: 21
-        height: 61
+        x: 384
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2528,10 +2528,10 @@ TextureImporter:
       name: AttackRun_94
       rect:
         serializedVersion: 2
-        x: 567
-        y: 164
-        width: 22
-        height: 57
+        x: 512
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2550,10 +2550,10 @@ TextureImporter:
       name: AttackRun_95
       rect:
         serializedVersion: 2
-        x: 695
-        y: 163
-        width: 22
-        height: 64
+        x: 640
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2572,10 +2572,10 @@ TextureImporter:
       name: AttackRun_96
       rect:
         serializedVersion: 2
-        x: 822
-        y: 166
-        width: 23
-        height: 59
+        x: 768
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2594,10 +2594,10 @@ TextureImporter:
       name: AttackRun_97
       rect:
         serializedVersion: 2
-        x: 949
-        y: 167
-        width: 24
-        height: 52
+        x: 896
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2616,10 +2616,10 @@ TextureImporter:
       name: AttackRun_98
       rect:
         serializedVersion: 2
-        x: 1077
-        y: 167
-        width: 23
-        height: 59
+        x: 1024
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2638,10 +2638,10 @@ TextureImporter:
       name: AttackRun_99
       rect:
         serializedVersion: 2
-        x: 1205
-        y: 167
-        width: 23
-        height: 59
+        x: 1152
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2660,10 +2660,10 @@ TextureImporter:
       name: AttackRun_100
       rect:
         serializedVersion: 2
-        x: 1333
-        y: 166
-        width: 24
-        height: 60
+        x: 1280
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2682,10 +2682,10 @@ TextureImporter:
       name: AttackRun_101
       rect:
         serializedVersion: 2
-        x: 1461
-        y: 165
-        width: 24
-        height: 61
+        x: 1408
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2704,10 +2704,10 @@ TextureImporter:
       name: AttackRun_102
       rect:
         serializedVersion: 2
-        x: 1590
-        y: 164
-        width: 22
-        height: 62
+        x: 1536
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2726,10 +2726,10 @@ TextureImporter:
       name: AttackRun_103
       rect:
         serializedVersion: 2
-        x: 1719
-        y: 165
-        width: 21
-        height: 57
+        x: 1664
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2748,10 +2748,10 @@ TextureImporter:
       name: AttackRun_104
       rect:
         serializedVersion: 2
-        x: 1847
-        y: 167
-        width: 22
-        height: 52
+        x: 1792
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2770,10 +2770,10 @@ TextureImporter:
       name: AttackRun_105
       rect:
         serializedVersion: 2
-        x: 56
-        y: 38
-        width: 37
-        height: 48
+        x: 0
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2792,10 +2792,10 @@ TextureImporter:
       name: AttackRun_106
       rect:
         serializedVersion: 2
-        x: 183
-        y: 38
-        width: 36
-        height: 50
+        x: 128
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2814,10 +2814,10 @@ TextureImporter:
       name: AttackRun_107
       rect:
         serializedVersion: 2
-        x: 312
-        y: 37
-        width: 36
-        height: 52
+        x: 256
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2836,10 +2836,10 @@ TextureImporter:
       name: AttackRun_108
       rect:
         serializedVersion: 2
-        x: 440
-        y: 37
-        width: 37
-        height: 50
+        x: 384
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2858,10 +2858,10 @@ TextureImporter:
       name: AttackRun_109
       rect:
         serializedVersion: 2
-        x: 568
-        y: 37
-        width: 37
-        height: 51
+        x: 512
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2880,10 +2880,10 @@ TextureImporter:
       name: AttackRun_110
       rect:
         serializedVersion: 2
-        x: 696
-        y: 36
-        width: 35
-        height: 55
+        x: 640
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2902,10 +2902,10 @@ TextureImporter:
       name: AttackRun_111
       rect:
         serializedVersion: 2
-        x: 823
-        y: 37
-        width: 38
-        height: 51
+        x: 768
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2924,10 +2924,10 @@ TextureImporter:
       name: AttackRun_112
       rect:
         serializedVersion: 2
-        x: 951
-        y: 39
-        width: 38
-        height: 48
+        x: 896
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2946,10 +2946,10 @@ TextureImporter:
       name: AttackRun_113
       rect:
         serializedVersion: 2
-        x: 1079
-        y: 39
-        width: 36
-        height: 51
+        x: 1024
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2968,10 +2968,10 @@ TextureImporter:
       name: AttackRun_114
       rect:
         serializedVersion: 2
-        x: 1207
-        y: 39
-        width: 36
-        height: 51
+        x: 1152
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2990,10 +2990,10 @@ TextureImporter:
       name: AttackRun_115
       rect:
         serializedVersion: 2
-        x: 1335
-        y: 38
-        width: 38
-        height: 50
+        x: 1280
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3012,10 +3012,10 @@ TextureImporter:
       name: AttackRun_116
       rect:
         serializedVersion: 2
-        x: 1462
-        y: 39
-        width: 38
-        height: 49
+        x: 1408
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3034,10 +3034,10 @@ TextureImporter:
       name: AttackRun_117
       rect:
         serializedVersion: 2
-        x: 1589
-        y: 39
-        width: 37
-        height: 51
+        x: 1536
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3056,10 +3056,10 @@ TextureImporter:
       name: AttackRun_118
       rect:
         serializedVersion: 2
-        x: 1719
-        y: 39
-        width: 36
-        height: 50
+        x: 1664
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3078,10 +3078,10 @@ TextureImporter:
       name: AttackRun_119
       rect:
         serializedVersion: 2
-        x: 1848
-        y: 38
-        width: 37
-        height: 49
+        x: 1792
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3100,7 +3100,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 585c87a377687a74aa105db224c1284b
     internalID: 0
     vertices: []
     indices: 

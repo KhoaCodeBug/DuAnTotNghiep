@@ -412,7 +412,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: 0
     aniso: 1
     mipBias: 0
     wrapU: 1
@@ -478,10 +478,10 @@ TextureImporter:
       name: CrouchRun_0
       rect:
         serializedVersion: 2
-        x: 57
-        y: 933
-        width: 30
-        height: 40
+        x: 0
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -500,10 +500,10 @@ TextureImporter:
       name: CrouchRun_1
       rect:
         serializedVersion: 2
-        x: 184
-        y: 932
-        width: 31
-        height: 42
+        x: 128
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -522,10 +522,10 @@ TextureImporter:
       name: CrouchRun_2
       rect:
         serializedVersion: 2
-        x: 312
-        y: 932
-        width: 31
-        height: 41
+        x: 256
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -544,10 +544,10 @@ TextureImporter:
       name: CrouchRun_3
       rect:
         serializedVersion: 2
-        x: 440
-        y: 932
-        width: 31
-        height: 41
+        x: 384
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -566,10 +566,10 @@ TextureImporter:
       name: CrouchRun_4
       rect:
         serializedVersion: 2
-        x: 566
-        y: 933
-        width: 33
-        height: 40
+        x: 512
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -588,10 +588,10 @@ TextureImporter:
       name: CrouchRun_5
       rect:
         serializedVersion: 2
-        x: 693
-        y: 933
-        width: 35
-        height: 40
+        x: 640
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -610,10 +610,10 @@ TextureImporter:
       name: CrouchRun_6
       rect:
         serializedVersion: 2
-        x: 820
-        y: 933
-        width: 36
-        height: 39
+        x: 768
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -632,10 +632,10 @@ TextureImporter:
       name: CrouchRun_7
       rect:
         serializedVersion: 2
-        x: 950
-        y: 933
-        width: 34
-        height: 40
+        x: 896
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -654,10 +654,10 @@ TextureImporter:
       name: CrouchRun_8
       rect:
         serializedVersion: 2
-        x: 1080
-        y: 934
-        width: 32
-        height: 39
+        x: 1024
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -676,10 +676,10 @@ TextureImporter:
       name: CrouchRun_9
       rect:
         serializedVersion: 2
-        x: 1208
-        y: 934
-        width: 32
-        height: 39
+        x: 1152
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -698,10 +698,10 @@ TextureImporter:
       name: CrouchRun_10
       rect:
         serializedVersion: 2
-        x: 1336
-        y: 933
-        width: 32
-        height: 40
+        x: 1280
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -720,10 +720,10 @@ TextureImporter:
       name: CrouchRun_11
       rect:
         serializedVersion: 2
-        x: 1462
-        y: 933
-        width: 34
-        height: 40
+        x: 1408
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -742,10 +742,10 @@ TextureImporter:
       name: CrouchRun_12
       rect:
         serializedVersion: 2
-        x: 1589
-        y: 933
-        width: 34
-        height: 40
+        x: 1536
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -764,10 +764,10 @@ TextureImporter:
       name: CrouchRun_13
       rect:
         serializedVersion: 2
-        x: 1718
-        y: 933
-        width: 32
-        height: 39
+        x: 1664
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -786,10 +786,10 @@ TextureImporter:
       name: CrouchRun_14
       rect:
         serializedVersion: 2
-        x: 1849
-        y: 933
-        width: 31
-        height: 40
+        x: 1792
+        y: 896
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -808,10 +808,10 @@ TextureImporter:
       name: CrouchRun_15
       rect:
         serializedVersion: 2
-        x: 56
-        y: 801
-        width: 32
-        height: 40
+        x: 0
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -830,10 +830,10 @@ TextureImporter:
       name: CrouchRun_16
       rect:
         serializedVersion: 2
-        x: 183
-        y: 801
-        width: 33
-        height: 41
+        x: 128
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -852,10 +852,10 @@ TextureImporter:
       name: CrouchRun_17
       rect:
         serializedVersion: 2
-        x: 311
-        y: 802
-        width: 33
-        height: 40
+        x: 256
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -874,10 +874,10 @@ TextureImporter:
       name: CrouchRun_18
       rect:
         serializedVersion: 2
-        x: 439
-        y: 802
-        width: 34
-        height: 40
+        x: 384
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -896,10 +896,10 @@ TextureImporter:
       name: CrouchRun_19
       rect:
         serializedVersion: 2
-        x: 568
-        y: 802
-        width: 33
-        height: 40
+        x: 512
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -918,10 +918,10 @@ TextureImporter:
       name: CrouchRun_20
       rect:
         serializedVersion: 2
-        x: 695
-        y: 802
-        width: 34
-        height: 39
+        x: 640
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -940,10 +940,10 @@ TextureImporter:
       name: CrouchRun_21
       rect:
         serializedVersion: 2
-        x: 823
-        y: 802
-        width: 34
-        height: 39
+        x: 768
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -962,10 +962,10 @@ TextureImporter:
       name: CrouchRun_22
       rect:
         serializedVersion: 2
-        x: 951
-        y: 802
-        width: 35
-        height: 39
+        x: 896
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -984,10 +984,10 @@ TextureImporter:
       name: CrouchRun_23
       rect:
         serializedVersion: 2
-        x: 1081
-        y: 802
-        width: 33
-        height: 39
+        x: 1024
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1006,10 +1006,10 @@ TextureImporter:
       name: CrouchRun_24
       rect:
         serializedVersion: 2
-        x: 1209
-        y: 802
-        width: 32
-        height: 39
+        x: 1152
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1028,10 +1028,10 @@ TextureImporter:
       name: CrouchRun_25
       rect:
         serializedVersion: 2
-        x: 1336
-        y: 802
-        width: 33
-        height: 39
+        x: 1280
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1050,10 +1050,10 @@ TextureImporter:
       name: CrouchRun_26
       rect:
         serializedVersion: 2
-        x: 1465
-        y: 802
-        width: 32
-        height: 39
+        x: 1408
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1072,10 +1072,10 @@ TextureImporter:
       name: CrouchRun_27
       rect:
         serializedVersion: 2
-        x: 1593
-        y: 801
-        width: 32
-        height: 40
+        x: 1536
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1094,10 +1094,10 @@ TextureImporter:
       name: CrouchRun_28
       rect:
         serializedVersion: 2
-        x: 1721
-        y: 801
-        width: 32
-        height: 39
+        x: 1664
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1116,10 +1116,10 @@ TextureImporter:
       name: CrouchRun_29
       rect:
         serializedVersion: 2
-        x: 1848
-        y: 801
-        width: 33
-        height: 40
+        x: 1792
+        y: 768
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1138,10 +1138,10 @@ TextureImporter:
       name: CrouchRun_30
       rect:
         serializedVersion: 2
-        x: 51
-        y: 672
-        width: 26
-        height: 42
+        x: 0
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1160,10 +1160,10 @@ TextureImporter:
       name: CrouchRun_31
       rect:
         serializedVersion: 2
-        x: 178
-        y: 673
-        width: 27
-        height: 41
+        x: 128
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1182,10 +1182,10 @@ TextureImporter:
       name: CrouchRun_32
       rect:
         serializedVersion: 2
-        x: 306
-        y: 671
-        width: 27
-        height: 43
+        x: 256
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1204,10 +1204,10 @@ TextureImporter:
       name: CrouchRun_33
       rect:
         serializedVersion: 2
-        x: 434
-        y: 673
-        width: 27
-        height: 41
+        x: 384
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1226,10 +1226,10 @@ TextureImporter:
       name: CrouchRun_34
       rect:
         serializedVersion: 2
-        x: 563
-        y: 673
-        width: 26
-        height: 41
+        x: 512
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1248,10 +1248,10 @@ TextureImporter:
       name: CrouchRun_35
       rect:
         serializedVersion: 2
-        x: 692
-        y: 673
-        width: 26
-        height: 40
+        x: 640
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1270,10 +1270,10 @@ TextureImporter:
       name: CrouchRun_36
       rect:
         serializedVersion: 2
-        x: 821
-        y: 673
-        width: 24
-        height: 40
+        x: 768
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1292,10 +1292,10 @@ TextureImporter:
       name: CrouchRun_37
       rect:
         serializedVersion: 2
-        x: 949
-        y: 673
-        width: 24
-        height: 40
+        x: 896
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1314,10 +1314,10 @@ TextureImporter:
       name: CrouchRun_38
       rect:
         serializedVersion: 2
-        x: 1076
-        y: 673
-        width: 25
-        height: 40
+        x: 1024
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1336,10 +1336,10 @@ TextureImporter:
       name: CrouchRun_39
       rect:
         serializedVersion: 2
-        x: 1204
-        y: 673
-        width: 24
-        height: 40
+        x: 1152
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1358,10 +1358,10 @@ TextureImporter:
       name: CrouchRun_40
       rect:
         serializedVersion: 2
-        x: 1223
-        y: 682
-        width: 6
-        height: 6
+        x: 1280
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1380,10 +1380,10 @@ TextureImporter:
       name: CrouchRun_41
       rect:
         serializedVersion: 2
-        x: 1331
-        y: 673
-        width: 26
-        height: 41
+        x: 1408
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1402,10 +1402,10 @@ TextureImporter:
       name: CrouchRun_42
       rect:
         serializedVersion: 2
-        x: 1459
-        y: 673
-        width: 25
-        height: 40
+        x: 1536
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1424,10 +1424,10 @@ TextureImporter:
       name: CrouchRun_43
       rect:
         serializedVersion: 2
-        x: 1479
-        y: 682
-        width: 6
-        height: 6
+        x: 1664
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1446,10 +1446,10 @@ TextureImporter:
       name: CrouchRun_44
       rect:
         serializedVersion: 2
-        x: 1588
-        y: 672
-        width: 25
-        height: 41
+        x: 1792
+        y: 640
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1468,10 +1468,10 @@ TextureImporter:
       name: CrouchRun_45
       rect:
         serializedVersion: 2
-        x: 1717
-        y: 672
-        width: 24
-        height: 41
+        x: 0
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1490,10 +1490,10 @@ TextureImporter:
       name: CrouchRun_46
       rect:
         serializedVersion: 2
-        x: 1844
-        y: 672
-        width: 25
-        height: 41
+        x: 128
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1512,10 +1512,10 @@ TextureImporter:
       name: CrouchRun_47
       rect:
         serializedVersion: 2
-        x: 48
-        y: 546
-        width: 25
-        height: 44
+        x: 256
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1534,10 +1534,10 @@ TextureImporter:
       name: CrouchRun_48
       rect:
         serializedVersion: 2
-        x: 177
-        y: 547
-        width: 24
-        height: 43
+        x: 384
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1556,10 +1556,10 @@ TextureImporter:
       name: CrouchRun_49
       rect:
         serializedVersion: 2
-        x: 304
-        y: 546
-        width: 26
-        height: 44
+        x: 512
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1578,10 +1578,10 @@ TextureImporter:
       name: CrouchRun_50
       rect:
         serializedVersion: 2
-        x: 433
-        y: 547
-        width: 25
-        height: 43
+        x: 640
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1600,10 +1600,10 @@ TextureImporter:
       name: CrouchRun_51
       rect:
         serializedVersion: 2
-        x: 561
-        y: 547
-        width: 25
-        height: 42
+        x: 768
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1622,10 +1622,10 @@ TextureImporter:
       name: CrouchRun_52
       rect:
         serializedVersion: 2
-        x: 689
-        y: 546
-        width: 25
-        height: 44
+        x: 896
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1644,10 +1644,10 @@ TextureImporter:
       name: CrouchRun_53
       rect:
         serializedVersion: 2
-        x: 817
-        y: 546
-        width: 25
-        height: 44
+        x: 1024
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1666,10 +1666,10 @@ TextureImporter:
       name: CrouchRun_54
       rect:
         serializedVersion: 2
-        x: 944
-        y: 546
-        width: 26
-        height: 43
+        x: 1152
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1688,10 +1688,10 @@ TextureImporter:
       name: CrouchRun_55
       rect:
         serializedVersion: 2
-        x: 1072
-        y: 546
-        width: 26
-        height: 44
+        x: 1280
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1710,10 +1710,10 @@ TextureImporter:
       name: CrouchRun_56
       rect:
         serializedVersion: 2
-        x: 1201
-        y: 546
-        width: 25
-        height: 44
+        x: 1408
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1732,10 +1732,10 @@ TextureImporter:
       name: CrouchRun_57
       rect:
         serializedVersion: 2
-        x: 1329
-        y: 546
-        width: 25
-        height: 43
+        x: 1536
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1754,10 +1754,10 @@ TextureImporter:
       name: CrouchRun_58
       rect:
         serializedVersion: 2
-        x: 1457
-        y: 546
-        width: 26
-        height: 43
+        x: 1664
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1776,10 +1776,10 @@ TextureImporter:
       name: CrouchRun_59
       rect:
         serializedVersion: 2
-        x: 1584
-        y: 546
-        width: 28
-        height: 43
+        x: 1792
+        y: 512
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1798,10 +1798,10 @@ TextureImporter:
       name: CrouchRun_60
       rect:
         serializedVersion: 2
-        x: 1711
-        y: 546
-        width: 29
-        height: 43
+        x: 0
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1820,10 +1820,10 @@ TextureImporter:
       name: CrouchRun_61
       rect:
         serializedVersion: 2
-        x: 1840
-        y: 546
-        width: 26
-        height: 43
+        x: 128
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1842,10 +1842,10 @@ TextureImporter:
       name: CrouchRun_62
       rect:
         serializedVersion: 2
-        x: 43
-        y: 422
-        width: 30
-        height: 46
+        x: 256
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1864,10 +1864,10 @@ TextureImporter:
       name: CrouchRun_63
       rect:
         serializedVersion: 2
-        x: 43
-        y: 434
-        width: 6
-        height: 8
+        x: 384
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1886,10 +1886,10 @@ TextureImporter:
       name: CrouchRun_64
       rect:
         serializedVersion: 2
-        x: 172
-        y: 423
-        width: 30
-        height: 44
+        x: 512
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1908,10 +1908,10 @@ TextureImporter:
       name: CrouchRun_65
       rect:
         serializedVersion: 2
-        x: 300
-        y: 423
-        width: 30
-        height: 45
+        x: 640
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1930,10 +1930,10 @@ TextureImporter:
       name: CrouchRun_66
       rect:
         serializedVersion: 2
-        x: 428
-        y: 423
-        width: 30
-        height: 44
+        x: 768
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1952,10 +1952,10 @@ TextureImporter:
       name: CrouchRun_67
       rect:
         serializedVersion: 2
-        x: 555
-        y: 423
-        width: 33
-        height: 44
+        x: 896
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1974,10 +1974,10 @@ TextureImporter:
       name: CrouchRun_68
       rect:
         serializedVersion: 2
-        x: 683
-        y: 422
-        width: 35
-        height: 45
+        x: 1024
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -1996,10 +1996,10 @@ TextureImporter:
       name: CrouchRun_69
       rect:
         serializedVersion: 2
-        x: 810
-        y: 422
-        width: 35
-        height: 45
+        x: 1152
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2018,10 +2018,10 @@ TextureImporter:
       name: CrouchRun_70
       rect:
         serializedVersion: 2
-        x: 938
-        y: 422
-        width: 34
-        height: 46
+        x: 1280
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2040,10 +2040,10 @@ TextureImporter:
       name: CrouchRun_71
       rect:
         serializedVersion: 2
-        x: 1066
-        y: 422
-        width: 31
-        height: 46
+        x: 1408
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2062,10 +2062,10 @@ TextureImporter:
       name: CrouchRun_72
       rect:
         serializedVersion: 2
-        x: 1194
-        y: 433
-        width: 6
-        height: 8
+        x: 1536
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2084,10 +2084,10 @@ TextureImporter:
       name: CrouchRun_73
       rect:
         serializedVersion: 2
-        x: 1197
-        y: 422
-        width: 29
-        height: 45
+        x: 1664
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2106,10 +2106,10 @@ TextureImporter:
       name: CrouchRun_74
       rect:
         serializedVersion: 2
-        x: 1323
-        y: 422
-        width: 31
-        height: 45
+        x: 1792
+        y: 384
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2128,10 +2128,10 @@ TextureImporter:
       name: CrouchRun_75
       rect:
         serializedVersion: 2
-        x: 1451
-        y: 422
-        width: 33
-        height: 45
+        x: 0
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2150,10 +2150,10 @@ TextureImporter:
       name: CrouchRun_76
       rect:
         serializedVersion: 2
-        x: 1579
-        y: 422
-        width: 35
-        height: 45
+        x: 128
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2172,10 +2172,10 @@ TextureImporter:
       name: CrouchRun_77
       rect:
         serializedVersion: 2
-        x: 1706
-        y: 422
-        width: 34
-        height: 45
+        x: 256
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2194,10 +2194,10 @@ TextureImporter:
       name: CrouchRun_78
       rect:
         serializedVersion: 2
-        x: 1835
-        y: 423
-        width: 30
-        height: 44
+        x: 384
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2216,10 +2216,10 @@ TextureImporter:
       name: CrouchRun_79
       rect:
         serializedVersion: 2
-        x: 1194
-        y: 425
-        width: 6
-        height: 6
+        x: 512
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2238,10 +2238,10 @@ TextureImporter:
       name: CrouchRun_80
       rect:
         serializedVersion: 2
-        x: 42
-        y: 296
-        width: 32
-        height: 48
+        x: 640
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2260,10 +2260,10 @@ TextureImporter:
       name: CrouchRun_81
       rect:
         serializedVersion: 2
-        x: 171
-        y: 295
-        width: 31
-        height: 48
+        x: 768
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2282,10 +2282,10 @@ TextureImporter:
       name: CrouchRun_82
       rect:
         serializedVersion: 2
-        x: 298
-        y: 295
-        width: 32
-        height: 48
+        x: 896
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2304,10 +2304,10 @@ TextureImporter:
       name: CrouchRun_83
       rect:
         serializedVersion: 2
-        x: 426
-        y: 295
-        width: 33
-        height: 48
+        x: 1024
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2326,10 +2326,10 @@ TextureImporter:
       name: CrouchRun_84
       rect:
         serializedVersion: 2
-        x: 553
-        y: 295
-        width: 33
-        height: 47
+        x: 1152
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2348,10 +2348,10 @@ TextureImporter:
       name: CrouchRun_85
       rect:
         serializedVersion: 2
-        x: 681
-        y: 295
-        width: 34
-        height: 48
+        x: 1280
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2370,10 +2370,10 @@ TextureImporter:
       name: CrouchRun_86
       rect:
         serializedVersion: 2
-        x: 809
-        y: 295
-        width: 35
-        height: 48
+        x: 1408
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2392,10 +2392,10 @@ TextureImporter:
       name: CrouchRun_87
       rect:
         serializedVersion: 2
-        x: 937
-        y: 295
-        width: 34
-        height: 48
+        x: 1536
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2414,10 +2414,10 @@ TextureImporter:
       name: CrouchRun_88
       rect:
         serializedVersion: 2
-        x: 1065
-        y: 295
-        width: 32
-        height: 49
+        x: 1664
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2436,10 +2436,10 @@ TextureImporter:
       name: CrouchRun_89
       rect:
         serializedVersion: 2
-        x: 1194
-        y: 295
-        width: 31
-        height: 48
+        x: 1792
+        y: 256
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2458,10 +2458,10 @@ TextureImporter:
       name: CrouchRun_90
       rect:
         serializedVersion: 2
-        x: 1321
-        y: 318
-        width: 7
-        height: 6
+        x: 0
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2480,10 +2480,10 @@ TextureImporter:
       name: CrouchRun_91
       rect:
         serializedVersion: 2
-        x: 1323
-        y: 295
-        width: 30
-        height: 48
+        x: 128
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2502,10 +2502,10 @@ TextureImporter:
       name: CrouchRun_92
       rect:
         serializedVersion: 2
-        x: 1449
-        y: 294
-        width: 32
-        height: 49
+        x: 256
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2524,10 +2524,10 @@ TextureImporter:
       name: CrouchRun_93
       rect:
         serializedVersion: 2
-        x: 1578
-        y: 294
-        width: 31
-        height: 49
+        x: 384
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2546,10 +2546,10 @@ TextureImporter:
       name: CrouchRun_94
       rect:
         serializedVersion: 2
-        x: 1705
-        y: 293
-        width: 32
-        height: 50
+        x: 512
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2568,10 +2568,10 @@ TextureImporter:
       name: CrouchRun_95
       rect:
         serializedVersion: 2
-        x: 1833
-        y: 295
-        width: 32
-        height: 49
+        x: 640
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2590,10 +2590,10 @@ TextureImporter:
       name: CrouchRun_96
       rect:
         serializedVersion: 2
-        x: 54
-        y: 167
-        width: 25
-        height: 48
+        x: 768
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2612,10 +2612,10 @@ TextureImporter:
       name: CrouchRun_97
       rect:
         serializedVersion: 2
-        x: 181
-        y: 167
-        width: 26
-        height: 48
+        x: 896
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2634,10 +2634,10 @@ TextureImporter:
       name: CrouchRun_98
       rect:
         serializedVersion: 2
-        x: 309
-        y: 167
-        width: 26
-        height: 48
+        x: 1024
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2656,10 +2656,10 @@ TextureImporter:
       name: CrouchRun_99
       rect:
         serializedVersion: 2
-        x: 437
-        y: 166
-        width: 26
-        height: 48
+        x: 1152
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2678,10 +2678,10 @@ TextureImporter:
       name: CrouchRun_100
       rect:
         serializedVersion: 2
-        x: 566
-        y: 166
-        width: 24
-        height: 48
+        x: 1280
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2700,10 +2700,10 @@ TextureImporter:
       name: CrouchRun_101
       rect:
         serializedVersion: 2
-        x: 693
-        y: 165
-        width: 25
-        height: 49
+        x: 1408
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2722,10 +2722,10 @@ TextureImporter:
       name: CrouchRun_102
       rect:
         serializedVersion: 2
-        x: 822
-        y: 164
-        width: 24
-        height: 51
+        x: 1536
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2744,10 +2744,10 @@ TextureImporter:
       name: CrouchRun_103
       rect:
         serializedVersion: 2
-        x: 949
-        y: 165
-        width: 25
-        height: 50
+        x: 1664
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2766,10 +2766,10 @@ TextureImporter:
       name: CrouchRun_104
       rect:
         serializedVersion: 2
-        x: 1077
-        y: 167
-        width: 25
-        height: 48
+        x: 1792
+        y: 128
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2788,10 +2788,10 @@ TextureImporter:
       name: CrouchRun_105
       rect:
         serializedVersion: 2
-        x: 1205
-        y: 167
-        width: 25
-        height: 48
+        x: 0
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2810,10 +2810,10 @@ TextureImporter:
       name: CrouchRun_106
       rect:
         serializedVersion: 2
-        x: 1333
-        y: 167
-        width: 25
-        height: 48
+        x: 128
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2832,10 +2832,10 @@ TextureImporter:
       name: CrouchRun_107
       rect:
         serializedVersion: 2
-        x: 1461
-        y: 165
-        width: 25
-        height: 50
+        x: 256
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2854,10 +2854,10 @@ TextureImporter:
       name: CrouchRun_108
       rect:
         serializedVersion: 2
-        x: 1589
-        y: 165
-        width: 25
-        height: 50
+        x: 384
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2876,10 +2876,10 @@ TextureImporter:
       name: CrouchRun_109
       rect:
         serializedVersion: 2
-        x: 1718
-        y: 165
-        width: 24
-        height: 51
+        x: 512
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2898,10 +2898,10 @@ TextureImporter:
       name: CrouchRun_110
       rect:
         serializedVersion: 2
-        x: 1846
-        y: 167
-        width: 24
-        height: 49
+        x: 640
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2920,10 +2920,10 @@ TextureImporter:
       name: CrouchRun_111
       rect:
         serializedVersion: 2
-        x: 57
-        y: 38
-        width: 23
-        height: 46
+        x: 768
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2942,10 +2942,10 @@ TextureImporter:
       name: CrouchRun_112
       rect:
         serializedVersion: 2
-        x: 185
-        y: 38
-        width: 23
-        height: 45
+        x: 896
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2964,10 +2964,10 @@ TextureImporter:
       name: CrouchRun_113
       rect:
         serializedVersion: 2
-        x: 313
-        y: 38
-        width: 22
-        height: 45
+        x: 1024
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -2986,10 +2986,10 @@ TextureImporter:
       name: CrouchRun_114
       rect:
         serializedVersion: 2
-        x: 441
-        y: 38
-        width: 22
-        height: 44
+        x: 1152
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3008,10 +3008,10 @@ TextureImporter:
       name: CrouchRun_115
       rect:
         serializedVersion: 2
-        x: 569
-        y: 38
-        width: 22
-        height: 44
+        x: 1280
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3030,10 +3030,10 @@ TextureImporter:
       name: CrouchRun_116
       rect:
         serializedVersion: 2
-        x: 696
-        y: 38
-        width: 23
-        height: 44
+        x: 1408
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3052,10 +3052,10 @@ TextureImporter:
       name: CrouchRun_117
       rect:
         serializedVersion: 2
-        x: 824
-        y: 38
-        width: 23
-        height: 45
+        x: 1536
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3074,10 +3074,10 @@ TextureImporter:
       name: CrouchRun_118
       rect:
         serializedVersion: 2
-        x: 952
-        y: 38
-        width: 24
-        height: 45
+        x: 1664
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3096,10 +3096,10 @@ TextureImporter:
       name: CrouchRun_119
       rect:
         serializedVersion: 2
-        x: 1080
-        y: 39
-        width: 23
-        height: 44
+        x: 1792
+        y: 0
+        width: 128
+        height: 128
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -3114,143 +3114,11 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
-    - serializedVersion: 2
-      name: CrouchRun_120
-      rect:
-        serializedVersion: 2
-        x: 1208
-        y: 39
-        width: 23
-        height: 44
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: b3dd7047db8909940800000000000000
-      internalID: 5300904700877987131
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: CrouchRun_121
-      rect:
-        serializedVersion: 2
-        x: 1336
-        y: 39
-        width: 24
-        height: 44
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 3352c2f2627f99ca0800000000000000
-      internalID: -6009500484376976077
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: CrouchRun_122
-      rect:
-        serializedVersion: 2
-        x: 1464
-        y: 39
-        width: 24
-        height: 43
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 971ac865b1e2c25a0800000000000000
-      internalID: -6544805463525121671
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: CrouchRun_123
-      rect:
-        serializedVersion: 2
-        x: 1590
-        y: 39
-        width: 26
-        height: 44
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 0384cf622ffc76db0800000000000000
-      internalID: -4798638238996871120
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: CrouchRun_124
-      rect:
-        serializedVersion: 2
-        x: 1718
-        y: 39
-        width: 26
-        height: 44
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: 1a6d420c6b0d6b4f0800000000000000
-      internalID: -813233199367530847
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: CrouchRun_125
-      rect:
-        serializedVersion: 2
-        x: 1849
-        y: 38
-        width: 23
-        height: 45
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: -1
-      bones: []
-      spriteID: bbddf366e87182fb0800000000000000
-      internalID: -4672458713028633157
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
     outline: []
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 4a2ad547bc727854c83c4ab7dd4a85cd
     internalID: 0
     vertices: []
     indices: 
@@ -3285,12 +3153,6 @@ TextureImporter:
       CrouchRun_118: 6025525882126347549
       CrouchRun_119: 3483846629939593041
       CrouchRun_12: 2352997340128646867
-      CrouchRun_120: 5300904700877987131
-      CrouchRun_121: -6009500484376976077
-      CrouchRun_122: -6544805463525121671
-      CrouchRun_123: -4798638238996871120
-      CrouchRun_124: -813233199367530847
-      CrouchRun_125: -4672458713028633157
       CrouchRun_13: -8934389203428822504
       CrouchRun_14: -2212397252221384213
       CrouchRun_15: -3097579997655092575
