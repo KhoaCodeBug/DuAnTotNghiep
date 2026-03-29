@@ -25,27 +25,12 @@ public class PZ_CameraController : MonoBehaviour
 
     public void SetTarget(Transform targetTransform)
     {
-        // =========================================================
-        // 🔥 BÍ KÍP TRỊ KINH PHONG (JITTER) MẠNG:
-        // Cố gắng tìm cục con chứa hình ảnh (SpriteRenderer) để bám theo.
-        // Vì hình ảnh đã được Fusion làm mượt (Interpolated), còn cục gốc thì giật cục.
-        // =========================================================
-        SpriteRenderer sprite = targetTransform.GetComponentInChildren<SpriteRenderer>();
-
-        // Nếu tìm thấy SpriteRenderer và nó thực sự nằm ở cục con (chứ không phải cục gốc)
-        if (sprite != null && sprite.transform != targetTransform)
-        {
-            player = sprite.transform;
-            Debug.Log("🎥 Camera đang bám theo Hình ảnh (Interpolated) để chống giật!");
-        }
-        else
-        {
-            player = targetTransform;
-            Debug.LogWarning("⚠️ Cảnh báo: Camera đang bám theo Cục Gốc vật lý, máy Client có thể vẫn bị giật!");
-        }
-
+        // Chốt đơn: Bám thẳng vào cục mục tiêu, không lùng sục rườm rà nữa!
+        player = targetTransform;
         hasTarget = true;
         transform.position = player.position + offset;
+
+        // (Đã xóa hết mấy dòng Debug lải nhải vụ giật lag)
     }
 
     void Start()
