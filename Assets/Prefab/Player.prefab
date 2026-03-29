@@ -743,6 +743,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   voiceIcon: {fileID: 2613166010062844204}
+  voiceIconRect: {fileID: 1059540729844249514}
   _IsSpeaking:
     _value: 0
 --- !u!114 &1644029633153542868

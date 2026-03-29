@@ -8,9 +8,9 @@ using UnityEngine;
 public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 {
     [Header("--- UI VOICE ---")]
-    public GameObject voiceIcon; // Kéo cái hình Micro vào đây
+    public GameObject voiceIcon; // Chỉ cần đúng 1 cục này để bật/tắt
 
-    [Networked] // Dòng này cực quan trọng để đồng bộ qua mạng
+    [Networked]
     public NetworkBool IsSpeaking { get; set; }
 
     [Header("--- HỆ THỐNG VOICE CHAT ---")]
@@ -21,44 +21,49 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (HasInputAuthority)
         {
             Runner.AddCallbacks(this);
-
-            // ==========================================
-            // 🔥 ĐÃ FIX THEO CHUẨN MỚI CỦA UNITY (FindFirstObjectByType)
-            // ==========================================
             globalRecorder = FindFirstObjectByType<Recorder>();
+            if (globalRecorder != null) globalRecorder.TransmitEnabled = false;
 
-            if (globalRecorder != null)
-            {
-                globalRecorder.TransmitEnabled = false;
-            }
+            // 🔥 MỚI: Đăng ký kết nối mạng cho khung chat
+            if (AutoChatManager.Instance != null)
+                AutoChatManager.Instance.onSendMessage += HandleSendMessage;
         }
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         if (HasInputAuthority)
+        {
             runner.RemoveCallbacks(this);
+            // 🔥 MỚI: Ngắt kết nối chat khi chết hoặc thoát
+            if (AutoChatManager.Instance != null)
+                AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
+        }
     }
 
     void Update()
     {
-        // 1. Tự động hiển thị Icon cho TẤT CẢ mọi người (Dòng này để ngoài IF phía dưới)
+        // 1. Tự động bật/tắt Icon cho TẤT CẢ mọi người dựa theo biến IsSpeaking
         if (voiceIcon != null)
+        {
             voiceIcon.SetActive(IsSpeaking);
+        }
 
-        // 2. Chỉ máy của chính mình mới được điều khiển phím V và Recorder
+        // 2. Chỉ máy của chính mình mới được gửi tín hiệu
         if (HasInputAuthority == false || globalRecorder == null) return;
 
+        // BẤM V -> MỞ MIC & BẬT ICON
         if (Input.GetKeyDown(KeyCode.V))
         {
             globalRecorder.TransmitEnabled = true;
-            IsSpeaking = true; // 🔥 Bật biến mạng: Mọi người sẽ thấy Icon của bạn hiện lên
+            IsSpeaking = true;
             Debug.Log("🎙️ [Fragments of Survival] Đang phát sóng...");
         }
+        // BUÔNG V -> TẮT MIC & TẮT ICON
         else if (Input.GetKeyUp(KeyCode.V))
         {
             globalRecorder.TransmitEnabled = false;
-            IsSpeaking = false; // 🔥 Tắt biến mạng: Icon biến mất trên máy mọi người
+            IsSpeaking = false;
             Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
         }
     }
@@ -75,8 +80,17 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             mousePos.z = Mathf.Abs(Camera.main.transform.position.z);
             data.mouseWorldPos = Camera.main.ScreenToWorldPoint(mousePos);
         }
-
+        // 🔥 MỚI: Khóa cứng nhân vật nếu đang gõ Chat
+        bool isTyping = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
         bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
+
+        if (isTyping || isInvOpen)
+        {
+            // Trả về Input rỗng (Đứng im, không bắn, không chém)
+            input.Set(new PlayerNetworkInput());
+            return;
+        }
+
         data.isAiming = isInvOpen ? false : Input.GetMouseButton(1);
         data.isRunning = Input.GetKey(KeyCode.LeftShift);
         data.isCrouching = Input.GetKey(KeyCode.C);
@@ -87,7 +101,25 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         input.Set(data);
     }
 
-    #region Ẩn các hàm bắt buộc của INetworkRunnerCallbacks để tránh lỗi Unity
+    // ==========================================
+    // 🔥 HỆ THỐNG GỬI CHAT QUA MẠNG
+    // ==========================================
+    private void HandleSendMessage(string msg)
+    {
+        // Lấy tên thật của nhân vật nếu có, hiện tại tạm để là "Vô Danh"
+        Rpc_SendChat("Vô Danh", msg);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
+    public void Rpc_SendChat(string playerName, string message)
+    {
+        if (AutoChatManager.Instance != null)
+        {
+            AutoChatManager.Instance.AddMessage(playerName, message);
+        }
+    }
+
+    #region Ẩn các hàm bắt buộc của INetworkRunnerCallbacks
     void INetworkRunnerCallbacks.OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     void INetworkRunnerCallbacks.OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     void INetworkRunnerCallbacks.OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
