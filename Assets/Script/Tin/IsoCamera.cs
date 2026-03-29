@@ -29,8 +29,6 @@ public class PZ_CameraController : MonoBehaviour
         player = targetTransform;
         hasTarget = true;
         transform.position = player.position + offset;
-
-        // (Đã xóa hết mấy dòng Debug lải nhải vụ giật lag)
     }
 
     void Start()
@@ -86,8 +84,19 @@ public class PZ_CameraController : MonoBehaviour
         Vector3 mousePos = Input.mousePosition;
         if (mousePos.x < 0 || mousePos.y < 0 || mousePos.x > Screen.width || mousePos.y > Screen.height) return;
 
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        scroll = Mathf.Clamp(scroll, -0.2f, 0.2f);
+        // ==========================================
+        // 🔥 TUYỆT CHIÊU CHỐNG XUNG ĐỘT CON LĂN CHUỘT
+        // ==========================================
+        bool isTypingChat = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
+
+        float scroll = 0f;
+
+        // NẾU KHÔNG GÕ CHAT THÌ MỚI CHO PHÉP ĐỌC CON LĂN CHUỘT
+        if (!isTypingChat)
+        {
+            scroll = Input.GetAxis("Mouse ScrollWheel");
+            scroll = Mathf.Clamp(scroll, -0.2f, 0.2f);
+        }
 
         if (scroll != 0)
         {
@@ -95,6 +104,7 @@ public class PZ_CameraController : MonoBehaviour
             targetZoom = Mathf.Clamp(targetZoom, minZoomSize, maxZoomSize);
         }
 
+        // Vẫn giữ cục SmoothDamp ở ngoài để lỡ đang zoom dở mà bấm Chat thì camera vẫn trượt êm ái
         cam.orthographicSize = Mathf.SmoothDamp(
             cam.orthographicSize,
             targetZoom,
