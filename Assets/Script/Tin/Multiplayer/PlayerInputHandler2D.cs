@@ -7,6 +7,12 @@ using UnityEngine;
 
 public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 {
+    [Header("--- UI VOICE ---")]
+    public GameObject voiceIcon; // Kéo cái hình Micro vào đây
+
+    [Networked] // Dòng này cực quan trọng để đồng bộ qua mạng
+    public NetworkBool IsSpeaking { get; set; }
+
     [Header("--- HỆ THỐNG VOICE CHAT ---")]
     private Recorder globalRecorder;
 
@@ -36,16 +42,23 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
     void Update()
     {
+        // 1. Tự động hiển thị Icon cho TẤT CẢ mọi người (Dòng này để ngoài IF phía dưới)
+        if (voiceIcon != null)
+            voiceIcon.SetActive(IsSpeaking);
+
+        // 2. Chỉ máy của chính mình mới được điều khiển phím V và Recorder
         if (HasInputAuthority == false || globalRecorder == null) return;
 
         if (Input.GetKeyDown(KeyCode.V))
         {
             globalRecorder.TransmitEnabled = true;
+            IsSpeaking = true; // 🔥 Bật biến mạng: Mọi người sẽ thấy Icon của bạn hiện lên
             Debug.Log("🎙️ [Fragments of Survival] Đang phát sóng...");
         }
         else if (Input.GetKeyUp(KeyCode.V))
         {
             globalRecorder.TransmitEnabled = false;
+            IsSpeaking = false; // 🔥 Tắt biến mạng: Icon biến mất trên máy mọi người
             Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
         }
     }
