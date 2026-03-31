@@ -72,6 +72,13 @@ public class AutoUIManager : MonoBehaviour
 
     private void Update()
     {
+
+        if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping())
+        {
+            // Trả về luôn, không thèm đọc lệnh phím I ở dưới nữa
+            return;
+        }
+
         // Phím bật tắt Túi đồ
         if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.I))
         {
