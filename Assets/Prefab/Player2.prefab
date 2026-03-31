@@ -953,7 +953,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   voiceIcon: {fileID: 3620109694547668066}
-  voiceIconRect: {fileID: 7867228822537261459}
   _IsSpeaking:
     _value: 0
 --- !u!114 &4843099494297100640
@@ -1001,7 +1000,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   activeDuration: 5
-  cooldownTime: 30
+  cooldownTime: 15
   _ActiveTimer: 0
   _CooldownTimer: 0
   _IsInvisible:
