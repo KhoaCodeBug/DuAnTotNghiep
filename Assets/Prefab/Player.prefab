@@ -790,7 +790,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   killsRequired: 5
-  activeDuration: 15
+  activeDuration: 10
   cooldownTime: 50
   _CurrentKills: 0
   _ActiveTimer: 0

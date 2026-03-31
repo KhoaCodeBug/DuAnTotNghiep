@@ -11,7 +11,7 @@ public class CharacterSelectionMenu : MonoBehaviour
     private string[] characterNames = { "Kẻ Sống Sót: Vô Danh", "Kẻ Sống Sót: Bóng Ma" };
 
     private string[] characterStats = {
-        "<color=#ff5555>KỸ NĂNG: CƠN ĐIÊN LÂM CHUNG</color>\nBản năng sinh tồn tột độ. Khi hạ sát 5 thực thể đột biến, lượng adrenaline kích phát vượt giới hạn cơ thể. Xóa bỏ hoàn toàn độ giật và không tiêu hao đạn dược trong vài giây.\n<color=#aaaaaa>[Thời gian hồi phục: 50s]</color>",
+        "<color=#ff5555>KỸ NĂNG: CƠN ĐIÊN LÂM CHUNG</color>\nBản năng sinh tồn tột độ. Khi hạ sát 5 thực thể đột biến, lượng adrenaline kích phát vượt giới hạn cơ thể. Xóa bỏ hoàn toàn độ giật và không tiêu hao đạn dược trong 10 giây.\n<color=#aaaaaa>[Thời gian hồi phục: 50s]</color>",
         "<color=#55ffff>KỸ NĂNG: BÓNG ĐÊM TĨNH LẶNG</color>\nSinh ra để lẩn khuất. Khi hạ thấp trọng tâm , nhịp tim và hơi thở đồng bộ với môi trường xung quanh. Đánh lừa hoàn toàn giác quan của lũ thây ma trong 5 giây.\n<color=#aaaaaa>[Thời gian hồi phục: 30s]</color>"
     };
 
