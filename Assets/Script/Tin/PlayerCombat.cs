@@ -70,6 +70,24 @@ public class PlayerCombat : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        // ==========================================
+        // 🔥 CHỐT CHẶN 1: ĐÃ CHẾT THÌ KHÔNG BÓP CÒ!
+        // ==========================================
+        bool isDead = false;
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (health != null)
+        {
+            // Sửa lại 'currentHP' cho đúng với tên biến máu trong script PlayerHealth của bạn nhé!
+            isDead = health.currentHealth <= 0;
+        }
+
+        if (isDead)
+        {
+            // Tắt tia lửa ngay lập tức
+            if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
+            return; // Khóa ngòi nổ, từ chối đọc input!
+        }
+
         if (GetInput(out PlayerNetworkInput input))
         {
             if (isReloading) return;
@@ -77,9 +95,6 @@ public class PlayerCombat : NetworkBehaviour
 
             bool isMeleeAttacking = playerMove != null && playerMove.NetAttackLockTimer > 0;
 
-            // ====================================================
-            // 🔥 HỎI THĂM SKILL: Lục xem có Bậc Thầy Vũ Khí không và đang bật không?
-            // ====================================================
             bool isWeaponMasterActive = false;
             if (TryGetComponent(out Skill_WeaponMaster skillWM) && skillWM.IsWeaponMasterActive)
             {
@@ -89,7 +104,6 @@ public class PlayerCombat : NetworkBehaviour
             // 1. XỬ LÝ BẮN SÚNG
             if (input.isShooting && nextFireTimer.ExpiredOrNotRunning(Runner) && !isMeleeAttacking)
             {
-                // 🔥 ĐÃ SỬA: Băng đạn > 0 HOẶC đang bật Bậc Thầy Vũ Khí (dù hết đạn vẫn cho bắn)
                 if (currentAmmo > 0 || isWeaponMasterActive)
                 {
                     nextFireTimer = TickTimer.CreateFromSeconds(Runner, fireRate);
@@ -176,23 +190,18 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Shoot(Vector2 mouseWorldPos)
     {
-        // 1. Máy chủ (Host) trừ đạn và gọi quái nghe tiếng súng
         if (HasStateAuthority)
         {
-            // ====================================================
-            // 🔥 TRỪ ĐẠN THÔNG MINH
-            // ====================================================
             bool consumeAmmo = true;
             if (TryGetComponent(out Skill_WeaponMaster skillWM) && skillWM.IsWeaponMasterActive)
             {
-                consumeAmmo = false; // Phá luật, không trừ đạn!
+                consumeAmmo = false;
             }
 
             if (consumeAmmo)
             {
                 currentAmmo--;
             }
-            // ====================================================
 
             if (playerMove != null) playerMove.MakeNoise(shootNoiseRadius);
         }
@@ -270,6 +279,11 @@ public class PlayerCombat : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
     public void RPC_ShowMuzzleFlash(Vector2 direction)
     {
+        // ==========================================
+        // 🔥 FIX LỖI ĐỎ CONSOLE: Tránh chạy Coroutine trên cục GameObject đã bị tắt (Tàng hình/Chết)
+        // ==========================================
+        if (!gameObject.activeInHierarchy) return;
+
         if (muzzleAnimator != null && muzzleFlashRenderer != null)
         {
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
