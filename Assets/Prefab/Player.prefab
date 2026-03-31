@@ -743,7 +743,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   voiceIcon: {fileID: 2613166010062844204}
-  voiceIconRect: {fileID: 1059540729844249514}
   _IsSpeaking:
     _value: 0
 --- !u!114 &1644029633153542868
@@ -790,8 +789,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1379160c7359c2147bf1d4d730ae0059, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  killsRequired: 10
-  activeDuration: 5
+  killsRequired: 5
+  activeDuration: 15
   cooldownTime: 50
   _CurrentKills: 0
   _ActiveTimer: 0
