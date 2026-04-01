@@ -329,7 +329,7 @@ public class PlayerCombat : NetworkBehaviour
         return "East";
     }
 
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, bashRange);

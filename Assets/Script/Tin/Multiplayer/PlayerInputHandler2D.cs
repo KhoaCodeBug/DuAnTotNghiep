@@ -16,6 +16,11 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
     [Header("--- HỆ THỐNG VOICE CHAT ---")]
     private Recorder globalRecorder;
 
+    // 🔥 THÊM: Bộ đếm thời gian để chống spam gửi lệnh lên Server liên tục
+    private float nextVoiceNoiseTime = 0f;
+    // 🔥 THÊM BIẾN NÀY DƯỚI CHỖ globalRecorder:
+    private float currentVoiceRadius = 0f;
+
     public override void Spawned()
     {
         if (HasInputAuthority)
@@ -48,6 +53,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
         if (HasInputAuthority == false || globalRecorder == null) return;
 
+        // BẬT / TẮT MIC
         if (Input.GetKeyDown(KeyCode.V))
         {
             globalRecorder.TransmitEnabled = true;
@@ -59,6 +65,44 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             globalRecorder.TransmitEnabled = false;
             IsSpeaking = false;
             Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
+        }
+
+        // ==========================================
+        // 🔥 ĐO ÂM LƯỢNG VÀ TẠO TIẾNG ỒN DỤ ZOMBIE (ĐÃ FIX HỆ SỐ THỰC TẾ)
+        // ==========================================
+        if (IsSpeaking && globalRecorder.LevelMeter != null)
+        {
+            float voiceVolume = globalRecorder.LevelMeter.CurrentPeakAmp;
+
+            // 🔥 1. Hạ ngưỡng lọc tạp âm xuống cực thấp (0.01) vì Mic thường thu âm lượng rất nhỏ
+            if (voiceVolume > 0.01f)
+            {
+                // 🔥 2. TĂNG HỆ SỐ NHÂN LÊN 50! 
+                // Ví dụ: Bạn nói nhỏ (0.05) * 50 = 2.5 mét. La to (0.16) * 50 = 8 mét.
+                float noiseRadius = voiceVolume * 80f;
+
+                // Ép giới hạn tối đa là 8m (Theo đúng ý bạn)
+                noiseRadius = Mathf.Clamp(noiseRadius, 0f, 10f);
+
+                currentVoiceRadius = noiseRadius; // Lưu lại để vẽ Gizmos
+
+                if (Time.time >= nextVoiceNoiseTime)
+                {
+                    // 🔥 In thẳng ra Console để đạo diễn thấy thực tế Mic mình đang kêu to bao nhiêu mét!
+                    Debug.Log($"[TEST MIC] Âm lượng thật: {voiceVolume:F3} | Bán kính gọi Zombie: {noiseRadius:F1} mét");
+
+                    RPC_MakeVoiceNoise(noiseRadius);
+                    nextVoiceNoiseTime = Time.time + 0.05f;
+                }
+            }
+            else
+            {
+                currentVoiceRadius = 0f;
+            }
+        }
+        else
+        {
+            currentVoiceRadius = 0f;
         }
     }
 
@@ -78,19 +122,15 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         bool isTyping = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
         bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
 
-        // ==========================================
-        // 🔥 CHỐT CHẶN 2: ÉP LIỆT PHÍM KHI ĐÃ CHẾT
-        // ==========================================
         bool isDead = false;
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null)
         {
-            isDead = health.currentHealth <= 0; // Thay currentHP bằng tên biến của bạn nếu báo lỗi nhé
+            isDead = health.currentHealth <= 0;
         }
 
         if (isTyping || isInvOpen || isDead)
         {
-            // Trả về Input rỗng (Đứng im, liệt nút bấm chuột)
             input.Set(new PlayerNetworkInput());
             return;
         }
@@ -116,6 +156,33 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (AutoChatManager.Instance != null)
         {
             AutoChatManager.Instance.AddMessage(playerName, message);
+        }
+    }
+
+    // ==========================================
+    // 🔥 CÁI ĐIỆN THOẠI ĐỂ MÁY KHÁCH GỌI MÁY CHỦ BÁO ĐỘNG
+    // ==========================================
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_MakeVoiceNoise(float radius)
+    {
+        // Khi Máy Chủ nghe máy, nó sẽ tự động thò tay lấy hàm MakeNoise ra để vẽ vòng tròn
+        PlayerMovement moveScript = GetComponent<PlayerMovement>();
+        if (moveScript != null)
+        {
+            moveScript.MakeNoise(radius);
+        }
+    }
+
+    // ==========================================
+    // 🔥 VẼ VÒNG TRÒN ÂM THANH RA SCENE ĐỂ TEST
+    // ==========================================
+    private void OnDrawGizmos()
+    {
+        // Chỉ vẽ khi có âm lượng phát ra
+        if (currentVoiceRadius > 0f)
+        {
+            Gizmos.color = Color.cyan; // Màu xanh lơ cho khác với súng/chạy bộ
+            Gizmos.DrawWireSphere(transform.position, currentVoiceRadius);
         }
     }
 

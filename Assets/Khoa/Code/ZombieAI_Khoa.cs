@@ -199,8 +199,19 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             if (distToSound > 0.5f)
             {
                 agent.isStopped = false;
+
+                // Đạo diễn có thể đổi thành "speed * 1f" nếu muốn nó quay ngoắt lại chạy nhanh như ma
                 agent.speed = speed * 0.7f;
-                agent.SetDestination(investigateTarget);
+
+                // ==========================================
+                // 🔥 CHỐT CHẶN: KHÔNG SPAM LỆNH ĐỂ CHỐNG KHỰNG
+                // ==========================================
+                pathRecalcTimer -= Runner.DeltaTime;
+                if (pathRecalcTimer <= 0f)
+                {
+                    agent.SetDestination(investigateTarget);
+                    pathRecalcTimer = 0.2f; // 0.2 giây mới tính đường lại 1 lần
+                }
             }
             else
             {
@@ -348,6 +359,11 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         isInvestigating = true;
         investigateTarget = soundPos;
         investigateTimer = 3f;
+
+        // ==========================================
+        // 🔥 RESET TIMER BẰNG 0 ĐỂ NÓ RƯỢT ĐI NGAY TỨC KHẮC!
+        // ==========================================
+        pathRecalcTimer = 0f;
     }
 
     // 🔥 CẬP NHẬT HÀM SÁT THƯƠNG ĐỂ NHẬN BIẾT "AI LÀ NGƯỜI BẮN MÌNH"
