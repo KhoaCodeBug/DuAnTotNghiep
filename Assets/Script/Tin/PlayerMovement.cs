@@ -281,7 +281,7 @@ public class PlayerMovement : NetworkBehaviour
         return new Vector2(1, 0);
     }
 
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()
     {
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, walkNoiseRadius);
