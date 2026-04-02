@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.EventSystems; // 🔥 Thêm thư viện này để check chuột trên UI
 
 public class PZ_CameraController : MonoBehaviour
 {
@@ -44,18 +45,39 @@ public class PZ_CameraController : MonoBehaviour
         HandleZoom();
     }
 
-    // Camera bám đuôi thì bắt buộc phải để ở LateUpdate để chạy sau cùng
     void LateUpdate()
     {
         if (!hasTarget || player == null) return;
         HandleCameraFollowAndPan();
     }
 
+    // ==========================================
+    // 🔥 HÀM TỔNG QUẢN: CHECK XEM CÓ ĐANG BẬN DÙNG UI KHÔNG
+    // ==========================================
+    private bool IsPlayerBusyWithUI()
+    {
+        // 1. Chuột có đang nằm trên bất kỳ UI nào không? (Bảng máu, Nút bấm, Bảng Trade...)
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return true;
+
+        // 2. Có đang mở túi đồ không?
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()) return true;
+
+        // 3. Có đang mở bảng Máu không?
+        if (AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen) return true;
+
+        // 4. Có đang gõ phím trong khung Chat không?
+        if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return true;
+
+        // Nếu không dính cái nào ở trên -> Cho phép Camera hoạt động bình thường!
+        return false;
+    }
+
     private void HandleCameraFollowAndPan()
     {
         Vector3 targetPos = player.position + offset;
 
-        if (Input.GetMouseButton(1) && !(AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()))
+        // 🔥 NẾU ĐANG BẤM CHUỘT PHẢI VÀ KHÔNG BẬN DÙNG UI -> CHO PHÉP LOOKAHEAD
+        if (Input.GetMouseButton(1) && !IsPlayerBusyWithUI())
         {
             Vector3 mouseWorldPos = cam.ScreenToWorldPoint(Input.mousePosition);
             mouseWorldPos.z = player.position.z;
@@ -66,7 +88,6 @@ public class PZ_CameraController : MonoBehaviour
             targetPos += (panOffset / 2f);
         }
 
-        // Ép buộc dùng Time.deltaTime để tránh Camera bị lạc nhịp với khung hình
         transform.position = Vector3.SmoothDamp(
             transform.position,
             targetPos,
@@ -84,15 +105,10 @@ public class PZ_CameraController : MonoBehaviour
         Vector3 mousePos = Input.mousePosition;
         if (mousePos.x < 0 || mousePos.y < 0 || mousePos.x > Screen.width || mousePos.y > Screen.height) return;
 
-        // ==========================================
-        // 🔥 TUYỆT CHIÊU CHỐNG XUNG ĐỘT CON LĂN CHUỘT
-        // ==========================================
-        bool isTypingChat = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
-
         float scroll = 0f;
 
-        // NẾU KHÔNG GÕ CHAT THÌ MỚI CHO PHÉP ĐỌC CON LĂN CHUỘT
-        if (!isTypingChat)
+        // 🔥 NẾU KHÔNG BẬN DÙNG UI (Không chat, không mở bảng, không rê chuột lên UI) -> CHO PHÉP ZOOM
+        if (!IsPlayerBusyWithUI())
         {
             scroll = Input.GetAxis("Mouse ScrollWheel");
             scroll = Mathf.Clamp(scroll, -0.2f, 0.2f);
@@ -104,7 +120,6 @@ public class PZ_CameraController : MonoBehaviour
             targetZoom = Mathf.Clamp(targetZoom, minZoomSize, maxZoomSize);
         }
 
-        // Vẫn giữ cục SmoothDamp ở ngoài để lỡ đang zoom dở mà bấm Chat thì camera vẫn trượt êm ái
         cam.orthographicSize = Mathf.SmoothDamp(
             cam.orthographicSize,
             targetZoom,

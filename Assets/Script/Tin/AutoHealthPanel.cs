@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using System.Text;
+using System.Collections;
 
 public class AutoHealthPanel : MonoBehaviour
 {
@@ -13,33 +14,40 @@ public class AutoHealthPanel : MonoBehaviour
 
     // --- UI ELEMENTS ---
     private Text fixedHeaderText;
-    private Text rightPanelText;
     private RectTransform textContentRect;
 
     private bool isOpen = false;
+    public bool IsOpen => isOpen;
 
     // --- ZOMBIE INJURY LOGIC ---
     public enum InjuryType { Scratched, Laceration, Bitten }
 
-    // 🔥 DÙNG LIST ĐỂ CHỒNG DEBUFF
     private class BodyPartData
     {
         public string Name;
-        public List<InjuryType> Injuries = new List<InjuryType>(); // Chứa N vết thương
+        public List<InjuryType> Injuries = new List<InjuryType>();
         public bool IsBandaged = false;
         public Image Img;
     }
     private Dictionary<string, BodyPartData> bodyParts = new Dictionary<string, BodyPartData>();
 
     private PlayerHealth localPlayerHealth;
+    private InventorySystem localInventory;
 
     private float currentHP = 100f;
 
-    // BẢNG MÀU CHUẨN
     private Color colHealthy = new Color(0.2f, 0.22f, 0.25f, 1f);
     private Color colInjured = new Color(0.65f, 0.15f, 0.15f, 1f);
     private Color colBandaged = new Color(0.7f, 0.7f, 0.7f, 1f);
     private Color colOutline = new Color(0f, 0f, 0f, 0.9f);
+
+    private GameObject contextMenuPanel;
+    private string selectedPartNameForContext;
+
+    private bool isHealing = false;
+    public bool IsHealing => isHealing;
+
+    private float toggleCooldown = 0f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoSpawn()
@@ -62,7 +70,6 @@ public class AutoHealthPanel : MonoBehaviour
 
     void SetupHealthUI()
     {
-        // 1. CANVAS
         healthCanvas = new GameObject("--- AUTO HEALTH CANVAS ---");
         Canvas canvas = healthCanvas.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
@@ -73,7 +80,6 @@ public class AutoHealthPanel : MonoBehaviour
         healthCanvas.AddComponent<GraphicRaycaster>();
         DontDestroyOnLoad(healthCanvas);
 
-        // 2. MAIN PANEL
         panelObj = new GameObject("HealthPanelBG");
         panelObj.transform.SetParent(healthCanvas.transform, false);
         RectTransform panelRect = panelObj.AddComponent<RectTransform>();
@@ -90,14 +96,11 @@ public class AutoHealthPanel : MonoBehaviour
         borderRect.offsetMin = Vector2.zero; borderRect.offsetMax = Vector2.zero;
 
         Image borderImg = borderObj.AddComponent<Image>();
-        borderImg.color = new Color(0, 0, 0, 1f); // 🔥 Đã fix vụ viền tàng hình
+        borderImg.color = new Color(0, 0, 0, 1f);
         Outline borderOutline = borderObj.AddComponent<Outline>();
         borderOutline.effectColor = Color.white;
         borderOutline.effectDistance = new Vector2(2f, -2f);
 
-        // ==========================================
-        // 🔥 TRÁI: HÌNH NỘM MÔ PHỎNG CƠ THỂ
-        // ==========================================
         GameObject mannequinObj = new GameObject("MannequinContainer");
         mannequinObj.transform.SetParent(panelObj.transform, false);
         RectTransform manRect = mannequinObj.AddComponent<RectTransform>();
@@ -109,26 +112,19 @@ public class AutoHealthPanel : MonoBehaviour
         CreateBodyPart("Neck", mannequinObj.transform, new Vector2(0, 120), new Vector2(20, 25), new Vector2(0.5f, 0.5f), 0);
         CreateBodyPart("Upper Torso", mannequinObj.transform, new Vector2(0, 75), new Vector2(80, 60), new Vector2(0.5f, 0.5f), 0);
         CreateBodyPart("Lower Torso", mannequinObj.transform, new Vector2(0, 13), new Vector2(70, 60), new Vector2(0.5f, 0.5f), 0);
-
         CreateBodyPart("Left Thigh", mannequinObj.transform, new Vector2(-18, -19), new Vector2(30, 65), new Vector2(0.5f, 1f), 0);
         CreateBodyPart("Left Calf", mannequinObj.transform, new Vector2(-18, -85), new Vector2(26, 65), new Vector2(0.5f, 1f), 0);
         CreateBodyPart("Left Foot", mannequinObj.transform, new Vector2(-18, -152), new Vector2(30, 18), new Vector2(0.5f, 1f), 0);
-
         CreateBodyPart("Right Thigh", mannequinObj.transform, new Vector2(18, -19), new Vector2(30, 65), new Vector2(0.5f, 1f), 0);
         CreateBodyPart("Right Calf", mannequinObj.transform, new Vector2(18, -85), new Vector2(26, 65), new Vector2(0.5f, 1f), 0);
         CreateBodyPart("Right Foot", mannequinObj.transform, new Vector2(18, -152), new Vector2(30, 18), new Vector2(0.5f, 1f), 0);
-
         CreateBodyPart("Left Upper Arm", mannequinObj.transform, new Vector2(-44, 105), new Vector2(24, 60), new Vector2(0.5f, 1f), -30);
         CreateBodyPart("Left Forearm", mannequinObj.transform, new Vector2(-74, 53), new Vector2(20, 60), new Vector2(0.5f, 1f), -30);
         CreateBodyPart("Left Hand", mannequinObj.transform, new Vector2(-104, 1), new Vector2(20, 20), new Vector2(0.5f, 1f), -30);
-
         CreateBodyPart("Right Upper Arm", mannequinObj.transform, new Vector2(44, 105), new Vector2(24, 60), new Vector2(0.5f, 1f), 30);
         CreateBodyPart("Right Forearm", mannequinObj.transform, new Vector2(74, 53), new Vector2(20, 60), new Vector2(0.5f, 1f), 30);
         CreateBodyPart("Right Hand", mannequinObj.transform, new Vector2(104, 1), new Vector2(20, 20), new Vector2(0.5f, 1f), 30);
 
-        // ==========================================
-        // 🔥 PHẢI: KHUNG TEXT & DANH SÁCH CUỘN
-        // ==========================================
         GameObject rightContainer = new GameObject("RightContainer");
         rightContainer.transform.SetParent(panelObj.transform, false);
         RectTransform rightRect = rightContainer.AddComponent<RectTransform>();
@@ -175,23 +171,61 @@ public class AutoHealthPanel : MonoBehaviour
         textContentRect.anchoredPosition = Vector2.zero;
         textContentRect.sizeDelta = new Vector2(400, 0);
 
+        VerticalLayoutGroup contentLayout = contentObj.AddComponent<VerticalLayoutGroup>();
+        contentLayout.childControlHeight = true;
+        contentLayout.childControlWidth = true;
+        contentLayout.childForceExpandHeight = false;
+        contentLayout.childForceExpandWidth = true;
+        contentLayout.spacing = 5;
+
         ContentSizeFitter fitter = contentObj.AddComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        rightPanelText = contentObj.AddComponent<Text>();
-        rightPanelText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        rightPanelText.fontSize = 20;
-        rightPanelText.fontStyle = FontStyle.Bold;
-        rightPanelText.color = Color.white;
-        rightPanelText.alignment = TextAnchor.UpperLeft;
-        rightPanelText.lineSpacing = 1.3f;
 
         scrollRect.viewport = viewportRect;
         scrollRect.content = textContentRect;
 
-        // 🔥 Cập nhật lại Hướng dẫn (bỏ phần Left click)
+        // =========================================================
+        // 🔥 MULTIPLAYER & UI FIX: TẠO CONTEXT MENU LUÔN NỔI LÊN TRÊN
+        // =========================================================
+        contextMenuPanel = new GameObject("ContextMenuPanel");
+        contextMenuPanel.transform.SetParent(panelObj.transform, false);
+
+        // Cấp cho Menu một cái Canvas riêng để phá vỡ thứ tự đè UI của Unity
+        Canvas ctxCanvas = contextMenuPanel.AddComponent<Canvas>();
+        ctxCanvas.overrideSorting = true;
+        ctxCanvas.sortingOrder = 150; // Luôn nằm trên các UI khác
+        contextMenuPanel.AddComponent<GraphicRaycaster>(); // Đảm bảo luôn nhận click chuột
+
+        RectTransform ctxRect = contextMenuPanel.GetComponent<RectTransform>();
+        ctxRect.anchorMin = new Vector2(1f, 0);
+        ctxRect.anchorMax = new Vector2(1f, 0);
+        ctxRect.pivot = new Vector2(1f, 1f);
+        ctxRect.sizeDelta = new Vector2(200, 50);
+        ctxRect.anchoredPosition = new Vector2(0, 15);
+
+        Image ctxBg = contextMenuPanel.AddComponent<Image>();
+        ctxBg.color = new Color(0.12f, 0.12f, 0.14f, 0.98f);
+
+        Outline ctxOutline = contextMenuPanel.AddComponent<Outline>();
+        ctxOutline.effectColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+        ctxOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+        GameObject ctxContent = new GameObject("CtxContent");
+        ctxContent.transform.SetParent(contextMenuPanel.transform, false);
+
+        RectTransform ctxContentRect = ctxContent.AddComponent<RectTransform>();
+        ctxContentRect.anchorMin = Vector2.zero; ctxContentRect.anchorMax = Vector2.one;
+        ctxContentRect.offsetMin = new Vector2(4, 4); ctxContentRect.offsetMax = new Vector2(-4, -4);
+
+        VerticalLayoutGroup ctxLayout = ctxContent.AddComponent<VerticalLayoutGroup>();
+        ctxLayout.spacing = 2;
+        ctxLayout.childControlHeight = true;
+        ctxLayout.childForceExpandHeight = true;
+
+        contextMenuPanel.SetActive(false);
+
         Text instructionText = CreateText("Instruction", panelObj.transform, new Vector2(0, -270), new Vector2(800, 30),
-            "Right click: Apply/Remove Bandage | Scroll: View details", 16, FontStyle.Normal, new Color(0.5f, 0.5f, 0.5f), TextAnchor.MiddleCenter);
+            "Right click on injuries: Apply/Remove Bandage | Scroll: View details", 16, FontStyle.Normal, new Color(0.5f, 0.5f, 0.5f), TextAnchor.MiddleCenter);
         instructionText.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
 
         panelObj.SetActive(false);
@@ -199,6 +233,7 @@ public class AutoHealthPanel : MonoBehaviour
 
     private void CreateBodyPart(string partName, Transform parent, Vector2 position, Vector2 size, Vector2 pivot, float rotation)
     {
+        // (Giữ nguyên)
         GameObject partObj = new GameObject("Part_" + partName);
         partObj.transform.SetParent(parent, false);
 
@@ -217,28 +252,13 @@ public class AutoHealthPanel : MonoBehaviour
         outline.effectColor = colOutline;
         outline.effectDistance = new Vector2(1.5f, -1.5f);
 
-        // 🔥 XÓA DÒNG LEFT CLICK TEST TẠI ĐÂY
-        // Button btn = partObj.AddComponent<Button>();
-        // btn.onClick.AddListener(() => TakeRandomZombieAttack(""));
-
-        EventTrigger trigger = partObj.AddComponent<EventTrigger>();
-        EventTrigger.Entry rightClickEntry = new EventTrigger.Entry();
-        rightClickEntry.eventID = EventTriggerType.PointerClick;
-        rightClickEntry.callback.AddListener((data) => {
-            PointerEventData pointerData = (PointerEventData)data;
-            if (pointerData.button == PointerEventData.InputButton.Right)
-            {
-                OnBodyPartRightClicked(partName);
-            }
-        });
-        trigger.triggers.Add(rightClickEntry);
-
         BodyPartData data = new BodyPartData { Name = partName, Img = img };
         bodyParts.Add(partName, data);
     }
 
     private Text CreateText(string name, Transform parent, Vector2 pos, Vector2 size, string text, int fontSize, FontStyle style, Color color, TextAnchor align)
     {
+        // (Giữ nguyên)
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
         RectTransform rect = go.AddComponent<RectTransform>();
@@ -255,16 +275,18 @@ public class AutoHealthPanel : MonoBehaviour
         return txt;
     }
 
-    private void FindLocalPlayerHealth()
+    private void FindLocalPlayerCache()
     {
-        if (localPlayerHealth != null) return;
+        // 🔥 MULTIPLAYER FIX: Check nếu player bị destroy (chết/disconnect) thì phải tìm lại
+        if (localPlayerHealth != null && localInventory != null) return;
 
         PlayerHealth[] allPlayers = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
         foreach (var p in allPlayers)
         {
-            if (p.HasInputAuthority)
+            if (p != null && p.HasInputAuthority)
             {
                 localPlayerHealth = p;
+                localInventory = p.GetComponent<InventorySystem>();
                 break;
             }
         }
@@ -272,7 +294,7 @@ public class AutoHealthPanel : MonoBehaviour
 
     public void TakeRandomZombieAttack(string forcedTarget = "")
     {
-        FindLocalPlayerHealth();
+        FindLocalPlayerCache();
 
         string targetPart = forcedTarget;
 
@@ -315,32 +337,11 @@ public class AutoHealthPanel : MonoBehaviour
         }
 
         EvaluateGlobalBleeding();
-        UpdateAllUI();
-    }
 
-    private void OnBodyPartRightClicked(string partName)
-    {
-        FindLocalPlayerHealth();
-        BodyPartData part = bodyParts[partName];
-
-        if (partName == "Neck" && part.Injuries.Contains(InjuryType.Bitten))
+        if (isOpen)
         {
-            Debug.Log("Án tử: Không thể băng bó vết cắn ở yết hầu!");
-            return;
+            UpdateAllUI();
         }
-
-        if (part.Injuries.Count > 0 && !part.IsBandaged)
-        {
-            part.IsBandaged = true;
-        }
-        else if (part.IsBandaged)
-        {
-            part.IsBandaged = false;
-            part.Injuries.Clear();
-        }
-
-        EvaluateGlobalBleeding();
-        UpdateAllUI();
     }
 
     private void EvaluateGlobalBleeding()
@@ -358,19 +359,12 @@ public class AutoHealthPanel : MonoBehaviour
             }
         }
 
-        if (hasUnbandagedWounds)
-        {
-            localPlayerHealth.SetGlobalBleeding(true);
-        }
-        else
-        {
-            localPlayerHealth.SetGlobalBleeding(false);
-        }
+        localPlayerHealth.SetGlobalBleeding(hasUnbandagedWounds);
     }
 
     private void UpdateAllUI()
     {
-        FindLocalPlayerHealth();
+        FindLocalPlayerCache();
 
         float displayHP = 100f;
         bool isBleedingReal = false;
@@ -384,8 +378,6 @@ public class AutoHealthPanel : MonoBehaviour
         }
 
         StringBuilder headerText = new StringBuilder();
-        StringBuilder listText = new StringBuilder();
-
         List<BodyPartData> injuredParts = new List<BodyPartData>();
 
         foreach (var part in bodyParts.Values)
@@ -400,7 +392,6 @@ public class AutoHealthPanel : MonoBehaviour
             else part.Img.color = colInjured;
         }
 
-        // ĐÃ SỬA LỖI currentHealth THÀNH currentHP TẠI ĐÂY
         currentHP = Mathf.Clamp(displayHP, 0, 100f);
 
         headerText.AppendLine("Overall Body Status");
@@ -425,48 +416,316 @@ public class AutoHealthPanel : MonoBehaviour
 
         fixedHeaderText.text = headerText.ToString();
 
+        HideContextMenu(); // Cất Menu an toàn trước
+
+        for (int i = textContentRect.childCount - 1; i >= 0; i--)
+        {
+            Destroy(textContentRect.GetChild(i).gameObject);
+        }
+
         foreach (var part in injuredParts)
         {
-            listText.AppendLine($"<color=white>{part.Name}</color>");
+            CreateInjuryEntry(part);
+        }
+    }
 
-            if (part.IsBandaged)
+    private void CreateInjuryEntry(BodyPartData part)
+    {
+        GameObject entryObj = new GameObject("Entry_" + part.Name);
+        entryObj.transform.SetParent(textContentRect, false);
+
+        RectTransform rect = entryObj.AddComponent<RectTransform>();
+
+        LayoutElement layout = entryObj.AddComponent<LayoutElement>();
+        layout.minHeight = 45;
+
+        Image bg = entryObj.AddComponent<Image>();
+        bg.color = new Color(1, 1, 1, 0.01f);
+
+        EventTrigger trigger = entryObj.AddComponent<EventTrigger>();
+        EventTrigger.Entry rightClickEntry = new EventTrigger.Entry();
+        rightClickEntry.eventID = EventTriggerType.PointerClick;
+        rightClickEntry.callback.AddListener((data) => {
+            PointerEventData pointerData = (PointerEventData)data;
+            if (pointerData.button == PointerEventData.InputButton.Right && !isHealing)
             {
-                listText.AppendLine("<color=#4ade80>  - Bandaged</color>");
+                ShowContextMenu(part, entryObj.transform);
             }
-            else
+        });
+        trigger.triggers.Add(rightClickEntry);
+
+        StringBuilder textB = new StringBuilder();
+        textB.AppendLine($"<color=white>{part.Name}</color>");
+
+        if (part.IsBandaged)
+        {
+            textB.Append("<color=#4ade80>  - Bandaged</color>");
+        }
+        else
+        {
+            foreach (var inj in part.Injuries)
             {
-                foreach (var inj in part.Injuries)
-                {
-                    listText.AppendLine($"<color=#ff4444>  - {inj.ToString()}</color>");
-                }
+                textB.AppendLine($"<color=#ff4444>  - {inj.ToString()}</color>");
             }
         }
 
-        rightPanelText.text = listText.ToString();
+        Text txt = CreateText("Text", entryObj.transform, Vector2.zero, new Vector2(400, 45), textB.ToString(), 20, FontStyle.Bold, Color.white, TextAnchor.UpperLeft);
+        txt.lineSpacing = 1.2f;
+
+        RectTransform txtRect = txt.GetComponent<RectTransform>();
+        txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one;
+        txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero;
+
+        Canvas.ForceUpdateCanvases();
+        layout.minHeight = txt.preferredHeight + 10;
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.H))
+        if (Input.GetKeyDown(KeyCode.H) || (isOpen && Input.GetKeyDown(KeyCode.Escape)))
         {
-            isOpen = !isOpen;
-            panelObj.SetActive(isOpen);
+            if (Time.time < toggleCooldown) return;
 
-            if (isOpen)
-            {
-                UpdateAllUI();
-            }
+            bool isInvDoingAction = AutoUIManager.Instance != null && AutoUIManager.Instance.isDoingAction;
+            if (isHealing || isInvDoingAction) return;
+
+            bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
+            if (!isOpen && isInvOpen) return;
+
+            toggleCooldown = Time.time + 0.2f;
+            TogglePanel();
+        }
+
+        if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
+        {
+            HideContextMenu();
         }
 
         if (isOpen && localPlayerHealth != null)
+        {
+            UpdateHeaderTextOnly();
+        }
+    }
+
+    private void TogglePanel()
+    {
+        isOpen = !isOpen;
+        panelObj.SetActive(isOpen);
+        HideContextMenu();
+
+        if (isOpen)
         {
             UpdateAllUI();
         }
     }
 
-    // ==========================================
-    // 🔥 HÀM NÀY ĐỂ BÊN PLAYERHEALTH LẤY DEBUFF VÀ HIỂN THỊ
-    // ==========================================
+    private void UpdateHeaderTextOnly()
+    {
+        if (localPlayerHealth == null) return;
+
+        float displayHP = localPlayerHealth.currentHealth;
+        currentHP = Mathf.Clamp(displayHP, 0, 100f);
+
+        StringBuilder headerText = new StringBuilder();
+        headerText.AppendLine("Overall Body Status");
+        string overallStatus = "";
+        string statusColor = "<color=#ffaaaa>";
+
+        if (currentHP >= 100f) { overallStatus = "OK"; statusColor = "<color=white>"; }
+        else if (currentHP >= 90f) overallStatus = "Slight Damage";
+        else if (currentHP >= 80f) overallStatus = "Minor Damage";
+        else if (currentHP >= 60f) overallStatus = "Moderate Damage";
+        else if (currentHP >= 50f) overallStatus = "Severe Damage";
+        else if (currentHP >= 40f) overallStatus = "Very Severe Damage";
+        else if (currentHP >= 20f) overallStatus = "Critical Damage";
+        else if (currentHP >= 10f) overallStatus = "Highly Critical Damage";
+        else if (currentHP > 0f) overallStatus = "Terminal Damage";
+        else overallStatus = "Deceased";
+
+        headerText.AppendLine($"{statusColor}{overallStatus}</color>");
+
+        if (localPlayerHealth.isInPain) headerText.AppendLine("Pain");
+        if (localPlayerHealth.isBleeding) headerText.AppendLine("<color=red>Bleeding</color>");
+
+        fixedHeaderText.text = headerText.ToString();
+    }
+
+    private void ShowContextMenu(BodyPartData part, Transform entryTransform)
+    {
+        FindLocalPlayerCache();
+        selectedPartNameForContext = part.Name;
+
+        Transform ctxContent = contextMenuPanel.transform.Find("CtxContent");
+
+        if (ctxContent != null)
+        {
+            for (int i = ctxContent.childCount - 1; i >= 0; i--)
+            {
+                Destroy(ctxContent.GetChild(i).gameObject);
+            }
+        }
+
+        contextMenuPanel.SetActive(true);
+
+        contextMenuPanel.transform.SetParent(entryTransform, false);
+
+        RectTransform ctxRect = contextMenuPanel.GetComponent<RectTransform>();
+        ctxRect.anchorMin = new Vector2(1f, 0f);
+        ctxRect.anchorMax = new Vector2(1f, 0f);
+        ctxRect.pivot = new Vector2(1f, 1f);
+        ctxRect.anchoredPosition = new Vector2(-20, 0);
+
+        if (part.IsBandaged)
+        {
+            CreateContextMenuButton("Remove Bandage", () => StartCoroutine(HealActionRoutine(part, "Remove")), ctxContent);
+        }
+        else if (part.Injuries.Count > 0)
+        {
+            if (part.Name == "Neck" && part.Injuries.Contains(InjuryType.Bitten))
+            {
+                CreateContextMenuButton("<color=red>Cannot Bandage</color>", null, ctxContent);
+            }
+            else
+            {
+                bool hasBandage = false;
+                ItemData bandageData = null;
+
+                if (localInventory != null)
+                {
+                    foreach (var slot in localInventory.slots)
+                    {
+                        if (slot.item != null)
+                        {
+                            string itemNameLower = slot.item.itemName.ToLower();
+                            if (itemNameLower.Contains("bandage") || itemNameLower.Contains("băng"))
+                            {
+                                hasBandage = true;
+                                bandageData = slot.item;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (hasBandage)
+                {
+                    CreateContextMenuButton("Apply Bandage", () => StartCoroutine(HealActionRoutine(part, "Apply", bandageData)), ctxContent);
+                }
+                else
+                {
+                    CreateContextMenuButton("<color=gray>No Bandages</color>", null, ctxContent);
+                }
+            }
+        }
+    }
+
+    private void HideContextMenu()
+    {
+        if (contextMenuPanel != null && contextMenuPanel.activeSelf)
+        {
+            contextMenuPanel.SetActive(false);
+            if (panelObj != null)
+            {
+                contextMenuPanel.transform.SetParent(panelObj.transform, false);
+            }
+        }
+    }
+
+    private void CreateContextMenuButton(string label, UnityEngine.Events.UnityAction action, Transform parentContent)
+    {
+        GameObject btnObj = new GameObject("CtxBtn_" + label);
+        btnObj.transform.SetParent(parentContent, false);
+
+        RectTransform rect = btnObj.AddComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(200, 50);
+
+        Image img = btnObj.AddComponent<Image>();
+        img.color = new Color(0.2f, 0.2f, 0.22f, 1f);
+
+        Button btn = btnObj.AddComponent<Button>();
+        if (action != null)
+        {
+            btn.onClick.AddListener(action);
+            btn.onClick.AddListener(HideContextMenu);
+
+            ColorBlock cb = btn.colors;
+            cb.normalColor = Color.white;
+            cb.highlightedColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            cb.pressedColor = new Color(0.4f, 0.4f, 0.4f, 1f);
+            cb.selectedColor = Color.white;
+            btn.colors = cb;
+        }
+        else
+        {
+            btn.interactable = false;
+        }
+
+        Text txt = CreateText("Txt", btnObj.transform, Vector2.zero, new Vector2(180, 50), label, 18, FontStyle.Bold, Color.white, TextAnchor.MiddleCenter);
+        RectTransform tRect = txt.GetComponent<RectTransform>();
+        tRect.anchorMin = Vector2.zero; tRect.anchorMax = Vector2.one;
+        tRect.offsetMin = new Vector2(0, 0);
+        tRect.offsetMax = Vector2.zero;
+    }
+
+    private IEnumerator HealActionRoutine(BodyPartData part, string actionType, ItemData itemUsed = null)
+    {
+        isHealing = true;
+        HideContextMenu();
+
+        isOpen = false;
+        panelObj.SetActive(false);
+
+        float duration = 2.5f;
+        if (itemUsed != null && itemUsed.useTime > 0)
+        {
+            duration = itemUsed.useTime;
+        }
+
+        if (AutoUIManager.Instance != null)
+        {
+            AutoUIManager.Instance.ShowReloadUI(0, duration);
+        }
+
+        float timer = 0;
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;
+
+            if (AutoUIManager.Instance != null)
+            {
+                AutoUIManager.Instance.ShowReloadUI(timer, duration);
+            }
+
+            yield return null;
+        }
+
+        if (actionType == "Apply" && itemUsed != null)
+        {
+            localInventory.ConsumeItem(itemUsed, 1);
+            part.IsBandaged = true;
+        }
+        else if (actionType == "Remove")
+        {
+            part.IsBandaged = false;
+            part.Injuries.Clear();
+        }
+
+        EvaluateGlobalBleeding();
+        EndHealAction();
+
+        TogglePanel();
+    }
+
+    private void EndHealAction()
+    {
+        isHealing = false;
+        if (AutoUIManager.Instance != null)
+        {
+            AutoUIManager.Instance.HideReloadUI();
+        }
+    }
+
     public List<InjuryType> GetActiveGlobalInjuries()
     {
         List<InjuryType> uniqueInjuries = new List<InjuryType>();

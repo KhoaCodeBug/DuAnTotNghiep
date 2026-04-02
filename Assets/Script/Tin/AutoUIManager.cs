@@ -25,7 +25,8 @@ public class AutoUIManager : MonoBehaviour
     private List<SlotUIElements> slotUIList = new List<SlotUIElements>();
     private List<InventorySlot> currentSlots = new List<InventorySlot>();
     private int selectedSlotIndex = -1;
-    private bool isDoingAction = false;
+    private float invToggleCooldown = 0f; // Biến chống spam phím
+    public bool isDoingAction; // Cho phép Script khác hỏi thăm
     #endregion
 
     #region Biến Nhân Vật & Trạng Thái
@@ -72,16 +73,24 @@ public class AutoUIManager : MonoBehaviour
 
     private void Update()
     {
-
-        if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping())
-        {
-            // Trả về luôn, không thèm đọc lệnh phím I ở dưới nữa
-            return;
-        }
+        if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
 
         // Phím bật tắt Túi đồ
         if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.I))
         {
+            // 1. CHỐNG SPAM (0.2 giây)
+            if (Time.time < invToggleCooldown) return;
+
+            // 2. NẾU ĐANG CHẠY PROGRESS BAR (Xài đồ hoặc Băng bó) -> CẤM MỞ BẢNG
+            bool isHealthHealing = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsHealing;
+            if (isDoingAction || isHealthHealing) return;
+
+            // 3. NẾU BẢNG MÁU ĐANG BẬT -> CẤM MỞ TÚI ĐỒ (Chống đè UI)
+            bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
+            if (!inventoryPanel.activeSelf && isHealthOpen) return;
+
+            invToggleCooldown = Time.time + 0.2f;
+
             if (inventoryPanel != null)
             {
                 inventoryPanel.SetActive(!inventoryPanel.activeSelf);
@@ -93,8 +102,11 @@ public class AutoUIManager : MonoBehaviour
         // Phím Hủy (Thoát UI)
         if (Input.GetKeyDown(KeyCode.Escape))
         {
+            if (Time.time < invToggleCooldown) return;
+
             if (inventoryPanel != null && inventoryPanel.activeSelf)
             {
+                invToggleCooldown = Time.time + 0.2f;
                 inventoryPanel.SetActive(false);
                 HideContextMenu();
                 HideTooltip();
@@ -1195,8 +1207,6 @@ public class AutoUIManager : MonoBehaviour
         if (inventoryPanel != null)
             inventoryPanel.SetActive(false);
 
-        PlayerMovement pm = localPlayer != null ? localPlayer.GetComponent<PlayerMovement>() : null;
-        if (pm != null) pm.isUsingItem = true;
 
         yield return new WaitForSeconds(0.1f);
 
@@ -1213,7 +1223,7 @@ public class AutoUIManager : MonoBehaviour
             {
                 actionBarPanel.SetActive(false);
                 isDoingAction = false;
-                if (pm != null) pm.isUsingItem = false;
+                
                 Debug.Log("Đã hủy dùng đồ do di chuyển!");
                 yield break;
             }
@@ -1222,7 +1232,7 @@ public class AutoUIManager : MonoBehaviour
 
         actionBarPanel.SetActive(false);
         isDoingAction = false;
-        if (pm != null) pm.isUsingItem = false;
+        
 
         if (localPlayer != null)
         {
