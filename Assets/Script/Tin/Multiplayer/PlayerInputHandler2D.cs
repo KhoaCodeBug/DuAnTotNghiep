@@ -122,6 +122,9 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         bool isTyping = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
         bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
 
+        // 🔥 THÊM CỜ KIỂM TRA BẢNG MÁU
+        bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
+
         bool isDead = false;
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null)
@@ -129,13 +132,17 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             isDead = health.currentHealth <= 0;
         }
 
-        if (isTyping || isInvOpen || isDead)
+        // 🔥 CHẶN DI CHUYỂN NẾU MỞ BẤT KỲ UI NÀO
+        if (isTyping || isInvOpen || isHealthOpen || isDead)
         {
             input.Set(new PlayerNetworkInput());
             return;
         }
 
-        data.isAiming = isInvOpen ? false : Input.GetMouseButton(1);
+        // 🔥 CHẶN NGẮM BẮN (AIM) NẾU CHỈ CHUỘT LÊN BẤT KỲ UI NÀO
+        bool pointerOnUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+
+        data.isAiming = pointerOnUI ? false : Input.GetMouseButton(1);
         data.isRunning = Input.GetKey(KeyCode.LeftShift);
         data.isCrouching = Input.GetKey(KeyCode.C);
 
