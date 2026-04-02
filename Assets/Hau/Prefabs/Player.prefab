@@ -335,7 +335,7 @@ GameObject:
   - component: {fileID: -9026701793527687343}
   - component: {fileID: -6685028598772088161}
   - component: {fileID: 8911727614295573309}
-  - component: {fileID: -2034980981350773841}
+  - component: {fileID: 2526457838182802632}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -513,7 +513,7 @@ MonoBehaviour:
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SortKey: 2069159445
+  SortKey: 3151418943
   ObjectInterest: 1
   Flags: 262145
   NestedObjects: []
@@ -530,7 +530,7 @@ MonoBehaviour:
   - {fileID: 4082368852035321095}
   - {fileID: 7724904100602278079}
   - {fileID: 8911727614295573309}
-  - {fileID: -2034980981350773841}
+  - {fileID: 2526457838182802632}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &2529962990091390442
 MonoBehaviour:
@@ -926,7 +926,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6376dd7fc23b3764483a7349b58502e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!114 &-2034980981350773841
+--- !u!114 &2526457838182802632
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -938,7 +938,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 384c1f2bfbf1bec42a5e99bad3b47e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _cameraController: {fileID: 7731154587422345801, guid: 9825ebb2b3551454e824139e839de879, type: 3}
+  _cameraController: {fileID: 7731154587422345801, guid: 382dee7a190b0e2438639f4e14a7cc62, type: 3}
   _playerSprite: {fileID: 5240829870105291093}
   _playerCollider: {fileID: 8762421789751151386}
   _playerMovementScript: {fileID: 8571460307203640203}
