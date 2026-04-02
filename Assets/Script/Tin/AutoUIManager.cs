@@ -586,7 +586,7 @@ public class AutoUIManager : MonoBehaviour
         string nameLower = itemName.ToLower();
         if (nameLower.Contains("bandage") || nameLower.Contains("băng"))
         {
-            playerHealth.UseBandage();
+            //playerHealth.UseBandage();
             Debug.Log("Đã quấn băng gạc, cầm máu thành công!");
         }
         else if (nameLower.Contains("painkiller") || nameLower.Contains("thuốc") || nameLower.Contains("đau"))
