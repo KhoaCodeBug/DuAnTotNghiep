@@ -240,7 +240,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 1
-  zombieDamage: 15
+  zombieDamage: 10
   detectionRange: 1
   viewAngle: 180
   obstacleMask:

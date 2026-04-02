@@ -662,7 +662,7 @@ MonoBehaviour:
   stunDuration: 0.4
   hurtColor: {r: 1, g: 0, b: 0, a: 1}
   flashDuration: 0.1
-  bleedDamagePerSecond: 5
+  bleedDamagePerSecond: 2
   passiveHealPerSecond: 2
   _isBleeding:
     _value: 0
@@ -819,7 +819,7 @@ AudioSource:
   Priority: 128
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 20
+  MaxDistance: 6
   Pan2D: 0
   rolloffMode: 1
   BypassEffects: 0

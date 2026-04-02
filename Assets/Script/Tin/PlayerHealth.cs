@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using Fusion;
 using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerHealth : NetworkBehaviour
 {
@@ -43,15 +44,11 @@ public class PlayerHealth : NetworkBehaviour
         anim = GetComponent<Animator>();
         spriteRend = GetComponentInChildren<SpriteRenderer>();
 
-        // Lấy component sinh tồn
         survivalSystem = GetComponent<PlayerSurvival>();
 
         if (spriteRend != null) originalColor = spriteRend.color;
     }
 
-    // ==========================================================
-    // === THÊM FIXEDUPDATENETWORK ĐỂ XỬ LÝ MÁU THEO THỜI GIAN ===
-    // ==========================================================
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority || isDead) return;
@@ -67,7 +64,7 @@ public class PlayerHealth : NetworkBehaviour
             }
         }
 
-        // 2. Xử lý hồi máu thụ động (Không chảy máu + Ăn uống > 80%)
+        // 2. Xử lý hồi máu thụ động
         if (!isBleeding && currentHealth < maxHealth && survivalSystem != null)
         {
             float hungerPct = survivalSystem.currentHunger / survivalSystem.maxHunger;
@@ -80,12 +77,9 @@ public class PlayerHealth : NetworkBehaviour
             }
         }
     }
-    // ==========================================================
 
-    // Có thêm biến isStarving để chặn hiệu ứng giật mình nếu bị trừ máu do đói khát
     public void TakeDamage(float damage, bool isStarving = false)
     {
-        // Chết rồi hoặc không phải Server thì nghỉ
         if (isDead || !HasStateAuthority) return;
 
         currentHealth -= damage;
@@ -94,17 +88,14 @@ public class PlayerHealth : NetworkBehaviour
         if (currentHealth <= 0)
         {
             isDead = true;
-            RPC_PlayDeathEffect(); // Báo cả làng tui chết rồi
+            RPC_PlayDeathEffect();
             return;
         }
 
-        // Nếu bị chém thật (không phải do đói) thì báo cả làng bật hiệu ứng chớp đỏ
         if (!isStarving)
         {
-            // === THÊM DEBUFF KHI BỊ ZOMBIE ĐÁNH ===
             isBleeding = true;
             isInPain = true;
-            // ======================================
 
             RPC_PlayHitEffect();
             if (movementScript != null) movementScript.LockMovement(stunDuration);
@@ -114,14 +105,14 @@ public class PlayerHealth : NetworkBehaviour
     // ==========================================
     // === THÊM CÁC HÀM XÓA DEBUFF TỪ ITEM ======
     // ==========================================
-    public void UseBandage()
+    public void SetGlobalBleeding(bool state)
     {
-        if (HasStateAuthority) isBleeding = false;
-        else RPC_StopBleeding();
+        if (HasStateAuthority) isBleeding = state;
+        else RPC_SetGlobalBleeding(state);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_StopBleeding() { isBleeding = false; }
+    private void RPC_SetGlobalBleeding(bool state) { isBleeding = state; }
 
     public void UsePainkiller()
     {
@@ -197,62 +188,81 @@ public class PlayerHealth : NetworkBehaviour
     }
 
     // ==========================================
-    // === THÊM: HIỆN TRẠNG THÁI KIỂU ZOMBOID ===
+    // 🔥 ĐỒNG BỘ HIỂN THỊ DEBUFF CỦA ZOMBOID & THÊM LẠI ICON
     // ==========================================
     private void OnGUI()
     {
-        // Chỉ vẽ UI cho máy của người đang chơi
         if (!HasInputAuthority || isDead) return;
 
-        // Chỉnh font chữ to, in đậm
         GUIStyle style = new GUIStyle(GUI.skin.label);
         style.fontSize = 24;
         style.fontStyle = FontStyle.Bold;
 
-        int yPos = 50; // Góc trên bên phải
+        int yPos = 50;
         int xPos = Screen.width - 250;
 
-        // 1. Nếu đang chảy máu -> Hiện chữ ĐỎ
-        if (isBleeding)
-        {
-            style.normal.textColor = Color.red;
-            style.hover.textColor = Color.red;
-
-            GUI.Label(new Rect(xPos, yPos, 250, 40), "🩸 CHẢY MÁU!", style);
-            yPos += 40; // Đẩy dòng tiếp theo xuống dưới
-        }
-
-        // 2. Nếu đang bị đau -> Hiện chữ VÀNG
+        // 1. KIỂM TRA ĐAU ĐỚN VÀ CHẢY MÁU CHUNG
         if (isInPain)
         {
             style.normal.textColor = Color.yellow;
             style.hover.textColor = Color.yellow;
-
-            GUI.Label(new Rect(xPos, yPos, 250, 40), "⚡ ĐAU ĐỚN!", style);
-            yPos += 40; // Đẩy dòng tiếp theo xuống dưới
+            GUI.Label(new Rect(xPos, yPos, 250, 40), "⚡ Pain", style);
+            yPos += 40;
         }
 
-        // 3. KIỂM TRA ĐIỀU KIỆN HỒI MÁU THỤ ĐỘNG
+        if (isBleeding)
+        {
+            style.normal.textColor = Color.red;
+            style.hover.textColor = Color.red;
+            GUI.Label(new Rect(xPos, yPos, 250, 40), "🩸 Bleeding", style);
+            yPos += 40;
+        }
+
+        // 2. LIÊN KẾT VỚI BẢNG HEALTH PANEL ĐỂ LẤY CÁC VẾT THƯƠNG CỤ THỂ (Scratched, Bitten...)
+        if (AutoHealthPanel.Instance != null)
+        {
+            // Lấy danh sách TẤT CẢ các vết thương hiện có trên toàn thân (đã lược bỏ những chỗ được băng bó)
+            List<AutoHealthPanel.InjuryType> activeGlobalInjuries = AutoHealthPanel.Instance.GetActiveGlobalInjuries();
+
+            // Nếu trong danh sách đó có Scratched -> Hiện Scratched 1 lần duy nhất
+            if (activeGlobalInjuries.Contains(AutoHealthPanel.InjuryType.Scratched))
+            {
+                style.normal.textColor = new Color(1f, 0.5f, 0.5f); // Đỏ nhạt
+                GUI.Label(new Rect(xPos, yPos, 250, 40), "🩸 Scratched", style);
+                yPos += 40;
+            }
+
+            // Nếu có Laceration -> Hiện 1 lần duy nhất
+            if (activeGlobalInjuries.Contains(AutoHealthPanel.InjuryType.Laceration))
+            {
+                style.normal.textColor = Color.red; // Đỏ
+                GUI.Label(new Rect(xPos, yPos, 250, 40), "🩸 Laceration", style);
+                yPos += 40;
+            }
+
+            // Nếu có Bitten -> Hiện 1 lần duy nhất (Án tử)
+            if (activeGlobalInjuries.Contains(AutoHealthPanel.InjuryType.Bitten))
+            {
+                style.normal.textColor = new Color(0.6f, 0f, 0f); // Đỏ thẫm
+                GUI.Label(new Rect(xPos, yPos, 250, 40), "☠ BITTEN", style);
+                yPos += 40;
+            }
+        }
+
+        // 3. KIỂM TRA HỒI MÁU
         bool isHealing = false;
         if (!isBleeding && currentHealth < maxHealth && survivalSystem != null)
         {
             float hungerPct = survivalSystem.currentHunger / survivalSystem.maxHunger;
             float thirstPct = survivalSystem.currentThirst / survivalSystem.maxThirst;
-
-            // Đói và Khát phải trên 80% thì mới đang hồi máu
-            if (hungerPct >= 0.8f && thirstPct >= 0.8f)
-            {
-                isHealing = true;
-            }
+            if (hungerPct >= 0.8f && thirstPct >= 0.8f) isHealing = true;
         }
 
-        // Nếu đủ điều kiện hồi máu -> Hiện chữ XANH LÁ
         if (isHealing)
         {
             style.normal.textColor = Color.green;
             style.hover.textColor = Color.green;
-
-            GUI.Label(new Rect(xPos, yPos, 250, 40), "💚 ĐANG HỒI MÁU...", style);
+            GUI.Label(new Rect(xPos, yPos, 250, 40), "💚 Healing...", style);
         }
     }
 }

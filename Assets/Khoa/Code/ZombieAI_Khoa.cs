@@ -10,7 +10,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     private NavMeshAgent agent;
 
     [Header("=== Damage ===")]
-    [SerializeField] private float zombieDamage = 15f;
+    [SerializeField] private float zombieDamage = 10f;
     private PlayerHealth playerHealth;
 
     [Header("=== Vision ===")]
@@ -452,9 +452,22 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         if (hasAppliedDamage || NetIsDead || playerHealth == null || playerCol == null) return;
 
         float currentDist = Vector2.Distance(myCol.bounds.center, playerCol.bounds.center);
+
+        // Kiểm tra xem Player còn đứng trong tầm đánh không
         if (currentDist <= attackRange + 0.5f)
         {
-            playerHealth.TakeDamage(zombieDamage);
+            // Kiểm tra xem trong game đã có AutoHealthPanel chưa
+            if (AutoHealthPanel.Instance != null)
+            {
+                // Gọi sang AutoHealthPanel để nó tính toán random vết thương và trừ máu
+                AutoHealthPanel.Instance.TakeRandomZombieAttack("");
+            }
+            else
+            {
+                // Phòng hờ nếu quên gắn AutoHealthPanel thì vẫn trừ máu bình thường
+                playerHealth.TakeDamage(zombieDamage, false);
+            }
+
             hasAppliedDamage = true;
         }
     }
