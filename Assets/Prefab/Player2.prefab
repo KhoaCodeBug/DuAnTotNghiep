@@ -466,6 +466,7 @@ GameObject:
   - component: {fileID: 4843099494297100640}
   - component: {fileID: 7524047742441646299}
   - component: {fileID: 7747117736745251516}
+  - component: {fileID: 7447998228214163770}
   m_Layer: 9
   m_Name: Player2
   m_TagString: Player
@@ -659,6 +660,7 @@ MonoBehaviour:
   - {fileID: 4842576318965749751}
   - {fileID: 7524047742441646299}
   - {fileID: 7747117736745251516}
+  - {fileID: 7447998228214163770}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &2519491336483240416
 MonoBehaviour:
@@ -922,3 +924,18 @@ MonoBehaviour:
   _CooldownTimer: 0
   _IsInvisible:
     _value: 0
+--- !u!114 &7447998228214163770
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4040414594068316635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 384c1f2bfbf1bec42a5e99bad3b47e47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _playerSprite: {fileID: 6095873287819200228}
+  _playerCollider: {fileID: 963512567748089047}
+  _playerMovementScript: {fileID: 362121797192676483}
