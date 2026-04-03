@@ -18,12 +18,10 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     [SerializeField] private float viewAngle = 90f;
     [SerializeField] private LayerMask obstacleMask;
 
-    [Header("=== Chase Memory ===")]
-    [SerializeField] private float loseTime = 8f;
-    private float loseTimer;
+    [Header("=== Hearing & Memory ===")]
+    // 🔥 ĐÃ XÓA loseTime và loseTimer. Giờ dùng tọa độ để nhớ!
+    private Vector2 lastKnownPlayerPos;
     private bool isChasing;
-
-    [Header("=== Hearing ===")]
     private bool isInvestigating;
     private Vector2 investigateTarget;
     private float investigateTimer;
@@ -106,6 +104,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         if (NetIsDead) return;
 
+        // 1. RADAR QUÉT MỤC TIÊU MẠNG
         searchTargetTimer -= Runner.DeltaTime;
         if (searchTargetTimer <= 0f)
         {
@@ -120,6 +119,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             return;
         }
 
+        // 2. XỬ LÝ STUN & COOLDOWN
         if (stunTimer > 0f)
         {
             stunTimer -= Runner.DeltaTime;
@@ -137,7 +137,6 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         if (isAttacking)
         {
             attackTimer -= Runner.DeltaTime;
-
             if (attackTimer <= 0f)
             {
                 isAttacking = false;
@@ -145,18 +144,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             }
         }
 
-        if (CanSeePlayer())
-        {
-            isChasing = true;
-            isInvestigating = false;
-            loseTimer = loseTime;
-        }
-        else if (isChasing)
-        {
-            loseTimer -= Runner.DeltaTime;
-            if (loseTimer <= 0f) isChasing = false;
-        }
-
+        // Lấy khoảng cách & vị trí
         ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
         float distance = Mathf.Max(collDist.distance, 0f);
 
@@ -167,8 +155,25 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         RaycastHit2D wallCheck = Physics2D.Raycast(myPos, dirToPlayer, distance, obstacleMask);
         bool noWallInBetween = wallCheck.collider == null;
 
-        if (distance <= attackRange && noWallInBetween && isChasing && !isAttacking && cooldownTimer <= 0f)
+        // ==========================================
+        // 🔥 3. VISION + CHASE TƯ DUY MỚI
+        // ==========================================
+        bool canSee = CanSeePlayer();
+
+        if (canSee)
         {
+            isChasing = true;
+            isInvestigating = false;
+            lastKnownPlayerPos = targetPos; // Chốt tọa độ liên tục khi còn nhìn thấy
+        }
+        // ĐÃ BỎ ĐOẠN ELSE IF ĐẾM LUI Ở ĐÂY. Nếu khuất tầm nhìn, nó vẫn giữ isChasing = true để chạy tới vị trí cuối.
+
+        // ==========================================
+        // 🔥 4. LỰA CHỌN HÀNH ĐỘNG (ATTACK / CHASE / INVESTIGATE)
+        // ==========================================
+        if (distance <= attackRange && noWallInBetween && isChasing && !isAttacking && cooldownTimer <= 0f && canSee)
+        {
+            // === VÀO TẦM ĐÁNH ===
             int attackIndex = Random.Range(1, 3);
             NetAttackIndex = attackIndex;
             NetIsAttacking = true;
@@ -183,55 +188,82 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         }
         else if (isChasing && !isAttacking)
         {
+            // === RƯỢT THEO ===
             agent.isStopped = false;
             agent.speed = speed;
 
             pathRecalcTimer -= Runner.DeltaTime;
             if (pathRecalcTimer <= 0f)
             {
-                agent.SetDestination(targetPos);
+                // Nếu đang thấy Player -> Chạy thẳng tới Player.
+                // Nếu khuất tường -> Chạy tới cái điểm cuối cùng thấy Player.
+                Vector2 targetPath = canSee ? targetPos : lastKnownPlayerPos;
+                agent.SetDestination(targetPath);
                 pathRecalcTimer = 0.2f;
+
+                // KIỂM TRA MẤT DẤU THẬT SỰ:
+                // Nếu chạy tới nơi rồi (khoảng cách < 0.5) mà vẫn không thấy Player
+                if (!canSee && Vector2.Distance(myPos, lastKnownPlayerPos) < 0.5f)
+                {
+                    isChasing = false; // Ngừng rượt
+
+                    // Lập tức chuyển sang chế độ "Ngó nghiêng" 3 giây tại chỗ
+                    isInvestigating = true;
+                    investigateTarget = lastKnownPlayerPos;
+                    investigateTimer = 3f;
+                }
             }
         }
         else if (isInvestigating && !isAttacking && !isChasing)
         {
+            // === ĐI NGHE TIẾNG / NGÓ NGHIÊNG ===
             float distToSound = Vector2.Distance(myPos, investigateTarget);
             if (distToSound > 0.5f)
             {
+                // Vẫn chưa tới chỗ phát ra tiếng động -> đi tiếp
                 agent.isStopped = false;
-
-                // Đạo diễn có thể đổi thành "speed * 1f" nếu muốn nó quay ngoắt lại chạy nhanh như ma
                 agent.speed = speed * 0.7f;
 
-                // ==========================================
-                // 🔥 CHỐT CHẶN: KHÔNG SPAM LỆNH ĐỂ CHỐNG KHỰNG
-                // ==========================================
                 pathRecalcTimer -= Runner.DeltaTime;
                 if (pathRecalcTimer <= 0f)
                 {
                     agent.SetDestination(investigateTarget);
-                    pathRecalcTimer = 0.2f; // 0.2 giây mới tính đường lại 1 lần
+                    pathRecalcTimer = 0.2f;
                 }
             }
             else
             {
+                // Tới nơi rồi -> Đứng im đếm ngược 3 giây (investigateTimer)
                 agent.isStopped = true;
                 investigateTimer -= Runner.DeltaTime;
-                if (investigateTimer <= 0f) isInvestigating = false;
+                if (investigateTimer <= 0f)
+                {
+                    isInvestigating = false; // Hết 3 giây -> Quên hẳn, đứng chơi (Idle)
+                }
             }
         }
         else if (!isAttacking)
         {
+            // === RẢNH RỖI ĐỨNG IM ===
             agent.isStopped = true;
         }
 
+        // ==========================================
+        // 🔥 5. XOAY MẶT (STEERING TARGET CHUẨN 3D)
+        // ==========================================
         if (isAttacking)
         {
+            // Đang đấm -> Bắt buộc nhìn Player
             lastMoveDirection = Vector2.Lerp(lastMoveDirection, dirToPlayer, 20f * Runner.DeltaTime);
         }
-        else if (agent.velocity.sqrMagnitude > 0.01f)
+        else if (!agent.isStopped && agent.hasPath)
         {
-            lastMoveDirection = Vector2.Lerp(lastMoveDirection, agent.velocity.normalized, 15f * Runner.DeltaTime);
+            // Đang di chuyển -> Nhìn vào điểm quẹo tiếp theo của NavMesh
+            Vector2 nextWaypointDir = ((Vector2)agent.steeringTarget - myPos).normalized;
+            if (nextWaypointDir != Vector2.zero)
+            {
+                lastMoveDirection = Vector2.Lerp(lastMoveDirection, nextWaypointDir, 15f * Runner.DeltaTime);
+            }
         }
 
         NetMoveDir = lastMoveDirection;
@@ -274,18 +306,14 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     {
         if (isChasing && player != null && player.gameObject.activeInHierarchy)
         {
-            // ====================================================
-            // 🔥 NẾU MỤC TIÊU HIỆN TẠI ĐANG TÀNG HÌNH -> BỎ ĐUỔI
-            // ====================================================
             if (player.TryGetComponent(out Skill_StealthCrouch currentTargetStealth) && currentTargetStealth.IsInvisible)
             {
                 isChasing = false;
                 player = null;
-                // Bắt nó phải quét lại từ đầu
             }
             else
             {
-                return; // Nếu mục tiêu bình thường thì cứ đuổi tiếp
+                return;
             }
         }
 
@@ -302,12 +330,9 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         foreach (GameObject p in allPlayers)
         {
-            // ====================================================
-            // 🔥 NẾU ĐỨA NÀY ĐANG BẬT TÀNG HÌNH -> BỎ QUA KHÔNG TÍNH KHOẢNG CÁCH
-            // ====================================================
             if (p.TryGetComponent(out Skill_StealthCrouch stealth) && stealth.IsInvisible)
             {
-                continue; // Lướt qua đứa này, đi tìm đứa khác
+                continue;
             }
 
             float dist = Vector2.Distance(myPos, p.transform.position);
@@ -326,7 +351,6 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         }
         else if (closest == null)
         {
-            // Nếu quét xong mà không thấy ai (do tất cả đều tàng hình hoặc không có ai)
             player = null;
             playerCol = null;
             playerHealth = null;
@@ -360,13 +384,9 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         investigateTarget = soundPos;
         investigateTimer = 3f;
 
-        // ==========================================
-        // 🔥 RESET TIMER BẰNG 0 ĐỂ NÓ RƯỢT ĐI NGAY TỨC KHẮC!
-        // ==========================================
         pathRecalcTimer = 0f;
     }
 
-    // 🔥 CẬP NHẬT HÀM SÁT THƯƠNG ĐỂ NHẬN BIẾT "AI LÀ NGƯỜI BẮN MÌNH"
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_TakeDamage(float damage, PlayerRef shooter = default)
     {
@@ -377,7 +397,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         if (CurrentHealth <= 0f)
         {
-            Die(shooter); // Gửi cái tên kẻ bắn mình vào hàm Die
+            Die(shooter);
             return;
         }
 
@@ -417,21 +437,16 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         myCol.enabled = false;
         if (agent != null) agent.enabled = false;
 
-        // ====================================================
-        // 🔥 BÁO CÁO THÀNH TÍCH (CHUẨN UNITY MỚI NHẤT + FUSION 2)
-        // ====================================================
         if (shooter != PlayerRef.None)
         {
-            // Thay bằng hàm mới, gắn thêm FindObjectsSortMode.None để tốc độ quét cực nhanh, không gây giật lag
             Skill_WeaponMaster[] allWeaponMasters = FindObjectsByType<Skill_WeaponMaster>(FindObjectsSortMode.None);
 
             foreach (var master in allWeaponMasters)
             {
-                // Kiểm tra xem cuốn bí kíp này có thuộc về cái thằng vừa bắn mình không?
                 if (master.Object != null && master.Object.InputAuthority == shooter)
                 {
-                    master.AddKill(); // Cộng điểm cho nó!
-                    break; // Xong việc thì thoát vòng lặp ngay cho nhẹ máy
+                    master.AddKill();
+                    break;
                 }
             }
         }
@@ -453,18 +468,14 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         float currentDist = Vector2.Distance(myCol.bounds.center, playerCol.bounds.center);
 
-        // Kiểm tra xem Player còn đứng trong tầm đánh không
         if (currentDist <= attackRange + 0.5f)
         {
-            // Kiểm tra xem trong game đã có AutoHealthPanel chưa
             if (AutoHealthPanel.Instance != null)
             {
-                // Gọi sang AutoHealthPanel để nó tính toán random vết thương và trừ máu
                 AutoHealthPanel.Instance.TakeRandomZombieAttack("");
             }
             else
             {
-                // Phòng hờ nếu quên gắn AutoHealthPanel thì vẫn trừ máu bình thường
                 playerHealth.TakeDamage(zombieDamage, false);
             }
 
