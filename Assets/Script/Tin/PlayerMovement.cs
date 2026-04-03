@@ -18,6 +18,11 @@ public class PlayerMovement : NetworkBehaviour
     public Vector2 crosshairHotSpot = new Vector2(16, 16);
     private bool isCurrentlyAimingCursor = false;
 
+    // 🔥 MỚI: KÉO THẢ CỤC FLASHLIGHTORIGIN (Cái chứa cái Đèn) VÀO ĐÂY TRÊN INSPECTOR
+    [Header("--- Line of Sight (Đèn pin) ---")]
+    public Transform flashlightTransform;
+    public float flashlightRotationSpeed = 20f;
+
     [Header("--- Noise Generation ---")]
     public LayerMask zombieLayer;
     public float walkNoiseRadius = 4f;
@@ -44,7 +49,6 @@ public class PlayerMovement : NetworkBehaviour
     [Networked] public float NetStunTimer { get; set; }
     [Networked] public float NetAttackLockTimer { get; set; }
 
-    // 🔥 THÊM BIẾN NÀY ĐỂ XỬ LÝ CROUCH TOGGLE
     [Networked] private NetworkBool PrevInputCrouch { get; set; }
 
     public bool isUsingItem
@@ -97,31 +101,22 @@ public class PlayerMovement : NetworkBehaviour
                 input.moveInput = Vector2.zero;
             }
 
-            // Gắn vào biến mạng
             NetIsAiming = input.isAiming;
             NetMoveInput = input.moveInput;
             NetIsMoving = input.moveInput.magnitude > 0.1f;
             NetIsRunning = input.isRunning && NetIsMoving;
 
-            // =========================================================
-            // 🔥 CHUYỂN CROUCH TỪ HOLD SANG TOGGLE
-            // =========================================================
-            // Kiểm tra khoảnh khắc nút Crouch vừa được ấn xuống (Khác với frame trước)
             if (input.isCrouching && !PrevInputCrouch)
             {
-                NetIsCrouching = !NetIsCrouching; // Đảo trạng thái: Đứng -> Ngồi, Ngồi -> Đứng
+                NetIsCrouching = !NetIsCrouching;
             }
-            // Lưu lại trạng thái nút bấm để frame mạng sau mang ra so sánh
             PrevInputCrouch = input.isCrouching;
-            // =========================================================
 
-            // Hết thể lực hoặc đang ngồi thì không được chạy
             if (staminaSystem.IsExhausted || NetIsCrouching)
             {
                 NetIsRunning = false;
             }
 
-            // Xử lý góc nhìn
             if (input.isAiming)
             {
                 Vector2 lookVector = input.mouseWorldPos - (Vector2)transform.position;
@@ -135,7 +130,6 @@ public class PlayerMovement : NetworkBehaviour
                 NetLastLookDir = SnapTo8Way(input.moveInput);
             }
 
-            // Tính toán tốc độ
             float currentSpeed = walkSpeed;
 
             if (NetIsUsingItem) currentSpeed = walkSpeed * 0.35f;
@@ -165,6 +159,19 @@ public class PlayerMovement : NetworkBehaviour
     public override void Render()
     {
         UpdateAnimation();
+
+        // 🔥 MỚI: XOAY ĐÈN TẦM NHÌN (LINE OF SIGHT)
+        // Vì NetLastLookDir đã được đồng bộ mạng, mọi player khác sẽ thấy ánh đèn của bạn xoay mượt mà!
+        if (flashlightTransform != null && NetLastLookDir != Vector2.zero)
+        {
+            // Tính góc từ vector hướng nhìn
+            float targetAngle = Mathf.Atan2(NetLastLookDir.y, NetLastLookDir.x) * Mathf.Rad2Deg;
+
+            // Xoay trục chứa đèn pin một cách mượt mà (Lerp)
+            // (Trừ 90 độ vì mặc định góc 0 độ của trục 2D hướng qua phải (Đông), còn ánh đèn thường rọi lên trên (Bắc))
+            Quaternion targetRotation = Quaternion.Euler(0, 0, targetAngle - 90f);
+            flashlightTransform.rotation = Quaternion.Lerp(flashlightTransform.rotation, targetRotation, flashlightRotationSpeed * Time.deltaTime);
+        }
 
         if (HasInputAuthority)
         {

@@ -272,6 +272,9 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
     public override void Render()
     {
+        // ====================================================
+        // 1. PHẦN CẬP NHẬT ANIMATION (Hồi nãy bị lỡ tay xóa mất)
+        // ====================================================
         if (anim != null)
         {
             smoothMoveX = Mathf.Lerp(smoothMoveX, NetMoveDir.x, Time.deltaTime * 12f);
@@ -300,6 +303,68 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
                 lastAttackIndex = NetAttackIndex;
             }
         }
+
+        // ====================================================
+        // 🔥 2. HỆ THỐNG ẨN/HIỆN ZOMBIE THEO TẦM NHÌN (FOG OF WAR)
+        // ====================================================
+        if (spriteRend != null)
+        {
+            // Tìm nhân vật của CHÍNH MÌNH (Người đang chơi trên máy này)
+            PlayerMovement myLocalPlayer = GetLocalPlayer();
+
+            if (myLocalPlayer != null)
+            {
+                // Kiểm tra xem MÌNH có đang nhìn thấy con Zombie này không?
+                bool isVisibleToMe = CheckVisibilityForLocalPlayer(myLocalPlayer);
+
+                // Bật/Tắt hình ảnh con Zombie
+                spriteRend.enabled = isVisibleToMe;
+            }
+        }
+    }
+
+    // ====================================================
+    // 🔥 CÁC HÀM HỖ TRỢ CHO FOG OF WAR THÊM VÀO DƯỚI CÙNG SCRIPT
+    // ====================================================
+    private PlayerMovement GetLocalPlayer()
+    {
+        // Quét tìm Player đang có quyền điều khiển (Input Authority) trên máy tính này
+        PlayerMovement[] allPlayers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        foreach (var p in allPlayers)
+        {
+            if (p.HasInputAuthority) return p;
+        }
+        return null;
+    }
+
+    private bool CheckVisibilityForLocalPlayer(PlayerMovement localPlayer)
+    {
+        Vector2 myPos = myCol.bounds.center;
+        Vector2 playerPos = localPlayer.GetComponent<Collider2D>().bounds.center;
+        float distance = Vector2.Distance(myPos, playerPos);
+
+        // 1. CẢM NHẬN XUNG QUANH (Đứng quá gần < 2m thì nhắm mắt cũng thấy)
+        if (distance <= 0.3f) return true;
+
+        // 2. NGOÀI TẦM ĐÈN PIN (Ví dụ đèn pin chiếu xa 15m)
+        if (distance > 10f) return false;
+
+        // 3. KIỂM TRA GÓC ĐÈN PIN (Đèn pin đang mở rộng 90 độ -> mỗi bên 45 độ)
+        Vector2 dirToZombie = (myPos - playerPos).normalized;
+        Vector2 playerLookDir = localPlayer.NetLastLookDir.normalized; // Hướng mặt của Player
+
+        float angle = Vector2.Angle(playerLookDir, dirToZombie);
+        if (angle > 45f) return false; // Nằm ngoài góc chiếu của đèn
+
+        // 4. KIỂM TRA TƯỜNG CHẮN (Tia sáng bị tường cản lại)
+        RaycastHit2D hit = Physics2D.Raycast(playerPos, dirToZombie, distance, obstacleMask);
+        if (hit.collider != null && hit.collider.gameObject != gameObject)
+        {
+            return false; // Bị tường che mất rồi!
+        }
+
+        // Vượt qua mọi bài test -> Nằm chình ình trong ánh sáng!
+        return true;
     }
 
     private void UpdateTargetMultiplayer()
