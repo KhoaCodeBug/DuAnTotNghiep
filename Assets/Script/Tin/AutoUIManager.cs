@@ -1149,7 +1149,7 @@ public class AutoUIManager : MonoBehaviour
             var allPlayers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
             foreach (var p in allPlayers)
             {
-                if (p.Object != null && p.HasInputAuthority)
+                if (p != null && p.Object != null && p.HasInputAuthority)
                 {
                     localPlayer = p.gameObject;
                     playerHealth = p.GetComponent<PlayerHealth>();
@@ -1162,18 +1162,32 @@ public class AutoUIManager : MonoBehaviour
 
         if (localPlayer == null) return;
 
-        if (playerHealth != null && healthFill != null)
-            UpdateHorizontalBar(healthFill, playerHealth.currentHealth, playerHealth.maxHealth, 220f);
+        // 🔥 KIỂM TRA TỬ THẦN
+        if (playerHealth == null || playerHealth.Object == null || !playerHealth.Object.IsValid || playerHealth.isDead)
+        {
+            // TẮT HẲN UI (Tắt cái khung chứa thanh máu/stamina)
+            if (healthFill != null && healthFill.transform.parent != null) healthFill.transform.parent.gameObject.SetActive(false);
+            if (staminaFill != null && staminaFill.transform.parent != null) staminaFill.transform.parent.gameObject.SetActive(false);
+            if (hungerFill != null && hungerFill.transform.parent != null) hungerFill.transform.parent.gameObject.SetActive(false);
+            if (thirstFill != null && thirstFill.transform.parent != null) thirstFill.transform.parent.gameObject.SetActive(false);
+            return;
+        }
+        else
+        {
+            // BẬT LẠI UI (Phòng trường hợp hồi sinh)
+            if (healthFill != null && healthFill.transform.parent != null) healthFill.transform.parent.gameObject.SetActive(true);
+            if (staminaFill != null && staminaFill.transform.parent != null) staminaFill.transform.parent.gameObject.SetActive(true);
+            if (hungerFill != null && hungerFill.transform.parent != null) hungerFill.transform.parent.gameObject.SetActive(true);
+            if (thirstFill != null && thirstFill.transform.parent != null) thirstFill.transform.parent.gameObject.SetActive(true);
+        }
 
-        if (playerStamina != null && staminaFill != null)
-            UpdateHorizontalBar(staminaFill, playerStamina.currentStamina, playerStamina.maxStamina, 220f);
-
+        // Cập nhật giá trị bình thường
+        if (healthFill != null) UpdateHorizontalBar(healthFill, playerHealth.currentHealth, playerHealth.maxHealth, 220f);
+        if (staminaFill != null) UpdateHorizontalBar(staminaFill, playerStamina.currentStamina, playerStamina.maxStamina, 220f);
         if (playerSurvival != null)
         {
-            if (hungerFill != null)
-                hungerFill.fillAmount = Mathf.Clamp01(playerSurvival.currentHunger / playerSurvival.maxHunger);
-            if (thirstFill != null)
-                thirstFill.fillAmount = Mathf.Clamp01(playerSurvival.currentThirst / playerSurvival.maxThirst);
+            if (hungerFill != null) hungerFill.fillAmount = Mathf.Clamp01(playerSurvival.currentHunger / playerSurvival.maxHunger);
+            if (thirstFill != null) thirstFill.fillAmount = Mathf.Clamp01(playerSurvival.currentThirst / playerSurvival.maxThirst);
         }
     }
 

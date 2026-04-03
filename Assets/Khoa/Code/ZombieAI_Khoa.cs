@@ -533,16 +533,10 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         float currentDist = Vector2.Distance(myCol.bounds.center, playerCol.bounds.center);
 
+        // Trả lại nguyên bản check khoảng cách của Khoa (cộng thêm 0.5f bù trừ animation lùi lại)
         if (currentDist <= attackRange + 0.5f)
         {
-            if (AutoHealthPanel.Instance != null)
-            {
-                AutoHealthPanel.Instance.TakeRandomZombieAttack("");
-            }
-            else
-            {
-                playerHealth.TakeDamage(zombieDamage, false);
-            }
+            playerHealth.TakeDamage(zombieDamage, false, true);
 
             hasAppliedDamage = true;
         }
