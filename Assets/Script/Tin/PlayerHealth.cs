@@ -2,6 +2,7 @@
 using Fusion;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
 
 public class PlayerHealth : NetworkBehaviour
 {
@@ -14,16 +15,27 @@ public class PlayerHealth : NetworkBehaviour
     public Color hurtColor = Color.red;
     public float flashDuration = 0.1f;
 
-    // ==========================================
-    // === THÊM CÀI ĐẶT HARDCORE SINH TỒN ===
-    // ==========================================
     [Header("Cài đặt Hardcore PZ")]
     public float bleedDamagePerSecond = 1.5f;
     public float passiveHealPerSecond = 0.5f;
 
     [Networked] public NetworkBool isBleeding { get; set; }
     [Networked] public NetworkBool isInPain { get; set; }
-    // ==========================================
+
+    [Header("Hiệu ứng Hoang Tưởng")]
+    // 🔥 CHỈ CẦN DUY NHẤT CÁI NÀY LÀ ĐỦ: File Animator Controller xịn của sếp
+    public RuntimeAnimatorController zombieAnimatorController;
+
+    [Header("Blend Tree Parameters")]
+    public string paramMoveX = "MoveX";
+    public string paramMoveY = "MoveY";
+    public string paramSpeed = "Speed";
+
+    private Dictionary<Animator, RuntimeAnimatorController> originalTeammateControllers = new Dictionary<Animator, RuntimeAnimatorController>();
+    private List<PlayerNameTag> hiddenNameTags = new List<PlayerNameTag>();
+
+    private Dictionary<Animator, Vector3> lastTeammatePositions = new Dictionary<Animator, Vector3>();
+    private bool isFakeZombieVisible = false;
 
     private PlayerMovement movementScript;
     private Animator anim;
@@ -31,10 +43,13 @@ public class PlayerHealth : NetworkBehaviour
     private Color originalColor;
     private bool isFlashing = false;
 
-    // === THÊM BIẾN SURVIVAL ĐỂ CHECK ĐÓI/KHÁT ===
     private PlayerSurvival survivalSystem;
 
     [Networked] public NetworkBool isDead { get; set; }
+
+    private Canvas paranoiaCanvas;
+    private Image paranoiaImage;
+    private bool isBlinking = false;
 
     public override void Spawned()
     {
@@ -43,17 +58,89 @@ public class PlayerHealth : NetworkBehaviour
         movementScript = GetComponent<PlayerMovement>();
         anim = GetComponent<Animator>();
         spriteRend = GetComponentInChildren<SpriteRenderer>();
-
         survivalSystem = GetComponent<PlayerSurvival>();
 
         if (spriteRend != null) originalColor = spriteRend.color;
+
+        if (HasInputAuthority)
+        {
+            SetupParanoiaUI();
+        }
+    }
+
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        if (paranoiaCanvas != null)
+        {
+            Destroy(paranoiaCanvas.gameObject);
+        }
+    }
+
+    private void SetupParanoiaUI()
+    {
+        GameObject canvasObj = new GameObject("ParanoiaCanvas_" + Object.Id);
+        DontDestroyOnLoad(canvasObj);
+
+        paranoiaCanvas = canvasObj.AddComponent<Canvas>();
+        paranoiaCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        paranoiaCanvas.sortingOrder = 200;
+
+        GameObject imgObj = new GameObject("ParanoiaOverlay");
+        imgObj.transform.SetParent(canvasObj.transform, false);
+        paranoiaImage = imgObj.AddComponent<Image>();
+
+        RectTransform rect = paranoiaImage.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        paranoiaImage.color = new Color(0, 0, 0, 0);
+        paranoiaImage.raycastTarget = false;
+    }
+
+    private void Update()
+    {
+        if (!HasInputAuthority) return;
+
+        if (Input.GetKeyDown(KeyCode.O) && !isBlinking)
+        {
+            StartCoroutine(ParanoiaBlinkRoutine());
+        }
+
+        if (isFakeZombieVisible && originalTeammateControllers.Count > 0)
+        {
+            foreach (var kvp in originalTeammateControllers)
+            {
+                Animator teammateAnim = kvp.Key;
+                if (teammateAnim != null)
+                {
+                    Vector3 currentPos = teammateAnim.transform.position;
+
+                    Vector3 lastPos = lastTeammatePositions.ContainsKey(teammateAnim) ? lastTeammatePositions[teammateAnim] : currentPos;
+                    Vector3 movementDelta = currentPos - lastPos;
+                    Vector3 velocity = movementDelta / Time.deltaTime;
+
+                    lastTeammatePositions[teammateAnim] = currentPos;
+
+                    float speed = velocity.magnitude;
+
+                    teammateAnim.SetFloat(paramSpeed, speed);
+
+                    if (speed > 0.1f)
+                    {
+                        teammateAnim.SetFloat(paramMoveX, velocity.normalized.x);
+                        teammateAnim.SetFloat(paramMoveY, velocity.normalized.y);
+                    }
+                }
+            }
+        }
     }
 
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority || isDead) return;
 
-        // 1. Xử lý chảy máu
         if (isBleeding)
         {
             currentHealth -= bleedDamagePerSecond * Runner.DeltaTime;
@@ -64,7 +151,6 @@ public class PlayerHealth : NetworkBehaviour
             }
         }
 
-        // 2. Xử lý hồi máu thụ động
         if (!isBleeding && currentHealth < maxHealth && survivalSystem != null)
         {
             float hungerPct = survivalSystem.currentHunger / survivalSystem.maxHunger;
@@ -102,9 +188,6 @@ public class PlayerHealth : NetworkBehaviour
         }
     }
 
-    // ==========================================
-    // === THÊM CÁC HÀM XÓA DEBUFF TỪ ITEM ======
-    // ==========================================
     public void SetGlobalBleeding(bool state)
     {
         if (HasStateAuthority) isBleeding = state;
@@ -122,7 +205,6 @@ public class PlayerHealth : NetworkBehaviour
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_StopPain() { isInPain = false; }
-    // ==========================================
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayHitEffect()
@@ -187,82 +269,119 @@ public class PlayerHealth : NetworkBehaviour
         gameObject.SetActive(false);
     }
 
-    // ==========================================
-    // 🔥 ĐỒNG BỘ HIỂN THỊ DEBUFF CỦA ZOMBOID & THÊM LẠI ICON
-    // ==========================================
+    private IEnumerator ParanoiaBlinkRoutine()
+    {
+        if (paranoiaImage == null) yield break;
+
+        isBlinking = true;
+
+        Color clear = new Color(0, 0, 0, 0f);
+        Color black = new Color(0, 0, 0, 1f);
+        Color bloodRed = new Color(0.6f, 0f, 0f, 0.2f);
+
+        yield return StartCoroutine(FadeColor(black, 0.5f));
+        yield return new WaitForSeconds(0.1f);
+
+        SwapTeammatesToZombies();
+
+        yield return new WaitForSeconds(0.2f);
+
+        yield return StartCoroutine(FadeColor(bloodRed, 0.5f));
+        yield return new WaitForSeconds(4.5f);
+
+        yield return StartCoroutine(FadeColor(black, 0.5f));
+        yield return new WaitForSeconds(0.1f);
+
+        RestoreTeammatesSprites();
+
+        yield return new WaitForSeconds(0.2f);
+
+        yield return StartCoroutine(FadeColor(clear, 0.55f));
+
+        isBlinking = false;
+    }
+
+    private IEnumerator FadeColor(Color targetColor, float duration)
+    {
+        Color startColor = paranoiaImage.color;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            paranoiaImage.color = Color.Lerp(startColor, targetColor, elapsed / duration);
+            yield return null;
+        }
+
+        paranoiaImage.color = targetColor;
+    }
+
+    private void SwapTeammatesToZombies()
+    {
+        if (zombieAnimatorController == null)
+        {
+            Debug.LogError("Chưa gắn Zombie_AC vào Inspector kìa sếp!");
+            return;
+        }
+
+        originalTeammateControllers.Clear();
+        hiddenNameTags.Clear();
+        lastTeammatePositions.Clear();
+
+        PlayerHealth[] allPlayers = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+
+        foreach (var player in allPlayers)
+        {
+            if (player == this) continue;
+
+            Animator teammateAnim = player.GetComponentInChildren<Animator>();
+            PlayerNameTag nameTag = player.GetComponent<PlayerNameTag>();
+
+            if (teammateAnim != null)
+            {
+                originalTeammateControllers[teammateAnim] = teammateAnim.runtimeAnimatorController;
+                teammateAnim.runtimeAnimatorController = zombieAnimatorController;
+
+                // Xóa luôn dòng ép hình cũ vì Animator bây giờ tự lo phần Idle rồi
+                lastTeammatePositions[teammateAnim] = teammateAnim.transform.position;
+            }
+
+            if (nameTag != null && nameTag.nameText != null)
+            {
+                nameTag.nameText.gameObject.SetActive(false);
+                hiddenNameTags.Add(nameTag);
+            }
+        }
+
+        isFakeZombieVisible = true;
+    }
+
+    private void RestoreTeammatesSprites()
+    {
+        isFakeZombieVisible = false;
+
+        foreach (var kvp in originalTeammateControllers)
+        {
+            if (kvp.Key != null)
+            {
+                kvp.Key.runtimeAnimatorController = kvp.Value;
+            }
+        }
+        originalTeammateControllers.Clear();
+        lastTeammatePositions.Clear();
+
+        foreach (var tag in hiddenNameTags)
+        {
+            if (tag != null && tag.nameText != null)
+            {
+                tag.nameText.gameObject.SetActive(true);
+            }
+        }
+        hiddenNameTags.Clear();
+    }
+
     private void OnGUI()
     {
-        if (!HasInputAuthority || isDead) return;
-
-        GUIStyle style = new GUIStyle(GUI.skin.label);
-        style.fontSize = 24;
-        style.fontStyle = FontStyle.Bold;
-
-        int yPos = 50;
-        int xPos = Screen.width - 250;
-
-        // 1. KIỂM TRA ĐAU ĐỚN VÀ CHẢY MÁU CHUNG
-        if (isInPain)
-        {
-            style.normal.textColor = Color.yellow;
-            style.hover.textColor = Color.yellow;
-            GUI.Label(new Rect(xPos, yPos, 250, 40), "⚡ Pain", style);
-            yPos += 40;
-        }
-
-        if (isBleeding)
-        {
-            style.normal.textColor = Color.red;
-            style.hover.textColor = Color.red;
-            GUI.Label(new Rect(xPos, yPos, 250, 40), "🩸 Bleeding", style);
-            yPos += 40;
-        }
-
-        // 2. LIÊN KẾT VỚI BẢNG HEALTH PANEL ĐỂ LẤY CÁC VẾT THƯƠNG CỤ THỂ (Scratched, Bitten...)
-        if (AutoHealthPanel.Instance != null)
-        {
-            // Lấy danh sách TẤT CẢ các vết thương hiện có trên toàn thân (đã lược bỏ những chỗ được băng bó)
-            List<AutoHealthPanel.InjuryType> activeGlobalInjuries = AutoHealthPanel.Instance.GetActiveGlobalInjuries();
-
-            // Nếu trong danh sách đó có Scratched -> Hiện Scratched 1 lần duy nhất
-            if (activeGlobalInjuries.Contains(AutoHealthPanel.InjuryType.Scratched))
-            {
-                style.normal.textColor = new Color(1f, 0.5f, 0.5f); // Đỏ nhạt
-                GUI.Label(new Rect(xPos, yPos, 250, 40), "🩸 Scratched", style);
-                yPos += 40;
-            }
-
-            // Nếu có Laceration -> Hiện 1 lần duy nhất
-            if (activeGlobalInjuries.Contains(AutoHealthPanel.InjuryType.Laceration))
-            {
-                style.normal.textColor = Color.red; // Đỏ
-                GUI.Label(new Rect(xPos, yPos, 250, 40), "🩸 Laceration", style);
-                yPos += 40;
-            }
-
-            // Nếu có Bitten -> Hiện 1 lần duy nhất (Án tử)
-            if (activeGlobalInjuries.Contains(AutoHealthPanel.InjuryType.Bitten))
-            {
-                style.normal.textColor = new Color(0.6f, 0f, 0f); // Đỏ thẫm
-                GUI.Label(new Rect(xPos, yPos, 250, 40), "☠ BITTEN", style);
-                yPos += 40;
-            }
-        }
-
-        // 3. KIỂM TRA HỒI MÁU
-        bool isHealing = false;
-        if (!isBleeding && currentHealth < maxHealth && survivalSystem != null)
-        {
-            float hungerPct = survivalSystem.currentHunger / survivalSystem.maxHunger;
-            float thirstPct = survivalSystem.currentThirst / survivalSystem.maxThirst;
-            if (hungerPct >= 0.8f && thirstPct >= 0.8f) isHealing = true;
-        }
-
-        if (isHealing)
-        {
-            style.normal.textColor = Color.green;
-            style.hover.textColor = Color.green;
-            GUI.Label(new Rect(xPos, yPos, 250, 40), "💚 Healing...", style);
-        }
+        // Trống trơn
     }
 }
