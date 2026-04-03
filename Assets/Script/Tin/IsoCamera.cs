@@ -5,7 +5,9 @@ public class PZ_CameraController : MonoBehaviour
     [Header("--- Target Setup ---")]
     private Transform player;
     private bool hasTarget = false;
+    [SerializeField] private float fastFollow = 0.02f;
 
+    private bool isInVehicle = false;
     public Vector3 offset = new Vector3(0, 0, -10f);
 
     [Header("--- PZ Camera Panning ---")]
@@ -18,16 +20,23 @@ public class PZ_CameraController : MonoBehaviour
     public float minZoomSize = 5f;
     public float maxZoomSize = 14f;
 
+    private Rigidbody2D targetRb;
     private Camera cam;
     private Vector3 velocity;
     private float targetZoom;
     private float zoomVelocity;
 
+    // 🔥 FIX 1: lấy Rigidbody từ PARENT (xe)
     public void SetTarget(Transform targetTransform)
     {
-        // Chốt đơn: Bám thẳng vào cục mục tiêu, không lùng sục rườm rà nữa!
         player = targetTransform;
+
+        // 🔥 QUAN TRỌNG: lấy Rigidbody của xe
+        targetRb = targetTransform.GetComponentInParent<Rigidbody2D>();
+
         hasTarget = true;
+
+        // snap ngay lập tức
         transform.position = player.position + offset;
     }
 
@@ -38,65 +47,44 @@ public class PZ_CameraController : MonoBehaviour
         targetZoom = cam.orthographicSize;
     }
 
-    void Update()
-    {
-        if (!hasTarget || player == null) return;
-        HandleZoom();
-    }
-
-    // Camera bám đuôi thì bắt buộc phải để ở LateUpdate để chạy sau cùng
+    // 🔥 FIX 2: dùng Rigidbody nếu có
     void LateUpdate()
     {
-        if (!hasTarget || player == null) return;
-        HandleCameraFollowAndPan();
+        if (player == null) return;
+
+        Vector3 targetPos;
+
+        if (targetRb != null)
+            targetPos = (Vector3)targetRb.position + offset;
+        else
+            targetPos = player.position + offset;
+
+        if (isInVehicle)
+        {
+            // 🔥 dính 100%
+            transform.position = targetPos;
+        }
+        else
+        {
+            transform.position = Vector3.SmoothDamp(
+                transform.position,
+                targetPos,
+                ref velocity,
+                smoothFollow
+            );
+        }
     }
 
-    private void HandleCameraFollowAndPan()
+    public void SetVehicleMode(bool value)
     {
-        Vector3 targetPos = player.position + offset;
-
-        if (Input.GetMouseButton(1) && !(AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()))
-        {
-            Vector3 mouseWorldPos = cam.ScreenToWorldPoint(Input.mousePosition);
-            mouseWorldPos.z = player.position.z;
-
-            Vector3 directionToMouse = mouseWorldPos - player.position;
-            Vector3 panOffset = Vector3.ClampMagnitude(directionToMouse, maxLookAhead);
-
-            targetPos += (panOffset / 2f);
-        }
-
-        // Ép buộc dùng Time.deltaTime để tránh Camera bị lạc nhịp với khung hình
-        transform.position = Vector3.SmoothDamp(
-            transform.position,
-            targetPos,
-            ref velocity,
-            smoothFollow,
-            Mathf.Infinity,
-            Time.deltaTime
-        );
+        isInVehicle = value;
     }
 
     private void HandleZoom()
     {
         if (!Application.isFocused) return;
 
-        Vector3 mousePos = Input.mousePosition;
-        if (mousePos.x < 0 || mousePos.y < 0 || mousePos.x > Screen.width || mousePos.y > Screen.height) return;
-
-        // ==========================================
-        // 🔥 TUYỆT CHIÊU CHỐNG XUNG ĐỘT CON LĂN CHUỘT
-        // ==========================================
-        bool isTypingChat = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
-
-        float scroll = 0f;
-
-        // NẾU KHÔNG GÕ CHAT THÌ MỚI CHO PHÉP ĐỌC CON LĂN CHUỘT
-        if (!isTypingChat)
-        {
-            scroll = Input.GetAxis("Mouse ScrollWheel");
-            scroll = Mathf.Clamp(scroll, -0.2f, 0.2f);
-        }
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
 
         if (scroll != 0)
         {
@@ -104,14 +92,11 @@ public class PZ_CameraController : MonoBehaviour
             targetZoom = Mathf.Clamp(targetZoom, minZoomSize, maxZoomSize);
         }
 
-        // Vẫn giữ cục SmoothDamp ở ngoài để lỡ đang zoom dở mà bấm Chat thì camera vẫn trượt êm ái
         cam.orthographicSize = Mathf.SmoothDamp(
             cam.orthographicSize,
             targetZoom,
             ref zoomVelocity,
-            zoomSmoothTime,
-            Mathf.Infinity,
-            Time.deltaTime
+            zoomSmoothTime
         );
     }
 }

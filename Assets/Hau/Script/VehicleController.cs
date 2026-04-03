@@ -4,11 +4,13 @@ using Fusion;
 public class VehicleControllerFusion : NetworkBehaviour
 {
     public enum SeatType { Driver, Passenger, None }
-
+   
     [Header("References")]
     [SerializeField] private Animator _carAnimator;
     public float carSpeed = 5f;
+    [SerializeField] private Transform cameraFollowPoint;
 
+    public Transform CameraFollowPoint => cameraFollowPoint;
     // Lưu trữ NetworkObject của người chơi thay vì chỉ ID
     [Networked] public NetworkObject DriverObj { get; set; }
     [Networked] public NetworkObject PassengerObj { get; set; }
