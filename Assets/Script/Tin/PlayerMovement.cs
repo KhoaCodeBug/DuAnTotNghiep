@@ -18,7 +18,6 @@ public class PlayerMovement : NetworkBehaviour
     public Vector2 crosshairHotSpot = new Vector2(16, 16);
     private bool isCurrentlyAimingCursor = false;
 
-    // 🔥 MỚI: KÉO THẢ CỤC FLASHLIGHTORIGIN (Cái chứa cái Đèn) VÀO ĐÂY TRÊN INSPECTOR
     [Header("--- Line of Sight (Đèn pin) ---")]
     public Transform flashlightTransform;
     public float flashlightRotationSpeed = 20f;
@@ -34,6 +33,10 @@ public class PlayerMovement : NetworkBehaviour
 
     private Rigidbody2D rb;
     private PlayerStamina staminaSystem;
+    private PlayerHealth healthSystem;
+
+    // 🔥 CÔNG TẮC KHÓA LỖI VÀNG KHÈ KHI BỊ ẢO GIÁC
+    public bool isParanoiaZombie = false;
 
     // ==========================================
     // 🔥 BIẾN ĐỒNG BỘ MẠNG
@@ -61,6 +64,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         staminaSystem = GetComponent<PlayerStamina>();
+        healthSystem = GetComponent<PlayerHealth>();
         rb.freezeRotation = true;
 
         if (HasStateAuthority)
@@ -85,6 +89,12 @@ public class PlayerMovement : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        if (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming))
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
         if (NetStunTimer > 0) NetStunTimer -= Runner.DeltaTime;
         if (NetAttackLockTimer > 0) NetAttackLockTimer -= Runner.DeltaTime;
 
@@ -158,17 +168,20 @@ public class PlayerMovement : NetworkBehaviour
 
     public override void Render()
     {
-        UpdateAnimation();
+        if (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming))
+        {
+            return;
+        }
 
-        // 🔥 MỚI: XOAY ĐÈN TẦM NHÌN (LINE OF SIGHT)
-        // Vì NetLastLookDir đã được đồng bộ mạng, mọi player khác sẽ thấy ánh đèn của bạn xoay mượt mà!
+        // 🔥 CHỈ CẬP NHẬT ANIMATION NẾU KHÔNG BỊ TRÁO THÀNH ZOMBIE
+        if (!isParanoiaZombie)
+        {
+            UpdateAnimation();
+        }
+
         if (flashlightTransform != null && NetLastLookDir != Vector2.zero)
         {
-            // Tính góc từ vector hướng nhìn
             float targetAngle = Mathf.Atan2(NetLastLookDir.y, NetLastLookDir.x) * Mathf.Rad2Deg;
-
-            // Xoay trục chứa đèn pin một cách mượt mà (Lerp)
-            // (Trừ 90 độ vì mặc định góc 0 độ của trục 2D hướng qua phải (Đông), còn ánh đèn thường rọi lên trên (Bắc))
             Quaternion targetRotation = Quaternion.Euler(0, 0, targetAngle - 90f);
             flashlightTransform.rotation = Quaternion.Lerp(flashlightTransform.rotation, targetRotation, flashlightRotationSpeed * Time.deltaTime);
         }

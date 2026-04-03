@@ -285,25 +285,47 @@ public class AutoHealthPanel : MonoBehaviour
         }
     }
 
+    // 🔥 HÀM BỐC THĂM VẾT THƯƠNG THÔNG MINH (CHỐNG TRÙNG LẶP)
     public void TakeRandomZombieAttack(string forcedTarget = "")
     {
         FindLocalPlayerCache();
 
         string targetPart = forcedTarget;
 
+        // Nếu không chỉ định cụ thể chỗ cắn, thì tìm chỗ nào da thịt còn lành lặn để cắn
         if (string.IsNullOrEmpty(targetPart))
         {
-            string[] attackableParts = new string[] {
-                "Upper Torso", "Lower Torso",
-                "Left Upper Arm", "Left Forearm", "Left Hand",
-                "Right Upper Arm", "Right Forearm", "Right Hand",
-                "Left Thigh", "Left Calf", "Left Foot",
-                "Right Thigh", "Right Calf", "Right Foot"
-            };
+            List<string> healthyParts = new List<string>();
+
+            // Lọc ra các bộ phận CHƯA BỊ THƯƠNG
+            foreach (var kvp in bodyParts)
+            {
+                if (kvp.Key == "Neck") continue; // Cổ tính tỉ lệ tử thần riêng
+                if (kvp.Value.Injuries.Count == 0)
+                {
+                    healthyParts.Add(kvp.Key);
+                }
+            }
+
+            // Nếu nát bét hết cả người rồi (không còn chỗ lành lặn), thì lấy tất cả ra bốc thăm đại
+            if (healthyParts.Count == 0)
+            {
+                healthyParts.AddRange(bodyParts.Keys);
+                healthyParts.Remove("Neck"); // Vẫn trừ cái Cổ ra
+            }
 
             float hitRoll = Random.Range(0f, 100f);
-            if (hitRoll <= 5f) targetPart = "Neck";
-            else targetPart = attackableParts[Random.Range(0, attackableParts.Length)];
+
+            // 5% xui xẻo bị cắn thẳng vào cổ
+            if (hitRoll <= 5f)
+            {
+                targetPart = "Neck";
+            }
+            else
+            {
+                // Bốc thăm ngẫu nhiên 1 trong số các bộ phận CÒN LÀNH LẶN
+                targetPart = healthyParts[Random.Range(0, healthyParts.Count)];
+            }
         }
 
         InjuryType injuryResult;
@@ -323,15 +345,15 @@ public class AutoHealthPanel : MonoBehaviour
         BodyPartData part = bodyParts[targetPart];
         part.IsBandaged = false;
 
+        // Thêm vết thương vào UI
         if (!part.Injuries.Contains(injuryResult))
         {
             part.Injuries.Add(injuryResult);
         }
 
+        // Kích hoạt cờ Bitten trên mạng (nếu xui bị cắn)
         if (localPlayerHealth != null)
         {
-            localPlayerHealth.TakeDamage(10f, false);
-
             if (injuryResult == InjuryType.Bitten)
             {
                 localPlayerHealth.SetBitten();
@@ -456,7 +478,6 @@ public class AutoHealthPanel : MonoBehaviour
         });
         trigger.triggers.Add(rightClickEntry);
 
-        // 🔥 FIX 1: DÙNG LIST ĐỂ NỐI CHUỖI, CHỐNG DƯ 1 Ô XUỐNG DÒNG (TRỊ TRIỆT ĐỂ LỆCH CHIỀU CAO)
         List<string> lines = new List<string>();
         lines.Add($"<color=white>{part.Name}</color>");
 
@@ -464,7 +485,6 @@ public class AutoHealthPanel : MonoBehaviour
         {
             lines.Add("<color=#4ade80>  - Bandaged</color>");
 
-            // 🔥 NẾU BỊ CẮN MÀ BĂNG LẠI THÌ VẪN HIỆN CHỮ BITTEN ĐỂ NHÁT MA NGƯỜI CHƠI
             if (part.Injuries.Contains(InjuryType.Bitten))
             {
                 lines.Add("<color=#ff4444>  - Bitten</color>");
@@ -478,7 +498,6 @@ public class AutoHealthPanel : MonoBehaviour
             }
         }
 
-        // Nối lại bằng string.Join để không bị dư dấu \n ở cuối cùng
         string finalText = string.Join("\n", lines);
 
         Text txt = CreateText("Text", entryObj.transform, Vector2.zero, new Vector2(400, 45), finalText, 20, FontStyle.Bold, Color.white, TextAnchor.UpperLeft);
@@ -592,7 +611,6 @@ public class AutoHealthPanel : MonoBehaviour
         }
         else if (part.Injuries.Count > 0)
         {
-            // 🔥 XÓA LỆNH CẤM BĂNG GẠC CỔ / BITTEN ĐỂ NGƯỜI CHƠI BĂNG CẦM MÁU
             bool hasBandage = false;
             ItemData bandageData = null;
 
@@ -714,7 +732,6 @@ public class AutoHealthPanel : MonoBehaviour
         {
             part.IsBandaged = false;
 
-            // 🔥 FIX 2: THÁO GẠC LÀnh VẾT CÀO, NHƯNG VẾT CẮN (BITTEN) THÌ VĨNH VIỄN Ở LẠI
             bool hasBitten = part.Injuries.Contains(InjuryType.Bitten);
             part.Injuries.Clear();
             if (hasBitten) part.Injuries.Add(InjuryType.Bitten);

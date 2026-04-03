@@ -755,6 +755,14 @@ MonoBehaviour:
     _value: 0
   _isInPain:
     _value: 0
+  _infectionTimer: 600
+  _isBitten:
+    _value: 0
+  traitorBossPrefab:
+    RawGuidValue: cbd4c523a4a6ca740b518d37b43be7b1
+  _isTransforming:
+    _value: 0
+  _transformTimer: 5
   zombieAnimatorController: {fileID: 9100000, guid: e80724b809f2fbf48aa96b1dc7e11eb2, type: 2}
   paramMoveX: MoveX
   paramMoveY: MoveY

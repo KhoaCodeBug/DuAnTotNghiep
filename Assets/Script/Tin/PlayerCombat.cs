@@ -70,22 +70,17 @@ public class PlayerCombat : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        // ==========================================
-        // 🔥 CHỐT CHẶN 1: ĐÃ CHẾT THÌ KHÔNG BÓP CÒ!
-        // ==========================================
         bool isDead = false;
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null)
         {
-            // Sửa lại 'currentHP' cho đúng với tên biến máu trong script PlayerHealth của bạn nhé!
             isDead = health.currentHealth <= 0;
         }
 
         if (isDead)
         {
-            // Tắt tia lửa ngay lập tức
             if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
-            return; // Khóa ngòi nổ, từ chối đọc input!
+            return;
         }
 
         if (GetInput(out PlayerNetworkInput input))
@@ -214,18 +209,26 @@ public class PlayerCombat : NetworkBehaviour
             RaycastHit2D hit = Physics2D.Raycast(transform.position, shootDirection, weaponRange, enemyLayer);
             if (hit.collider != null)
             {
+                float finalGunDamage = gunDamage;
+                PlayerHealth health = GetComponent<PlayerHealth>();
+
+                if (health != null && health.isInPain)
+                {
+                    finalGunDamage *= 0.7f;
+                }
+
+                // XỬ LÝ SÁT THƯƠNG ZOMBIE THƯỜNG
                 ZOmbieAI_Khoa enemy = hit.collider.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemy != null)
                 {
-                    float finalGunDamage = gunDamage;
-                    PlayerHealth health = GetComponent<PlayerHealth>();
-
-                    if (health != null && health.isInPain)
-                    {
-                        finalGunDamage *= 0.7f;
-                    }
-
                     enemy.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
+                }
+
+                // 🔥 XỬ LÝ SÁT THƯƠNG TRAITOR BOSS
+                TraitorBossAI boss = hit.collider.GetComponentInParent<TraitorBossAI>();
+                if (boss != null)
+                {
+                    boss.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
                 }
             }
         }
@@ -244,23 +247,32 @@ public class PlayerCombat : NetworkBehaviour
             if (playerMove != null) playerMove.MakeNoise(bashNoiseRadius);
 
             Collider2D[] hitEnemies = Physics2D.OverlapCircleAll(transform.position, bashRange, enemyLayer);
-            List<ZOmbieAI_Khoa> alreadyHitZombies = new List<ZOmbieAI_Khoa>();
+            List<int> alreadyHitIDs = new List<int>(); // Dùng ID để lọc trùng hiệu quả hơn
 
             foreach (Collider2D enemy in hitEnemies)
             {
-                ZOmbieAI_Khoa enemyStats = enemy.GetComponentInParent<ZOmbieAI_Khoa>();
-                if (enemyStats != null && !alreadyHitZombies.Contains(enemyStats))
+                float finalBashDamage = bashDamage;
+                PlayerHealth health = GetComponent<PlayerHealth>();
+
+                if (health != null && health.isInPain)
                 {
-                    float finalBashDamage = bashDamage;
-                    PlayerHealth health = GetComponent<PlayerHealth>();
+                    finalBashDamage *= 0.7f;
+                }
 
-                    if (health != null && health.isInPain)
-                    {
-                        finalBashDamage *= 0.7f;
-                    }
-
+                // XỬ LÝ ĐẬP ZOMBIE THƯỜNG
+                ZOmbieAI_Khoa enemyStats = enemy.GetComponentInParent<ZOmbieAI_Khoa>();
+                if (enemyStats != null && !alreadyHitIDs.Contains(enemyStats.GetInstanceID()))
+                {
                     enemyStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority);
-                    alreadyHitZombies.Add(enemyStats);
+                    alreadyHitIDs.Add(enemyStats.GetInstanceID());
+                }
+
+                // 🔥 XỬ LÝ ĐẬP TRAITOR BOSS
+                TraitorBossAI bossStats = enemy.GetComponentInParent<TraitorBossAI>();
+                if (bossStats != null && !alreadyHitIDs.Contains(bossStats.GetInstanceID()))
+                {
+                    bossStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority);
+                    alreadyHitIDs.Add(bossStats.GetInstanceID());
                 }
             }
         }
@@ -279,9 +291,6 @@ public class PlayerCombat : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
     public void RPC_ShowMuzzleFlash(Vector2 direction)
     {
-        // ==========================================
-        // 🔥 FIX LỖI ĐỎ CONSOLE: Tránh chạy Coroutine trên cục GameObject đã bị tắt (Tàng hình/Chết)
-        // ==========================================
         if (!gameObject.activeInHierarchy) return;
 
         if (muzzleAnimator != null && muzzleFlashRenderer != null)

@@ -23,12 +23,18 @@ public class PlayerHealth : NetworkBehaviour
     [Networked] public NetworkBool isInPain { get; set; }
 
     // ==========================================
-    // 🔥 PHẦN 2: HỆ THỐNG ĐẾM NGƯỢC TỬ THẦN (INFECTION)
+    // 🔥 PHẦN 2 & 4: HỆ THỐNG NHIỄM TRÙNG & KẺ PHẢN BỘI
     // ==========================================
     [Header("Hệ thống Nhiễm Trùng")]
-    [Networked] public float infectionTimer { get; set; } = 600f; // 10 phút đếm ngược
-    [Networked] public NetworkBool isBitten { get; set; }         // Bật cái này lên để bắt đầu lây nhiễm
-    public float chanceToBlink = 0.05f;                         // Tỉ lệ chớp mắt mỗi giây (Giai đoạn 2)
+    [Networked] public float infectionTimer { get; set; } = 600f;
+    [Networked] public NetworkBool isBitten { get; set; }
+
+    private float blinkCooldown = 0f;
+
+    [Header("Kẻ Phản Bội (Boss)")]
+    public NetworkPrefabRef traitorBossPrefab;
+    [Networked] public NetworkBool isTransforming { get; set; }
+    [Networked] public float transformTimer { get; set; } = 5f;
 
     [Header("Hiệu ứng Hoang Tưởng")]
     public RuntimeAnimatorController zombieAnimatorController;
@@ -110,13 +116,27 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (!HasInputAuthority) return;
 
-        // 🔥 LOGIC: Tự động chớp mắt khi thời gian lây nhiễm dưới 7 phút (420 giây)
-        if (isBitten && infectionTimer < 420f && !isBlinking && !isDead)
+        if (isBitten && !isDead)
         {
-            // Tỉ lệ chớp mắt xuất hiện ngẫu nhiên
-            if (Random.value < (chanceToBlink * Time.deltaTime))
+            if (blinkCooldown > 0) blinkCooldown -= Time.deltaTime;
+
+            if (!isBlinking && blinkCooldown <= 0)
             {
-                StartCoroutine(ParanoiaBlinkRoutine());
+                if (infectionTimer <= 420f && infectionTimer > 240f)
+                {
+                    StartCoroutine(ParanoiaBlinkRoutine());
+                    blinkCooldown = 20f;
+                }
+                else if (infectionTimer <= 240f && infectionTimer > 180f)
+                {
+                    StartCoroutine(ParanoiaBlinkRoutine());
+                    blinkCooldown = 8f;
+                }
+                else if (infectionTimer <= 180f && infectionTimer > 0f)
+                {
+                    StartCoroutine(ParanoiaBlinkRoutine());
+                    blinkCooldown = 20f;
+                }
             }
         }
 
@@ -128,15 +148,12 @@ public class PlayerHealth : NetworkBehaviour
                 if (teammateAnim != null)
                 {
                     Vector3 currentPos = teammateAnim.transform.position;
-
                     Vector3 lastPos = lastTeammatePositions.ContainsKey(teammateAnim) ? lastTeammatePositions[teammateAnim] : currentPos;
                     Vector3 movementDelta = currentPos - lastPos;
                     Vector3 velocity = movementDelta / Time.deltaTime;
 
                     lastTeammatePositions[teammateAnim] = currentPos;
-
                     float speed = velocity.magnitude;
-
                     teammateAnim.SetFloat(paramSpeed, speed);
 
                     if (speed > 0.1f)
@@ -151,32 +168,52 @@ public class PlayerHealth : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!HasStateAuthority || isDead) return;
+        if (!HasStateAuthority) return;
 
-        // 🔥 LOGIC: Đếm ngược thời gian chết do lây nhiễm
+        if (isTransforming)
+        {
+            transformTimer -= Runner.DeltaTime;
+
+            if (transformTimer <= 0)
+            {
+                isTransforming = false;
+
+                if (traitorBossPrefab.IsValid)
+                {
+                    Runner.Spawn(traitorBossPrefab, transform.position, Quaternion.identity);
+                }
+
+                Runner.Despawn(Object);
+            }
+            return;
+        }
+
+        if (isDead) return;
+
         if (isBitten)
         {
-            infectionTimer -= Runner.DeltaTime;
+            float safeTimer = Mathf.Max(infectionTimer, Runner.DeltaTime);
 
-            // Sát thương tụt máu liên tục do virus hành hạ (tùy sếp chỉnh số 0.5f)
-            currentHealth -= 0.5f * Runner.DeltaTime;
+            if (infectionTimer <= 180f && infectionTimer > 0f)
+            {
+                float bleedAmount = (currentHealth / safeTimer) * Runner.DeltaTime;
+                currentHealth -= bleedAmount;
+            }
+
+            infectionTimer -= Runner.DeltaTime;
 
             if (infectionTimer <= 0)
             {
                 infectionTimer = 0;
-                isDead = true;
-                RPC_PlayDeathEffect();
+                currentHealth = 0;
+                TriggerDeathLogic();
+                return;
             }
         }
 
         if (isBleeding)
         {
             currentHealth -= bleedDamagePerSecond * Runner.DeltaTime;
-            if (currentHealth <= 0 && !isDead)
-            {
-                isDead = true;
-                RPC_PlayDeathEffect();
-            }
         }
 
         if (!isBleeding && currentHealth < maxHealth && survivalSystem != null)
@@ -187,22 +224,40 @@ public class PlayerHealth : NetworkBehaviour
             if (hungerPct >= 0.8f && thirstPct >= 0.8f)
             {
                 currentHealth += passiveHealPerSecond * Runner.DeltaTime;
-                currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
             }
+        }
+
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+
+        if (currentHealth <= 0 && !isDead)
+        {
+            TriggerDeathLogic();
         }
     }
 
-    public void TakeDamage(float damage, bool isStarving = false)
+    public void TakeDamage(float damage, bool isStarving = false, bool isZombieAttack = false)
     {
-        if (isDead || !HasStateAuthority) return;
+        if (!HasStateAuthority) return;
+
+        if (isDead && !isTransforming) return;
 
         currentHealth -= damage;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
 
+        if (isTransforming)
+        {
+            RPC_PlayHitEffect();
+            if (currentHealth <= 0)
+            {
+                isTransforming = false;
+                RPC_PlayDeathEffect();
+            }
+            return;
+        }
+
         if (currentHealth <= 0)
         {
-            isDead = true;
-            RPC_PlayDeathEffect();
+            TriggerDeathLogic();
             return;
         }
 
@@ -212,7 +267,39 @@ public class PlayerHealth : NetworkBehaviour
             isInPain = true;
 
             RPC_PlayHitEffect();
+
+            if (isZombieAttack)
+            {
+                RPC_TriggerUIInjury();
+            }
+
             if (movementScript != null) movementScript.LockMovement(stunDuration);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    public void RPC_TriggerUIInjury()
+    {
+        if (AutoHealthPanel.Instance != null)
+        {
+            AutoHealthPanel.Instance.TakeRandomZombieAttack("");
+        }
+    }
+
+    private void TriggerDeathLogic()
+    {
+        isDead = true;
+
+        if (isBitten)
+        {
+            isTransforming = true;
+            transformTimer = 5f;
+            currentHealth = 100f;
+            RPC_PlayConvulseEffect();
+        }
+        else
+        {
+            RPC_PlayDeathEffect();
         }
     }
 
@@ -225,10 +312,6 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_SetGlobalBleeding(bool state) { isBleeding = state; }
 
-
-    // ==========================================
-    // 🔥 CÔNG TẮC BẬT CHẾ ĐỘ NHIỄM TRÙNG TỪ HEALTH PANEL
-    // ==========================================
     public void SetBitten()
     {
         if (HasStateAuthority) isBitten = true;
@@ -236,10 +319,7 @@ public class PlayerHealth : NetworkBehaviour
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_SetBitten()
-    {
-        isBitten = true;
-    }
+    private void RPC_SetBitten() { isBitten = true; }
 
     public void UsePainkiller()
     {
@@ -255,6 +335,18 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (anim != null) anim.SetTrigger("TakeDamage");
         if (spriteRend != null && !isFlashing) StartCoroutine(FlashHurtRoutine());
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_PlayConvulseEffect()
+    {
+        if (anim != null) anim.SetBool("IsDead", true);
+
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null) rb.linearVelocity = Vector2.zero;
+        if (movementScript != null) movementScript.enabled = false;
+
+        if (spriteRend != null) spriteRend.color = new Color(0.4f, 0.5f, 0.4f, 1f);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -296,7 +388,8 @@ public class PlayerHealth : NetworkBehaviour
         isFlashing = true;
         spriteRend.color = hurtColor;
         yield return new WaitForSeconds(flashDuration);
-        spriteRend.color = originalColor;
+
+        spriteRend.color = isTransforming ? new Color(0.4f, 0.5f, 0.4f, 1f) : originalColor;
         isFlashing = false;
     }
 
@@ -362,12 +455,7 @@ public class PlayerHealth : NetworkBehaviour
 
     private void SwapTeammatesToZombies()
     {
-        if (zombieAnimatorController == null)
-        {
-            Debug.LogError("Chưa gắn Zombie_AC vào Inspector kìa sếp!");
-            return;
-        }
-
+        if (zombieAnimatorController == null) return;
         originalTeammateControllers.Clear();
         hiddenNameTags.Clear();
         lastTeammatePositions.Clear();
@@ -380,12 +468,12 @@ public class PlayerHealth : NetworkBehaviour
 
             Animator teammateAnim = player.GetComponentInChildren<Animator>();
             PlayerNameTag nameTag = player.GetComponent<PlayerNameTag>();
+            PlayerMovement pm = player.GetComponent<PlayerMovement>();
 
             if (teammateAnim != null)
             {
                 originalTeammateControllers[teammateAnim] = teammateAnim.runtimeAnimatorController;
                 teammateAnim.runtimeAnimatorController = zombieAnimatorController;
-
                 lastTeammatePositions[teammateAnim] = teammateAnim.transform.position;
             }
 
@@ -394,8 +482,10 @@ public class PlayerHealth : NetworkBehaviour
                 nameTag.nameText.gameObject.SetActive(false);
                 hiddenNameTags.Add(nameTag);
             }
-        }
 
+            // 🔥 BẬT CÔNG TẮC: Chặn lỗi vàng khi tráo Animator
+            if (pm != null) pm.isParanoiaZombie = true;
+        }
         isFakeZombieVisible = true;
     }
 
@@ -408,6 +498,10 @@ public class PlayerHealth : NetworkBehaviour
             if (kvp.Key != null)
             {
                 kvp.Key.runtimeAnimatorController = kvp.Value;
+
+                // 🔥 TẮT CÔNG TẮC: Trả tự do cho PlayerMovement
+                PlayerMovement pm = kvp.Key.GetComponentInParent<PlayerMovement>();
+                if (pm != null) pm.isParanoiaZombie = false;
             }
         }
         originalTeammateControllers.Clear();
@@ -415,16 +509,10 @@ public class PlayerHealth : NetworkBehaviour
 
         foreach (var tag in hiddenNameTags)
         {
-            if (tag != null && tag.nameText != null)
-            {
-                tag.nameText.gameObject.SetActive(true);
-            }
+            if (tag != null && tag.nameText != null) tag.nameText.gameObject.SetActive(true);
         }
         hiddenNameTags.Clear();
     }
 
-    private void OnGUI()
-    {
-        // Trống trơn
-    }
-}   
+    private void OnGUI() { }
+}
