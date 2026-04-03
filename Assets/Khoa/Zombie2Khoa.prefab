@@ -87,6 +87,7 @@ GameObject:
   - component: {fileID: 3516660939133845827}
   - component: {fileID: 7372086595383752666}
   - component: {fileID: 5681118958131968407}
+  - component: {fileID: 1216184871860211946}
   m_Layer: 0
   m_Name: Zombie2Khoa
   m_TagString: Untagged
@@ -246,7 +247,6 @@ MonoBehaviour:
   obstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  loseTime: 5
   attackRange: 0.02
   attackDuration: 1.3
   attackCooldown: 1.5
@@ -357,3 +357,56 @@ MonoBehaviour:
   SyncParent: 0
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
+--- !u!114 &1216184871860211946
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5115177110719869878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7db70e0ea77f5ac47a8f4565a9406397, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_ShadowGroup: 0
+  m_Priority: 0
+  m_ComponentVersion: 5
+  m_HasRenderer: 0
+  m_UseRendererSilhouette: 1
+  m_CastsShadows: 1
+  m_SelfShadows: 0
+  m_AlphaCutoff: 0.1
+  m_ApplyToSortingLayers: 0000000057aa24bf
+  m_ShapePath:
+  - {x: -0.099999905, y: -0.23000002, z: 0}
+  - {x: -0.099999905, y: 0.23000002, z: 0}
+  - {x: 0.099999905, y: 0.23000002, z: 0}
+  - {x: 0.099999905, y: -0.23000002, z: 0}
+  m_ShapePathHash: 0
+  m_InstanceId: 0
+  m_ShadowShape2DComponent: {fileID: 8050110791967474782}
+  m_ShadowShape2DProvider:
+    rid: 2604308815371567190
+  m_ShadowCastingSource: 2
+  m_ShadowMesh:
+    m_Mesh: {fileID: 0}
+    m_LocalBounds:
+      m_Center: {x: 0, y: 0, z: 0}
+      m_Extent: {x: 0.08999634, y: 0.22000122, z: 0}
+    m_EdgeProcessing: 1
+    m_TrimEdge: 0.01
+    m_FlipX: 0
+    m_FlipY: 0
+    m_InitialTrim: 0.01
+  m_CastingOption: 1
+  m_PreviousTrimEdge: 0
+  m_PreviousEdgeProcessing: -1
+  m_PreviousShadowCastingSource: -1
+  m_PreviousShadowShape2DSource: {fileID: 0}
+  references:
+    version: 2
+    RefIds:
+    - rid: 2604308815371567190
+      type: {class: ShadowShape2DProvider_SpriteRenderer, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
+      data: 
