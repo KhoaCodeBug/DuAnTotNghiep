@@ -573,7 +573,21 @@ public class AutoHealthPanel : MonoBehaviour
         ctxRect.anchorMin = new Vector2(1f, 0f);
         ctxRect.anchorMax = new Vector2(1f, 0f);
         ctxRect.pivot = new Vector2(1f, 1f);
-        ctxRect.anchoredPosition = new Vector2(-20, 0);
+
+        // ==========================================
+        // 🔥 ĐÃ CHỈNH SỬA: Tách tọa độ ra 2 trường hợp
+        // ==========================================
+        if (part.IsBandaged)
+        {
+            // Khi đã băng gạc (khung ngắn): X = 0, Y = 15 (như bạn muốn)
+            ctxRect.anchoredPosition = new Vector2(0, 15);
+        }
+        else
+        {
+            // Khi đang bị debuff (khung dài): Đẩy X sang trái xíu, Y nhích lên xíu cho vừa mắt
+            ctxRect.anchoredPosition = new Vector2(0, 10);
+        }
+        // ==========================================
 
         if (part.IsBandaged)
         {

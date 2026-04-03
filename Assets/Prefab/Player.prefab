@@ -574,8 +574,8 @@ MonoBehaviour:
   zombieLayer:
     serializedVersion: 2
     m_Bits: 8
-  walkNoiseRadius: 1.5
-  runNoiseRadius: 3
+  walkNoiseRadius: 1
+  runNoiseRadius: 2
   anim: {fileID: 8571460307203640203}
   _NetMoveInput: {x: 0, y: 0}
   _NetLastLookDir: {x: 0, y: 0}
@@ -612,14 +612,14 @@ MonoBehaviour:
   enemyLayer:
     serializedVersion: 2
     m_Bits: 8
-  shootNoiseRadius: 6
+  shootNoiseRadius: 5
   ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
-  magazineSize: 60
-  _currentAmmo: 60
+  magazineSize: 30
+  _currentAmmo: 30
   bashDamage: 50
-  bashRange: 0.5
-  bashCooldown: 0.8
-  bashNoiseRadius: 1
+  bashRange: 1
+  bashCooldown: 1
+  bashNoiseRadius: 0.5
   bashStaminaCost: 10
   bashDuration: 1.5
 --- !u!114 &6027786628438645557
@@ -668,6 +668,10 @@ MonoBehaviour:
     _value: 0
   _isInPain:
     _value: 0
+  zombieAnimatorController: {fileID: 9100000, guid: e80724b809f2fbf48aa96b1dc7e11eb2, type: 2}
+  paramMoveX: MoveX
+  paramMoveY: MoveY
+  paramSpeed: Speed
   _isDead:
     _value: 0
 --- !u!114 &5426569587065415619
@@ -684,11 +688,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHunger: 100
   _currentHunger: 0
-  hungerDrainRate: 0.25
+  hungerDrainRate: 0.1
   maxThirst: 100
   _currentThirst: 0
-  thirstDrainRate: 0.4
-  damageOverTime: 2
+  thirstDrainRate: 0.2
+  damageOverTime: 1
 --- !u!114 &2460234225545820196
 MonoBehaviour:
   m_ObjectHideFlags: 0
