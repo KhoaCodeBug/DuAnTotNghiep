@@ -22,8 +22,15 @@ public class PlayerHealth : NetworkBehaviour
     [Networked] public NetworkBool isBleeding { get; set; }
     [Networked] public NetworkBool isInPain { get; set; }
 
+    // ==========================================
+    // 🔥 PHẦN 2: HỆ THỐNG ĐẾM NGƯỢC TỬ THẦN (INFECTION)
+    // ==========================================
+    [Header("Hệ thống Nhiễm Trùng")]
+    [Networked] public float infectionTimer { get; set; } = 600f; // 10 phút đếm ngược
+    [Networked] public NetworkBool isBitten { get; set; }         // Bật cái này lên để bắt đầu lây nhiễm
+    public float chanceToBlink = 0.05f;                         // Tỉ lệ chớp mắt mỗi giây (Giai đoạn 2)
+
     [Header("Hiệu ứng Hoang Tưởng")]
-    // 🔥 CHỈ CẦN DUY NHẤT CÁI NÀY LÀ ĐỦ: File Animator Controller xịn của sếp
     public RuntimeAnimatorController zombieAnimatorController;
 
     [Header("Blend Tree Parameters")]
@@ -103,9 +110,14 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (!HasInputAuthority) return;
 
-        if (Input.GetKeyDown(KeyCode.O) && !isBlinking)
+        // 🔥 LOGIC: Tự động chớp mắt khi thời gian lây nhiễm dưới 7 phút (420 giây)
+        if (isBitten && infectionTimer < 420f && !isBlinking && !isDead)
         {
-            StartCoroutine(ParanoiaBlinkRoutine());
+            // Tỉ lệ chớp mắt xuất hiện ngẫu nhiên
+            if (Random.value < (chanceToBlink * Time.deltaTime))
+            {
+                StartCoroutine(ParanoiaBlinkRoutine());
+            }
         }
 
         if (isFakeZombieVisible && originalTeammateControllers.Count > 0)
@@ -140,6 +152,22 @@ public class PlayerHealth : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority || isDead) return;
+
+        // 🔥 LOGIC: Đếm ngược thời gian chết do lây nhiễm
+        if (isBitten)
+        {
+            infectionTimer -= Runner.DeltaTime;
+
+            // Sát thương tụt máu liên tục do virus hành hạ (tùy sếp chỉnh số 0.5f)
+            currentHealth -= 0.5f * Runner.DeltaTime;
+
+            if (infectionTimer <= 0)
+            {
+                infectionTimer = 0;
+                isDead = true;
+                RPC_PlayDeathEffect();
+            }
+        }
 
         if (isBleeding)
         {
@@ -196,6 +224,22 @@ public class PlayerHealth : NetworkBehaviour
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_SetGlobalBleeding(bool state) { isBleeding = state; }
+
+
+    // ==========================================
+    // 🔥 CÔNG TẮC BẬT CHẾ ĐỘ NHIỄM TRÙNG TỪ HEALTH PANEL
+    // ==========================================
+    public void SetBitten()
+    {
+        if (HasStateAuthority) isBitten = true;
+        else RPC_SetBitten();
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_SetBitten()
+    {
+        isBitten = true;
+    }
 
     public void UsePainkiller()
     {
@@ -342,7 +386,6 @@ public class PlayerHealth : NetworkBehaviour
                 originalTeammateControllers[teammateAnim] = teammateAnim.runtimeAnimatorController;
                 teammateAnim.runtimeAnimatorController = zombieAnimatorController;
 
-                // Xóa luôn dòng ép hình cũ vì Animator bây giờ tự lo phần Idle rồi
                 lastTeammatePositions[teammateAnim] = teammateAnim.transform.position;
             }
 
@@ -384,4 +427,4 @@ public class PlayerHealth : NetworkBehaviour
     {
         // Trống trơn
     }
-}
+}   
