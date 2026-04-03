@@ -184,17 +184,13 @@ public class AutoHealthPanel : MonoBehaviour
         scrollRect.viewport = viewportRect;
         scrollRect.content = textContentRect;
 
-        // =========================================================
-        // 🔥 MULTIPLAYER & UI FIX: TẠO CONTEXT MENU LUÔN NỔI LÊN TRÊN
-        // =========================================================
         contextMenuPanel = new GameObject("ContextMenuPanel");
         contextMenuPanel.transform.SetParent(panelObj.transform, false);
 
-        // Cấp cho Menu một cái Canvas riêng để phá vỡ thứ tự đè UI của Unity
         Canvas ctxCanvas = contextMenuPanel.AddComponent<Canvas>();
         ctxCanvas.overrideSorting = true;
-        ctxCanvas.sortingOrder = 150; // Luôn nằm trên các UI khác
-        contextMenuPanel.AddComponent<GraphicRaycaster>(); // Đảm bảo luôn nhận click chuột
+        ctxCanvas.sortingOrder = 150;
+        contextMenuPanel.AddComponent<GraphicRaycaster>();
 
         RectTransform ctxRect = contextMenuPanel.GetComponent<RectTransform>();
         ctxRect.anchorMin = new Vector2(1f, 0);
@@ -233,7 +229,6 @@ public class AutoHealthPanel : MonoBehaviour
 
     private void CreateBodyPart(string partName, Transform parent, Vector2 position, Vector2 size, Vector2 pivot, float rotation)
     {
-        // (Giữ nguyên)
         GameObject partObj = new GameObject("Part_" + partName);
         partObj.transform.SetParent(parent, false);
 
@@ -258,7 +253,6 @@ public class AutoHealthPanel : MonoBehaviour
 
     private Text CreateText(string name, Transform parent, Vector2 pos, Vector2 size, string text, int fontSize, FontStyle style, Color color, TextAnchor align)
     {
-        // (Giữ nguyên)
         GameObject go = new GameObject(name);
         go.transform.SetParent(parent, false);
         RectTransform rect = go.AddComponent<RectTransform>();
@@ -277,7 +271,6 @@ public class AutoHealthPanel : MonoBehaviour
 
     private void FindLocalPlayerCache()
     {
-        // 🔥 MULTIPLAYER FIX: Check nếu player bị destroy (chết/disconnect) thì phải tìm lại
         if (localPlayerHealth != null && localInventory != null) return;
 
         PlayerHealth[] allPlayers = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
@@ -329,11 +322,20 @@ public class AutoHealthPanel : MonoBehaviour
 
         BodyPartData part = bodyParts[targetPart];
         part.IsBandaged = false;
-        part.Injuries.Add(injuryResult);
+
+        if (!part.Injuries.Contains(injuryResult))
+        {
+            part.Injuries.Add(injuryResult);
+        }
 
         if (localPlayerHealth != null)
         {
             localPlayerHealth.TakeDamage(10f, false);
+
+            if (injuryResult == InjuryType.Bitten)
+            {
+                localPlayerHealth.SetBitten();
+            }
         }
 
         EvaluateGlobalBleeding();
@@ -416,7 +418,7 @@ public class AutoHealthPanel : MonoBehaviour
 
         fixedHeaderText.text = headerText.ToString();
 
-        HideContextMenu(); // Cất Menu an toàn trước
+        HideContextMenu();
 
         for (int i = textContentRect.childCount - 1; i >= 0; i--)
         {
@@ -454,22 +456,32 @@ public class AutoHealthPanel : MonoBehaviour
         });
         trigger.triggers.Add(rightClickEntry);
 
-        StringBuilder textB = new StringBuilder();
-        textB.AppendLine($"<color=white>{part.Name}</color>");
+        // 🔥 FIX 1: DÙNG LIST ĐỂ NỐI CHUỖI, CHỐNG DƯ 1 Ô XUỐNG DÒNG (TRỊ TRIỆT ĐỂ LỆCH CHIỀU CAO)
+        List<string> lines = new List<string>();
+        lines.Add($"<color=white>{part.Name}</color>");
 
         if (part.IsBandaged)
         {
-            textB.Append("<color=#4ade80>  - Bandaged</color>");
+            lines.Add("<color=#4ade80>  - Bandaged</color>");
+
+            // 🔥 NẾU BỊ CẮN MÀ BĂNG LẠI THÌ VẪN HIỆN CHỮ BITTEN ĐỂ NHÁT MA NGƯỜI CHƠI
+            if (part.Injuries.Contains(InjuryType.Bitten))
+            {
+                lines.Add("<color=#ff4444>  - Bitten</color>");
+            }
         }
         else
         {
             foreach (var inj in part.Injuries)
             {
-                textB.AppendLine($"<color=#ff4444>  - {inj.ToString()}</color>");
+                lines.Add($"<color=#ff4444>  - {inj.ToString()}</color>");
             }
         }
 
-        Text txt = CreateText("Text", entryObj.transform, Vector2.zero, new Vector2(400, 45), textB.ToString(), 20, FontStyle.Bold, Color.white, TextAnchor.UpperLeft);
+        // Nối lại bằng string.Join để không bị dư dấu \n ở cuối cùng
+        string finalText = string.Join("\n", lines);
+
+        Text txt = CreateText("Text", entryObj.transform, Vector2.zero, new Vector2(400, 45), finalText, 20, FontStyle.Bold, Color.white, TextAnchor.UpperLeft);
         txt.lineSpacing = 1.2f;
 
         RectTransform txtRect = txt.GetComponent<RectTransform>();
@@ -566,28 +578,13 @@ public class AutoHealthPanel : MonoBehaviour
         }
 
         contextMenuPanel.SetActive(true);
-
         contextMenuPanel.transform.SetParent(entryTransform, false);
 
         RectTransform ctxRect = contextMenuPanel.GetComponent<RectTransform>();
         ctxRect.anchorMin = new Vector2(1f, 0f);
         ctxRect.anchorMax = new Vector2(1f, 0f);
         ctxRect.pivot = new Vector2(1f, 1f);
-
-        // ==========================================
-        // 🔥 ĐÃ CHỈNH SỬA: Tách tọa độ ra 2 trường hợp
-        // ==========================================
-        if (part.IsBandaged)
-        {
-            // Khi đã băng gạc (khung ngắn): X = 0, Y = 15 (như bạn muốn)
-            ctxRect.anchoredPosition = new Vector2(0, 15);
-        }
-        else
-        {
-            // Khi đang bị debuff (khung dài): Đẩy X sang trái xíu, Y nhích lên xíu cho vừa mắt
-            ctxRect.anchoredPosition = new Vector2(0, 10);
-        }
-        // ==========================================
+        ctxRect.anchoredPosition = new Vector2(0, 15);
 
         if (part.IsBandaged)
         {
@@ -595,40 +592,34 @@ public class AutoHealthPanel : MonoBehaviour
         }
         else if (part.Injuries.Count > 0)
         {
-            if (part.Name == "Neck" && part.Injuries.Contains(InjuryType.Bitten))
-            {
-                CreateContextMenuButton("<color=red>Cannot Bandage</color>", null, ctxContent);
-            }
-            else
-            {
-                bool hasBandage = false;
-                ItemData bandageData = null;
+            // 🔥 XÓA LỆNH CẤM BĂNG GẠC CỔ / BITTEN ĐỂ NGƯỜI CHƠI BĂNG CẦM MÁU
+            bool hasBandage = false;
+            ItemData bandageData = null;
 
-                if (localInventory != null)
+            if (localInventory != null)
+            {
+                foreach (var slot in localInventory.slots)
                 {
-                    foreach (var slot in localInventory.slots)
+                    if (slot.item != null)
                     {
-                        if (slot.item != null)
+                        string itemNameLower = slot.item.itemName.ToLower();
+                        if (itemNameLower.Contains("bandage") || itemNameLower.Contains("băng"))
                         {
-                            string itemNameLower = slot.item.itemName.ToLower();
-                            if (itemNameLower.Contains("bandage") || itemNameLower.Contains("băng"))
-                            {
-                                hasBandage = true;
-                                bandageData = slot.item;
-                                break;
-                            }
+                            hasBandage = true;
+                            bandageData = slot.item;
+                            break;
                         }
                     }
                 }
+            }
 
-                if (hasBandage)
-                {
-                    CreateContextMenuButton("Apply Bandage", () => StartCoroutine(HealActionRoutine(part, "Apply", bandageData)), ctxContent);
-                }
-                else
-                {
-                    CreateContextMenuButton("<color=gray>No Bandages</color>", null, ctxContent);
-                }
+            if (hasBandage)
+            {
+                CreateContextMenuButton("Apply Bandage", () => StartCoroutine(HealActionRoutine(part, "Apply", bandageData)), ctxContent);
+            }
+            else
+            {
+                CreateContextMenuButton("<color=gray>No Bandages</color>", null, ctxContent);
             }
         }
     }
@@ -722,7 +713,11 @@ public class AutoHealthPanel : MonoBehaviour
         else if (actionType == "Remove")
         {
             part.IsBandaged = false;
+
+            // 🔥 FIX 2: THÁO GẠC LÀnh VẾT CÀO, NHƯNG VẾT CẮN (BITTEN) THÌ VĨNH VIỄN Ở LẠI
+            bool hasBitten = part.Injuries.Contains(InjuryType.Bitten);
             part.Injuries.Clear();
+            if (hasBitten) part.Injuries.Add(InjuryType.Bitten);
         }
 
         EvaluateGlobalBleeding();
