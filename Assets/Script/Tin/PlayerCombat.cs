@@ -62,7 +62,10 @@ public class PlayerCombat : NetworkBehaviour
 
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()) return;
 
-        if (Input.GetKeyDown(KeyCode.R) && currentAmmo < magazineSize && !isReloading)
+        // 🔥 FIX NẠP ĐẠN: Bấm R trên phím HOẶC Bấm nút Reload trên điện thoại
+        bool wantToReload = Input.GetKeyDown(KeyCode.R) || (MobileInputController.Instance != null && MobileInputController.Instance.CheckAndConsumeReload());
+
+        if (wantToReload && currentAmmo < magazineSize && !isReloading)
         {
             StartCoroutine(ReloadRoutine());
         }
