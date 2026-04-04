@@ -35,7 +35,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     private float cooldownTimer;
     private bool isAttacking;
     private bool hasAppliedDamage;
-
+    private PlayerMovement cachedLocalPlayer;
     [Header("=== Zombie Stats ===")]
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private float stunDuration = 5f;
@@ -328,11 +328,18 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     // ====================================================
     private PlayerMovement GetLocalPlayer()
     {
-        // Quét tìm Player đang có quyền điều khiển (Input Authority) trên máy tính này
+        // Lần sau chạy, nếu đã tìm thấy rồi thì lấy ra xài luôn (Tiết kiệm CPU)
+        if (cachedLocalPlayer != null) return cachedLocalPlayer;
+
+        // Nếu chưa có thì mới phải đi quét
         PlayerMovement[] allPlayers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
         foreach (var p in allPlayers)
         {
-            if (p.HasInputAuthority) return p;
+            if (p.HasInputAuthority)
+            {
+                cachedLocalPlayer = p; // Lưu lại để xài cho lần sau
+                return p;
+            }
         }
         return null;
     }
