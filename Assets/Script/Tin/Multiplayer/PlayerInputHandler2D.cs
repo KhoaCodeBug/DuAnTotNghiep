@@ -16,9 +16,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
     [Header("--- HỆ THỐNG VOICE CHAT ---")]
     private Recorder globalRecorder;
 
-    // 🔥 THÊM: Bộ đếm thời gian để chống spam gửi lệnh lên Server liên tục
     private float nextVoiceNoiseTime = 0f;
-    // 🔥 THÊM BIẾN NÀY DƯỚI CHỖ globalRecorder:
     private float currentVoiceRadius = 0f;
 
     public override void Spawned()
@@ -67,28 +65,19 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
         }
 
-        // ==========================================
-        // 🔥 ĐO ÂM LƯỢNG VÀ TẠO TIẾNG ỒN DỤ ZOMBIE (ĐÃ FIX HỆ SỐ THỰC TẾ)
-        // ==========================================
         if (IsSpeaking && globalRecorder.LevelMeter != null)
         {
             float voiceVolume = globalRecorder.LevelMeter.CurrentPeakAmp;
 
-            // 🔥 1. Hạ ngưỡng lọc tạp âm xuống cực thấp (0.01) vì Mic thường thu âm lượng rất nhỏ
             if (voiceVolume > 0.01f)
             {
-                // 🔥 2. TĂNG HỆ SỐ NHÂN LÊN 50! 
-                // Ví dụ: Bạn nói nhỏ (0.05) * 50 = 2.5 mét. La to (0.16) * 50 = 8 mét.
                 float noiseRadius = voiceVolume * 80f;
-
-                // Ép giới hạn tối đa là 8m (Theo đúng ý bạn)
                 noiseRadius = Mathf.Clamp(noiseRadius, 0f, 10f);
 
-                currentVoiceRadius = noiseRadius; // Lưu lại để vẽ Gizmos
+                currentVoiceRadius = noiseRadius;
 
                 if (Time.time >= nextVoiceNoiseTime)
                 {
-                    // 🔥 In thẳng ra Console để đạo diễn thấy thực tế Mic mình đang kêu to bao nhiêu mét!
                     Debug.Log($"[TEST MIC] Âm lượng thật: {voiceVolume:F3} | Bán kính gọi Zombie: {noiseRadius:F1} mét");
 
                     RPC_MakeVoiceNoise(noiseRadius);
@@ -110,19 +99,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
     {
         var data = new PlayerNetworkInput();
 
-        data.moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
-
-        if (Camera.main != null)
-        {
-            Vector3 mousePos = Input.mousePosition;
-            mousePos.z = Mathf.Abs(Camera.main.transform.position.z);
-            data.mouseWorldPos = Camera.main.ScreenToWorldPoint(mousePos);
-        }
-
         bool isTyping = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
         bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
-
-        // 🔥 THÊM CỜ KIỂM TRA BẢNG MÁU
         bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
 
         bool isDead = false;
@@ -132,22 +110,71 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             isDead = health.currentHealth <= 0;
         }
 
-        // 🔥 CHẶN DI CHUYỂN NẾU MỞ BẤT KỲ UI NÀO
+        // 🔥 CHẶN TẤT CẢ INPUT NẾU ĐANG MỞ UI HOẶC ĐÃ CHẾT
         if (isTyping || isInvOpen || isHealthOpen || isDead)
         {
             input.Set(new PlayerNetworkInput());
             return;
         }
 
-        // 🔥 CHẶN NGẮM BẮN (AIM) NẾU CHỈ CHUỘT LÊN BẤT KỲ UI NÀO
-        bool pointerOnUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+        // ===============================================
+        // 🔥 SONG KIẾM HỢP BÍCH: KIỂM TRA MÁY ĐANG CHẠY
+        // ===============================================
+        // ĐÃ SỬA: Ép nó nhận Joystick luôn cả khi sếp đang ngồi test trên Unity máy tính
+        if ((Application.isMobilePlatform || Application.isEditor) && MobileInputController.Instance != null && MobileInputController.Instance.gameObject.activeInHierarchy)
+        {
+            var mobileUI = MobileInputController.Instance;
 
-        data.isAiming = pointerOnUI ? false : Input.GetMouseButton(1);
-        data.isRunning = Input.GetKey(KeyCode.LeftShift);
-        data.isCrouching = Input.GetKey(KeyCode.C);
+            // 1. Di chuyển bằng Joystick trái
+            data.moveInput = mobileUI.moveJoystick.Direction;
 
-        data.isShooting = Input.GetMouseButton(0);
-        data.isBashing = Input.GetKey(KeyCode.Space);
+            // 2. Chạy bộ: Kéo Joystick đi chuyển ra xa (> 0.7) thì tự động chạy
+            data.isRunning = data.moveInput.magnitude > 0.7f;
+            data.isCrouching = false; // Điện thoại tạm thời chưa có nút ngồi
+
+            // 3. Ngắm & Bắn bằng Joystick phải (Twin-stick shooter)
+            if (mobileUI.aimJoystick.Direction.magnitude > 0.1f)
+            {
+                data.isAiming = true;
+                data.isShooting = true; // Cứ kéo cần phải là xả đạn
+
+                // Giả lập tọa độ chuột cách nhân vật 5 mét theo hướng vuốt Joystick
+                Vector3 aimDir = new Vector3(mobileUI.aimJoystick.Direction.x, mobileUI.aimJoystick.Direction.y, 0);
+                data.mouseWorldPos = transform.position + aimDir * 5f;
+            }
+            else
+            {
+                data.isAiming = false;
+                data.isShooting = false;
+                data.mouseWorldPos = transform.position;
+            }
+
+            // 4. Cận chiến: Nhận lệnh từ nút Bash trên màn hình
+            data.isBashing = mobileUI.isBashPressed;
+        }
+        else
+        {
+            // ===============================================
+            // 🔥 CHẾ ĐỘ PC: CHUỘT VÀ BÀN PHÍM (GIỮ NGUYÊN GỐC)
+            // ===============================================
+            data.moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
+
+            if (Camera.main != null)
+            {
+                Vector3 mousePos = Input.mousePosition;
+                mousePos.z = Mathf.Abs(Camera.main.transform.position.z);
+                data.mouseWorldPos = Camera.main.ScreenToWorldPoint(mousePos);
+            }
+
+            bool pointerOnUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+
+            data.isAiming = pointerOnUI ? false : Input.GetMouseButton(1);
+            data.isRunning = Input.GetKey(KeyCode.LeftShift);
+            data.isCrouching = Input.GetKey(KeyCode.C);
+
+            data.isShooting = Input.GetMouseButton(0);
+            data.isBashing = Input.GetKey(KeyCode.Space);
+        }
 
         input.Set(data);
     }
@@ -166,13 +193,9 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    // ==========================================
-    // 🔥 CÁI ĐIỆN THOẠI ĐỂ MÁY KHÁCH GỌI MÁY CHỦ BÁO ĐỘNG
-    // ==========================================
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_MakeVoiceNoise(float radius)
     {
-        // Khi Máy Chủ nghe máy, nó sẽ tự động thò tay lấy hàm MakeNoise ra để vẽ vòng tròn
         PlayerMovement moveScript = GetComponent<PlayerMovement>();
         if (moveScript != null)
         {
@@ -180,15 +203,11 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    // ==========================================
-    // 🔥 VẼ VÒNG TRÒN ÂM THANH RA SCENE ĐỂ TEST
-    // ==========================================
     private void OnDrawGizmos()
     {
-        // Chỉ vẽ khi có âm lượng phát ra
         if (currentVoiceRadius > 0f)
         {
-            Gizmos.color = Color.cyan; // Màu xanh lơ cho khác với súng/chạy bộ
+            Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, currentVoiceRadius);
         }
     }
