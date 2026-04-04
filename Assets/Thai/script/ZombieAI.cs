@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using UnityEngine.AI; // Bắt buộc khai báo để dùng NavMesh
+using UnityEngine.AI;
 
 public class ZombieAI : MonoBehaviour
 {
@@ -33,25 +33,29 @@ public class ZombieAI : MonoBehaviour
         anim = GetComponent<Animator>();
         healthScript = GetComponent<ZombieHealth>();
 
-        // 2 Cài đặt TỐI QUAN TRỌNG để NavMesh 3D chạy được trong game 2D
+        // THIẾT LẬP BẮT BUỘC ĐỂ NAVMESH CHẠY ĐƯỢC 2D
         if (agent != null)
         {
-            agent.updateRotation = false;
-            agent.updateUpAxis = false;
+            agent.updateRotation = false; // Tắt tự xoay của 3D
+            agent.updateUpAxis = false;   // Ép NavMesh hiểu hệ trục tọa độ XY của 2D
             agent.speed = moveSpeed;
+        }
+        else
+        {
+            Debug.LogError("QUÊN CHƯA GẮN NAVMESH AGENT CHO ZOMBIE KÌA THÁI ƠI!");
         }
     }
 
     void Update()
     {
-        // 1. Chết thì đứng im
+        // 1. Nếu Zombie chết -> Ngưng hoạt động
         if (healthScript != null && healthScript.isDead)
         {
-            if (agent.isOnNavMesh) agent.isStopped = true;
+            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             return;
         }
 
-        // 2. RADAR
+        // 2. RADAR: Quét mục tiêu
         searchTimer -= Time.deltaTime;
         if (searchTimer <= 0)
         {
@@ -59,34 +63,28 @@ public class ZombieAI : MonoBehaviour
             searchTimer = searchInterval;
         }
 
-        // 3. Không có Player -> Thở
+        // 3. Nếu chưa có Player -> Thở
         if (player == null)
         {
-            if (agent.isOnNavMesh) agent.isStopped = true;
+            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             anim.SetBool("isRunning", false);
             return;
         }
 
-        // Lấy hướng và khoảng cách
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
         Vector2 dirToPlayer = (player.position - transform.position).normalized;
-
         if (attackTimer > 0) attackTimer -= Time.deltaTime;
 
-        // ---------------------------------------------------------
-        // CHỐT CHẶN AN TOÀN: BẢO VỆ GAME KHỎI LỖI ĐỎ CỦA NAVMESH
-        // ---------------------------------------------------------
-        if (!agent.isOnNavMesh)
+        // --- BẢO VỆ CHỐNG LỖI NAVMESH ---
+        // Nếu chẳng may quên gắn Agent hoặc mặt sàn bị lọt, Zombie vẫn sẽ đứng tại chỗ và xoay mặt chém!
+        if (agent == null || !agent.isOnNavMesh)
         {
-            // Bị lỗi đường đi? Vẫn cho phép xoay mặt nhìn Player nếu ở gần!
             anim.SetBool("isRunning", false);
             if (distanceToPlayer <= chaseRange) UpdateAnimatorDirection(dirToPlayer);
-
-            // Dừng code tại đây, tuyệt đối không gọi SetDestination để tránh văng lỗi đỏ
             return;
         }
 
-        // 4. XỬ LÝ 3 TRẠNG THÁI AI (Khi NavMesh hoạt động tốt)
+        // 4. XỬ LÝ 3 TRẠNG THÁI AI (Khi NavMesh đã ổn định)
         if (distanceToPlayer > chaseRange)
         {
             agent.isStopped = true;
@@ -96,7 +94,7 @@ public class ZombieAI : MonoBehaviour
         {
             agent.isStopped = false;
             agent.speed = moveSpeed;
-            agent.SetDestination(player.position); // NavMesh tìm đường
+            agent.SetDestination(player.position);
 
             anim.SetBool("isRunning", true);
             UpdateAnimatorDirection(agent.velocity.normalized);
@@ -105,12 +103,9 @@ public class ZombieAI : MonoBehaviour
         {
             agent.isStopped = true;
             anim.SetBool("isRunning", false);
-            UpdateAnimatorDirection(dirToPlayer); // Luôn xoay mặt theo Player
+            UpdateAnimatorDirection(dirToPlayer);
 
-            if (attackTimer <= 0)
-            {
-                TriggerRandomAttack();
-            }
+            if (attackTimer <= 0) TriggerRandomAttack();
         }
     }
 
@@ -156,9 +151,7 @@ public class ZombieAI : MonoBehaviour
     private void ExecuteDamage(float damageAmount)
     {
         if (player == null) return;
-
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
-
         if (distanceToPlayer <= damageRadius)
         {
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
