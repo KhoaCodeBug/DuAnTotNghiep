@@ -262,9 +262,9 @@ MonoBehaviour:
   m_ComponentVersion: 2
   m_LightType: 3
   m_BlendStyleIndex: 0
-  m_FalloffIntensity: 0
+  m_FalloffIntensity: 0.5
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 0.8
+  m_Intensity: 1
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
   m_ApplyToSortingLayers: 0000000057aa24bf
@@ -285,8 +285,8 @@ MonoBehaviour:
   m_LocalBounds:
     m_Center: {x: 0, y: -0.00000011920929, z: 0}
     m_Extent: {x: 0.9985302, y: 0.99853027, z: 0}
-  m_PointLightInnerAngle: 90
-  m_PointLightOuterAngle: 150
+  m_PointLightInnerAngle: 80
+  m_PointLightOuterAngle: 110
   m_PointLightInnerRadius: 0
   m_PointLightOuterRadius: 10
   m_ShapeLightParametricSides: 5
@@ -664,7 +664,6 @@ MonoBehaviour:
   walkNoiseRadius: 1
   runNoiseRadius: 2
   anim: {fileID: 8571460307203640203}
-  isParanoiaZombie: 0
   _NetMoveInput: {x: 0, y: 0}
   _NetLastLookDir: {x: 0, y: 0}
   _NetIsMoving:

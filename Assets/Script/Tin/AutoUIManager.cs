@@ -29,12 +29,6 @@ public class AutoUIManager : MonoBehaviour
     public bool isDoingAction; // Cho phép Script khác hỏi thăm
     #endregion
 
-    #region 🔥 Biến UI - Tủ Đồ (Loot Container)
-    private GameObject containerPanel;
-    private List<SlotUIElements> containerSlotUIList = new List<SlotUIElements>();
-    private LootContainer currentOpenContainer;
-    #endregion
-
     #region Biến Nhân Vật & Trạng Thái
     private GameObject combatPanelObj, survivalPanelObj;
     private GameObject localPlayer;
@@ -59,7 +53,6 @@ public class AutoUIManager : MonoBehaviour
     {
         public Image iconImage;
         public TextMeshProUGUI amountText;
-        public Button slotButton; // Dùng cho nút bấm của Tủ Đồ
     }
 
     #region Unity Lifecycle (Awake & Update)
@@ -100,11 +93,7 @@ public class AutoUIManager : MonoBehaviour
 
             if (inventoryPanel != null)
             {
-                bool newState = !inventoryPanel.activeSelf;
-                inventoryPanel.SetActive(newState);
-
-                // 🔥 Đóng túi đồ thì tự động đóng luôn tủ đồ cho gọn
-                if (!newState) CloseContainerUI();
+                inventoryPanel.SetActive(!inventoryPanel.activeSelf);
             }
             HideContextMenu();
             HideTooltip();
@@ -119,10 +108,6 @@ public class AutoUIManager : MonoBehaviour
             {
                 invToggleCooldown = Time.time + 0.2f;
                 inventoryPanel.SetActive(false);
-
-                // 🔥 Thoát UI thì đóng luôn tủ đồ
-                CloseContainerUI();
-
                 HideContextMenu();
                 HideTooltip();
             }
@@ -180,536 +165,9 @@ public class AutoUIManager : MonoBehaviour
 
         GenerateSurvivalBars(canvasGO);
         GenerateInventoryUI(canvasGO);
-        GenerateContainerUI(canvasGO); // 🔥 GỌI HÀM VẼ GIAO DIỆN TỦ ĐỒ
         GenerateActionBar(canvasGO);
         GenerateTradeRequestUI(canvasGO);
         GenerateTradeWindowUI(canvasGO);
-    }
-    #endregion
-
-    #region GIAO DIỆN TÚI ĐỒ (INVENTORY)
-    private void GenerateInventoryUI(GameObject canvasGO)
-    {
-        inventoryPanel = new GameObject("InventoryPanel");
-        inventoryPanel.transform.SetParent(canvasGO.transform, false);
-
-        RectTransform panelRect = inventoryPanel.AddComponent<RectTransform>();
-        panelRect.sizeDelta = new Vector2(500, 450);
-        // Neo lệch qua trái để nhường chỗ cho Tủ đồ bên phải
-        panelRect.anchorMin = new Vector2(0.25f, 0.5f);
-        panelRect.anchorMax = new Vector2(0.25f, 0.5f);
-        panelRect.pivot = new Vector2(0.5f, 0.5f);
-        panelRect.anchoredPosition = Vector2.zero;
-
-        Image panelBg = inventoryPanel.AddComponent<Image>();
-        panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
-        inventoryPanel.SetActive(false);
-
-        GameObject titleObj = new GameObject("TitleText");
-        titleObj.transform.SetParent(inventoryPanel.transform, false);
-
-        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
-        if (gameFont != null) titleText.font = gameFont;
-        titleText.text = "INVENTORY";
-        titleText.fontSize = 24;
-        titleText.fontStyle = FontStyles.Bold;
-        titleText.alignment = TextAlignmentOptions.Center;
-        titleText.color = new Color(0.9f, 0.9f, 0.9f, 1f);
-
-        RectTransform titleRect = titleObj.GetComponent<RectTransform>();
-        titleRect.anchorMin = new Vector2(0, 1);
-        titleRect.anchorMax = new Vector2(1, 1);
-        titleRect.pivot = new Vector2(0.5f, 1);
-        titleRect.anchoredPosition = new Vector2(0, -20);
-        titleRect.sizeDelta = new Vector2(0, 40);
-
-        GameObject gridObj = new GameObject("SlotGrid");
-        gridObj.transform.SetParent(inventoryPanel.transform, false);
-
-        RectTransform gridRect = gridObj.AddComponent<RectTransform>();
-        gridRect.anchorMin = new Vector2(0, 0);
-        gridRect.anchorMax = new Vector2(1, 1);
-        gridRect.offsetMin = new Vector2(20, 20);
-        gridRect.offsetMax = new Vector2(-20, -70);
-
-        GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
-        gridLayout.cellSize = new Vector2(75, 75);
-        gridLayout.spacing = new Vector2(10, 10);
-        gridLayout.childAlignment = TextAnchor.UpperCenter;
-
-        for (int i = 0; i < maxSlots; i++)
-        {
-            GameObject slotObj = new GameObject("Slot_" + i);
-            slotObj.transform.SetParent(gridObj.transform, false);
-
-            Image slotBg = slotObj.AddComponent<Image>();
-            slotBg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
-
-            SlotHoverHandler hoverHandler = slotObj.AddComponent<SlotHoverHandler>();
-            hoverHandler.slotIndex = i;
-
-            GameObject iconObj = new GameObject("ItemIcon");
-            iconObj.transform.SetParent(slotObj.transform, false);
-
-            Image iconImg = iconObj.AddComponent<Image>();
-            iconImg.raycastTarget = false;
-            iconImg.preserveAspect = true;
-
-            RectTransform iconRect = iconObj.GetComponent<RectTransform>();
-            iconRect.anchorMin = Vector2.zero;
-            iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = new Vector2(10, 10);
-            iconRect.offsetMax = new Vector2(-10, -10);
-            iconObj.SetActive(false);
-
-            GameObject textObj = new GameObject("AmountText");
-            textObj.transform.SetParent(slotObj.transform, false);
-
-            TextMeshProUGUI amountTxt = textObj.AddComponent<TextMeshProUGUI>();
-            if (gameFont != null) amountTxt.font = gameFont;
-            amountTxt.fontSize = 12;
-            amountTxt.fontStyle = FontStyles.Bold;
-            amountTxt.alignment = TextAlignmentOptions.BottomRight;
-            amountTxt.color = Color.white;
-            textObj.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.8f);
-
-            RectTransform textRect = textObj.GetComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero;
-            textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(0, 0);
-            textRect.offsetMax = new Vector2(-1, 1);
-            textObj.SetActive(false);
-
-            slotUIList.Add(new SlotUIElements { iconImage = iconImg, amountText = amountTxt });
-        }
-
-        // Tooltip
-        tooltipPanel = new GameObject("TooltipPanel");
-        tooltipPanel.transform.SetParent(canvasGO.transform, false);
-        tooltipPanel.transform.SetAsLastSibling();
-
-        RectTransform ttRect = tooltipPanel.AddComponent<RectTransform>();
-        ttRect.sizeDelta = new Vector2(180, 60);
-        ttRect.pivot = new Vector2(0, 1);
-
-        tooltipPanel.AddComponent<Image>().color = new Color(0, 0, 0, 0.95f);
-        tooltipPanel.AddComponent<Outline>().effectColor = Color.white;
-
-        GameObject ttTitleObj = new GameObject("TooltipTitle");
-        ttTitleObj.transform.SetParent(tooltipPanel.transform, false);
-
-        tooltipTitleText = ttTitleObj.AddComponent<TextMeshProUGUI>();
-        tooltipTitleText.fontSize = 14;
-        tooltipTitleText.fontStyle = FontStyles.Bold;
-        tooltipTitleText.color = new Color(1f, 0.8f, 0.2f);
-
-        RectTransform ttTitleRect = ttTitleObj.GetComponent<RectTransform>();
-        ttTitleRect.anchorMin = new Vector2(0, 0.5f);
-        ttTitleRect.anchorMax = new Vector2(1, 1);
-        ttTitleRect.offsetMin = new Vector2(10, 0);
-        ttTitleRect.offsetMax = new Vector2(-10, -5);
-
-        GameObject ttDescObj = new GameObject("TooltipDesc");
-        ttDescObj.transform.SetParent(tooltipPanel.transform, false);
-
-        tooltipDescText = ttDescObj.AddComponent<TextMeshProUGUI>();
-        tooltipDescText.fontSize = 12;
-        tooltipDescText.color = Color.white;
-
-        RectTransform ttDescRect = ttDescObj.GetComponent<RectTransform>();
-        ttDescRect.anchorMin = new Vector2(0, 0);
-        ttDescRect.anchorMax = new Vector2(1, 0.5f);
-        ttDescRect.offsetMin = new Vector2(10, 5);
-        ttDescRect.offsetMax = new Vector2(-10, 0);
-
-        tooltipPanel.SetActive(false);
-
-        // Context Menu
-        contextMenuPanel = new GameObject("ContextMenu");
-        contextMenuPanel.transform.SetParent(canvasGO.transform, false);
-        contextMenuPanel.transform.SetAsLastSibling();
-
-        RectTransform ctxRect = contextMenuPanel.AddComponent<RectTransform>();
-        ctxRect.sizeDelta = new Vector2(120, 85);
-        ctxRect.pivot = new Vector2(0, 1);
-
-        contextMenuPanel.AddComponent<Image>().color = new Color(0, 0, 0, 0.95f);
-        contextMenuPanel.AddComponent<Outline>().effectColor = Color.white;
-
-        VerticalLayoutGroup ctxLayout = contextMenuPanel.AddComponent<VerticalLayoutGroup>();
-        ctxLayout.padding = new RectOffset(5, 5, 5, 5);
-        ctxLayout.spacing = 5;
-        ctxLayout.childControlHeight = true;
-        ctxLayout.childControlWidth = true;
-        ctxLayout.childForceExpandHeight = true;
-        ctxLayout.childForceExpandWidth = true;
-
-        CreateContextMenuBtn("UseButton", "Use / Offer", OnUseClicked);
-        CreateContextMenuBtn("DropButton", "Drop", OnDropClicked);
-
-        contextMenuPanel.SetActive(false);
-    }
-
-    private void CreateContextMenuBtn(string objName, string text, UnityEngine.Events.UnityAction action)
-    {
-        GameObject btnObj = new GameObject(objName);
-        btnObj.transform.SetParent(contextMenuPanel.transform, false);
-
-        Image btnImage = btnObj.AddComponent<Image>();
-        btnImage.color = Color.white;
-
-        Button btn = btnObj.AddComponent<Button>();
-        btn.targetGraphic = btnImage;
-
-        ColorBlock cb = btn.colors;
-        cb.normalColor = Color.white;
-        cb.highlightedColor = text == "Drop" ? new Color(0.85f, 0.2f, 0.2f, 1f) : new Color(0.15f, 0.5f, 0.85f, 1f);
-        cb.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-        cb.selectedColor = Color.white;
-        cb.fadeDuration = 0.15f;
-        btn.colors = cb;
-
-        btn.onClick.AddListener(action);
-
-        GameObject txtObj = new GameObject("Text");
-        txtObj.transform.SetParent(btnObj.transform, false);
-
-        TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
-        txt.text = text;
-        txt.fontSize = 15;
-        txt.fontStyle = FontStyles.Bold;
-        txt.alignment = TextAlignmentOptions.Center;
-        txt.color = new Color(0.15f, 0.15f, 0.15f, 1f);
-
-        RectTransform txtRect = txtObj.GetComponent<RectTransform>();
-        txtRect.anchorMin = Vector2.zero;
-        txtRect.anchorMax = Vector2.one;
-        txtRect.offsetMin = Vector2.zero;
-        txtRect.offsetMax = Vector2.zero;
-    }
-    #endregion
-
-    #region 🔥 MỚI: VẼ GIAO DIỆN TỦ ĐỒ (LOOT CONTAINER)
-    private void GenerateContainerUI(GameObject canvasGO)
-    {
-        containerPanel = new GameObject("ContainerPanel");
-        containerPanel.transform.SetParent(canvasGO.transform, false);
-
-        RectTransform panelRect = containerPanel.AddComponent<RectTransform>();
-        panelRect.sizeDelta = new Vector2(400, 450);
-        // Neo lệch qua phải màn hình
-        panelRect.anchorMin = new Vector2(0.75f, 0.5f);
-        panelRect.anchorMax = new Vector2(0.75f, 0.5f);
-        panelRect.pivot = new Vector2(0.5f, 0.5f);
-        panelRect.anchoredPosition = Vector2.zero;
-
-        Image panelBg = containerPanel.AddComponent<Image>();
-        panelBg.color = new Color(0.15f, 0.15f, 0.2f, 0.95f); // Đổi màu xíu cho dễ phân biệt với túi đồ
-        containerPanel.AddComponent<Outline>().effectColor = new Color(0.3f, 0.6f, 0.8f);
-        containerPanel.SetActive(false);
-
-        // --- Title ---
-        GameObject titleObj = new GameObject("TitleText");
-        titleObj.transform.SetParent(containerPanel.transform, false);
-        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
-        if (gameFont != null) titleText.font = gameFont;
-        titleText.text = "LOOT CONTAINER";
-        titleText.fontSize = 24;
-        titleText.fontStyle = FontStyles.Bold;
-        titleText.alignment = TextAlignmentOptions.Center;
-        titleText.color = new Color(0.5f, 0.8f, 1f, 1f);
-
-        RectTransform titleRect = titleObj.GetComponent<RectTransform>();
-        titleRect.anchorMin = new Vector2(0, 1); titleRect.anchorMax = new Vector2(1, 1);
-        titleRect.pivot = new Vector2(0.5f, 1); titleRect.anchoredPosition = new Vector2(0, -20);
-        titleRect.sizeDelta = new Vector2(0, 40);
-
-        // --- Grid Tủ Đồ ---
-        GameObject gridObj = new GameObject("ContainerSlotGrid");
-        gridObj.transform.SetParent(containerPanel.transform, false);
-        RectTransform gridRect = gridObj.AddComponent<RectTransform>();
-        gridRect.anchorMin = new Vector2(0, 0); gridRect.anchorMax = new Vector2(1, 1);
-        gridRect.offsetMin = new Vector2(20, 20); gridRect.offsetMax = new Vector2(-20, -70);
-
-        GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
-        gridLayout.cellSize = new Vector2(75, 75);
-        gridLayout.spacing = new Vector2(10, 10);
-        gridLayout.childAlignment = TextAnchor.UpperCenter;
-
-        for (int i = 0; i < maxSlots; i++)
-        {
-            int slotIndex = i; // Cache biến này cho sự kiện click
-            GameObject slotObj = new GameObject("ContSlot_" + i);
-            slotObj.transform.SetParent(gridObj.transform, false);
-
-            Image slotBg = slotObj.AddComponent<Image>();
-            slotBg.color = new Color(0.2f, 0.25f, 0.3f, 1f);
-
-            // Gắn nút bấm để Lụm Đồ
-            Button btn = slotObj.AddComponent<Button>();
-            btn.onClick.AddListener(() => OnContainerSlotClicked(slotIndex));
-
-            GameObject iconObj = new GameObject("ItemIcon");
-            iconObj.transform.SetParent(slotObj.transform, false);
-            Image iconImg = iconObj.AddComponent<Image>();
-            iconImg.raycastTarget = false;
-            iconImg.preserveAspect = true;
-            RectTransform iconRect = iconObj.GetComponent<RectTransform>();
-            iconRect.anchorMin = Vector2.zero; iconRect.anchorMax = Vector2.one;
-            iconRect.offsetMin = new Vector2(10, 10); iconRect.offsetMax = new Vector2(-10, -10);
-            iconObj.SetActive(false);
-
-            GameObject textObj = new GameObject("AmountText");
-            textObj.transform.SetParent(slotObj.transform, false);
-            TextMeshProUGUI amountTxt = textObj.AddComponent<TextMeshProUGUI>();
-            if (gameFont != null) amountTxt.font = gameFont;
-            amountTxt.fontSize = 12; amountTxt.fontStyle = FontStyles.Bold;
-            amountTxt.alignment = TextAlignmentOptions.BottomRight; amountTxt.color = Color.white;
-            textObj.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.8f);
-            RectTransform textRect = textObj.GetComponent<RectTransform>();
-            textRect.anchorMin = Vector2.zero; textRect.anchorMax = Vector2.one;
-            textRect.offsetMin = new Vector2(0, 0); textRect.offsetMax = new Vector2(-1, 1);
-            textObj.SetActive(false);
-
-            containerSlotUIList.Add(new SlotUIElements { iconImage = iconImg, amountText = amountTxt, slotButton = btn });
-        }
-    }
-    #endregion
-
-    #region 🔥 MỚI: LOGIC XỬ LÝ TỦ ĐỒ (LOOT CONTAINER)
-    public void OpenContainerUI(LootContainer container)
-    {
-        currentOpenContainer = container;
-        containerPanel.SetActive(true);
-
-        // Mở tủ thì tự động mở luôn túi đồ của mình để cất/chuyển đồ cho lẹ
-        if (inventoryPanel != null && !inventoryPanel.activeSelf)
-        {
-            inventoryPanel.SetActive(true);
-        }
-
-        RefreshContainerUI(container);
-    }
-
-    public void CloseContainerUI()
-    {
-        currentOpenContainer = null;
-        if (containerPanel != null) containerPanel.SetActive(false);
-    }
-
-    public bool IsContainerOpen(LootContainer containerToCheck)
-    {
-        return containerPanel.activeSelf && currentOpenContainer == containerToCheck;
-    }
-
-    public void RefreshContainerUI(LootContainer container)
-    {
-        // Chống lỗi khi UI tủ đồ đang tắt hoặc tủ đồ khác gọi lệnh update
-        if (currentOpenContainer != container) return;
-
-        List<InventorySlot> cSlots = container.itemsInContainer;
-
-        for (int i = 0; i < maxSlots; i++)
-        {
-            SlotUIElements ui = containerSlotUIList[i];
-            if (i < cSlots.Count && cSlots[i] != null && cSlots[i].amount > 0)
-            {
-                ui.iconImage.gameObject.SetActive(true);
-                ui.iconImage.sprite = cSlots[i].item.icon;
-                ui.slotButton.interactable = true; // Bật nút cho phép nhặt
-
-                if (cSlots[i].amount > 1)
-                {
-                    ui.amountText.gameObject.SetActive(true);
-                    ui.amountText.text = cSlots[i].amount.ToString();
-                }
-                else ui.amountText.gameObject.SetActive(false);
-            }
-            else
-            {
-                ui.iconImage.gameObject.SetActive(false);
-                ui.amountText.gameObject.SetActive(false);
-                ui.slotButton.interactable = false; // Ô trống thì cấm bấm
-            }
-        }
-    }
-
-    private void OnContainerSlotClicked(int index)
-    {
-        if (currentOpenContainer == null || localPlayer == null) return;
-
-        PlayerRef myNetworkID = localPlayer.GetComponent<NetworkObject>().InputAuthority;
-
-        // 🔥 Lấy thêm cái TÊN MÓN ĐỒ để Server kiểm chứng, chống vụ 2 người bấm cùng 1 ô!
-        string itemName = currentOpenContainer.itemsInContainer[index].item.itemName;
-
-        currentOpenContainer.RPC_RequestTakeItem(index, itemName, myNetworkID);
-    }
-    #endregion
-
-    #region Action Bar & Tool UI Utils
-    private void GenerateActionBar(GameObject canvasGO)
-    {
-        actionBarPanel = new GameObject("ActionBarPanel");
-        actionBarPanel.transform.SetParent(canvasGO.transform, false);
-
-        RectTransform actRect = actionBarPanel.AddComponent<RectTransform>();
-        actRect.anchorMin = new Vector2(0.5f, 0.2f);
-        actRect.anchorMax = new Vector2(0.5f, 0.2f);
-        actRect.pivot = new Vector2(0.5f, 0.5f);
-        actRect.sizeDelta = new Vector2(250, 25);
-        actRect.anchoredPosition = Vector2.zero;
-
-        Image bg = actionBarPanel.AddComponent<Image>();
-        bg.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
-        actionBarPanel.AddComponent<Outline>().effectColor = Color.black;
-
-        GameObject fillObj = new GameObject("Fill");
-        fillObj.transform.SetParent(actionBarPanel.transform, false);
-
-        RectTransform fillRect = fillObj.AddComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = new Vector2(2, 2);
-        fillRect.offsetMax = new Vector2(-2, -2);
-
-        actionBarFill = fillObj.AddComponent<Image>();
-        actionBarFill.color = new Color(0.2f, 0.8f, 0.3f, 1f);
-        actionBarFill.type = Image.Type.Filled;
-        actionBarFill.fillMethod = Image.FillMethod.Horizontal;
-        actionBarFill.fillAmount = 0f;
-
-        GameObject txtObj = new GameObject("Text");
-        txtObj.transform.SetParent(actionBarPanel.transform, false);
-
-        actionBarText = txtObj.AddComponent<TextMeshProUGUI>();
-        if (gameFont != null) actionBarText.font = gameFont;
-        actionBarText.fontSize = 14;
-        actionBarText.fontStyle = FontStyles.Bold;
-        actionBarText.alignment = TextAlignmentOptions.Center;
-        actionBarText.color = Color.white;
-
-        RectTransform txtRect = txtObj.GetComponent<RectTransform>();
-        txtRect.anchorMin = Vector2.zero;
-        txtRect.anchorMax = Vector2.one;
-        txtRect.offsetMin = Vector2.zero;
-        txtRect.offsetMax = Vector2.zero;
-        txtObj.AddComponent<Shadow>().effectColor = Color.black;
-
-        actionBarPanel.SetActive(false);
-    }
-
-    private Image CreateHorizontalBar(Transform parent, string name, Sprite icon, Color fillColor, float barWidth, float barHeight)
-    {
-        GameObject container = new GameObject(name + "_Container", typeof(RectTransform));
-        container.transform.SetParent(parent, false);
-
-        HorizontalLayoutGroup hLayout = container.AddComponent<HorizontalLayoutGroup>();
-        hLayout.childAlignment = TextAnchor.MiddleLeft;
-        hLayout.spacing = 8;
-        hLayout.childControlHeight = false;
-        hLayout.childControlWidth = false;
-
-        GameObject iconObj = new GameObject("Icon", typeof(RectTransform));
-        iconObj.transform.SetParent(container.transform, false);
-
-        RectTransform iconRect = iconObj.GetComponent<RectTransform>();
-        iconRect.sizeDelta = new Vector2(30, 30);
-
-        LayoutElement iconLayout = iconObj.AddComponent<LayoutElement>();
-        iconLayout.minWidth = 35;
-        iconLayout.minHeight = 35;
-
-        Image iconImg = iconObj.AddComponent<Image>();
-        iconImg.preserveAspect = true;
-        if (icon != null) iconImg.sprite = icon; else iconImg.color = fillColor;
-
-        GameObject bgObj = new GameObject("BarBG", typeof(RectTransform));
-        bgObj.transform.SetParent(container.transform, false);
-
-        RectTransform bgRect = bgObj.GetComponent<RectTransform>();
-        bgRect.sizeDelta = new Vector2(barWidth, barHeight);
-
-        Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-        bgObj.AddComponent<Outline>().effectColor = Color.black;
-
-        GameObject fillObj = new GameObject("Fill", typeof(RectTransform));
-        fillObj.transform.SetParent(bgObj.transform, false);
-
-        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
-
-        Image fillImg = fillObj.AddComponent<Image>();
-        Texture2D whiteTex = Texture2D.whiteTexture;
-        fillImg.sprite = Sprite.Create(whiteTex, new Rect(0, 0, whiteTex.width, whiteTex.height), Vector2.zero);
-        fillImg.color = fillColor;
-        fillImg.type = Image.Type.Filled;
-        fillImg.fillMethod = Image.FillMethod.Horizontal;
-        fillImg.fillAmount = 1f;
-
-        return fillImg;
-    }
-
-    private Image CreateVerticalBar(Transform parent, string name, Sprite icon, Color fillColor, float barWidth, float barHeight)
-    {
-        GameObject container = new GameObject(name + "_Container", typeof(RectTransform));
-        container.transform.SetParent(parent, false);
-
-        VerticalLayoutGroup vLayout = container.AddComponent<VerticalLayoutGroup>();
-        vLayout.childAlignment = TextAnchor.LowerCenter;
-        vLayout.spacing = 6;
-        vLayout.childControlHeight = false;
-        vLayout.childControlWidth = false;
-
-        GameObject bgObj = new GameObject("BarBG", typeof(RectTransform));
-        bgObj.transform.SetParent(container.transform, false);
-
-        RectTransform bgRect = bgObj.GetComponent<RectTransform>();
-        bgRect.sizeDelta = new Vector2(barWidth, barHeight);
-
-        Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-        bgObj.AddComponent<Outline>().effectColor = Color.black;
-
-        GameObject fillObj = new GameObject("Fill", typeof(RectTransform));
-        fillObj.transform.SetParent(bgObj.transform, false);
-
-        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
-
-        Image fillImg = fillObj.AddComponent<Image>();
-        Texture2D whiteTex = Texture2D.whiteTexture;
-        fillImg.sprite = Sprite.Create(whiteTex, new Rect(0, 0, whiteTex.width, whiteTex.height), Vector2.zero);
-        fillImg.color = fillColor;
-        fillImg.type = Image.Type.Filled;
-        fillImg.fillMethod = Image.FillMethod.Vertical;
-        fillImg.fillOrigin = (int)Image.OriginVertical.Bottom;
-        fillImg.fillAmount = 1f;
-
-        GameObject iconObj = new GameObject("Icon", typeof(RectTransform));
-        iconObj.transform.SetParent(container.transform, false);
-
-        RectTransform iconRect = iconObj.GetComponent<RectTransform>();
-        iconRect.sizeDelta = new Vector2(35, 35);
-
-        LayoutElement iconLayout = iconObj.AddComponent<LayoutElement>();
-        iconLayout.minWidth = 35;
-        iconLayout.minHeight = 35;
-
-        Image iconImg = iconObj.AddComponent<Image>();
-        iconImg.preserveAspect = true;
-        if (icon != null) iconImg.sprite = icon; else iconImg.color = fillColor;
-
-        bgObj.transform.SetAsFirstSibling();
-
-        return fillImg;
     }
     #endregion
 
@@ -928,7 +386,9 @@ public class AutoUIManager : MonoBehaviour
 
         return btn;
     }
+    #endregion
 
+    #region LOGIC XỬ LÝ GIAO DIỆN TRADE
     public void ShowTradeWindow()
     {
         if (combatPanelObj != null) combatPanelObj.SetActive(false);
@@ -1068,7 +528,7 @@ public class AutoUIManager : MonoBehaviour
             }
 
             // =======================================================
-            // 🔥 HARDCORE: CHỈ CHO XÀI THUỐC KHI CÓ BỆNH TRONG NGƯỜI
+            // 🔥 THÊM HARDCORE: CHỈ CHO XÀI THUỐC KHI CÓ BỆNH TRONG NGƯỜI
             // =======================================================
             if (itemToUse.category == ItemCategory.Medical)
             {
@@ -1129,7 +589,7 @@ public class AutoUIManager : MonoBehaviour
     }
 
     // ==================================================
-    // 🔥 HARDCORE: HÀM GIẢI ĐỘC SAU KHI DÙNG THUỐC
+    // 🔥 THÊM HARDCORE: HÀM GIẢI ĐỘC SAU KHI DÙNG THUỐC
     // ==================================================
     private void ApplyMedicalCure(string itemName)
     {
@@ -1138,7 +598,7 @@ public class AutoUIManager : MonoBehaviour
         string nameLower = itemName.ToLower();
         if (nameLower.Contains("bandage") || nameLower.Contains("băng"))
         {
-            //playerHealth.UseBandage(); // Giả sử bro có hàm này, nếu không thì cứ SetGlobalBleeding(false)
+            //playerHealth.UseBandage();
             Debug.Log("Đã quấn băng gạc, cầm máu thành công!");
         }
         else if (nameLower.Contains("painkiller") || nameLower.Contains("thuốc") || nameLower.Contains("đau"))
@@ -1149,7 +609,7 @@ public class AutoUIManager : MonoBehaviour
     }
     #endregion
 
-    #region GIAO DIỆN LỜI MỜI TRADE
+    #region GIAO DIỆN LỜI MỜI TRADE & HUD SINH TỒN
     private void GenerateTradeRequestUI(GameObject canvasGO)
     {
         tradeRequestPanel = new GameObject("TradeRequestPanel");
@@ -1274,6 +734,411 @@ public class AutoUIManager : MonoBehaviour
             if (pt != null) pt.DeclineTradeRequest(pendingTradeSender);
         }
     }
+
+    private void GenerateSurvivalBars(GameObject canvasGO)
+    {
+        combatPanelObj = new GameObject("CombatStatsPanel", typeof(RectTransform));
+        combatPanelObj.transform.SetParent(canvasGO.transform, false);
+
+        RectTransform combatRect = combatPanelObj.GetComponent<RectTransform>();
+        combatRect.anchorMin = new Vector2(0, 1);
+        combatRect.anchorMax = new Vector2(0, 1);
+        combatRect.pivot = new Vector2(0, 1);
+        combatRect.anchoredPosition = new Vector2(10, 10);
+
+        VerticalLayoutGroup combatLayout = combatPanelObj.AddComponent<VerticalLayoutGroup>();
+        combatLayout.spacing = -50;
+        combatLayout.childControlHeight = true;
+        combatLayout.childControlWidth = true;
+
+        healthFill = CreateHorizontalBar(combatPanelObj.transform, "Health", iconHealth, new Color(0.8f, 0.15f, 0.15f), 220, 22);
+        staminaFill = CreateHorizontalBar(combatPanelObj.transform, "Stamina", iconStamina, new Color(0.9f, 0.7f, 0.1f), 220, 8);
+
+        survivalPanelObj = new GameObject("SurvivalStatsPanel", typeof(RectTransform));
+        survivalPanelObj.transform.SetParent(canvasGO.transform, false);
+
+        RectTransform survivalRect = survivalPanelObj.GetComponent<RectTransform>();
+        survivalRect.anchorMin = new Vector2(1, 0);
+        survivalRect.anchorMax = new Vector2(1, 0);
+        survivalRect.pivot = new Vector2(1, 0);
+        survivalRect.anchoredPosition = new Vector2(0, 0);
+
+        HorizontalLayoutGroup survivalLayout = survivalPanelObj.AddComponent<HorizontalLayoutGroup>();
+        survivalLayout.spacing = -25;
+        survivalLayout.childAlignment = TextAnchor.LowerRight;
+        survivalLayout.childControlHeight = true;
+        survivalLayout.childControlWidth = true;
+
+        hungerFill = CreateVerticalBar(survivalPanelObj.transform, "Hunger", iconHunger, new Color(0.2f, 0.7f, 0.2f), 15, 150);
+        thirstFill = CreateVerticalBar(survivalPanelObj.transform, "Thirst", iconThirst, new Color(0.15f, 0.5f, 0.9f), 15, 150);
+    }
+    #endregion
+
+    #region GIAO DIỆN TÚI ĐỒ (INVENTORY)
+    private void GenerateInventoryUI(GameObject canvasGO)
+    {
+        inventoryPanel = new GameObject("InventoryPanel");
+        inventoryPanel.transform.SetParent(canvasGO.transform, false);
+
+        RectTransform panelRect = inventoryPanel.AddComponent<RectTransform>();
+        panelRect.sizeDelta = new Vector2(500, 450);
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
+        panelRect.anchoredPosition = Vector2.zero;
+
+        Image panelBg = inventoryPanel.AddComponent<Image>();
+        panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
+        inventoryPanel.SetActive(false);
+
+        GameObject titleObj = new GameObject("TitleText");
+        titleObj.transform.SetParent(inventoryPanel.transform, false);
+
+        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) titleText.font = gameFont;
+        titleText.text = "INVENTORY";
+        titleText.fontSize = 24;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.alignment = TextAlignmentOptions.Center;
+        titleText.color = new Color(0.9f, 0.9f, 0.9f, 1f);
+
+        RectTransform titleRect = titleObj.GetComponent<RectTransform>();
+        titleRect.anchorMin = new Vector2(0, 1);
+        titleRect.anchorMax = new Vector2(1, 1);
+        titleRect.pivot = new Vector2(0.5f, 1);
+        titleRect.anchoredPosition = new Vector2(0, -20);
+        titleRect.sizeDelta = new Vector2(0, 40);
+
+        GameObject gridObj = new GameObject("SlotGrid");
+        gridObj.transform.SetParent(inventoryPanel.transform, false);
+
+        RectTransform gridRect = gridObj.AddComponent<RectTransform>();
+        gridRect.anchorMin = new Vector2(0, 0);
+        gridRect.anchorMax = new Vector2(1, 1);
+        gridRect.offsetMin = new Vector2(20, 20);
+        gridRect.offsetMax = new Vector2(-20, -70);
+
+        GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
+        gridLayout.cellSize = new Vector2(75, 75);
+        gridLayout.spacing = new Vector2(10, 10);
+        gridLayout.childAlignment = TextAnchor.UpperCenter;
+
+        for (int i = 0; i < maxSlots; i++)
+        {
+            GameObject slotObj = new GameObject("Slot_" + i);
+            slotObj.transform.SetParent(gridObj.transform, false);
+
+            Image slotBg = slotObj.AddComponent<Image>();
+            slotBg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+
+            SlotHoverHandler hoverHandler = slotObj.AddComponent<SlotHoverHandler>();
+            hoverHandler.slotIndex = i;
+
+            GameObject iconObj = new GameObject("ItemIcon");
+            iconObj.transform.SetParent(slotObj.transform, false);
+
+            Image iconImg = iconObj.AddComponent<Image>();
+            iconImg.raycastTarget = false;
+            iconImg.preserveAspect = true;
+
+            RectTransform iconRect = iconObj.GetComponent<RectTransform>();
+            iconRect.anchorMin = Vector2.zero;
+            iconRect.anchorMax = Vector2.one;
+            iconRect.offsetMin = new Vector2(10, 10);
+            iconRect.offsetMax = new Vector2(-10, -10);
+            iconObj.SetActive(false);
+
+            GameObject textObj = new GameObject("AmountText");
+            textObj.transform.SetParent(slotObj.transform, false);
+
+            TextMeshProUGUI amountTxt = textObj.AddComponent<TextMeshProUGUI>();
+            if (gameFont != null) amountTxt.font = gameFont;
+            amountTxt.fontSize = 12;
+            amountTxt.fontStyle = FontStyles.Bold;
+            amountTxt.alignment = TextAlignmentOptions.BottomRight;
+            amountTxt.color = Color.white;
+            textObj.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.8f);
+
+            RectTransform textRect = textObj.GetComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.offsetMin = new Vector2(0, 0);
+            textRect.offsetMax = new Vector2(-1, 1);
+            textObj.SetActive(false);
+
+            slotUIList.Add(new SlotUIElements { iconImage = iconImg, amountText = amountTxt });
+        }
+
+        // Tooltip
+        tooltipPanel = new GameObject("TooltipPanel");
+        tooltipPanel.transform.SetParent(canvasGO.transform, false);
+        tooltipPanel.transform.SetAsLastSibling();
+
+        RectTransform ttRect = tooltipPanel.AddComponent<RectTransform>();
+        ttRect.sizeDelta = new Vector2(180, 60);
+        ttRect.pivot = new Vector2(0, 1);
+
+        tooltipPanel.AddComponent<Image>().color = new Color(0, 0, 0, 0.95f);
+        tooltipPanel.AddComponent<Outline>().effectColor = Color.white;
+
+        GameObject ttTitleObj = new GameObject("TooltipTitle");
+        ttTitleObj.transform.SetParent(tooltipPanel.transform, false);
+
+        tooltipTitleText = ttTitleObj.AddComponent<TextMeshProUGUI>();
+        tooltipTitleText.fontSize = 14;
+        tooltipTitleText.fontStyle = FontStyles.Bold;
+        tooltipTitleText.color = new Color(1f, 0.8f, 0.2f);
+
+        RectTransform ttTitleRect = ttTitleObj.GetComponent<RectTransform>();
+        ttTitleRect.anchorMin = new Vector2(0, 0.5f);
+        ttTitleRect.anchorMax = new Vector2(1, 1);
+        ttTitleRect.offsetMin = new Vector2(10, 0);
+        ttTitleRect.offsetMax = new Vector2(-10, -5);
+
+        GameObject ttDescObj = new GameObject("TooltipDesc");
+        ttDescObj.transform.SetParent(tooltipPanel.transform, false);
+
+        tooltipDescText = ttDescObj.AddComponent<TextMeshProUGUI>();
+        tooltipDescText.fontSize = 12;
+        tooltipDescText.color = Color.white;
+
+        RectTransform ttDescRect = ttDescObj.GetComponent<RectTransform>();
+        ttDescRect.anchorMin = new Vector2(0, 0);
+        ttDescRect.anchorMax = new Vector2(1, 0.5f);
+        ttDescRect.offsetMin = new Vector2(10, 5);
+        ttDescRect.offsetMax = new Vector2(-10, 0);
+
+        tooltipPanel.SetActive(false);
+
+        // Context Menu
+        contextMenuPanel = new GameObject("ContextMenu");
+        contextMenuPanel.transform.SetParent(canvasGO.transform, false);
+        contextMenuPanel.transform.SetAsLastSibling();
+
+        RectTransform ctxRect = contextMenuPanel.AddComponent<RectTransform>();
+        ctxRect.sizeDelta = new Vector2(120, 85);
+        ctxRect.pivot = new Vector2(0, 1);
+
+        contextMenuPanel.AddComponent<Image>().color = new Color(0, 0, 0, 0.95f);
+        contextMenuPanel.AddComponent<Outline>().effectColor = Color.white;
+
+        VerticalLayoutGroup ctxLayout = contextMenuPanel.AddComponent<VerticalLayoutGroup>();
+        ctxLayout.padding = new RectOffset(5, 5, 5, 5);
+        ctxLayout.spacing = 5;
+        ctxLayout.childControlHeight = true;
+        ctxLayout.childControlWidth = true;
+        ctxLayout.childForceExpandHeight = true;
+        ctxLayout.childForceExpandWidth = true;
+
+        CreateContextMenuBtn("UseButton", "Use / Offer", OnUseClicked);
+        CreateContextMenuBtn("DropButton", "Drop", OnDropClicked);
+
+        contextMenuPanel.SetActive(false);
+    }
+
+    private void CreateContextMenuBtn(string objName, string text, UnityEngine.Events.UnityAction action)
+    {
+        GameObject btnObj = new GameObject(objName);
+        btnObj.transform.SetParent(contextMenuPanel.transform, false);
+
+        Image btnImage = btnObj.AddComponent<Image>();
+        btnImage.color = Color.white;
+
+        Button btn = btnObj.AddComponent<Button>();
+        btn.targetGraphic = btnImage;
+
+        ColorBlock cb = btn.colors;
+        cb.normalColor = Color.white;
+        cb.highlightedColor = text == "Drop" ? new Color(0.85f, 0.2f, 0.2f, 1f) : new Color(0.15f, 0.5f, 0.85f, 1f);
+        cb.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        cb.selectedColor = Color.white;
+        cb.fadeDuration = 0.15f;
+        btn.colors = cb;
+
+        btn.onClick.AddListener(action);
+
+        GameObject txtObj = new GameObject("Text");
+        txtObj.transform.SetParent(btnObj.transform, false);
+
+        TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
+        txt.text = text;
+        txt.fontSize = 15;
+        txt.fontStyle = FontStyles.Bold;
+        txt.alignment = TextAlignmentOptions.Center;
+        txt.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+
+        RectTransform txtRect = txtObj.GetComponent<RectTransform>();
+        txtRect.anchorMin = Vector2.zero;
+        txtRect.anchorMax = Vector2.one;
+        txtRect.offsetMin = Vector2.zero;
+        txtRect.offsetMax = Vector2.zero;
+    }
+    #endregion
+
+    #region Action Bar & Tool UI Utils
+    private void GenerateActionBar(GameObject canvasGO)
+    {
+        actionBarPanel = new GameObject("ActionBarPanel");
+        actionBarPanel.transform.SetParent(canvasGO.transform, false);
+
+        RectTransform actRect = actionBarPanel.AddComponent<RectTransform>();
+        actRect.anchorMin = new Vector2(0.5f, 0.2f);
+        actRect.anchorMax = new Vector2(0.5f, 0.2f);
+        actRect.pivot = new Vector2(0.5f, 0.5f);
+        actRect.sizeDelta = new Vector2(250, 25);
+        actRect.anchoredPosition = Vector2.zero;
+
+        Image bg = actionBarPanel.AddComponent<Image>();
+        bg.color = new Color(0.1f, 0.1f, 0.1f, 0.8f);
+        actionBarPanel.AddComponent<Outline>().effectColor = Color.black;
+
+        GameObject fillObj = new GameObject("Fill");
+        fillObj.transform.SetParent(actionBarPanel.transform, false);
+
+        RectTransform fillRect = fillObj.AddComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = new Vector2(2, 2);
+        fillRect.offsetMax = new Vector2(-2, -2);
+
+        actionBarFill = fillObj.AddComponent<Image>();
+        actionBarFill.color = new Color(0.2f, 0.8f, 0.3f, 1f);
+        actionBarFill.type = Image.Type.Filled;
+        actionBarFill.fillMethod = Image.FillMethod.Horizontal;
+        actionBarFill.fillAmount = 0f;
+
+        GameObject txtObj = new GameObject("Text");
+        txtObj.transform.SetParent(actionBarPanel.transform, false);
+
+        actionBarText = txtObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) actionBarText.font = gameFont;
+        actionBarText.fontSize = 14;
+        actionBarText.fontStyle = FontStyles.Bold;
+        actionBarText.alignment = TextAlignmentOptions.Center;
+        actionBarText.color = Color.white;
+
+        RectTransform txtRect = txtObj.GetComponent<RectTransform>();
+        txtRect.anchorMin = Vector2.zero;
+        txtRect.anchorMax = Vector2.one;
+        txtRect.offsetMin = Vector2.zero;
+        txtRect.offsetMax = Vector2.zero;
+        txtObj.AddComponent<Shadow>().effectColor = Color.black;
+
+        actionBarPanel.SetActive(false);
+    }
+
+    private Image CreateHorizontalBar(Transform parent, string name, Sprite icon, Color fillColor, float barWidth, float barHeight)
+    {
+        GameObject container = new GameObject(name + "_Container", typeof(RectTransform));
+        container.transform.SetParent(parent, false);
+
+        HorizontalLayoutGroup hLayout = container.AddComponent<HorizontalLayoutGroup>();
+        hLayout.childAlignment = TextAnchor.MiddleLeft;
+        hLayout.spacing = 8;
+        hLayout.childControlHeight = false;
+        hLayout.childControlWidth = false;
+
+        GameObject iconObj = new GameObject("Icon", typeof(RectTransform));
+        iconObj.transform.SetParent(container.transform, false);
+
+        RectTransform iconRect = iconObj.GetComponent<RectTransform>();
+        iconRect.sizeDelta = new Vector2(30, 30);
+
+        LayoutElement iconLayout = iconObj.AddComponent<LayoutElement>();
+        iconLayout.minWidth = 35;
+        iconLayout.minHeight = 35;
+
+        Image iconImg = iconObj.AddComponent<Image>();
+        iconImg.preserveAspect = true;
+        if (icon != null) iconImg.sprite = icon; else iconImg.color = fillColor;
+
+        GameObject bgObj = new GameObject("BarBG", typeof(RectTransform));
+        bgObj.transform.SetParent(container.transform, false);
+
+        RectTransform bgRect = bgObj.GetComponent<RectTransform>();
+        bgRect.sizeDelta = new Vector2(barWidth, barHeight);
+
+        Image bgImg = bgObj.AddComponent<Image>();
+        bgImg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+        bgObj.AddComponent<Outline>().effectColor = Color.black;
+
+        GameObject fillObj = new GameObject("Fill", typeof(RectTransform));
+        fillObj.transform.SetParent(bgObj.transform, false);
+
+        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+
+        Image fillImg = fillObj.AddComponent<Image>();
+        Texture2D whiteTex = Texture2D.whiteTexture;
+        fillImg.sprite = Sprite.Create(whiteTex, new Rect(0, 0, whiteTex.width, whiteTex.height), Vector2.zero);
+        fillImg.color = fillColor;
+        fillImg.type = Image.Type.Filled;
+        fillImg.fillMethod = Image.FillMethod.Horizontal;
+        fillImg.fillAmount = 1f;
+
+        return fillImg;
+    }
+
+    private Image CreateVerticalBar(Transform parent, string name, Sprite icon, Color fillColor, float barWidth, float barHeight)
+    {
+        GameObject container = new GameObject(name + "_Container", typeof(RectTransform));
+        container.transform.SetParent(parent, false);
+
+        VerticalLayoutGroup vLayout = container.AddComponent<VerticalLayoutGroup>();
+        vLayout.childAlignment = TextAnchor.LowerCenter;
+        vLayout.spacing = 6;
+        vLayout.childControlHeight = false;
+        vLayout.childControlWidth = false;
+
+        GameObject bgObj = new GameObject("BarBG", typeof(RectTransform));
+        bgObj.transform.SetParent(container.transform, false);
+
+        RectTransform bgRect = bgObj.GetComponent<RectTransform>();
+        bgRect.sizeDelta = new Vector2(barWidth, barHeight);
+
+        Image bgImg = bgObj.AddComponent<Image>();
+        bgImg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+        bgObj.AddComponent<Outline>().effectColor = Color.black;
+
+        GameObject fillObj = new GameObject("Fill", typeof(RectTransform));
+        fillObj.transform.SetParent(bgObj.transform, false);
+
+        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+
+        Image fillImg = fillObj.AddComponent<Image>();
+        Texture2D whiteTex = Texture2D.whiteTexture;
+        fillImg.sprite = Sprite.Create(whiteTex, new Rect(0, 0, whiteTex.width, whiteTex.height), Vector2.zero);
+        fillImg.color = fillColor;
+        fillImg.type = Image.Type.Filled;
+        fillImg.fillMethod = Image.FillMethod.Vertical;
+        fillImg.fillOrigin = (int)Image.OriginVertical.Bottom;
+        fillImg.fillAmount = 1f;
+
+        GameObject iconObj = new GameObject("Icon", typeof(RectTransform));
+        iconObj.transform.SetParent(container.transform, false);
+
+        RectTransform iconRect = iconObj.GetComponent<RectTransform>();
+        iconRect.sizeDelta = new Vector2(35, 35);
+
+        LayoutElement iconLayout = iconObj.AddComponent<LayoutElement>();
+        iconLayout.minWidth = 35;
+        iconLayout.minHeight = 35;
+
+        Image iconImg = iconObj.AddComponent<Image>();
+        iconImg.preserveAspect = true;
+        if (icon != null) iconImg.sprite = icon; else iconImg.color = fillColor;
+
+        bgObj.transform.SetAsFirstSibling();
+
+        return fillImg;
+    }
     #endregion
 
     #region Các Hàm Cập Nhật Thường Xuyên (Survival, Action Routine)
@@ -1356,6 +1221,7 @@ public class AutoUIManager : MonoBehaviour
         if (inventoryPanel != null)
             inventoryPanel.SetActive(false);
 
+
         yield return new WaitForSeconds(0.1f);
 
         float timer = 0f;
@@ -1371,7 +1237,7 @@ public class AutoUIManager : MonoBehaviour
             {
                 actionBarPanel.SetActive(false);
                 isDoingAction = false;
-
+                
                 Debug.Log("Đã hủy dùng đồ do di chuyển!");
                 yield break;
             }
@@ -1380,10 +1246,12 @@ public class AutoUIManager : MonoBehaviour
 
         actionBarPanel.SetActive(false);
         isDoingAction = false;
+        
 
         if (localPlayer != null)
         {
             localPlayer.GetComponent<InventorySystem>().UseItem(slotIndex);
+            // 🔥 THÊM: ĐÃ DÙNG XONG THUỐC, BẮT ĐẦU GIẢI ĐỘC!
             ApplyMedicalCure(itemToUse.itemName);
         }
     }
@@ -1540,42 +1408,4 @@ public class AutoUIManager : MonoBehaviour
         if (ammoContainer != null) ammoContainer.SetActive(true);
     }
     #endregion
-    // 🔥 DÁN ĐOẠN NÀY VÀO CUỐI FILE AutoUIManager.cs (Trươc dấu ngoặc nhọn cuối cùng)
-    private void GenerateSurvivalBars(GameObject canvasGO)
-    {
-        combatPanelObj = new GameObject("CombatStatsPanel", typeof(RectTransform));
-        combatPanelObj.transform.SetParent(canvasGO.transform, false);
-
-        RectTransform combatRect = combatPanelObj.GetComponent<RectTransform>();
-        combatRect.anchorMin = new Vector2(0, 1);
-        combatRect.anchorMax = new Vector2(0, 1);
-        combatRect.pivot = new Vector2(0, 1);
-        combatRect.anchoredPosition = new Vector2(10, 10);
-
-        VerticalLayoutGroup combatLayout = combatPanelObj.AddComponent<VerticalLayoutGroup>();
-        combatLayout.spacing = -50;
-        combatLayout.childControlHeight = true;
-        combatLayout.childControlWidth = true;
-
-        healthFill = CreateHorizontalBar(combatPanelObj.transform, "Health", iconHealth, new Color(0.8f, 0.15f, 0.15f), 220, 22);
-        staminaFill = CreateHorizontalBar(combatPanelObj.transform, "Stamina", iconStamina, new Color(0.9f, 0.7f, 0.1f), 220, 8);
-
-        survivalPanelObj = new GameObject("SurvivalStatsPanel", typeof(RectTransform));
-        survivalPanelObj.transform.SetParent(canvasGO.transform, false);
-
-        RectTransform survivalRect = survivalPanelObj.GetComponent<RectTransform>();
-        survivalRect.anchorMin = new Vector2(1, 0);
-        survivalRect.anchorMax = new Vector2(1, 0);
-        survivalRect.pivot = new Vector2(1, 0);
-        survivalRect.anchoredPosition = new Vector2(0, 0);
-
-        HorizontalLayoutGroup survivalLayout = survivalPanelObj.AddComponent<HorizontalLayoutGroup>();
-        survivalLayout.spacing = -25;
-        survivalLayout.childAlignment = TextAnchor.LowerRight;
-        survivalLayout.childControlHeight = true;
-        survivalLayout.childControlWidth = true;
-
-        hungerFill = CreateVerticalBar(survivalPanelObj.transform, "Hunger", iconHunger, new Color(0.2f, 0.7f, 0.2f), 15, 150);
-        thirstFill = CreateVerticalBar(survivalPanelObj.transform, "Thirst", iconThirst, new Color(0.15f, 0.5f, 0.9f), 15, 150);
-    }
 }
