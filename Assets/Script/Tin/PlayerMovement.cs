@@ -64,7 +64,6 @@ public class PlayerMovement : NetworkBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         staminaSystem = GetComponent<PlayerStamina>();
-        healthSystem = GetComponent<PlayerHealth>();
         rb.freezeRotation = true;
 
         if (HasStateAuthority)
@@ -80,10 +79,21 @@ public class PlayerMovement : NetworkBehaviour
             netRb.InterpolationTarget = sprite.transform;
         }
 
+        // Nếu nhân vật này LÀ CỦA MÌNH (Mình có quyền bấm nút điều khiển nó)
         if (HasInputAuthority)
         {
             var cameraController = FindAnyObjectByType<PZ_CameraController>();
             if (cameraController != null) cameraController.SetTarget(this.transform);
+
+            // (Đèn pin vẫn giữ nguyên không làm gì cả -> Sáng bình thường)
+        }
+        else
+        {
+            // 🔥 NẾU NHÂN VẬT NÀY LÀ CỦA THẰNG BẠN (Hoặc người lạ): Tắt cầu dao đèn pin của nó đi!
+            if (flashlightTransform != null)
+            {
+                flashlightTransform.gameObject.SetActive(false);
+            }
         }
     }
 
