@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
+using Fusion; // THÊM THƯ VIỆN NÀY
 
-public class ZombieAI : MonoBehaviour
+public class ZombieAI : NetworkBehaviour // Đổi sang NetworkBehaviour
 {
     [Header("Mục tiêu & Tốc độ")]
     public Transform player;
@@ -9,8 +10,8 @@ public class ZombieAI : MonoBehaviour
 
     [Header("Tầm nhìn & Phạm vi")]
     public float chaseRange = 10f;
-    public float attackRange = 1.2f;
-    public float damageRadius = 1.5f;
+    public float attackRange = 1.5f;
+    public float damageRadius = 1.8f;
 
     [Header("Cài đặt Tấn công")]
     public float attackCooldown = 1.5f;
@@ -27,68 +28,75 @@ public class ZombieAI : MonoBehaviour
     private float searchTimer = 0f;
     private float searchInterval = 0.5f;
 
-    void Start()
+    // CÁC BIẾN MẠNG ĐỂ ĐỒNG BỘ ANIMATION
+    [Networked] public Vector2 NetMoveDir { get; set; }
+    [Networked] public NetworkBool NetIsRunning { get; set; }
+
+    public override void Spawned()
     {
         agent = GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         healthScript = GetComponent<ZombieHealth>();
 
-        // THIẾT LẬP BẮT BUỘC ĐỂ NAVMESH CHẠY ĐƯỢC 2D
-        if (agent != null)
+        if (!HasStateAuthority)
         {
-            agent.updateRotation = false; // Tắt tự xoay của 3D
-            agent.updateUpAxis = false;   // Ép NavMesh hiểu hệ trục tọa độ XY của 2D
-            agent.speed = moveSpeed;
-        }
-        else
-        {
-            Debug.LogError("QUÊN CHƯA GẮN NAVMESH AGENT CHO ZOMBIE KÌA THÁI ƠI!");
-        }
-    }
-
-    void Update()
-    {
-        // 1. Nếu Zombie chết -> Ngưng hoạt động
-        if (healthScript != null && healthScript.isDead)
-        {
-            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+            if (agent != null) agent.enabled = false;
             return;
         }
 
-        // 2. RADAR: Quét mục tiêu
-        searchTimer -= Time.deltaTime;
+        if (agent != null)
+        {
+            agent.updateRotation = false;
+            agent.updateUpAxis = false;
+            agent.speed = moveSpeed;
+
+            // DÒNG LỆNH MỚI: Ép con quái dính chặt vào lưới NavMesh gần nhất ngay khi xuất hiện
+            agent.Warp(transform.position);
+        }
+    }
+
+    // Đổi Update thành FixedUpdateNetwork của Photon
+    public override void FixedUpdateNetwork()
+    {
+        if (!HasStateAuthority) return; // Chỉ Host mới được tính toán AI
+
+        if (healthScript != null && healthScript.isDead)
+        {
+            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+            NetIsRunning = false;
+            return;
+        }
+
+        searchTimer -= Runner.DeltaTime; // Dùng Runner.DeltaTime thay cho Time.deltaTime
         if (searchTimer <= 0)
         {
             FindClosestPlayer();
             searchTimer = searchInterval;
         }
 
-        // 3. Nếu chưa có Player -> Thở
         if (player == null)
         {
             if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
-            anim.SetBool("isRunning", false);
+            NetIsRunning = false;
             return;
         }
 
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
         Vector2 dirToPlayer = (player.position - transform.position).normalized;
-        if (attackTimer > 0) attackTimer -= Time.deltaTime;
+        if (attackTimer > 0) attackTimer -= Runner.DeltaTime;
 
-        // --- BẢO VỆ CHỐNG LỖI NAVMESH ---
-        // Nếu chẳng may quên gắn Agent hoặc mặt sàn bị lọt, Zombie vẫn sẽ đứng tại chỗ và xoay mặt chém!
         if (agent == null || !agent.isOnNavMesh)
         {
-            anim.SetBool("isRunning", false);
-            if (distanceToPlayer <= chaseRange) UpdateAnimatorDirection(dirToPlayer);
+            NetIsRunning = false;
+            if (distanceToPlayer <= chaseRange) NetMoveDir = dirToPlayer;
             return;
         }
 
-        // 4. XỬ LÝ 3 TRẠNG THÁI AI (Khi NavMesh đã ổn định)
+        // XỬ LÝ 3 TRẠNG THÁI AI
         if (distanceToPlayer > chaseRange)
         {
             agent.isStopped = true;
-            anim.SetBool("isRunning", false);
+            NetIsRunning = false;
         }
         else if (distanceToPlayer <= chaseRange && distanceToPlayer > attackRange)
         {
@@ -96,17 +104,42 @@ public class ZombieAI : MonoBehaviour
             agent.speed = moveSpeed;
             agent.SetDestination(player.position);
 
-            anim.SetBool("isRunning", true);
-            UpdateAnimatorDirection(agent.velocity.normalized);
+            NetIsRunning = true;
+            NetMoveDir = agent.velocity.normalized;
         }
-        else
+        else // KHI VÀO TẦM ĐÁNH
         {
             agent.isStopped = true;
-            anim.SetBool("isRunning", false);
-            UpdateAnimatorDirection(dirToPlayer);
+            NetIsRunning = false;
+            NetMoveDir = dirToPlayer;
 
-            if (attackTimer <= 0) TriggerRandomAttack();
+            if (attackTimer <= 0)
+            {
+                int randomAtk = Random.Range(1, 5);
+                RPC_TriggerAttack(randomAtk); // Ra lệnh cho toàn Server phát đòn đánh
+                attackTimer = attackCooldown;
+            }
         }
+    }
+
+    // Hàm Render chạy trên mọi máy (Kể cả máy trạm) để cập nhật hình ảnh mượt mà
+    public override void Render()
+    {
+        if (anim != null)
+        {
+            anim.SetBool("IsRunning", NetIsRunning); // Chữ I viết hoa
+            if (NetMoveDir != Vector2.zero)
+            {
+                anim.SetFloat("DirX", NetMoveDir.x);
+                anim.SetFloat("DirY", NetMoveDir.y);
+            }
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_TriggerAttack(int atkIndex)
+    {
+        if (anim != null) anim.SetTrigger("Atk" + atkIndex);
     }
 
     void FindClosestPlayer()
@@ -127,22 +160,6 @@ public class ZombieAI : MonoBehaviour
         player = target;
     }
 
-    void UpdateAnimatorDirection(Vector2 direction)
-    {
-        if (direction != Vector2.zero)
-        {
-            anim.SetFloat("DirX", direction.x);
-            anim.SetFloat("DirY", direction.y);
-        }
-    }
-
-    void TriggerRandomAttack()
-    {
-        int randomAtk = Random.Range(1, 5);
-        anim.SetTrigger("Atk" + randomAtk);
-        attackTimer = attackCooldown;
-    }
-
     public void Event_HitATK1() { ExecuteDamage(damageAtk1); }
     public void Event_HitATK2() { ExecuteDamage(damageAtk2); }
     public void Event_HitATK3() { ExecuteDamage(damageAtk3); }
@@ -150,7 +167,9 @@ public class ZombieAI : MonoBehaviour
 
     private void ExecuteDamage(float damageAmount)
     {
+        if (!HasStateAuthority) return; // Chỉ máy chủ mới được quyền trừ máu
         if (player == null) return;
+
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
         if (distanceToPlayer <= damageRadius)
         {
@@ -159,18 +178,5 @@ public class ZombieAI : MonoBehaviour
         }
     }
 
-    public void OnTakeDamageStun()
-    {
-        attackTimer = 1f;
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, chaseRange);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, damageRadius);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
-    }
+    public void OnTakeDamageStun() { attackTimer = 1f; }
 }
