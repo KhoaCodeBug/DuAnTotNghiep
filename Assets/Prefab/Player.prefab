@@ -469,7 +469,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 1ad062edb30e03e4db98960b3f736adf, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1108,6 +1108,18 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  normalInnerAngle: 100
+  normalOuterAngle: 140
+  aimInnerAngle: 40
+  aimOuterAngle: 60
+  aimTransitionSpeed: 8
+  zombieLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  passiveVisionRadius: 2.5
 --- !u!1 &4528869163461110736
 GameObject:
   m_ObjectHideFlags: 0

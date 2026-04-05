@@ -546,6 +546,7 @@ GameObject:
   - component: {fileID: -5121742523745782882}
   - component: {fileID: 7144230315189483852}
   - component: {fileID: 3952259690615374297}
+  - component: {fileID: 4107791455731627158}
   m_Layer: 9
   m_Name: Player2
   m_TagString: Player
@@ -595,7 +596,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 1ad062edb30e03e4db98960b3f736adf, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -1232,6 +1233,32 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  normalInnerAngle: 100
+  normalOuterAngle: 140
+  aimInnerAngle: 40
+  aimOuterAngle: 60
+  aimTransitionSpeed: 8
+  zombieLayer:
+    serializedVersion: 2
+    m_Bits: 8
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  passiveVisionRadius: 2.5
+--- !u!114 &4107791455731627158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4040414594068316635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 1541381998, guid: e725a070cec140c4caffb81624c8c787, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Guid:
+    RawGuidValue: e14ad8446c0f3db479a56d0bd5c80890
 --- !u!1 &6651938154531201759
 GameObject:
   m_ObjectHideFlags: 0
