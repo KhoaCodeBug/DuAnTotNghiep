@@ -15,7 +15,7 @@ public class AutoUIManager : MonoBehaviour
     private int containerSlots = 9; // Tủ đồ 3x3
     public TMP_FontAsset gameFont;
     public Sprite iconAmmo;
-
+    public TextMeshProUGUI clockText { get; private set; }
     private Canvas mainCanvas;
     #endregion
 
@@ -174,6 +174,7 @@ public class AutoUIManager : MonoBehaviour
         GenerateActionBar(canvasGO);
         GenerateTradeRequestUI(canvasGO);
         GenerateTradeWindowUI(canvasGO);
+        GenerateClockUI(canvasGO);
     }
 
     private void UpdatePanelsLayout()
@@ -1368,6 +1369,48 @@ public class AutoUIManager : MonoBehaviour
 
         string name = slot.item.itemName;
         currentOpenContainer.RPC_RequestTakeItem(contIdx, name, localPlayer.GetComponent<NetworkObject>().InputAuthority);
+    }
+    #endregion
+    #region 🔥 MỚI: GIAO DIỆN ĐỒNG HỒ (DAY/NIGHT CYCLE)
+    private void GenerateClockUI(GameObject canvasGO)
+    {
+        GameObject clockPanel = new GameObject("ClockPanel", typeof(RectTransform));
+        clockPanel.transform.SetParent(canvasGO.transform, false);
+
+        RectTransform panelRect = clockPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(1, 1);
+        panelRect.anchorMax = new Vector2(1, 1);
+        panelRect.pivot = new Vector2(1, 1);
+        panelRect.anchoredPosition = new Vector2(-20, -20);
+        panelRect.sizeDelta = new Vector2(150, 50);
+
+        Image bg = clockPanel.AddComponent<Image>();
+        bg.color = new Color(0.1f, 0.1f, 0.15f, 0.9f);
+        clockPanel.AddComponent<Outline>().effectColor = new Color(0.5f, 0.5f, 0.5f);
+
+        GameObject textObj = new GameObject("TimeText", typeof(RectTransform));
+        textObj.transform.SetParent(clockPanel.transform, false);
+
+        clockText = textObj.AddComponent<TextMeshProUGUI>();
+
+        // 🔥 BỎ SẠCH CODE ÉP FONT RƯỜM RÀ.
+        // Chỉ cần kiểm tra: Nếu bro có kéo Font vô Inspector thì xài, không thì để Unity tự lo!
+        if (gameFont != null)
+        {
+            clockText.font = gameFont;
+        }
+
+        clockText.text = "12:00";
+        clockText.fontSize = 32;
+        clockText.fontStyle = FontStyles.Bold;
+        clockText.alignment = TextAlignmentOptions.Center;
+        clockText.color = new Color(0.9f, 0.9f, 0.9f, 1f);
+
+        RectTransform textRect = textObj.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.offsetMin = Vector2.zero;
+        textRect.offsetMax = Vector2.zero;
     }
     #endregion
 }
