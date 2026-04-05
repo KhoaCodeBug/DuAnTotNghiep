@@ -34,8 +34,6 @@ public class AutoHealthPanel : MonoBehaviour
     private PlayerHealth localPlayerHealth;
     private InventorySystem localInventory;
 
-    private float currentHP = 100f;
-
     private Color colHealthy = new Color(0.2f, 0.22f, 0.25f, 1f);
     private Color colInjured = new Color(0.65f, 0.15f, 0.15f, 1f);
     private Color colBandaged = new Color(0.7f, 0.7f, 0.7f, 1f);
@@ -285,47 +283,35 @@ public class AutoHealthPanel : MonoBehaviour
         }
     }
 
-    // 🔥 HÀM BỐC THĂM VẾT THƯƠNG THÔNG MINH (CHỐNG TRÙNG LẶP)
     public void TakeRandomZombieAttack(string forcedTarget = "")
     {
         FindLocalPlayerCache();
 
         string targetPart = forcedTarget;
 
-        // Nếu không chỉ định cụ thể chỗ cắn, thì tìm chỗ nào da thịt còn lành lặn để cắn
         if (string.IsNullOrEmpty(targetPart))
         {
             List<string> healthyParts = new List<string>();
 
-            // Lọc ra các bộ phận CHƯA BỊ THƯƠNG
             foreach (var kvp in bodyParts)
             {
-                if (kvp.Key == "Neck") continue; // Cổ tính tỉ lệ tử thần riêng
+                if (kvp.Key == "Neck") continue;
                 if (kvp.Value.Injuries.Count == 0)
                 {
                     healthyParts.Add(kvp.Key);
                 }
             }
 
-            // Nếu nát bét hết cả người rồi (không còn chỗ lành lặn), thì lấy tất cả ra bốc thăm đại
             if (healthyParts.Count == 0)
             {
                 healthyParts.AddRange(bodyParts.Keys);
-                healthyParts.Remove("Neck"); // Vẫn trừ cái Cổ ra
+                healthyParts.Remove("Neck");
             }
 
             float hitRoll = Random.Range(0f, 100f);
 
-            // 5% xui xẻo bị cắn thẳng vào cổ
-            if (hitRoll <= 5f)
-            {
-                targetPart = "Neck";
-            }
-            else
-            {
-                // Bốc thăm ngẫu nhiên 1 trong số các bộ phận CÒN LÀNH LẶN
-                targetPart = healthyParts[Random.Range(0, healthyParts.Count)];
-            }
+            if (hitRoll <= 5f) targetPart = "Neck";
+            else targetPart = healthyParts[Random.Range(0, healthyParts.Count)];
         }
 
         InjuryType injuryResult;
@@ -345,18 +331,16 @@ public class AutoHealthPanel : MonoBehaviour
         BodyPartData part = bodyParts[targetPart];
         part.IsBandaged = false;
 
-        // Thêm vết thương vào UI
         if (!part.Injuries.Contains(injuryResult))
         {
             part.Injuries.Add(injuryResult);
         }
 
-        // Kích hoạt cờ Bitten trên mạng (nếu xui bị cắn)
         if (localPlayerHealth != null)
         {
             if (injuryResult == InjuryType.Bitten)
             {
-                localPlayerHealth.SetBitten();
+                localPlayerHealth.SetBitten(); // Kích hoạt 100% hóa Zombie bên logic
             }
         }
 
@@ -383,6 +367,7 @@ public class AutoHealthPanel : MonoBehaviour
             }
         }
 
+        // Báo cho PlayerHealth biết để nó chạy tụt máu từ từ (bleedDamagePerSecond)
         localPlayerHealth.SetGlobalBleeding(hasUnbandagedWounds);
     }
 
@@ -391,13 +376,11 @@ public class AutoHealthPanel : MonoBehaviour
         FindLocalPlayerCache();
 
         float displayHP = 100f;
-        bool isBleedingReal = false;
         bool isPainReal = false;
 
         if (localPlayerHealth != null)
         {
             displayHP = localPlayerHealth.currentHealth;
-            isBleedingReal = localPlayerHealth.isBleeding;
             isPainReal = localPlayerHealth.isInPain;
         }
 
@@ -416,27 +399,26 @@ public class AutoHealthPanel : MonoBehaviour
             else part.Img.color = colInjured;
         }
 
-        currentHP = Mathf.Clamp(displayHP, 0, 100f);
-
+        // 🔥 LOGIC CHUẨN: CHỈ HIỆN MỨC ĐỘ MÁU VÀ MỨC ĐỘ ĐAU
         headerText.AppendLine("Overall Body Status");
         string overallStatus = "";
         string statusColor = "<color=#ffaaaa>";
 
-        if (currentHP >= 100f) { overallStatus = "OK"; statusColor = "<color=white>"; }
-        else if (currentHP >= 90f) overallStatus = "Slight Damage";
-        else if (currentHP >= 80f) overallStatus = "Minor Damage";
-        else if (currentHP >= 60f) overallStatus = "Moderate Damage";
-        else if (currentHP >= 50f) overallStatus = "Severe Damage";
-        else if (currentHP >= 40f) overallStatus = "Very Severe Damage";
-        else if (currentHP >= 20f) overallStatus = "Critical Damage";
-        else if (currentHP >= 10f) overallStatus = "Highly Critical Damage";
-        else if (currentHP > 0f) overallStatus = "Terminal Damage";
-        else overallStatus = "Deceased";
+        if (displayHP >= 100f) { overallStatus = "OK"; statusColor = "<color=white>"; }
+        else if (displayHP >= 90f) overallStatus = "Slight Damage";
+        else if (displayHP >= 80f) overallStatus = "Minor Damage";
+        else if (displayHP >= 60f) { overallStatus = "Moderate Damage"; statusColor = "<color=#ff6666>"; }
+        else if (displayHP >= 50f) { overallStatus = "Severe Damage"; statusColor = "<color=#ff4444>"; }
+        else if (displayHP >= 40f) { overallStatus = "Very Severe Damage"; statusColor = "<color=#ff2222>"; }
+        else if (displayHP >= 20f) { overallStatus = "Critical Damage"; statusColor = "<color=red>"; }
+        else if (displayHP >= 10f) { overallStatus = "Highly Critical Damage"; statusColor = "<color=red>"; }
+        else if (displayHP > 0f) { overallStatus = "Terminal Damage"; statusColor = "<color=red>"; }
+        else { overallStatus = "Deceased"; statusColor = "<color=black>"; }
 
         headerText.AppendLine($"{statusColor}{overallStatus}</color>");
 
-        if (isPainReal) headerText.AppendLine("Pain");
-        if (isBleedingReal) headerText.AppendLine("<color=red>Bleeding</color>");
+        // Nếu đau thì hiện chữ Pain màu xám nhạt dưới dòng máu (Giống ảnh)
+        if (isPainReal) headerText.AppendLine("<color=#cccccc>Minor Pain</color>");
 
         fixedHeaderText.text = headerText.ToString();
 
@@ -459,7 +441,6 @@ public class AutoHealthPanel : MonoBehaviour
         entryObj.transform.SetParent(textContentRect, false);
 
         RectTransform rect = entryObj.AddComponent<RectTransform>();
-
         LayoutElement layout = entryObj.AddComponent<LayoutElement>();
         layout.minHeight = 45;
 
@@ -481,10 +462,12 @@ public class AutoHealthPanel : MonoBehaviour
         List<string> lines = new List<string>();
         lines.Add($"<color=white>{part.Name}</color>");
 
+        // 🔥 BĂNG BÓ: Đổi thành chữ xanh, MẤT chữ Bleeding đỏ
         if (part.IsBandaged)
         {
             lines.Add("<color=#4ade80>  - Bandaged</color>");
 
+            // Nếu bị cắn thì dù băng lại, nó vẫn là vết cắn (nhưng ngưng chảy máu)
             if (part.Injuries.Contains(InjuryType.Bitten))
             {
                 lines.Add("<color=#ff4444>  - Bitten</color>");
@@ -495,6 +478,12 @@ public class AutoHealthPanel : MonoBehaviour
             foreach (var inj in part.Injuries)
             {
                 lines.Add($"<color=#ff4444>  - {inj.ToString()}</color>");
+            }
+
+            // Nếu chưa băng bó, thêm dòng Bleeding y chang ảnh
+            if (part.Injuries.Count > 0)
+            {
+                lines.Add("<color=#ff4444>  - Bleeding</color>");
             }
         }
 
@@ -555,28 +544,26 @@ public class AutoHealthPanel : MonoBehaviour
         if (localPlayerHealth == null) return;
 
         float displayHP = localPlayerHealth.currentHealth;
-        currentHP = Mathf.Clamp(displayHP, 0, 100f);
 
         StringBuilder headerText = new StringBuilder();
         headerText.AppendLine("Overall Body Status");
         string overallStatus = "";
         string statusColor = "<color=#ffaaaa>";
 
-        if (currentHP >= 100f) { overallStatus = "OK"; statusColor = "<color=white>"; }
-        else if (currentHP >= 90f) overallStatus = "Slight Damage";
-        else if (currentHP >= 80f) overallStatus = "Minor Damage";
-        else if (currentHP >= 60f) overallStatus = "Moderate Damage";
-        else if (currentHP >= 50f) overallStatus = "Severe Damage";
-        else if (currentHP >= 40f) overallStatus = "Very Severe Damage";
-        else if (currentHP >= 20f) overallStatus = "Critical Damage";
-        else if (currentHP >= 10f) overallStatus = "Highly Critical Damage";
-        else if (currentHP > 0f) overallStatus = "Terminal Damage";
-        else overallStatus = "Deceased";
+        if (displayHP >= 100f) { overallStatus = "OK"; statusColor = "<color=white>"; }
+        else if (displayHP >= 90f) overallStatus = "Slight Damage";
+        else if (displayHP >= 80f) overallStatus = "Minor Damage";
+        else if (displayHP >= 60f) { overallStatus = "Moderate Damage"; statusColor = "<color=#ff6666>"; }
+        else if (displayHP >= 50f) { overallStatus = "Severe Damage"; statusColor = "<color=#ff4444>"; }
+        else if (displayHP >= 40f) { overallStatus = "Very Severe Damage"; statusColor = "<color=#ff2222>"; }
+        else if (displayHP >= 20f) { overallStatus = "Critical Damage"; statusColor = "<color=red>"; }
+        else if (displayHP >= 10f) { overallStatus = "Highly Critical Damage"; statusColor = "<color=red>"; }
+        else if (displayHP > 0f) { overallStatus = "Terminal Damage"; statusColor = "<color=red>"; }
+        else { overallStatus = "Deceased"; statusColor = "<color=black>"; }
 
         headerText.AppendLine($"{statusColor}{overallStatus}</color>");
 
-        if (localPlayerHealth.isInPain) headerText.AppendLine("Pain");
-        if (localPlayerHealth.isBleeding) headerText.AppendLine("<color=red>Bleeding</color>");
+        if (localPlayerHealth.isInPain) headerText.AppendLine("<color=#cccccc>Minor Pain</color>");
 
         fixedHeaderText.text = headerText.ToString();
     }

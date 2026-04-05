@@ -12,8 +12,9 @@ public class AutoUIManager : MonoBehaviour
     #region Cài Đặt Chung
     [Header("Cài đặt")]
     public int maxSlots = 20;
+    private int containerSlots = 9; // Tủ đồ 3x3
     public TMP_FontAsset gameFont;
-    public Sprite iconHealth, iconStamina, iconHunger, iconThirst, iconAmmo;
+    public Sprite iconAmmo;
 
     private Canvas mainCanvas;
     #endregion
@@ -21,29 +22,25 @@ public class AutoUIManager : MonoBehaviour
     #region Biến UI - Inventory & Action
     private GameObject inventoryPanel, tooltipPanel, contextMenuPanel, actionBarPanel, ammoContainer;
     private TextMeshProUGUI tooltipTitleText, tooltipDescText, actionBarText, ammoText;
-    private Image healthFill, staminaFill, hungerFill, thirstFill, actionBarFill;
+    private Image actionBarFill;
     private List<SlotUIElements> slotUIList = new List<SlotUIElements>();
     private List<InventorySlot> currentSlots = new List<InventorySlot>();
     private int selectedSlotIndex = -1;
-    private float invToggleCooldown = 0f; // Biến chống spam phím
-    public bool isDoingAction; // Cho phép Script khác hỏi thăm
+    private float invToggleCooldown = 0f;
+    public bool isDoingAction;
     #endregion
 
-    #region 🔥 Biến UI - Tủ Đồ (Loot Container)
+    #region Biến UI - Tủ Đồ
     private GameObject containerPanel;
     private List<SlotUIElements> containerSlotUIList = new List<SlotUIElements>();
     private LootContainer currentOpenContainer;
     #endregion
 
-    #region Biến Nhân Vật & Trạng Thái
-    private GameObject combatPanelObj, survivalPanelObj;
+    #region Biến Nhân Vật
     private GameObject localPlayer;
-    private PlayerHealth playerHealth;
-    private PlayerStamina playerStamina;
-    private PlayerSurvival playerSurvival;
     #endregion
 
-    #region Biến UI - Giao Dịch (Trade)
+    #region Biến UI - Giao Dịch
     private GameObject tradeRequestPanel;
     private PlayerRef pendingTradeSender;
     private PlayerRef pendingTradeTarget;
@@ -59,10 +56,9 @@ public class AutoUIManager : MonoBehaviour
     {
         public Image iconImage;
         public TextMeshProUGUI amountText;
-        public Button slotButton; // Dùng cho nút bấm của Tủ Đồ và Balo
+        public Button slotButton;
     }
 
-    #region Unity Lifecycle (Awake & Update)
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -82,7 +78,12 @@ public class AutoUIManager : MonoBehaviour
     {
         if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
 
-        // Phím bật tắt Túi đồ
+        HandleInput();
+        UpdateTradeWindowRealtime();
+    }
+
+    private void HandleInput()
+    {
         if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.I))
         {
             if (Time.time < invToggleCooldown) return;
@@ -100,23 +101,29 @@ public class AutoUIManager : MonoBehaviour
                 bool newState = !inventoryPanel.activeSelf;
                 inventoryPanel.SetActive(newState);
 
-                // 🔥 Đóng túi đồ thì tự động đóng luôn tủ đồ cho gọn
-                if (!newState) CloseContainerUI();
+                // 🔥 CẬP NHẬT: Ẩn/Hiện Ammo UI khi đóng mở Balo
+                if (ammoContainer != null) ammoContainer.SetActive(!newState);
+
+                if (!newState)
+                    CloseContainerUI();
+                else
+                    UpdatePanelsLayout();
             }
             HideContextMenu();
             HideTooltip();
         }
 
-        // Phím Hủy (Thoát UI)
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (Time.time < invToggleCooldown) return;
 
-            // 🔥 FIX LỖI: Dù Balo mở HAY Tủ đồ mở thì ESC đều đóng sạch sành sanh
             if ((inventoryPanel != null && inventoryPanel.activeSelf) || (containerPanel != null && containerPanel.activeSelf))
             {
                 invToggleCooldown = Time.time + 0.2f;
                 if (inventoryPanel != null) inventoryPanel.SetActive(false);
+
+                // 🔥 CẬP NHẬT: Hiện lại Ammo UI khi nhấn Esc thoát hết
+                if (ammoContainer != null) ammoContainer.SetActive(true);
 
                 CloseContainerUI();
                 HideContextMenu();
@@ -129,31 +136,19 @@ public class AutoUIManager : MonoBehaviour
             }
         }
 
-        // Tắt Context Menu khi click chuột phải ra ngoài
         if (Input.GetMouseButtonDown(1))
         {
-            if (contextMenuPanel != null && contextMenuPanel.activeSelf)
-                HideContextMenu();
+            if (contextMenuPanel != null && contextMenuPanel.activeSelf) HideContextMenu();
         }
 
-        // Di chuyển Tooltip theo chuột
         if (tooltipPanel != null && tooltipPanel.activeSelf)
         {
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                mainCanvas.transform as RectTransform,
-                Input.mousePosition,
-                mainCanvas.worldCamera,
-                out Vector2 mousePos
-            );
+                mainCanvas.transform as RectTransform, Input.mousePosition, mainCanvas.worldCamera, out Vector2 mousePos);
             tooltipPanel.transform.localPosition = mousePos + new Vector2(15, -15);
         }
-
-        UpdateSurvivalUI();
-        UpdateTradeWindowRealtime();
     }
-    #endregion
 
-    #region Khởi tạo UI Gốc
     private void GenerateEntireUI()
     {
         if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
@@ -174,14 +169,29 @@ public class AutoUIManager : MonoBehaviour
         canvasGO.AddComponent<GraphicRaycaster>();
         DontDestroyOnLoad(canvasGO);
 
-        GenerateSurvivalBars(canvasGO);
         GenerateInventoryUI(canvasGO);
         GenerateContainerUI(canvasGO);
         GenerateActionBar(canvasGO);
         GenerateTradeRequestUI(canvasGO);
         GenerateTradeWindowUI(canvasGO);
     }
-    #endregion
+
+    private void UpdatePanelsLayout()
+    {
+        if (inventoryPanel != null)
+        {
+            RectTransform rect = inventoryPanel.GetComponent<RectTransform>();
+
+            if (containerPanel != null && containerPanel.activeSelf)
+            {
+                rect.anchoredPosition = new Vector2(-150, 0);
+            }
+            else
+            {
+                rect.anchoredPosition = Vector2.zero;
+            }
+        }
+    }
 
     #region GIAO DIỆN TÚI ĐỒ (INVENTORY)
     private void GenerateInventoryUI(GameObject canvasGO)
@@ -191,8 +201,10 @@ public class AutoUIManager : MonoBehaviour
 
         RectTransform panelRect = inventoryPanel.AddComponent<RectTransform>();
         panelRect.sizeDelta = new Vector2(500, 450);
-        panelRect.anchorMin = new Vector2(0.25f, 0.5f);
-        panelRect.anchorMax = new Vector2(0.25f, 0.5f);
+        panelRect.localScale = new Vector3(0.85f, 0.85f, 1f);
+
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.anchoredPosition = Vector2.zero;
 
@@ -200,7 +212,6 @@ public class AutoUIManager : MonoBehaviour
         panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
         inventoryPanel.SetActive(false);
 
-        // --- Title ---
         GameObject titleObj = new GameObject("TitleText");
         titleObj.transform.SetParent(inventoryPanel.transform, false);
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
@@ -216,7 +227,6 @@ public class AutoUIManager : MonoBehaviour
         titleRect.pivot = new Vector2(0.5f, 1); titleRect.anchoredPosition = new Vector2(0, -20);
         titleRect.sizeDelta = new Vector2(0, 40);
 
-        // --- Grid ---
         GameObject gridObj = new GameObject("SlotGrid");
         gridObj.transform.SetParent(inventoryPanel.transform, false);
         RectTransform gridRect = gridObj.AddComponent<RectTransform>();
@@ -234,13 +244,16 @@ public class AutoUIManager : MonoBehaviour
             GameObject slotObj = new GameObject("Slot_" + i);
             slotObj.transform.SetParent(gridObj.transform, false);
 
+            UISlotDragHandler drag = slotObj.AddComponent<UISlotDragHandler>();
+            drag.slotIndex = i;
+            drag.isFromInventory = true; // Đây là Balo
+
             Image slotBg = slotObj.AddComponent<Image>();
             slotBg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
 
             SlotHoverHandler hoverHandler = slotObj.AddComponent<SlotHoverHandler>();
             hoverHandler.slotIndex = i;
 
-            // 🔥 Nút bấm Balo (Dùng để Mở Menu hoặc Shift+Click cất đồ)
             Button btn = slotObj.AddComponent<Button>();
             btn.onClick.AddListener(() => OnInventorySlotClicked(slotIndex));
 
@@ -268,27 +281,11 @@ public class AutoUIManager : MonoBehaviour
             slotUIList.Add(new SlotUIElements { iconImage = iconImg, amountText = amountTxt, slotButton = btn });
         }
 
-        // 🔥 TẠO DÒNG TEXT HƯỚNG DẪN
-        GameObject hintObj = new GameObject("HintText");
-        hintObj.transform.SetParent(inventoryPanel.transform, false);
-        TextMeshProUGUI hintText = hintObj.AddComponent<TextMeshProUGUI>();
-        if (gameFont != null) hintText.font = gameFont;
-        hintText.text = "Chuột Trái: Menu | Shift + Click: Cất nhanh vào tủ";
-        hintText.fontSize = 14; hintText.fontStyle = FontStyles.Italic;
-        hintText.alignment = TextAlignmentOptions.Center; hintText.color = new Color(0.6f, 0.6f, 0.6f, 1f);
-
-        RectTransform hintRect = hintObj.GetComponent<RectTransform>();
-        hintRect.anchorMin = new Vector2(0, 0); hintRect.anchorMax = new Vector2(1, 0);
-        hintRect.pivot = new Vector2(0.5f, 0); hintRect.anchoredPosition = new Vector2(0, 10);
-        hintRect.sizeDelta = new Vector2(0, 30);
-
-        // Gọi hàm tạo Tooltip và Context Menu
         CreateTooltipAndContextMenu(canvasGO);
     }
 
     private void CreateTooltipAndContextMenu(GameObject canvasGO)
     {
-        // 1. Tạo Tooltip
         tooltipPanel = new GameObject("TooltipPanel");
         tooltipPanel.transform.SetParent(canvasGO.transform, false);
         tooltipPanel.transform.SetAsLastSibling();
@@ -331,13 +328,12 @@ public class AutoUIManager : MonoBehaviour
 
         tooltipPanel.SetActive(false);
 
-        // 2. Tạo Context Menu
         contextMenuPanel = new GameObject("ContextMenu");
         contextMenuPanel.transform.SetParent(canvasGO.transform, false);
         contextMenuPanel.transform.SetAsLastSibling();
 
         RectTransform ctxRect = contextMenuPanel.AddComponent<RectTransform>();
-        ctxRect.sizeDelta = new Vector2(120, 120); // Đủ chỗ cho 3 nút
+        ctxRect.sizeDelta = new Vector2(120, 120);
         ctxRect.pivot = new Vector2(0, 1);
 
         contextMenuPanel.AddComponent<Image>().color = new Color(0, 0, 0, 0.95f);
@@ -351,7 +347,6 @@ public class AutoUIManager : MonoBehaviour
         ctxLayout.childForceExpandHeight = true;
         ctxLayout.childForceExpandWidth = true;
 
-        // 🔥 Bổ sung đầy đủ 3 nút Menu Chuột Phải
         CreateContextMenuBtn("UseButton", "Use / Offer", OnUseClicked);
         CreateContextMenuBtn("StoreButton", "Cất vào Tủ", OnStoreClicked);
         CreateContextMenuBtn("DropButton", "Drop", OnDropClicked);
@@ -399,25 +394,26 @@ public class AutoUIManager : MonoBehaviour
     }
     #endregion
 
-    #region VẼ GIAO DIỆN TỦ ĐỒ (LOOT CONTAINER)
+    #region VẼ GIAO DIỆN TỦ ĐỒ
     private void GenerateContainerUI(GameObject canvasGO)
     {
         containerPanel = new GameObject("ContainerPanel");
         containerPanel.transform.SetParent(canvasGO.transform, false);
 
         RectTransform panelRect = containerPanel.AddComponent<RectTransform>();
-        panelRect.sizeDelta = new Vector2(400, 450);
-        panelRect.anchorMin = new Vector2(0.75f, 0.5f);
-        panelRect.anchorMax = new Vector2(0.75f, 0.5f);
+        panelRect.sizeDelta = new Vector2(300, 360);
+        panelRect.localScale = new Vector3(0.85f, 0.85f, 1f);
+
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
-        panelRect.anchoredPosition = Vector2.zero;
+        panelRect.anchoredPosition = new Vector2(250, 0);
 
         Image panelBg = containerPanel.AddComponent<Image>();
         panelBg.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
         containerPanel.AddComponent<Outline>().effectColor = new Color(0.3f, 0.6f, 0.8f);
         containerPanel.SetActive(false);
 
-        // --- Title ---
         GameObject titleObj = new GameObject("TitleText");
         titleObj.transform.SetParent(containerPanel.transform, false);
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
@@ -433,7 +429,6 @@ public class AutoUIManager : MonoBehaviour
         titleRect.pivot = new Vector2(0.5f, 1); titleRect.anchoredPosition = new Vector2(0, -20);
         titleRect.sizeDelta = new Vector2(0, 40);
 
-        // --- Grid Tủ Đồ ---
         GameObject gridObj = new GameObject("ContainerSlotGrid");
         gridObj.transform.SetParent(containerPanel.transform, false);
         RectTransform gridRect = gridObj.AddComponent<RectTransform>();
@@ -445,16 +440,19 @@ public class AutoUIManager : MonoBehaviour
         gridLayout.spacing = new Vector2(10, 10);
         gridLayout.childAlignment = TextAnchor.UpperCenter;
 
-        for (int i = 0; i < maxSlots; i++)
+        for (int i = 0; i < containerSlots; i++)
         {
             int slotIndex = i;
             GameObject slotObj = new GameObject("ContSlot_" + i);
             slotObj.transform.SetParent(gridObj.transform, false);
 
+            UISlotDragHandler drag = slotObj.AddComponent<UISlotDragHandler>();
+            drag.slotIndex = i;
+            drag.isFromInventory = false; // Đây là Tủ đồ
+
             Image slotBg = slotObj.AddComponent<Image>();
             slotBg.color = new Color(0.2f, 0.25f, 0.3f, 1f);
 
-            // Gắn nút bấm để Lụm Đồ
             Button btn = slotObj.AddComponent<Button>();
             btn.onClick.AddListener(() => OnContainerSlotClicked(slotIndex));
 
@@ -482,24 +480,10 @@ public class AutoUIManager : MonoBehaviour
 
             containerSlotUIList.Add(new SlotUIElements { iconImage = iconImg, amountText = amountTxt, slotButton = btn });
         }
-
-        // 🔥 TẠO DÒNG TEXT HƯỚNG DẪN DƯỚI ĐÁY TỦ ĐỒ
-        GameObject hintObj = new GameObject("HintText");
-        hintObj.transform.SetParent(containerPanel.transform, false);
-        TextMeshProUGUI hintText = hintObj.AddComponent<TextMeshProUGUI>();
-        if (gameFont != null) hintText.font = gameFont;
-        hintText.text = "Chuột Trái: Lấy đồ sang Balo";
-        hintText.fontSize = 14; hintText.fontStyle = FontStyles.Italic;
-        hintText.alignment = TextAlignmentOptions.Center; hintText.color = new Color(0.5f, 0.7f, 0.9f, 1f);
-
-        RectTransform hintRect = hintObj.GetComponent<RectTransform>();
-        hintRect.anchorMin = new Vector2(0, 0); hintRect.anchorMax = new Vector2(1, 0);
-        hintRect.pivot = new Vector2(0.5f, 0); hintRect.anchoredPosition = new Vector2(0, 10);
-        hintRect.sizeDelta = new Vector2(0, 30);
     }
     #endregion
 
-    #region LOGIC XỬ LÝ TỦ ĐỒ (LOOT CONTAINER)
+    #region LOGIC XỬ LÝ TỦ ĐỒ
     public void OpenContainerUI(LootContainer container)
     {
         currentOpenContainer = container;
@@ -510,6 +494,10 @@ public class AutoUIManager : MonoBehaviour
             inventoryPanel.SetActive(true);
         }
 
+        // 🔥 CẬP NHẬT: Tắt Ammo UI khi nhặt đồ
+        if (ammoContainer != null) ammoContainer.SetActive(false);
+
+        UpdatePanelsLayout();
         RefreshContainerUI(container);
     }
 
@@ -517,6 +505,12 @@ public class AutoUIManager : MonoBehaviour
     {
         currentOpenContainer = null;
         if (containerPanel != null) containerPanel.SetActive(false);
+
+        // 🔥 CẬP NHẬT: Hiện lại Ammo UI nếu Balo cũng đóng
+        if (ammoContainer != null && (inventoryPanel == null || !inventoryPanel.activeSelf))
+            ammoContainer.SetActive(true);
+
+        UpdatePanelsLayout();
     }
 
     public bool IsContainerOpen(LootContainer containerToCheck)
@@ -530,7 +524,7 @@ public class AutoUIManager : MonoBehaviour
 
         List<InventorySlot> cSlots = container.itemsInContainer;
 
-        for (int i = 0; i < maxSlots; i++)
+        for (int i = 0; i < containerSlots; i++)
         {
             SlotUIElements ui = containerSlotUIList[i];
             if (i < cSlots.Count && cSlots[i] != null && cSlots[i].amount > 0)
@@ -557,7 +551,15 @@ public class AutoUIManager : MonoBehaviour
 
     private void OnContainerSlotClicked(int index)
     {
-        if (currentOpenContainer == null || localPlayer == null) return;
+        if (currentOpenContainer == null) return;
+
+        if (localPlayer == null)
+        {
+            var pMove = FindAnyObjectByType<PlayerMovement>();
+            if (pMove != null && pMove.HasInputAuthority)
+                localPlayer = pMove.gameObject;
+        }
+        if (localPlayer == null) return;
 
         PlayerRef myNetworkID = localPlayer.GetComponent<NetworkObject>().InputAuthority;
         string itemName = currentOpenContainer.itemsInContainer[index].item.itemName;
@@ -566,7 +568,7 @@ public class AutoUIManager : MonoBehaviour
     }
     #endregion
 
-    #region Action Bar & Tool UI Utils
+    #region Action Bar 
     private void GenerateActionBar(GameObject canvasGO)
     {
         actionBarPanel = new GameObject("ActionBarPanel");
@@ -617,122 +619,9 @@ public class AutoUIManager : MonoBehaviour
 
         actionBarPanel.SetActive(false);
     }
-
-    private Image CreateHorizontalBar(Transform parent, string name, Sprite icon, Color fillColor, float barWidth, float barHeight)
-    {
-        GameObject container = new GameObject(name + "_Container", typeof(RectTransform));
-        container.transform.SetParent(parent, false);
-
-        HorizontalLayoutGroup hLayout = container.AddComponent<HorizontalLayoutGroup>();
-        hLayout.childAlignment = TextAnchor.MiddleLeft;
-        hLayout.spacing = 8;
-        hLayout.childControlHeight = false;
-        hLayout.childControlWidth = false;
-
-        GameObject iconObj = new GameObject("Icon", typeof(RectTransform));
-        iconObj.transform.SetParent(container.transform, false);
-
-        RectTransform iconRect = iconObj.GetComponent<RectTransform>();
-        iconRect.sizeDelta = new Vector2(30, 30);
-
-        LayoutElement iconLayout = iconObj.AddComponent<LayoutElement>();
-        iconLayout.minWidth = 35;
-        iconLayout.minHeight = 35;
-
-        Image iconImg = iconObj.AddComponent<Image>();
-        iconImg.preserveAspect = true;
-        if (icon != null) iconImg.sprite = icon; else iconImg.color = fillColor;
-
-        GameObject bgObj = new GameObject("BarBG", typeof(RectTransform));
-        bgObj.transform.SetParent(container.transform, false);
-
-        RectTransform bgRect = bgObj.GetComponent<RectTransform>();
-        bgRect.sizeDelta = new Vector2(barWidth, barHeight);
-
-        Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-        bgObj.AddComponent<Outline>().effectColor = Color.black;
-
-        GameObject fillObj = new GameObject("Fill", typeof(RectTransform));
-        fillObj.transform.SetParent(bgObj.transform, false);
-
-        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
-
-        Image fillImg = fillObj.AddComponent<Image>();
-        Texture2D whiteTex = Texture2D.whiteTexture;
-        fillImg.sprite = Sprite.Create(whiteTex, new Rect(0, 0, whiteTex.width, whiteTex.height), Vector2.zero);
-        fillImg.color = fillColor;
-        fillImg.type = Image.Type.Filled;
-        fillImg.fillMethod = Image.FillMethod.Horizontal;
-        fillImg.fillAmount = 1f;
-
-        return fillImg;
-    }
-
-    private Image CreateVerticalBar(Transform parent, string name, Sprite icon, Color fillColor, float barWidth, float barHeight)
-    {
-        GameObject container = new GameObject(name + "_Container", typeof(RectTransform));
-        container.transform.SetParent(parent, false);
-
-        VerticalLayoutGroup vLayout = container.AddComponent<VerticalLayoutGroup>();
-        vLayout.childAlignment = TextAnchor.LowerCenter;
-        vLayout.spacing = 6;
-        vLayout.childControlHeight = false;
-        vLayout.childControlWidth = false;
-
-        GameObject bgObj = new GameObject("BarBG", typeof(RectTransform));
-        bgObj.transform.SetParent(container.transform, false);
-
-        RectTransform bgRect = bgObj.GetComponent<RectTransform>();
-        bgRect.sizeDelta = new Vector2(barWidth, barHeight);
-
-        Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-        bgObj.AddComponent<Outline>().effectColor = Color.black;
-
-        GameObject fillObj = new GameObject("Fill", typeof(RectTransform));
-        fillObj.transform.SetParent(bgObj.transform, false);
-
-        RectTransform fillRect = fillObj.GetComponent<RectTransform>();
-        fillRect.anchorMin = Vector2.zero;
-        fillRect.anchorMax = Vector2.one;
-        fillRect.offsetMin = Vector2.zero;
-        fillRect.offsetMax = Vector2.zero;
-
-        Image fillImg = fillObj.AddComponent<Image>();
-        Texture2D whiteTex = Texture2D.whiteTexture;
-        fillImg.sprite = Sprite.Create(whiteTex, new Rect(0, 0, whiteTex.width, whiteTex.height), Vector2.zero);
-        fillImg.color = fillColor;
-        fillImg.type = Image.Type.Filled;
-        fillImg.fillMethod = Image.FillMethod.Vertical;
-        fillImg.fillOrigin = (int)Image.OriginVertical.Bottom;
-        fillImg.fillAmount = 1f;
-
-        GameObject iconObj = new GameObject("Icon", typeof(RectTransform));
-        iconObj.transform.SetParent(container.transform, false);
-
-        RectTransform iconRect = iconObj.GetComponent<RectTransform>();
-        iconRect.sizeDelta = new Vector2(35, 35);
-
-        LayoutElement iconLayout = iconObj.AddComponent<LayoutElement>();
-        iconLayout.minWidth = 35;
-        iconLayout.minHeight = 35;
-
-        Image iconImg = iconObj.AddComponent<Image>();
-        iconImg.preserveAspect = true;
-        if (icon != null) iconImg.sprite = icon; else iconImg.color = fillColor;
-
-        bgObj.transform.SetAsFirstSibling();
-
-        return fillImg;
-    }
     #endregion
 
-    #region VẼ GIAO DIỆN BẢNG GIAO DỊCH (TRADE)
+    #region VẼ GIAO DIỆN BẢNG GIAO DỊCH
     private void GenerateTradeWindowUI(GameObject canvasGO)
     {
         tradeWindowPanel = new GameObject("TradeWindowPanel");
@@ -770,25 +659,19 @@ public class AutoUIManager : MonoBehaviour
         titleRect.anchoredPosition = new Vector2(0, -15);
         titleRect.sizeDelta = new Vector2(0, 40);
 
-        // --- KHU VỰC CỦA MÌNH (TRÁI) ---
         GameObject myArea = CreateTradeArea(tradeWindowPanel.transform, "ĐỒ CỦA BẠN", new Vector2(0.25f, 0.6f), activeFont, out myOfferIcon, out myOfferAmountTxt);
 
         btnPickItem = CreateButton(tradeWindowPanel.transform, "BtnPick", "CHỌN ĐỒ", new Vector2(0.25f, 0), new Color(0.2f, 0.5f, 0.8f), OpenInventoryForTrade, activeFont);
         RectTransform pickRect = btnPickItem.GetComponent<RectTransform>();
-        pickRect.pivot = new Vector2(0.5f, 0);
-        pickRect.anchoredPosition = new Vector2(0, 140);
-        pickRect.sizeDelta = new Vector2(150, 40);
+        pickRect.pivot = new Vector2(0.5f, 0); pickRect.anchoredPosition = new Vector2(0, 140); pickRect.sizeDelta = new Vector2(150, 40);
 
         btnReady = CreateButton(tradeWindowPanel.transform, "BtnReady", "KHÓA LẠI", new Vector2(0.25f, 0), new Color(0.8f, 0.5f, 0.1f), () => {
             if (localPlayer != null) localPlayer.GetComponent<PlayerTrade>().RPC_ToggleReady();
         }, activeFont);
         RectTransform readyRect = btnReady.GetComponent<RectTransform>();
-        readyRect.pivot = new Vector2(0.5f, 0);
-        readyRect.anchoredPosition = new Vector2(0, 90);
-        readyRect.sizeDelta = new Vector2(150, 40);
+        readyRect.pivot = new Vector2(0.5f, 0); readyRect.anchoredPosition = new Vector2(0, 90); readyRect.sizeDelta = new Vector2(150, 40);
         btnReadyTxt = btnReady.GetComponentInChildren<TextMeshProUGUI>();
 
-        // --- KHU VỰC ĐỐI TÁC (PHẢI) ---
         GameObject partnerArea = CreateTradeArea(tradeWindowPanel.transform, "ĐỒ ĐỐI TÁC", new Vector2(0.75f, 0.6f), activeFont, out partnerOfferIcon, out partnerOfferAmountTxt);
 
         GameObject pStatObj = new GameObject("PartnerStatus");
@@ -803,28 +686,21 @@ public class AutoUIManager : MonoBehaviour
         partnerStatusTxt.color = Color.gray;
 
         RectTransform pStatRect = pStatObj.GetComponent<RectTransform>();
-        pStatRect.anchorMin = new Vector2(0.75f, 0);
-        pStatRect.anchorMax = new Vector2(0.75f, 0);
-        pStatRect.pivot = new Vector2(0.5f, 0);
-        pStatRect.anchoredPosition = new Vector2(0, 90);
+        pStatRect.anchorMin = new Vector2(0.75f, 0); pStatRect.anchorMax = new Vector2(0.75f, 0);
+        pStatRect.pivot = new Vector2(0.5f, 0); pStatRect.anchoredPosition = new Vector2(0, 90);
         pStatRect.sizeDelta = new Vector2(200, 45);
 
-        // --- NÚT XÁC NHẬN & HỦY BỎ ---
         btnConfirm = CreateButton(tradeWindowPanel.transform, "BtnConfirm", "XÁC NHẬN TRADE", new Vector2(0.5f, 0), new Color(0.2f, 0.7f, 0.2f), () => {
             if (localPlayer != null) localPlayer.GetComponent<PlayerTrade>().RPC_ConfirmTrade();
         }, activeFont);
         RectTransform confirmRect = btnConfirm.GetComponent<RectTransform>();
-        confirmRect.pivot = new Vector2(1, 0);
-        confirmRect.anchoredPosition = new Vector2(-10, 20);
-        confirmRect.sizeDelta = new Vector2(180, 50);
+        confirmRect.pivot = new Vector2(1, 0); confirmRect.anchoredPosition = new Vector2(-10, 20); confirmRect.sizeDelta = new Vector2(180, 50);
 
         Button btnCancel = CreateButton(tradeWindowPanel.transform, "BtnCancel", "HỦY BỎ", new Vector2(0.5f, 0), new Color(0.8f, 0.2f, 0.2f), () => {
             if (localPlayer != null) localPlayer.GetComponent<PlayerTrade>().CancelTrade();
         }, activeFont);
         RectTransform cancelRect = btnCancel.GetComponent<RectTransform>();
-        cancelRect.pivot = new Vector2(0, 0);
-        cancelRect.anchoredPosition = new Vector2(10, 20);
-        cancelRect.sizeDelta = new Vector2(150, 50);
+        cancelRect.pivot = new Vector2(0, 0); cancelRect.anchoredPosition = new Vector2(10, 20); cancelRect.sizeDelta = new Vector2(150, 50);
 
         tradeWindowPanel.SetActive(false);
     }
@@ -835,32 +711,21 @@ public class AutoUIManager : MonoBehaviour
         area.transform.SetParent(parent, false);
 
         RectTransform aRect = area.AddComponent<RectTransform>();
-        aRect.anchorMin = anchor;
-        aRect.anchorMax = anchor;
-        aRect.pivot = new Vector2(0.5f, 0.5f);
-        aRect.anchoredPosition = Vector2.zero;
+        aRect.anchorMin = anchor; aRect.anchorMax = anchor;
+        aRect.pivot = new Vector2(0.5f, 0.5f); aRect.anchoredPosition = Vector2.zero;
         aRect.sizeDelta = new Vector2(200, 180);
 
-        // Title Area
         GameObject tObj = new GameObject("Title");
         tObj.transform.SetParent(area.transform, false);
 
         TextMeshProUGUI tTxt = tObj.AddComponent<TextMeshProUGUI>();
-        tTxt.font = font;
-        tTxt.text = title;
-        tTxt.fontSize = 20;
-        tTxt.fontStyle = FontStyles.Bold;
-        tTxt.alignment = TextAlignmentOptions.Center;
-        tTxt.color = Color.white;
+        tTxt.font = font; tTxt.text = title; tTxt.fontSize = 20;
+        tTxt.fontStyle = FontStyles.Bold; tTxt.alignment = TextAlignmentOptions.Center; tTxt.color = Color.white;
 
         RectTransform tRect = tObj.GetComponent<RectTransform>();
-        tRect.anchorMin = new Vector2(0.5f, 1);
-        tRect.anchorMax = new Vector2(0.5f, 1);
-        tRect.pivot = new Vector2(0.5f, 1);
-        tRect.anchoredPosition = new Vector2(0, 0);
-        tRect.sizeDelta = new Vector2(200, 40);
+        tRect.anchorMin = new Vector2(0.5f, 1); tRect.anchorMax = new Vector2(0.5f, 1);
+        tRect.pivot = new Vector2(0.5f, 1); tRect.anchoredPosition = new Vector2(0, 0); tRect.sizeDelta = new Vector2(200, 40);
 
-        // Slot BG
         GameObject slotObj = new GameObject("SlotBG");
         slotObj.transform.SetParent(area.transform, false);
 
@@ -868,14 +733,10 @@ public class AutoUIManager : MonoBehaviour
         sBg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
 
         RectTransform sRect = slotObj.GetComponent<RectTransform>();
-        sRect.anchorMin = new Vector2(0.5f, 0.4f);
-        sRect.anchorMax = new Vector2(0.5f, 0.4f);
-        sRect.pivot = new Vector2(0.5f, 0.5f);
-        sRect.anchoredPosition = Vector2.zero;
-        sRect.sizeDelta = new Vector2(100, 100);
+        sRect.anchorMin = new Vector2(0.5f, 0.4f); sRect.anchorMax = new Vector2(0.5f, 0.4f);
+        sRect.pivot = new Vector2(0.5f, 0.5f); sRect.anchoredPosition = Vector2.zero; sRect.sizeDelta = new Vector2(100, 100);
         slotObj.AddComponent<Outline>().effectColor = Color.gray;
 
-        // Icon
         GameObject iObj = new GameObject("Icon");
         iObj.transform.SetParent(slotObj.transform, false);
 
@@ -883,29 +744,21 @@ public class AutoUIManager : MonoBehaviour
         icon.preserveAspect = true;
 
         RectTransform iRect = iObj.GetComponent<RectTransform>();
-        iRect.anchorMin = Vector2.zero;
-        iRect.anchorMax = Vector2.one;
-        iRect.offsetMin = new Vector2(10, 10);
-        iRect.offsetMax = new Vector2(-10, -10);
+        iRect.anchorMin = Vector2.zero; iRect.anchorMax = Vector2.one;
+        iRect.offsetMin = new Vector2(10, 10); iRect.offsetMax = new Vector2(-10, -10);
         icon.gameObject.SetActive(false);
 
-        // Amount Text
         GameObject amObj = new GameObject("Amount");
         amObj.transform.SetParent(slotObj.transform, false);
 
         amountTxt = amObj.AddComponent<TextMeshProUGUI>();
-        amountTxt.font = font;
-        amountTxt.fontSize = 18;
-        amountTxt.fontStyle = FontStyles.Bold;
-        amountTxt.alignment = TextAlignmentOptions.BottomRight;
-        amountTxt.color = Color.white;
+        amountTxt.font = font; amountTxt.fontSize = 18; amountTxt.fontStyle = FontStyles.Bold;
+        amountTxt.alignment = TextAlignmentOptions.BottomRight; amountTxt.color = Color.white;
         amObj.AddComponent<Shadow>().effectColor = Color.black;
 
         RectTransform amRect = amObj.GetComponent<RectTransform>();
-        amRect.anchorMin = Vector2.zero;
-        amRect.anchorMax = Vector2.one;
-        amRect.offsetMin = new Vector2(0, 0);
-        amRect.offsetMax = new Vector2(-5, 5);
+        amRect.anchorMin = Vector2.zero; amRect.anchorMax = Vector2.one;
+        amRect.offsetMin = new Vector2(0, 0); amRect.offsetMax = new Vector2(-5, 5);
         amountTxt.gameObject.SetActive(false);
 
         return area;
@@ -918,10 +771,8 @@ public class AutoUIManager : MonoBehaviour
 
         RectTransform rect = btnObj.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(150, 40);
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = Vector2.zero;
+        rect.anchorMin = anchor; rect.anchorMax = anchor;
+        rect.pivot = new Vector2(0.5f, 0.5f); rect.anchoredPosition = Vector2.zero;
 
         Image img = btnObj.AddComponent<Image>();
         img.color = color;
@@ -933,16 +784,11 @@ public class AutoUIManager : MonoBehaviour
         txtObj.transform.SetParent(btnObj.transform, false);
 
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
-        txt.font = font;
-        txt.text = text;
-        txt.fontSize = 18;
-        txt.fontStyle = FontStyles.Bold;
-        txt.alignment = TextAlignmentOptions.Center;
-        txt.color = Color.white;
+        txt.font = font; txt.text = text; txt.fontSize = 18;
+        txt.fontStyle = FontStyles.Bold; txt.alignment = TextAlignmentOptions.Center; txt.color = Color.white;
 
         RectTransform tRect = txtObj.GetComponent<RectTransform>();
-        tRect.anchorMin = Vector2.zero;
-        tRect.anchorMax = Vector2.one;
+        tRect.anchorMin = Vector2.zero; tRect.anchorMax = Vector2.one;
         tRect.offsetMin = tRect.offsetMax = Vector2.zero;
 
         return btn;
@@ -950,10 +796,7 @@ public class AutoUIManager : MonoBehaviour
 
     public void ShowTradeWindow()
     {
-        if (combatPanelObj != null) combatPanelObj.SetActive(false);
-        if (survivalPanelObj != null) survivalPanelObj.SetActive(false);
         if (ammoContainer != null) ammoContainer.SetActive(false);
-
         if (inventoryPanel != null) inventoryPanel.SetActive(false);
 
         tradeWindowPanel.SetActive(true);
@@ -974,14 +817,21 @@ public class AutoUIManager : MonoBehaviour
         tradeWindowPanel.SetActive(false);
         if (inventoryPanel != null) inventoryPanel.SetActive(false);
 
-        if (combatPanelObj != null) combatPanelObj.SetActive(true);
-        if (survivalPanelObj != null) survivalPanelObj.SetActive(true);
         if (ammoContainer != null) ammoContainer.SetActive(true);
     }
 
     private void UpdateTradeWindowRealtime()
     {
-        if (tradeWindowPanel == null || !tradeWindowPanel.activeSelf || localPlayer == null) return;
+        if (tradeWindowPanel == null || !tradeWindowPanel.activeSelf) return;
+
+        if (localPlayer == null)
+        {
+            var pMove = FindAnyObjectByType<PlayerMovement>();
+            if (pMove != null && pMove.HasInputAuthority)
+                localPlayer = pMove.gameObject;
+
+            if (localPlayer == null) return;
+        }
 
         PlayerTrade myTrade = localPlayer.GetComponent<PlayerTrade>();
         if (myTrade == null || !myTrade.IsTrading) return;
@@ -1000,18 +850,15 @@ public class AutoUIManager : MonoBehaviour
 
         if (partnerTrade.IsConfirmed)
         {
-            partnerStatusTxt.text = "ĐÃ CHỐT KÈO!";
-            partnerStatusTxt.color = Color.green;
+            partnerStatusTxt.text = "ĐÃ CHỐT KÈO!"; partnerStatusTxt.color = Color.green;
         }
         else if (partnerTrade.IsReady)
         {
-            partnerStatusTxt.text = "ĐÃ KHÓA!";
-            partnerStatusTxt.color = Color.yellow;
+            partnerStatusTxt.text = "ĐÃ KHÓA!"; partnerStatusTxt.color = Color.yellow;
         }
         else
         {
-            partnerStatusTxt.text = "Đang chọn...";
-            partnerStatusTxt.color = Color.gray;
+            partnerStatusTxt.text = "Đang chọn..."; partnerStatusTxt.color = Color.gray;
         }
 
         btnConfirm.interactable = myTrade.IsReady && partnerTrade.IsReady;
@@ -1033,21 +880,14 @@ public class AutoUIManager : MonoBehaviour
                 icon.sprite = data.icon;
                 icon.gameObject.SetActive(true);
 
-                if (amount > 1)
-                {
-                    amountTxt.text = amount.ToString();
-                    amountTxt.gameObject.SetActive(true);
-                }
-                else
-                {
-                    amountTxt.gameObject.SetActive(false);
-                }
+                if (amount > 1) { amountTxt.text = amount.ToString(); amountTxt.gameObject.SetActive(true); }
+                else { amountTxt.gameObject.SetActive(false); }
             }
         }
     }
     #endregion
 
-    #region Hành động khi click chuột (Use / Drop / Offer)
+    #region Hành động khi click chuột
     private void OnInventorySlotClicked(int index)
     {
         if (currentSlots == null || index < 0 || index >= currentSlots.Count || currentSlots[index].amount <= 0) return;
@@ -1063,7 +903,6 @@ public class AutoUIManager : MonoBehaviour
                 currentOpenContainer.RPC_StoreItem(itemToStore.name, amountToStore);
 
                 HideContextMenu();
-                Debug.Log($"[Fast Store] Ném {amountToStore} {itemToStore.itemName} vào tủ cái vèo!");
             }
         }
         else
@@ -1077,8 +916,17 @@ public class AutoUIManager : MonoBehaviour
         int index = selectedSlotIndex;
         HideContextMenu();
 
-        if (index != -1 && localPlayer != null)
+        if (index != -1)
         {
+            if (localPlayer == null)
+            {
+                var pMove = FindAnyObjectByType<PlayerMovement>();
+                if (pMove != null && pMove.HasInputAuthority)
+                    localPlayer = pMove.gameObject;
+            }
+
+            if (localPlayer == null) return;
+
             PlayerTrade pt = localPlayer.GetComponent<PlayerTrade>();
             ItemData itemToUse = currentSlots[index].item;
 
@@ -1087,56 +935,43 @@ public class AutoUIManager : MonoBehaviour
                 if (!pt.IsReady)
                 {
                     pt.RPC_SetOffer(itemToUse.name, currentSlots[index].amount);
-
                     if (inventoryPanel != null) inventoryPanel.SetActive(false);
                     tradeWindowPanel.SetActive(true);
                 }
-                else
-                {
-                    Debug.Log("Bạn đã khóa giao dịch rồi, phải Mở Khóa mới đổi đồ được!");
-                }
                 return;
             }
 
-            if (isDoingAction)
-            {
-                Debug.Log("Đang bận sử dụng món khác!");
-                return;
-            }
-
-            if (itemToUse.category == ItemCategory.Ammunition)
-            {
-                Debug.Log("Không thể dùng đạn từ đây! Hãy cầm súng và nhấn R để nạp.");
-                return;
-            }
+            if (isDoingAction) return;
+            if (itemToUse.category == ItemCategory.Ammunition) return;
 
             if (itemToUse.category == ItemCategory.Medical)
             {
-                if (playerHealth != null)
+                PlayerHealth health = localPlayer.GetComponent<PlayerHealth>();
+                if (health != null)
                 {
                     string itemNameLower = itemToUse.itemName.ToLower();
 
                     if (itemNameLower.Contains("bandage") || itemNameLower.Contains("băng"))
                     {
-                        if (!playerHealth.isBleeding)
+                        if (!health.isBleeding)
                         {
-                            Debug.Log("Không bị chảy máu, tốn băng gạc làm gì!");
+                            Debug.Log("Không bị chảy máu, không cần dùng băng gạc!");
                             return;
                         }
                     }
                     else if (itemNameLower.Contains("painkiller") || itemNameLower.Contains("thuốc") || itemNameLower.Contains("đau"))
                     {
-                        if (!playerHealth.isInPain)
+                        if (!health.isInPain)
                         {
-                            Debug.Log("Đang khỏe re, uống thuốc vào lờn sao!");
+                            Debug.Log("Không bị đau, không cần dùng thuốc!");
                             return;
                         }
                     }
                     else
                     {
-                        if (playerHealth.currentHealth >= playerHealth.maxHealth)
+                        if (health.currentHealth >= health.maxHealth)
                         {
-                            Debug.Log("Máu đang đầy, không cần dùng đồ y tế!");
+                            Debug.Log("Máu đã đầy, không cần dùng!");
                             return;
                         }
                     }
@@ -1158,11 +993,7 @@ public class AutoUIManager : MonoBehaviour
         int index = selectedSlotIndex;
         HideContextMenu();
 
-        if (currentOpenContainer == null)
-        {
-            Debug.Log("Bạn phải mở tủ đồ ra trước thì mới cất vào được chứ!");
-            return;
-        }
+        if (currentOpenContainer == null) return;
 
         if (index != -1 && localPlayer != null)
         {
@@ -1187,17 +1018,26 @@ public class AutoUIManager : MonoBehaviour
 
     private void ApplyMedicalCure(string itemName)
     {
-        if (playerHealth == null) return;
+        if (localPlayer == null)
+        {
+            var pMove = FindAnyObjectByType<PlayerMovement>();
+            if (pMove != null && pMove.HasInputAuthority)
+                localPlayer = pMove.gameObject;
+        }
+
+        if (localPlayer == null) return;
+        PlayerHealth health = localPlayer.GetComponent<PlayerHealth>();
+        if (health == null) return;
 
         string nameLower = itemName.ToLower();
         if (nameLower.Contains("bandage") || nameLower.Contains("băng"))
         {
-            Debug.Log("Đã quấn băng gạc, cầm máu thành công!");
+            Debug.Log("Đã quấn băng gạc!");
         }
         else if (nameLower.Contains("painkiller") || nameLower.Contains("thuốc") || nameLower.Contains("đau"))
         {
-            playerHealth.UsePainkiller();
-            Debug.Log("Đã uống thuốc, hết đau nhức!");
+            health.UsePainkiller();
+            Debug.Log("Đã dùng thuốc giảm đau!");
         }
     }
     #endregion
@@ -1231,14 +1071,11 @@ public class AutoUIManager : MonoBehaviour
         txt.alignment = TextAlignmentOptions.Center;
         txt.color = Color.white;
         txt.enableAutoSizing = true;
-        txt.fontSizeMin = 14;
-        txt.fontSizeMax = 22;
+        txt.fontSizeMin = 14; txt.fontSizeMax = 22;
 
         RectTransform txtRect = txtObj.GetComponent<RectTransform>();
-        txtRect.anchorMin = new Vector2(0.05f, 0.5f);
-        txtRect.anchorMax = new Vector2(0.95f, 0.95f);
-        txtRect.offsetMin = Vector2.zero;
-        txtRect.offsetMax = Vector2.zero;
+        txtRect.anchorMin = new Vector2(0.05f, 0.5f); txtRect.anchorMax = new Vector2(0.95f, 0.95f);
+        txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero;
 
         CreateTradeBtn("BtnYes", "ĐỒNG Ý", new Color(0.2f, 0.6f, 0.2f), new Vector2(0.25f, 0.3f), activeFont, OnAcceptTradeClicked);
         CreateTradeBtn("BtnNo", "TỪ CHỐI", new Color(0.8f, 0.2f, 0.2f), new Vector2(0.75f, 0.3f), activeFont, OnDeclineTradeClicked);
@@ -1253,10 +1090,8 @@ public class AutoUIManager : MonoBehaviour
 
         RectTransform rect = btnObj.AddComponent<RectTransform>();
         rect.sizeDelta = new Vector2(130, 45);
-        rect.anchorMin = anchor;
-        rect.anchorMax = anchor;
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.anchoredPosition = Vector2.zero;
+        rect.anchorMin = anchor; rect.anchorMax = anchor;
+        rect.pivot = new Vector2(0.5f, 0.5f); rect.anchoredPosition = Vector2.zero;
 
         Image img = btnObj.AddComponent<Image>();
         img.color = color;
@@ -1268,16 +1103,11 @@ public class AutoUIManager : MonoBehaviour
         txtObj.transform.SetParent(btnObj.transform, false);
 
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
-        txt.font = font;
-        txt.text = text;
-        txt.fontSize = 18;
-        txt.alignment = TextAlignmentOptions.Center;
-        txt.color = Color.white;
-        txt.fontStyle = FontStyles.Bold;
+        txt.font = font; txt.text = text; txt.fontSize = 18;
+        txt.alignment = TextAlignmentOptions.Center; txt.color = Color.white; txt.fontStyle = FontStyles.Bold;
 
         RectTransform tRect = txtObj.GetComponent<RectTransform>();
-        tRect.anchorMin = Vector2.zero;
-        tRect.anchorMax = Vector2.one;
+        tRect.anchorMin = Vector2.zero; tRect.anchorMax = Vector2.one;
         tRect.offsetMin = tRect.offsetMax = Vector2.zero;
     }
 
@@ -1287,8 +1117,6 @@ public class AutoUIManager : MonoBehaviour
         pendingTradeTarget = target;
 
         if (inventoryPanel != null) inventoryPanel.SetActive(false);
-        if (combatPanelObj != null) combatPanelObj.SetActive(false);
-        if (survivalPanelObj != null) survivalPanelObj.SetActive(false);
         if (ammoContainer != null) ammoContainer.SetActive(false);
         if (actionBarPanel != null) actionBarPanel.SetActive(false);
 
@@ -1299,8 +1127,6 @@ public class AutoUIManager : MonoBehaviour
 
     private void RestoreHUD()
     {
-        if (combatPanelObj != null) combatPanelObj.SetActive(true);
-        if (survivalPanelObj != null) survivalPanelObj.SetActive(true);
         if (ammoContainer != null) ammoContainer.SetActive(true);
     }
 
@@ -1329,81 +1155,14 @@ public class AutoUIManager : MonoBehaviour
     }
     #endregion
 
-    #region Các Hàm Cập Nhật Thường Xuyên (Survival, Action Routine)
-    private void UpdateSurvivalUI()
-    {
-        if (localPlayer == null)
-        {
-            var allPlayers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
-            foreach (var p in allPlayers)
-            {
-                if (p != null && p.Object != null && p.HasInputAuthority)
-                {
-                    localPlayer = p.gameObject;
-                    playerHealth = p.GetComponent<PlayerHealth>();
-                    playerStamina = p.GetComponent<PlayerStamina>();
-                    playerSurvival = p.GetComponent<PlayerSurvival>();
-                    break;
-                }
-            }
-        }
-
-        if (localPlayer == null) return;
-
-        if (playerHealth == null || playerHealth.Object == null || !playerHealth.Object.IsValid || playerHealth.isDead)
-        {
-            if (healthFill != null && healthFill.transform.parent != null) healthFill.transform.parent.gameObject.SetActive(false);
-            if (staminaFill != null && staminaFill.transform.parent != null) staminaFill.transform.parent.gameObject.SetActive(false);
-            if (hungerFill != null && hungerFill.transform.parent != null) hungerFill.transform.parent.gameObject.SetActive(false);
-            if (thirstFill != null && thirstFill.transform.parent != null) thirstFill.transform.parent.gameObject.SetActive(false);
-            return;
-        }
-        else
-        {
-            if (healthFill != null && healthFill.transform.parent != null) healthFill.transform.parent.gameObject.SetActive(true);
-            if (staminaFill != null && staminaFill.transform.parent != null) staminaFill.transform.parent.gameObject.SetActive(true);
-            if (hungerFill != null && hungerFill.transform.parent != null) hungerFill.transform.parent.gameObject.SetActive(true);
-            if (thirstFill != null && thirstFill.transform.parent != null) thirstFill.transform.parent.gameObject.SetActive(true);
-        }
-
-        if (healthFill != null) UpdateHorizontalBar(healthFill, playerHealth.currentHealth, playerHealth.maxHealth, 220f);
-        if (staminaFill != null) UpdateHorizontalBar(staminaFill, playerStamina.currentStamina, playerStamina.maxStamina, 220f);
-        if (playerSurvival != null)
-        {
-            if (hungerFill != null) hungerFill.fillAmount = Mathf.Clamp01(playerSurvival.currentHunger / playerSurvival.maxHunger);
-            if (thirstFill != null) thirstFill.fillAmount = Mathf.Clamp01(playerSurvival.currentThirst / playerSurvival.maxThirst);
-        }
-    }
-
-    private void UpdateHorizontalBar(Image fillImg, float currentVal, float maxVal, float baseWidth)
-    {
-        if (maxVal <= 0) maxVal = 1f;
-        float ratio = currentVal / maxVal;
-
-        RectTransform bgRect = fillImg.transform.parent.GetComponent<RectTransform>();
-        LayoutElement bgLayout = bgRect.GetComponent<LayoutElement>();
-        if (bgLayout == null) bgLayout = bgRect.gameObject.AddComponent<LayoutElement>();
-
-        if (ratio > 1f)
-        {
-            bgLayout.preferredWidth = baseWidth * ratio;
-            fillImg.fillAmount = 1f;
-        }
-        else
-        {
-            bgLayout.preferredWidth = baseWidth;
-            fillImg.fillAmount = ratio;
-        }
-    }
-
+    #region Action Routine
     private IEnumerator ActionTimerRoutine(int slotIndex, ItemData itemToUse)
     {
         isDoingAction = true;
         actionBarPanel.SetActive(true);
         actionBarFill.fillAmount = 0f;
 
-        if (inventoryPanel != null)
-            inventoryPanel.SetActive(false);
+        if (inventoryPanel != null) inventoryPanel.SetActive(false);
         CloseContainerUI();
         yield return new WaitForSeconds(0.1f);
 
@@ -1420,8 +1179,6 @@ public class AutoUIManager : MonoBehaviour
             {
                 actionBarPanel.SetActive(false);
                 isDoingAction = false;
-
-                Debug.Log("Đã hủy dùng đồ do di chuyển!");
                 yield break;
             }
             yield return null;
@@ -1430,49 +1187,18 @@ public class AutoUIManager : MonoBehaviour
         actionBarPanel.SetActive(false);
         isDoingAction = false;
 
+        if (localPlayer == null)
+        {
+            var pMove = FindAnyObjectByType<PlayerMovement>();
+            if (pMove != null && pMove.HasInputAuthority)
+                localPlayer = pMove.gameObject;
+        }
+
         if (localPlayer != null)
         {
             localPlayer.GetComponent<InventorySystem>().UseItem(slotIndex);
             ApplyMedicalCure(itemToUse.itemName);
         }
-    }
-
-    private void GenerateSurvivalBars(GameObject canvasGO)
-    {
-        combatPanelObj = new GameObject("CombatStatsPanel", typeof(RectTransform));
-        combatPanelObj.transform.SetParent(canvasGO.transform, false);
-
-        RectTransform combatRect = combatPanelObj.GetComponent<RectTransform>();
-        combatRect.anchorMin = new Vector2(0, 1);
-        combatRect.anchorMax = new Vector2(0, 1);
-        combatRect.pivot = new Vector2(0, 1);
-        combatRect.anchoredPosition = new Vector2(10, 10);
-
-        VerticalLayoutGroup combatLayout = combatPanelObj.AddComponent<VerticalLayoutGroup>();
-        combatLayout.spacing = -50;
-        combatLayout.childControlHeight = true;
-        combatLayout.childControlWidth = true;
-
-        healthFill = CreateHorizontalBar(combatPanelObj.transform, "Health", iconHealth, new Color(0.8f, 0.15f, 0.15f), 220, 22);
-        staminaFill = CreateHorizontalBar(combatPanelObj.transform, "Stamina", iconStamina, new Color(0.9f, 0.7f, 0.1f), 220, 8);
-
-        survivalPanelObj = new GameObject("SurvivalStatsPanel", typeof(RectTransform));
-        survivalPanelObj.transform.SetParent(canvasGO.transform, false);
-
-        RectTransform survivalRect = survivalPanelObj.GetComponent<RectTransform>();
-        survivalRect.anchorMin = new Vector2(1, 0);
-        survivalRect.anchorMax = new Vector2(1, 0);
-        survivalRect.pivot = new Vector2(1, 0);
-        survivalRect.anchoredPosition = new Vector2(0, 0);
-
-        HorizontalLayoutGroup survivalLayout = survivalPanelObj.AddComponent<HorizontalLayoutGroup>();
-        survivalLayout.spacing = -25;
-        survivalLayout.childAlignment = TextAnchor.LowerRight;
-        survivalLayout.childControlHeight = true;
-        survivalLayout.childControlWidth = true;
-
-        hungerFill = CreateVerticalBar(survivalPanelObj.transform, "Hunger", iconHunger, new Color(0.2f, 0.7f, 0.2f), 15, 150);
-        thirstFill = CreateVerticalBar(survivalPanelObj.transform, "Thirst", iconThirst, new Color(0.15f, 0.5f, 0.9f), 15, 150);
     }
     #endregion
 
@@ -1522,8 +1248,7 @@ public class AutoUIManager : MonoBehaviour
 
     public void HideTooltip()
     {
-        if (tooltipPanel != null)
-            tooltipPanel.SetActive(false);
+        if (tooltipPanel != null) tooltipPanel.SetActive(false);
     }
 
     public void ShowContextMenu(int index)
@@ -1534,11 +1259,7 @@ public class AutoUIManager : MonoBehaviour
             selectedSlotIndex = index;
 
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                mainCanvas.transform as RectTransform,
-                Input.mousePosition,
-                mainCanvas.worldCamera,
-                out Vector2 mousePos
-            );
+                mainCanvas.transform as RectTransform, Input.mousePosition, mainCanvas.worldCamera, out Vector2 mousePos);
 
             contextMenuPanel.transform.localPosition = mousePos;
             contextMenuPanel.SetActive(true);
@@ -1547,8 +1268,7 @@ public class AutoUIManager : MonoBehaviour
 
     public void HideContextMenu()
     {
-        if (contextMenuPanel != null)
-            contextMenuPanel.SetActive(false);
+        if (contextMenuPanel != null) contextMenuPanel.SetActive(false);
         selectedSlotIndex = -1;
     }
 
@@ -1568,11 +1288,8 @@ public class AutoUIManager : MonoBehaviour
         ammoContainer.transform.SetParent(mainCanvas.transform, false);
 
         RectTransform containerRt = ammoContainer.AddComponent<RectTransform>();
-        containerRt.anchorMin = new Vector2(0, 0);
-        containerRt.anchorMax = new Vector2(0, 0);
-        containerRt.pivot = new Vector2(0, 0);
-        containerRt.anchoredPosition = new Vector2(10, 15);
-        containerRt.sizeDelta = new Vector2(250, 25);
+        containerRt.anchorMin = new Vector2(0, 0); containerRt.anchorMax = new Vector2(0, 0);
+        containerRt.pivot = new Vector2(0, 0); containerRt.anchoredPosition = new Vector2(10, 15); containerRt.sizeDelta = new Vector2(250, 25);
 
         GameObject iconObj = new GameObject("AmmoIcon");
         iconObj.transform.SetParent(ammoContainer.transform, false);
@@ -1581,11 +1298,8 @@ public class AutoUIManager : MonoBehaviour
         if (iconAmmo != null) ammoImage.sprite = iconAmmo;
 
         RectTransform iconRt = iconObj.GetComponent<RectTransform>();
-        iconRt.anchorMin = new Vector2(0, 0.5f);
-        iconRt.anchorMax = new Vector2(0, 0.5f);
-        iconRt.pivot = new Vector2(0, 0.5f);
-        iconRt.anchoredPosition = new Vector2(15, 0);
-        iconRt.sizeDelta = new Vector2(15, 30);
+        iconRt.anchorMin = new Vector2(0, 0.5f); iconRt.anchorMax = new Vector2(0, 0.5f);
+        iconRt.pivot = new Vector2(0, 0.5f); iconRt.anchoredPosition = new Vector2(15, 0); iconRt.sizeDelta = new Vector2(15, 30);
 
         GameObject textObj = new GameObject("AmmoText");
         textObj.transform.SetParent(ammoContainer.transform, false);
@@ -1594,23 +1308,17 @@ public class AutoUIManager : MonoBehaviour
         TMP_FontAsset defaultFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (defaultFont != null) ammoText.font = defaultFont; else if (gameFont != null) ammoText.font = gameFont;
 
-        ammoText.fontSize = 20;
-        ammoText.color = Color.white;
-        ammoText.alignment = TextAlignmentOptions.MidlineLeft;
+        ammoText.fontSize = 20; ammoText.color = Color.white; ammoText.alignment = TextAlignmentOptions.MidlineLeft;
 
         RectTransform textRt = textObj.GetComponent<RectTransform>();
-        textRt.anchorMin = new Vector2(0, 0.5f);
-        textRt.anchorMax = new Vector2(0, 0.5f);
-        textRt.pivot = new Vector2(0, 0.5f);
-        textRt.anchoredPosition = new Vector2(50, 0);
-        textRt.sizeDelta = new Vector2(200, 25);
+        textRt.anchorMin = new Vector2(0, 0.5f); textRt.anchorMax = new Vector2(0, 0.5f);
+        textRt.pivot = new Vector2(0, 0.5f); textRt.anchoredPosition = new Vector2(50, 0); textRt.sizeDelta = new Vector2(200, 25);
         ammoText.text = "-- / --";
     }
 
     public void UpdateAmmoUI(int current, int reserve)
     {
-        if (ammoText != null)
-            ammoText.text = $"{current} / {reserve}";
+        if (ammoText != null) ammoText.text = $"{current} / {reserve}";
     }
 
     public void ShowReloadUI(float currentTimer, float maxDuration)
@@ -1625,6 +1333,41 @@ public class AutoUIManager : MonoBehaviour
     {
         if (actionBarPanel != null) actionBarPanel.SetActive(false);
         if (ammoContainer != null) ammoContainer.SetActive(true);
+    }
+    public bool HasItemAt(int index, bool isInv)
+    {
+        if (isInv) return currentSlots != null && index < currentSlots.Count && currentSlots[index].amount > 0;
+        return currentOpenContainer != null && index < currentOpenContainer.itemsInContainer.Count && currentOpenContainer.itemsInContainer[index].amount > 0;
+    }
+
+    public void DragItemToContainer(int invIdx)
+    {
+        if (currentOpenContainer == null || currentSlots == null || invIdx >= currentSlots.Count) return;
+
+        // 🔥 Tự tìm lại localPlayer nếu nó bị null
+        if (localPlayer == null) localPlayer = FindAnyObjectByType<PlayerMovement>()?.gameObject;
+        if (localPlayer == null) return;
+
+        InventorySlot slot = currentSlots[invIdx];
+        if (slot.item == null) return;
+
+        currentOpenContainer.RPC_StoreItem(slot.item.itemName, slot.amount);
+        localPlayer.GetComponent<InventorySystem>().ConsumeItem(slot.item, slot.amount);
+    }
+
+    public void DragItemToInventory(int contIdx)
+    {
+        if (currentOpenContainer == null || contIdx >= currentOpenContainer.itemsInContainer.Count) return;
+
+        // 🔥 Tự tìm lại localPlayer nếu nó bị null
+        if (localPlayer == null) localPlayer = FindAnyObjectByType<PlayerMovement>()?.gameObject;
+        if (localPlayer == null) return;
+
+        InventorySlot slot = currentOpenContainer.itemsInContainer[contIdx];
+        if (slot.item == null) return;
+
+        string name = slot.item.itemName;
+        currentOpenContainer.RPC_RequestTakeItem(contIdx, name, localPlayer.GetComponent<NetworkObject>().InputAuthority);
     }
     #endregion
 }
