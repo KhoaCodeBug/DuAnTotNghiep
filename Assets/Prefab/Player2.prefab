@@ -848,6 +848,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b3abd109232fb3446843a51cc89f6870, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  iconStamina: {fileID: 2800000, guid: 89ec501f452299c4286a5d68c3695fa7, type: 3}
   _maxStamina: 0
   _currentStamina: 0
   staminaDrain: 15
@@ -908,6 +909,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f7dd8af34ed75f4ab504655ca8a63fd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  iconHunger: {fileID: 2800000, guid: 4089d64390dfec244b603edee23555f6, type: 3}
+  iconThirst: {fileID: 2800000, guid: 86a3b6e0caa9d48469793001bd3204d0, type: 3}
   maxHunger: 100
   _currentHunger: 0
   hungerDrainRate: 0.1

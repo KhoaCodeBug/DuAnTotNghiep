@@ -23,7 +23,7 @@ public class PlayerHealth : NetworkBehaviour
     [Networked] public NetworkBool isInPain { get; set; }
 
     // ==========================================
-    // 🔥 PHẦN 2 & 4: HỆ THỐNG NHIỄM TRÙNG & KẺ PHẢN BỘI
+    // 🔥 HỆ THỐNG NHIỄM TRÙNG & KẺ PHẢN BỘI
     // ==========================================
     [Header("Hệ thống Nhiễm Trùng")]
     [Networked] public float infectionTimer { get; set; } = 600f;
@@ -190,6 +190,7 @@ public class PlayerHealth : NetworkBehaviour
 
         if (isDead) return;
 
+        // VẾT CẮN RÚT MÁU KHI SẮP HÓA ZOMBIE
         if (isBitten)
         {
             float safeTimer = Mathf.Max(infectionTimer, Runner.DeltaTime);
@@ -211,6 +212,7 @@ public class PlayerHealth : NetworkBehaviour
             }
         }
 
+        // TỤT MÁU DO CHẢY MÁU CỦA VẾT THƯƠNG HỞ
         if (isBleeding)
         {
             currentHealth -= bleedDamagePerSecond * Runner.DeltaTime;
@@ -483,7 +485,6 @@ public class PlayerHealth : NetworkBehaviour
                 hiddenNameTags.Add(nameTag);
             }
 
-            // 🔥 BẬT CÔNG TẮC: Chặn lỗi vàng khi tráo Animator
             if (pm != null) pm.isParanoiaZombie = true;
         }
         isFakeZombieVisible = true;
@@ -498,8 +499,6 @@ public class PlayerHealth : NetworkBehaviour
             if (kvp.Key != null)
             {
                 kvp.Key.runtimeAnimatorController = kvp.Value;
-
-                // 🔥 TẮT CÔNG TẮC: Trả tự do cho PlayerMovement
                 PlayerMovement pm = kvp.Key.GetComponentInParent<PlayerMovement>();
                 if (pm != null) pm.isParanoiaZombie = false;
             }
@@ -514,5 +513,6 @@ public class PlayerHealth : NetworkBehaviour
         hiddenNameTags.Clear();
     }
 
+    // ĐỂ TRỐNG THEO LỆNH SẾP (KHÔNG VẼ MOODLE RÁC)
     private void OnGUI() { }
 }
