@@ -701,7 +701,7 @@ MonoBehaviour:
   weaponRange: 15
   enemyLayer:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 520
   shootNoiseRadius: 5
   ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
   magazineSize: 30
