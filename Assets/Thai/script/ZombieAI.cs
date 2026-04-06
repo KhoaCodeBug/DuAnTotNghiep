@@ -1,39 +1,53 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
-using Fusion; // THÊM THƯ VIỆN NÀY
+using Fusion;
 
-public class ZombieAI : NetworkBehaviour // Đổi sang NetworkBehaviour
+public class ZombieAI : NetworkBehaviour
 {
     [Header("Mục tiêu & Tốc độ")]
-    public Transform player;
     public float moveSpeed = 3.5f;
-
-    [Header("Tầm nhìn & Phạm vi")]
     public float chaseRange = 10f;
     public float attackRange = 1.5f;
     public float damageRadius = 1.8f;
 
-    [Header("Cài đặt Tấn công")]
+    [Header("Sát thương & Cooldown")]
     public float attackCooldown = 1.5f;
     public float damageAtk1 = 10f;
     public float damageAtk2 = 15f;
     public float damageAtk3 = 20f;
     public float damageAtk4 = 30f;
 
+    private Transform player;
     private NavMeshAgent agent;
     private Animator anim;
     private ZombieHealth healthScript;
 
     private float attackTimer = 0f;
     private float searchTimer = 0f;
-    private float searchInterval = 0.5f;
 
-    // CÁC BIẾN MẠNG ĐỂ ĐỒNG BỘ ANIMATION
+    // Ghi nhớ chiêu thức quái vật đang đánh
+    private int currentAttackIndex = 1;
+
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
 
+    // Khóa tự xoay của NavMesh ngay khi game vừa Play
+    private void Awake()
+    {
+        agent = GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.updateRotation = false;
+            agent.updateUpAxis = false;
+        }
+    }
+
     public override void Spawned()
     {
+        // 2 DÒNG LỆNH TỐI THƯỢNG: Ép đứng thẳng (0,0,0) và chốt hạ trục Z = 0
+        transform.rotation = Quaternion.identity;
+        transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
+
         agent = GetComponent<NavMeshAgent>();
         anim = GetComponent<Animator>();
         healthScript = GetComponent<ZombieHealth>();
@@ -49,90 +63,77 @@ public class ZombieAI : NetworkBehaviour // Đổi sang NetworkBehaviour
             agent.updateRotation = false;
             agent.updateUpAxis = false;
             agent.speed = moveSpeed;
-
-            // DÒNG LỆNH MỚI: Ép con quái dính chặt vào lưới NavMesh gần nhất ngay khi xuất hiện
-            agent.Warp(transform.position);
+            agent.Warp(transform.position); // Đảm bảo bắt dính NavMesh 2D
         }
     }
 
-    // Đổi Update thành FixedUpdateNetwork của Photon
     public override void FixedUpdateNetwork()
     {
-        if (!HasStateAuthority) return; // Chỉ Host mới được tính toán AI
-
-        if (healthScript != null && healthScript.isDead)
+        if (!HasStateAuthority || (healthScript != null && healthScript.isDead))
         {
             if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             NetIsRunning = false;
             return;
         }
 
-        searchTimer -= Runner.DeltaTime; // Dùng Runner.DeltaTime thay cho Time.deltaTime
+        searchTimer -= Runner.DeltaTime;
         if (searchTimer <= 0)
         {
             FindClosestPlayer();
-            searchTimer = searchInterval;
+            searchTimer = 0.5f;
         }
 
-        if (player == null)
+        if (player == null || agent == null || !agent.isOnNavMesh)
         {
-            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             NetIsRunning = false;
+            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             return;
         }
 
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
-        Vector2 dirToPlayer = (player.position - transform.position).normalized;
         if (attackTimer > 0) attackTimer -= Runner.DeltaTime;
 
-        if (agent == null || !agent.isOnNavMesh)
-        {
-            NetIsRunning = false;
-            if (distanceToPlayer <= chaseRange) NetMoveDir = dirToPlayer;
-            return;
-        }
-
-        // XỬ LÝ 3 TRẠNG THÁI AI
         if (distanceToPlayer > chaseRange)
         {
             agent.isStopped = true;
             NetIsRunning = false;
         }
-        else if (distanceToPlayer <= chaseRange && distanceToPlayer > attackRange)
+        else if (distanceToPlayer > attackRange)
         {
             agent.isStopped = false;
             agent.speed = moveSpeed;
             agent.SetDestination(player.position);
 
             NetIsRunning = true;
-            NetMoveDir = agent.velocity.normalized;
+            NetMoveDir = (agent.steeringTarget - transform.position).normalized;
         }
-        else // KHI VÀO TẦM ĐÁNH
+        else
         {
             agent.isStopped = true;
             NetIsRunning = false;
-            NetMoveDir = dirToPlayer;
+            NetMoveDir = (player.position - transform.position).normalized;
 
             if (attackTimer <= 0)
             {
+                // Chọn chiêu ngẫu nhiên và LƯU LẠI VÀO TRÍ NHỚ
                 int randomAtk = Random.Range(1, 5);
-                RPC_TriggerAttack(randomAtk); // Ra lệnh cho toàn Server phát đòn đánh
+                currentAttackIndex = randomAtk;
+
+                RPC_TriggerAttack(randomAtk);
                 attackTimer = attackCooldown;
             }
         }
     }
 
-    // Hàm Render chạy trên mọi máy (Kể cả máy trạm) để cập nhật hình ảnh mượt mà
     public override void Render()
     {
-        if (anim != null)
+        if (anim == null) return;
+
+        anim.SetBool("IsRunning", NetIsRunning);
+        if (NetMoveDir != Vector2.zero)
         {
-            anim.SetBool("IsRunning", NetIsRunning); // Chữ I viết hoa
-            if (NetMoveDir != Vector2.zero)
-            {
-                anim.SetFloat("DirX", NetMoveDir.x);
-                anim.SetFloat("DirY", NetMoveDir.y);
-            }
+            anim.SetFloat("DirX", NetMoveDir.x);
+            anim.SetFloat("DirY", NetMoveDir.y);
         }
     }
 
@@ -140,13 +141,15 @@ public class ZombieAI : NetworkBehaviour // Đổi sang NetworkBehaviour
     public void RPC_TriggerAttack(int atkIndex)
     {
         if (anim != null) anim.SetTrigger("Atk" + atkIndex);
+
+        Debug.Log($"<color=orange><b>[BÁO ĐỘNG] Zombie đang tung chiêu: ĐÒN SỐ {atkIndex}</b></color>");
     }
 
     void FindClosestPlayer()
     {
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
         float closestDistance = chaseRange;
-        Transform target = null;
+        player = null;
 
         foreach (GameObject p in allPlayers)
         {
@@ -154,24 +157,24 @@ public class ZombieAI : NetworkBehaviour // Đổi sang NetworkBehaviour
             if (dist < closestDistance)
             {
                 closestDistance = dist;
-                target = p.transform;
+                player = p.transform;
             }
         }
-        player = target;
     }
 
-    public void Event_HitATK1() { ExecuteDamage(damageAtk1); }
-    public void Event_HitATK2() { ExecuteDamage(damageAtk2); }
-    public void Event_HitATK3() { ExecuteDamage(damageAtk3); }
-    public void Event_HitATK4() { ExecuteDamage(damageAtk4); }
+    public void DealDamage()
+    {
+        if (currentAttackIndex == 1) ExecuteDamage(damageAtk1);
+        else if (currentAttackIndex == 2) ExecuteDamage(damageAtk2);
+        else if (currentAttackIndex == 3) ExecuteDamage(damageAtk3);
+        else if (currentAttackIndex == 4) ExecuteDamage(damageAtk4);
+    }
 
     private void ExecuteDamage(float damageAmount)
     {
-        if (!HasStateAuthority) return; // Chỉ máy chủ mới được quyền trừ máu
-        if (player == null) return;
+        if (!HasStateAuthority || player == null) return;
 
-        float distanceToPlayer = Vector2.Distance(transform.position, player.position);
-        if (distanceToPlayer <= damageRadius)
+        if (Vector2.Distance(transform.position, player.position) <= damageRadius)
         {
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
             if (pHealth != null) pHealth.TakeDamage(damageAmount);
@@ -179,4 +182,15 @@ public class ZombieAI : NetworkBehaviour // Đổi sang NetworkBehaviour
     }
 
     public void OnTakeDamageStun() { attackTimer = 1f; }
+
+    // HÀM VẼ VÒNG TRÒN TRONG SCENE ĐỂ DỄ CHỈNH SỬA TẦM NHÌN/ĐÁNH
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, chaseRange);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, damageRadius);
+    }
 }
