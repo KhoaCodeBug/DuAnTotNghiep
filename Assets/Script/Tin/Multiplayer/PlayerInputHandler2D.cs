@@ -100,7 +100,10 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         var data = new PlayerNetworkInput();
 
         bool isTyping = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
-        bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
+
+        // 🔥 SỬ DỤNG CẦU DAO TỔNG Ở ĐÂY: Bao gồm Balo, Bảng Trade, Tủ Đồ Loot
+        bool isUIMenuOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen();
+
         bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
 
         bool isDead = false;
@@ -111,7 +114,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         }
 
         // 🔥 CHẶN TẤT CẢ INPUT NẾU ĐANG MỞ UI HOẶC ĐÃ CHẾT
-        if (isTyping || isInvOpen || isHealthOpen || isDead)
+        // Khi trả về 1 input rỗng, nhân vật sẽ đứng im, không bấm chuột phải bắn súng được luôn!
+        if (isTyping || isUIMenuOpen || isHealthOpen || isDead)
         {
             input.Set(new PlayerNetworkInput());
             return;

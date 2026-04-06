@@ -209,30 +209,62 @@ public class PlayerCombat : NetworkBehaviour
 
         if (HasStateAuthority)
         {
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, shootDirection, weaponRange, enemyLayer);
-            if (hit.collider != null)
-            {
-                float finalGunDamage = gunDamage;
-                PlayerHealth health = GetComponent<PlayerHealth>();
+            // 🔥 ĐỔI SANG RAYCAST ALL: Đạn bay xuyên thấu để lọc mục tiêu
+            RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, shootDirection, weaponRange, enemyLayer);
 
-                if (health != null && health.isInPain)
+            foreach (RaycastHit2D hit in hits)
+            {
+                if (hit.collider == null) continue;
+
+                // 1. TRÁNH TỰ TỬ: Nếu đạn đụng phải chính cơ thể người bắn -> Bỏ qua, bay tiếp!
+                if (hit.collider.transform.root == this.transform.root || hit.collider.gameObject == this.gameObject)
+                    continue;
+
+                float finalGunDamage = gunDamage;
+                PlayerHealth myHealth = GetComponent<PlayerHealth>();
+
+                if (myHealth != null && myHealth.isInPain)
                 {
                     finalGunDamage *= 0.7f;
                 }
+
+                // ========================================================
+                // 🔥 HỆ THỐNG FRIENDLY FIRE
+                // ========================================================
+                PlayerHealth targetPlayer = hit.collider.GetComponentInParent<PlayerHealth>();
+                if (targetPlayer != null)
+                {
+                    if (targetPlayer.isBitten)
+                    {
+                        Debug.Log("⚠️ Đã bắn trúng người chơi bị nhiễm bệnh!");
+                        targetPlayer.TakeDamage(finalGunDamage);
+                        break; // Bắn trúng cơ thể thịt -> Đạn ghim lại, không bay xuyên táo nữa
+                    }
+                    else
+                    {
+                        Debug.Log("❌ Đạn bay xuyên qua người chơi khỏe mạnh!");
+                        continue; // Người khỏe mạnh tàng hình với đạn -> Đạn bay tiếp tìm Zombie phía sau
+                    }
+                }
+                // ========================================================
 
                 // XỬ LÝ SÁT THƯƠNG ZOMBIE THƯỜNG
                 ZOmbieAI_Khoa enemy = hit.collider.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemy != null)
                 {
                     enemy.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
+                    break; // Đạn ghim vào Zombie, kết thúc tia đạn
                 }
 
-                // 🔥 XỬ LÝ SÁT THƯƠNG TRAITOR BOSS
+                // XỬ LÝ SÁT THƯƠNG TRAITOR BOSS
                 TraitorBossAI boss = hit.collider.GetComponentInParent<TraitorBossAI>();
                 if (boss != null)
                 {
                     boss.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
+                    break; // Đạn ghim vào Boss, kết thúc tia đạn
                 }
+
+                // Nếu sếp có layer Tường chắn đạn nằm trong enemyLayer, thêm điều kiện break ở đây
             }
         }
     }
@@ -255,12 +287,35 @@ public class PlayerCombat : NetworkBehaviour
             foreach (Collider2D enemy in hitEnemies)
             {
                 float finalBashDamage = bashDamage;
-                PlayerHealth health = GetComponent<PlayerHealth>();
+                PlayerHealth myHealth = GetComponent<PlayerHealth>();
 
-                if (health != null && health.isInPain)
+                if (myHealth != null && myHealth.isInPain)
                 {
                     finalBashDamage *= 0.7f;
                 }
+
+                // ========================================================
+                // 🔥 HỆ THỐNG FRIENDLY FIRE (ÁP DỤNG KHI ĐẬP BÁNG SÚNG)
+                // ========================================================
+                PlayerHealth targetPlayer = enemy.GetComponentInParent<PlayerHealth>();
+                if (targetPlayer != null && !alreadyHitIDs.Contains(targetPlayer.gameObject.GetInstanceID()))
+                {
+                    if (targetPlayer.Object != null && targetPlayer.Object.InputAuthority != Runner.LocalPlayer)
+                    {
+                        if (targetPlayer.isBitten)
+                        {
+                            Debug.Log("⚠️ Đã đập trúng người chơi bị nhiễm bệnh!");
+                            targetPlayer.TakeDamage(finalBashDamage);
+                            alreadyHitIDs.Add(targetPlayer.gameObject.GetInstanceID());
+                        }
+                        else
+                        {
+                            Debug.Log("❌ Người chơi này đang khỏe mạnh! Không đập được.");
+                        }
+                    }
+                    continue; // Dừng lại ở đây vì đã xử lý xong phần đập người chơi
+                }
+                // ========================================================
 
                 // XỬ LÝ ĐẬP ZOMBIE THƯỜNG
                 ZOmbieAI_Khoa enemyStats = enemy.GetComponentInParent<ZOmbieAI_Khoa>();
@@ -270,7 +325,7 @@ public class PlayerCombat : NetworkBehaviour
                     alreadyHitIDs.Add(enemyStats.GetInstanceID());
                 }
 
-                // 🔥 XỬ LÝ ĐẬP TRAITOR BOSS
+                // XỬ LÝ ĐẬP TRAITOR BOSS
                 TraitorBossAI bossStats = enemy.GetComponentInParent<TraitorBossAI>();
                 if (bossStats != null && !alreadyHitIDs.Contains(bossStats.GetInstanceID()))
                 {

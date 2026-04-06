@@ -51,9 +51,10 @@ public class LootContainer : NetworkBehaviour
     }
 
     // =========================================================
-    // 🔥 FIX QUAN TRỌNG NHẤT: Đổi RpcSources.InputAuthority thành RpcSources.All
-    // Cái tủ là của chung, nên AI CŨNG CÓ QUYỀN (All) gọi lên cho Server (StateAuthority)
+    // 🔥 1. LẤY ĐỒ TỪ TỦ BỎ VÀO BALO (DRAG HOẶC CLICK)
     // =========================================================
+
+    // Yêu cầu lấy đồ gửi từ bất kỳ ai lên Server
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_RequestTakeItem(int slotIndex, string requestedItemName, PlayerRef playerTryingToLoot)
     {
@@ -77,15 +78,15 @@ public class LootContainer : NetworkBehaviour
         // Báo riêng cho cái thằng vừa click: "Lụm thành công rồi, nhét vô túi đi!"
         RPC_ConfirmLootSuccess(playerTryingToLoot, requestedItemName, amount);
 
-        // Phóng thanh cho tất cả mọi người đang dòm cái tủ: "Cập nhật giao diện đi tụi bây!"
-        RPC_UpdateContainerUIForAll();
+        // Phóng thanh cho tất cả Client: "Đồng bộ lại danh sách tủ đồ đi tụi bây!"
+        RPC_SyncRemoveItem(slotIndex);
     }
 
-    // Lệnh này Host gọi, gửi về tất cả Client, nhưng chỉ Client nào đúng ID mới được thêm đồ vào túi
+    // Server cho phép thêm đồ vào Balo của người chơi
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ConfirmLootSuccess(PlayerRef targetPlayer, string itemName, int amount)
     {
-        // Kiểm tra xem máy này có phải là máy của thằng được cho đồ không?
+        // Chỉ thằng nào lấy mới được thêm đồ
         if (Runner.LocalPlayer == targetPlayer)
         {
             ItemData itemData = Resources.Load<ItemData>("Items/" + itemName);
@@ -98,41 +99,38 @@ public class LootContainer : NetworkBehaviour
         }
     }
 
-    // Lệnh này bắt mọi máy tính (đang mở cái tủ này) phải vẽ lại UI
+    // Đồng bộ thao tác xóa đồ trên tất cả máy Client
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_UpdateContainerUIForAll()
+    public void RPC_SyncRemoveItem(int slotIndex)
     {
+        // Client tự xóa đồ để khớp với Server
+        if (!HasStateAuthority)
+        {
+            if (slotIndex >= 0 && slotIndex < itemsInContainer.Count)
+            {
+                itemsInContainer.RemoveAt(slotIndex);
+            }
+        }
+
+        // Vẽ lại giao diện
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsContainerOpen(this))
         {
             AutoUIManager.Instance.RefreshContainerUI(this);
         }
     }
 
-    // Các hàm tìm Local Player
-    private PlayerMovement GetLocalPlayer()
-    {
-        var players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
-        foreach (var p in players) { if (p.HasInputAuthority) return p; }
-        return null;
-    }
+    // =========================================================
+    // 🔥 2. CẤT ĐỒ TỪ BALO VÀO TỦ (DRAG HOẶC CLICK)
+    // =========================================================
 
-    private InventorySystem FindLocalInventory()
-    {
-        var players = FindObjectsByType<InventorySystem>(FindObjectsSortMode.None);
-        foreach (var p in players) { if (p.HasInputAuthority) return p; }
-        return null;
-    }
-    // =========================================================
-    // 🔥 MỚI: HÀM NHẬN ĐỒ TỪ NGƯỜI CHƠI CẤT VÀO TỦ
-    // =========================================================
+    // Gửi yêu cầu cất đồ lên Server
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_StoreItem(string itemName, int amount)
     {
-        // 1. Tải thông tin món đồ (Phải đảm bảo file ItemData nằm trong thư mục Resources/Items)
         ItemData itemData = Resources.Load<ItemData>("Items/" + itemName);
         if (itemData == null) return;
 
-        // 2. Kiểm tra xem trong tủ có món này chưa để cộng dồn (Stack)
+        // Xử lý logic gộp đồ (Stack) trên Server
         if (itemData.isStackable)
         {
             foreach (var slot in itemsInContainer)
@@ -143,8 +141,8 @@ public class LootContainer : NetworkBehaviour
                     if (amount <= spaceLeft)
                     {
                         slot.amount += amount;
-                        RPC_UpdateContainerUIForAll();
-                        return; // Xong việc
+                        RPC_SyncAddItem(itemName, amount); // Báo Client cập nhật
+                        return;
                     }
                     else
                     {
@@ -155,7 +153,7 @@ public class LootContainer : NetworkBehaviour
             }
         }
 
-        // 3. Nếu tủ chưa có món này, hoặc các stack cũ đã đầy -> Tạo ô mới
+        // Nếu còn dư hoặc đồ không stack được, tạo ô mới
         while (amount > 0 && itemsInContainer.Count < 20) // Giả sử tủ chứa tối đa 20 ô
         {
             int amountToStore = Mathf.Min(amount, itemData.maxStack);
@@ -163,7 +161,77 @@ public class LootContainer : NetworkBehaviour
             amount -= amountToStore;
         }
 
-        // 4. Báo mọi người đang dòm tủ cập nhật lại hình ảnh
-        RPC_UpdateContainerUIForAll();
+        RPC_SyncAddItem(itemName, amount); // Báo Client cập nhật
+    }
+
+    // Đồng bộ thao tác thêm đồ trên tất cả máy Client
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_SyncAddItem(string itemName, int amount)
+    {
+        // Client làm động tác thêm đồ Y CHANG Server để đồng bộ danh sách
+        if (!HasStateAuthority)
+        {
+            ItemData itemData = Resources.Load<ItemData>("Items/" + itemName);
+            if (itemData != null)
+            {
+                if (itemData.isStackable)
+                {
+                    foreach (var slot in itemsInContainer)
+                    {
+                        if (slot.item.itemName == itemData.itemName && slot.amount < itemData.maxStack)
+                        {
+                            int spaceLeft = itemData.maxStack - slot.amount;
+                            if (amount <= spaceLeft)
+                            {
+                                slot.amount += amount;
+                                amount = 0;
+                                break;
+                            }
+                            else
+                            {
+                                slot.amount += spaceLeft;
+                                amount -= spaceLeft;
+                            }
+                        }
+                    }
+                }
+
+                while (amount > 0 && itemsInContainer.Count < 20)
+                {
+                    int amountToStore = Mathf.Min(amount, itemData.maxStack);
+                    itemsInContainer.Add(new InventorySlot(itemData, amountToStore));
+                    amount -= amountToStore;
+                }
+            }
+        }
+
+        // Vẽ lại giao diện sau khi đồng bộ
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsContainerOpen(this))
+        {
+            AutoUIManager.Instance.RefreshContainerUI(this);
+        }
+    }
+
+    // =========================================================
+    // Các hàm tìm Local Player (Đã tinh chỉnh chống lỗi)
+    // =========================================================
+    private PlayerMovement GetLocalPlayer()
+    {
+        var players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        foreach (var p in players)
+        {
+            if (p.Object != null && p.HasInputAuthority) return p;
+        }
+        return null;
+    }
+
+    private InventorySystem FindLocalInventory()
+    {
+        var inventories = FindObjectsByType<InventorySystem>(FindObjectsSortMode.None);
+        foreach (var inv in inventories)
+        {
+            if (inv.Object != null && inv.HasInputAuthority) return inv;
+        }
+        return null;
     }
 }

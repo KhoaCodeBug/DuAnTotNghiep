@@ -82,8 +82,35 @@ public class AutoUIManager : MonoBehaviour
         UpdateTradeWindowRealtime();
     }
 
+    // 🔥 HÀM BẢO VỆ MULTIPLAYER: Đảm bảo luôn lấy đúng nhân vật của máy mình
+    private void EnsureLocalPlayer()
+    {
+        if (localPlayer != null && localPlayer.GetComponent<NetworkObject>().HasInputAuthority) return;
+
+        var players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        foreach (var pMove in players)
+        {
+            if (pMove.Object != null && pMove.HasInputAuthority)
+            {
+                localPlayer = pMove.gameObject;
+                return;
+            }
+        }
+    }
+
     private void HandleInput()
     {
+        // 🔥 KIỂM TRA TRADE (CÓ BẢO VỆ MẠNG)
+        EnsureLocalPlayer();
+        PlayerTrade pt = localPlayer != null ? localPlayer.GetComponent<PlayerTrade>() : null;
+        bool isTrading = false;
+
+        // CHỐT CHẶN: Phải chắc chắn nhân vật đã được Fusion setup xong hoàn toàn mới đọc biến mạng
+        if (pt != null && pt.Object != null && pt.Object.IsValid)
+        {
+            isTrading = pt.IsTrading;
+        }
+
         if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.I))
         {
             if (Time.time < invToggleCooldown) return;
@@ -96,12 +123,22 @@ public class AutoUIManager : MonoBehaviour
 
             invToggleCooldown = Time.time + 0.2f;
 
+            // 🔥 FIX: Đang mở Balo để chọn đồ trade -> Bấm Tab/I -> Quay về bảng Trade
+            if (isTrading && inventoryPanel != null && inventoryPanel.activeSelf)
+            {
+                inventoryPanel.SetActive(false);
+                if (tradeWindowPanel != null) tradeWindowPanel.SetActive(true);
+                HideContextMenu();
+                HideTooltip();
+                return; // Dừng tại đây, không chạy code đóng mở Balo thông thường ở dưới nữa
+            }
+
+            // Code đóng/mở Balo bình thường
             if (inventoryPanel != null)
             {
                 bool newState = !inventoryPanel.activeSelf;
                 inventoryPanel.SetActive(newState);
 
-                // 🔥 CẬP NHẬT: Ẩn/Hiện Ammo UI khi đóng mở Balo
                 if (ammoContainer != null) ammoContainer.SetActive(!newState);
 
                 if (!newState)
@@ -117,12 +154,23 @@ public class AutoUIManager : MonoBehaviour
         {
             if (Time.time < invToggleCooldown) return;
 
+            // 🔥 FIX: Đang mở Balo để chọn đồ trade -> Bấm ESC -> Quay về bảng Trade
+            if (isTrading && inventoryPanel != null && inventoryPanel.activeSelf)
+            {
+                invToggleCooldown = Time.time + 0.2f;
+                inventoryPanel.SetActive(false);
+                if (tradeWindowPanel != null) tradeWindowPanel.SetActive(true);
+                HideContextMenu();
+                HideTooltip();
+                return; // Dừng tại đây
+            }
+
+            // Nút ESC thông thường (Đóng Balo / Tủ đồ)
             if ((inventoryPanel != null && inventoryPanel.activeSelf) || (containerPanel != null && containerPanel.activeSelf))
             {
                 invToggleCooldown = Time.time + 0.2f;
                 if (inventoryPanel != null) inventoryPanel.SetActive(false);
 
-                // 🔥 CẬP NHẬT: Hiện lại Ammo UI khi nhấn Esc thoát hết
                 if (ammoContainer != null) ammoContainer.SetActive(true);
 
                 CloseContainerUI();
@@ -130,6 +178,7 @@ public class AutoUIManager : MonoBehaviour
                 HideTooltip();
             }
 
+            // Đang ở bảng Trade (không mở balo) -> Bấm ESC -> Hủy Trade hoàn toàn
             if (tradeWindowPanel != null && tradeWindowPanel.activeSelf && localPlayer != null)
             {
                 localPlayer.GetComponent<PlayerTrade>().CancelTrade();
@@ -185,7 +234,7 @@ public class AutoUIManager : MonoBehaviour
 
             if (containerPanel != null && containerPanel.activeSelf)
             {
-                rect.anchoredPosition = new Vector2(-150, 0);
+                rect.anchoredPosition = new Vector2(-150, 0); // Giữ khoảng cách sếp đã chỉnh
             }
             else
             {
@@ -247,7 +296,7 @@ public class AutoUIManager : MonoBehaviour
 
             UISlotDragHandler drag = slotObj.AddComponent<UISlotDragHandler>();
             drag.slotIndex = i;
-            drag.isFromInventory = true; // Đây là Balo
+            drag.isFromInventory = true;
 
             Image slotBg = slotObj.AddComponent<Image>();
             slotBg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
@@ -449,7 +498,7 @@ public class AutoUIManager : MonoBehaviour
 
             UISlotDragHandler drag = slotObj.AddComponent<UISlotDragHandler>();
             drag.slotIndex = i;
-            drag.isFromInventory = false; // Đây là Tủ đồ
+            drag.isFromInventory = false;
 
             Image slotBg = slotObj.AddComponent<Image>();
             slotBg.color = new Color(0.2f, 0.25f, 0.3f, 1f);
@@ -484,7 +533,7 @@ public class AutoUIManager : MonoBehaviour
     }
     #endregion
 
-    #region LOGIC XỬ LÝ TỦ ĐỒ
+    #region LOGIC XỬ LÝ TỦ ĐỒ VÀ DRAG & DROP
     public void OpenContainerUI(LootContainer container)
     {
         currentOpenContainer = container;
@@ -495,7 +544,6 @@ public class AutoUIManager : MonoBehaviour
             inventoryPanel.SetActive(true);
         }
 
-        // 🔥 CẬP NHẬT: Tắt Ammo UI khi nhặt đồ
         if (ammoContainer != null) ammoContainer.SetActive(false);
 
         UpdatePanelsLayout();
@@ -507,7 +555,6 @@ public class AutoUIManager : MonoBehaviour
         currentOpenContainer = null;
         if (containerPanel != null) containerPanel.SetActive(false);
 
-        // 🔥 CẬP NHẬT: Hiện lại Ammo UI nếu Balo cũng đóng
         if (ammoContainer != null && (inventoryPanel == null || !inventoryPanel.activeSelf))
             ammoContainer.SetActive(true);
 
@@ -554,18 +601,48 @@ public class AutoUIManager : MonoBehaviour
     {
         if (currentOpenContainer == null) return;
 
-        if (localPlayer == null)
-        {
-            var pMove = FindAnyObjectByType<PlayerMovement>();
-            if (pMove != null && pMove.HasInputAuthority)
-                localPlayer = pMove.gameObject;
-        }
+        EnsureLocalPlayer();
         if (localPlayer == null) return;
 
         PlayerRef myNetworkID = localPlayer.GetComponent<NetworkObject>().InputAuthority;
         string itemName = currentOpenContainer.itemsInContainer[index].item.itemName;
 
         currentOpenContainer.RPC_RequestTakeItem(index, itemName, myNetworkID);
+    }
+
+    // 🔥 HÀM KÉO THẢ ĐÃ CÓ BẢO VỆ MULTIPLAYER
+    public bool HasItemAt(int index, bool isInv)
+    {
+        if (isInv) return currentSlots != null && index < currentSlots.Count && currentSlots[index].amount > 0;
+        return currentOpenContainer != null && index < currentOpenContainer.itemsInContainer.Count && currentOpenContainer.itemsInContainer[index].amount > 0;
+    }
+
+    public void DragItemToContainer(int invIdx)
+    {
+        if (currentOpenContainer == null || currentSlots == null || invIdx >= currentSlots.Count) return;
+
+        EnsureLocalPlayer();
+        if (localPlayer == null) return;
+
+        InventorySlot slot = currentSlots[invIdx];
+        if (slot.item == null) return;
+
+        currentOpenContainer.RPC_StoreItem(slot.item.itemName, slot.amount);
+        localPlayer.GetComponent<InventorySystem>().ConsumeItem(slot.item, slot.amount);
+    }
+
+    public void DragItemToInventory(int contIdx)
+    {
+        if (currentOpenContainer == null || contIdx >= currentOpenContainer.itemsInContainer.Count) return;
+
+        EnsureLocalPlayer();
+        if (localPlayer == null) return;
+
+        InventorySlot slot = currentOpenContainer.itemsInContainer[contIdx];
+        if (slot.item == null) return;
+
+        string name = slot.item.itemName;
+        currentOpenContainer.RPC_RequestTakeItem(contIdx, name, localPlayer.GetComponent<NetworkObject>().InputAuthority);
     }
     #endregion
 
@@ -667,6 +744,7 @@ public class AutoUIManager : MonoBehaviour
         pickRect.pivot = new Vector2(0.5f, 0); pickRect.anchoredPosition = new Vector2(0, 140); pickRect.sizeDelta = new Vector2(150, 40);
 
         btnReady = CreateButton(tradeWindowPanel.transform, "BtnReady", "KHÓA LẠI", new Vector2(0.25f, 0), new Color(0.8f, 0.5f, 0.1f), () => {
+            EnsureLocalPlayer();
             if (localPlayer != null) localPlayer.GetComponent<PlayerTrade>().RPC_ToggleReady();
         }, activeFont);
         RectTransform readyRect = btnReady.GetComponent<RectTransform>();
@@ -692,12 +770,14 @@ public class AutoUIManager : MonoBehaviour
         pStatRect.sizeDelta = new Vector2(200, 45);
 
         btnConfirm = CreateButton(tradeWindowPanel.transform, "BtnConfirm", "XÁC NHẬN TRADE", new Vector2(0.5f, 0), new Color(0.2f, 0.7f, 0.2f), () => {
+            EnsureLocalPlayer();
             if (localPlayer != null) localPlayer.GetComponent<PlayerTrade>().RPC_ConfirmTrade();
         }, activeFont);
         RectTransform confirmRect = btnConfirm.GetComponent<RectTransform>();
         confirmRect.pivot = new Vector2(1, 0); confirmRect.anchoredPosition = new Vector2(-10, 20); confirmRect.sizeDelta = new Vector2(180, 50);
 
         Button btnCancel = CreateButton(tradeWindowPanel.transform, "BtnCancel", "HỦY BỎ", new Vector2(0.5f, 0), new Color(0.8f, 0.2f, 0.2f), () => {
+            EnsureLocalPlayer();
             if (localPlayer != null) localPlayer.GetComponent<PlayerTrade>().CancelTrade();
         }, activeFont);
         RectTransform cancelRect = btnCancel.GetComponent<RectTransform>();
@@ -825,14 +905,8 @@ public class AutoUIManager : MonoBehaviour
     {
         if (tradeWindowPanel == null || !tradeWindowPanel.activeSelf) return;
 
-        if (localPlayer == null)
-        {
-            var pMove = FindAnyObjectByType<PlayerMovement>();
-            if (pMove != null && pMove.HasInputAuthority)
-                localPlayer = pMove.gameObject;
-
-            if (localPlayer == null) return;
-        }
+        EnsureLocalPlayer();
+        if (localPlayer == null) return;
 
         PlayerTrade myTrade = localPlayer.GetComponent<PlayerTrade>();
         if (myTrade == null || !myTrade.IsTrading) return;
@@ -898,6 +972,7 @@ public class AutoUIManager : MonoBehaviour
             ItemData itemToStore = currentSlots[index].item;
             int amountToStore = currentSlots[index].amount;
 
+            EnsureLocalPlayer();
             if (localPlayer != null)
             {
                 localPlayer.GetComponent<InventorySystem>().ConsumeItem(itemToStore, amountToStore);
@@ -919,13 +994,7 @@ public class AutoUIManager : MonoBehaviour
 
         if (index != -1)
         {
-            if (localPlayer == null)
-            {
-                var pMove = FindAnyObjectByType<PlayerMovement>();
-                if (pMove != null && pMove.HasInputAuthority)
-                    localPlayer = pMove.gameObject;
-            }
-
+            EnsureLocalPlayer();
             if (localPlayer == null) return;
 
             PlayerTrade pt = localPlayer.GetComponent<PlayerTrade>();
@@ -996,6 +1065,7 @@ public class AutoUIManager : MonoBehaviour
 
         if (currentOpenContainer == null) return;
 
+        EnsureLocalPlayer();
         if (index != -1 && localPlayer != null)
         {
             ItemData itemToStore = currentSlots[index].item;
@@ -1011,6 +1081,7 @@ public class AutoUIManager : MonoBehaviour
         int indexToDrop = selectedSlotIndex;
         HideContextMenu();
 
+        EnsureLocalPlayer();
         if (indexToDrop != -1 && localPlayer != null)
         {
             localPlayer.GetComponent<InventorySystem>().DropItem(indexToDrop);
@@ -1019,14 +1090,9 @@ public class AutoUIManager : MonoBehaviour
 
     private void ApplyMedicalCure(string itemName)
     {
-        if (localPlayer == null)
-        {
-            var pMove = FindAnyObjectByType<PlayerMovement>();
-            if (pMove != null && pMove.HasInputAuthority)
-                localPlayer = pMove.gameObject;
-        }
-
+        EnsureLocalPlayer();
         if (localPlayer == null) return;
+
         PlayerHealth health = localPlayer.GetComponent<PlayerHealth>();
         if (health == null) return;
 
@@ -1136,6 +1202,7 @@ public class AutoUIManager : MonoBehaviour
         tradeRequestPanel.SetActive(false);
         RestoreHUD();
 
+        EnsureLocalPlayer();
         if (localPlayer != null)
         {
             PlayerTrade pt = localPlayer.GetComponent<PlayerTrade>();
@@ -1148,6 +1215,7 @@ public class AutoUIManager : MonoBehaviour
         tradeRequestPanel.SetActive(false);
         RestoreHUD();
 
+        EnsureLocalPlayer();
         if (localPlayer != null)
         {
             PlayerTrade pt = localPlayer.GetComponent<PlayerTrade>();
@@ -1188,13 +1256,7 @@ public class AutoUIManager : MonoBehaviour
         actionBarPanel.SetActive(false);
         isDoingAction = false;
 
-        if (localPlayer == null)
-        {
-            var pMove = FindAnyObjectByType<PlayerMovement>();
-            if (pMove != null && pMove.HasInputAuthority)
-                localPlayer = pMove.gameObject;
-        }
-
+        EnsureLocalPlayer();
         if (localPlayer != null)
         {
             localPlayer.GetComponent<InventorySystem>().UseItem(slotIndex);
@@ -1335,42 +1397,8 @@ public class AutoUIManager : MonoBehaviour
         if (actionBarPanel != null) actionBarPanel.SetActive(false);
         if (ammoContainer != null) ammoContainer.SetActive(true);
     }
-    public bool HasItemAt(int index, bool isInv)
-    {
-        if (isInv) return currentSlots != null && index < currentSlots.Count && currentSlots[index].amount > 0;
-        return currentOpenContainer != null && index < currentOpenContainer.itemsInContainer.Count && currentOpenContainer.itemsInContainer[index].amount > 0;
-    }
-
-    public void DragItemToContainer(int invIdx)
-    {
-        if (currentOpenContainer == null || currentSlots == null || invIdx >= currentSlots.Count) return;
-
-        // 🔥 Tự tìm lại localPlayer nếu nó bị null
-        if (localPlayer == null) localPlayer = FindAnyObjectByType<PlayerMovement>()?.gameObject;
-        if (localPlayer == null) return;
-
-        InventorySlot slot = currentSlots[invIdx];
-        if (slot.item == null) return;
-
-        currentOpenContainer.RPC_StoreItem(slot.item.itemName, slot.amount);
-        localPlayer.GetComponent<InventorySystem>().ConsumeItem(slot.item, slot.amount);
-    }
-
-    public void DragItemToInventory(int contIdx)
-    {
-        if (currentOpenContainer == null || contIdx >= currentOpenContainer.itemsInContainer.Count) return;
-
-        // 🔥 Tự tìm lại localPlayer nếu nó bị null
-        if (localPlayer == null) localPlayer = FindAnyObjectByType<PlayerMovement>()?.gameObject;
-        if (localPlayer == null) return;
-
-        InventorySlot slot = currentOpenContainer.itemsInContainer[contIdx];
-        if (slot.item == null) return;
-
-        string name = slot.item.itemName;
-        currentOpenContainer.RPC_RequestTakeItem(contIdx, name, localPlayer.GetComponent<NetworkObject>().InputAuthority);
-    }
     #endregion
+
     #region 🔥 MỚI: GIAO DIỆN ĐỒNG HỒ (DAY/NIGHT CYCLE)
     private void GenerateClockUI(GameObject canvasGO)
     {
@@ -1381,8 +1409,8 @@ public class AutoUIManager : MonoBehaviour
         panelRect.anchorMin = new Vector2(1, 1);
         panelRect.anchorMax = new Vector2(1, 1);
         panelRect.pivot = new Vector2(1, 1);
-        panelRect.anchoredPosition = new Vector2(-20, -20);
-        panelRect.sizeDelta = new Vector2(150, 50);
+        panelRect.anchoredPosition = new Vector2(-1, -1);
+        panelRect.sizeDelta = new Vector2(50, 20);
 
         Image bg = clockPanel.AddComponent<Image>();
         bg.color = new Color(0.1f, 0.1f, 0.15f, 0.9f);
@@ -1393,15 +1421,13 @@ public class AutoUIManager : MonoBehaviour
 
         clockText = textObj.AddComponent<TextMeshProUGUI>();
 
-        // 🔥 BỎ SẠCH CODE ÉP FONT RƯỜM RÀ.
-        // Chỉ cần kiểm tra: Nếu bro có kéo Font vô Inspector thì xài, không thì để Unity tự lo!
         if (gameFont != null)
         {
             clockText.font = gameFont;
         }
 
         clockText.text = "12:00";
-        clockText.fontSize = 32;
+        clockText.fontSize = 15;
         clockText.fontStyle = FontStyles.Bold;
         clockText.alignment = TextAlignmentOptions.Center;
         clockText.color = new Color(0.9f, 0.9f, 0.9f, 1f);
@@ -1411,6 +1437,17 @@ public class AutoUIManager : MonoBehaviour
         textRect.anchorMax = Vector2.one;
         textRect.offsetMin = Vector2.zero;
         textRect.offsetMax = Vector2.zero;
+    }
+    // =========================================================
+    // 🔥 CẦU DAO TỔNG: DÙNG ĐỂ KHÓA CHÂN TAY KHI MỞ UI
+    // =========================================================
+    public bool IsAnyMenuOpen()
+    {
+        bool isInv = inventoryPanel != null && inventoryPanel.activeSelf;
+        bool isLoot = containerPanel != null && containerPanel.activeSelf;
+        bool isTrade = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
+
+        return isInv || isLoot || isTrade;
     }
     #endregion
 }

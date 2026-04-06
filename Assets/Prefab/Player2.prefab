@@ -546,7 +546,6 @@ GameObject:
   - component: {fileID: -5121742523745782882}
   - component: {fileID: 7144230315189483852}
   - component: {fileID: 3952259690615374297}
-  - component: {fileID: 4107791455731627158}
   m_Layer: 9
   m_Name: Player2
   m_TagString: Player
@@ -828,7 +827,7 @@ MonoBehaviour:
   weaponRange: 15
   enemyLayer:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 520
   shootNoiseRadius: 5
   ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
   magazineSize: 30
@@ -1245,20 +1244,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   passiveVisionRadius: 2.5
---- !u!114 &4107791455731627158
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4040414594068316635}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 1541381998, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Guid:
-    RawGuidValue: e14ad8446c0f3db479a56d0bd5c80890
 --- !u!1 &6651938154531201759
 GameObject:
   m_ObjectHideFlags: 0
