@@ -44,7 +44,7 @@ public class ZombieAI : NetworkBehaviour
 
     public override void Spawned()
     {
-        // 2 DÒNG LỆNH TỐI THƯỢNG: Ép đứng thẳng (0,0,0) và chốt hạ trục Z = 0
+        // Ép đứng thẳng (0,0,0) và chốt hạ trục Z = 0
         transform.rotation = Quaternion.identity;
         transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
 
@@ -63,7 +63,7 @@ public class ZombieAI : NetworkBehaviour
             agent.updateRotation = false;
             agent.updateUpAxis = false;
             agent.speed = moveSpeed;
-            agent.Warp(transform.position); // Đảm bảo bắt dính NavMesh 2D
+            agent.Warp(transform.position);
         }
     }
 
@@ -110,12 +110,11 @@ public class ZombieAI : NetworkBehaviour
         else
         {
             agent.isStopped = true;
-            NetIsRunning = false;
+            NetIsRunning = false; // Ép về trạng thái đứng im để nối với mũi tên Idle -> Attack
             NetMoveDir = (player.position - transform.position).normalized;
 
             if (attackTimer <= 0)
             {
-                // Chọn chiêu ngẫu nhiên và LƯU LẠI VÀO TRÍ NHỚ
                 int randomAtk = Random.Range(1, 5);
                 currentAttackIndex = randomAtk;
 
@@ -129,7 +128,7 @@ public class ZombieAI : NetworkBehaviour
     {
         if (anim == null) return;
 
-        anim.SetBool("IsRunning", NetIsRunning);
+        anim.SetBool("isRunning", NetIsRunning); // Đồng bộ với parameter isRunning của bạn
         if (NetMoveDir != Vector2.zero)
         {
             anim.SetFloat("DirX", NetMoveDir.x);
@@ -140,7 +139,17 @@ public class ZombieAI : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_TriggerAttack(int atkIndex)
     {
-        if (anim != null) anim.SetTrigger("Atk" + atkIndex);
+        if (anim != null)
+        {
+            // DỌN RÁC: Xóa mọi lệnh chém cũ đang bị kẹt trong trí nhớ
+            anim.ResetTrigger("Atk1");
+            anim.ResetTrigger("Atk2");
+            anim.ResetTrigger("Atk3");
+            anim.ResetTrigger("Atk4");
+
+            // XUẤT CHIÊU: Ra lệnh chém đòn mới nhất
+            anim.SetTrigger("Atk" + atkIndex);
+        }
 
         Debug.Log($"<color=orange><b>[BÁO ĐỘNG] Zombie đang tung chiêu: ĐÒN SỐ {atkIndex}</b></color>");
     }
