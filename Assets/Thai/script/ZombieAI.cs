@@ -25,13 +25,14 @@ public class ZombieAI : NetworkBehaviour
     private float attackTimer = 0f;
     private float searchTimer = 0f;
 
-    // Ghi nhớ chiêu thức quái vật đang đánh
+    // BIẾN MỚI: Bộ đếm thời gian bị đứng hình khi trúng đạn
+    private float stunTimer = 0f;
+
     private int currentAttackIndex = 1;
 
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
 
-    // Khóa tự xoay của NavMesh ngay khi game vừa Play
     private void Awake()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -44,7 +45,6 @@ public class ZombieAI : NetworkBehaviour
 
     public override void Spawned()
     {
-        // Ép đứng thẳng (0,0,0) và chốt hạ trục Z = 0
         transform.rotation = Quaternion.identity;
         transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
 
@@ -74,6 +74,17 @@ public class ZombieAI : NetworkBehaviour
             if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             NetIsRunning = false;
             return;
+        }
+
+        // ==========================================
+        // CƠ CHẾ ĐỨNG HÌNH (STUN) TỪ KHOA
+        // ==========================================
+        if (stunTimer > 0)
+        {
+            stunTimer -= Runner.DeltaTime;
+            if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
+            NetIsRunning = false;
+            return; // Khóa toàn bộ AI khi đang bị khựng
         }
 
         searchTimer -= Runner.DeltaTime;
@@ -110,7 +121,7 @@ public class ZombieAI : NetworkBehaviour
         else
         {
             agent.isStopped = true;
-            NetIsRunning = false; // Ép về trạng thái đứng im để nối với mũi tên Idle -> Attack
+            NetIsRunning = false;
             NetMoveDir = (player.position - transform.position).normalized;
 
             if (attackTimer <= 0)
@@ -128,7 +139,7 @@ public class ZombieAI : NetworkBehaviour
     {
         if (anim == null) return;
 
-        anim.SetBool("isRunning", NetIsRunning); // Đồng bộ với parameter isRunning của bạn
+        anim.SetBool("isRunning", NetIsRunning);
         if (NetMoveDir != Vector2.zero)
         {
             anim.SetFloat("DirX", NetMoveDir.x);
@@ -141,13 +152,10 @@ public class ZombieAI : NetworkBehaviour
     {
         if (anim != null)
         {
-            // DỌN RÁC: Xóa mọi lệnh chém cũ đang bị kẹt trong trí nhớ
             anim.ResetTrigger("Atk1");
             anim.ResetTrigger("Atk2");
             anim.ResetTrigger("Atk3");
             anim.ResetTrigger("Atk4");
-
-            // XUẤT CHIÊU: Ra lệnh chém đòn mới nhất
             anim.SetTrigger("Atk" + atkIndex);
         }
 
@@ -190,9 +198,13 @@ public class ZombieAI : NetworkBehaviour
         }
     }
 
-    public void OnTakeDamageStun() { attackTimer = 1f; }
+    // HÀM MỚI: Bị gọi từ ZombieHealth để bắt AI đứng hình
+    public void ApplyStun(float duration)
+    {
+        stunTimer = duration;
+        attackTimer = duration; // Bị bắn thì cũng bị chậm nhịp ra đòn
+    }
 
-    // HÀM VẼ VÒNG TRÒN TRONG SCENE ĐỂ DỄ CHỈNH SỬA TẦM NHÌN/ĐÁNH
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;

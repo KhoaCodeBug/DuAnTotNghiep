@@ -264,6 +264,13 @@ public class PlayerCombat : NetworkBehaviour
                     break; // Đạn ghim vào Boss, kết thúc tia đạn
                 }
 
+                ZombieHealth zombie = hit.collider.GetComponentInParent<ZombieHealth>();   
+                if(zombie != null)
+                {
+                    zombie.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
+                    break;
+                }    
+
                 // Nếu sếp có layer Tường chắn đạn nằm trong enemyLayer, thêm điều kiện break ở đây
             }
         }

@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 5700070544290706751}
   - component: {fileID: 1348887384322338406}
   - component: {fileID: 8265875105454390905}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Zombie
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -209,7 +209,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 95f788c4924badf448c48533777ffbb8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  player: {fileID: 7151529957679168258, guid: 08372f1bfb7b42942bec73f87060f03c, type: 3}
   moveSpeed: 3.5
   chaseRange: 2
   attackRange: 1
