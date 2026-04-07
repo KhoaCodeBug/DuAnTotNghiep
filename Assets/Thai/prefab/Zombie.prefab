@@ -1,5 +1,74 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2380220751959616381
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6318430073928471203}
+  - component: {fileID: 2179533487168854417}
+  m_Layer: 3
+  m_Name: hitbox
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6318430073928471203
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2380220751959616381}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 316024015096187952}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!70 &2179533487168854417
+CapsuleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2380220751959616381}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0.06353164, y: -0.06633453}
+  m_Size: {x: 0.15991855, y: 0.43755785}
+  m_Direction: 0
 --- !u!1 &4396508338874752408
 GameObject:
   m_ObjectHideFlags: 0
@@ -18,9 +87,9 @@ GameObject:
   - component: {fileID: 5700070544290706751}
   - component: {fileID: 1348887384322338406}
   - component: {fileID: 8265875105454390905}
-  m_Layer: 9
+  m_Layer: 3
   m_Name: Zombie
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -34,10 +103,11 @@ Transform:
   m_GameObject: {fileID: 4396508338874752408}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.16, y: 0, z: 0}
+  m_LocalPosition: {x: 1.424, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 6318430073928471203}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &8766122440974210971
@@ -178,8 +248,8 @@ CapsuleCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0.02890889, y: -0.058426294}
-  m_Size: {x: 0.092514716, y: 0.3359105}
+  m_Offset: {x: 0.02890889, y: -0.18735819}
+  m_Size: {x: 0.092514716, y: 0.19389847}
   m_Direction: 0
 --- !u!114 &1066823688839231513
 MonoBehaviour:
@@ -193,7 +263,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bde6ed4eca310043ba3858d1d829f96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 100
+  maxHealth: 20
+  stunDuration: 0.5
+  hurtColor: {r: 1, g: 0, b: 0, a: 1}
   _currentHealth: 0
   _isDead:
     _value: 0
@@ -210,13 +282,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 3.5
-  chaseRange: 2
-  attackRange: 1
-  damageRadius: 1.1
+  chaseRange: 0.35
+  attackRange: 0.3
+  damageRadius: 0.31
   attackCooldown: 1.5
-  damageAtk1: 10
-  damageAtk2: 15
-  damageAtk3: 20
+  damageAtk1: 15
+  damageAtk2: 20
+  damageAtk3: 25
   damageAtk4: 30
   _NetMoveDir: {x: 0, y: 0}
   _NetIsRunning:
@@ -240,7 +312,7 @@ NavMeshAgent:
   m_AutoBraking: 1
   m_AutoRepath: 1
   m_Height: 1.28
-  m_BaseOffset: 0.64
+  m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
 --- !u!114 &1348887384322338406
@@ -257,7 +329,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SortKey: 3699970950
   ObjectInterest: 1
-  Flags: 262145
+  Flags: 131073
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 1066823688839231513}

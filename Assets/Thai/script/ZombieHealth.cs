@@ -116,9 +116,17 @@ public class ZombieHealth : NetworkBehaviour
     {
         if (anim != null)
         {
-            anim.SetBool("IsDead", true);
+            // BƯỚC 1: Bốc thăm số ngẫu nhiên (0 hoặc 1)
             int randomDeath = Random.Range(0, 2);
-            //anim.SetInteger("DeathType", randomrandomDeath);
+
+            // BƯỚC 2: Truyền số vào để Animator chuẩn bị sẵn tư thế ngã gục
+            anim.SetInteger("DeathType", randomDeath);
+
+            // BƯỚC 3: Gạt công tắc isDead để Animator lập tức chạy đúng mũi tên
+            anim.SetBool("isDead", true);
+
+            // In ra Console để dễ dàng kiểm tra xem code có random chuẩn không
+            Debug.Log($"<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: {randomDeath}</b></color>");
         }
     }
 
