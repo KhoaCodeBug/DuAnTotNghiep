@@ -1,22 +1,25 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
-using Fusion; // BẮT BUỘC THÊM THƯ VIỆN NÀY
+using Fusion;
+using System.Collections;
 
-public class ZombieHealth : NetworkBehaviour // Đổi từ MonoBehaviour sang NetworkBehaviour
+public class ZombieHealth : NetworkBehaviour
 {
     [Header("Chỉ số Sinh tồn")]
-    public int maxHealth = 100;
+    public float maxHealth = 100f;
+    public float stunDuration = 0.5f;
+    public Color hurtColor = Color.red;
 
-    // Biến Mạng: Máu và Trạng thái chết sẽ tự động đồng bộ cho mọi người chơi
-    [Networked] public int currentHealth { get; set; }
+    [Networked] public float currentHealth { get; set; }
     [Networked] public NetworkBool isDead { get; set; }
 
     private Animator anim;
     private NavMeshAgent agent;
     private Collider2D coll;
     private ZombieAI aiScript;
+    private SpriteRenderer spriteRend;
+    private Color originalColor;
 
-    // Thay Start() bằng Spawned() trong Photon
     public override void Spawned()
     {
         currentHealth = maxHealth;
@@ -26,42 +29,59 @@ public class ZombieHealth : NetworkBehaviour // Đổi từ MonoBehaviour sang N
         agent = GetComponent<NavMeshAgent>();
         coll = GetComponent<Collider2D>();
         aiScript = GetComponent<ZombieAI>();
+
+        spriteRend = GetComponentInChildren<SpriteRenderer>();
+        if (spriteRend != null) originalColor = spriteRend.color;
     }
 
-    // Cầu nối: Player gọi hàm này như bình thường, nó sẽ tự gửi tín hiệu lên Server
-    public void TakeDamage(int damageTaken)
-    {
-        RPC_TakeDamage(damageTaken);
-    }
-
-    // Lệnh thực thi trên Server
+    // =======================================================
+    // 🔥 HÀM NHẬN SÁT THƯƠNG CHUẨN THEO BẢN GỐC CỦA KHOA
+    // =======================================================
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_TakeDamage(int damageTaken)
+    public void RPC_TakeDamage(float damage, PlayerRef shooter = default)
     {
         if (isDead) return;
 
-        currentHealth -= damageTaken;
+        // Trừ máu và khóa không cho tụt số âm
+        currentHealth -= damage;
+        currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
 
-        if (currentHealth <= 0)
+        Debug.Log($"<color=red><b>[TRÚNG ĐẠN] Zombie mất {damage} máu! Máu còn: {currentHealth}</b></color>");
+
+        if (currentHealth <= 0f)
         {
-            Die();
+            Die(shooter);
+            return;
         }
-        else
-        {
-            RPC_PlayHitEffect(); // Gọi tất cả máy trạm phát hoạt ảnh bị chém
-            if (aiScript != null) aiScript.OnTakeDamageStun();
-        }
+
+        // Bị bắn trúng thì đứng hình
+        if (aiScript != null) aiScript.ApplyStun(stunDuration);
+
+        RPC_PlayHitEffect();
     }
 
-    // Lệnh phát hoạt ảnh bị thương cho TẤT CẢ người chơi cùng thấy
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_PlayHitEffect()
+    public void RPC_PlayHitEffect()
     {
         if (anim != null) anim.SetTrigger("TakeDamage");
+
+        if (spriteRend != null)
+        {
+            StopCoroutine(FlashRedRoutine());
+            StartCoroutine(FlashRedRoutine());
+        }
     }
 
-    void Die()
+    private IEnumerator FlashRedRoutine()
     {
+        spriteRend.color = hurtColor;
+        yield return new WaitForSeconds(0.12f);
+        if (!isDead) spriteRend.color = originalColor;
+    }
+
+    private void Die(PlayerRef shooter)
+    {
+        if (isDead) return;
         isDead = true;
 
         if (agent != null)
@@ -72,18 +92,39 @@ public class ZombieHealth : NetworkBehaviour // Đổi từ MonoBehaviour sang N
         if (coll != null) coll.enabled = false;
         if (aiScript != null) aiScript.enabled = false;
 
+        // Xử lý cộng điểm hạ gục (Kill) cho Player giống hệt code Khoa
+        if (shooter != PlayerRef.None)
+        {
+            Skill_WeaponMaster[] allWeaponMasters = FindObjectsByType<Skill_WeaponMaster>(FindObjectsSortMode.None);
+
+            foreach (var master in allWeaponMasters)
+            {
+                if (master.Object != null && master.Object.InputAuthority == shooter)
+                {
+                    master.AddKill();
+                    break;
+                }
+            }
+        }
+
         RPC_PlayDeathAnimation();
+        StartCoroutine(VanishRoutine());
     }
 
-    // Lệnh phát hoạt ảnh chết cho TẤT CẢ người chơi cùng thấy
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayDeathAnimation()
     {
         if (anim != null)
         {
-            anim.SetBool("isDead", true);
+            anim.SetBool("IsDead", true);
             int randomDeath = Random.Range(0, 2);
-            anim.SetInteger("DeathType", randomDeath);
+            //anim.SetInteger("DeathType", randomrandomDeath);
         }
+    }
+
+    private IEnumerator VanishRoutine()
+    {
+        yield return new WaitForSeconds(5f);
+        if (HasStateAuthority) Runner.Despawn(Object);
     }
 }
