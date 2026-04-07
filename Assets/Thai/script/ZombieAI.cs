@@ -4,14 +4,17 @@ using Fusion;
 
 public class ZombieAI : NetworkBehaviour
 {
-    [Header("Mục tiêu & Tốc độ")]
+    [Header("--- Phạm vi Phát hiện (Detection) ---")]
+    [Tooltip("Khoảng cách Zombie có thể phát hiện người chơi")]
+    public float detectionRange = 10f;
+
+    [Header("--- Tấn công & Tốc độ ---")]
     public float moveSpeed = 3.5f;
-    public float chaseRange = 10f;
     public float attackRange = 1.5f;
     public float damageRadius = 1.8f;
-
-    [Header("Sát thương & Cooldown")]
     public float attackCooldown = 1.5f;
+
+    [Header("--- Sát thương các chiêu ---")]
     public float damageAtk1 = 10f;
     public float damageAtk2 = 15f;
     public float damageAtk3 = 20f;
@@ -24,10 +27,7 @@ public class ZombieAI : NetworkBehaviour
 
     private float attackTimer = 0f;
     private float searchTimer = 0f;
-
-    // BIẾN MỚI: Bộ đếm thời gian bị đứng hình khi trúng đạn
     private float stunTimer = 0f;
-
     private int currentAttackIndex = 1;
 
     [Networked] public Vector2 NetMoveDir { get; set; }
@@ -40,6 +40,8 @@ public class ZombieAI : NetworkBehaviour
         {
             agent.updateRotation = false;
             agent.updateUpAxis = false;
+            // Ép phanh bằng 0 ngay từ lúc khởi tạo để tránh lỗi đứng từ xa
+            agent.stoppingDistance = 0f;
         }
     }
 
@@ -63,12 +65,17 @@ public class ZombieAI : NetworkBehaviour
             agent.updateRotation = false;
             agent.updateUpAxis = false;
             agent.speed = moveSpeed;
+
+            // 🔥 CHỐT CHẶN CUỐI CÙNG: Đảm bảo NavMesh không bao giờ tự dừng lại sớm
+            agent.stoppingDistance = 0f;
+
             agent.Warp(transform.position);
         }
     }
 
     public override void FixedUpdateNetwork()
     {
+        // Nếu đã chết thì ngừng mọi hoạt động
         if (!HasStateAuthority || (healthScript != null && healthScript.isDead))
         {
             if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
@@ -76,24 +83,24 @@ public class ZombieAI : NetworkBehaviour
             return;
         }
 
-        // ==========================================
-        // CƠ CHẾ ĐỨNG HÌNH (STUN) TỪ KHOA
-        // ==========================================
+        // Xử lý bị khựng (Stun)
         if (stunTimer > 0)
         {
             stunTimer -= Runner.DeltaTime;
             if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             NetIsRunning = false;
-            return; // Khóa toàn bộ AI khi đang bị khựng
+            return;
         }
 
+        // Cứ mỗi 0.5 giây mới quét tìm Player một lần để tiết kiệm CPU
         searchTimer -= Runner.DeltaTime;
         if (searchTimer <= 0)
         {
-            FindClosestPlayer();
+            FindClosestPlayerInRange();
             searchTimer = 0.5f;
         }
 
+        // TRẠNG THÁI 1: KHÔNG có người chơi trong tầm mắt -> Đứng im (Idle)
         if (player == null || agent == null || !agent.isOnNavMesh)
         {
             NetIsRunning = false;
@@ -101,15 +108,12 @@ public class ZombieAI : NetworkBehaviour
             return;
         }
 
+        // Tính khoảng cách thực tế để quyết định Đuổi hay Đánh
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
         if (attackTimer > 0) attackTimer -= Runner.DeltaTime;
 
-        if (distanceToPlayer > chaseRange)
-        {
-            agent.isStopped = true;
-            NetIsRunning = false;
-        }
-        else if (distanceToPlayer > attackRange)
+        // TRẠNG THÁI 2: Player ở xa nhưng vẫn trong tầm mắt -> Đuổi theo (Chase)
+        if (distanceToPlayer > attackRange)
         {
             agent.isStopped = false;
             agent.speed = moveSpeed;
@@ -118,6 +122,7 @@ public class ZombieAI : NetworkBehaviour
             NetIsRunning = true;
             NetMoveDir = (agent.steeringTarget - transform.position).normalized;
         }
+        // TRẠNG THÁI 3: Player đã lọt vào tầm đánh -> Tấn công (Attack)
         else
         {
             agent.isStopped = true;
@@ -128,7 +133,6 @@ public class ZombieAI : NetworkBehaviour
             {
                 int randomAtk = Random.Range(1, 5);
                 currentAttackIndex = randomAtk;
-
                 RPC_TriggerAttack(randomAtk);
                 attackTimer = attackCooldown;
             }
@@ -138,7 +142,6 @@ public class ZombieAI : NetworkBehaviour
     public override void Render()
     {
         if (anim == null) return;
-
         anim.SetBool("isRunning", NetIsRunning);
         if (NetMoveDir != Vector2.zero)
         {
@@ -159,13 +162,15 @@ public class ZombieAI : NetworkBehaviour
             anim.SetTrigger("Atk" + atkIndex);
         }
 
+        // 🔥 THÔNG BÁO BỐC THĂM CHIÊU THỨC ĐÃ TRỞ LẠI
         Debug.Log($"<color=orange><b>[BÁO ĐỘNG] Zombie đang tung chiêu: ĐÒN SỐ {atkIndex}</b></color>");
     }
 
-    void FindClosestPlayer()
+    // 🔥 HÀM TÌM PLAYER TRONG PHẠM VI VÒNG TRÒN
+    void FindClosestPlayerInRange()
     {
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
-        float closestDistance = chaseRange;
+        float closestDistance = detectionRange; // Chỉ tìm trong phạm vi detectionRange
         player = null;
 
         foreach (GameObject p in allPlayers)
@@ -190,7 +195,6 @@ public class ZombieAI : NetworkBehaviour
     private void ExecuteDamage(float damageAmount)
     {
         if (!HasStateAuthority || player == null) return;
-
         if (Vector2.Distance(transform.position, player.position) <= damageRadius)
         {
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
@@ -198,19 +202,24 @@ public class ZombieAI : NetworkBehaviour
         }
     }
 
-    // HÀM MỚI: Bị gọi từ ZombieHealth để bắt AI đứng hình
     public void ApplyStun(float duration)
     {
         stunTimer = duration;
-        attackTimer = duration; // Bị bắn thì cũng bị chậm nhịp ra đòn
+        attackTimer = duration;
     }
 
+    // 🔥 VẼ VÒNG TRÒN PHẠM VI TRONG SCENE ĐỂ BẠN DỄ CHỈNH
     private void OnDrawGizmosSelected()
     {
+        // Vòng tròn màu Xanh lá: Phạm vi phát hiện (Detection)
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, chaseRange);
+        Gizmos.DrawWireSphere(transform.position, detectionRange);
+
+        // Vòng tròn màu Vàng: Phạm vi tấn công (Attack)
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        // Vòng tròn màu Đỏ: Phạm vi gây sát thương thực tế
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, damageRadius);
     }

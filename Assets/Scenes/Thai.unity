@@ -434,6 +434,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1066823688839231513, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
+      propertyPath: maxHealth
+      value: 100
+      objectReference: {fileID: 0}
     - target: {fileID: 1348887384322338406, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
       propertyPath: Flags
       value: 131073
