@@ -1,66 +1,65 @@
-﻿using Fusion;
-
-using UnityEngine;
+﻿using UnityEngine;
+using Fusion;
 
 public class PlayerInteraction : NetworkBehaviour
 {
-    private VehicleControllerFusion _nearbyCar = null;
-    private VehicleControllerFusion _currentCar = null; // Xe đang ngồi trong đó
+    public float interactRange = 2f;
 
-    [Header("Player Visuals")]
-    [SerializeField] private SpriteRenderer _playerSprite; // Kéo Sprite của nhân vật vào đây
-    [SerializeField] private Collider2D _playerCollider;   // Kéo Collider của nhân vật vào đây
-    [SerializeField] private UnityEngine.Behaviour _playerMovementScript; // Script di chuyển của nhân vật (để tắt đi khi lên xe)
+    private VehicleControllerFusion currentVehicle;
+    private bool isInVehicle = false;
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    void Update()
     {
-        if (collision.CompareTag("Vehicle"))
-            _nearbyCar = collision.GetComponent<VehicleControllerFusion>();
-    }
+        if (!Object.HasInputAuthority) return;
 
-    private void OnTriggerExit2D(Collider2D collision)
-    {
-        if (collision.CompareTag("Vehicle"))
-            _nearbyCar = null;
-    }
-
-    private void Update()
-    {
-        if (HasInputAuthority == false) return;
-
-        // NHẤN E ĐỂ LÊN XE
-        if (_nearbyCar != null && _currentCar == null && Input.GetKeyDown(KeyCode.E))
+        if (Input.GetKeyDown(KeyCode.E))
         {
-            // Truyền NetworkObject của chính nhân vật này lên Server
-            _nearbyCar.RPC_RequestEnterVehicle(Object);
-        }
-
-        // NHẤN X ĐỂ XUỐNG XE
-        if (_currentCar != null && Input.GetKeyDown(KeyCode.X))
-        {
-            _currentCar.RPC_RequestExitVehicle(Object);
+            if (!isInVehicle)
+            {
+                TryEnterVehicle();
+            }
+            else
+            {
+                ExitVehicle();
+            }
         }
     }
 
-    // Hàm này được gọi bởi xe (CopCarManager) khi lên/xuống xe thành công
-    public void SetInVehicleState(VehicleControllerFusion car, bool inVehicle)
+    void TryEnterVehicle()
     {
-        _currentCar = inVehicle ? car : null;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, interactRange);
 
-        // Ẩn/Hiện hình ảnh và collider
-        if (_playerSprite != null) _playerSprite.enabled = !inVehicle;
-        if (_playerCollider != null) _playerCollider.enabled = !inVehicle;
-        if (_playerMovementScript != null) _playerMovementScript.enabled = !inVehicle;
+        foreach (var hit in hits)
+        {
+            var vehicle = hit.GetComponent<VehicleControllerFusion>();
+            if (vehicle != null)
+            {
+                vehicle.RequestEnter(Object);
+                break;
+            }
+        }
+    }
 
-        // Nếu lên xe, di chuyển transform của nhân vật theo xe
-        if (inVehicle)
+    void ExitVehicle()
+    {
+        if (currentVehicle != null)
         {
-            transform.SetParent(car.transform);
-            transform.localPosition = Vector3.zero; // Hoặc vị trí ghế
+            currentVehicle.RequestExit(Object);
         }
-        else
-        {
-            transform.SetParent(null); // Tách khỏi xe khi xuống
-        }
+    }
+
+    // ================= STATE =================
+    public void SetVehicle(VehicleControllerFusion vehicle, bool enter)
+    {
+        isInVehicle = enter;
+        currentVehicle = enter ? vehicle : null;
+
+        // bật/tắt camera xe
+        if (vehicle != null)
+            vehicle.SetCamera(enter);
+
+        // ẩn player khi vào xe
+        GetComponent<SpriteRenderer>().enabled = !enter;
+        GetComponent<Collider2D>().enabled = !enter;
     }
 }

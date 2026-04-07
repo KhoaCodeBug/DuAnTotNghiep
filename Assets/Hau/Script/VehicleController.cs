@@ -1,98 +1,113 @@
 ﻿using UnityEngine;
 using Fusion;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class VehicleControllerFusion : NetworkBehaviour
 {
-    public enum SeatType { Driver, Passenger, None }
+    [Header("Vehicle")]
+    public float moveSpeed = 8f;
+    public float turnSpeed = 200f;
 
-    [Header("References")]
-    [SerializeField] private Animator _carAnimator;
-    public float carSpeed = 5f;
+    [Header("Camera")]
+    public Camera vehicleCamera;
 
-    // Lưu trữ NetworkObject của người chơi thay vì chỉ ID
-    [Networked] public NetworkObject DriverObj { get; set; }
-    [Networked] public NetworkObject PassengerObj { get; set; }
+    [Networked] private NetworkObject Driver { get; set; }
 
-    // --- LÊN XE ---
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_RequestEnterVehicle(NetworkObject playerObj)
+    private Rigidbody2D rb;
+
+    void Awake()
     {
-        if (playerObj == DriverObj || playerObj == PassengerObj) return;
+        rb = GetComponent<Rigidbody2D>();
 
-        if (DriverObj == null)
-        {
-            DriverObj = playerObj;
-            // QUAN TRỌNG: Cấp quyền điều khiển xe cho người lái
-            Object.AssignInputAuthority(playerObj.InputAuthority);
+        rb.gravityScale = 0;
+        rb.freezeRotation = false;
 
-            RPC_ConfirmVehicleAction(playerObj, true, SeatType.Driver);
-        }
-        else if (PassengerObj == null)
+        if (vehicleCamera != null)
+            vehicleCamera.gameObject.SetActive(false);
+    }
+
+    // ================= ENTER =================
+    public void RequestEnter(NetworkObject player)
+    {
+        if (!Object.HasInputAuthority) return;
+
+        RPC_Enter(player);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_Enter(NetworkObject player)
+    {
+        if (Driver != null) return;
+
+        Driver = player;
+
+        var interaction = player.GetComponent<PlayerInteraction>();
+        if (interaction != null)
         {
-            PassengerObj = playerObj;
-            RPC_ConfirmVehicleAction(playerObj, true, SeatType.Passenger);
+            interaction.SetVehicle(this, true);
         }
     }
 
-    // --- XUỐNG XE ---
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_RequestExitVehicle(NetworkObject playerObj)
+    // ================= EXIT =================
+    public void RequestExit(NetworkObject player)
     {
-        if (playerObj == DriverObj)
-        {
-            DriverObj = null;
-            // Rút lại quyền điều khiển xe
-            Object.RemoveInputAuthority();
-            RPC_ConfirmVehicleAction(playerObj, false, SeatType.Driver);
-        }
-        else if (playerObj == PassengerObj)
-        {
-            PassengerObj = null;
-            RPC_ConfirmVehicleAction(playerObj, false, SeatType.Passenger);
-        }
+        if (!Object.HasInputAuthority) return;
+
+        RPC_Exit(player);
     }
 
-    // --- ĐỒNG BỘ TRẠNG THÁI LÊN/XUỐNG CHO MỌI NGƯỜI ---
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_ConfirmVehicleAction(NetworkObject playerObj, bool isEntering, SeatType seat)
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_Exit(NetworkObject player)
     {
-        if (playerObj == null) return;
+        if (Driver != player) return;
 
-        // Gọi hàm để ẩn/hiện nhân vật
-        var playerInteraction = playerObj.GetComponent<PlayerInteraction>();
-        if (playerInteraction != null)
+        var interaction = player.GetComponent<PlayerInteraction>();
+        if (interaction != null)
         {
-            playerInteraction.SetInVehicleState(isEntering ? this : null, isEntering);
+            interaction.SetVehicle(this, false);
         }
 
-        // Tùy chọn: Dịch chuyển nhân vật ra cạnh xe khi xuống
-        if (!isEntering)
-        {
-            playerObj.transform.position = transform.position + new Vector3(1.5f, 0, 0); // Văng ra bên cạnh 1 chút
-        }
+        Driver = null;
     }
 
-    // --- LOGIC LÁI XE VÀ ANIMATION ---
+    // ================= CONTROL =================
     public override void FixedUpdateNetwork()
     {
-        // Chỉ chạy logic di chuyển nếu có người lái và máy hiện tại có quyền (Server hoặc Driver)
-        if (DriverObj != null && (HasStateAuthority || HasInputAuthority))
+        if (Driver == null) return;
+        if (!Object.HasInputAuthority) return;
+
+        float move = Input.GetKey(KeyCode.W) ? 1 :
+               Input.GetKey(KeyCode.S) ? -1 : 0;
+
+        float turn = Input.GetKey(KeyCode.A) ? 1 :
+                     Input.GetKey(KeyCode.D) ? -1 : 0;
+
+        rb.linearVelocity = transform.up * move * moveSpeed;
+        rb.MoveRotation(rb.rotation + turn * turnSpeed * Runner.DeltaTime);
+        // di chuyển
+        rb.linearVelocity = transform.up * move * moveSpeed;
+
+        // xoay (FIX lỗi không quay)
+        rb.MoveRotation(rb.rotation + turn * turnSpeed * Runner.DeltaTime);
+    }
+
+    // ================= CAMERA =================
+    public void SetCamera(bool enable)
+    {
+        if (vehicleCamera == null) return;
+
+        vehicleCamera.gameObject.SetActive(enable);
+
+        // đảm bảo chỉ 1 AudioListener
+        AudioListener[] listeners = FindObjectsOfType<AudioListener>();
+        foreach (var l in listeners)
+            l.enabled = false;
+
+        if (enable)
         {
-            // Lấy input (Thay thế bằng hệ thống Input của Fusion nếu bạn có struct NetworkInput)
-            float moveX = Input.GetAxisRaw("Horizontal");
-            float moveY = Input.GetAxisRaw("Vertical");
-
-            Vector3 moveDirection = new Vector3(moveX, moveY, 0).normalized;
-
-            // Di chuyển xe
-            transform.Translate(moveDirection * carSpeed * Runner.DeltaTime);
-
-            // Cập nhật Animation Blend Tree (Hình 4 của bạn)
-            if (moveDirection.magnitude > 0.1f)
-            {
-                _carAnimator.SetFloat("MoveX", moveX);
-                _carAnimator.SetFloat("MoveY", moveY);
-            }
+            var listener = vehicleCamera.GetComponent<AudioListener>();
+            if (listener != null)
+                listener.enabled = true;
         }
     }
 }
