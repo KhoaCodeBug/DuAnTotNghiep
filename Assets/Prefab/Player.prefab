@@ -1119,7 +1119,7 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 64
-  passiveVisionRadius: 2.5
+  passiveVisionRadius: 0.5
 --- !u!1 &4528869163461110736
 GameObject:
   m_ObjectHideFlags: 0
