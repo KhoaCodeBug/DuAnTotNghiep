@@ -30,6 +30,9 @@ public class ZombieAI : NetworkBehaviour
     private float stunTimer = 0f;
     private int currentAttackIndex = 1;
 
+    // 🔥 THÊM MỚI: Ổ khóa chống dồn sát thương
+    private bool hasDealtDamage = false;
+
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
 
@@ -133,6 +136,10 @@ public class ZombieAI : NetworkBehaviour
             {
                 int randomAtk = Random.Range(1, 5);
                 currentAttackIndex = randomAtk;
+
+                // 🔥 THÊM MỚI: Mở khóa chuẩn bị cho nhát chém mới
+                hasDealtDamage = false;
+
                 RPC_TriggerAttack(randomAtk);
                 attackTimer = attackCooldown;
             }
@@ -186,10 +193,16 @@ public class ZombieAI : NetworkBehaviour
 
     public void DealDamage()
     {
+        // 🔥 THÊM MỚI: Cửa bảo vệ! Nếu đã chém trúng rồi thì văng ra, cấm trừ máu thêm.
+        if (hasDealtDamage) return;
+
         if (currentAttackIndex == 1) ExecuteDamage(damageAtk1);
         else if (currentAttackIndex == 2) ExecuteDamage(damageAtk2);
         else if (currentAttackIndex == 3) ExecuteDamage(damageAtk3);
         else if (currentAttackIndex == 4) ExecuteDamage(damageAtk4);
+
+        // 🔥 THÊM MỚI: Đóng khóa lại ngay sau khi trừ máu xong!
+        hasDealtDamage = true;
     }
 
     private void ExecuteDamage(float damageAmount)
