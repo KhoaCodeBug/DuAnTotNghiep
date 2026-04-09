@@ -241,6 +241,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gameFont: {fileID: 11400000, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
+  backgroundImage: {fileID: -6695950386315148514, guid: df9491d9cbcc0e341a50647fc4639d3c, type: 3}
+  runnerPrefab: {fileID: 2785446370948596699, guid: eac02c0e935318d4a80a35e05b874318, type: 3}
+  mainSceneIndex: 1
 --- !u!4 &656087432
 Transform:
   m_ObjectHideFlags: 0
