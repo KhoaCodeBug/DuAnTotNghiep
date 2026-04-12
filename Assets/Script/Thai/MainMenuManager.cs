@@ -34,6 +34,11 @@ public class AutoMainMenuManager : MonoBehaviour
     [Header("Hình ảnh Nhân vật (Kéo thả 2 GameObject UI Image vào đây)")]
     public GameObject[] previewImages;
 
+    private float creditsScrollPos = 0f;
+    private bool isCreditsOpen = false;
+    [Header("Tốc độ cuộn Credits")]
+    public float creditsScrollSpeed = 30f; // Sếp tăng số này nếu muốn chữ chạy nhanh hơn
+
     private Canvas mainCanvas;
     private GameObject mainPanel, newGamePanel, multiplayerPanel, characterSelectPanel, optionsPanel, creditsPanel;
     private CanvasGroup currentActivePanel;
@@ -144,12 +149,26 @@ public class AutoMainMenuManager : MonoBehaviour
 
     private void Update()
     {
+        // Xử lý EventSystem cũ của sếp
         if (EventSystem.current != null)
         {
             GameObject selectedObj = EventSystem.current.currentSelectedGameObject;
             if (selectedObj != null && selectedObj.GetComponent<TMP_InputField>() == null)
             {
                 EventSystem.current.SetSelectedGameObject(null);
+            }
+        }
+
+        // 🔥 LOGIC MÚA CHỮ CREDITS
+        if (isCreditsOpen && serverListContent != null)
+        {
+            // Content sẽ trôi lên trên
+            serverListContent.anchoredPosition += Vector2.up * creditsScrollSpeed * Time.unscaledDeltaTime;
+
+            // Nếu trôi hết thì reset lại từ đầu (Vòng lặp vô tận)
+            if (serverListContent.anchoredPosition.y > serverListContent.sizeDelta.y + 500f)
+            {
+                serverListContent.anchoredPosition = new Vector2(0, 0);
             }
         }
     }
@@ -784,11 +803,79 @@ public class AutoMainMenuManager : MonoBehaviour
         cg.interactable = false;
         cg.blocksRaycasts = false;
 
-        CreateTitleText(creditsPanel, "CREDITS");
+        CreateTitleText(creditsPanel, "SURVIVAL TEAM", 0.9f);
+
+        // --- KHU VỰC CUỘN CHỮ (SCROLL VIEW TÀNG HÌNH) ---
+        GameObject scrollObj = new GameObject("Credits_Scroll");
+        scrollObj.transform.SetParent(creditsPanel.transform, false);
+        RectTransform scrollRectT = scrollObj.AddComponent<RectTransform>();
+        scrollRectT.anchorMin = new Vector2(0.15f, 0.2f);
+        scrollRectT.anchorMax = new Vector2(0.85f, 0.8f);
+        scrollRectT.offsetMin = Vector2.zero;
+        scrollRectT.offsetMax = Vector2.zero;
+
+        ScrollRect sr = scrollObj.AddComponent<ScrollRect>();
+        sr.horizontal = false;
+        sr.vertical = true;
+        sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+
+        // Viewport
+        GameObject vp = new GameObject("Viewport");
+        vp.transform.SetParent(scrollObj.transform, false);
+        RectTransform vpRT = vp.AddComponent<RectTransform>();
+        vpRT.anchorMin = Vector2.zero; vpRT.anchorMax = Vector2.one;
+        vpRT.offsetMin = Vector2.zero; vpRT.offsetMax = Vector2.zero;
+        vp.AddComponent<RectMask2D>();
+
+        // Content (Nơi chứa danh sách múa)
+        GameObject content = new GameObject("Content");
+        content.transform.SetParent(vp.transform, false);
+        RectTransform contentRT = content.AddComponent<RectTransform>();
+        contentRT.anchorMin = new Vector2(0, 1);
+        contentRT.anchorMax = new Vector2(1, 1);
+        contentRT.pivot = new Vector2(0.5f, 1);
+        contentRT.offsetMin = Vector2.zero;
+        contentRT.offsetMax = Vector2.zero;
+
+        VerticalLayoutGroup vlg = content.AddComponent<VerticalLayoutGroup>();
+        vlg.childAlignment = TextAnchor.UpperCenter;
+        vlg.spacing = 40;
+        vlg.padding = new RectOffset(0, 0, 400, 400); // Chừa trống để chữ trôi từ dưới lên
+
+        ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        sr.content = contentRT;
+        serverListContent = contentRT; // Mượn biến này để xử lý cuộn trong Update
+
+        // --- ĐỔ DANH SÁCH NHÂN SỰ ---
+        CreateCreditLine(content, "LEAD PROGRAMMER", "TRẦN NGỌC ĐĂNG KHOA", Color.cyan);
+        CreateCreditLine(content, "SYSTEM & PLAYER UI", "NGUYỄN TRÍ TÍN", Color.yellow);
+        CreateCreditLine(content, "WORLD ARCHITECT (MAP)", "YÊN NHI", Color.white);
+        CreateCreditLine(content, "LEAD AI & ZOMBIE BOSS", "HOÀNG THÁI", Color.red);
+        CreateCreditLine(content, "VEHICLE MECHANICS", "VĂN HẬU", Color.green);
+        CreateCreditLine(content, "TECHNICAL ARTIST (LOS FOW)", "ĐĂNG KHOA", Color.white);
+
+        CreateCreditLine(content, "POWERED BY", "UNITY 6.0 / PHOTON FUSION", new Color(0.7f, 0.7f, 0.7f));
+        CreateCreditLine(content, "AUDIO DESIGN", "BGM: PROJECT ZOMBOID\nSFX: KENNEY / FREESOUND", new Color(0.7f, 0.7f, 0.7f));
+
+        CreateCreditLine(content, "SPECIAL THANKS", "TO ALL SURVIVORS WHO TESTED THIS GAME", Color.white);
+
         CreateMenuButton(creditsPanel, "BACK", () =>
         {
+            isCreditsOpen = false;
             OpenPanel(mainPanel.GetComponent<CanvasGroup>());
         }, new Vector2(0.1f, 0.1f));
+    }
+
+    private void CreateCreditLine(GameObject parent, string role, string name, Color nameColor)
+    {
+        GameObject lineObj = new GameObject("CreditLine");
+        lineObj.transform.SetParent(parent.transform, false);
+        TextMeshProUGUI txt = lineObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) txt.font = gameFont;
+        txt.text = $"<size=20><color=#aaaaaa>{role}</color></size>\n<size=32><color=#{ColorUtility.ToHtmlStringRGB(nameColor)}>{name}</color></size>";
+        txt.alignment = TextAlignmentOptions.Center;
     }
     #endregion
 
@@ -1038,22 +1125,18 @@ public class AutoMainMenuManager : MonoBehaviour
     #region QUẢN LÝ CHUYỂN TRANG
     private void OpenPanel(CanvasGroup targetPanel)
     {
-        if (currentActivePanel == targetPanel)
-        {
-            return;
-        }
-
-        if (currentActivePanel != null)
-        {
-            StartCoroutine(FadePanel(currentActivePanel, 0f, false));
-        }
-
+        if (currentActivePanel == targetPanel) return;
+        if (currentActivePanel != null) StartCoroutine(FadePanel(currentActivePanel, 0f, false));
         currentActivePanel = targetPanel;
         StartCoroutine(FadePanel(currentActivePanel, 1f, true));
 
-        if (targetPanel.gameObject.name == "CharacterSelectPanel")
+        if (targetPanel.gameObject.name == "CharacterSelectPanel") UpdatePreview();
+
+        // 🔥 KIỂM TRA NẾU MỞ CREDITS THÌ RESET VÀ CHẠY
+        isCreditsOpen = (targetPanel.gameObject.name == "CreditsPanel");
+        if (isCreditsOpen && serverListContent != null)
         {
-            UpdatePreview();
+            serverListContent.anchoredPosition = Vector2.zero;
         }
     }
 
