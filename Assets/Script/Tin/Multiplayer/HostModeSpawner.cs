@@ -14,8 +14,12 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     // Nó đảm bảo 100% Lò Đẻ đã hiện hồn rồi mới bắt đầu đẻ, không bao giờ bị hụt nhịp!
     public override void Spawned()
     {
-        // Móc RAM ra xem hồi nãy ở ngoài Menu chọn nhân vật số mấy
-        int myCharacterID = CharacterSelectionMenu.LocalSelectedCharacterID;
+        // 🔥 ĐÃ FIX: Móc két sắt PlayerPrefs ra xem ở Menu nãy chọn ID số mấy
+        // Số 0 ở cuối nghĩa là: "Nếu không tìm thấy ai chọn gì, mặc định đẻ số 0"
+        int myCharacterID = PlayerPrefs.GetInt("SelectedCharacterID", 0);
+        string myPlayerName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
+
+        Debug.Log($"[SPAWNER] Tui là {myPlayerName}, tui muốn đẻ nhân vật số: {myCharacterID}");
 
         if (Runner.IsServer)
         {
@@ -40,8 +44,11 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     // Hàm đẻ thực tế (Chỉ Host mới được chạy hàm này)
     private void SpawnCharacter(PlayerRef player, int characterID)
     {
-        // Chống lỗi nhập bậy
-        if (characterID < 0 || characterID >= playerPrefabs.Length) characterID = 0;
+        // Chống lỗi nhập bậy (Nếu nhập số ID bự hơn số Prefab có sẵn thì ép về 0)
+        if (characterID < 0 || characterID >= playerPrefabs.Length)
+        {
+            characterID = 0;
+        }
 
         Vector3 spawnPos = new Vector3(Random.Range(-2f, 2f), Random.Range(-2f, 2f), 0f);
 
@@ -49,7 +56,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         NetworkObject netObj = Runner.Spawn(playerPrefabs[characterID], spawnPos, Quaternion.identity, player);
 
         spawnedPlayers.Add(player, netObj);
-        Debug.Log($"✅ Máy chủ đã đẻ nhân vật số {characterID} cho {player}");
+        Debug.Log($"✅ Máy chủ đã đẻ nhân vật số {characterID} cho người chơi: {player}");
     }
 
     public void PlayerLeft(PlayerRef player)
