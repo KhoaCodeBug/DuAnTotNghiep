@@ -5,8 +5,9 @@ using TMPro;
 using System.Collections;
 using System.Collections.Generic;
 using Fusion;
+using Fusion.Sockets;
 
-public class AutoMainMenuManager : MonoBehaviour
+public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     public static AutoMainMenuManager Instance { get; private set; }
 
@@ -77,8 +78,16 @@ public class AutoMainMenuManager : MonoBehaviour
     // Chứa các Gameplay UI bị ép tắt
     private List<GameObject> temporarilyDisabledObjects = new List<GameObject>();
 
+    private NetworkRunner lobbyRunner;
+
+    // 🔥 THÊM BIẾN CHO HỆ THỐNG SCROLL DANH SÁCH PHÒNG
+    private RectTransform creditsContent; // THÊM DÒNG NÀY CHO BẢNG CREDITS
+
     // 🔥 BIẾN KHÓA: Chống Spam click gây lỗi mạng
     private bool isConnecting = false;
+
+    // Cờ báo hiệu Menu đã bị hủy khi chuyển Scene
+    private bool isMenuDestroyed = false;
 
     private void Awake()
     {
@@ -160,15 +169,15 @@ public class AutoMainMenuManager : MonoBehaviour
         }
 
         // 🔥 LOGIC MÚA CHỮ CREDITS
-        if (isCreditsOpen && serverListContent != null)
+        if (isCreditsOpen && creditsContent != null) // Đổi từ serverListContent sang creditsContent
         {
             // Content sẽ trôi lên trên
-            serverListContent.anchoredPosition += Vector2.up * creditsScrollSpeed * Time.unscaledDeltaTime;
+            creditsContent.anchoredPosition += Vector2.up * creditsScrollSpeed * Time.unscaledDeltaTime;
 
             // Nếu trôi hết thì reset lại từ đầu (Vòng lặp vô tận)
-            if (serverListContent.anchoredPosition.y > serverListContent.sizeDelta.y + 500f)
+            if (creditsContent.anchoredPosition.y > creditsContent.sizeDelta.y + 500f)
             {
-                serverListContent.anchoredPosition = new Vector2(0, 0);
+                creditsContent.anchoredPosition = new Vector2(0, 0);
             }
         }
     }
@@ -347,6 +356,7 @@ public class AutoMainMenuManager : MonoBehaviour
         {
             hostArea.SetActive(false);
             joinArea.SetActive(true);
+            ConnectToLobby();
         }, new Vector2(0.7f, 0.85f), true, new Vector2(350, 50));
 
         // ------------------------------------------
@@ -476,6 +486,7 @@ public class AutoMainMenuManager : MonoBehaviour
         CreateMenuButton(joinArea, "LÀM MỚI DANH SÁCH", () =>
         {
             Debug.Log("Gọi lệnh Refresh Fusion...");
+            ConnectToLobby();
         }, new Vector2(0.5f, 0.08f), true, new Vector2(300, 50), 20f);
 
         CreateMenuButton(multiplayerPanel, "BACK", () => OpenPanel(mainPanel.GetComponent<CanvasGroup>()), new Vector2(0.1f, 0.05f));
@@ -846,7 +857,7 @@ public class AutoMainMenuManager : MonoBehaviour
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
         sr.content = contentRT;
-        serverListContent = contentRT; // Mượn biến này để xử lý cuộn trong Update
+        creditsContent = contentRT; // Mượn biến này để xử lý cuộn trong Update
 
         // --- ĐỔ DANH SÁCH NHÂN SỰ ---
         CreateCreditLine(content, "LEAD PROGRAMMER", "TRẦN NGỌC ĐĂNG KHOA", Color.cyan);
@@ -1120,6 +1131,12 @@ public class AutoMainMenuManager : MonoBehaviour
 
         return tmpText;
     }
+
+    private void OnDestroy()
+    {
+        // Khi Scene tải xong, Menu cũ bị xóa, tự động bật cờ này lên
+        isMenuDestroyed = true;
+    }
     #endregion
 
     #region QUẢN LÝ CHUYỂN TRANG
@@ -1134,9 +1151,9 @@ public class AutoMainMenuManager : MonoBehaviour
 
         // 🔥 KIỂM TRA NẾU MỞ CREDITS THÌ RESET VÀ CHẠY
         isCreditsOpen = (targetPanel.gameObject.name == "CreditsPanel");
-        if (isCreditsOpen && serverListContent != null)
+        if (isCreditsOpen && creditsContent != null) // Đổi ở đây nữa
         {
-            serverListContent.anchoredPosition = Vector2.zero;
+            creditsContent.anchoredPosition = Vector2.zero;
         }
     }
 
@@ -1228,6 +1245,8 @@ public class AutoMainMenuManager : MonoBehaviour
             SceneManager = sceneManager
         });
 
+        if (isMenuDestroyed) return;
+
         if (result.Ok)
         {
             // 🔥 TẮT NHẠC NỀN KHI VÀO GAME
@@ -1263,6 +1282,96 @@ public class AutoMainMenuManager : MonoBehaviour
         }
         temporarilyDisabledObjects.Clear();
     }
+
+    // --- HÀM BẢO FUSION ĐI DÒ PHÒNG ---
+    // --- HÀM BẢO FUSION ĐI DÒ PHÒNG ---
+    private async void ConnectToLobby()
+    {
+        // 🔥 1. CHỐNG SPAM CLICK: Nếu đang dò sóng hoặc đang kết nối rồi thì bỏ qua
+        if (lobbyRunner != null && lobbyRunner.IsCloudReady)
+        {
+            Debug.Log("Đã kết nối Sảnh, đang chờ Fusion cập nhật danh sách...");
+            return;
+        }
+
+        if (lobbyRunner == null)
+        {
+            lobbyRunner = gameObject.AddComponent<NetworkRunner>();
+        }
+
+        // 🔥 2. QUAN TRỌNG NHẤT: Báo cho Fusion biết script này sẽ "lắng nghe" sự kiện
+        lobbyRunner.AddCallbacks(this);
+
+        Debug.Log("Đang kết nối vào Sảnh chờ (Lobby) để dò phòng...");
+
+        // Bắt đầu tham gia vào Sảnh (Lobby)
+        var result = await lobbyRunner.JoinSessionLobby(SessionLobby.ClientServer);
+
+        if (result.Ok)
+        {
+            Debug.Log("Đã vào Sảnh! Fusion sẽ tự động gọi hàm OnSessionListUpdated nếu có căn cứ mới.");
+        }
+        else
+        {
+            Debug.LogError("Lỗi dò sóng: " + result.ShutdownReason);
+            // 🔥 Xóa cái Runner bị lỗi đi để lần sau sếp bấm lại nó làm lại từ đầu cho sạch
+            Destroy(lobbyRunner);
+            lobbyRunner = null;
+        }
+    }
+
+    // --- HÀM ĂNG-TEN HỨNG DỮ LIỆU TỪ FUSION ---
+    // (Bắt buộc phải có vì sếp đã khai báo INetworkRunnerCallbacks ở trên)
+    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
+    {
+        Debug.Log($"Phát hiện {sessionList.Count} căn cứ đang hoạt động!");
+        // Gọi hàm đổ UI siêu xịn của sếp ra
+        UpdateServerListUI(sessionList);
+    }
+
+    public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
+
+    public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
+
+    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
+
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
+
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+    {
+        // Xóa lệnh quăng lỗi đi, thay bằng dòng Log để sếp biết tại sao nó tắt
+        Debug.LogWarning($"[Fusion] Đã đóng kết nối mạng. Lý do: {shutdownReason}");
+
+        // Mở khóa cho phép bấm nút lại (đề phòng kẹt UI)
+        isConnecting = false;
+    }
+
+    void INetworkRunnerCallbacks.OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
+
+    public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
+
+    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
+
+    public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
+
+    public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, System.ArraySegment<byte> data) { }
+
+    public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
+
+    public void OnInput(NetworkRunner runner, NetworkInput input) { }
+
+    public void OnInputMissing(NetworkRunner runner, PlayerRef player, NetworkInput input) { }
+
+    void INetworkRunnerCallbacks.OnConnectedToServer(NetworkRunner runner) { }
+
+    public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data) { }
+
+    public void OnHostMigration(NetworkRunner runner, HostMigrationToken hostMigrationToken) { }
+
+    public void OnSceneLoadDone(NetworkRunner runner) { }
+
+    public void OnSceneLoadStart(NetworkRunner runner) { }
+
     #endregion
 }
 
