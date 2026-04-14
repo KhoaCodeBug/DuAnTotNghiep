@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: 344e1f55414a5a74ba999e78aabb06a0
+AssetOrigin:
+  serializedVersion: 1
+  productId: 327298
+  packageName: Zombie Interior - HD Isometric Tileset
+  packageVersion: 1.0
+  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Environment/Sprites/Door1_W.png
+  uploadId: 777992
 TextureImporter:
   internalIDToNameTable:
   - first:
@@ -131,10 +138,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 327298
-  packageName: Zombie Interior - HD Isometric Tileset
-  packageVersion: 1.0
-  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Environment/Sprites/Door1_W.png
-  uploadId: 777992
