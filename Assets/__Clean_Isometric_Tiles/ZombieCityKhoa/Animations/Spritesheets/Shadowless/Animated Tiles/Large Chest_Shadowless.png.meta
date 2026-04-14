@@ -1,0 +1,507 @@
+fileFormatVersion: 2
+guid: b5cfb07e496eeac4f90196ebcfc3fc3a
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2734943424657734691
+    second: Large Chest_Shadowless_0
+  - first:
+      213: -2541838889817371086
+    second: Large Chest_Shadowless_1
+  - first:
+      213: -5030459936507017494
+    second: Large Chest_Shadowless_2
+  - first:
+      213: -3854343910225837520
+    second: Large Chest_Shadowless_3
+  - first:
+      213: -1562603550487215163
+    second: Large Chest_Shadowless_4
+  - first:
+      213: 7820619213656952476
+    second: Large Chest_Shadowless_5
+  - first:
+      213: -2987555225884758882
+    second: Large Chest_Shadowless_6
+  - first:
+      213: 2789320285649817779
+    second: Large Chest_Shadowless_7
+  - first:
+      213: -5718498298975265631
+    second: Large Chest_Shadowless_8
+  - first:
+      213: 1558769103817251880
+    second: Large Chest_Shadowless_9
+  - first:
+      213: 4039560555699021901
+    second: Large Chest_Shadowless_10
+  - first:
+      213: -1771278136728364020
+    second: Large Chest_Shadowless_11
+  - first:
+      213: -481761968865787777
+    second: Large Chest_Shadowless_12
+  - first:
+      213: -1531296737216694774
+    second: Large Chest_Shadowless_13
+  - first:
+      213: -5968370963929991036
+    second: Large Chest_Shadowless_14
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_0
+      rect:
+        serializedVersion: 2
+        x: 33
+        y: 34
+        width: 62
+        height: 61
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 32cb38bed8874f520800000000000000
+      internalID: 2734943424657734691
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_1
+      rect:
+        serializedVersion: 2
+        x: 161
+        y: 34
+        width: 62
+        height: 62
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 23e89283ff299bcd0800000000000000
+      internalID: -2541838889817371086
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_2
+      rect:
+        serializedVersion: 2
+        x: 289
+        y: 34
+        width: 63
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ae64aab1757303ab0800000000000000
+      internalID: -5030459936507017494
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_3
+      rect:
+        serializedVersion: 2
+        x: 417
+        y: 34
+        width: 63
+        height: 64
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0328cc482ae928ac0800000000000000
+      internalID: -3854343910225837520
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_4
+      rect:
+        serializedVersion: 2
+        x: 545
+        y: 34
+        width: 64
+        height: 65
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5c302709954805ae0800000000000000
+      internalID: -1562603550487215163
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_5
+      rect:
+        serializedVersion: 2
+        x: 673
+        y: 34
+        width: 62
+        height: 65
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c9e0e994dbb688c60800000000000000
+      internalID: 7820619213656952476
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_6
+      rect:
+        serializedVersion: 2
+        x: 795
+        y: 34
+        width: 68
+        height: 64
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e9ce64ec9521a86d0800000000000000
+      internalID: -2987555225884758882
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_7
+      rect:
+        serializedVersion: 2
+        x: 914
+        y: 34
+        width: 77
+        height: 60
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3b0d2f67508a5b620800000000000000
+      internalID: 2789320285649817779
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_8
+      rect:
+        serializedVersion: 2
+        x: 1035
+        y: 34
+        width: 84
+        height: 55
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1ac57e05810d3a0b0800000000000000
+      internalID: -5718498298975265631
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_9
+      rect:
+        serializedVersion: 2
+        x: 1161
+        y: 28
+        width: 86
+        height: 58
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 82c91efbd3cd1a510800000000000000
+      internalID: 1558769103817251880
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_10
+      rect:
+        serializedVersion: 2
+        x: 1289
+        y: 26
+        width: 86
+        height: 60
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d48ae134ce66f0830800000000000000
+      internalID: 4039560555699021901
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_11
+      rect:
+        serializedVersion: 2
+        x: 1417
+        y: 24
+        width: 86
+        height: 62
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c0cd3e55be72b67e0800000000000000
+      internalID: -1771278136728364020
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_12
+      rect:
+        serializedVersion: 2
+        x: 1545
+        y: 23
+        width: 86
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f704673ba007059f0800000000000000
+      internalID: -481761968865787777
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_13
+      rect:
+        serializedVersion: 2
+        x: 1673
+        y: 22
+        width: 86
+        height: 64
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a06fb7c0bbdbfbae0800000000000000
+      internalID: -1531296737216694774
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Large Chest_Shadowless_14
+      rect:
+        serializedVersion: 2
+        x: 1801
+        y: 22
+        width: 86
+        height: 64
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4887237ea361c2da0800000000000000
+      internalID: -5968370963929991036
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Large Chest_Shadowless_0: 2734943424657734691
+      Large Chest_Shadowless_1: -2541838889817371086
+      Large Chest_Shadowless_10: 4039560555699021901
+      Large Chest_Shadowless_11: -1771278136728364020
+      Large Chest_Shadowless_12: -481761968865787777
+      Large Chest_Shadowless_13: -1531296737216694774
+      Large Chest_Shadowless_14: -5968370963929991036
+      Large Chest_Shadowless_2: -5030459936507017494
+      Large Chest_Shadowless_3: -3854343910225837520
+      Large Chest_Shadowless_4: -1562603550487215163
+      Large Chest_Shadowless_5: 7820619213656952476
+      Large Chest_Shadowless_6: -2987555225884758882
+      Large Chest_Shadowless_7: 2789320285649817779
+      Large Chest_Shadowless_8: -5718498298975265631
+      Large Chest_Shadowless_9: 1558769103817251880
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

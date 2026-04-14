@@ -1,0 +1,3237 @@
+fileFormatVersion: 2
+guid: bcb9334593447dc40aa0443f3055f667
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2024165313625214719
+    second: CrouchAttack_Shadowless_0
+  - first:
+      213: 5845786240703052068
+    second: CrouchAttack_Shadowless_1
+  - first:
+      213: 1534100112291431350
+    second: CrouchAttack_Shadowless_2
+  - first:
+      213: 3622348844497795424
+    second: CrouchAttack_Shadowless_3
+  - first:
+      213: 302008551288332477
+    second: CrouchAttack_Shadowless_4
+  - first:
+      213: 9169327952295592861
+    second: CrouchAttack_Shadowless_5
+  - first:
+      213: -6673159179530534539
+    second: CrouchAttack_Shadowless_6
+  - first:
+      213: 3243462179519019446
+    second: CrouchAttack_Shadowless_7
+  - first:
+      213: 5198669026828467592
+    second: CrouchAttack_Shadowless_8
+  - first:
+      213: 6458859100725634853
+    second: CrouchAttack_Shadowless_9
+  - first:
+      213: 2375675842551543535
+    second: CrouchAttack_Shadowless_10
+  - first:
+      213: 6507298838692706561
+    second: CrouchAttack_Shadowless_11
+  - first:
+      213: 855234195520200484
+    second: CrouchAttack_Shadowless_12
+  - first:
+      213: -8290390099496033492
+    second: CrouchAttack_Shadowless_13
+  - first:
+      213: 2870922362525446600
+    second: CrouchAttack_Shadowless_14
+  - first:
+      213: 6769510411569298964
+    second: CrouchAttack_Shadowless_15
+  - first:
+      213: -337846145295143208
+    second: CrouchAttack_Shadowless_16
+  - first:
+      213: 1417347980307695694
+    second: CrouchAttack_Shadowless_17
+  - first:
+      213: -8053583383843398747
+    second: CrouchAttack_Shadowless_18
+  - first:
+      213: -5381578073295979191
+    second: CrouchAttack_Shadowless_19
+  - first:
+      213: 7683651157774628869
+    second: CrouchAttack_Shadowless_20
+  - first:
+      213: 5007409116080986623
+    second: CrouchAttack_Shadowless_21
+  - first:
+      213: -1819733132725591853
+    second: CrouchAttack_Shadowless_22
+  - first:
+      213: 1481019872240313397
+    second: CrouchAttack_Shadowless_23
+  - first:
+      213: 1324768163488640956
+    second: CrouchAttack_Shadowless_24
+  - first:
+      213: -1380802860541728152
+    second: CrouchAttack_Shadowless_25
+  - first:
+      213: -4290586613568522255
+    second: CrouchAttack_Shadowless_26
+  - first:
+      213: -7434787965620563680
+    second: CrouchAttack_Shadowless_27
+  - first:
+      213: 3522875996319481421
+    second: CrouchAttack_Shadowless_28
+  - first:
+      213: 7071798651780762810
+    second: CrouchAttack_Shadowless_29
+  - first:
+      213: -4588375213666383891
+    second: CrouchAttack_Shadowless_30
+  - first:
+      213: 9048778433768647266
+    second: CrouchAttack_Shadowless_31
+  - first:
+      213: 485152820491637543
+    second: CrouchAttack_Shadowless_32
+  - first:
+      213: 3498814275434630941
+    second: CrouchAttack_Shadowless_33
+  - first:
+      213: -5850743474294767588
+    second: CrouchAttack_Shadowless_34
+  - first:
+      213: -8911248842620901116
+    second: CrouchAttack_Shadowless_35
+  - first:
+      213: -744823444886548343
+    second: CrouchAttack_Shadowless_36
+  - first:
+      213: -2315331095754265673
+    second: CrouchAttack_Shadowless_37
+  - first:
+      213: 2573324427914380527
+    second: CrouchAttack_Shadowless_38
+  - first:
+      213: 8921766684285654975
+    second: CrouchAttack_Shadowless_39
+  - first:
+      213: -9084833740810702981
+    second: CrouchAttack_Shadowless_40
+  - first:
+      213: -1173401370113914673
+    second: CrouchAttack_Shadowless_41
+  - first:
+      213: 8353042405651108591
+    second: CrouchAttack_Shadowless_42
+  - first:
+      213: 1487726595667111911
+    second: CrouchAttack_Shadowless_43
+  - first:
+      213: 6172478740422756966
+    second: CrouchAttack_Shadowless_44
+  - first:
+      213: -394102515284054341
+    second: CrouchAttack_Shadowless_45
+  - first:
+      213: 410277624346012765
+    second: CrouchAttack_Shadowless_46
+  - first:
+      213: 7697770954072592860
+    second: CrouchAttack_Shadowless_47
+  - first:
+      213: -3656760395256480969
+    second: CrouchAttack_Shadowless_48
+  - first:
+      213: 4494369294871780606
+    second: CrouchAttack_Shadowless_49
+  - first:
+      213: -102464288862488073
+    second: CrouchAttack_Shadowless_50
+  - first:
+      213: -5757853214116935487
+    second: CrouchAttack_Shadowless_51
+  - first:
+      213: 8483020970726666971
+    second: CrouchAttack_Shadowless_52
+  - first:
+      213: -801409791793074451
+    second: CrouchAttack_Shadowless_53
+  - first:
+      213: -499104285161235771
+    second: CrouchAttack_Shadowless_54
+  - first:
+      213: -8442654392015928520
+    second: CrouchAttack_Shadowless_55
+  - first:
+      213: 7954170709335007408
+    second: CrouchAttack_Shadowless_56
+  - first:
+      213: -1332650851255449733
+    second: CrouchAttack_Shadowless_57
+  - first:
+      213: -4314503905022898605
+    second: CrouchAttack_Shadowless_58
+  - first:
+      213: -7296599712182856608
+    second: CrouchAttack_Shadowless_59
+  - first:
+      213: 8095564393773406914
+    second: CrouchAttack_Shadowless_60
+  - first:
+      213: -4640624411984974956
+    second: CrouchAttack_Shadowless_61
+  - first:
+      213: 1395333618533229662
+    second: CrouchAttack_Shadowless_62
+  - first:
+      213: -9170940605788543014
+    second: CrouchAttack_Shadowless_63
+  - first:
+      213: -267140355501947726
+    second: CrouchAttack_Shadowless_64
+  - first:
+      213: 3901568585463623335
+    second: CrouchAttack_Shadowless_65
+  - first:
+      213: 5360256514971265148
+    second: CrouchAttack_Shadowless_66
+  - first:
+      213: -7198670594141519262
+    second: CrouchAttack_Shadowless_67
+  - first:
+      213: 680977244499546404
+    second: CrouchAttack_Shadowless_68
+  - first:
+      213: 4707740118916073753
+    second: CrouchAttack_Shadowless_69
+  - first:
+      213: 419512516261800227
+    second: CrouchAttack_Shadowless_70
+  - first:
+      213: -5162170882339011898
+    second: CrouchAttack_Shadowless_71
+  - first:
+      213: -681947298881474211
+    second: CrouchAttack_Shadowless_72
+  - first:
+      213: -3733320951174176179
+    second: CrouchAttack_Shadowless_73
+  - first:
+      213: -3212857667731643313
+    second: CrouchAttack_Shadowless_74
+  - first:
+      213: -8542504817261590488
+    second: CrouchAttack_Shadowless_75
+  - first:
+      213: -5185432780576154078
+    second: CrouchAttack_Shadowless_76
+  - first:
+      213: 6473821576896013862
+    second: CrouchAttack_Shadowless_77
+  - first:
+      213: -8654194567748258183
+    second: CrouchAttack_Shadowless_78
+  - first:
+      213: 1793658151850821189
+    second: CrouchAttack_Shadowless_79
+  - first:
+      213: 4744574720053610914
+    second: CrouchAttack_Shadowless_80
+  - first:
+      213: -3892779777097742015
+    second: CrouchAttack_Shadowless_81
+  - first:
+      213: -9038608302050794783
+    second: CrouchAttack_Shadowless_82
+  - first:
+      213: -9023322661922979921
+    second: CrouchAttack_Shadowless_83
+  - first:
+      213: 731422779385354068
+    second: CrouchAttack_Shadowless_84
+  - first:
+      213: 2042823027991876701
+    second: CrouchAttack_Shadowless_85
+  - first:
+      213: 1389887203741993273
+    second: CrouchAttack_Shadowless_86
+  - first:
+      213: -3695548966513991692
+    second: CrouchAttack_Shadowless_87
+  - first:
+      213: 4846982090534119043
+    second: CrouchAttack_Shadowless_88
+  - first:
+      213: -5609632800996553745
+    second: CrouchAttack_Shadowless_89
+  - first:
+      213: -4235893629947011356
+    second: CrouchAttack_Shadowless_90
+  - first:
+      213: 3896492305995778950
+    second: CrouchAttack_Shadowless_91
+  - first:
+      213: -6526078420050497880
+    second: CrouchAttack_Shadowless_92
+  - first:
+      213: -4270886679829568966
+    second: CrouchAttack_Shadowless_93
+  - first:
+      213: -6126596136936205239
+    second: CrouchAttack_Shadowless_94
+  - first:
+      213: -932327527973032307
+    second: CrouchAttack_Shadowless_95
+  - first:
+      213: -9111358934747170112
+    second: CrouchAttack_Shadowless_96
+  - first:
+      213: -1948992017281812645
+    second: CrouchAttack_Shadowless_97
+  - first:
+      213: 2161913865899059347
+    second: CrouchAttack_Shadowless_98
+  - first:
+      213: 1084919893254346768
+    second: CrouchAttack_Shadowless_99
+  - first:
+      213: -3554626740475485102
+    second: CrouchAttack_Shadowless_100
+  - first:
+      213: -7077294179929929526
+    second: CrouchAttack_Shadowless_101
+  - first:
+      213: -1301202488920191708
+    second: CrouchAttack_Shadowless_102
+  - first:
+      213: -1783775123941138517
+    second: CrouchAttack_Shadowless_103
+  - first:
+      213: -1448467673158970399
+    second: CrouchAttack_Shadowless_104
+  - first:
+      213: 3353637366761692290
+    second: CrouchAttack_Shadowless_105
+  - first:
+      213: -796466524126546174
+    second: CrouchAttack_Shadowless_106
+  - first:
+      213: -6815130548892559601
+    second: CrouchAttack_Shadowless_107
+  - first:
+      213: 2039076219170784935
+    second: CrouchAttack_Shadowless_108
+  - first:
+      213: 1063507499753438893
+    second: CrouchAttack_Shadowless_109
+  - first:
+      213: -2004729675264698802
+    second: CrouchAttack_Shadowless_110
+  - first:
+      213: -7518164369474890049
+    second: CrouchAttack_Shadowless_111
+  - first:
+      213: 6891577018332124486
+    second: CrouchAttack_Shadowless_112
+  - first:
+      213: -6287664906084410382
+    second: CrouchAttack_Shadowless_113
+  - first:
+      213: -6798870840750957658
+    second: CrouchAttack_Shadowless_114
+  - first:
+      213: -7782811479822006816
+    second: CrouchAttack_Shadowless_115
+  - first:
+      213: -9132782575151569817
+    second: CrouchAttack_Shadowless_116
+  - first:
+      213: 3779775283468986383
+    second: CrouchAttack_Shadowless_117
+  - first:
+      213: 5921792367512073026
+    second: CrouchAttack_Shadowless_118
+  - first:
+      213: 9130823641680975547
+    second: CrouchAttack_Shadowless_119
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_0
+      rect:
+        serializedVersion: 2
+        x: 57
+        y: 935
+        width: 46
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ffe4c45d0a7471c10800000000000000
+      internalID: 2024165313625214719
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_1
+      rect:
+        serializedVersion: 2
+        x: 184
+        y: 935
+        width: 46
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 429b8f51d97602150800000000000000
+      internalID: 5845786240703052068
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_2
+      rect:
+        serializedVersion: 2
+        x: 312
+        y: 935
+        width: 44
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6b384039ce73a4510800000000000000
+      internalID: 1534100112291431350
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_3
+      rect:
+        serializedVersion: 2
+        x: 440
+        y: 935
+        width: 47
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 06976d0051b254230800000000000000
+      internalID: 3622348844497795424
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_4
+      rect:
+        serializedVersion: 2
+        x: 569
+        y: 935
+        width: 45
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: db0eba26d23f03400800000000000000
+      internalID: 302008551288332477
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_5
+      rect:
+        serializedVersion: 2
+        x: 697
+        y: 934
+        width: 43
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d9383a1013fff3f70800000000000000
+      internalID: 9169327952295592861
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_6
+      rect:
+        serializedVersion: 2
+        x: 825
+        y: 934
+        width: 44
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5710276051d2463a0800000000000000
+      internalID: -6673159179530534539
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_7
+      rect:
+        serializedVersion: 2
+        x: 953
+        y: 935
+        width: 46
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6b935aceaa7130d20800000000000000
+      internalID: 3243462179519019446
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_8
+      rect:
+        serializedVersion: 2
+        x: 1081
+        y: 935
+        width: 45
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 88dbfe8afe1652840800000000000000
+      internalID: 5198669026828467592
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_9
+      rect:
+        serializedVersion: 2
+        x: 1209
+        y: 936
+        width: 43
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 527ec01b12a72a950800000000000000
+      internalID: 6458859100725634853
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_10
+      rect:
+        serializedVersion: 2
+        x: 1337
+        y: 937
+        width: 43
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe6f2c8879818f020800000000000000
+      internalID: 2375675842551543535
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_11
+      rect:
+        serializedVersion: 2
+        x: 1465
+        y: 936
+        width: 46
+        height: 30
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 109379f01d19e4a50800000000000000
+      internalID: 6507298838692706561
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_12
+      rect:
+        serializedVersion: 2
+        x: 1593
+        y: 935
+        width: 45
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42f9fb738f66edb00800000000000000
+      internalID: 855234195520200484
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_13
+      rect:
+        serializedVersion: 2
+        x: 1721
+        y: 935
+        width: 46
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c23af1ef02e92fc80800000000000000
+      internalID: -8290390099496033492
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_14
+      rect:
+        serializedVersion: 2
+        x: 1849
+        y: 935
+        width: 46
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8c1fd0c8da097d720800000000000000
+      internalID: 2870922362525446600
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_15
+      rect:
+        serializedVersion: 2
+        x: 57
+        y: 803
+        width: 30
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 41e75e85ad122fd50800000000000000
+      internalID: 6769510411569298964
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_16
+      rect:
+        serializedVersion: 2
+        x: 184
+        y: 805
+        width: 30
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8dea2f888babf4bf0800000000000000
+      internalID: -337846145295143208
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_17
+      rect:
+        serializedVersion: 2
+        x: 312
+        y: 804
+        width: 30
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e488b598a7e6ba310800000000000000
+      internalID: 1417347980307695694
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_18
+      rect:
+        serializedVersion: 2
+        x: 440
+        y: 803
+        width: 30
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5ab9605059ceb3090800000000000000
+      internalID: -8053583383843398747
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_19
+      rect:
+        serializedVersion: 2
+        x: 568
+        y: 803
+        width: 30
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 94d7922514bc055b0800000000000000
+      internalID: -5381578073295979191
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_20
+      rect:
+        serializedVersion: 2
+        x: 695
+        y: 803
+        width: 32
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 508fc2da400d1aa60800000000000000
+      internalID: 7683651157774628869
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_21
+      rect:
+        serializedVersion: 2
+        x: 823
+        y: 805
+        width: 32
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ff95f098f04ed7540800000000000000
+      internalID: 5007409116080986623
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_22
+      rect:
+        serializedVersion: 2
+        x: 953
+        y: 806
+        width: 29
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3d0e1ed6b520fb6e0800000000000000
+      internalID: -1819733132725591853
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_23
+      rect:
+        serializedVersion: 2
+        x: 1081
+        y: 804
+        width: 30
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 534ad2e1ab3ad8410800000000000000
+      internalID: 1481019872240313397
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_24
+      rect:
+        serializedVersion: 2
+        x: 1209
+        y: 801
+        width: 30
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cbfac7230a5826210800000000000000
+      internalID: 1324768163488640956
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_25
+      rect:
+        serializedVersion: 2
+        x: 1337
+        y: 801
+        width: 30
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 86a21983d1766dce0800000000000000
+      internalID: -1380802860541728152
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_26
+      rect:
+        serializedVersion: 2
+        x: 1466
+        y: 800
+        width: 29
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1f7b33c1536c474c0800000000000000
+      internalID: -4290586613568522255
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_27
+      rect:
+        serializedVersion: 2
+        x: 1594
+        y: 800
+        width: 29
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 02156d88cb352d890800000000000000
+      internalID: -7434787965620563680
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_28
+      rect:
+        serializedVersion: 2
+        x: 1722
+        y: 801
+        width: 29
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d4e7f5cbd05c3e030800000000000000
+      internalID: 3522875996319481421
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_29
+      rect:
+        serializedVersion: 2
+        x: 1849
+        y: 802
+        width: 30
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: abc8a72e763142260800000000000000
+      internalID: 7071798651780762810
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_30
+      rect:
+        serializedVersion: 2
+        x: 52
+        y: 677
+        width: 23
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: de7453dad01d250c0800000000000000
+      internalID: -4588375213666383891
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_31
+      rect:
+        serializedVersion: 2
+        x: 180
+        y: 675
+        width: 23
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26aeef30b08b39d70800000000000000
+      internalID: 9048778433768647266
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_32
+      rect:
+        serializedVersion: 2
+        x: 308
+        y: 672
+        width: 23
+        height: 39
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 723de277beb9bb600800000000000000
+      internalID: 485152820491637543
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_33
+      rect:
+        serializedVersion: 2
+        x: 436
+        y: 671
+        width: 23
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d1fc856cb094e8030800000000000000
+      internalID: 3498814275434630941
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_34
+      rect:
+        serializedVersion: 2
+        x: 564
+        y: 671
+        width: 23
+        height: 39
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c10c9b60fcbfdcea0800000000000000
+      internalID: -5850743474294767588
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_35
+      rect:
+        serializedVersion: 2
+        x: 692
+        y: 672
+        width: 23
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 40968763462e45480800000000000000
+      internalID: -8911248842620901116
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_36
+      rect:
+        serializedVersion: 2
+        x: 821
+        y: 674
+        width: 22
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 980972be50bd9a5f0800000000000000
+      internalID: -744823444886548343
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_37
+      rect:
+        serializedVersion: 2
+        x: 949
+        y: 676
+        width: 23
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bba624b2aa4edfd0800000000000000
+      internalID: -2315331095754265673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_38
+      rect:
+        serializedVersion: 2
+        x: 1077
+        y: 678
+        width: 23
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe40ca1eee846b320800000000000000
+      internalID: 2573324427914380527
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_39
+      rect:
+        serializedVersion: 2
+        x: 1205
+        y: 674
+        width: 23
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fb7d2c1a78b70db70800000000000000
+      internalID: 8921766684285654975
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_40
+      rect:
+        serializedVersion: 2
+        x: 1333
+        y: 672
+        width: 23
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b7fae73a8df2ce180800000000000000
+      internalID: -9084833740810702981
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_41
+      rect:
+        serializedVersion: 2
+        x: 1460
+        y: 672
+        width: 24
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fc8476bbbad37bfe0800000000000000
+      internalID: -1173401370113914673
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_42
+      rect:
+        serializedVersion: 2
+        x: 1588
+        y: 672
+        width: 24
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fe2db96cfc7fbe370800000000000000
+      internalID: 8353042405651108591
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_43
+      rect:
+        serializedVersion: 2
+        x: 1716
+        y: 673
+        width: 23
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7efa3a9d47775a410800000000000000
+      internalID: 1487726595667111911
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_44
+      rect:
+        serializedVersion: 2
+        x: 1844
+        y: 676
+        width: 23
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 66a8c8216bc09a550800000000000000
+      internalID: 6172478740422756966
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_45
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 553
+        width: 41
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bbee763b9ddd78af0800000000000000
+      internalID: -394102515284054341
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_46
+      rect:
+        serializedVersion: 2
+        x: 161
+        y: 549
+        width: 41
+        height: 35
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d5c6f6a535991b500800000000000000
+      internalID: 410277624346012765
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_47
+      rect:
+        serializedVersion: 2
+        x: 288
+        y: 548
+        width: 42
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cd111dfe5e9f3da60800000000000000
+      internalID: 7697770954072592860
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_48
+      rect:
+        serializedVersion: 2
+        x: 416
+        y: 547
+        width: 42
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 73b350c7bc3904dc0800000000000000
+      internalID: -3656760395256480969
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_49
+      rect:
+        serializedVersion: 2
+        x: 545
+        y: 546
+        width: 41
+        height: 38
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: efc514ebf053f5e30800000000000000
+      internalID: 4494369294871780606
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_50
+      rect:
+        serializedVersion: 2
+        x: 674
+        y: 547
+        width: 40
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7f9303ca549f39ef0800000000000000
+      internalID: -102464288862488073
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_51
+      rect:
+        serializedVersion: 2
+        x: 801
+        y: 549
+        width: 41
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1c808b7120ff710b0800000000000000
+      internalID: -5757853214116935487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_52
+      rect:
+        serializedVersion: 2
+        x: 930
+        y: 550
+        width: 40
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bd23a5eb0aeb9b570800000000000000
+      internalID: 8483020970726666971
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_53
+      rect:
+        serializedVersion: 2
+        x: 1058
+        y: 551
+        width: 40
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dee67a85a02d0e4f0800000000000000
+      internalID: -801409791793074451
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_54
+      rect:
+        serializedVersion: 2
+        x: 1186
+        y: 552
+        width: 40
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5cad6190c43d219f0800000000000000
+      internalID: -499104285161235771
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_55
+      rect:
+        serializedVersion: 2
+        x: 1313
+        y: 550
+        width: 41
+        height: 34
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 833cf72cf8aa5da80800000000000000
+      internalID: -8442654392015928520
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_56
+      rect:
+        serializedVersion: 2
+        x: 1441
+        y: 550
+        width: 41
+        height: 33
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0b0eabcfd14e26e60800000000000000
+      internalID: 7954170709335007408
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_57
+      rect:
+        serializedVersion: 2
+        x: 1570
+        y: 551
+        width: 39
+        height: 32
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b770c498c19718de0800000000000000
+      internalID: -1332650851255449733
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_58
+      rect:
+        serializedVersion: 2
+        x: 1697
+        y: 552
+        width: 40
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 35e031fbe8dcf14c0800000000000000
+      internalID: -4314503905022898605
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_59
+      rect:
+        serializedVersion: 2
+        x: 1824
+        y: 553
+        width: 41
+        height: 31
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0649f1788354dba90800000000000000
+      internalID: -7296599712182856608
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_60
+      rect:
+        serializedVersion: 2
+        x: 27
+        y: 428
+        width: 46
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2ca1a2b8ce8395070800000000000000
+      internalID: 8095564393773406914
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_61
+      rect:
+        serializedVersion: 2
+        x: 156
+        y: 428
+        width: 46
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 49b21a33fa0399fb0800000000000000
+      internalID: -4640624411984974956
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_62
+      rect:
+        serializedVersion: 2
+        x: 284
+        y: 427
+        width: 46
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e5465d388883d5310800000000000000
+      internalID: 1395333618533229662
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_63
+      rect:
+        serializedVersion: 2
+        x: 412
+        y: 427
+        width: 46
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ad7a4c7db164ab080800000000000000
+      internalID: -9170940605788543014
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_64
+      rect:
+        serializedVersion: 2
+        x: 540
+        y: 427
+        width: 45
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2b48225134dea4cf0800000000000000
+      internalID: -267140355501947726
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_65
+      rect:
+        serializedVersion: 2
+        x: 668
+        y: 427
+        width: 45
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7aee16305f7252630800000000000000
+      internalID: 3901568585463623335
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_66
+      rect:
+        serializedVersion: 2
+        x: 796
+        y: 427
+        width: 45
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c78e5d786e4736a40800000000000000
+      internalID: 5360256514971265148
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_67
+      rect:
+        serializedVersion: 2
+        x: 924
+        y: 427
+        width: 45
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 262052d1c3f291c90800000000000000
+      internalID: -7198670594141519262
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_68
+      rect:
+        serializedVersion: 2
+        x: 1053
+        y: 427
+        width: 44
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42115862231537900800000000000000
+      internalID: 680977244499546404
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_69
+      rect:
+        serializedVersion: 2
+        x: 1180
+        y: 427
+        width: 45
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 91909da02b0455140800000000000000
+      internalID: 4707740118916073753
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_70
+      rect:
+        serializedVersion: 2
+        x: 1308
+        y: 427
+        width: 45
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3296d9e296862d500800000000000000
+      internalID: 419512516261800227
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_71
+      rect:
+        serializedVersion: 2
+        x: 1435
+        y: 427
+        width: 46
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6c28150dee84c58b0800000000000000
+      internalID: -5162170882339011898
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_72
+      rect:
+        serializedVersion: 2
+        x: 1564
+        y: 428
+        width: 45
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d51f1a67b8c3986f0800000000000000
+      internalID: -681947298881474211
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_73
+      rect:
+        serializedVersion: 2
+        x: 1691
+        y: 428
+        width: 46
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d426db8ff54903cc0800000000000000
+      internalID: -3733320951174176179
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_74
+      rect:
+        serializedVersion: 2
+        x: 1819
+        y: 428
+        width: 46
+        height: 36
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f4427f049f2a963d0800000000000000
+      internalID: -3212857667731643313
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_75
+      rect:
+        serializedVersion: 2
+        x: 44
+        y: 303
+        width: 29
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8284f0bf02de27980800000000000000
+      internalID: -8542504817261590488
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_76
+      rect:
+        serializedVersion: 2
+        x: 172
+        y: 303
+        width: 30
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 22e97131c54a908b0800000000000000
+      internalID: -5185432780576154078
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_77
+      rect:
+        serializedVersion: 2
+        x: 300
+        y: 301
+        width: 30
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6266526ac62a7d950800000000000000
+      internalID: 6473821576896013862
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_78
+      rect:
+        serializedVersion: 2
+        x: 429
+        y: 301
+        width: 29
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 976ff3c74ef16e780800000000000000
+      internalID: -8654194567748258183
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_79
+      rect:
+        serializedVersion: 2
+        x: 556
+        y: 300
+        width: 30
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5464d8df59a54e810800000000000000
+      internalID: 1793658151850821189
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_80
+      rect:
+        serializedVersion: 2
+        x: 684
+        y: 301
+        width: 31
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2a9081fe19d18d140800000000000000
+      internalID: 4744574720053610914
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_81
+      rect:
+        serializedVersion: 2
+        x: 812
+        y: 302
+        width: 31
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 149c345ea611af9c0800000000000000
+      internalID: -3892779777097742015
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_82
+      rect:
+        serializedVersion: 2
+        x: 940
+        y: 301
+        width: 29
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1e2ad5c43a9609280800000000000000
+      internalID: -9038608302050794783
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_83
+      rect:
+        serializedVersion: 2
+        x: 1068
+        y: 300
+        width: 29
+        height: 46
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: faf395ab8d7b6c280800000000000000
+      internalID: -9023322661922979921
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_84
+      rect:
+        serializedVersion: 2
+        x: 1195
+        y: 299
+        width: 30
+        height: 47
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 45794e18429862a00800000000000000
+      internalID: 731422779385354068
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_85
+      rect:
+        serializedVersion: 2
+        x: 1324
+        y: 299
+        width: 29
+        height: 47
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d54917a78b0995c10800000000000000
+      internalID: 2042823027991876701
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_86
+      rect:
+        serializedVersion: 2
+        x: 1451
+        y: 298
+        width: 30
+        height: 49
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 93907e04c0fd94310800000000000000
+      internalID: 1389887203741993273
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_87
+      rect:
+        serializedVersion: 2
+        x: 1580
+        y: 298
+        width: 29
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4ff1fd87bc5c6bcc0800000000000000
+      internalID: -3695548966513991692
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_88
+      rect:
+        serializedVersion: 2
+        x: 1707
+        y: 298
+        width: 30
+        height: 49
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 38667fae780f34340800000000000000
+      internalID: 4846982090534119043
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_89
+      rect:
+        serializedVersion: 2
+        x: 1836
+        y: 302
+        width: 29
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: feb883840b49622b0800000000000000
+      internalID: -5609632800996553745
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_90
+      rect:
+        serializedVersion: 2
+        x: 55
+        y: 175
+        width: 24
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4ee1ba0bf251735c0800000000000000
+      internalID: -4235893629947011356
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_91
+      rect:
+        serializedVersion: 2
+        x: 183
+        y: 173
+        width: 24
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 68bcbe89b1f131630800000000000000
+      internalID: 3896492305995778950
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_92
+      rect:
+        serializedVersion: 2
+        x: 311
+        y: 172
+        width: 24
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8ae2c8ce046be65a0800000000000000
+      internalID: -6526078420050497880
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_93
+      rect:
+        serializedVersion: 2
+        x: 439
+        y: 171
+        width: 24
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a32afcc5133cab4c0800000000000000
+      internalID: -4270886679829568966
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_94
+      rect:
+        serializedVersion: 2
+        x: 567
+        y: 169
+        width: 23
+        height: 49
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 94413a70645f9faa0800000000000000
+      internalID: -6126596136936205239
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_95
+      rect:
+        serializedVersion: 2
+        x: 695
+        y: 169
+        width: 23
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d8e69d09d05bf03f0800000000000000
+      internalID: -932327527973032307
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_96
+      rect:
+        serializedVersion: 2
+        x: 823
+        y: 171
+        width: 23
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0ca3059a253fd8180800000000000000
+      internalID: -9111358934747170112
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_97
+      rect:
+        serializedVersion: 2
+        x: 951
+        y: 174
+        width: 22
+        height: 48
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b5778d3261ac3f4e0800000000000000
+      internalID: -1948992017281812645
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_98
+      rect:
+        serializedVersion: 2
+        x: 1079
+        y: 173
+        width: 22
+        height: 49
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 398a7ebe439a00e10800000000000000
+      internalID: 2161913865899059347
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_99
+      rect:
+        serializedVersion: 2
+        x: 1207
+        y: 172
+        width: 22
+        height: 50
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0181e2f05e86e0f00800000000000000
+      internalID: 1084919893254346768
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_100
+      rect:
+        serializedVersion: 2
+        x: 1335
+        y: 171
+        width: 23
+        height: 51
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 254aad010dd6baec0800000000000000
+      internalID: -3554626740475485102
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_101
+      rect:
+        serializedVersion: 2
+        x: 1463
+        y: 170
+        width: 23
+        height: 52
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac84652c07668cd90800000000000000
+      internalID: -7077294179929929526
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_102
+      rect:
+        serializedVersion: 2
+        x: 1591
+        y: 169
+        width: 23
+        height: 54
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42dce0bfa3331fde0800000000000000
+      internalID: -1301202488920191708
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_103
+      rect:
+        serializedVersion: 2
+        x: 1719
+        y: 170
+        width: 23
+        height: 53
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: baf5f42c9f1ce37e0800000000000000
+      internalID: -1783775123941138517
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_104
+      rect:
+        serializedVersion: 2
+        x: 1847
+        y: 176
+        width: 24
+        height: 47
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1e319b8535206ebe0800000000000000
+      internalID: -1448467673158970399
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_105
+      rect:
+        serializedVersion: 2
+        x: 57
+        y: 44
+        width: 42
+        height: 39
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 28c9e4faa638a8e20800000000000000
+      internalID: 3353637366761692290
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_106
+      rect:
+        serializedVersion: 2
+        x: 185
+        y: 43
+        width: 40
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 20772f98ae162f4f0800000000000000
+      internalID: -796466524126546174
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_107
+      rect:
+        serializedVersion: 2
+        x: 312
+        y: 42
+        width: 42
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f079857bfdacb61a0800000000000000
+      internalID: -6815130548892559601
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_108
+      rect:
+        serializedVersion: 2
+        x: 440
+        y: 41
+        width: 41
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7a60f9194014c4c10800000000000000
+      internalID: 2039076219170784935
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_109
+      rect:
+        serializedVersion: 2
+        x: 568
+        y: 40
+        width: 41
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dae74c2bf6652ce00800000000000000
+      internalID: 1063507499753438893
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_110
+      rect:
+        serializedVersion: 2
+        x: 697
+        y: 38
+        width: 40
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e46d92b5bf4cd24e0800000000000000
+      internalID: -2004729675264698802
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_111
+      rect:
+        serializedVersion: 2
+        x: 824
+        y: 39
+        width: 41
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fb65372c65d1aa790800000000000000
+      internalID: -7518164369474890049
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_112
+      rect:
+        serializedVersion: 2
+        x: 952
+        y: 42
+        width: 41
+        height: 41
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6459ee7f8ccc3af50800000000000000
+      internalID: 6891577018332124486
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_113
+      rect:
+        serializedVersion: 2
+        x: 1080
+        y: 45
+        width: 40
+        height: 39
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2fb1626d41abdb8a0800000000000000
+      internalID: -6287664906084410382
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_114
+      rect:
+        serializedVersion: 2
+        x: 1208
+        y: 44
+        width: 40
+        height: 39
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6ab17470efe85a1a0800000000000000
+      internalID: -6798870840750957658
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_115
+      rect:
+        serializedVersion: 2
+        x: 1336
+        y: 44
+        width: 41
+        height: 39
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0e58067b136edf390800000000000000
+      internalID: -7782811479822006816
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_116
+      rect:
+        serializedVersion: 2
+        x: 1465
+        y: 43
+        width: 41
+        height: 40
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 764a63da2a6d14180800000000000000
+      internalID: -9132782575151569817
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_117
+      rect:
+        serializedVersion: 2
+        x: 1593
+        y: 42
+        width: 39
+        height: 42
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f0868fd1895747430800000000000000
+      internalID: 3779775283468986383
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_118
+      rect:
+        serializedVersion: 2
+        x: 1721
+        y: 42
+        width: 40
+        height: 41
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2433d2388ce6e2250800000000000000
+      internalID: 5921792367512073026
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: CrouchAttack_Shadowless_119
+      rect:
+        serializedVersion: 2
+        x: 1849
+        y: 45
+        width: 40
+        height: 37
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bb6122599b337be70800000000000000
+      internalID: 9130823641680975547
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      CrouchAttack_Shadowless_0: 2024165313625214719
+      CrouchAttack_Shadowless_1: 5845786240703052068
+      CrouchAttack_Shadowless_10: 2375675842551543535
+      CrouchAttack_Shadowless_100: -3554626740475485102
+      CrouchAttack_Shadowless_101: -7077294179929929526
+      CrouchAttack_Shadowless_102: -1301202488920191708
+      CrouchAttack_Shadowless_103: -1783775123941138517
+      CrouchAttack_Shadowless_104: -1448467673158970399
+      CrouchAttack_Shadowless_105: 3353637366761692290
+      CrouchAttack_Shadowless_106: -796466524126546174
+      CrouchAttack_Shadowless_107: -6815130548892559601
+      CrouchAttack_Shadowless_108: 2039076219170784935
+      CrouchAttack_Shadowless_109: 1063507499753438893
+      CrouchAttack_Shadowless_11: 6507298838692706561
+      CrouchAttack_Shadowless_110: -2004729675264698802
+      CrouchAttack_Shadowless_111: -7518164369474890049
+      CrouchAttack_Shadowless_112: 6891577018332124486
+      CrouchAttack_Shadowless_113: -6287664906084410382
+      CrouchAttack_Shadowless_114: -6798870840750957658
+      CrouchAttack_Shadowless_115: -7782811479822006816
+      CrouchAttack_Shadowless_116: -9132782575151569817
+      CrouchAttack_Shadowless_117: 3779775283468986383
+      CrouchAttack_Shadowless_118: 5921792367512073026
+      CrouchAttack_Shadowless_119: 9130823641680975547
+      CrouchAttack_Shadowless_12: 855234195520200484
+      CrouchAttack_Shadowless_13: -8290390099496033492
+      CrouchAttack_Shadowless_14: 2870922362525446600
+      CrouchAttack_Shadowless_15: 6769510411569298964
+      CrouchAttack_Shadowless_16: -337846145295143208
+      CrouchAttack_Shadowless_17: 1417347980307695694
+      CrouchAttack_Shadowless_18: -8053583383843398747
+      CrouchAttack_Shadowless_19: -5381578073295979191
+      CrouchAttack_Shadowless_2: 1534100112291431350
+      CrouchAttack_Shadowless_20: 7683651157774628869
+      CrouchAttack_Shadowless_21: 5007409116080986623
+      CrouchAttack_Shadowless_22: -1819733132725591853
+      CrouchAttack_Shadowless_23: 1481019872240313397
+      CrouchAttack_Shadowless_24: 1324768163488640956
+      CrouchAttack_Shadowless_25: -1380802860541728152
+      CrouchAttack_Shadowless_26: -4290586613568522255
+      CrouchAttack_Shadowless_27: -7434787965620563680
+      CrouchAttack_Shadowless_28: 3522875996319481421
+      CrouchAttack_Shadowless_29: 7071798651780762810
+      CrouchAttack_Shadowless_3: 3622348844497795424
+      CrouchAttack_Shadowless_30: -4588375213666383891
+      CrouchAttack_Shadowless_31: 9048778433768647266
+      CrouchAttack_Shadowless_32: 485152820491637543
+      CrouchAttack_Shadowless_33: 3498814275434630941
+      CrouchAttack_Shadowless_34: -5850743474294767588
+      CrouchAttack_Shadowless_35: -8911248842620901116
+      CrouchAttack_Shadowless_36: -744823444886548343
+      CrouchAttack_Shadowless_37: -2315331095754265673
+      CrouchAttack_Shadowless_38: 2573324427914380527
+      CrouchAttack_Shadowless_39: 8921766684285654975
+      CrouchAttack_Shadowless_4: 302008551288332477
+      CrouchAttack_Shadowless_40: -9084833740810702981
+      CrouchAttack_Shadowless_41: -1173401370113914673
+      CrouchAttack_Shadowless_42: 8353042405651108591
+      CrouchAttack_Shadowless_43: 1487726595667111911
+      CrouchAttack_Shadowless_44: 6172478740422756966
+      CrouchAttack_Shadowless_45: -394102515284054341
+      CrouchAttack_Shadowless_46: 410277624346012765
+      CrouchAttack_Shadowless_47: 7697770954072592860
+      CrouchAttack_Shadowless_48: -3656760395256480969
+      CrouchAttack_Shadowless_49: 4494369294871780606
+      CrouchAttack_Shadowless_5: 9169327952295592861
+      CrouchAttack_Shadowless_50: -102464288862488073
+      CrouchAttack_Shadowless_51: -5757853214116935487
+      CrouchAttack_Shadowless_52: 8483020970726666971
+      CrouchAttack_Shadowless_53: -801409791793074451
+      CrouchAttack_Shadowless_54: -499104285161235771
+      CrouchAttack_Shadowless_55: -8442654392015928520
+      CrouchAttack_Shadowless_56: 7954170709335007408
+      CrouchAttack_Shadowless_57: -1332650851255449733
+      CrouchAttack_Shadowless_58: -4314503905022898605
+      CrouchAttack_Shadowless_59: -7296599712182856608
+      CrouchAttack_Shadowless_6: -6673159179530534539
+      CrouchAttack_Shadowless_60: 8095564393773406914
+      CrouchAttack_Shadowless_61: -4640624411984974956
+      CrouchAttack_Shadowless_62: 1395333618533229662
+      CrouchAttack_Shadowless_63: -9170940605788543014
+      CrouchAttack_Shadowless_64: -267140355501947726
+      CrouchAttack_Shadowless_65: 3901568585463623335
+      CrouchAttack_Shadowless_66: 5360256514971265148
+      CrouchAttack_Shadowless_67: -7198670594141519262
+      CrouchAttack_Shadowless_68: 680977244499546404
+      CrouchAttack_Shadowless_69: 4707740118916073753
+      CrouchAttack_Shadowless_7: 3243462179519019446
+      CrouchAttack_Shadowless_70: 419512516261800227
+      CrouchAttack_Shadowless_71: -5162170882339011898
+      CrouchAttack_Shadowless_72: -681947298881474211
+      CrouchAttack_Shadowless_73: -3733320951174176179
+      CrouchAttack_Shadowless_74: -3212857667731643313
+      CrouchAttack_Shadowless_75: -8542504817261590488
+      CrouchAttack_Shadowless_76: -5185432780576154078
+      CrouchAttack_Shadowless_77: 6473821576896013862
+      CrouchAttack_Shadowless_78: -8654194567748258183
+      CrouchAttack_Shadowless_79: 1793658151850821189
+      CrouchAttack_Shadowless_8: 5198669026828467592
+      CrouchAttack_Shadowless_80: 4744574720053610914
+      CrouchAttack_Shadowless_81: -3892779777097742015
+      CrouchAttack_Shadowless_82: -9038608302050794783
+      CrouchAttack_Shadowless_83: -9023322661922979921
+      CrouchAttack_Shadowless_84: 731422779385354068
+      CrouchAttack_Shadowless_85: 2042823027991876701
+      CrouchAttack_Shadowless_86: 1389887203741993273
+      CrouchAttack_Shadowless_87: -3695548966513991692
+      CrouchAttack_Shadowless_88: 4846982090534119043
+      CrouchAttack_Shadowless_89: -5609632800996553745
+      CrouchAttack_Shadowless_9: 6458859100725634853
+      CrouchAttack_Shadowless_90: -4235893629947011356
+      CrouchAttack_Shadowless_91: 3896492305995778950
+      CrouchAttack_Shadowless_92: -6526078420050497880
+      CrouchAttack_Shadowless_93: -4270886679829568966
+      CrouchAttack_Shadowless_94: -6126596136936205239
+      CrouchAttack_Shadowless_95: -932327527973032307
+      CrouchAttack_Shadowless_96: -9111358934747170112
+      CrouchAttack_Shadowless_97: -1948992017281812645
+      CrouchAttack_Shadowless_98: 2161913865899059347
+      CrouchAttack_Shadowless_99: 1084919893254346768
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

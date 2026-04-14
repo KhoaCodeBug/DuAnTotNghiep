@@ -1,0 +1,507 @@
+fileFormatVersion: 2
+guid: 3bf6222689a0b1847a2391ab6ea6beed
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -1958506393934557879
+    second: Small Chest Right_Shadowless_0
+  - first:
+      213: 6634134509693901721
+    second: Small Chest Right_Shadowless_1
+  - first:
+      213: -3644735933844208436
+    second: Small Chest Right_Shadowless_2
+  - first:
+      213: 2172832054808392336
+    second: Small Chest Right_Shadowless_3
+  - first:
+      213: 5790632794898339032
+    second: Small Chest Right_Shadowless_4
+  - first:
+      213: -2885650571242247846
+    second: Small Chest Right_Shadowless_5
+  - first:
+      213: -129578494792450249
+    second: Small Chest Right_Shadowless_6
+  - first:
+      213: 8765398413284531466
+    second: Small Chest Right_Shadowless_7
+  - first:
+      213: 4810240036753491958
+    second: Small Chest Right_Shadowless_8
+  - first:
+      213: 5038783628396242022
+    second: Small Chest Right_Shadowless_9
+  - first:
+      213: -8215320287577139163
+    second: Small Chest Right_Shadowless_10
+  - first:
+      213: -7262538354414847235
+    second: Small Chest Right_Shadowless_11
+  - first:
+      213: 1208906593832852942
+    second: Small Chest Right_Shadowless_12
+  - first:
+      213: -9141435881016792514
+    second: Small Chest Right_Shadowless_13
+  - first:
+      213: 8595522297190832731
+    second: Small Chest Right_Shadowless_14
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_0
+      rect:
+        serializedVersion: 2
+        x: 35
+        y: 35
+        width: 59
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 94d0333bfccf1d4e0800000000000000
+      internalID: -1958506393934557879
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_1
+      rect:
+        serializedVersion: 2
+        x: 163
+        y: 35
+        width: 59
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 99b177aff2e211c50800000000000000
+      internalID: 6634134509693901721
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_2
+      rect:
+        serializedVersion: 2
+        x: 291
+        y: 35
+        width: 59
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cc44d139afb4b6dc0800000000000000
+      internalID: -3644735933844208436
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_3
+      rect:
+        serializedVersion: 2
+        x: 419
+        y: 35
+        width: 59
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 092bf6fdd33772e10800000000000000
+      internalID: 2172832054808392336
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_4
+      rect:
+        serializedVersion: 2
+        x: 547
+        y: 35
+        width: 59
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 8d494acc8d57c5050800000000000000
+      internalID: 5790632794898339032
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_5
+      rect:
+        serializedVersion: 2
+        x: 675
+        y: 35
+        width: 59
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a59e333281c14f7d0800000000000000
+      internalID: -2885650571242247846
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_6
+      rect:
+        serializedVersion: 2
+        x: 803
+        y: 35
+        width: 58
+        height: 44
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 73fbd57ab05a33ef0800000000000000
+      internalID: -129578494792450249
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_7
+      rect:
+        serializedVersion: 2
+        x: 931
+        y: 35
+        width: 58
+        height: 45
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a0dd8927a63f4a970800000000000000
+      internalID: 8765398413284531466
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_8
+      rect:
+        serializedVersion: 2
+        x: 1058
+        y: 35
+        width: 59
+        height: 54
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6f7cd03e3d761c240800000000000000
+      internalID: 4810240036753491958
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_9
+      rect:
+        serializedVersion: 2
+        x: 1185
+        y: 35
+        width: 60
+        height: 66
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 664ac9e630b5de540800000000000000
+      internalID: 5038783628396242022
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_10
+      rect:
+        serializedVersion: 2
+        x: 1312
+        y: 35
+        width: 61
+        height: 74
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 52897ee99b15dfd80800000000000000
+      internalID: -8215320287577139163
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_11
+      rect:
+        serializedVersion: 2
+        x: 1439
+        y: 35
+        width: 62
+        height: 79
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dfaf37168d7463b90800000000000000
+      internalID: -7262538354414847235
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_12
+      rect:
+        serializedVersion: 2
+        x: 1562
+        y: 35
+        width: 67
+        height: 81
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ecdd80c5426e6c010800000000000000
+      internalID: 1208906593832852942
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_13
+      rect:
+        serializedVersion: 2
+        x: 1685
+        y: 35
+        width: 72
+        height: 80
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e3aebf6ef78132180800000000000000
+      internalID: -9141435881016792514
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Small Chest Right_Shadowless_14
+      rect:
+        serializedVersion: 2
+        x: 1811
+        y: 35
+        width: 74
+        height: 79
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b5a520ffcfd694770800000000000000
+      internalID: 8595522297190832731
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Small Chest Right_Shadowless_0: -1958506393934557879
+      Small Chest Right_Shadowless_1: 6634134509693901721
+      Small Chest Right_Shadowless_10: -8215320287577139163
+      Small Chest Right_Shadowless_11: -7262538354414847235
+      Small Chest Right_Shadowless_12: 1208906593832852942
+      Small Chest Right_Shadowless_13: -9141435881016792514
+      Small Chest Right_Shadowless_14: 8595522297190832731
+      Small Chest Right_Shadowless_2: -3644735933844208436
+      Small Chest Right_Shadowless_3: 2172832054808392336
+      Small Chest Right_Shadowless_4: 5790632794898339032
+      Small Chest Right_Shadowless_5: -2885650571242247846
+      Small Chest Right_Shadowless_6: -129578494792450249
+      Small Chest Right_Shadowless_7: 8765398413284531466
+      Small Chest Right_Shadowless_8: 4810240036753491958
+      Small Chest Right_Shadowless_9: 5038783628396242022
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
