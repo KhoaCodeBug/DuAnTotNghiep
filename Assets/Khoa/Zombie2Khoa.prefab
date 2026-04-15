@@ -84,10 +84,11 @@ GameObject:
   - component: {fileID: 3212293746345660288}
   - component: {fileID: 1607776019165846037}
   - component: {fileID: 7691760954418496845}
-  - component: {fileID: 3516660939133845827}
   - component: {fileID: 7372086595383752666}
   - component: {fileID: 5681118958131968407}
-  - component: {fileID: 1216184871860211946}
+  - component: {fileID: -1847682362298374646}
+  - component: {fileID: 6651464882749586732}
+  - component: {fileID: -1512541213844376578}
   m_Layer: 0
   m_Name: Zombie2Khoa
   m_TagString: Untagged
@@ -240,7 +241,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e56929e897ae7e458e5081001c76265, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 1
+  speed: 1.5
+  nextWaypointDistance: 0.5
+  trackingDuration: 3
   zombieDamage: 10
   detectionRange: 1
   viewAngle: 180
@@ -298,28 +301,6 @@ CapsuleCollider2D:
   m_Offset: {x: -0.022027016, y: -0.17303038}
   m_Size: {x: 0.13788795, y: 0.15211296}
   m_Direction: 0
---- !u!195 &3516660939133845827
-NavMeshAgent:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5115177110719869878}
-  m_Enabled: 1
-  m_AgentTypeID: 0
-  m_Radius: 0.1
-  m_Speed: 1
-  m_Acceleration: 500
-  avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0
-  m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 1
-  m_AutoRepath: 1
-  m_Height: 0.46
-  m_BaseOffset: 0.23
-  m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
 --- !u!114 &7372086595383752666
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -357,7 +338,7 @@ MonoBehaviour:
   SyncParent: 0
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
---- !u!114 &1216184871860211946
+--- !u!114 &-1847682362298374646
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -366,47 +347,67 @@ MonoBehaviour:
   m_GameObject: {fileID: 5115177110719869878}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7db70e0ea77f5ac47a8f4565a9406397, type: 3}
+  m_Script: {fileID: 11500000, guid: 373b52eb9bf8c40f785bb6947a1aee66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_ShadowGroup: 0
-  m_Priority: 0
-  m_ComponentVersion: 5
-  m_HasRenderer: 0
-  m_UseRendererSilhouette: 1
-  m_CastsShadows: 1
-  m_SelfShadows: 0
-  m_AlphaCutoff: 0.1
-  m_ApplyToSortingLayers: 0000000057aa24bf
-  m_ShapePath:
-  - {x: -0.099999905, y: -0.23000002, z: 0}
-  - {x: -0.099999905, y: 0.23000002, z: 0}
-  - {x: 0.099999905, y: 0.23000002, z: 0}
-  - {x: 0.099999905, y: -0.23000002, z: 0}
-  m_ShapePathHash: 0
-  m_InstanceId: 0
-  m_ShadowShape2DComponent: {fileID: 8050110791967474782}
-  m_ShadowShape2DProvider:
-    rid: 2604308815371567190
-  m_ShadowCastingSource: 2
-  m_ShadowMesh:
-    m_Mesh: {fileID: 0}
-    m_LocalBounds:
-      m_Center: {x: 0, y: 0, z: 0}
-      m_Extent: {x: 0.08999634, y: 0.22000122, z: 0}
-    m_EdgeProcessing: 1
-    m_TrimEdge: 0.01
-    m_FlipX: 0
-    m_FlipY: 0
-    m_InitialTrim: 0.01
-  m_CastingOption: 1
-  m_PreviousTrimEdge: 0
-  m_PreviousEdgeProcessing: -1
-  m_PreviousShadowCastingSource: -1
-  m_PreviousShadowShape2DSource: {fileID: 0}
-  references:
-    version: 2
-    RefIds:
-    - rid: 2604308815371567190
-      type: {class: ShadowShape2DProvider_SpriteRenderer, ns: UnityEngine.Rendering.Universal, asm: Unity.RenderPipelines.Universal.2D.Runtime}
-      data: 
+  version: 1
+  drawGizmos: 1
+  detailedGizmos: 0
+  startEndModifier:
+    addPoints: 0
+    exactStartPoint: 3
+    exactEndPoint: 3
+    useRaycasting: 0
+    mask:
+      serializedVersion: 2
+      m_Bits: 4294967295
+    useGraphRaycasting: 0
+  traversableTags: -1
+  tagPenalties: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+  graphMask:
+    value: -1
+--- !u!114 &6651464882749586732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5115177110719869878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b090bec917bbe4c3bbc612ef13f7c4a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 1
+  useRaycasting: 1
+  mask:
+    serializedVersion: 2
+    m_Bits: 64
+  thickRaycast: 1
+  thickRaycastRadius: 0.4
+  use2DPhysics: 1
+  raycastOffset: {x: 0, y: 0, z: -1}
+  useGraphRaycasting: 0
+  quality: 1
+--- !u!114 &-1512541213844376578
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5115177110719869878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb6a34d769a1e4ac7b0b30e433aa443c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 1
+  smoothType: 0
+  subdivisions: 2
+  iterations: 2
+  strength: 0.25
+  uniformLength: 1
+  maxSegmentLength: 2
+  bezierTangentLength: 0.4
+  offset: 0.2
+  factor: 0.1
