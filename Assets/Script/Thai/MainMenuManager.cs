@@ -46,6 +46,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private string pendingRoomName = "";
     private bool pendingIsHost = false;
+    private string pendingJoinPassword = "";
 
     // Các biến cho Bảng HOST mới
     private int hostDifficulty = 1; // 0: Dễ, 1: TB, 2: Khó
@@ -321,174 +322,96 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         multiplayerPanel = CreateBasePanel("MultiplayerPanel", canvasGO);
         CanvasGroup cg = multiplayerPanel.AddComponent<CanvasGroup>();
-        cg.alpha = 0f;
-        cg.interactable = false;
-        cg.blocksRaycasts = false;
+        cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false;
 
-        // --- KHU VỰC TAB HOST / JOIN ---
         GameObject hostArea = new GameObject("Host_Container");
         hostArea.transform.SetParent(multiplayerPanel.transform, false);
         RectTransform hostRect = hostArea.AddComponent<RectTransform>();
-        hostRect.anchorMin = new Vector2(0.15f, 0.15f);
-        hostRect.anchorMax = new Vector2(0.85f, 0.8f);
-        hostRect.offsetMin = Vector2.zero;
-        hostRect.offsetMax = Vector2.zero;
+        hostRect.anchorMin = new Vector2(0.15f, 0.15f); hostRect.anchorMax = new Vector2(0.85f, 0.8f);
+        hostRect.offsetMin = Vector2.zero; hostRect.offsetMax = Vector2.zero;
         hostArea.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
 
         GameObject joinArea = new GameObject("Join_Container");
         joinArea.transform.SetParent(multiplayerPanel.transform, false);
         RectTransform joinRect = joinArea.AddComponent<RectTransform>();
-        joinRect.anchorMin = new Vector2(0.15f, 0.15f);
-        joinRect.anchorMax = new Vector2(0.85f, 0.8f);
-        joinRect.offsetMin = Vector2.zero;
-        joinRect.offsetMax = Vector2.zero;
+        joinRect.anchorMin = new Vector2(0.15f, 0.15f); joinRect.anchorMax = new Vector2(0.85f, 0.8f);
+        joinRect.offsetMin = Vector2.zero; joinRect.offsetMax = Vector2.zero;
         joinArea.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
         joinArea.SetActive(false);
 
-        // 2 Nút Tab trên cùng (Tọa độ của sếp)
-        CreateMenuButton(multiplayerPanel, "TẠO CĂN CỨ", () =>
-        {
-            hostArea.SetActive(true);
-            joinArea.SetActive(false);
-        }, new Vector2(0.3f, 0.85f), true, new Vector2(350, 50));
+        CreateMenuButton(multiplayerPanel, "TẠO CĂN CỨ", () => { hostArea.SetActive(true); joinArea.SetActive(false); }, new Vector2(0.3f, 0.85f), true, new Vector2(350, 50));
+        CreateMenuButton(multiplayerPanel, "TÌM CĂN CỨ", () => { hostArea.SetActive(false); joinArea.SetActive(true); ConnectToLobby(); }, new Vector2(0.7f, 0.85f), true, new Vector2(350, 50));
 
-        CreateMenuButton(multiplayerPanel, "TÌM CĂN CỨ", () =>
-        {
-            hostArea.SetActive(false);
-            joinArea.SetActive(true);
-            ConnectToLobby();
-        }, new Vector2(0.7f, 0.85f), true, new Vector2(350, 50));
-
-        // ------------------------------------------
-        // 🔥 XÂY DỰNG KHU VỰC HOST (CREATE) - TỌA ĐỘ CỦA SẾP
-        // ------------------------------------------
         CreateTitleText(hostArea, "THIẾT LẬP CĂN CỨ", 0.9f);
-
         CreateLabel(hostArea, "TÊN CĂN CỨ:", new Vector2(0.1f, 0.7f), new Vector2(0.3f, 0.75f));
         GameObject roomInputObj = CreateInputField(hostArea, "HostRoomName", "VD: Trại Tị Nạn...", new Vector2(0.35f, 0.68f), new Vector2(0.9f, 0.77f));
         TMP_InputField roomInput = roomInputObj.GetComponent<TMP_InputField>();
 
         CreateLabel(hostArea, "ĐỘ KHÓ:", new Vector2(0.1f, 0.55f), new Vector2(0.3f, 0.6f));
-        // Lệnh này xài đúng 1 tọa độ Anchor giống như hàm CreateTextBtn của sếp
         diffTexts[0] = CreateTextBtn(hostArea, "DỄ", new Vector2(0.4f, 0.575f), () => SetDifficulty(0));
         diffTexts[1] = CreateTextBtn(hostArea, "BÌNH THƯỜNG", new Vector2(0.6f, 0.575f), () => SetDifficulty(1));
         diffTexts[2] = CreateTextBtn(hostArea, "ĐỊA NGỤC", new Vector2(0.8f, 0.575f), () => SetDifficulty(2));
         SetDifficulty(1);
 
-        CreateLabel(hostArea, "SỐ NGƯỜI TỐI ĐA:", new Vector2(0.1f, 0.4f), new Vector2(0.3f, 0.45f));
-        GameObject playerInputObj = CreateInputField(hostArea, "MaxPlayers", "4", new Vector2(0.35f, 0.38f), new Vector2(0.45f, 0.47f));
-        TMP_InputField playerInput = playerInputObj.GetComponent<TMP_InputField>();
-        playerInput.contentType = TMP_InputField.ContentType.IntegerNumber;
+        CreateLabel(hostArea, "MẬT KHẨU:", new Vector2(0.1f, 0.4f), new Vector2(0.3f, 0.45f));
+        toggleText = CreateTextBtn(hostArea, "[ KHÔNG ]", new Vector2(0.4f, 0.425f), TogglePassword);
 
-        CreateLabel(hostArea, "MẬT KHẨU:", new Vector2(0.1f, 0.25f), new Vector2(0.3f, 0.3f));
-        toggleText = CreateTextBtn(hostArea, "[ KHÔNG ]", new Vector2(0.4f, 0.275f), TogglePassword);
-
-        passwordInputObj = CreateInputField(hostArea, "HostPassword", "Nhập Pass...", new Vector2(0.55f, 0.23f), new Vector2(0.9f, 0.32f));
+        passwordInputObj = CreateInputField(hostArea, "HostPassword", "Nhập Pass...", new Vector2(0.55f, 0.38f), new Vector2(0.9f, 0.47f));
         passwordInputObj.GetComponent<TMP_InputField>().contentType = TMP_InputField.ContentType.Password;
         passwordInputObj.SetActive(false);
 
+        // 🔥 NÚT BẤM TIẾP TỤC (HOST) - ĐÃ GẮN ĐIỀU KIỆN
         CreateMenuButton(hostArea, "TIẾP TỤC (CHỌN NHÂN VẬT)", () =>
         {
-            pendingRoomName = string.IsNullOrEmpty(roomInput.text) ? "Camp_" + Random.Range(100, 999) : roomInput.text;
-            hostMaxPlayers = string.IsNullOrEmpty(playerInput.text) ? 4 : int.Parse(playerInput.text);
-
-            if (hostHasPassword)
+            if (string.IsNullOrWhiteSpace(roomInput.text))
             {
-                hostPassword = passwordInputObj.GetComponent<TMP_InputField>().text;
+                roomInput.placeholder.GetComponent<TextMeshProUGUI>().text = "<color=red>PHẢI NHẬP TÊN CĂN CỨ!</color>";
+                PlayClickSFX(); return;
             }
+
+            pendingRoomName = roomInput.text;
+            hostMaxPlayers = 4; // Ép cứng 4 người
+
+            if (hostHasPassword) hostPassword = passwordInputObj.GetComponent<TMP_InputField>().text;
+            else hostPassword = "";
 
             pendingIsHost = true;
             OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
-        }, new Vector2(0.5f, 0.08f), true, new Vector2(500, 60), 25f);
+        }, new Vector2(0.5f, 0.15f), true, new Vector2(500, 60), 25f);
 
-        // ------------------------------------------
-        // 🔥 XÂY DỰNG KHU VỰC JOIN TÍCH HỢP SCROLL
-        // ------------------------------------------
         CreateTitleText(joinArea, "DANH SÁCH CĂN CỨ", 0.9f);
-
-        GameObject scrollObj = new GameObject("Scroll View");
-        scrollObj.transform.SetParent(joinArea.transform, false);
+        GameObject scrollObj = new GameObject("Scroll View"); scrollObj.transform.SetParent(joinArea.transform, false);
         RectTransform scrollRectT = scrollObj.AddComponent<RectTransform>();
-        // Lấy tọa độ Y hệt như cái listBG cũ của sếp
-        scrollRectT.anchorMin = new Vector2(0.1f, 0.2f);
-        scrollRectT.anchorMax = new Vector2(0.9f, 0.75f);
-        scrollRectT.offsetMin = Vector2.zero;
-        scrollRectT.offsetMax = Vector2.zero;
+        scrollRectT.anchorMin = new Vector2(0.1f, 0.2f); scrollRectT.anchorMax = new Vector2(0.9f, 0.75f); scrollRectT.offsetMin = Vector2.zero; scrollRectT.offsetMax = Vector2.zero;
+        ScrollRect scrollRect = scrollObj.AddComponent<ScrollRect>(); scrollRect.horizontal = false; scrollRect.vertical = true; scrollRect.scrollSensitivity = 20f;
+        GameObject viewport = new GameObject("Viewport"); viewport.transform.SetParent(scrollObj.transform, false);
+        RectTransform vpRect = viewport.AddComponent<RectTransform>(); vpRect.anchorMin = Vector2.zero; vpRect.anchorMax = Vector2.one; vpRect.offsetMin = Vector2.zero; vpRect.offsetMax = Vector2.zero;
+        viewport.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f); viewport.AddComponent<RectMask2D>();
+        GameObject content = new GameObject("Content"); content.transform.SetParent(viewport.transform, false);
+        serverListContent = content.AddComponent<RectTransform>(); serverListContent.anchorMin = new Vector2(0, 1); serverListContent.anchorMax = new Vector2(1, 1);
+        serverListContent.pivot = new Vector2(0.5f, 1); serverListContent.offsetMin = Vector2.zero; serverListContent.offsetMax = Vector2.zero; serverListContent.sizeDelta = new Vector2(0, 0);
+        VerticalLayoutGroup vlgList = content.AddComponent<VerticalLayoutGroup>(); vlgList.childAlignment = TextAnchor.UpperCenter; vlgList.childControlHeight = false; vlgList.childControlWidth = true; vlgList.childForceExpandHeight = false; vlgList.spacing = 10; vlgList.padding = new RectOffset(10, 10, 10, 10);
+        ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        scrollRect.viewport = vpRect; scrollRect.content = serverListContent;
 
-        ScrollRect scrollRect = scrollObj.AddComponent<ScrollRect>();
-        scrollRect.horizontal = false;
-        scrollRect.vertical = true;
-        scrollRect.scrollSensitivity = 20f;
-
-        GameObject viewport = new GameObject("Viewport");
-        viewport.transform.SetParent(scrollObj.transform, false);
-        RectTransform vpRect = viewport.AddComponent<RectTransform>();
-        vpRect.anchorMin = Vector2.zero;
-        vpRect.anchorMax = Vector2.one;
-        vpRect.offsetMin = Vector2.zero;
-        vpRect.offsetMax = Vector2.zero;
-        viewport.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f);
-        viewport.AddComponent<RectMask2D>();
-
-        GameObject content = new GameObject("Content");
-        content.transform.SetParent(viewport.transform, false);
-        serverListContent = content.AddComponent<RectTransform>();
-        serverListContent.anchorMin = new Vector2(0, 1);
-        serverListContent.anchorMax = new Vector2(1, 1);
-        serverListContent.pivot = new Vector2(0.5f, 1);
-        serverListContent.offsetMin = Vector2.zero;
-        serverListContent.offsetMax = Vector2.zero;
-        serverListContent.sizeDelta = new Vector2(0, 0);
-
-        VerticalLayoutGroup vlgList = content.AddComponent<VerticalLayoutGroup>();
-        vlgList.childAlignment = TextAnchor.UpperCenter;
-        vlgList.childControlHeight = false;
-        vlgList.childControlWidth = true;
-        vlgList.childForceExpandHeight = false;
-        vlgList.spacing = 10;
-        vlgList.padding = new RectOffset(10, 10, 10, 10);
-
-        ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>();
-        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        scrollRect.viewport = vpRect;
-        scrollRect.content = serverListContent;
-
-        // Bảng hỏi Pass
-        passPromptPanel = new GameObject("PasswordPrompt");
-        passPromptPanel.transform.SetParent(joinArea.transform, false);
-        RectTransform promptRect = passPromptPanel.AddComponent<RectTransform>();
-        promptRect.anchorMin = new Vector2(0.2f, 0.3f);
-        promptRect.anchorMax = new Vector2(0.8f, 0.7f);
-        promptRect.offsetMin = Vector2.zero;
-        promptRect.offsetMax = Vector2.zero;
-        passPromptPanel.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 1f);
-        passPromptPanel.SetActive(false);
-
+        passPromptPanel = new GameObject("PasswordPrompt"); passPromptPanel.transform.SetParent(joinArea.transform, false);
+        RectTransform promptRect = passPromptPanel.AddComponent<RectTransform>(); promptRect.anchorMin = new Vector2(0.2f, 0.3f); promptRect.anchorMax = new Vector2(0.8f, 0.7f); promptRect.offsetMin = Vector2.zero; promptRect.offsetMax = Vector2.zero;
+        passPromptPanel.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 1f); passPromptPanel.SetActive(false);
         CreateLabel(passPromptPanel, "CĂN CỨ BỊ KHÓA, NHẬP MẬT KHẨU:", new Vector2(0, 0.7f), new Vector2(1, 0.9f));
         GameObject joinPassInputObj = CreateInputField(passPromptPanel, "JoinPass", "...", new Vector2(0.2f, 0.4f), new Vector2(0.8f, 0.6f));
-        joinPassInput = joinPassInputObj.GetComponent<TMP_InputField>();
-        joinPassInput.contentType = TMP_InputField.ContentType.Password;
+        joinPassInput = joinPassInputObj.GetComponent<TMP_InputField>(); joinPassInput.contentType = TMP_InputField.ContentType.Password;
+        CreateMenuButton(passPromptPanel, "ĐÓNG", () => { passPromptPanel.SetActive(false); }, new Vector2(0.2f, 0.15f), true, new Vector2(150, 40), 20f);
 
-        CreateMenuButton(passPromptPanel, "ĐÓNG", () =>
-        {
-            passPromptPanel.SetActive(false);
-        }, new Vector2(0.2f, 0.15f), true, new Vector2(150, 40), 20f);
-
+        // 🔥 NÚT XÁC NHẬN PASS (CLIENT) - LƯU PASS
         CreateMenuButton(passPromptPanel, "XÁC NHẬN", () =>
         {
             passPromptPanel.SetActive(false);
+            pendingJoinPassword = joinPassInput.text; // Lưu Pass lại
             pendingIsHost = false;
             OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
         }, new Vector2(0.8f, 0.15f), true, new Vector2(150, 40), 20f);
 
-        // Nút Load Danh Sách (Để chung form với CreateMenuButton)
-        CreateMenuButton(joinArea, "LÀM MỚI DANH SÁCH", () =>
-        {
-            Debug.Log("Gọi lệnh Refresh Fusion...");
-            ConnectToLobby();
-        }, new Vector2(0.5f, 0.08f), true, new Vector2(300, 50), 20f);
-
+        CreateMenuButton(joinArea, "LÀM MỚI DANH SÁCH", () => { ConnectToLobby(); }, new Vector2(0.5f, 0.08f), true, new Vector2(300, 50), 20f);
         CreateMenuButton(multiplayerPanel, "BACK", () => OpenPanel(mainPanel.GetComponent<CanvasGroup>()), new Vector2(0.1f, 0.05f));
     }
 
@@ -498,29 +421,32 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     public void UpdateServerListUI(List<SessionInfo> sessionList)
     {
         if (serverListContent == null) return;
-
-        foreach (Transform child in serverListContent)
-        {
-            Destroy(child.gameObject);
-        }
+        foreach (Transform child in serverListContent) Destroy(child.gameObject);
 
         foreach (SessionInfo session in sessionList)
         {
             string roomName = session.Name;
             int currentPlayers = session.PlayerCount;
-            int maxPlayers = session.MaxPlayers;
-            bool isLocked = false;
-            string diff = "Bình thường";
+            int maxPlayers = session.MaxPlayers; // Auto lấy số 4
 
-            CreateDynamicServerItem(roomName, diff, currentPlayers, maxPlayers, isLocked, () =>
+            // Dò xem Host có bật Pass không (Fusion lưu qua Properties)
+            bool isLocked = false;
+            if (session.Properties != null && session.Properties.TryGetValue("IsLocked", out SessionProperty lockedProp))
+            {
+                isLocked = (int)lockedProp == 1;
+            }
+
+            CreateDynamicServerItem(roomName, "Bình thường", currentPlayers, maxPlayers, isLocked, () =>
             {
                 pendingRoomName = roomName;
                 if (isLocked)
                 {
+                    joinPassInput.text = ""; // Xóa pass cũ
                     passPromptPanel.SetActive(true);
                 }
                 else
                 {
+                    pendingJoinPassword = ""; // Không có pass
                     pendingIsHost = false;
                     OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
                 }
@@ -1134,6 +1060,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void OnDestroy()
     {
+        EnableGameplayUI();
+
         // Khi Scene tải xong, Menu cũ bị xóa, tự động bật cờ này lên
         isMenuDestroyed = true;
     }
@@ -1194,27 +1122,28 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private async void StartHostGame(string roomName)
     {
         CleanupOldRunners();
-
         NetworkRunner runner = Instantiate(runnerPrefab);
+        runner.AddCallbacks(this); // Bắt buộc để kiểm tra Pass
 
         NetworkSceneManagerDefault sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
-        if (sceneManager == null)
-        {
-            sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
-        }
+        if (sceneManager == null) sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
+
+        // 🔥 GẮN Ổ KHÓA BÁO HIỆU CHO LOBBY
+        var roomProps = new Dictionary<string, SessionProperty>();
+        roomProps.Add("IsLocked", hostHasPassword ? 1 : 0);
 
         var result = await runner.StartGame(new StartGameArgs()
         {
             GameMode = GameMode.Host,
             SessionName = roomName,
+            PlayerCount = hostMaxPlayers, // ÉP CỨNG 4 NGƯỜI
+            SessionProperties = roomProps,
             SceneManager = sceneManager
         });
 
         if (result.Ok)
         {
-            // 🔥 TẮT NHẠC NỀN KHI VÀO GAME
             if (bgmSource != null) bgmSource.Stop();
-
             EnableGameplayUI();
             gameObject.SetActive(false);
             await runner.LoadScene(SceneRef.FromIndex(mainSceneIndex));
@@ -1229,19 +1158,24 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private async void StartClientGame(string roomName)
     {
         CleanupOldRunners();
-
         NetworkRunner runner = Instantiate(runnerPrefab);
+        runner.AddCallbacks(this);
 
         NetworkSceneManagerDefault sceneManager = runner.GetComponent<NetworkSceneManagerDefault>();
-        if (sceneManager == null)
+        if (sceneManager == null) sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
+
+        // 🔥 NHÉT CHÌA KHÓA (PASS) ĐỂ GỬI CHO HOST
+        byte[] token = null;
+        if (!string.IsNullOrEmpty(pendingJoinPassword))
         {
-            sceneManager = runner.gameObject.AddComponent<NetworkSceneManagerDefault>();
+            token = System.Text.Encoding.UTF8.GetBytes(pendingJoinPassword);
         }
 
         var result = await runner.StartGame(new StartGameArgs()
         {
             GameMode = GameMode.Client,
             SessionName = roomName,
+            ConnectionToken = token, // GỬI PASS QUA DÒNG NÀY
             SceneManager = sceneManager
         });
 
@@ -1249,9 +1183,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (result.Ok)
         {
-            // 🔥 TẮT NHẠC NỀN KHI VÀO GAME
             if (bgmSource != null) bgmSource.Stop();
-
             EnableGameplayUI();
             gameObject.SetActive(false);
         }
@@ -1261,6 +1193,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             isConnecting = false;
         }
     }
+
 
     private void CleanupOldRunners()
     {
@@ -1348,7 +1281,37 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     void INetworkRunnerCallbacks.OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
 
-    public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token) { }
+    public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
+    {
+        if (runner.IsServer)
+        {
+            if (hostHasPassword) // Nếu Host có bật Pass
+            {
+                if (token == null)
+                {
+                    Debug.LogWarning("Thằng Client này không có vé (Pass rỗng) -> Sút!");
+                    request.Refuse();
+                    return;
+                }
+
+                string clientPass = System.Text.Encoding.UTF8.GetString(token);
+                if (clientPass == hostPassword)
+                {
+                    Debug.Log("Pass chuẩn, mở cửa cho vào!");
+                    request.Accept();
+                }
+                else
+                {
+                    Debug.LogWarning("Pass sai bét -> Sút!");
+                    request.Refuse();
+                }
+            }
+            else
+            {
+                request.Accept(); // Không cài Pass thì cứ vào tự do
+            }
+        }
+    }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
 
