@@ -158,7 +158,6 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             }
         }
 
-        // Lấy khoảng cách chuẩn nhất giữa 2 mép Collider
         ColliderDistance2D collDist = Physics2D.Distance(myCol, playerCol);
         float distance = Mathf.Max(collDist.distance, 0f);
 
@@ -166,7 +165,10 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         Vector2 myPos = myCol.bounds.center;
         Vector2 dirToPlayer = (targetPos - myPos).normalized;
 
-        // Quét tầm nhìn
+        // Bắn Raycast check Tường
+        RaycastHit2D wallCheck = Physics2D.Raycast(myPos, dirToPlayer, distance, obstacleMask);
+        bool noWallInBetween = wallCheck.collider == null;
+
         bool canSee = CanSeePlayer(distance, myPos, targetPos, dirToPlayer);
 
         if (canSee)
@@ -185,24 +187,17 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             }
         }
 
-        // ===============================================
-        // 4. LỰA CHỌN HÀNH ĐỘNG (Logic State Machine chuẩn)
-        // ===============================================
         if (isAttacking)
         {
-            // TÌNH TRẠNG 1: Đang ra đòn -> Khóa cứng chân, xoay người theo Player
             StopMovement();
             lastMoveDirection = Vector2.Lerp(lastMoveDirection, dirToPlayer, 20f * Runner.DeltaTime);
         }
         else if (isChasing)
         {
-            // TÌNH TRẠNG 2: Đang rượt
-            if (distance <= attackRange && canSee)
+            if (distance <= attackRange && canSee && noWallInBetween)
             {
-                // ĐÃ VÀO TẦM -> Khóa cứng chân không húc thêm nữa
                 StopMovement();
 
-                // Đợi hết Cooldown thì đánh
                 if (cooldownTimer <= 0f)
                 {
                     int attackIndex = Random.Range(1, 3);
@@ -216,7 +211,6 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             }
             else
             {
-                // CHƯA VÀO TẦM -> Chạy tiếp
                 pathRecalcTimer -= Runner.DeltaTime;
                 if (pathRecalcTimer <= 0f)
                 {
@@ -232,12 +226,12 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
                     }
                 }
 
-                MoveAlongPath();
+                // CHUYỂN GIAO BIẾN noWallInBetween ĐỂ KHÓA LỖI XUYÊN TƯỜNG
+                MoveAlongPath(1f, noWallInBetween);
             }
         }
         else if (isInvestigating)
         {
-            // TÌNH TRẠNG 3: Ngó nghiêng tìm tiếng động
             float distToSound = Vector2.Distance(myPos, investigateTarget);
             if (distToSound > 0.5f)
             {
@@ -247,7 +241,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
                     CalculatePath(investigateTarget);
                     pathRecalcTimer = 0.2f;
                 }
-                MoveAlongPath(0.7f);
+                MoveAlongPath(0.7f, false);
             }
             else
             {
@@ -261,7 +255,6 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         }
         else
         {
-            // Rảnh rỗi
             StopMovement();
         }
 
@@ -274,19 +267,22 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         NetSpeed = 0f;
     }
 
-    private void MoveAlongPath(float speedMultiplier = 1f)
+    // ĐÃ FIX: Nhận thêm tham số noWall để cấm đi thẳng nếu bị kẹt hàng rào
+    // ĐÃ FIX: Tích hợp Steering Behavior (Bẻ lái mượt) chống giật khi cua góc
+    private void MoveAlongPath(float speedMultiplier, bool noWall)
     {
         bool hasReachedEnd = path == null || currentWaypoint >= path.vectorPath.Count;
 
         if (hasReachedEnd)
         {
-            // HYBRID STEERING: Chạy hết path A* nhưng vẫn chưa lọt vào attackRange
-            // -> Dẹp A* qua 1 bên, đi bộ thẳng vào người Player (Tránh lỗi Path Snapping)
-            if (isChasing && playerCol != null)
+            if (isChasing && playerCol != null && noWall)
             {
-                Vector2 dir = (playerCol.bounds.center - myCol.bounds.center).normalized;
-                rb.MovePosition(rb.position + dir * speed * speedMultiplier * Runner.DeltaTime);
-                lastMoveDirection = Vector2.Lerp(lastMoveDirection, dir, 15f * Runner.DeltaTime);
+                Vector2 targetDir = (playerCol.bounds.center - myCol.bounds.center).normalized;
+
+                // Steering: Trượt hướng từ từ thay vì quay ngoắt
+                lastMoveDirection = Vector2.Lerp(lastMoveDirection, targetDir, 8f * Runner.DeltaTime);
+
+                rb.MovePosition(rb.position + lastMoveDirection * speed * speedMultiplier * Runner.DeltaTime);
                 NetSpeed = speed * speedMultiplier;
             }
             else
@@ -297,27 +293,32 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         }
 
         Vector2 currentWp = (Vector2)path.vectorPath[currentWaypoint];
-        Vector2 moveDir = (currentWp - rb.position).normalized;
+        Vector2 targetMoveDir = (currentWp - rb.position).normalized;
         float currentSpeed = speed * speedMultiplier;
 
-        rb.MovePosition(rb.position + moveDir * currentSpeed * Runner.DeltaTime);
+        // ==========================================
+        // STEERING LOGIC (Thay thế Simple Smooth)
+        // Hệ số Lerp 10f giúp bo cua mượt mà, không bị giật cục khi góc rẽ quá gắt
+        // ==========================================
+        lastMoveDirection = Vector2.Lerp(lastMoveDirection, targetMoveDir, 10f * Runner.DeltaTime);
 
-        lastMoveDirection = Vector2.Lerp(lastMoveDirection, moveDir, 15f * Runner.DeltaTime);
+        // Di chuyển theo hướng đã được làm cong
+        rb.MovePosition(rb.position + lastMoveDirection * currentSpeed * Runner.DeltaTime);
         NetSpeed = currentSpeed;
 
         float distToWp = Vector2.Distance(rb.position, currentWp);
+
+        // Giữ nextWaypointDistance khoảng 0.5f - 0.6f trên Inspector
         if (distToWp < nextWaypointDistance)
         {
             currentWaypoint++;
         }
     }
 
-    // Đã tối ưu logic Vision để tránh hiện tượng "mù khi hôn nhau"
     private bool CanSeePlayer(float distance, Vector2 myPos, Vector2 targetPos, Vector2 toPlayer)
     {
         if (distance > detectionRange) return false;
 
-        // Nếu ở quá gần (áp sát), auto tính là nhìn thấy/cảm nhận được, không cần xét góc nhìn
         if (distance <= attackRange * 1.5f)
         {
             RaycastHit2D shortHit = Physics2D.Raycast(myPos, toPlayer, distance, obstacleMask);
