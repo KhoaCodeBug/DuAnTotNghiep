@@ -90,6 +90,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     // Cờ báo hiệu Menu đã bị hủy khi chuyển Scene
     private bool isMenuDestroyed = false;
 
+    // 🔥 BIẾN CHO POPUP LỖI
+    private GameObject errorPopupPanel;
+    private TextMeshProUGUI errorPopupText;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -233,6 +237,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GenerateCharacterSelectPanel(canvasGO);
         GenerateOptionsPanel(canvasGO);
         GenerateCreditsPanel(canvasGO);
+
+        GenerateErrorPopup(canvasGO);
 
         OpenPanel(mainPanel.GetComponent<CanvasGroup>());
     }
@@ -400,7 +406,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateLabel(passPromptPanel, "CĂN CỨ BỊ KHÓA, NHẬP MẬT KHẨU:", new Vector2(0, 0.7f), new Vector2(1, 0.9f));
         GameObject joinPassInputObj = CreateInputField(passPromptPanel, "JoinPass", "...", new Vector2(0.2f, 0.4f), new Vector2(0.8f, 0.6f));
         joinPassInput = joinPassInputObj.GetComponent<TMP_InputField>(); joinPassInput.contentType = TMP_InputField.ContentType.Password;
-        CreateMenuButton(passPromptPanel, "ĐÓNG", () => { passPromptPanel.SetActive(false); }, new Vector2(0.2f, 0.15f), true, new Vector2(150, 40), 20f);
+        CreateMenuButton(passPromptPanel, "ĐÓNG", () => { passPromptPanel.SetActive(false); }, new Vector2(0.25f, 0.15f), true, new Vector2(150, 40), 30f);
 
         // 🔥 NÚT XÁC NHẬN PASS (CLIENT) - LƯU PASS
         CreateMenuButton(passPromptPanel, "XÁC NHẬN", () =>
@@ -409,7 +415,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             pendingJoinPassword = joinPassInput.text; // Lưu Pass lại
             pendingIsHost = false;
             OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
-        }, new Vector2(0.8f, 0.15f), true, new Vector2(150, 40), 20f);
+        }, new Vector2(0.75f, 0.15f), true, new Vector2(150, 45), 30f);
 
         CreateMenuButton(joinArea, "LÀM MỚI DANH SÁCH", () => { ConnectToLobby(); }, new Vector2(0.5f, 0.08f), true, new Vector2(300, 50), 20f);
         CreateMenuButton(multiplayerPanel, "BACK", () => OpenPanel(mainPanel.GetComponent<CanvasGroup>()), new Vector2(0.1f, 0.05f));
@@ -998,9 +1004,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         tmpText.alignment = isCenter ? TextAlignmentOptions.Center : TextAlignmentOptions.Left;
         tmpText.color = new Color(0.7f, 0.7f, 0.7f, 1f);
         tmpText.textWrappingMode = TextWrappingModes.NoWrap;
-        tmpText.enableAutoSizing = true;
-        tmpText.fontSizeMin = 16;
-        tmpText.fontSizeMax = customFontSize;
+        tmpText.enableAutoSizing = false;  // CẤM TỰ ĐỘNG CO GIÃN
+        tmpText.fontSize = customFontSize;
 
         RectTransform txtRect = txtObj.GetComponent<RectTransform>();
         txtRect.anchorMin = Vector2.zero;
@@ -1118,6 +1123,54 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     }
     #endregion
 
+    // ==========================================
+    // 🔥 BẢNG THÔNG BÁO LỖI (SAI PASS, MẤT MẠNG...)
+    // ==========================================
+    private void GenerateErrorPopup(GameObject canvasGO)
+    {
+        errorPopupPanel = CreateBasePanel("ErrorPopupPanel", canvasGO);
+        errorPopupPanel.AddComponent<Image>().color = new Color(0, 0, 0, 0.85f); // Nền đen che mờ vạn vật
+
+        // Khung xám ở giữa
+        GameObject boxObj = new GameObject("Box");
+        boxObj.transform.SetParent(errorPopupPanel.transform, false);
+        RectTransform boxRt = boxObj.AddComponent<RectTransform>();
+        boxRt.anchorMin = new Vector2(0.3f, 0.4f); boxRt.anchorMax = new Vector2(0.7f, 0.6f);
+        boxRt.offsetMin = Vector2.zero; boxRt.offsetMax = Vector2.zero;
+        boxObj.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 1f);
+
+        // Chữ báo lỗi đỏ
+        GameObject txtObj = new GameObject("ErrorText");
+        txtObj.transform.SetParent(boxObj.transform, false);
+        errorPopupText = txtObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) errorPopupText.font = gameFont;
+        errorPopupText.alignment = TextAlignmentOptions.Center;
+        errorPopupText.color = new Color(1f, 0.4f, 0.4f); // Màu đỏ cảnh báo
+        errorPopupText.fontSize = 24;
+        RectTransform txtRt = txtObj.GetComponent<RectTransform>();
+        txtRt.anchorMin = new Vector2(0.1f, 0.4f); txtRt.anchorMax = new Vector2(0.9f, 0.9f);
+        txtRt.offsetMin = Vector2.zero; txtRt.offsetMax = Vector2.zero;
+
+        // Nút ĐÓNG để tắt Popup
+        CreateMenuButton(boxObj, "ĐÓNG", () => {
+            errorPopupPanel.SetActive(false);
+            PlayClickSFX();
+        }, new Vector2(0.5f, 0.2f), true, new Vector2(150, 45), 20);
+
+        errorPopupPanel.SetActive(false); // Ẩn đi khi mới khởi động
+    }
+
+    public void ShowError(string msg)
+    {
+        if (errorPopupText != null) errorPopupText.text = msg;
+        if (errorPopupPanel != null)
+        {
+            errorPopupPanel.transform.SetAsLastSibling(); // Ép nó hiển thị đè lên trên tất cả mọi thứ
+            errorPopupPanel.SetActive(true);
+        }
+        isConnecting = false; // 🔥 MỞ KHÓA CHO NÚT BẤM KHÔNG BỊ LIỆT NỮA
+    }
+
     #region FUSION MULTIPLAYER
     private async void StartHostGame(string roomName)
     {
@@ -1183,14 +1236,27 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (result.Ok)
         {
+            // 🔥 TẮT NHẠC NỀN KHI VÀO GAME
             if (bgmSource != null) bgmSource.Stop();
+
             EnableGameplayUI();
             gameObject.SetActive(false);
         }
         else
         {
             Debug.LogError("Lỗi Client: " + result.ShutdownReason);
-            isConnecting = false;
+
+            // 🔥 NẾU LỖI -> BẬT POPUP LÊN BÁO CHO SẾP BIẾT
+            string errorMsg = "KHÔNG THỂ KẾT NỐI VÀO CĂN CỨ!";
+            if (result.ShutdownReason == ShutdownReason.ConnectionRefused)
+            {
+                errorMsg = "TỪ CHỐI KẾT NỐI!\n(Có thể Sai Mật Khẩu hoặc Phòng Đã Đầy)";
+            }
+
+            ShowError(errorMsg); // Gọi bảng lỗi đỏ
+
+            // Đá văng về màn hình Multiplayer để nhập lại
+            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
         }
     }
 
