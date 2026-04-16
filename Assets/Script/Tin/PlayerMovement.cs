@@ -274,8 +274,20 @@ public class PlayerMovement : NetworkBehaviour
         Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, radius, zombieLayer);
         foreach (Collider2D z in zombies)
         {
-            ZOmbieAI_Khoa ai = z.GetComponentInParent<ZOmbieAI_Khoa>();
-            if (ai != null) ai.RPC_HearSound(transform.position);
+            // 🔥 Thái: Ưu tiên gọi ZombieAI mới
+            ZombieAI aiNew = z.GetComponentInParent<ZombieAI>();
+            if (aiNew != null)
+            {
+                aiNew.RPC_HearSound(transform.position);
+                continue;
+            }
+
+            // 🔥 Thái: Fallback sang hệ thống cũ ZOmbieAI_Khoa
+            ZOmbieAI_Khoa aiOld = z.GetComponentInParent<ZOmbieAI_Khoa>();
+            if (aiOld != null)
+            {
+                aiOld.RPC_HearSound(transform.position);
+            }
         }
     }
 
