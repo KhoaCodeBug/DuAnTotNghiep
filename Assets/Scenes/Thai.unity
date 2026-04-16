@@ -561,84 +561,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 1066823688839231513, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: maxHealth
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 1348887384322338406, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: Flags
-      value: 131073
-      objectReference: {fileID: 0}
     - target: {fileID: 1348887384322338406, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
       propertyPath: SortKey
       value: 1510961921
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: chaseRange
-      value: 0.35
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: damageAtk1
-      value: 15
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: damageAtk2
-      value: 20
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: damageAtk3
-      value: 25
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: damageAtk4
-      value: 30
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: attackRange
-      value: 0.3
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: damageRadius
-      value: 0.31
-      objectReference: {fileID: 0}
-    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: detectionRange
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 2423990464131296076, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: m_Size.y
-      value: 0.19389847
-      objectReference: {fileID: 0}
-    - target: {fileID: 2423990464131296076, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: m_Offset.y
-      value: -0.18735819
       objectReference: {fileID: 0}
     - target: {fileID: 4396508338874752408, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
       propertyPath: m_Name
       value: Zombie
       objectReference: {fileID: 0}
-    - target: {fileID: 4396508338874752408, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: m_Layer
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 4396508338874752408, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: m_TagString
-      value: Enemy
-      objectReference: {fileID: 0}
-    - target: {fileID: 5700070544290706751, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: m_BaseOffset
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8766122440974210971, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      propertyPath: m_SortingOrder
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: 316024015096187952, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1015882974}
+    m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
 --- !u!1001 &679659703
@@ -817,75 +750,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!1 &1015882973
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1015882974}
-  - component: {fileID: 1015882975}
-  m_Layer: 3
-  m_Name: hitbox
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1015882974
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1015882973}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1110676824}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!70 &1015882975
-CapsuleCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1015882973}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 1
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0.06353164, y: -0.06633453}
-  m_Size: {x: 0.15991855, y: 0.43755785}
-  m_Direction: 0
 --- !u!1 &1019036584
 GameObject:
   m_ObjectHideFlags: 0
@@ -1138,11 +1002,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: -90}
---- !u!4 &1110676824 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 316024015096187952, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
-  m_PrefabInstance: {fileID: 664089134}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1174123026
 GameObject:
   m_ObjectHideFlags: 0
