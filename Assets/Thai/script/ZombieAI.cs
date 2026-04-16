@@ -5,7 +5,6 @@ using Fusion;
 public class ZombieAI : NetworkBehaviour
 {
     [Header("--- Phạm vi Phát hiện (Detection) ---")]
-    [Tooltip("Khoảng cách Zombie có thể phát hiện người chơi")]
     public float detectionRange = 10f;
 
     [Header("--- Tấn công & Tốc độ ---")]
@@ -20,6 +19,12 @@ public class ZombieAI : NetworkBehaviour
     public float damageAtk3 = 20f;
     public float damageAtk4 = 30f;
 
+    // 🔊 SOUND SYSTEM
+    private Vector3 lastHeardPosition;
+    private bool hasHeardSound = false;
+    private float hearMemoryTimer = 0f;
+    public float hearMemoryDuration = 3f;
+
     private Transform player;
     private NavMeshAgent agent;
     private Animator anim;
@@ -28,8 +33,6 @@ public class ZombieAI : NetworkBehaviour
     private float attackTimer = 0f;
     private float searchTimer = 0f;
     private float stunTimer = 0f;
-
-    // 🔥 [MỚI THÊM] Timer để tối ưu thuật toán A*
     private float pathUpdateTimer = 0f;
 
     private int currentAttackIndex = 1;
@@ -82,6 +85,7 @@ public class ZombieAI : NetworkBehaviour
             return;
         }
 
+        // STUN
         if (stunTimer > 0)
         {
             stunTimer -= Runner.DeltaTime;
@@ -90,6 +94,17 @@ public class ZombieAI : NetworkBehaviour
             return;
         }
 
+        // 🔊 SOUND MEMORY
+        if (hasHeardSound)
+        {
+            hearMemoryTimer -= Runner.DeltaTime;
+            if (hearMemoryTimer <= 0)
+            {
+                hasHeardSound = false;
+            }
+        }
+
+        // FIND PLAYER
         searchTimer -= Runner.DeltaTime;
         if (searchTimer <= 0)
         {
@@ -97,23 +112,47 @@ public class ZombieAI : NetworkBehaviour
             searchTimer = 0.5f;
         }
 
-        if (player == null || agent == null || !agent.isOnNavMesh)
+        // ❗ KHÔNG có player và cũng không có sound → idle
+        if ((player == null && !hasHeardSound) || agent == null || !agent.isOnNavMesh)
         {
             NetIsRunning = false;
             if (agent != null && agent.isOnNavMesh) agent.isStopped = true;
             return;
         }
 
+        // 🔊 ƯU TIÊN: NGHE ÂM THANH (khi chưa thấy player)
+        if (player == null && hasHeardSound)
+        {
+            agent.isStopped = false;
+            agent.speed = moveSpeed * 0.8f;
+
+            pathUpdateTimer -= Runner.DeltaTime;
+            if (pathUpdateTimer <= 0)
+            {
+                agent.SetDestination(lastHeardPosition);
+                pathUpdateTimer = 0.2f;
+            }
+
+            NetIsRunning = true;
+            NetMoveDir = (agent.steeringTarget - transform.position).normalized;
+
+            if (Vector2.Distance(transform.position, lastHeardPosition) < 0.5f)
+            {
+                hasHeardSound = false;
+            }
+
+            return;
+        }
+
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
         if (attackTimer > 0) attackTimer -= Runner.DeltaTime;
 
-        // TRẠNG THÁI 2: Đuổi theo (Chase) & Tránh vật cản bằng NavMesh A*
+        // CHASE
         if (distanceToPlayer > attackRange)
         {
             agent.isStopped = false;
             agent.speed = moveSpeed;
 
-            // 🔥 [TỐI ƯU A*] Thay vì gọi mỗi frame, chỉ tính toán lại đường đi lách vật cản mỗi 0.2 giây
             pathUpdateTimer -= Runner.DeltaTime;
             if (pathUpdateTimer <= 0)
             {
@@ -122,12 +161,9 @@ public class ZombieAI : NetworkBehaviour
             }
 
             NetIsRunning = true;
-
-            // Dùng agent.steeringTarget (mục tiêu ngắn hạn trên lưới) giúp animation hướng đi 
-            // mượt mà hơn khi zombie đang lách qua vật cản, thay vì hướng thẳng vào player.
             NetMoveDir = (agent.steeringTarget - transform.position).normalized;
         }
-        // TRẠNG THÁI 3: Tấn công
+        // ATTACK
         else
         {
             agent.isStopped = true;
@@ -147,12 +183,28 @@ public class ZombieAI : NetworkBehaviour
     public override void Render()
     {
         if (anim == null) return;
+
         anim.SetBool("isRunning", NetIsRunning);
+
         if (NetMoveDir != Vector2.zero)
         {
             anim.SetFloat("DirX", NetMoveDir.x);
             anim.SetFloat("DirY", NetMoveDir.y);
         }
+    }
+
+    // 🔊 NHẬN ÂM THANH
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_HearSound(Vector3 pos)
+    {
+        if (!HasStateAuthority) return;
+
+        // Nếu đang thấy player thì bỏ qua
+        if (player != null) return;
+
+        lastHeardPosition = pos;
+        hasHeardSound = true;
+        hearMemoryTimer = hearMemoryDuration;
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -166,7 +218,6 @@ public class ZombieAI : NetworkBehaviour
             anim.ResetTrigger("Atk4");
             anim.SetTrigger("Atk" + atkIndex);
         }
-        // Debug.Log($"<color=orange><b>[BÁO ĐỘNG] Zombie đang tung chiêu: ĐÒN SỐ {atkIndex}</b></color>");
     }
 
     void FindClosestPlayerInRange()
@@ -203,28 +254,12 @@ public class ZombieAI : NetworkBehaviour
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
             if (pHealth != null)
             {
-                // Gây sát thương cơ bản và báo cho PlayerHealth biết đây là Zombie tấn công (hiện UI máu)
                 pHealth.TakeDamage(damageAmount, false, true);
 
-                // ==========================================
-                // 🔥 [Thái zombie hiệu ứng máu]
-                // ==========================================
-                if (attackIndex == 1)
+                if (attackIndex == 2)
                 {
-                    // Atk1 (Cào): Hàm TakeDamage ở trên đã tự động set isBleeding = true.
-                    // Player sẽ bị tụt máu từ từ theo bleedDamagePerSecond, 
-                    // nhưng hoàn toàn CÓ THỂ CHỮA TRỊ bằng cách gọi hàm SetGlobalBleeding(false) (ví dụ khi dùng băng gạc).
-                    Debug.Log("<color=yellow>[Thái zombie hiệu ứng máu] Player trúng Atk1: Đang rỉ máu (Có thể băng bó)!</color>");
-                }
-                else if (attackIndex == 2)
-                {
-                    // Atk2 (Cắn/Vết thương chí mạng): Gọi thêm hàm SetBitten().
-                    // Bật isBitten = true, kích hoạt infectionTimer rút máu đến chết và hóa Zombie.
-                    // KHÔNG THỂ CHỮA TRỊ.
                     pHealth.SetBitten();
-                    Debug.Log("<color=red>[Thái zombie hiệu ứng máu] Player trúng Atk2: Đã bị cắn! Án tử hình không thể chữa!</color>");
                 }
-                // ==========================================
             }
         }
     }
@@ -239,9 +274,15 @@ public class ZombieAI : NetworkBehaviour
     {
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
+
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, attackRange);
+
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, damageRadius);
+
+        // 🔊 debug sound
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(lastHeardPosition, 0.3f);
     }
 }
