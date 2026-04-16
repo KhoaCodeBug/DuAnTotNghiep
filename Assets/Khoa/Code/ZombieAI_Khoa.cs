@@ -18,6 +18,16 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     [SerializeField] private float trackingDuration = 3f;
     private float currentTrackingTimer;
 
+    [Header("=== Flocking (Tách bầy) ===")]
+    [SerializeField] private LayerMask zombieMask;
+    [SerializeField] private float separationRadius = 0.4f;
+    [SerializeField] private float separationWeight = 1.5f;
+
+    // Mảng tĩnh tối ưu RAM cho FixedUpdateNetwork
+    private Collider2D[] nearbyZombies = new Collider2D[10];
+    private ContactFilter2D zombieFilter; // Thêm dòng này để fix lỗi Obsolete
+
+
     [Header("=== Damage ===")]
     [SerializeField] private float zombieDamage = 10f;
     private PlayerHealth playerHealth;
@@ -89,6 +99,10 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         seeker = GetComponent<Seeker>();
 
         if (spriteRend != null) originalColor = spriteRend.color;
+
+        // Cài đặt Filter cho hàm quét bầy đàn
+        zombieFilter = new ContactFilter2D();
+        zombieFilter.SetLayerMask(zombieMask);
     }
 
     public override void Spawned()
@@ -98,6 +112,21 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         if (!HasStateAuthority)
         {
             if (rb != null) rb.bodyType = RigidbodyType2D.Kinematic;
+        }
+        else
+        {
+            // === CODE FIX CHỖ NÀY ===
+            // Random một góc từ 0 đến 360 độ, sau đó chuyển sang Vector2
+            float randomAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+            Vector2 randomDir = new Vector2(Mathf.Cos(randomAngle), Mathf.Sin(randomAngle)).normalized;
+
+            // Gán hướng ngẫu nhiên này cho các biến mạng và biến helper
+            NetMoveDir = randomDir;
+            lastMoveDirection = randomDir;
+
+            // Ép luôn giá trị smooth để animation quay mặt ngay lập tức, không bị "trượt" từ (0,0)
+            smoothMoveX = randomDir.x;
+            smoothMoveY = randomDir.y;
         }
     }
 
@@ -226,7 +255,6 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
                     }
                 }
 
-                // CHUYỂN GIAO BIẾN noWallInBetween ĐỂ KHÓA LỖI XUYÊN TƯỜNG
                 MoveAlongPath(1f, noWallInBetween);
             }
         }
@@ -267,8 +295,37 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         NetSpeed = 0f;
     }
 
-    // ĐÃ FIX: Nhận thêm tham số noWall để cấm đi thẳng nếu bị kẹt hàng rào
-    // ĐÃ FIX: Tích hợp Steering Behavior (Bẻ lái mượt) chống giật khi cua góc
+    // TÍNH TOÁN LỰC TÁCH BẦY
+    private Vector2 GetSeparationForce()
+    {
+        Vector2 force = Vector2.zero;
+
+        int count = Physics2D.OverlapCircle(rb.position, separationRadius, zombieFilter, nearbyZombies);
+
+        int validCount = 0;
+        for (int i = 0; i < count; i++)
+        {
+            Collider2D otherCol = nearbyZombies[i];
+            if (otherCol.gameObject == gameObject) continue;
+
+            Vector2 diff = rb.position - (Vector2)otherCol.bounds.center;
+            float dist = diff.magnitude;
+
+            if (dist > 0 && dist < separationRadius)
+            {
+                force += diff.normalized * (1f - (dist / separationRadius));
+                validCount++;
+            }
+        }
+
+        if (validCount > 0)
+        {
+            force /= validCount;
+        }
+
+        return force;
+    }
+
     private void MoveAlongPath(float speedMultiplier, bool noWall)
     {
         bool hasReachedEnd = path == null || currentWaypoint >= path.vectorPath.Count;
@@ -279,7 +336,10 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             {
                 Vector2 targetDir = (playerCol.bounds.center - myCol.bounds.center).normalized;
 
-                // Steering: Trượt hướng từ từ thay vì quay ngoắt
+                // Cộng thêm lực đẩy Separation
+                Vector2 separationForce = GetSeparationForce();
+                targetDir = (targetDir + separationForce * separationWeight).normalized;
+
                 lastMoveDirection = Vector2.Lerp(lastMoveDirection, targetDir, 8f * Runner.DeltaTime);
 
                 rb.MovePosition(rb.position + lastMoveDirection * speed * speedMultiplier * Runner.DeltaTime);
@@ -294,21 +354,20 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         Vector2 currentWp = (Vector2)path.vectorPath[currentWaypoint];
         Vector2 targetMoveDir = (currentWp - rb.position).normalized;
+
+        // Cộng thêm lực đẩy Separation
+        Vector2 sepForce = GetSeparationForce();
+        targetMoveDir = (targetMoveDir + sepForce * separationWeight).normalized;
+
         float currentSpeed = speed * speedMultiplier;
 
-        // ==========================================
-        // STEERING LOGIC (Thay thế Simple Smooth)
-        // Hệ số Lerp 10f giúp bo cua mượt mà, không bị giật cục khi góc rẽ quá gắt
-        // ==========================================
         lastMoveDirection = Vector2.Lerp(lastMoveDirection, targetMoveDir, 10f * Runner.DeltaTime);
 
-        // Di chuyển theo hướng đã được làm cong
         rb.MovePosition(rb.position + lastMoveDirection * currentSpeed * Runner.DeltaTime);
         NetSpeed = currentSpeed;
 
         float distToWp = Vector2.Distance(rb.position, currentWp);
 
-        // Giữ nextWaypointDistance khoảng 0.5f - 0.6f trên Inspector
         if (distToWp < nextWaypointDistance)
         {
             currentWaypoint++;
