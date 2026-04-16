@@ -166,7 +166,7 @@ public class ZombieAI : NetworkBehaviour
             anim.ResetTrigger("Atk4");
             anim.SetTrigger("Atk" + atkIndex);
         }
-        Debug.Log($"<color=orange><b>[BÁO ĐỘNG] Zombie đang tung chiêu: ĐÒN SỐ {atkIndex}</b></color>");
+        // Debug.Log($"<color=orange><b>[BÁO ĐỘNG] Zombie đang tung chiêu: ĐÒN SỐ {atkIndex}</b></color>");
     }
 
     void FindClosestPlayerInRange()
@@ -188,20 +188,44 @@ public class ZombieAI : NetworkBehaviour
 
     public void DealDamage()
     {
-        if (currentAttackIndex == 1) ExecuteDamage(damageAtk1);
-        else if (currentAttackIndex == 2) ExecuteDamage(damageAtk2);
-        else if (currentAttackIndex == 3) ExecuteDamage(damageAtk3);
-        else if (currentAttackIndex == 4) ExecuteDamage(damageAtk4);
+        if (currentAttackIndex == 1) ExecuteDamage(damageAtk1, 1);
+        else if (currentAttackIndex == 2) ExecuteDamage(damageAtk2, 2);
+        else if (currentAttackIndex == 3) ExecuteDamage(damageAtk3, 3);
+        else if (currentAttackIndex == 4) ExecuteDamage(damageAtk4, 4);
     }
 
-    private void ExecuteDamage(float damageAmount)
+    private void ExecuteDamage(float damageAmount, int attackIndex)
     {
         if (!HasStateAuthority || player == null) return;
+
         if (Vector2.Distance(transform.position, player.position) <= damageRadius)
         {
-            // Đảm bảo Player có script PlayerHealth để nhận sát thương
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-            if (pHealth != null) pHealth.TakeDamage(damageAmount);
+            if (pHealth != null)
+            {
+                // Gây sát thương cơ bản và báo cho PlayerHealth biết đây là Zombie tấn công (hiện UI máu)
+                pHealth.TakeDamage(damageAmount, false, true);
+
+                // ==========================================
+                // 🔥 [Thái zombie hiệu ứng máu]
+                // ==========================================
+                if (attackIndex == 1)
+                {
+                    // Atk1 (Cào): Hàm TakeDamage ở trên đã tự động set isBleeding = true.
+                    // Player sẽ bị tụt máu từ từ theo bleedDamagePerSecond, 
+                    // nhưng hoàn toàn CÓ THỂ CHỮA TRỊ bằng cách gọi hàm SetGlobalBleeding(false) (ví dụ khi dùng băng gạc).
+                    Debug.Log("<color=yellow>[Thái zombie hiệu ứng máu] Player trúng Atk1: Đang rỉ máu (Có thể băng bó)!</color>");
+                }
+                else if (attackIndex == 2)
+                {
+                    // Atk2 (Cắn/Vết thương chí mạng): Gọi thêm hàm SetBitten().
+                    // Bật isBitten = true, kích hoạt infectionTimer rút máu đến chết và hóa Zombie.
+                    // KHÔNG THỂ CHỮA TRỊ.
+                    pHealth.SetBitten();
+                    Debug.Log("<color=red>[Thái zombie hiệu ứng máu] Player trúng Atk2: Đã bị cắn! Án tử hình không thể chữa!</color>");
+                }
+                // ==========================================
+            }
         }
     }
 
