@@ -7,7 +7,8 @@ public class ZombieHealth : NetworkBehaviour
 {
     [Header("Chỉ số Sinh tồn")]
     public float maxHealth = 100f;
-    public float stunDuration = 0.5f;
+    public float stunDuration = 0.5f; // Thời gian choáng khi bị bắn
+    public float meleeStunDuration = 1.5f; // [MỚI] Thời gian choáng khi bị đập báng súng
     public Color hurtColor = Color.red;
 
     [Networked] public float currentHealth { get; set; }
@@ -35,10 +36,11 @@ public class ZombieHealth : NetworkBehaviour
     }
 
     // =======================================================
-    // 🔥 HÀM NHẬN SÁT THƯƠNG CHUẨN THEO BẢN GỐC CỦA KHOA
+    // 🔥 HÀM NHẬN SÁT THƯƠNG
+    // Đã thêm biến "isMelee" để phân biệt đánh xa hay đánh gần
     // =======================================================
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_TakeDamage(float damage, PlayerRef shooter = default)
+    public void RPC_TakeDamage(float damage, PlayerRef shooter = default, bool isMelee = false)
     {
         if (isDead) return;
 
@@ -46,7 +48,7 @@ public class ZombieHealth : NetworkBehaviour
         currentHealth -= damage;
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
 
-        Debug.Log($"<color=red><b>[TRÚNG ĐẠN] Zombie mất {damage} máu! Máu còn: {currentHealth}</b></color>");
+        Debug.Log($"<color=red><b>[TRÚNG ĐÒN] Zombie mất {damage} máu! Máu còn: {currentHealth}</b></color>");
 
         if (currentHealth <= 0f)
         {
@@ -54,8 +56,14 @@ public class ZombieHealth : NetworkBehaviour
             return;
         }
 
-        // Bị bắn trúng thì đứng hình
-        if (aiScript != null) aiScript.ApplyStun(stunDuration);
+        // 💡 KIỂM TRA CHOÁNG: Nếu là cận chiến (isMelee) thì choáng 1.5s, nếu súng thì 0.5s
+        float currentStunTime = isMelee ? meleeStunDuration : stunDuration;
+
+        if (aiScript != null)
+        {
+            aiScript.ApplyStun(currentStunTime);
+            // Hàm ApplyStun bên ZombieAI đã tự động khóa tốc độ chạy và khóa sát thương
+        }
 
         RPC_PlayHitEffect();
     }
@@ -92,7 +100,7 @@ public class ZombieHealth : NetworkBehaviour
         if (coll != null) coll.enabled = false;
         if (aiScript != null) aiScript.enabled = false;
 
-        // Xử lý cộng điểm hạ gục (Kill) cho Player giống hệt code Khoa
+        // Xử lý cộng điểm hạ gục (Kill) cho Player
         if (shooter != PlayerRef.None)
         {
             Skill_WeaponMaster[] allWeaponMasters = FindObjectsByType<Skill_WeaponMaster>(FindObjectsSortMode.None);
@@ -116,16 +124,10 @@ public class ZombieHealth : NetworkBehaviour
     {
         if (anim != null)
         {
-            // BƯỚC 1: Bốc thăm số ngẫu nhiên (0 hoặc 1)
             int randomDeath = Random.Range(0, 2);
-
-            // BƯỚC 2: Truyền số vào để Animator chuẩn bị sẵn tư thế ngã gục
             anim.SetInteger("DeathType", randomDeath);
-
-            // BƯỚC 3: Gạt công tắc isDead để Animator lập tức chạy đúng mũi tên
             anim.SetBool("isDead", true);
 
-            // In ra Console để dễ dàng kiểm tra xem code có random chuẩn không
             Debug.Log($"<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: {randomDeath}</b></color>");
         }
     }
