@@ -360,7 +360,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: eb9c696b2780c934da39bcef7812db37, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameFont: {fileID: 11400000, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
+  gameFont: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   backgroundImage: {fileID: -6695950386315148514, guid: df9491d9cbcc0e341a50647fc4639d3c, type: 3}
   menuBGM: {fileID: 8300000, guid: 3a68629dd3eb1e24eaefc72bffefe934, type: 3}
   bgmVolume: 1
