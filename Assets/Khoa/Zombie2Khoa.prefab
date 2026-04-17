@@ -86,7 +86,6 @@ GameObject:
   - component: {fileID: 7372086595383752666}
   - component: {fileID: 5681118958131968407}
   - component: {fileID: -1847682362298374646}
-  - component: {fileID: -1512541213844376578}
   - component: {fileID: -3967003760547683558}
   m_Layer: 0
   m_Name: Zombie2Khoa
@@ -230,6 +229,11 @@ MonoBehaviour:
   speed: 1.5
   nextWaypointDistance: 1
   trackingDuration: 3
+  zombieMask:
+    serializedVersion: 2
+    m_Bits: 0
+  separationRadius: 0.4
+  separationWeight: 1.5
   zombieDamage: 10
   detectionRange: 2
   viewAngle: 180
@@ -352,28 +356,6 @@ MonoBehaviour:
   tagPenalties: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
   graphMask:
     value: -1
---- !u!114 &-1512541213844376578
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5115177110719869878}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cb6a34d769a1e4ac7b0b30e433aa443c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  version: 1
-  smoothType: 0
-  subdivisions: 2
-  iterations: 5
-  strength: 0.6
-  uniformLength: 1
-  maxSegmentLength: 0.5
-  bezierTangentLength: 0.4
-  offset: 0.2
-  factor: 0.1
 --- !u!114 &-3967003760547683558
 MonoBehaviour:
   m_ObjectHideFlags: 0
