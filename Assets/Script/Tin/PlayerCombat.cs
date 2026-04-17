@@ -339,6 +339,14 @@ public class PlayerCombat : NetworkBehaviour
                     bossStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority);
                     alreadyHitIDs.Add(bossStats.GetInstanceID());
                 }
+                //Thai 
+                ZombieHealth newZombieStats = enemy.GetComponentInParent<ZombieHealth>();
+                if (newZombieStats != null && !alreadyHitIDs.Contains(newZombieStats.gameObject.GetInstanceID()))
+                {
+                    
+                    newZombieStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority, true);
+                    alreadyHitIDs.Add(newZombieStats.gameObject.GetInstanceID());
+                }
             }
         }
     }
