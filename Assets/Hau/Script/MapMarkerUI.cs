@@ -1,61 +1,30 @@
 ﻿using UnityEngine;
-using UnityEngine.UI;
+using Fusion;
 
-public class MapMarkerUI : MonoBehaviour
+public class MinimapFollow : MonoBehaviour
 {
-    public Transform target;           // object ngoài world
-    public RectTransform mapRect;      // Map UI
-    public RectTransform marker;       // chấm đỏ
-
-    [Header("World Range")]
-    public Vector2 worldMin;
-    public Vector2 worldMax;
-
-    private Image img;
-
-    void Start()
-    {
-        if (marker != null)
-            img = marker.GetComponent<Image>();
-    }
+    private Transform localPlayer;
 
     void Update()
     {
-        // 🔥 KHÔNG BAO GIỜ CHO NULL
-        if (target == null)
+        // luôn cố tìm nếu chưa có
+        if (localPlayer == null)
         {
-            Debug.LogError("❌ target NULL");
-            return;
+            foreach (var obj in FindObjectsOfType<NetworkObject>())
+            {
+                if (obj.HasInputAuthority)
+                {
+                    localPlayer = obj.transform;
+                    Debug.Log("Found Local Player: " + obj.name);
+                    break;
+                }
+            }
         }
 
-        if (mapRect == null)
-        {
-            Debug.LogError("❌ mapRect NULL");
-            return;
-        }
+        if (localPlayer == null) return;
 
-        if (marker == null)
-        {
-            Debug.LogError("❌ marker NULL");
-            return;
-        }
-
-        // 🔥 convert world → %
-        float percentX = Mathf.InverseLerp(worldMin.x, worldMax.x, target.position.x);
-        float percentY = Mathf.InverseLerp(worldMin.y, worldMax.y, target.position.y);
-
-        percentX = Mathf.Clamp01(percentX);
-        percentY = Mathf.Clamp01(percentY);
-
-        float posX = (percentX - 0.5f) * mapRect.sizeDelta.x;
-        float posY = (percentY - 0.5f) * mapRect.sizeDelta.y;
-
-        marker.anchoredPosition = new Vector2(posX, posY);
-        // 🔥 NHẤP NHÁY
-        if (img != null)
-        {
-            float t = (Mathf.Sin(Time.time * 3f) + 1) / 2;
-            img.color = new Color(1, 0, 0, t);
-        }
+        // 👇 follow player (2D đúng trục)
+        Vector3 pos = localPlayer.position;
+        transform.position = new Vector3(pos.x, pos.y, -10f);
     }
 }
