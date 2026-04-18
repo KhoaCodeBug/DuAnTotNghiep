@@ -254,7 +254,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateMenuButton(maxPlayerContainer, "-", () => {
             hostMaxPlayers = Mathf.Clamp(hostMaxPlayers - 1, 1, 4);
             maxPlayersText.text = hostMaxPlayers.ToString();
-        }, new Vector2(0f, 0.5f), true, new Vector2(40, 40), 25);
+        }, new Vector2(0f, 0.5f), true, new Vector2(40, 40), 30);
 
         // Text hiển thị số
         GameObject valObj = new GameObject("Value");
@@ -273,7 +273,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateMenuButton(maxPlayerContainer, "+", () => {
             hostMaxPlayers = Mathf.Clamp(hostMaxPlayers + 1, 1, 4);
             maxPlayersText.text = hostMaxPlayers.ToString();
-        }, new Vector2(0.7f, 0.5f), true, new Vector2(40, 40), 25);
+        }, new Vector2(0.7f, 0.5f), true, new Vector2(40, 40), 30);
 
         CreateLabel(hostArea, "ĐỘ KHÓ:", new Vector2(0.1f, 0.4f), new Vector2(0.3f, 0.45f));
         diffTexts[0] = CreateTextBtn(hostArea, "DỄ", new Vector2(0.4f, 0.425f), () => SetDifficulty(0)); diffTexts[1] = CreateTextBtn(hostArea, "BÌNH THƯỜNG", new Vector2(0.6f, 0.425f), () => SetDifficulty(1)); diffTexts[2] = CreateTextBtn(hostArea, "ĐỊA NGỤC", new Vector2(0.8f, 0.425f), () => SetDifficulty(2)); SetDifficulty(1);
@@ -291,9 +291,19 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateTitleText(joinArea, "DANH SÁCH CĂN CỨ", 0.9f); GameObject scrollObj = new GameObject("Scroll View"); scrollObj.transform.SetParent(joinArea.transform, false); RectTransform scrollRectT = scrollObj.AddComponent<RectTransform>(); scrollRectT.anchorMin = new Vector2(0.1f, 0.2f); scrollRectT.anchorMax = new Vector2(0.9f, 0.75f); scrollRectT.offsetMin = Vector2.zero; scrollRectT.offsetMax = Vector2.zero; ScrollRect scrollRect = scrollObj.AddComponent<ScrollRect>(); scrollRect.horizontal = false; scrollRect.vertical = true; scrollRect.scrollSensitivity = 20f; GameObject viewport = new GameObject("Viewport"); viewport.transform.SetParent(scrollObj.transform, false); RectTransform vpRect = viewport.AddComponent<RectTransform>(); vpRect.anchorMin = Vector2.zero; vpRect.anchorMax = Vector2.one; vpRect.offsetMin = Vector2.zero; vpRect.offsetMax = Vector2.zero; viewport.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f); viewport.AddComponent<RectMask2D>(); GameObject content = new GameObject("Content"); content.transform.SetParent(viewport.transform, false); serverListContent = content.AddComponent<RectTransform>(); serverListContent.anchorMin = new Vector2(0, 1); serverListContent.anchorMax = new Vector2(1, 1); serverListContent.pivot = new Vector2(0.5f, 1); serverListContent.offsetMin = Vector2.zero; serverListContent.offsetMax = Vector2.zero; serverListContent.sizeDelta = new Vector2(0, 0); VerticalLayoutGroup vlgList = content.AddComponent<VerticalLayoutGroup>(); vlgList.childAlignment = TextAnchor.UpperCenter; vlgList.childControlHeight = false; vlgList.childControlWidth = true; vlgList.childForceExpandHeight = false; vlgList.spacing = 10; vlgList.padding = new RectOffset(10, 10, 10, 10); ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize; scrollRect.viewport = vpRect; scrollRect.content = serverListContent;
 
         passPromptPanel = new GameObject("PasswordPrompt"); passPromptPanel.transform.SetParent(joinArea.transform, false); RectTransform promptRect = passPromptPanel.AddComponent<RectTransform>(); promptRect.anchorMin = new Vector2(0.2f, 0.3f); promptRect.anchorMax = new Vector2(0.8f, 0.7f); promptRect.offsetMin = Vector2.zero; promptRect.offsetMax = Vector2.zero; passPromptPanel.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 1f); passPromptPanel.SetActive(false);
-        CreateLabel(passPromptPanel, "CĂN CỨ BỊ KHÓA, NHẬP MẬT KHẨU:", new Vector2(0, 0.7f), new Vector2(1, 0.9f)); GameObject joinPassInputObj = CreateInputField(passPromptPanel, "JoinPass", "...", new Vector2(0.2f, 0.4f), new Vector2(0.8f, 0.6f)); joinPassInput = joinPassInputObj.GetComponent<TMP_InputField>(); joinPassInput.contentType = TMP_InputField.ContentType.Password;
-        CreateMenuButton(passPromptPanel, "ĐÓNG", () => { passPromptPanel.SetActive(false); }, new Vector2(0.25f, 0.15f), true, new Vector2(150, 40), 20f);
-        CreateMenuButton(passPromptPanel, "XÁC NHẬN", () => { passPromptPanel.SetActive(false); pendingJoinPassword = joinPassInput.text; pendingIsHost = false; OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.75f, 0.15f), true, new Vector2(150, 40), 20f);
+        CreateLabel(passPromptPanel, "NHẬP MẬT KHẨU", new Vector2(0f, 0.65f), new Vector2(1f, 0.85f));
+
+        // 2. Lấy component Text ra để ép kích thước chữ thủ công (tắt AutoSizing của hàm gốc)
+        TextMeshProUGUI promptTxt = passPromptPanel.transform.Find("Label").GetComponent<TextMeshProUGUI>();
+        promptTxt.enableAutoSizing = false;
+        promptTxt.fontSize = 30; // Cỡ chữ 30 như bạn muốn
+        promptTxt.alignment = TextAlignmentOptions.Center; // Đảm bảo chữ căn giữa hoàn toàn
+
+        // 3. Khởi tạo InputField bên dưới dòng chữ
+        GameObject joinPassInputObj = CreateInputField(passPromptPanel, "JoinPass", "...", new Vector2(0.2f, 0.3f), new Vector2(0.8f, 0.5f));
+        joinPassInput = joinPassInputObj.GetComponent<TMP_InputField>();
+        joinPassInput.contentType = TMP_InputField.ContentType.Password; CreateMenuButton(passPromptPanel, "ĐÓNG", () => { passPromptPanel.SetActive(false); }, new Vector2(0.25f, 0.15f), true, new Vector2(150, 40), 30f);
+        CreateMenuButton(passPromptPanel, "XÁC NHẬN", () => { passPromptPanel.SetActive(false); pendingJoinPassword = joinPassInput.text; pendingIsHost = false; OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.75f, 0.15f), true, new Vector2(150, 40), 30f);
         CreateMenuButton(joinArea, "LÀM MỚI DANH SÁCH", () => { ConnectToLobby(); }, new Vector2(0.5f, 0.08f), true, new Vector2(300, 50), 20f);
         CreateMenuButton(multiplayerPanel, "BACK", () => OpenPanel(mainPanel.GetComponent<CanvasGroup>()), new Vector2(0.1f, 0.05f));
     }
@@ -458,52 +468,64 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         waitingRoomPanel = CreateBasePanel("WaitingRoomPanel", canvasGO);
         CanvasGroup cg = waitingRoomPanel.AddComponent<CanvasGroup>();
         cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false;
-        waitingRoomPanel.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.05f, 0.98f);
 
-        CreateTitleText(waitingRoomPanel, "SẢNH CHỜ CHIẾN DỊCH", 0.9f);
+        // Nền tối với chút sắc xám xanh quân đội
+        waitingRoomPanel.AddComponent<Image>().color = new Color(0.06f, 0.07f, 0.06f, 0.98f);
 
-        // Danh sách Player Slots
-        GameObject listObj = new GameObject("PlayerList");
+        CreateTitleText(waitingRoomPanel, "SẢNH CHỜ CHIẾN DỊCH", 0.9f, 60, TextAlignmentOptions.Center);
+
+        // Đường gạch ngang trang trí dưới Title
+        GameObject lineObj = new GameObject("DividerLine");
+        lineObj.transform.SetParent(waitingRoomPanel.transform, false);
+        RectTransform lineRt = lineObj.AddComponent<RectTransform>();
+        lineRt.anchorMin = new Vector2(0.3f, 0.85f); lineRt.anchorMax = new Vector2(0.7f, 0.85f);
+        lineRt.offsetMin = Vector2.zero; lineRt.offsetMax = new Vector2(0, 2); // Cao 2px
+        lineObj.AddComponent<Image>().color = new Color(0.4f, 0.4f, 0.4f, 0.5f);
+
+        // Khu vực chứa Thẻ Người Chơi (Player Cards)
+        GameObject listObj = new GameObject("PlayerCardsContainer");
         listObj.transform.SetParent(waitingRoomPanel.transform, false);
         waitingRoomPlayerListContent = listObj.AddComponent<RectTransform>();
-        waitingRoomPlayerListContent.anchorMin = new Vector2(0.15f, 0.45f);
-        waitingRoomPlayerListContent.anchorMax = new Vector2(0.85f, 0.8f);
+        waitingRoomPlayerListContent.anchorMin = new Vector2(0.1f, 0.4f);
+        waitingRoomPlayerListContent.anchorMax = new Vector2(0.9f, 0.75f);
         waitingRoomPlayerListContent.offsetMin = Vector2.zero;
         waitingRoomPlayerListContent.offsetMax = Vector2.zero;
 
         HorizontalLayoutGroup hlg = listObj.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 20; hlg.childControlWidth = true; hlg.childForceExpandWidth = true;
+        hlg.spacing = 30; // Khoảng cách giữa các thẻ rộng ra
+        hlg.childControlWidth = true; hlg.childControlHeight = true;
+        hlg.childForceExpandWidth = true; hlg.childForceExpandHeight = true;
         hlg.childAlignment = TextAnchor.MiddleCenter;
 
-        // Status Text ở dưới danh sách
+        // Text báo trạng thái chung
         GameObject statusObj = new GameObject("HostStatus");
         statusObj.transform.SetParent(waitingRoomPanel.transform, false);
         waitingRoomHostStatusText = statusObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) waitingRoomHostStatusText.font = gameFont;
         waitingRoomHostStatusText.alignment = TextAlignmentOptions.Center;
-        waitingRoomHostStatusText.color = new Color(0.7f, 0.7f, 0.7f);
-        waitingRoomHostStatusText.fontSize = 22;
+        waitingRoomHostStatusText.color = new Color(0.8f, 0.8f, 0.4f); // Màu vàng nhạt cảnh báo
+        waitingRoomHostStatusText.fontSize = 24;
+        waitingRoomHostStatusText.fontStyle = FontStyles.Italic;
         RectTransform statusRt = statusObj.GetComponent<RectTransform>();
-        statusRt.anchorMin = new Vector2(0, 0.38f); statusRt.anchorMax = new Vector2(1, 0.43f);
+        statusRt.anchorMin = new Vector2(0, 0.3f); statusRt.anchorMax = new Vector2(1, 0.35f);
         statusRt.offsetMin = Vector2.zero; statusRt.offsetMax = Vector2.zero;
 
-        // Nút bấm
+        // Các nút điều khiển
         CreateMenuButton(waitingRoomPanel, "BẮT ĐẦU CHIẾN DỊCH", async () =>
         {
             if (activeRunner == null || !activeRunner.IsServer) return;
-            // Logic bắt đầu game giữ nguyên như cũ của bạn...
             var props = new Dictionary<string, SessionProperty> { { "IsLocked", 1 }, { "GameState", 1 } };
             activeRunner.SessionInfo.UpdateCustomProperties(props);
             ShowLoadingScreen();
             await Task.Delay(800);
             playersLoaded = 0;
             await activeRunner.LoadScene(SceneRef.FromIndex(mainSceneIndex));
-        }, new Vector2(0.5f, 0.25f), true, new Vector2(400, 60), 25f);
+        }, new Vector2(0.5f, 0.2f), true, new Vector2(400, 60), 25f);
 
         CreateMenuButton(waitingRoomPanel, "RỜI CĂN CỨ", () =>
         {
             if (activeRunner != null) activeRunner.Shutdown();
-        }, new Vector2(0.5f, 0.12f), true, new Vector2(250, 50), 20f);
+        }, new Vector2(0.5f, 0.1f), true, new Vector2(250, 50), 20f);
     }
 
     private void GenerateLoadingScreen(GameObject canvasGO)
@@ -939,7 +961,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (waitingRoomPlayerListContent == null || activeRunner == null) return;
 
-        // Xóa danh sách cũ
+        // Xóa thẻ cũ
         foreach (Transform child in waitingRoomPlayerListContent) Destroy(child.gameObject);
 
         int playerCount = activeRunner.ActivePlayers.Count();
@@ -947,42 +969,81 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         for (int i = 0; i < maxSlots; i++)
         {
-            GameObject slot = new GameObject("Slot_" + i);
-            slot.transform.SetParent(waitingRoomPlayerListContent, false);
-            Image img = slot.AddComponent<Image>();
-            img.color = new Color(1, 1, 1, 0.05f);
+            bool hasPlayer = i < playerCount;
 
-            GameObject txtObj = new GameObject("PlayerName");
-            txtObj.transform.SetParent(slot.transform, false);
-            TextMeshProUGUI t = txtObj.AddComponent<TextMeshProUGUI>();
-            if (gameFont != null) t.font = gameFont;
-            t.alignment = TextAlignmentOptions.Center;
+            // 1. Khung nền của Thẻ
+            GameObject slotObj = new GameObject("PlayerCard_" + i);
+            slotObj.transform.SetParent(waitingRoomPlayerListContent, false);
+            Image slotBg = slotObj.AddComponent<Image>();
+            slotBg.color = hasPlayer ? new Color(0.12f, 0.15f, 0.12f, 1f) : new Color(0.05f, 0.05f, 0.05f, 0.6f);
+            Outline outline = slotObj.AddComponent<Outline>();
+            outline.effectColor = hasPlayer ? new Color(0.3f, 0.5f, 0.3f, 1f) : new Color(0.2f, 0.2f, 0.2f, 1f);
+            outline.effectDistance = new Vector2(2, -2);
 
-            if (i < playerCount)
+            // 2. Banner Vai trò (Nằm ở trên cùng thẻ)
+            GameObject roleObj = new GameObject("RoleBanner");
+            roleObj.transform.SetParent(slotObj.transform, false);
+            Image roleBg = roleObj.AddComponent<Image>();
+            RectTransform roleRt = roleObj.GetComponent<RectTransform>();
+            roleRt.anchorMin = new Vector2(0, 0.8f); roleRt.anchorMax = new Vector2(1, 1);
+            roleRt.offsetMin = Vector2.zero; roleRt.offsetMax = Vector2.zero;
+
+            GameObject roleTxtObj = new GameObject("RoleText");
+            roleTxtObj.transform.SetParent(roleObj.transform, false);
+            TextMeshProUGUI roleTxt = roleTxtObj.AddComponent<TextMeshProUGUI>();
+            if (gameFont != null) roleTxt.font = gameFont;
+            roleTxt.alignment = TextAlignmentOptions.Center;
+            roleTxt.fontSize = 20; roleTxt.fontStyle = FontStyles.Bold;
+            RectTransform rtxtRt = roleTxtObj.GetComponent<RectTransform>();
+            rtxtRt.anchorMin = Vector2.zero; rtxtRt.anchorMax = Vector2.one;
+            rtxtRt.offsetMin = Vector2.zero; rtxtRt.offsetMax = Vector2.zero;
+
+            // 3. Tên Người Chơi (Giữa thẻ)
+            GameObject nameObj = new GameObject("NameText");
+            nameObj.transform.SetParent(slotObj.transform, false);
+            TextMeshProUGUI nameTxt = nameObj.AddComponent<TextMeshProUGUI>();
+            if (gameFont != null) nameTxt.font = gameFont;
+            nameTxt.alignment = TextAlignmentOptions.Center;
+            nameTxt.fontSize = 26;
+            RectTransform nameRt = nameObj.GetComponent<RectTransform>();
+            nameRt.anchorMin = new Vector2(0.1f, 0.3f); nameRt.anchorMax = new Vector2(0.9f, 0.7f);
+            nameRt.offsetMin = Vector2.zero; nameRt.offsetMax = Vector2.zero;
+
+            // Cập nhật thông tin theo trạng thái
+            if (hasPlayer)
             {
-                // Ở đây nếu bạn có hệ thống lưu tên Player vào Network thì lấy ra, 
-                // tạm thời mình để "PLAYER " + ID
-                t.text = (i == 0) ? "<color=yellow>[ĐỘI TRƯỞNG]</color>\nYOU" : "ĐỒNG ĐỘI\n" + (i + 1);
-                img.color = new Color(0.2f, 0.4f, 0.2f, 0.3f);
+                if (i == 0) // Slot 0 luôn là Host
+                {
+                    roleBg.color = new Color(0.6f, 0.4f, 0.1f, 1f); // Vàng đất cho Host
+                    roleTxt.text = "CHỈ HUY";
+                    roleTxt.color = Color.white;
+                    nameTxt.text = "<color=#ffffff>YOU</color>\n<size=16><color=#aaaaaa>(Kẻ Sống Sót)</color></size>";
+                }
+                else
+                {
+                    roleBg.color = new Color(0.2f, 0.3f, 0.4f, 1f); // Xanh biển tối cho Thành viên
+                    roleTxt.text = "ĐỒNG ĐỘI";
+                    roleTxt.color = Color.white;
+                    nameTxt.text = $"<color=#dddddd>SURVIVOR {i + 1}</color>\n<size=16><color=#55ff55>ĐÃ KẾT NỐI</color></size>";
+                }
             }
             else
             {
-                t.text = "<color=#333333>TRỐNG</color>";
+                roleBg.color = new Color(0.1f, 0.1f, 0.1f, 1f);
+                roleTxt.text = "TRỐNG";
+                roleTxt.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+                nameTxt.text = "<color=#333333>Đang chờ tín hiệu...</color>";
             }
-
-            RectTransform tRect = txtObj.GetComponent<RectTransform>();
-            tRect.anchorMin = Vector2.zero; tRect.anchorMax = Vector2.one;
-            tRect.offsetMin = Vector2.zero; tRect.offsetMax = Vector2.zero;
         }
 
-        // Cập nhật dòng text thông báo cho Client
+        // Cập nhật trạng thái góc dưới
         if (!activeRunner.IsServer)
         {
-            waitingRoomHostStatusText.text = "Sẵn sàng. Đang chờ Đội trưởng ra lệnh xuất quân...";
+            waitingRoomHostStatusText.text = "Thiết bị đã kết nối. Đợi Chỉ huy ra lệnh xuất quân...";
         }
         else
         {
-            waitingRoomHostStatusText.text = $"Đang có {playerCount}/{maxSlots} người sống sót trong căn cứ.";
+            waitingRoomHostStatusText.text = $"Trạm gác báo cáo: Đang có {playerCount}/{maxSlots} nhân sự trong khu vực.";
         }
     }
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
