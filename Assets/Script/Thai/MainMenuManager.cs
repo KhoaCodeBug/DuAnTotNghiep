@@ -1,13 +1,14 @@
-﻿using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
-using TMPro;
+﻿using Fusion;
+using Fusion.Sockets;
 using System.Collections;
 using System.Collections.Generic;
-using Fusion;
-using Fusion.Sockets;
-using UnityEngine.SceneManagement;
+using System.Linq;
 using System.Threading.Tasks;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 {
@@ -35,7 +36,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     [Header("Hình ảnh Nhân vật")]
     public GameObject[] previewImages;
 
-    private float creditsScrollPos = 0f;
     private bool isCreditsOpen = false;
     public float creditsScrollSpeed = 30f;
 
@@ -99,9 +99,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private bool isConnecting = false;
     private bool isMenuDestroyed = false;
 
+
     private GameObject errorPopupPanel;
     private TextMeshProUGUI errorPopupText;
 
+    private int playersLoaded = 0;           // Đếm số người đã load xong
+    private bool allPlayersReady = false;
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -141,24 +144,21 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void Update()
     {
-        if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.GetComponent<TMP_InputField>() == null)
-            EventSystem.current.SetSelectedGameObject(null);
-
-        if (isCreditsOpen && creditsContent != null)
+        if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null
+            && EventSystem.current.currentSelectedGameObject.GetComponent<TMP_InputField>() == null)
         {
-            creditsContent.anchoredPosition += Vector2.up * creditsScrollSpeed * Time.unscaledDeltaTime;
-            if (creditsContent.anchoredPosition.y > creditsContent.sizeDelta.y + 500f) creditsContent.anchoredPosition = new Vector2(0, 0);
+            EventSystem.current.SetSelectedGameObject(null);
         }
 
-        // 🔥 SỬA LỖI 3 (Phần 1): Ăng-ten của Client. 
-        // Khi Host bấm Bắt đầu, nó đổi GameState = 1. Client bắt được sóng sẽ lập tức bật Loading cùng 1 mili-giây với Host!
+        // GameState detection cho Client
         if (activeRunner != null && !activeRunner.IsServer && !isLoadingScreenActive && activeRunner.IsCloudReady)
         {
-            if (activeRunner.SessionInfo != null && activeRunner.SessionInfo.Properties != null)
+            if (activeRunner.SessionInfo?.Properties != null)
             {
                 if (activeRunner.SessionInfo.Properties.TryGetValue("GameState", out SessionProperty stateProp))
                 {
-                    if ((int)stateProp == 1) ShowLoadingScreen();
+                    if ((int)stateProp == 1)
+                        ShowLoadingScreen();
                 }
             }
         }
@@ -315,14 +315,23 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateLabel(customArea, "ĐỊNH DANH KẺ SỐNG SÓT", new Vector2(0.2f, 0.26f), new Vector2(0.8f, 0.32f));
         GameObject inputObj = CreateInputField(customArea, "PlayerNameInput", "Nhập tên...", new Vector2(0.3f, 0.15f), new Vector2(0.7f, 0.25f)); playerNameInput = inputObj.GetComponent<TMP_InputField>(); playerNameInput.text = PlayerPrefs.GetString("MyPlayerName", "Survivor_" + Random.Range(100, 999));
 
-        CreateMenuButton(customArea, "TIẾN VÀO VÙNG ĐẤT CHẾT", () =>
+        CreateMenuButton(customArea, "TIẾN VÀO VÙNG ĐẤT CHẾT", async () =>
         {
-            // 🔥 LỖI 1 ĐƯỢC FIX TẠI ĐÂY: Biến isConnecting giờ sẽ khóa chuẩn xác
             if (isConnecting) return;
-            isConnecting = true;
-            PlayerPrefs.SetString("MyPlayerName", playerNameInput.text); PlayerPrefs.SetInt("SelectedCharacterID", previewID); PlayerPrefs.Save();
 
-            if (pendingIsHost) StartHostGame(pendingRoomName); else StartClientGame(pendingRoomName);
+            isConnecting = true;
+            PlayerPrefs.SetString("MyPlayerName", playerNameInput.text);
+            PlayerPrefs.SetInt("SelectedCharacterID", previewID);
+            PlayerPrefs.Save();
+
+            await Task.Yield(); // Đợi 1 frame cho UI cập nhật
+
+            // Gọi trực tiếp thay vì qua StartHostGame / StartClientGame
+            if (pendingIsHost)
+                StartGameInternal(GameMode.Host, pendingRoomName);
+            else
+                StartGameInternal(GameMode.Client, pendingRoomName);
+
         }, new Vector2(0.5f, 0.1f), true, new Vector2(450, 70), 25f);
 
         CreateMenuButton(characterSelectPanel, "BACK", () => { isConnecting = false; OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.1f, 0.1f), false, new Vector2(300, 50));
@@ -343,25 +352,41 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void ShowConnectionPopup(string initialMsg)
     {
-        // 🔥 LỖI 1: Tắt ép buộc Character Select Panel thay vì fade ngầm
+        Debug.Log($"[DEBUG] ShowConnectionPopup called: {initialMsg}");
+
+        // Ép tắt mọi panel khác trước
         if (currentActivePanel != null)
         {
             currentActivePanel.alpha = 0f;
             currentActivePanel.blocksRaycasts = false;
             currentActivePanel.interactable = false;
-            currentActivePanel.gameObject.SetActive(false);
             currentActivePanel = null;
         }
 
-        // Tắt luôn bằng tay cho chắc cốp
-        if (characterSelectPanel != null) characterSelectPanel.SetActive(false);
+        characterSelectPanel?.SetActive(false);
+        multiplayerPanel?.SetActive(false);
+        waitingRoomPanel?.SetActive(false);
+        mainPanel?.SetActive(false);
+        errorPopupPanel?.SetActive(false);
 
         connectionPopupPanel.transform.SetAsLastSibling();
         connectionPopupPanel.SetActive(true);
+
+        if (connectionPopupPanel.TryGetComponent<CanvasGroup>(out var cg))
+        {
+            cg.alpha = 1f;
+            cg.blocksRaycasts = true;
+            cg.interactable = true;
+        }
+
         connectionPopupText.text = initialMsg;
 
-        if (connectionAnimRoutine != null) StopCoroutine(connectionAnimRoutine);
+        if (connectionAnimRoutine != null)
+            StopCoroutine(connectionAnimRoutine);
+
         connectionAnimRoutine = StartCoroutine(ConnectionTextAnimation());
+
+        isConnecting = true;   // ← Đảm bảo luôn set true ở đây nữa
     }
 
     private IEnumerator ConnectionTextAnimation()
@@ -406,21 +431,31 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         waitingRoomHostStatusText.alignment = TextAlignmentOptions.Center; waitingRoomHostStatusText.color = Color.yellow; waitingRoomHostStatusText.text = "Đang chờ đồng đội kết nối...";
         RectTransform statusRt = statusObj.GetComponent<RectTransform>(); statusRt.anchorMin = new Vector2(0, 0.5f); statusRt.anchorMax = new Vector2(1, 0.6f); statusRt.offsetMin = Vector2.zero; statusRt.offsetMax = Vector2.zero;
 
-        CreateMenuButton(waitingRoomPanel, "BẮT ĐẦU VÀO GAME", async () => // 🔥 Thêm chữ async vào đây
+        CreateMenuButton(waitingRoomPanel, "BẮT ĐẦU VÀO GAME", async () =>
         {
-            if (activeRunner != null && activeRunner.IsServer)
+            if (activeRunner == null || !activeRunner.IsServer)
             {
-                var props = new Dictionary<string, SessionProperty>();
-                props.Add("IsLocked", hostHasPassword ? 1 : 0);
-                props.Add("GameState", 1);
-                activeRunner.SessionInfo.UpdateCustomProperties(props);
-
-                // 🔥 Gọi Loading lên, ép Host chờ 1 giây cho Client theo kịp rồi mới Load Map
-                ShowLoadingScreen();
-                await System.Threading.Tasks.Task.Delay(1000);
-                await activeRunner.LoadScene(SceneRef.FromIndex(mainSceneIndex)); // <-- FIX: await the call here
+                ShowError("Chỉ Đội Trưởng mới được bắt đầu!");
+                return;
             }
-            else { ShowError("Chỉ có Đội Trưởng (Host) mới có quyền Bắt Đầu!"); }
+
+            // Khóa phòng + chuyển sang trạng thái đang chơi
+            var props = new Dictionary<string, SessionProperty>
+    {
+        { "IsLocked", 1 },
+        { "GameState", 1 }
+    };
+            activeRunner.SessionInfo.UpdateCustomProperties(props);
+
+            ShowLoadingScreen();
+            await Task.Delay(800);
+
+            playersLoaded = 0;           // Reset đếm
+            allPlayersReady = false;
+
+            await activeRunner.LoadScene(SceneRef.FromIndex(mainSceneIndex));
+
+            // Host cũng chờ load xong của chính mình (sẽ tự gọi RPC_PlayerLoadedScene)
         }, new Vector2(0.5f, 0.3f), true, new Vector2(400, 60), 25f);
 
         CreateMenuButton(waitingRoomPanel, "THOÁT PHÒNG", () =>
@@ -462,134 +497,103 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     #endregion
 
     #region HỆ THỐNG MẠNG
-    private async void StartHostGame(string roomName)
+    private async void StartGameInternal(GameMode mode, string roomName)
     {
-        ShowConnectionPopup("Đang khởi tạo máy chủ chiến dịch...");
-        CleanupOldRunners();
+        string popupMsg = mode == GameMode.Host
+            ? "Đang khởi tạo máy chủ chiến dịch..."
+            : "Đang xin quyền truy cập vào căn cứ...";
+
+        ShowConnectionPopup(popupMsg);
+        isConnecting = true;
+
+        await CleanupOldRunnersAsync();
 
         activeRunner = Instantiate(runnerPrefab);
         activeRunner.AddCallbacks(this);
 
-        NetworkSceneManagerDefault sceneManager = activeRunner.GetComponent<NetworkSceneManagerDefault>();
-        if (sceneManager == null) sceneManager = activeRunner.gameObject.AddComponent<NetworkSceneManagerDefault>();
+        var sceneManager = activeRunner.GetComponent<NetworkSceneManagerDefault>()
+            ?? activeRunner.gameObject.AddComponent<NetworkSceneManagerDefault>();
 
-        var roomProps = new Dictionary<string, SessionProperty>();
-        roomProps.Add("IsLocked", hostHasPassword ? 1 : 0);
-        roomProps.Add("GameState", 0);
-
-        var result = await activeRunner.StartGame(new StartGameArgs()
+        StartGameArgs args = new StartGameArgs
         {
-            GameMode = GameMode.Host,
+            GameMode = mode,
             SessionName = roomName,
-            PlayerCount = hostMaxPlayers,
-            SessionProperties = roomProps,
             SceneManager = sceneManager
-        });
+        };
 
-        await Task.Delay(1500);
+        if (mode == GameMode.Host)
+        {
+            var roomProps = new Dictionary<string, SessionProperty>
+        {
+            { "IsLocked", hostHasPassword ? 1 : 0 },
+            { "GameState", 0 }
+        };
+            args.SessionProperties = roomProps;
+            args.PlayerCount = hostMaxPlayers;
+        }
+        else // Client
+        {
+            if (!string.IsNullOrEmpty(pendingJoinPassword))
+            {
+                args.ConnectionToken = System.Text.Encoding.UTF8.GetBytes(pendingJoinPassword);
+            }
+        }
 
-        if (this == null) return;
+        Debug.Log($"=== Gọi StartGame({mode}) ===");
+
+        var result = await activeRunner.StartGame(args);
+
+        await Task.Delay(600); // Đợi UI ổn định
+
+        if (this == null || isMenuDestroyed) return;
 
         isConnecting = false;
 
-        if (result.Ok)
-        {
-            // 🔥 CHỈ SỬA ĐÚNG CHỖ NÀY: Giết Bảng Chọn Nhân Vật TRƯỚC KHI tắt Popup
-            if (currentActivePanel != null)
-            {
-                currentActivePanel.alpha = 0f;
-                currentActivePanel.gameObject.SetActive(false);
-                currentActivePanel = null;
-            }
-
-            connectionPopupPanel.SetActive(false);
-
-            waitingRoomHostStatusText.text = "Bạn là Đội Trưởng. Hãy chờ đồng đội và bấm BẮT ĐẦU!";
-            OpenPanel(waitingRoomPanel.GetComponent<CanvasGroup>());
-        }
-        else
-        {
-            connectionPopupPanel.SetActive(false);
-            if (currentActivePanel != null)
-            {
-                currentActivePanel.blocksRaycasts = true;
-                currentActivePanel.interactable = true;
-            }
-
-            Debug.LogError("Lỗi Host: " + result.ShutdownReason);
-            ShowError("Lỗi Khởi Tạo Máy Chủ!");
-        }
-    }
-
-    private async void StartClientGame(string roomName)
-    {
-        ShowConnectionPopup("Đang xin quyền truy cập vào căn cứ...");
-        CleanupOldRunners();
-
-        activeRunner = Instantiate(runnerPrefab);
-        activeRunner.AddCallbacks(this);
-
-        NetworkSceneManagerDefault sceneManager = activeRunner.GetComponent<NetworkSceneManagerDefault>();
-        if (sceneManager == null) sceneManager = activeRunner.gameObject.AddComponent<NetworkSceneManagerDefault>();
-
-        byte[] token = null;
-        if (!string.IsNullOrEmpty(pendingJoinPassword)) token = System.Text.Encoding.UTF8.GetBytes(pendingJoinPassword);
-
-        var result = await activeRunner.StartGame(new StartGameArgs()
-        {
-            GameMode = GameMode.Client,
-            SessionName = roomName,
-            ConnectionToken = token,
-            SceneManager = sceneManager
-        });
-
-        await Task.Delay(1500);
-
-        if (this == null) return;
-        if (isMenuDestroyed) return;
-
-        isConnecting = false;
+        Debug.Log($"=== StartGame finished. OK = {result.Ok} | ShutdownReason = {result.ShutdownReason} ===");
 
         if (result.Ok)
         {
-            // 🔥 CHỈ SỬA ĐÚNG CHỖ NÀY: Giết Bảng Chọn Nhân Vật TRƯỚC KHI tắt Popup
-            if (currentActivePanel != null)
-            {
-                currentActivePanel.alpha = 0f;
-                currentActivePanel.gameObject.SetActive(false);
-                currentActivePanel = null; // Xóa sổ bóng ma
-            }
-
-            // Giờ mới tắt Popup (Lúc này nền dưới đã trống trơn, mượt mà)
             connectionPopupPanel.SetActive(false);
-
-            int currentState = 0;
-            if (activeRunner.SessionInfo != null && activeRunner.SessionInfo.Properties != null)
+            if (connectionAnimRoutine != null)
             {
-                if (activeRunner.SessionInfo.Properties.TryGetValue("GameState", out SessionProperty stateProp))
-                    currentState = (int)stateProp;
+                StopCoroutine(connectionAnimRoutine);
+                connectionAnimRoutine = null;
             }
 
-            if (currentState == 0)
+            if (mode == GameMode.Host)
             {
-                waitingRoomHostStatusText.text = "Đang chờ Đội Trưởng phát lệnh BẮT ĐẦU...";
+                waitingRoomHostStatusText.text = "Bạn là Đội Trưởng. Hãy chờ đồng đội và bấm BẮT ĐẦU!";
                 OpenPanel(waitingRoomPanel.GetComponent<CanvasGroup>());
             }
+            else // Client
+            {
+                int currentState = 0;
+                if (activeRunner.SessionInfo?.Properties != null &&
+                    activeRunner.SessionInfo.Properties.TryGetValue("GameState", out SessionProperty prop))
+                {
+                    currentState = (int)prop;
+                }
+
+                if (currentState == 0)
+                {
+                    waitingRoomHostStatusText.text = "Đang chờ Đội Trưởng phát lệnh BẮT ĐẦU...";
+                    OpenPanel(waitingRoomPanel.GetComponent<CanvasGroup>());
+
+                    if (activeRunner != null)
+                        activeRunner.ProvideInput = true;
+                }
+                else
+                {
+                    ShowLoadingScreen();
+                }
+            }
         }
         else
         {
-            // Nếu lỗi thì giữ nguyên Bảng Nhân Vật cho người chơi bấm lại
             connectionPopupPanel.SetActive(false);
-            if (currentActivePanel != null)
-            {
-                currentActivePanel.blocksRaycasts = true;
-                currentActivePanel.interactable = true;
-            }
-
-            string errorMsg = "KHÔNG THỂ KẾT NỐI VÀO CĂN CỨ!";
-            if (result.ShutdownReason == ShutdownReason.ConnectionRefused) errorMsg = "TỪ CHỐI KẾT NỐI!\n(Sai Mật Khẩu hoặc Đã Đầy)";
+            string errorMsg = $"KẾT NỐI THẤT BẠI! ({result.ShutdownReason})";
             ShowError(errorMsg);
-            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
+            OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
         }
     }
 
@@ -603,15 +607,22 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             DontDestroyOnLoad(lobbyObj);
             lobbyRunner = lobbyObj.AddComponent<NetworkRunner>();
         }
+
         lobbyRunner.AddCallbacks(this);
-
         var result = await lobbyRunner.JoinSessionLobby(SessionLobby.ClientServer);
-        if (this == null) return;
 
-        if (!result.Ok) { Destroy(lobbyRunner.gameObject); lobbyRunner = null; }
+        if (this == null) return;
+        if (!result.Ok)
+        {
+            Destroy(lobbyRunner.gameObject);
+            lobbyRunner = null;
+        }
     }
 
-    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) { UpdateServerListUI(sessionList); }
+    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
+    {
+        UpdateServerListUI(sessionList);
+    }
 
     public void OnSceneLoadStart(NetworkRunner runner)
     {
@@ -627,91 +638,206 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         if (bgmSource != null) bgmSource.Stop();
 
-        // 🔥 ÉP TẮT SẠCH SÀNH SANH MỌI UI ĐỂ KHÔNG CÒN BÓNG MA
-        if (waitingRoomPanel != null) waitingRoomPanel.SetActive(false);
-        if (characterSelectPanel != null) characterSelectPanel.SetActive(false);
-        if (multiplayerPanel != null) multiplayerPanel.SetActive(false);
-        if (mainPanel != null) mainPanel.SetActive(false);
+        // Tắt các panel menu
+        waitingRoomPanel?.SetActive(false);
+        characterSelectPanel?.SetActive(false);
+        multiplayerPanel?.SetActive(false);
+        mainPanel?.SetActive(false);
 
         loadingScreenPanel.transform.SetAsLastSibling();
-        CanvasGroup cg = loadingScreenPanel.GetComponent<CanvasGroup>();
-        cg.alpha = 1f;
+        if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg))
+            cg.alpha = 1f;
+
         loadingScreenPanel.SetActive(true);
+        Application.backgroundLoadingPriority = ThreadPriority.High;
+        // === GIẢM NGUY CƠ TIMEOUT KHI LOAD SCENE ===
+        if (activeRunner != null)
+        {
+            activeRunner.ProvideInput = false;        
+        }
+
+        Application.backgroundLoadingPriority = ThreadPriority.Low;   // Giúp Unity ưu tiên load background
 
         if (loadingCoroutine != null) StopCoroutine(loadingCoroutine);
-
-        // 🔥 ĐÃ FIX TẠI ĐÂY: Gọi đúng cái hàm SmoothLoadingLogic
         loadingCoroutine = StartCoroutine(SmoothLoadingLogic());
     }
 
-    // 🔥 GỘP CHUNG HOẠT ẢNH VÀ XỬ LÝ LOGIC VÀO 1 HÀM NÀY CHO GỌN
     private IEnumerator SmoothLoadingLogic()
     {
         float progress = 0f;
 
-        // --- GIAI ĐOẠN 1: Chạy mượt lên 95% ---
+        // Fake progress đến 95%
         while (progress < 0.95f)
         {
-            float safeDeltaTime = Mathf.Min(Time.unscaledDeltaTime, 0.05f);
-            progress += safeDeltaTime * 0.4f;
+            progress += Time.unscaledDeltaTime * 0.6f;
             if (progress > 0.95f) progress = 0.95f;
 
             loadingFillBar.anchorMax = new Vector2(progress, 1);
             loadingPercentText.text = Mathf.RoundToInt(progress * 100) + "%";
             yield return null;
         }
-        loadingPercentText.text = "ĐANG CHỜ ĐỒNG ĐỘI... 95%";
 
-        // --- GIAI ĐOẠN 2: Chờ ổ cứng của máy tính tải xong Map ---
-        while (!isLocalSceneLoaded) yield return null;
+        loadingPercentText.text = "ĐANG CHỜ ĐỒNG ĐỘI...";
 
-        // --- GIAI ĐOẠN 3: Chờ Lò Đẻ (Host) báo cáo đủ người ---
-        // (Thêm đồng hồ 8 giây. Nếu mạng lag Lò Đẻ không báo, nó tự giải cứu vọt lên 100%)
-        float rescueTimer = 8f;
-        while (!isHostSignaledGo && rescueTimer > 0)
-        {
-            rescueTimer -= Time.unscaledDeltaTime;
+        // Chờ Host báo hiệu tất cả sẵn sàng
+        while (!isHostSignaledGo)
             yield return null;
-        }
 
-        // --- GIAI ĐOẠN 4: Chạy nốt 5% cuối và vào game ---
-        loadingPercentText.text = "ĐỒNG BỘ HOÀN TẤT 100% - VÀO GAME!";
+        // Hoàn tất 100%
         while (progress < 1f)
         {
-            progress += Time.unscaledDeltaTime * 2f;
+            progress += Time.unscaledDeltaTime * 5f;
             if (progress > 1f) progress = 1f;
             loadingFillBar.anchorMax = new Vector2(progress, 1);
             yield return null;
         }
 
-        yield return new WaitForSeconds(1f); // Níu lại 1s cho sếp đọc chữ 100%
+        yield return new WaitForSeconds(0.6f);
 
-        // Mờ dần màn hình
-        CanvasGroup cg = loadingScreenPanel.GetComponent<CanvasGroup>();
-        float t = 1f;
-        while (t > 0f)
+        // Fade out
+        if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg))
         {
-            t -= Time.unscaledDeltaTime * 2f;
-            cg.alpha = t;
-            yield return null;
+            float t = 1f;
+            while (t > 0f)
+            {
+                t -= Time.unscaledDeltaTime * 5f;
+                cg.alpha = t;
+                yield return null;
+            }
         }
 
         loadingScreenPanel.SetActive(false);
         isLoadingScreenActive = false;
+        Application.backgroundLoadingPriority = ThreadPriority.BelowNormal; // Hoặc Low
+        RestoreNetworkAfterLoading();
         EnableGameplayUI();
-        if (mainCanvas != null) mainCanvas.gameObject.SetActive(false);
-    }
 
-    public void OnSceneLoadDone(NetworkRunner runner)
+        if (mainCanvas != null) mainCanvas.gameObject.SetActive(false);
+
+        Debug.Log("=== LOADING HOÀN TẤT ===");
+    }
+    private void RestoreNetworkAfterLoading()
     {
-        // Bật đèn xanh cho Giai Đoạn 2
-        isLocalSceneLoaded = true;
+        if (activeRunner != null)
+        {
+            activeRunner.ProvideInput = true;
+        }
     }
 
     public void ForceCloseLoadingScreen()
     {
-        // Bật đèn xanh cho Giai Đoạn 3
         isHostSignaledGo = true;
+    }
+
+    public void OnSceneLoadDone(NetworkRunner runner)
+    {
+        isLocalSceneLoaded = true;
+
+        // Tất cả người chơi (Host + Client) đều báo đã load xong
+        if (activeRunner != null)
+        {
+            RPC_PlayerLoadedScene();
+        }
+    }
+
+    private async Task CleanupOldRunnersAsync()
+    {
+        Debug.Log("[DEBUG] CleanupOldRunnersAsync - Finding all runners...");
+
+        var allRunners = FindObjectsByType<NetworkRunner>(FindObjectsSortMode.None);
+
+        foreach (var r in allRunners)
+        {
+            if (r == null) continue;
+            if (r.gameObject == gameObject || r.transform.root == transform.root)
+                continue;
+
+            Debug.Log($"[DEBUG] Destroying old runner: {r.gameObject.name}");
+            Destroy(r.gameObject);
+        }
+
+        // Chờ runner thực sự bị destroy
+        float timeout = 2f;
+        while (timeout > 0)
+        {
+            bool stillExists = FindObjectsByType<NetworkRunner>(FindObjectsSortMode.None)
+                .Any(r => r != null && r.gameObject != gameObject && r.transform.root != transform.root);
+
+            if (!stillExists) break;
+
+            await Task.Delay(50);
+            timeout -= 0.05f;
+        }
+
+        if (timeout <= 0)
+            Debug.LogWarning("[DEBUG] CleanupOldRunners timeout!");
+    }
+
+    // ====================== CALLBACKS ======================
+
+    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+    {
+
+        Debug.Log($"[DEBUG] OnShutdown called - Reason: {shutdownReason}");
+
+        bool wasConnecting = isConnecting;
+        isConnecting = false;
+
+        if (wasConnecting && connectionPopupPanel != null && connectionPopupPanel.activeSelf)
+        {
+            Debug.Log("[DEBUG] OnShutdown during connection → giữ nguyên Connection Popup");
+            return;
+        }
+
+        // Tắt các panel không cần thiết
+        if (loadingScreenPanel != null) loadingScreenPanel.SetActive(false);
+        if (waitingRoomPanel != null) waitingRoomPanel.SetActive(false);
+        if (characterSelectPanel != null) characterSelectPanel.SetActive(false);
+
+        isLoadingScreenActive = false;
+
+        if (SceneManager.GetActiveScene().buildIndex != 0)
+            SceneManager.LoadScene(0);
+
+        if (mainCanvas != null)
+            mainCanvas.gameObject.SetActive(true);
+
+        if (multiplayerPanel != null && !wasConnecting)
+        {
+            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
+        }
+    }
+
+    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
+    {
+        Debug.LogError($"[DEBUG] OnConnectFailed: {reason}");
+        isConnecting = false;
+        if (connectionPopupPanel != null) connectionPopupPanel.SetActive(false);
+        ShowError($"Kết nối thất bại: {reason}");
+        OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
+    }
+
+    void INetworkRunnerCallbacks.OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
+    {
+        Debug.Log($"[DEBUG] OnDisconnectedFromServer: {reason}");
+
+        isConnecting = false;
+
+        if (connectionPopupPanel != null)
+            connectionPopupPanel.SetActive(false);
+
+        // Chỉ hiển thị lỗi khi là disconnect bất thường (không phải do client tự ngắt)
+        // "Requested" là lý do phổ biến nhất khi client chủ động shutdown
+        if (reason != NetDisconnectReason.Requested)
+        {
+            ShowError($"Mất kết nối với máy chủ: {reason}");
+        }
+
+        // Trở về menu chính
+        if (multiplayerPanel != null)
+        {
+            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
+        }
     }
 
     public void OnConnectRequest(NetworkRunner runner, NetworkRunnerCallbackArgs.ConnectRequest request, byte[] token)
@@ -725,50 +851,51 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 if (clientPass == hostPassword) request.Accept();
                 else request.Refuse();
             }
-            else { request.Accept(); }
+            else
+            {
+                request.Accept();
+            }
         }
     }
 
-    private void CleanupOldRunners()
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayerLoadedScene()
     {
-        NetworkRunner[] oldRunners = FindObjectsByType<NetworkRunner>(FindObjectsSortMode.None);
-        foreach (var r in oldRunners)
+        playersLoaded++;
+        Debug.Log($"[Loaded] Player loaded. Total: {playersLoaded}/{activeRunner?.SessionInfo?.PlayerCount ?? 0}");
+
+        // Chỉ Host kiểm tra
+        if (activeRunner != null && activeRunner.IsServer)
         {
-            if (r != null && r.gameObject != this.gameObject.transform.root.gameObject) Destroy(r.gameObject);
+            if (playersLoaded >= (activeRunner.SessionInfo?.PlayerCount ?? 1))
+            {
+                allPlayersReady = true;
+                Debug.Log("=== TẤT CẢ NGƯỜI CHƠI ĐÃ LOAD XONG ===");
+                RPC_StartGameplay();        // Gọi RPC báo tất cả bắt đầu
+            }
         }
     }
-    #endregion
 
-    #region CÁC HÀM BỊ LƯỢC BỎ BỞI FUSION VÀ ON-SHUTDOWN
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_StartGameplay()
+    {
+        ForceCloseLoadingScreen();      // Thoát loading screen
+        RestoreNetworkAfterLoading();   // Bật lại input
+
+        // === BẮT ĐẦU GAMEPLAY Ở ĐÂY ===
+        // Ví dụ: Bật AI, timer, cho phép player di chuyển, spawn zombie...
+        Debug.Log("=== GAMEPLAY BẮT ĐẦU ĐỒNG BỘ ===");
+        // Bạn có thể gọi một hàm EnableGameplay() ở đây
+    }
+
+    // Các callback còn lại để trống hoặc giữ nguyên
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
-    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { }
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
-    public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
+    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
     {
-        isConnecting = false;
 
-        if (SceneManager.GetActiveScene().buildIndex != 0)
-        {
-            SceneManager.LoadScene(0);
-        }
-
-        // Đảm bảo MainCanvas luôn sáng đèn khi thoát về Menu
-        if (mainCanvas != null) mainCanvas.gameObject.SetActive(true);
-
-        if (loadingScreenPanel != null) loadingScreenPanel.SetActive(false);
-        if (waitingRoomPanel != null) waitingRoomPanel.SetActive(false);
-        if (connectionPopupPanel != null) connectionPopupPanel.SetActive(false);
-        if (characterSelectPanel != null) characterSelectPanel.SetActive(false);
-        isLoadingScreenActive = false;
-
-        if (multiplayerPanel != null)
-        {
-            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
-        }
     }
-    void INetworkRunnerCallbacks.OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason) { }
-    public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason) { }
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, System.ArraySegment<byte> data) { }
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
@@ -796,7 +923,23 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void GenerateOptionsPanel(GameObject canvasGO) { optionsPanel = CreateBasePanel("OptionsPanel", canvasGO); CanvasGroup cg = optionsPanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false; CreateTitleText(optionsPanel, "OPTIONS"); CreateMenuButton(optionsPanel, "BACK", () => { OpenPanel(mainPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.1f, 0.1f)); }
     private void GenerateCreditsPanel(GameObject canvasGO) { creditsPanel = CreateBasePanel("CreditsPanel", canvasGO); CanvasGroup cg = creditsPanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false; CreateTitleText(creditsPanel, "SURVIVAL TEAM", 0.9f); GameObject scrollObj = new GameObject("Credits_Scroll"); scrollObj.transform.SetParent(creditsPanel.transform, false); RectTransform scrollRectT = scrollObj.AddComponent<RectTransform>(); scrollRectT.anchorMin = new Vector2(0.15f, 0.2f); scrollRectT.anchorMax = new Vector2(0.85f, 0.8f); scrollRectT.offsetMin = Vector2.zero; scrollRectT.offsetMax = Vector2.zero; ScrollRect sr = scrollObj.AddComponent<ScrollRect>(); sr.horizontal = false; sr.vertical = true; sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide; GameObject vp = new GameObject("Viewport"); vp.transform.SetParent(scrollObj.transform, false); RectTransform vpRT = vp.AddComponent<RectTransform>(); vpRT.anchorMin = Vector2.zero; vpRT.anchorMax = Vector2.one; vpRT.offsetMin = Vector2.zero; vpRT.offsetMax = Vector2.zero; vp.AddComponent<RectMask2D>(); GameObject content = new GameObject("Content"); content.transform.SetParent(vp.transform, false); RectTransform contentRT = content.AddComponent<RectTransform>(); contentRT.anchorMin = new Vector2(0, 1); contentRT.anchorMax = new Vector2(1, 1); contentRT.pivot = new Vector2(0.5f, 1); contentRT.offsetMin = Vector2.zero; contentRT.offsetMax = Vector2.zero; VerticalLayoutGroup vlg = content.AddComponent<VerticalLayoutGroup>(); vlg.childAlignment = TextAnchor.UpperCenter; vlg.spacing = 40; vlg.padding = new RectOffset(0, 0, 400, 400); ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize; sr.content = contentRT; creditsContent = contentRT; CreateCreditLine(content, "LEAD PROGRAMMER", "TRẦN NGỌC ĐĂNG KHOA", Color.cyan); CreateCreditLine(content, "SYSTEM & PLAYER UI", "NGUYỄN TRÍ TÍN", Color.yellow); CreateCreditLine(content, "WORLD ARCHITECT (MAP)", "YÊN NHI", Color.white); CreateCreditLine(content, "LEAD AI & ZOMBIE BOSS", "HOÀNG THÁI", Color.red); CreateCreditLine(content, "VEHICLE MECHANICS", "VĂN HẬU", Color.green); CreateCreditLine(content, "TECHNICAL ARTIST (LOS FOW)", "ĐĂNG KHOA", Color.white); CreateCreditLine(content, "POWERED BY", "UNITY 6.0 / PHOTON FUSION", new Color(0.7f, 0.7f, 0.7f)); CreateCreditLine(content, "AUDIO DESIGN", "BGM: PROJECT ZOMBOID\nSFX: KENNEY / FREESOUND", new Color(0.7f, 0.7f, 0.7f)); CreateCreditLine(content, "SPECIAL THANKS", "TO ALL SURVIVORS WHO TESTED THIS GAME", Color.white); CreateMenuButton(creditsPanel, "BACK", () => { isCreditsOpen = false; OpenPanel(mainPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.1f, 0.1f)); }
     private void CreateCreditLine(GameObject parent, string role, string name, Color nameColor) { GameObject lineObj = new GameObject("CreditLine"); lineObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = lineObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = $"<size=20><color=#aaaaaa>{role}</color></size>\n<size=32><color=#{ColorUtility.ToHtmlStringRGB(nameColor)}>{name}</color></size>"; txt.alignment = TextAlignmentOptions.Center; }
-    private void OpenPanel(CanvasGroup targetPanel) { if (currentActivePanel == targetPanel) return; if (currentActivePanel != null) StartCoroutine(FadePanel(currentActivePanel, 0f, false)); currentActivePanel = targetPanel; StartCoroutine(FadePanel(currentActivePanel, 1f, true)); if (targetPanel.gameObject.name == "CharacterSelectPanel") UpdatePreview(); isCreditsOpen = (targetPanel.gameObject.name == "CreditsPanel"); if (isCreditsOpen && creditsContent != null) creditsContent.anchoredPosition = Vector2.zero; }
+    private void OpenPanel(CanvasGroup targetPanel)
+    {
+        if (connectionPopupPanel != null && connectionPopupPanel.activeSelf)
+            connectionPopupPanel.SetActive(false);
+
+        if (currentActivePanel == targetPanel) return;
+
+        if (currentActivePanel != null)
+            StartCoroutine(FadePanel(currentActivePanel, 0f, false));
+
+        currentActivePanel = targetPanel;
+        StartCoroutine(FadePanel(currentActivePanel, 1f, true));
+
+        if (targetPanel.gameObject.name == "CharacterSelectPanel") UpdatePreview();
+        isCreditsOpen = (targetPanel.gameObject.name == "CreditsPanel");
+        if (isCreditsOpen && creditsContent != null) creditsContent.anchoredPosition = Vector2.zero;
+    }
     private IEnumerator FadePanel(CanvasGroup panel, float targetAlpha, bool show) { if (show) { panel.gameObject.SetActive(true); panel.blocksRaycasts = true; panel.interactable = true; } else { panel.blocksRaycasts = false; panel.interactable = false; } float startAlpha = panel.alpha; float time = 0f; while (time < 0.25f) { time += Time.unscaledDeltaTime; panel.alpha = Mathf.Lerp(startAlpha, targetAlpha, time / 0.25f); yield return null; } panel.alpha = targetAlpha; if (!show) panel.gameObject.SetActive(false); }
 }
 
