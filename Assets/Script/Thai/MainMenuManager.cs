@@ -110,6 +110,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private int playersLoaded = 0;           // Đếm số người đã load xong
     private bool allPlayersReady = false;
+
+    // 🔥 BIẾN CHO PAUSE MENU
+    private GameObject pauseMenuPanel;
+    private bool isPauseMenuOpen = false;
+    private GameObject backgroundImageObj;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -149,6 +155,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void Update()
     {
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (isLocalSceneLoaded && !isLoadingScreenActive)
+            {
+                TogglePauseMenu();
+            }
+        }
+
         if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null
             && EventSystem.current.currentSelectedGameObject.GetComponent<TMP_InputField>() == null)
         {
@@ -166,6 +181,89 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                         ShowLoadingScreen();
                 }
             }
+        }
+    }
+
+    // 1. HÀM TẠO GIAO DIỆN IN-GAME MENU
+    private void GeneratePauseMenuPanel(GameObject canvasGO)
+    {
+        pauseMenuPanel = CreateBasePanel("PauseMenuPanel", canvasGO);
+
+        // Nền mờ nhẹ toàn màn hình (vẫn nhìn thấy game phía sau)
+        pauseMenuPanel.AddComponent<Image>().color = new Color(0, 0, 0, 0.4f);
+
+        // Khung Menu chính giữa
+        GameObject boxObj = new GameObject("PauseBox");
+        boxObj.transform.SetParent(pauseMenuPanel.transform, false);
+        RectTransform boxRt = boxObj.AddComponent<RectTransform>();
+        boxRt.anchorMin = new Vector2(0.35f, 0.35f); boxRt.anchorMax = new Vector2(0.65f, 0.65f);
+        boxRt.offsetMin = Vector2.zero; boxRt.offsetMax = Vector2.zero;
+        boxObj.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 0.95f); // Xám đen
+
+        // Viền trang trí
+        Outline outline = boxObj.AddComponent<Outline>();
+        outline.effectColor = new Color(0.3f, 0.3f, 0.3f, 1f);
+        outline.effectDistance = new Vector2(2, -2);
+
+        CreateTitleText(boxObj, "TẠM DỪNG", 0.8f, 45);
+
+        // Nút bấm
+        CreateMenuButton(boxObj, "TIẾP TỤC", () => TogglePauseMenu(), new Vector2(0.5f, 0.5f), true, new Vector2(300, 50), 22);
+        CreateMenuButton(boxObj, "RỜI CĂN CỨ", () => LeaveGame(), new Vector2(0.5f, 0.3f), true, new Vector2(300, 50), 22);
+
+        pauseMenuPanel.SetActive(false);
+    }
+
+    // 2. HÀM BẬT/TẮT MENU (KHÔNG CÓ TIME.TIMESCALE)
+    private void TogglePauseMenu()
+    {
+        isPauseMenuOpen = !isPauseMenuOpen;
+
+        if (isPauseMenuOpen)
+        {
+            mainCanvas.gameObject.SetActive(true); // Bật Canvas UI lên
+            backgroundImageObj.SetActive(false);   // NHƯNG tắt tấm ảnh nền đi để lộ game ra
+
+            if (currentActivePanel != null) currentActivePanel.alpha = 0f;
+
+            pauseMenuPanel.transform.SetAsLastSibling();
+            pauseMenuPanel.SetActive(true);
+
+            // Mở khóa chuột để user bấm nút
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        else
+        {
+            pauseMenuPanel.SetActive(false);
+            mainCanvas.gameObject.SetActive(false); // Trả lại toàn bộ màn hình cho game
+
+            // Khóa chuột lại (NẾU game của bạn là dạng bắn súng góc nhìn thứ 1/thứ 3)
+            // Cursor.lockState = CursorLockMode.Locked; 
+        }
+    }
+
+    // 3. HÀM XỬ LÝ RỜI GAME
+    private void LeaveGame()
+    {
+        pauseMenuPanel.SetActive(false);
+        isPauseMenuOpen = false;
+
+        // Bật Loading Screen che màn hình lại
+        mainCanvas.gameObject.SetActive(true);
+        backgroundImageObj.SetActive(true); // Bật lại nền đen thui
+
+        loadingScreenPanel.transform.SetAsLastSibling();
+        loadingScreenPanel.SetActive(true);
+        if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg)) cg.alpha = 1f;
+
+        loadingPercentText.text = "ĐANG BỎ CHẠY KHỎI THỰC TẠI...";
+        loadingFillBar.anchorMax = new Vector2(1, 1);
+
+        // Rút dây mạng, tự động kích hoạt OnShutdown để về sảnh
+        if (activeRunner != null)
+        {
+            activeRunner.Shutdown();
         }
     }
 
@@ -188,17 +286,21 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize; scaler.referenceResolution = new Vector2(1920, 1080); scaler.matchWidthOrHeight = 0.5f;
         canvasGO.AddComponent<GraphicRaycaster>();
 
-        GameObject bgObj = new GameObject("Background"); bgObj.transform.SetParent(canvasGO.transform, false);
-        Image bgImg = bgObj.AddComponent<Image>();
+        // Thay chữ bgObj thành backgroundImageObj
+        backgroundImageObj = new GameObject("Background");
+        backgroundImageObj.transform.SetParent(canvasGO.transform, false);
+        Image bgImg = backgroundImageObj.AddComponent<Image>();
         if (backgroundImage != null) { bgImg.sprite = backgroundImage; bgImg.color = Color.white; } else { bgImg.color = new Color(0.08f, 0.08f, 0.08f, 1f); }
-        RectTransform bgRect = bgObj.GetComponent<RectTransform>(); bgRect.anchorMin = Vector2.zero; bgRect.anchorMax = Vector2.one; bgRect.offsetMin = Vector2.zero; bgRect.offsetMax = Vector2.zero;
-
+        RectTransform bgRect = backgroundImageObj.GetComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero; bgRect.anchorMax = Vector2.one;
+        bgRect.offsetMin = Vector2.zero; bgRect.offsetMax = Vector2.zero;
         GenerateMainPanel(canvasGO); GenerateNewGamePanel(canvasGO); GenerateMultiplayerPanel_NEW(canvasGO);
         GenerateCharacterSelectPanel(canvasGO); GenerateOptionsPanel(canvasGO); GenerateCreditsPanel(canvasGO);
 
         GenerateWaitingRoomPanel(canvasGO); GenerateConnectionPopup(canvasGO);
         GenerateLoadingScreen(canvasGO);
         GenerateErrorPopup(canvasGO);
+        GeneratePauseMenuPanel(canvasGO);
 
         OpenPanel(mainPanel.GetComponent<CanvasGroup>());
         Canvas.ForceUpdateCanvases();
@@ -438,11 +540,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private IEnumerator ConnectionTextAnimation()
     {
         yield return new WaitForSeconds(0.4f);
-        connectionPopupText.text = "Đang liên lạc máy chủ...";
+        connectionPopupText.text = "ĐANG DÒ TÌM TÍN HIỆU VÔ TUYẾN...";
         yield return new WaitForSeconds(0.4f);
-        connectionPopupText.text = "Đang xác thực thẻ bài...";
+        connectionPopupText.text = "CHỈ CÒN LẠI TIẾNG NHIỄU SÓNG...";
         yield return new WaitForSeconds(0.4f);
-        connectionPopupText.text = "Đang xin quyền truy cập...";
+        connectionPopupText.text = "TIẾN VÀO VÙNG ĐẤT CHẾT...";
     }
 
     private void GenerateErrorPopup(GameObject canvasGO)
@@ -533,7 +635,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         loadingScreenPanel = CreateBasePanel("LoadingScreenPanel", canvasGO);
         loadingScreenPanel.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.05f, 1f);
 
-        CreateTitleText(loadingScreenPanel, "ĐANG TẢI DỮ LIỆU ĐỒNG BỘ...", 0.6f);
+        CreateTitleText(loadingScreenPanel, "<color=#990000>ĐÂY LÀ CÁCH MÀ BẠN SẼ CHẾT...</color>", 0.6f);
 
         GameObject borderBar = new GameObject("BorderBar"); borderBar.transform.SetParent(loadingScreenPanel.transform, false);
         RectTransform borderRt = borderBar.AddComponent<RectTransform>(); borderRt.anchorMin = new Vector2(0.19f, 0.38f); borderRt.anchorMax = new Vector2(0.81f, 0.47f); borderRt.offsetMin = Vector2.zero; borderRt.offsetMax = Vector2.zero;
@@ -563,8 +665,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private async void StartGameInternal(GameMode mode, string roomName)
     {
         string popupMsg = mode == GameMode.Host
-            ? "Đang khởi tạo máy chủ chiến dịch..."
-            : "Đang xin quyền truy cập vào căn cứ...";
+            ? "ĐANG LẬP KẾ HOẠCH SINH TỒN..."
+            : "ĐANG TÌM KIẾM NGƯỜI SỐNG SÓT...";
 
         ShowConnectionPopup(popupMsg);
         isConnecting = true;
@@ -683,6 +785,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     }
 
     public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
+
     {
         UpdateServerListUI(sessionList);
     }
@@ -740,7 +843,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             yield return null;
         }
 
-        loadingPercentText.text = "ĐANG CHỜ ĐỒNG ĐỘI...";
+        loadingPercentText.text = "<color=#777777>Không có hi vọng. Đang chờ những kẻ xấu số khác...</color>";
 
         // Chờ Host báo hiệu tất cả sẵn sàng
         while (!isHostSignaledGo)
@@ -840,35 +943,56 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnShutdown(NetworkRunner runner, ShutdownReason shutdownReason)
     {
-
         Debug.Log($"[DEBUG] OnShutdown called - Reason: {shutdownReason}");
 
         bool wasConnecting = isConnecting;
         isConnecting = false;
 
-        if (wasConnecting && connectionPopupPanel != null && connectionPopupPanel.activeSelf)
-        {
-            Debug.Log("[DEBUG] OnShutdown during connection → giữ nguyên Connection Popup");
-            return;
-        }
+        if (wasConnecting && connectionPopupPanel != null && connectionPopupPanel.activeSelf) return;
 
-        // Tắt các panel không cần thiết
-        if (loadingScreenPanel != null) loadingScreenPanel.SetActive(false);
+        // Tắt hết râu ria
         if (waitingRoomPanel != null) waitingRoomPanel.SetActive(false);
         if (characterSelectPanel != null) characterSelectPanel.SetActive(false);
+        if (pauseMenuPanel != null) pauseMenuPanel.SetActive(false);
 
+        isPauseMenuOpen = false;
         isLoadingScreenActive = false;
+        isLocalSceneLoaded = false; // Xóa cờ đã load map
 
+        // Khởi chạy Coroutine để về Menu chính với màn hình Loading
+        StartCoroutine(ReturnToMenuSmoothly());
+    }
+
+    private IEnumerator ReturnToMenuSmoothly()
+    {
+        // Nếu đang ở Map chiến đấu (Scene khác 0), thì bật loading
         if (SceneManager.GetActiveScene().buildIndex != 0)
-            SceneManager.LoadScene(0);
-
-        if (mainCanvas != null)
-            mainCanvas.gameObject.SetActive(true);
-
-        if (multiplayerPanel != null && !wasConnecting)
         {
-            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
+            if (mainCanvas != null) mainCanvas.gameObject.SetActive(true);
+            loadingScreenPanel.transform.SetAsLastSibling();
+            loadingScreenPanel.SetActive(true);
+            if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg)) cg.alpha = 1f;
+            loadingPercentText.text = "TÌM ĐƯỜNG RÚT LUI VỀ NƠI TRÚ ẨN...";
+
+            // Đợi 0.5s cho UI loading hiện lên rõ ràng rồi mới load scene
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            // Chạy tải Scene bất đồng bộ để thanh Loading có thể nhích
+            AsyncOperation asyncLoad = SceneManager.LoadSceneAsync(0);
+            while (!asyncLoad.isDone)
+            {
+                loadingFillBar.anchorMax = new Vector2(asyncLoad.progress, 1);
+                loadingPercentText.text = "CHẠY TRỐN... " + Mathf.RoundToInt(asyncLoad.progress * 100) + "%";
+                yield return null;
+            }
         }
+
+        // Chờ 1 chút sau khi load xong rồi mới tắt Loading screen
+        yield return new WaitForSecondsRealtime(0.5f);
+
+        loadingScreenPanel.SetActive(false);
+        if (mainCanvas != null) mainCanvas.gameObject.SetActive(true);
+        if (multiplayerPanel != null) OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
     }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
