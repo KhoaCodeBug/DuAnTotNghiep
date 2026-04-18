@@ -611,6 +611,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
+      propertyPath: attackRange
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
       propertyPath: wanderSpeedMultiplier
       value: 0.8
       objectReference: {fileID: 0}
