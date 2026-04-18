@@ -23,15 +23,15 @@
         "TickRateSelection": {
             "Client": 64,
             "ServerIndex": 0,
-            "ClientSendIndex": 1,
-            "ServerSendIndex": 1
+            "ClientSendIndex": 0,
+            "ServerSendIndex": 0
         },
         "MaxObjectDestroysSentPerPacket": 32,
         "EnableExperimentalPacketLossRecovery": false,
         "EnableAdaptivePacketFragmentation": false
     },
     "Network": {
-        "ConnectionTimeout": 10.0,
+        "ConnectionTimeout": 30.0,
         "ConnectionShutdownTime": 1.0,
         "ReliableDataTransferModes": 3
     },
