@@ -991,7 +991,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         loadingScreenPanel.SetActive(false);
         if (mainCanvas != null) mainCanvas.gameObject.SetActive(true);
-        if (multiplayerPanel != null) OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
+        if (multiplayerPanel != null) OpenPanel(mainPanel.GetComponent<CanvasGroup>());
     }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
@@ -1022,7 +1022,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // Trở về menu chính
         if (multiplayerPanel != null)
         {
-            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
+            OpenPanel(mainPanel.GetComponent<CanvasGroup>());
         }
     }
 
