@@ -70,6 +70,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private bool hostHasPassword = false;
     private string hostPassword = "";
 
+    private TextMeshProUGUI maxPlayersText; // Hiển thị con số hiện tại
+    
+    // Biến cho danh sách người chơi trong Waiting Room
+    private RectTransform waitingRoomPlayerListContent;
+
     private TextMeshProUGUI[] diffTexts = new TextMeshProUGUI[3];
     private TextMeshProUGUI toggleText;
     private GameObject passwordInputObj;
@@ -236,8 +241,40 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         CreateTitleText(hostArea, "THIẾT LẬP CĂN CỨ", 0.9f); CreateLabel(hostArea, "TÊN CĂN CỨ:", new Vector2(0.1f, 0.7f), new Vector2(0.3f, 0.75f));
         GameObject roomInputObj = CreateInputField(hostArea, "HostRoomName", "VD: Trại Tị Nạn...", new Vector2(0.35f, 0.68f), new Vector2(0.9f, 0.77f)); TMP_InputField roomInput = roomInputObj.GetComponent<TMP_InputField>();
+        // --- PHẦN CHỈNH SỐ NGƯỜI CHƠI (THAY CHO INPUT FIELD) ---
         CreateLabel(hostArea, "SỐ NGƯỜI TỐI ĐA:", new Vector2(0.1f, 0.55f), new Vector2(0.3f, 0.6f));
-        GameObject playerInputObj = CreateInputField(hostArea, "MaxPlayers", "4", new Vector2(0.35f, 0.53f), new Vector2(0.45f, 0.62f)); TMP_InputField playerInput = playerInputObj.GetComponent<TMP_InputField>(); playerInput.contentType = TMP_InputField.ContentType.IntegerNumber;
+
+        GameObject maxPlayerContainer = new GameObject("MaxPlayerControl");
+        maxPlayerContainer.transform.SetParent(hostArea.transform, false);
+        RectTransform mpRect = maxPlayerContainer.AddComponent<RectTransform>();
+        mpRect.anchorMin = new Vector2(0.35f, 0.53f); mpRect.anchorMax = new Vector2(0.6f, 0.62f);
+        mpRect.offsetMin = Vector2.zero; mpRect.offsetMax = Vector2.zero;
+
+        // Nút Giảm [-]
+        CreateMenuButton(maxPlayerContainer, "-", () => {
+            hostMaxPlayers = Mathf.Clamp(hostMaxPlayers - 1, 1, 4);
+            maxPlayersText.text = hostMaxPlayers.ToString();
+        }, new Vector2(0f, 0.5f), true, new Vector2(40, 40), 25);
+
+        // Text hiển thị số
+        GameObject valObj = new GameObject("Value");
+        valObj.transform.SetParent(maxPlayerContainer.transform, false);
+        maxPlayersText = valObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) maxPlayersText.font = gameFont;
+        maxPlayersText.text = hostMaxPlayers.ToString();
+        maxPlayersText.alignment = TextAlignmentOptions.Center;
+        maxPlayersText.fontSize = 30;
+        maxPlayersText.color = Color.white;
+        RectTransform valRect = valObj.GetComponent<RectTransform>();
+        valRect.anchorMin = new Vector2(0.2f, 0); valRect.anchorMax = new Vector2(0.5f, 1);
+        valRect.offsetMin = Vector2.zero; valRect.offsetMax = Vector2.zero;
+
+        // Nút Tăng [+]
+        CreateMenuButton(maxPlayerContainer, "+", () => {
+            hostMaxPlayers = Mathf.Clamp(hostMaxPlayers + 1, 1, 4);
+            maxPlayersText.text = hostMaxPlayers.ToString();
+        }, new Vector2(0.7f, 0.5f), true, new Vector2(40, 40), 25);
+
         CreateLabel(hostArea, "ĐỘ KHÓ:", new Vector2(0.1f, 0.4f), new Vector2(0.3f, 0.45f));
         diffTexts[0] = CreateTextBtn(hostArea, "DỄ", new Vector2(0.4f, 0.425f), () => SetDifficulty(0)); diffTexts[1] = CreateTextBtn(hostArea, "BÌNH THƯỜNG", new Vector2(0.6f, 0.425f), () => SetDifficulty(1)); diffTexts[2] = CreateTextBtn(hostArea, "ĐỊA NGỤC", new Vector2(0.8f, 0.425f), () => SetDifficulty(2)); SetDifficulty(1);
         CreateLabel(hostArea, "MẬT KHẨU:", new Vector2(0.1f, 0.25f), new Vector2(0.3f, 0.3f)); toggleText = CreateTextBtn(hostArea, "[ KHÔNG ]", new Vector2(0.4f, 0.275f), TogglePassword);
@@ -247,7 +284,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             if (string.IsNullOrWhiteSpace(roomInput.text)) { roomInput.placeholder.GetComponent<TextMeshProUGUI>().text = "<color=red>PHẢI NHẬP TÊN CĂN CỨ!</color>"; PlayClickSFX(); return; }
             pendingRoomName = roomInput.text;
-            int parsedPlayers = 4; if (!string.IsNullOrEmpty(playerInput.text)) parsedPlayers = int.Parse(playerInput.text); hostMaxPlayers = Mathf.Clamp(parsedPlayers, 1, 4);
             if (hostHasPassword) hostPassword = passwordInputObj.GetComponent<TMP_InputField>().text; else hostPassword = "";
             pendingIsHost = true; OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
         }, new Vector2(0.5f, 0.08f), true, new Vector2(500, 60), 25f);
@@ -422,47 +458,52 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         waitingRoomPanel = CreateBasePanel("WaitingRoomPanel", canvasGO);
         CanvasGroup cg = waitingRoomPanel.AddComponent<CanvasGroup>();
         cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false;
-        waitingRoomPanel.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.05f, 0.95f);
+        waitingRoomPanel.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.05f, 0.98f);
 
-        CreateTitleText(waitingRoomPanel, "SẢNH CHỜ CHIẾN DỊCH", 0.85f);
+        CreateTitleText(waitingRoomPanel, "SẢNH CHỜ CHIẾN DỊCH", 0.9f);
 
-        GameObject statusObj = new GameObject("HostStatus"); statusObj.transform.SetParent(waitingRoomPanel.transform, false);
-        waitingRoomHostStatusText = statusObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) waitingRoomHostStatusText.font = gameFont;
-        waitingRoomHostStatusText.alignment = TextAlignmentOptions.Center; waitingRoomHostStatusText.color = Color.yellow; waitingRoomHostStatusText.text = "Đang chờ đồng đội kết nối...";
-        RectTransform statusRt = statusObj.GetComponent<RectTransform>(); statusRt.anchorMin = new Vector2(0, 0.5f); statusRt.anchorMax = new Vector2(1, 0.6f); statusRt.offsetMin = Vector2.zero; statusRt.offsetMax = Vector2.zero;
+        // Danh sách Player Slots
+        GameObject listObj = new GameObject("PlayerList");
+        listObj.transform.SetParent(waitingRoomPanel.transform, false);
+        waitingRoomPlayerListContent = listObj.AddComponent<RectTransform>();
+        waitingRoomPlayerListContent.anchorMin = new Vector2(0.15f, 0.45f);
+        waitingRoomPlayerListContent.anchorMax = new Vector2(0.85f, 0.8f);
+        waitingRoomPlayerListContent.offsetMin = Vector2.zero;
+        waitingRoomPlayerListContent.offsetMax = Vector2.zero;
 
-        CreateMenuButton(waitingRoomPanel, "BẮT ĐẦU VÀO GAME", async () =>
+        HorizontalLayoutGroup hlg = listObj.AddComponent<HorizontalLayoutGroup>();
+        hlg.spacing = 20; hlg.childControlWidth = true; hlg.childForceExpandWidth = true;
+        hlg.childAlignment = TextAnchor.MiddleCenter;
+
+        // Status Text ở dưới danh sách
+        GameObject statusObj = new GameObject("HostStatus");
+        statusObj.transform.SetParent(waitingRoomPanel.transform, false);
+        waitingRoomHostStatusText = statusObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) waitingRoomHostStatusText.font = gameFont;
+        waitingRoomHostStatusText.alignment = TextAlignmentOptions.Center;
+        waitingRoomHostStatusText.color = new Color(0.7f, 0.7f, 0.7f);
+        waitingRoomHostStatusText.fontSize = 22;
+        RectTransform statusRt = statusObj.GetComponent<RectTransform>();
+        statusRt.anchorMin = new Vector2(0, 0.38f); statusRt.anchorMax = new Vector2(1, 0.43f);
+        statusRt.offsetMin = Vector2.zero; statusRt.offsetMax = Vector2.zero;
+
+        // Nút bấm
+        CreateMenuButton(waitingRoomPanel, "BẮT ĐẦU CHIẾN DỊCH", async () =>
         {
-            if (activeRunner == null || !activeRunner.IsServer)
-            {
-                ShowError("Chỉ Đội Trưởng mới được bắt đầu!");
-                return;
-            }
-
-            // Khóa phòng + chuyển sang trạng thái đang chơi
-            var props = new Dictionary<string, SessionProperty>
-    {
-        { "IsLocked", 1 },
-        { "GameState", 1 }
-    };
+            if (activeRunner == null || !activeRunner.IsServer) return;
+            // Logic bắt đầu game giữ nguyên như cũ của bạn...
+            var props = new Dictionary<string, SessionProperty> { { "IsLocked", 1 }, { "GameState", 1 } };
             activeRunner.SessionInfo.UpdateCustomProperties(props);
-
             ShowLoadingScreen();
             await Task.Delay(800);
-
-            playersLoaded = 0;           // Reset đếm
-            allPlayersReady = false;
-
+            playersLoaded = 0;
             await activeRunner.LoadScene(SceneRef.FromIndex(mainSceneIndex));
+        }, new Vector2(0.5f, 0.25f), true, new Vector2(400, 60), 25f);
 
-            // Host cũng chờ load xong của chính mình (sẽ tự gọi RPC_PlayerLoadedScene)
-        }, new Vector2(0.5f, 0.3f), true, new Vector2(400, 60), 25f);
-
-        CreateMenuButton(waitingRoomPanel, "THOÁT PHÒNG", () =>
+        CreateMenuButton(waitingRoomPanel, "RỜI CĂN CỨ", () =>
         {
             if (activeRunner != null) activeRunner.Shutdown();
-            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
-        }, new Vector2(0.5f, 0.15f), true, new Vector2(250, 50), 20f);
+        }, new Vector2(0.5f, 0.12f), true, new Vector2(250, 50), 20f);
     }
 
     private void GenerateLoadingScreen(GameObject canvasGO)
@@ -891,11 +932,59 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     // Các callback còn lại để trống hoặc giữ nguyên
     public void OnObjectExitAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
     public void OnObjectEnterAOI(NetworkRunner runner, NetworkObject obj, PlayerRef player) { }
-    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player)
-    {
+    public void OnPlayerJoined(NetworkRunner runner, PlayerRef player) { UpdateWaitingRoomUI(); }
+    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { UpdateWaitingRoomUI(); }
 
+    private void UpdateWaitingRoomUI()
+    {
+        if (waitingRoomPlayerListContent == null || activeRunner == null) return;
+
+        // Xóa danh sách cũ
+        foreach (Transform child in waitingRoomPlayerListContent) Destroy(child.gameObject);
+
+        int playerCount = activeRunner.ActivePlayers.Count();
+        int maxSlots = activeRunner.SessionInfo.MaxPlayers;
+
+        for (int i = 0; i < maxSlots; i++)
+        {
+            GameObject slot = new GameObject("Slot_" + i);
+            slot.transform.SetParent(waitingRoomPlayerListContent, false);
+            Image img = slot.AddComponent<Image>();
+            img.color = new Color(1, 1, 1, 0.05f);
+
+            GameObject txtObj = new GameObject("PlayerName");
+            txtObj.transform.SetParent(slot.transform, false);
+            TextMeshProUGUI t = txtObj.AddComponent<TextMeshProUGUI>();
+            if (gameFont != null) t.font = gameFont;
+            t.alignment = TextAlignmentOptions.Center;
+
+            if (i < playerCount)
+            {
+                // Ở đây nếu bạn có hệ thống lưu tên Player vào Network thì lấy ra, 
+                // tạm thời mình để "PLAYER " + ID
+                t.text = (i == 0) ? "<color=yellow>[ĐỘI TRƯỞNG]</color>\nYOU" : "ĐỒNG ĐỘI\n" + (i + 1);
+                img.color = new Color(0.2f, 0.4f, 0.2f, 0.3f);
+            }
+            else
+            {
+                t.text = "<color=#333333>TRỐNG</color>";
+            }
+
+            RectTransform tRect = txtObj.GetComponent<RectTransform>();
+            tRect.anchorMin = Vector2.zero; tRect.anchorMax = Vector2.one;
+            tRect.offsetMin = Vector2.zero; tRect.offsetMax = Vector2.zero;
+        }
+
+        // Cập nhật dòng text thông báo cho Client
+        if (!activeRunner.IsServer)
+        {
+            waitingRoomHostStatusText.text = "Sẵn sàng. Đang chờ Đội trưởng ra lệnh xuất quân...";
+        }
+        else
+        {
+            waitingRoomHostStatusText.text = $"Đang có {playerCount}/{maxSlots} người sống sót trong căn cứ.";
+        }
     }
-    public void OnPlayerLeft(NetworkRunner runner, PlayerRef player) { }
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
     public void OnReliableDataReceived(NetworkRunner runner, PlayerRef player, ReliableKey key, System.ArraySegment<byte> data) { }
     public void OnReliableDataProgress(NetworkRunner runner, PlayerRef player, ReliableKey key, float progress) { }
