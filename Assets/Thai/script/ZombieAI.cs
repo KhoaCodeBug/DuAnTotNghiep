@@ -19,7 +19,7 @@ public class ZombieAI : NetworkBehaviour
     [Header("--- Phạm vi Phát hiện (Detection) ---")]
     public float detectionRange = 10f;
     [Tooltip("Khoảng cách bỏ qua A* để lao thẳng vào Player")]
-    public float directChaseRange = 3f; 
+    public float directChaseRange = 3f;
 
     [Header("--- Tấn công & Tốc độ ---")]
     public float moveSpeed = 3.5f;
@@ -42,7 +42,7 @@ public class ZombieAI : NetworkBehaviour
     private bool isWandering = false;
     private Vector2 wanderTarget;
 
-    // 🔊 HỆ THỐNG ÂM THANH
+    // 🔊 HỆ THỐNG LẮNG NGHE (Trí tuệ nhân tạo)
     private Vector3 lastHeardPosition;
     private bool hasHeardSound = false;
     private float hearMemoryTimer = 0f;
@@ -61,6 +61,10 @@ public class ZombieAI : NetworkBehaviour
 
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
+
+    // BIẾN ĐỒNG BỘ: Để ZombieAudio có thể đọc được trạng thái
+    [Networked] public NetworkBool NetIsWandering { get; set; }
+    [Networked] public NetworkBool NetIsChasing { get; set; }
 
     private void Awake()
     {
@@ -152,6 +156,8 @@ public class ZombieAI : NetworkBehaviour
         {
             StopMovement();
             NetIsRunning = false;
+            NetIsWandering = false;
+            NetIsChasing = false;
             return;
         }
 
@@ -160,10 +166,11 @@ public class ZombieAI : NetworkBehaviour
             stunTimer -= Runner.DeltaTime;
             StopMovement();
             NetIsRunning = false;
+            NetIsWandering = false;
+            NetIsChasing = false;
             return;
         }
 
-        // Đếm ngược hồi chiêu ở ngoài cùng
         if (attackTimer > 0)
         {
             attackTimer -= Runner.DeltaTime;
@@ -175,18 +182,14 @@ public class ZombieAI : NetworkBehaviour
             if (hearMemoryTimer <= 0) hasHeardSound = false;
         }
 
-        // ==========================================
-        // 💡 DROP MỤC TIÊU NGAY LẬP TỨC: Ngăn đòn đánh thừa khi Player chết
-        // ==========================================
         if (player != null)
         {
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
             if (pHealth == null || pHealth.isDead || !player.gameObject.activeInHierarchy)
             {
-                player = null; 
+                player = null;
             }
         }
-        // ==========================================
 
         searchTimer -= Runner.DeltaTime;
         if (searchTimer <= 0)
@@ -203,6 +206,10 @@ public class ZombieAI : NetworkBehaviour
             currentMode = AIMode.Investigate;
         else
             currentMode = AIMode.Wander;
+
+        // Cập nhật trạng thái để tệp ZombieAudio đọc
+        NetIsWandering = (currentMode == AIMode.Wander);
+        NetIsChasing = (currentMode == AIMode.Chase);
 
         if (currentMode != previousMode)
         {
@@ -234,7 +241,6 @@ public class ZombieAI : NetworkBehaviour
 
         if (distanceToPlayer > attackRange)
         {
-            // Tắt A* nếu đã áp sát Player để tránh kẹt lưới vật cản
             if (distanceToPlayer <= directChaseRange)
             {
                 Vector2 directDir = (player.position - transform.position).normalized;
@@ -379,17 +385,15 @@ public class ZombieAI : NetworkBehaviour
 
         float activeRange = (currentMode == AIMode.Chase) ? detectionRange * 1.5f : detectionRange;
         float closestDistance = activeRange;
-        
-        // Reset player target để chắc chắn zombie không bám theo mục tiêu cũ bị lỗi
+
         player = null;
 
         foreach (GameObject p in allPlayers)
         {
-            // BỎ QUA PLAYER ĐÃ CHẾT (Tránh lỗi target nhầm xác)
             PlayerHealth pHealth = p.GetComponent<PlayerHealth>();
-            if (pHealth != null && pHealth.isDead) 
+            if (pHealth != null && pHealth.isDead)
             {
-                continue; 
+                continue;
             }
 
             float dist = Vector2.Distance(transform.position, p.transform.position);
@@ -409,12 +413,11 @@ public class ZombieAI : NetworkBehaviour
     private void ExecuteDamage(float damageAmount, int attackIndex)
     {
         if (!HasStateAuthority || player == null) return;
-        
+
         if (Vector2.Distance(transform.position, player.position) <= damageRadius)
         {
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-            
-            // CHẶN GÂY SÁT THƯƠNG NẾU PLAYER ĐÃ CHẾT
+
             if (pHealth != null && !pHealth.isDead)
             {
                 pHealth.TakeDamage(damageAmount, false, true);
