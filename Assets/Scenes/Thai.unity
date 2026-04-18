@@ -172,6 +172,7 @@ MonoBehaviour:
   - RawGuidValue: 08372f1bfb7b42942bec73f87060f03c
   - RawGuidValue: e14ad8446c0f3db479a56d0bd5c80890
   spawnPoints: []
+  _IsMatchStarted: 0
 --- !u!4 &7648845
 Transform:
   m_ObjectHideFlags: 0
@@ -605,11 +606,20 @@ PrefabInstance:
       propertyPath: SortKey
       value: 1510961921
       objectReference: {fileID: 0}
+    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
+      propertyPath: moveSpeed
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2294525064702947934, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
+      propertyPath: wanderSpeedMultiplier
+      value: 0.8
+      objectReference: {fileID: 0}
     - target: {fileID: 4396508338874752408, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
       propertyPath: m_Name
       value: Zombie
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5700070544290706751, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

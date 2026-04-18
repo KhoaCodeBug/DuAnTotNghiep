@@ -5,7 +5,6 @@ using Fusion;
 [RequireComponent(typeof(Rigidbody2D), typeof(Seeker))]
 public class ZombieAI : NetworkBehaviour
 {
-    // CÁC CHẾ ĐỘ CỦA AI ĐỂ QUẢN LÝ LOGIC TÁCH BIỆT
     public enum AIMode { Idle, Wander, Investigate, Chase }
     private AIMode currentMode = AIMode.Idle;
     private AIMode pathRequestMode = AIMode.Idle;
@@ -58,7 +57,6 @@ public class ZombieAI : NetworkBehaviour
 
     private int currentAttackIndex = 1;
 
-    // BIẾN MẠNG (PHOTON FUSION)
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
 
@@ -70,7 +68,6 @@ public class ZombieAI : NetworkBehaviour
 
     public override void Spawned()
     {
-        // Đảm bảo không bị xoay trục Z trong môi trường 2D/2.5D
         transform.rotation = Quaternion.identity;
         transform.position = new Vector3(transform.position.x, transform.position.y, 0f);
 
@@ -83,28 +80,48 @@ public class ZombieAI : NetworkBehaviour
         {
             if (rb != null) rb.bodyType = RigidbodyType2D.Kinematic;
         }
+
+        // ĐĂNG KÝ NGHE SỰ KIỆN TỪ ZOMBIE HEALTH
+        if (healthScript != null)
+        {
+            healthScript.OnStunRequested += ApplyStun;
+        }
+    }
+
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        // HỦY ĐĂNG KÝ SỰ KIỆN KHI BỊ TIÊU DIỆT
+        if (healthScript != null)
+        {
+            healthScript.OnStunRequested -= ApplyStun;
+        }
     }
 
     // ==========================================
-    // XỬ LÝ A* PATHFINDING
+    // XỬ LÝ A* PATHFINDING ĐÃ ĐƯỢC FIX GIẬT LÙI
     // ==========================================
     private void CalculatePath(Vector2 targetPos, AIMode mode)
     {
         if (seeker.IsDone())
         {
             pathRequestMode = mode;
-            path = null; // Xóa đường cũ để chờ đường mới
+            path = null;
             seeker.StartPath(rb.position, targetPos, OnPathComplete);
         }
     }
 
     private void OnPathComplete(Path p)
     {
-        // Chỉ nhận kết quả nếu trạng thái hiện tại vẫn khớp với mục đích lúc yêu cầu đường đi
         if (!p.error && currentMode == pathRequestMode)
         {
             path = p;
+
+            // 💡 FIX LỖI GIẬT LÙI: Luôn bắt đầu từ điểm số 1 thay vì điểm số 0 (ngay dưới chân)
             currentWaypoint = 0;
+            if (path.vectorPath.Count > 1)
+            {
+                currentWaypoint = 1;
+            }
         }
     }
 
@@ -112,18 +129,21 @@ public class ZombieAI : NetworkBehaviour
     {
         if (path == null || currentWaypoint >= path.vectorPath.Count) return;
 
+        // 💡 TỐI ƯU MƯỢT MÀ: Bỏ qua các điểm đã ở quá gần để zombie không quay ngoắt lại
+        while (currentWaypoint < path.vectorPath.Count &&
+               Vector2.Distance(rb.position, path.vectorPath[currentWaypoint]) < nextWaypointDistance)
+        {
+            currentWaypoint++;
+        }
+
+        if (currentWaypoint >= path.vectorPath.Count) return;
+
         Vector2 currentWp = (Vector2)path.vectorPath[currentWaypoint];
         Vector2 targetMoveDir = (currentWp - rb.position).normalized;
 
         rb.MovePosition(rb.position + targetMoveDir * currentSpeed * Runner.DeltaTime);
 
         NetMoveDir = targetMoveDir;
-
-        float distToWp = Vector2.Distance(rb.position, currentWp);
-        if (distToWp < nextWaypointDistance)
-        {
-            currentWaypoint++;
-        }
     }
 
     private void StopMovement()
@@ -133,7 +153,7 @@ public class ZombieAI : NetworkBehaviour
     }
 
     // ==========================================
-    // VÒNG LẶP LOGIC CHÍNH (FIXED UPDATE NETWORK)
+    // VÒNG LẶP LOGIC CHÍNH
     // ==========================================
     public override void FixedUpdateNetwork()
     {
@@ -153,14 +173,12 @@ public class ZombieAI : NetworkBehaviour
             return;
         }
 
-        // Đếm ngược bộ nhớ âm thanh
         if (hasHeardSound)
         {
             hearMemoryTimer -= Runner.DeltaTime;
             if (hearMemoryTimer <= 0) hasHeardSound = false;
         }
 
-        // Tìm kiếm mục tiêu định kỳ
         searchTimer -= Runner.DeltaTime;
         if (searchTimer <= 0)
         {
@@ -168,10 +186,8 @@ public class ZombieAI : NetworkBehaviour
             searchTimer = 0.2f;
         }
 
-        // Lấy trạng thái trước đó để so sánh
         AIMode previousMode = currentMode;
 
-        // 1. QUYẾT ĐỊNH TRẠNG THÁI HIỆN TẠI
         if (player != null)
             currentMode = AIMode.Chase;
         else if (hasHeardSound)
@@ -179,18 +195,16 @@ public class ZombieAI : NetworkBehaviour
         else
             currentMode = AIMode.Wander;
 
-        // 2. XỬ LÝ CHUYỂN ĐỔI TRẠNG THÁI (TRANSITIONS)
         if (currentMode != previousMode)
         {
-            StopMovement();       // Dừng ngay đường cũ
-            pathUpdateTimer = 0f; // Yêu cầu tính đường mới lập tức
+            StopMovement();
+            pathUpdateTimer = 0f;
             isWandering = false;
 
             if (currentMode == AIMode.Wander)
-                wanderTimer = 0f; // Bắt đầu đi dạo ngay không cần đứng chờ
+                wanderTimer = 0f;
         }
 
-        // 3. THỰC THI LOGIC THEO TRẠNG THÁI
         switch (currentMode)
         {
             case AIMode.Chase:
@@ -210,7 +224,7 @@ public class ZombieAI : NetworkBehaviour
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
         if (attackTimer > 0) attackTimer -= Runner.DeltaTime;
 
-        if (distanceToPlayer > attackRange) // Đang đuổi theo
+        if (distanceToPlayer > attackRange)
         {
             pathUpdateTimer -= Runner.DeltaTime;
             if (pathUpdateTimer <= 0 && seeker.IsDone())
@@ -222,7 +236,7 @@ public class ZombieAI : NetworkBehaviour
             MoveAlongPath(moveSpeed);
             NetIsRunning = true;
         }
-        else // Đang trong tầm đánh
+        else
         {
             StopMovement();
             NetIsRunning = false;
@@ -263,11 +277,9 @@ public class ZombieAI : NetworkBehaviour
 
         if (wanderTimer <= 0f && !isWandering)
         {
-            // Tìm điểm ngẫu nhiên trong bán kính
             Vector2 randomDir = Random.insideUnitCircle * wanderRadius;
             Vector3 rawTarget = (Vector3)rb.position + (Vector3)randomDir;
 
-            // TỐI ƯU: Ép điểm đến ra khỏi vật cản bằng GetNearest
             if (AstarPath.active != null)
             {
                 var nearestNode = AstarPath.active.GetNearest(rawTarget, NNConstraint.Default);
@@ -297,7 +309,7 @@ public class ZombieAI : NetworkBehaviour
                     wanderTimer = Random.Range(wanderWaitTimeMin, wanderWaitTimeMax);
                 }
             }
-            else if (seeker.IsDone()) // Nếu A* tính xong mà vẫn ko có path -> Điểm kẹt
+            else if (seeker.IsDone())
             {
                 isWandering = false;
                 StopMovement();
@@ -344,7 +356,11 @@ public class ZombieAI : NetworkBehaviour
     void FindClosestPlayerInRange()
     {
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
-        float closestDistance = detectionRange;
+
+        // 💡 HYSTERESIS: Mở rộng tầm nhìn thêm 50% nếu đang rượt đuổi để tránh mất dấu chập chờn
+        float activeRange = (currentMode == AIMode.Chase) ? detectionRange * 1.5f : detectionRange;
+
+        float closestDistance = activeRange;
         player = null;
 
         foreach (GameObject p in allPlayers)
@@ -377,11 +393,23 @@ public class ZombieAI : NetworkBehaviour
         }
     }
 
-    public void ApplyStun(float duration) { stunTimer = duration; attackTimer = duration; }
+    public void ApplyStun(float duration)
+    {
+        stunTimer = duration;
+        attackTimer = duration;
+    }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green; Gizmos.DrawWireSphere(transform.position, detectionRange);
+
+        // Vẽ thêm tầm nhìn mở rộng khi đang đuổi (Xanh nhạt)
+        if (currentMode == AIMode.Chase)
+        {
+            Gizmos.color = new Color(0, 1, 0, 0.3f);
+            Gizmos.DrawWireSphere(transform.position, detectionRange * 1.5f);
+        }
+
         Gizmos.color = Color.yellow; Gizmos.DrawWireSphere(transform.position, attackRange);
         Gizmos.color = Color.red; Gizmos.DrawWireSphere(transform.position, damageRadius);
         Gizmos.color = Color.white; Gizmos.DrawWireSphere(transform.position, wanderRadius);
