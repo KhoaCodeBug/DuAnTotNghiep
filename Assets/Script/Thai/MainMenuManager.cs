@@ -109,7 +109,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private TextMeshProUGUI errorPopupText;
 
     private int playersLoaded = 0;           // Đếm số người đã load xong
-    private bool allPlayersReady = false;
 
     // 🔥 BIẾN CHO PAUSE MENU
     private GameObject pauseMenuPanel;
@@ -1056,7 +1055,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             if (playersLoaded >= (activeRunner.SessionInfo?.PlayerCount ?? 1))
             {
-                allPlayersReady = true;
                 Debug.Log("=== TẤT CẢ NGƯỜI CHƠI ĐÃ LOAD XONG ===");
                 RPC_StartGameplay();        // Gọi RPC báo tất cả bắt đầu
             }
