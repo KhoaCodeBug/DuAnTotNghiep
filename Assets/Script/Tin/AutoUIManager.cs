@@ -74,6 +74,21 @@ public class AutoUIManager : MonoBehaviour
         CreateAmmoUI();
     }
 
+    private void OnDestroy()
+    {
+        // 1. Phá hủy cái Canvas tổng (Chứa Balo, Bảng Trade, Đồng Hồ...)
+        if (mainCanvas != null)
+        {
+            Destroy(mainCanvas.gameObject);
+        }
+
+        // 2. Phá hủy bảng Đạn (Nếu nó nằm ngoài Canvas tổng)
+        if (ammoContainer != null)
+        {
+            Destroy(ammoContainer);
+        }
+    }
+
     private void Update()
     {
         if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
