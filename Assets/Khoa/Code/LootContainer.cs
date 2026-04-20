@@ -112,37 +112,30 @@ public class LootContainer : NetworkBehaviour
 
         Vector2 playerPos = localPlayer.transform.position;
 
-        // CẢI TIẾN 1: Tính khoảng cách từ Player đến CÁI MÉP TỦ GẦN NHẤT
         Collider2D myCollider = GetComponent<Collider2D>();
         Vector2 closestPoint = myCollider.ClosestPoint(playerPos);
         float dist = Vector2.Distance(playerPos, closestPoint);
 
-        // Kiểm tra xuyên tường
         bool isBlockedByWall = false;
         if (obstacleLayer.value != 0)
         {
             isBlockedByWall = Physics2D.Linecast(playerPos, closestPoint, obstacleLayer);
         }
 
-        // Điều kiện gộp: Phải đủ gần mép tủ VÀ không bị tường chắn
         bool canInteract = (dist <= interactDistance) && !isBlockedByWall;
 
-        // ĐỔI MÀU
         if (spriteRenderer != null)
         {
             spriteRenderer.color = canInteract ? highlightColor : originalColor;
         }
 
-        // KIỂM TRA CLICK CHUỘT
         if (Input.GetMouseButtonDown(0))
         {
-            // Chống click xuyên UI
             if (UnityEngine.EventSystems.EventSystem.current != null &&
                 UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) return;
 
             Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 
-            // CẢI TIẾN 2: Quét xuyên thấu mọi Collider tại điểm click (Chống lỗi click nhầm tường/sàn)
             Collider2D[] hits = Physics2D.OverlapPointAll(mousePos);
             bool clickedThisCabinet = false;
             foreach (var hit in hits)
@@ -154,7 +147,6 @@ public class LootContainer : NetworkBehaviour
                 }
             }
 
-            // Nếu click chuẩn xác trúng cái tủ này
             if (clickedThisCabinet)
             {
                 if (canInteract)
@@ -176,9 +168,6 @@ public class LootContainer : NetworkBehaviour
         }
     }
 
-    // =========================================================
-    // VẼ VÒNG TRÒN VÀNG TRONG EDITOR ĐỂ CANH KHOẢNG CÁCH (UX CHO DEV)
-    // =========================================================
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
@@ -186,23 +175,38 @@ public class LootContainer : NetworkBehaviour
     }
 
     // =========================================================
-    // CÁC HÀM RPC ĐỒNG BỘ MẠNG (ĐÃ FIX QUYỀN TRUY CẬP PROXY)
+    // CÁC HÀM RPC ĐỒNG BỘ MẠNG (ĐÃ FIX TÌNH TRẠNG MẤT ITEM CLIENT)
     // =========================================================
 
-    [Rpc(RpcSources.Proxies | RpcSources.InputAuthority | RpcSources.StateAuthority, RpcTargets.StateAuthority)]
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_RequestSyncContainerStatus()
     {
+        // 1. Gửi lệnh yêu cầu tất cả Client dọn dẹp tủ đồ trước
+        RPC_ClearClientContainer();
+
+        // 2. Gửi từng món đồ sang Client (isFullSync = false để không bị xóa đè)
         foreach (var slot in itemsInContainer)
         {
-            RPC_SyncAddItem(slot.item.itemName, slot.amount, true);
+            RPC_SyncAddItem(slot.item.itemName, slot.amount, false);
         }
     }
 
-    [Rpc(RpcSources.Proxies | RpcSources.InputAuthority | RpcSources.StateAuthority, RpcTargets.StateAuthority)]
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_ClearClientContainer()
+    {
+        if (!HasStateAuthority)
+        {
+            itemsInContainer.Clear();
+        }
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_RequestTakeItem(int slotIndex, string requestedItemName, PlayerRef playerTryingToLoot)
     {
         if (slotIndex < 0 || slotIndex >= itemsInContainer.Count) return;
         InventorySlot slot = itemsInContainer[slotIndex];
+
+        // Kiểm tra an toàn: Nếu tên item ở vị trí này không đúng với cái Client xin thì từ chối.
         if (slot.item.itemName != requestedItemName) return;
 
         int amount = slot.amount;
@@ -243,7 +247,7 @@ public class LootContainer : NetworkBehaviour
         }
     }
 
-    [Rpc(RpcSources.Proxies | RpcSources.InputAuthority | RpcSources.StateAuthority, RpcTargets.StateAuthority)]
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_StoreItem(string itemName, int amount)
     {
         ItemData itemData = Resources.Load<ItemData>("Items/" + itemName);
@@ -258,6 +262,7 @@ public class LootContainer : NetworkBehaviour
     {
         if (!HasStateAuthority)
         {
+            // Vẫn giữ isFullSync phòng hờ các trường hợp ép nạp mới khác
             if (isFullSync) itemsInContainer.Clear();
             ItemData itemData = Resources.Load<ItemData>("Items/" + itemName);
             if (itemData != null) StoreItemLocal(itemData, amount);
