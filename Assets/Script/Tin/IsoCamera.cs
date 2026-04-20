@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using UnityEngine.EventSystems; // 🔥 Thêm thư viện này để check chuột trên UI
+using UnityEngine.EventSystems;
 
 public class PZ_CameraController : MonoBehaviour
 {
@@ -24,12 +24,23 @@ public class PZ_CameraController : MonoBehaviour
     private float targetZoom;
     private float zoomVelocity;
 
+    // 🔥 MỚI: Biến đánh dấu camera có đang ở chế độ xem ké người khác không
+    public bool isSpectatingMode { get; private set; } = false;
+
     public void SetTarget(Transform targetTransform)
     {
-        // Chốt đơn: Bám thẳng vào cục mục tiêu, không lùng sục rườm rà nữa!
         player = targetTransform;
         hasTarget = true;
+        isSpectatingMode = false; // Khi mới vào game, đặt lại là không spectate
         transform.position = player.position + offset;
+    }
+
+    // 🔥 MỚI: Hàm riêng dùng để chuyển góc nhìn sang người khác
+    public void SpectateTarget(Transform targetTransform)
+    {
+        player = targetTransform;
+        hasTarget = true;
+        isSpectatingMode = true;
     }
 
     void Start()
@@ -51,24 +62,12 @@ public class PZ_CameraController : MonoBehaviour
         HandleCameraFollowAndPan();
     }
 
-    // ==========================================
-    // 🔥 HÀM TỔNG QUẢN: CHECK XEM CÓ ĐANG BẬN DÙNG UI KHÔNG
-    // ==========================================
     private bool IsPlayerBusyWithUI()
     {
-        // 1. Chuột có đang nằm trên bất kỳ UI nào không? (Bảng máu, Nút bấm, Bảng Trade...)
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return true;
-
-        // 2. Có đang mở túi đồ không?
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()) return true;
-
-        // 3. Có đang mở bảng Máu không?
         if (AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen) return true;
-
-        // 4. Có đang gõ phím trong khung Chat không?
         if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return true;
-
-        // Nếu không dính cái nào ở trên -> Cho phép Camera hoạt động bình thường!
         return false;
     }
 
@@ -76,8 +75,8 @@ public class PZ_CameraController : MonoBehaviour
     {
         Vector3 targetPos = player.position + offset;
 
-        // 🔥 NẾU ĐANG BẤM CHUỘT PHẢI VÀ KHÔNG BẬN DÙNG UI -> CHO PHÉP LOOKAHEAD
-        if (Input.GetMouseButton(1) && !IsPlayerBusyWithUI())
+        // KHÔNG cho phép lia camera (LookAhead) nếu đang ở chế độ Spectator
+        if (Input.GetMouseButton(1) && !IsPlayerBusyWithUI() && !isSpectatingMode)
         {
             Vector3 mouseWorldPos = cam.ScreenToWorldPoint(Input.mousePosition);
             mouseWorldPos.z = player.position.z;
@@ -101,13 +100,11 @@ public class PZ_CameraController : MonoBehaviour
     private void HandleZoom()
     {
         if (!Application.isFocused) return;
-
         Vector3 mousePos = Input.mousePosition;
         if (mousePos.x < 0 || mousePos.y < 0 || mousePos.x > Screen.width || mousePos.y > Screen.height) return;
 
         float scroll = 0f;
 
-        // 🔥 NẾU KHÔNG BẬN DÙNG UI (Không chat, không mở bảng, không rê chuột lên UI) -> CHO PHÉP ZOOM
         if (!IsPlayerBusyWithUI())
         {
             scroll = Input.GetAxis("Mouse ScrollWheel");
