@@ -965,16 +965,30 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         hasDetectedGameStart = false;
 
+        string[] targetNames = { "AutoChatCanvas", "--- AUTO CHAT MANAGER ---", "--- AUTO HEALTH CANVAS ---", "--- AUTO HEALTH MANAGER ---", "HealthPanel" };
+        foreach (string target in targetNames)
+        {
+            GameObject oldUI = GameObject.Find(target);
+            if (oldUI != null)
+            {
+                Destroy(oldUI); // Hủy diệt hoàn toàn, ván sau để Player tự đẻ cái mới
+            }
+        }
+        temporarilyDisabledObjects.Clear();
+
         // Khởi chạy Coroutine để về Menu chính với màn hình Loading
         StartCoroutine(ReturnToMenuSmoothly());
     }
 
     private IEnumerator ReturnToMenuSmoothly()
     {
+        // 👇 THÊM Ở ĐÂY: Bật Canvas và Hình nền lên NGAY LẬP TỨC khi bắt đầu rút lui
+        if (mainCanvas != null) mainCanvas.gameObject.SetActive(true);
+        if (backgroundImageObj != null) backgroundImageObj.SetActive(true);
+
         // Nếu đang ở Map chiến đấu (Scene khác 0), thì bật loading
         if (SceneManager.GetActiveScene().buildIndex != 0)
         {
-            if (mainCanvas != null) mainCanvas.gameObject.SetActive(true);
             loadingScreenPanel.transform.SetAsLastSibling();
             loadingScreenPanel.SetActive(true);
             if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg)) cg.alpha = 1f;
@@ -997,8 +1011,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         yield return new WaitForSecondsRealtime(0.5f);
 
         loadingScreenPanel.SetActive(false);
-        if (mainCanvas != null) mainCanvas.gameObject.SetActive(true);
-        if (multiplayerPanel != null) OpenPanel(mainPanel.GetComponent<CanvasGroup>());
+
+        // Đảm bảo mở đúng Sảnh Chính (Main Panel)
+        if (mainPanel != null) OpenPanel(mainPanel.GetComponent<CanvasGroup>());
     }
 
     public void OnConnectFailed(NetworkRunner runner, NetAddress remoteAddress, NetConnectFailedReason reason)
