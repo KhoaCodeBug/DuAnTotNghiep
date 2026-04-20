@@ -1,6 +1,7 @@
-﻿using UnityEngine;
-using Fusion;
+﻿using Fusion;
 using Fusion.Addons.Physics;
+using System.Collections.Generic;
+using UnityEngine;
 
 [RequireComponent(typeof(NetworkRigidbody2D))]
 [RequireComponent(typeof(PlayerStamina))]
@@ -329,5 +330,95 @@ public class PlayerMovement : NetworkBehaviour
         Gizmos.DrawWireSphere(transform.position, walkNoiseRadius);
         Gizmos.color = new Color(1f, 0.5f, 0f);
         Gizmos.DrawWireSphere(transform.position, runNoiseRadius);
+    }
+
+    // ====================================================
+    // 🔥 TÍNH NĂNG SPECTATOR (THEO DÕI KHI CHẾT)
+    // ====================================================
+
+    private int spectateIndex = 0;
+    private List<PlayerMovement> alivePlayers = new List<PlayerMovement>();
+    private bool isSpectating = false;
+
+    // Chạy Local trên máy người chết để chuyển Camera, không cần gửi mạng
+    private void Update()
+    {
+        // Phải đảm bảo file này chưa bị xóa và mình là chủ cái xác
+        if (this == null || !HasInputAuthority) return;
+
+        if (healthSystem == null) healthSystem = GetComponent<PlayerHealth>();
+
+        if (healthSystem != null && healthSystem.isDead)
+        {
+            // Vừa mới chết -> Ép tắt crosshair
+            if (isCurrentlyAimingCursor)
+            {
+                Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+                isCurrentlyAimingCursor = false;
+            }
+
+            // Bắt đầu Spectate
+            if (!isSpectating)
+            {
+                isSpectating = true;
+                SpectateNext(0); // Tự động lia qua thằng đầu tiên
+            }
+
+            // Chặn bấm chuyển Cam nếu rê chuột vào UI (đang bấm Rút Lui)
+            if (UnityEngine.EventSystems.EventSystem.current != null &&
+                UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) return;
+
+            if (Input.GetKeyDown(KeyCode.A) || Input.GetMouseButtonDown(0))
+            {
+                SpectateNext(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.D) || Input.GetMouseButtonDown(1))
+            {
+                SpectateNext(1);
+            }
+        }
+    }
+
+    private void SpectateNext(int direction)
+    {
+        alivePlayers.Clear();
+        // Quét hết PlayerMovement đang có trong Map
+        var allPlayers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+
+        foreach (var p in allPlayers)
+        {
+            if (p == null || p.gameObject == null) continue;
+            var h = p.GetComponent<PlayerHealth>();
+            if (h != null && !h.isDead)
+            {
+                alivePlayers.Add(p);
+            }
+        }
+
+        // Chết sạch cả team thì thôi, đứng nhìn xác mình
+        if (alivePlayers.Count == 0) return;
+
+        spectateIndex += direction;
+
+        // Cuộn tròn danh sách
+        if (spectateIndex < 0) spectateIndex = alivePlayers.Count - 1;
+        if (spectateIndex >= alivePlayers.Count) spectateIndex = 0;
+
+        var targetPlayer = alivePlayers[spectateIndex];
+        var cameraController = FindFirstObjectByType<PZ_CameraController>();
+
+        if (cameraController != null && targetPlayer != null)
+        {
+            SpriteRenderer targetSprite = targetPlayer.GetComponentInChildren<SpriteRenderer>();
+            if (targetSprite != null)
+            {
+                // 🔥 Dùng hàm SpectateTarget mới tạo để Camera biết là đang xem ké
+                cameraController.SpectateTarget(targetSprite.transform);
+            }
+            else
+            {
+                cameraController.SpectateTarget(targetPlayer.transform);
+            }
+        }
     }
 }
