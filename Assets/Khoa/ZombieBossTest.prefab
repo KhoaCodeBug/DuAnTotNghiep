@@ -89,7 +89,7 @@ GameObject:
   - component: {fileID: 5681118958131968407}
   - component: {fileID: 1216184871860211946}
   - component: {fileID: -5855243854061852403}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: ZombieBossTest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -153,8 +153,8 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: 2104091855
+  m_SortingLayer: 3
   m_SortingOrder: 0
   m_Sprite: {fileID: -786756498623241580, guid: 3a11ca15172536748bf8b3c20d9cfee7, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
@@ -242,6 +242,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 1
+  nextWaypointDistance: 0.5
+  trackingDuration: 3
+  zombieMask:
+    serializedVersion: 2
+    m_Bits: 0
+  separationRadius: 0.4
+  separationWeight: 1.5
   zombieDamage: 10
   detectionRange: 1
   viewAngle: 180

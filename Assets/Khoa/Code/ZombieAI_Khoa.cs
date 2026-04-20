@@ -102,6 +102,10 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         // Cài đặt Filter cho hàm quét bầy đàn
         zombieFilter = new ContactFilter2D();
+
+        // THÊM DÒNG NÀY ĐỂ ZOMBIE CHỈ TÁCH NHAU RA, KHÔNG TÁCH TƯỜNG
+        zombieFilter.useLayerMask = true;
+
         zombieFilter.SetLayerMask(zombieMask);
     }
 
@@ -426,19 +430,33 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
     private void UpdateTargetMultiplayer()
     {
-        if (isChasing && player != null && player.gameObject.activeInHierarchy)
+        // 1. KIỂM TRA MỤC TIÊU HIỆN TẠI (NẾU ĐANG CÓ)
+        if (isChasing && player != null)
         {
-            if (player.TryGetComponent(out Skill_StealthCrouch currentTargetStealth) && currentTargetStealth.IsInvisible)
+            // Nếu Player bị tắt, hoặc biến isDead = true -> Bỏ theo dõi ngay lập tức
+            if (!player.gameObject.activeInHierarchy || (playerHealth != null && playerHealth.isDead))
             {
                 isChasing = false;
                 player = null;
+                playerCol = null;
+                playerHealth = null;
+            }
+            // Nếu Player tàng hình -> Bỏ theo dõi
+            else if (player.TryGetComponent(out Skill_StealthCrouch currentTargetStealth) && currentTargetStealth.IsInvisible)
+            {
+                isChasing = false;
+                player = null;
+                playerCol = null;
+                playerHealth = null;
             }
             else
             {
+                // Mục tiêu vẫn sống sờ sờ và không tàng hình -> Dí tiếp, không cần tìm mới
                 return;
             }
         }
 
+        // 2. TÌM MỤC TIÊU MỚI (CHỈ QUÉT NGƯỜI CÒN SỐNG)
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
         if (allPlayers.Length == 0)
         {
@@ -452,7 +470,11 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         foreach (GameObject p in allPlayers)
         {
+            // Bỏ qua nếu đang tàng hình
             if (p.TryGetComponent(out Skill_StealthCrouch stealth) && stealth.IsInvisible) continue;
+
+            // BỎ QUA NẾU ĐÃ CHẾT (Fix bug gõ không khí ở đây)
+            if (p.TryGetComponent(out PlayerHealth pHealth) && pHealth.isDead) continue;
 
             float dist = Vector2.Distance(myPos, p.transform.position);
             if (dist < minDist)
@@ -462,11 +484,15 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             }
         }
 
+        // Cập nhật lại Target mới
         if (closest != null && closest.transform != player)
         {
             player = closest.transform;
             playerCol = closest.GetComponent<Collider2D>();
             playerHealth = closest.GetComponent<PlayerHealth>();
+
+            // Phát hiện ra mục tiêu mới thì cho nó đuổi luôn
+           // isChasing = true;
         }
         else if (closest == null)
         {

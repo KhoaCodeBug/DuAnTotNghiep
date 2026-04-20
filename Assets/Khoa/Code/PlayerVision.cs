@@ -21,7 +21,9 @@ public class PlayerVision : NetworkBehaviour
     [Header("=== FOG OF WAR (Tầm nhìn thực tế) ===")]
     public LayerMask zombieLayer;
     public LayerMask obstacleLayer;
-    public float passiveVisionRadius = 2.5f;
+
+    [Tooltip("Khoảng cách cảm nhận sau lưng (Mặc định 1.5f - Vào vùng là hiện)")]
+    public float passiveVisionRadius = 1.5f;
 
     private Collider2D[] zombiesInRadius = new Collider2D[100];
     private ContactFilter2D zombieFilter;
@@ -29,30 +31,30 @@ public class PlayerVision : NetworkBehaviour
 
     private void Awake()
     {
-        // Setup filter để fix cái lỗi vàng (Warning) hôm bữa
+        // Setup filter để quét mảng
         zombieFilter = new ContactFilter2D();
+        zombieFilter.useLayerMask = true;
+        zombieFilter.useTriggers = false; // Tối ưu: bỏ qua các collider dạng trigger
         zombieFilter.SetLayerMask(zombieLayer);
-        pMove = GetComponent<PlayerMovement>();
 
+        pMove = GetComponent<PlayerMovement>();
     }
+
     public override void Spawned()
     {
-        // Gọi hàm gốc của Fusion (Bắt buộc phải có)
         base.Spawned();
 
-        // 🔥 NẾU ĐÂY KHÔNG PHẢI LÀ NHÂN VẬT CỦA MÌNH (Đồng đội hoặc người lạ)
+        // 🔥 Tắt xử lý bóng đèn của những người chơi khác (Đồng đội)
         if (!HasInputAuthority)
         {
-            // Tắt tịt cái bóng đèn Fog of War của nó đi!
             if (playerLight != null)
             {
                 playerLight.gameObject.SetActive(false);
             }
-
-            // Tắt luôn cái script PlayerVision này cho đỡ tốn tài nguyên máy
             this.enabled = false;
         }
     }
+
     private void Update()
     {
         if (!HasInputAuthority || playerLight == null || pMove == null) return;
@@ -73,14 +75,18 @@ public class PlayerVision : NetworkBehaviour
         playerLight.pointLightInnerAngle = Mathf.Lerp(playerLight.pointLightInnerAngle, targetInner, Time.deltaTime * aimTransitionSpeed);
         playerLight.pointLightOuterAngle = Mathf.Lerp(playerLight.pointLightOuterAngle, targetOuter, Time.deltaTime * aimTransitionSpeed);
 
-        // 3. FOG OF WAR - TẮT/BẬT ZOMBIE (Truyền góc thực tế vào)
+        // 3. FOG OF WAR - TẮT/BẬT ZOMBIE
         UpdateZombieVisibility(targetOuter);
     }
 
     private void UpdateZombieVisibility(float currentLogicAngle)
     {
-        // 🔥 FIX QUAN TRỌNG: Lấy hướng nhìn CHUẨN từ PlayerMovement (vẩy chuột là đổi liền)
-        Vector2 lookDir = pMove.NetLastLookDir.normalized;
+        Vector2 lookDir = pMove.NetLastLookDir;
+        if (lookDir.sqrMagnitude == 0)
+        {
+            lookDir = transform.up;
+        }
+        lookDir.Normalize();
 
         int zombieCount = Physics2D.OverlapCircle(transform.position, 40f, zombieFilter, zombiesInRadius);
 
@@ -90,37 +96,40 @@ public class PlayerVision : NetworkBehaviour
             if (zCollider == null) continue;
 
             SpriteRenderer[] srs = zCollider.GetComponentsInChildren<SpriteRenderer>();
-            Vector2 dirToZombie = (zCollider.bounds.center - transform.position).normalized;
-            float dstToZombie = Vector2.Distance(transform.position, zCollider.bounds.center);
+            Vector2 dirToZombie = (zCollider.bounds.center - transform.position);
+            float dstToZombie = dirToZombie.magnitude;
+            dirToZombie.Normalize();
 
             bool isVisible = false;
 
-            // A. NHÌN THẤY NẾU Ở QUÁ GẦN (Sát lưng cũng thấy)
+            // A. CẢM NHẬN SAU LƯNG (Bước vào vùng 1.5f là bật hiện hình luôn)
             if (dstToZombie <= passiveVisionRadius)
             {
                 isVisible = true;
             }
-            // B. NẰM TRONG BÁN KÍNH ĐÈN PIN
+            // B. NHÌN TRỰC TIẾP TRONG BÁN KÍNH ĐÈN PIN
             else if (dstToZombie <= playerLight.pointLightOuterRadius)
             {
-                // Tính góc giữa hướng vẩy chuột và vị trí con Zombie
                 float angleToZombie = Vector2.Angle(lookDir, dirToZombie);
 
-                // 🔥 FIX: Dùng biến currentLogicAngle (140 hoặc 120), tuyệt đối không dùng số của Light2D
                 if (angleToZombie <= currentLogicAngle / 2f)
                 {
-                    // Bắn tia raycast kiểm tra xem có bị tường che không
-                    if (!Physics2D.Raycast(transform.position, dirToZombie, dstToZombie, obstacleLayer))
+                    // Bắn tia Raycast kiểm tra xem có kẹt tường không
+                    RaycastHit2D hit = Physics2D.Raycast(transform.position, dirToZombie, dstToZombie, obstacleLayer);
+                    if (hit.collider == null)
                     {
-                        isVisible = true; // Chạy lọt vào vùng đèn + Không kẹt tường = THẤY!
+                        isVisible = true;
                     }
                 }
             }
 
-            // Áp dụng tàng hình / hiện hình
+            // C. BẬT / TẮT ZOMBIE (Chỉ bật/tắt khi trạng thái có sự thay đổi để tối ưu game)
             foreach (var sr in srs)
             {
-                sr.enabled = isVisible;
+                if (sr.enabled != isVisible)
+                {
+                    sr.enabled = isVisible;
+                }
             }
         }
     }
