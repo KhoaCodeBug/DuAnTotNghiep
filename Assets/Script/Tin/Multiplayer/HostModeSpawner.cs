@@ -58,7 +58,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         }
 
         NetworkObject netObj = Runner.Spawn(playerPrefabs[characterID], safeSpawnPos, safeSpawnRot, player);
-        spawnedPlayers.Add(player, netObj);
+
+        // 🔥 FIX LỖI 2: Dùng chép đè để tránh Crash nếu người chơi gửi lệnh đẻ 2 lần do lag
+        spawnedPlayers[player] = netObj;
 
         // 🔥 LOGIC LATE JOIN (NGƯỜI CHƠI NHẢY DÙ VÀO SAU)
         if (IsMatchStarted)
@@ -84,12 +86,18 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
         // Nhánh 2: Game chưa bắt đầu, đang ở đoạn Đồng Bộ Đầu Trận
         playersLoadedMap++;
-        int currentPlayersInRoom = Runner.SessionInfo.PlayerCount;
+        CheckAndStartGame(); // Tách ra thành hàm riêng để check ở nhiều chỗ
+    }
 
+    private void CheckAndStartGame()
+    {
+        if (!Runner.IsServer || IsMatchStarted) return;
+
+        int currentPlayersInRoom = Runner.SessionInfo.PlayerCount;
         Debug.Log($"[ĐIỂM DANH] Đã có {playersLoadedMap}/{currentPlayersInRoom} người tải xong Map.");
 
         // NẾU TẤT CẢ ĐÃ TẢI XONG -> PHÁT LỆNH GO!!!
-        if (playersLoadedMap >= currentPlayersInRoom)
+        if (playersLoadedMap >= currentPlayersInRoom && playersLoadedMap > 0)
         {
             IsMatchStarted = true;
             RPC_OpenEyesForAll();
@@ -126,15 +134,13 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         // Bắn dòng chữ lên AutoChatManager của mọi người
         if (GameObject.Find("--- AUTO CHAT MANAGER ---") != null)
         {
-            // Tui dùng lệnh tĩnh, nếu sếp có Instance thì thay bằng AutoChatManager.Instance
-            SendMessageToChat($"<color=#00ff00>Viện binh đang đến: {playerName} đã nhảy dù xuống khu vực!</color>");
+            SendMessageToChat($"<color=#00ff00>Viện binh đang đến: {playerName} đã thâm nhập khu vực!</color>");
         }
     }
 
     private void SendMessageToChat(string msg)
     {
         // Sếp tùy chỉnh lại dòng này gọi đúng vào hàm AddMessage trong AutoChatManager của sếp nhé
-        // VD: AutoChatManager.Instance.AddMessage("HỆ THỐNG", msg);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -145,30 +151,44 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     private IEnumerator LateJoinProtection(GameObject playerObj)
     {
-        // (Sếp có thể nhét code tắt Damage nhận vào ở đây)
-
         Renderer[] meshes = playerObj.GetComponentsInChildren<Renderer>();
         float timer = 3f; // 3 Giây bất tử
         bool isVisible = true;
 
         while (timer > 0)
         {
+            // 🔥 FIX LỖI 3: Nếu đứa vô sau thoát game lúc đang chớp nháy -> Dừng lệnh ngay kẻo văng lỗi
+            if (playerObj == null) yield break;
+
             timer -= 0.2f;
             isVisible = !isVisible;
             foreach (var mesh in meshes) mesh.enabled = isVisible;
             yield return new WaitForSeconds(0.2f);
         }
 
-        // Bật lại lưới hiển thị bình thường
-        foreach (var mesh in meshes) mesh.enabled = true;
+        // Bật lại lưới hiển thị bình thường nếu player vẫn còn tồn tại
+        if (playerObj != null)
+        {
+            foreach (var mesh in meshes) mesh.enabled = true;
+        }
     }
 
     public void PlayerLeft(PlayerRef player)
     {
-        if (Runner.IsServer && spawnedPlayers.TryGetValue(player, out NetworkObject netObj))
+        if (Runner.IsServer)
         {
-            Runner.Despawn(netObj);
-            spawnedPlayers.Remove(player);
+            // Xóa xác nhân vật
+            if (spawnedPlayers.TryGetValue(player, out NetworkObject netObj))
+            {
+                Runner.Despawn(netObj);
+                spawnedPlayers.Remove(player);
+            }
+
+            // 🔥 FIX LỖI 1: Kẹt Loading. Nếu có đứa rớt mạng lúc đang ở sảnh chờ load, tự động check và cho những người còn lại vào game!
+            if (!IsMatchStarted)
+            {
+                CheckAndStartGame();
+            }
         }
     }
 }
