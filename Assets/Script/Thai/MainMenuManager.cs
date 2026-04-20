@@ -108,7 +108,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private GameObject errorPopupPanel;
     private TextMeshProUGUI errorPopupText;
 
-    private int playersLoaded = 0;           // Đếm số người đã load xong
+    private int playersLoaded = 0;
+
+    private bool hasDetectedGameStart = false;
 
     // 🔥 BIẾN CHO PAUSE MENU
     private GameObject pauseMenuPanel;
@@ -170,14 +172,17 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         // GameState detection cho Client
-        if (activeRunner != null && !activeRunner.IsServer && !isLoadingScreenActive && activeRunner.IsCloudReady)
+        if (activeRunner != null && !activeRunner.IsServer && !isLoadingScreenActive && !hasDetectedGameStart && activeRunner.IsCloudReady)
         {
             if (activeRunner.SessionInfo?.Properties != null)
             {
                 if (activeRunner.SessionInfo.Properties.TryGetValue("GameState", out SessionProperty stateProp))
                 {
                     if ((int)stateProp == 1)
+                    {
+                        hasDetectedGameStart = true; // Khóa chốt lại ngay lập tức! Đừng gọi lại nữa!
                         ShowLoadingScreen();
+                    }
                 }
             }
         }
@@ -957,6 +962,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         isPauseMenuOpen = false;
         isLoadingScreenActive = false;
         isLocalSceneLoaded = false; // Xóa cờ đã load map
+
+        hasDetectedGameStart = false;
 
         // Khởi chạy Coroutine để về Menu chính với màn hình Loading
         StartCoroutine(ReturnToMenuSmoothly());
