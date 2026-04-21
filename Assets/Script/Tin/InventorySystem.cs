@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
-using Fusion; // Vẫn giữ mạng để quản lý các tính năng khác
+using Fusion;
 
 [System.Serializable]
 public class InventorySlot
@@ -29,8 +29,10 @@ public class InventorySystem : NetworkBehaviour
 
     [Header("Cài đặt Rớt Đồ (Cá nhân)")]
     public GameObject droppedItemPrefab;
-    [Tooltip("Thời gian (giây) cục đồ tồn tại trên đất trước khi bốc hơi")]
-    public float dropLifeTime = 30f; // 🔥 MỚI: Biến chỉnh thời gian biến mất
+    public float dropLifeTime = 30f;
+
+    // Cờ chống lặp vô hạn khi 2 máy gọi điện cho nhau
+    private bool isSyncing = false;
 
     // ==========================================
     // MẮT THẦN QUÉT ĐỒ DƯỚI CHÂN
@@ -47,25 +49,16 @@ public class InventorySystem : NetworkBehaviour
 
             if (pickup != null && pickup.isActiveAndEnabled)
             {
-                bool pickedUp = AddItem(pickup.item, pickup.amount);
-                if (pickedUp)
+                NetworkObject netObj = pickup.GetComponent<NetworkObject>();
+                if (netObj != null && netObj.IsValid)
                 {
-                    Debug.Log("Đã lụm: " + pickup.item.itemName);
+                    // 🔥 SỬA MỚI: Yêu cầu Server cùng nhặt để túi đồ 2 bên giống hệt nhau
+                    RPC_RequestPickupItem(netObj, pickup.item.itemName, pickup.amount);
 
                     pickup.enabled = false;
                     col.enabled = false;
                     SpriteRenderer sr = pickup.GetComponent<SpriteRenderer>();
                     if (sr != null) sr.enabled = false;
-
-                    NetworkObject netObj = pickup.GetComponent<NetworkObject>();
-                    if (netObj != null && netObj.IsValid)
-                    {
-                        RPC_RequestDespawnItem(netObj);
-                    }
-                    else
-                    {
-                        Destroy(pickup.gameObject);
-                    }
                 }
             }
         }
@@ -82,20 +75,22 @@ public class InventorySystem : NetworkBehaviour
     // ==========================================
     public bool AddItem(ItemData itemToAdd, int amountToAdd)
     {
-        if (!HasInputAuthority) return false;
+        // 🔥 ĐÃ GỠ BỎ LỆNH "if (!HasInputAuthority)" ĐỂ SERVER CŨNG ĐƯỢC QUYỀN THÊM ĐỒ
+
+        int originalAmount = amountToAdd;
 
         if (itemToAdd.isStackable)
         {
             foreach (InventorySlot slot in slots)
             {
-                if (slot.item == itemToAdd && slot.amount < itemToAdd.maxStack)
+                if (slot.item.itemName == itemToAdd.itemName && slot.amount < itemToAdd.maxStack)
                 {
                     int spaceLeft = itemToAdd.maxStack - slot.amount;
                     if (amountToAdd <= spaceLeft)
                     {
                         slot.AddAmount(amountToAdd);
-                        UpdateUI();
-                        return true;
+                        amountToAdd = 0;
+                        break;
                     }
                     else
                     {
@@ -114,6 +109,17 @@ public class InventorySystem : NetworkBehaviour
         }
 
         UpdateUI();
+
+        int amountAdded = originalAmount - amountToAdd;
+
+        // 🔥 HỆ THỐNG ĐỒNG BỘ: KHI 1 BÊN NHẬN ĐƯỢC ĐỒ, PHẢI GỌI ĐIỆN BÁO BÊN KIA BIẾT
+        if (!isSyncing && amountAdded > 0)
+        {
+            isSyncing = true;
+            if (HasStateAuthority && !HasInputAuthority) RPC_SyncItemToClient(itemToAdd.itemName, amountAdded, true);
+            else if (HasInputAuthority && !HasStateAuthority) RPC_SyncItemToServer(itemToAdd.itemName, amountAdded, true);
+            isSyncing = false;
+        }
 
         if (amountToAdd > 0)
         {
@@ -144,7 +150,6 @@ public class InventorySystem : NetworkBehaviour
                 health.Heal(item.healAmount);
                 itemUsed = true;
             }
-            else Debug.Log("⚠️ Máu đang đầy!");
         }
         else if (item.category == ItemCategory.Consumable)
         {
@@ -160,12 +165,6 @@ public class InventorySystem : NetworkBehaviour
                 stamina.ApplyEnergyBuff(item.buffDuration, item.speedMultiplier, item.maxStaminaBoost);
                 itemUsed = true;
             }
-
-            if (itemUsed) Debug.Log("Đã nốc xong: " + item.itemName);
-        }
-        else if (item.category == ItemCategory.Ammunition)
-        {
-            Debug.Log("⚠️ Đạn dược không thể sử dụng trực tiếp!");
         }
 
         if (itemUsed)
@@ -173,27 +172,37 @@ public class InventorySystem : NetworkBehaviour
             slot.amount--;
             if (slot.amount <= 0) slots.RemoveAt(index);
             UpdateUI();
+
+            // Client tự dùng đồ thì báo Server trừ đi
+            if (!isSyncing)
+            {
+                isSyncing = true;
+                RPC_SyncItemToServer(item.itemName, 1, false);
+                isSyncing = false;
+            }
         }
     }
 
-    // ==========================================
-    // 🔥 ĐÃ LÀM MỚI: HỆ THỐNG VỨT RÁC CÁ NHÂN (LOCAL DROP)
-    // ==========================================
     public void DropItem(int index)
     {
-        // Chỉ bản thân mình mới có quyền vứt đồ của mình
         if (!HasInputAuthority) return;
-
         if (index < 0 || index >= slots.Count) return;
+
         InventorySlot slot = slots[index];
         ItemData itemToDrop = slot.item;
 
-        // Trừ đồ trong túi
         slot.amount--;
         if (slot.amount <= 0) slots.RemoveAt(index);
         UpdateUI();
 
-        // Tạo hình ảnh cục đồ văng ra mặt đất
+        // Client tự vứt đồ thì báo Server trừ đi
+        if (!isSyncing)
+        {
+            isSyncing = true;
+            RPC_SyncItemToServer(itemToDrop.itemName, 1, false);
+            isSyncing = false;
+        }
+
         GameObject prefabToSpawn = itemToDrop.specificDropPrefab != null ? itemToDrop.specificDropPrefab : droppedItemPrefab;
 
         if (prefabToSpawn != null)
@@ -201,45 +210,41 @@ public class InventorySystem : NetworkBehaviour
             Vector2 randomOffset = Random.insideUnitCircle * 0.4f;
             Vector3 spawnPos = transform.position + new Vector3(randomOffset.x, randomOffset.y, 0f);
 
-            // 🔥 TẠO RA BẰNG HÀM CƠ BẢN CỦA UNITY (Chỉ máy mình thấy)
             GameObject droppedGO = Instantiate(prefabToSpawn, spawnPos, Quaternion.identity);
-
-            // Đắp hình và thông số vào
             SpriteRenderer sr = droppedGO.GetComponent<SpriteRenderer>();
             if (sr != null) sr.sprite = itemToDrop.icon;
 
             ItemPickup pickup = droppedGO.GetComponent<ItemPickup>();
             if (pickup != null) { pickup.item = itemToDrop; pickup.amount = 1; }
 
-            // 🔥 HẸN GIỜ TỬ HÌNH: Cục đồ tự biến mất sau 'dropLifeTime' giây (VD: 30s)
             Destroy(droppedGO, dropLifeTime);
-
-            Debug.Log($"Đã vứt {itemToDrop.itemName}. Cục đồ này sẽ tự phân hủy sau {dropLifeTime} giây.");
         }
     }
 
-    // ==========================================
-    // CÁC HÀM TIỆN ÍCH
-    // ==========================================
     private void UpdateUI()
     {
-        if (!HasInputAuthority) return;
+        if (!HasInputAuthority) return; // Chỉ Client sở hữu nhân vật mới vẽ Balo
         if (AutoUIManager.Instance != null) AutoUIManager.Instance.RefreshUI(this.slots);
     }
 
     public int GetItemCount(ItemData itemToCount)
     {
         if (itemToCount == null) return 0;
+
+        // 🔥 QUAN TRỌNG: GỠ BỎ LỆNH CẤM Ở ĐÂY ĐỂ SERVER CÓ THỂ ĐẾM ĐƯỢC ĐẠN ĐỂ BÁO LÊN HUD!
         int total = 0;
-        foreach (var slot in slots) { if (slot.item != null && slot.item.itemName == itemToCount.itemName) total += slot.amount; }
+        foreach (var slot in slots)
+        {
+            if (slot.item != null && slot.item.itemName == itemToCount.itemName) total += slot.amount;
+        }
         return total;
     }
 
     public int ConsumeItem(ItemData itemToConsume, int amountNeeded)
     {
         if (itemToConsume == null) return 0;
-        if (!HasInputAuthority) return 0;
 
+        // 🔥 QUAN TRỌNG: GỠ BỎ LỆNH CẤM Ở ĐÂY ĐỂ SERVER CÓ QUYỀN TRỪ ĐẠN KHI BẤM NẠP ĐẠN (R)
         int amountExtracted = 0;
         for (int i = slots.Count - 1; i >= 0; i--)
         {
@@ -257,10 +262,63 @@ public class InventorySystem : NetworkBehaviour
         }
 
         UpdateUI();
+
+        // 🔥 HỆ THỐNG ĐỒNG BỘ: SÚNG CHẠY TRÊN SERVER TRỪ ĐẠN XONG PHẢI BÁO CLIENT UPDATE UI
+        if (!isSyncing && amountExtracted > 0)
+        {
+            isSyncing = true;
+            if (HasStateAuthority && !HasInputAuthority) RPC_SyncItemToClient(itemToConsume.itemName, amountExtracted, false);
+            else if (HasInputAuthority && !HasStateAuthority) RPC_SyncItemToServer(itemToConsume.itemName, amountExtracted, false);
+            isSyncing = false;
+        }
+
         return amountExtracted;
     }
 
-    // Hàm này giữ lại để túi đồ vẫn nhờ Server xóa được đồ xịn (rớt từ quái)
+    // ==========================================
+    // HỆ THỐNG GỌI ĐIỆN RPC ĐỒNG BỘ 2 CHIỀU
+    // ==========================================
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_RequestPickupItem(NetworkObject itemNetObj, string itemName, int amount)
+    {
+        ItemData data = Resources.Load<ItemData>("Items/" + itemName);
+        if (data != null)
+        {
+            bool pickedUp = AddItem(data, amount);
+            if (pickedUp && itemNetObj != null && itemNetObj.IsValid)
+            {
+                Runner.Despawn(itemNetObj); // Server xác nhận xóa cục đồ trên mặt đất
+            }
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_SyncItemToClient(string itemName, int amount, bool isAdding)
+    {
+        ItemData data = Resources.Load<ItemData>("Items/" + itemName);
+        if (data != null)
+        {
+            isSyncing = true; // Bật cờ để Client không gọi ngược lại lên Server gây lặp vô hạn
+            if (isAdding) AddItem(data, amount);
+            else ConsumeItem(data, amount);
+            isSyncing = false;
+        }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_SyncItemToServer(string itemName, int amount, bool isAdding)
+    {
+        ItemData data = Resources.Load<ItemData>("Items/" + itemName);
+        if (data != null)
+        {
+            isSyncing = true;
+            if (isAdding) AddItem(data, amount);
+            else ConsumeItem(data, amount);
+            isSyncing = false;
+        }
+    }
+
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_RequestDespawnItem(NetworkObject itemNetObj)
     {

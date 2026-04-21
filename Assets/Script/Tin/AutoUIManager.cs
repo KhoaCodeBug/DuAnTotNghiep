@@ -1293,7 +1293,7 @@ public class AutoUIManager : MonoBehaviour
                 ui.iconImage.gameObject.SetActive(true);
                 ui.iconImage.sprite = playerSlots[i].item.icon;
 
-                if (playerSlots[i].amount > 1)
+                if (playerSlots[i].amount >= 1)
                 {
                     ui.amountText.gameObject.SetActive(true);
                     ui.amountText.text = playerSlots[i].amount.ToString();
