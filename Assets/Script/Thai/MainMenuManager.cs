@@ -1044,9 +1044,23 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         Debug.LogError($"[DEBUG] OnConnectFailed: {reason}");
         isConnecting = false;
+
+        // Dọn dẹp màn hình chờ
         if (connectionPopupPanel != null) connectionPopupPanel.SetActive(false);
-        ShowError($"CONNECTION FAILED! {reason}");
-        OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
+        if (loadingScreenPanel != null) loadingScreenPanel.SetActive(false);
+
+        // 🔥 NẾU SERVER TỪ CHỐI (Chỉ xảy ra khi nhập sai Pass do Host refuse)
+        if (reason == NetConnectFailedReason.ServerRefused)
+        {
+            ShowError("WRONG PASSWORD!");
+        }
+        else
+        {
+            ShowError($"CONNECTION FAILED! {reason}");
+        }
+
+        // Mở lại bảng Multiplayer để tìm phòng khác
+        OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
     }
 
     void INetworkRunnerCallbacks.OnDisconnectedFromServer(NetworkRunner runner, NetDisconnectReason reason)
@@ -1055,20 +1069,20 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         isConnecting = false;
 
-        if (connectionPopupPanel != null)
-            connectionPopupPanel.SetActive(false);
+        // Dọn dẹp màn hình chờ
+        if (connectionPopupPanel != null) connectionPopupPanel.SetActive(false);
+        if (loadingScreenPanel != null) loadingScreenPanel.SetActive(false);
 
-        // Chỉ hiển thị lỗi khi là disconnect bất thường (không phải do client tự ngắt)
-        // "Requested" là lý do phổ biến nhất khi client chủ động shutdown
+        // Hiển thị lỗi nếu rớt mạng bất thường (Không phải do mình tự bấm Quit)
         if (reason != NetDisconnectReason.Requested)
         {
             ShowError($"Lost connection to server: {reason}");
         }
 
-        // Trở về menu chính
+        // Trở về menu chính hoặc bảng Multiplayer
         if (multiplayerPanel != null)
         {
-            OpenPanel(mainPanel.GetComponent<CanvasGroup>());
+            OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>());
         }
     }
 
@@ -1227,7 +1241,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     // Các hàm tạo UI rút gọn
     private void CreateTitleText(GameObject parent, string text, float height = 0.9f, int fontSize = 40, TextAlignmentOptions align = TextAlignmentOptions.Center, Vector2? aMin = null, Vector2? aMax = null) { GameObject txtObj = new GameObject("Title"); txtObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = text; txt.fontSize = fontSize; txt.fontStyle = FontStyles.Bold; txt.alignment = align; txt.color = new Color(0.8f, 0.8f, 0.8f, 1f); RectTransform rect = txtObj.GetComponent<RectTransform>(); rect.anchorMin = aMin ?? new Vector2(0, height); rect.anchorMax = aMax ?? new Vector2(1, height); rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; }
     private void SetDifficulty(int id) { hostDifficulty = id; for (int i = 0; i < diffTexts.Length; i++) { if (i == id) { diffTexts[i].color = Color.yellow; diffTexts[i].fontStyle = FontStyles.Bold; } else { diffTexts[i].color = Color.gray; diffTexts[i].fontStyle = FontStyles.Normal; } } }
-    private void TogglePassword() { hostHasPassword = !hostHasPassword; if (hostHasPassword) { toggleText.text = "[ CÓ ]"; toggleText.color = Color.red; passwordInputObj.SetActive(true); } else { toggleText.text = "[ KHÔNG ]"; toggleText.color = Color.gray; passwordInputObj.SetActive(false); } }
+    private void TogglePassword() { hostHasPassword = !hostHasPassword; if (hostHasPassword) { toggleText.text = "[ YES ]"; toggleText.color = Color.red; passwordInputObj.SetActive(true); } else { toggleText.text = "[ NO ]"; toggleText.color = Color.gray; passwordInputObj.SetActive(false); } }
     private void ChangeCharacter(int direction) { previewID = (previewID + direction + characterNames.Length) % characterNames.Length; charNameText.text = characterNames[previewID]; charStatsText.text = characterStats[previewID]; UpdatePreview(); }
     private void UpdatePreview() { if (previewImages == null || previewContainer == null) return; for (int i = 0; i < previewImages.Length; i++) { if (previewImages[i] != null) { bool isActive = (i == previewID); previewImages[i].SetActive(isActive); if (isActive) { previewImages[i].transform.SetParent(previewContainer, false); RectTransform rt = previewImages[i].GetComponent<RectTransform>(); if (rt != null) { rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero; } Image img = previewImages[i].GetComponent<Image>(); if (img != null) img.preserveAspect = true; } } } }
     private void EnableGameplayUI() { foreach (var obj in temporarilyDisabledObjects) { if (obj != null) obj.SetActive(true); } temporarilyDisabledObjects.Clear(); }
