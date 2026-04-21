@@ -4,8 +4,10 @@ using Fusion;
 public class PlayerInteraction : NetworkBehaviour
 {
     public float interactRange = 3f;
+
     private VehicleControllerFusion nearbyVehicle;
     private VehicleControllerFusion currentVehicle;
+
     private bool isInVehicle = false;
     private MonoBehaviour movementScript;
 
@@ -17,21 +19,18 @@ public class PlayerInteraction : NetworkBehaviour
     void Update()
     {
         if (!Object.HasInputAuthority) return;
-        CheckNearbyVehicle(); // ✅ DEBUG khoảng cách
+
+        CheckNearbyVehicle();
+
         if (Input.GetKeyDown(KeyCode.E))
         {
-            Debug.Log("Pressed E");
-
             if (!isInVehicle)
-            {
                 TryEnterVehicle();
-            }
             else
-            {
                 ExitVehicle();
-            }
         }
     }
+
     void CheckNearbyVehicle()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, interactRange);
@@ -48,81 +47,62 @@ public class PlayerInteraction : NetworkBehaviour
             }
         }
 
-        // ✅ Khi vừa vào vùng xe
         if (foundVehicle != null && nearbyVehicle == null)
         {
             nearbyVehicle = foundVehicle;
-            Debug.Log("[TEST] Player NEAR vehicle: " + foundVehicle.name);
+            Debug.Log("[NEAR VEHICLE] " + foundVehicle.name);
         }
 
-        // ✅ Khi rời khỏi vùng xe
         if (foundVehicle == null && nearbyVehicle != null)
         {
-            Debug.Log("[TEST] Player LEFT vehicle range");
             nearbyVehicle = null;
+            Debug.Log("[LEFT VEHICLE]");
         }
     }
+
     void TryEnterVehicle()
     {
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, interactRange);
-
-        Debug.Log("Hit count: " + hits.Length);
-
-        foreach (var hit in hits)
+        if (nearbyVehicle == null)
         {
-            Debug.Log("Hit: " + hit.name);
-
-            var vehicle = hit.GetComponentInParent<VehicleControllerFusion>();
-            if (vehicle != null)
-            {
-                Debug.Log("Calling RPC Enter");
-                vehicle.RequestEnter(Object);
-                return;
-            }
+            Debug.Log("No vehicle nearby");
+            return;
         }
 
-        Debug.Log("No vehicle found");
+        nearbyVehicle.RequestEnter(Object);
     }
 
     void ExitVehicle()
     {
         if (currentVehicle != null)
         {
-            Debug.Log("Request Exit");
             currentVehicle.RequestExit(Object);
         }
     }
 
-    // ================= STATE =================
     public void SetVehicle(VehicleControllerFusion vehicle, bool enter, bool isDriver)
     {
         isInVehicle = enter;
         currentVehicle = enter ? vehicle : null;
 
-        if (vehicle != null)
+        // 🔥 FIX: CHỈ LOCAL PLAYER ĐƯỢC ĐỔI CAMERA
+        if (Object.HasInputAuthority && vehicle != null)
+        {
             vehicle.SetCamera(isDriver);
+        }
 
-       
         var anim = GetComponent<Animator>();
         if (anim != null)
             anim.SetBool("isSitting", enter);
 
-       
         if (movementScript != null)
             movementScript.enabled = !enter;
 
-        
         Transform tag = transform.Find("NameTag");
         if (tag != null)
             tag.gameObject.SetActive(!enter);
 
-       
-        SpriteRenderer sprite = GetComponent<SpriteRenderer>();
+        var sprite = GetComponent<SpriteRenderer>();
         if (sprite != null)
-        {
             sprite.enabled = !enter;
-        }
-
-       
     }
 }
