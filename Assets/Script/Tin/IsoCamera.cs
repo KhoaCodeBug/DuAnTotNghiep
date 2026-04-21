@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
+using System.Collections.Generic; // 🔥 Bắt buộc có dòng này
 
 public class PZ_CameraController : MonoBehaviour
 {
@@ -24,18 +25,17 @@ public class PZ_CameraController : MonoBehaviour
     private float targetZoom;
     private float zoomVelocity;
 
-    // 🔥 MỚI: Biến đánh dấu camera có đang ở chế độ xem ké người khác không
     public bool isSpectatingMode { get; private set; } = false;
+    private int spectateIndex = 0; // 🔥 Đếm vị trí người đang xem
 
     public void SetTarget(Transform targetTransform)
     {
         player = targetTransform;
         hasTarget = true;
-        isSpectatingMode = false; // Khi mới vào game, đặt lại là không spectate
+        isSpectatingMode = false;
         transform.position = player.position + offset;
     }
 
-    // 🔥 MỚI: Hàm riêng dùng để chuyển góc nhìn sang người khác
     public void SpectateTarget(Transform targetTransform)
     {
         player = targetTransform;
@@ -54,6 +54,21 @@ public class PZ_CameraController : MonoBehaviour
     {
         if (!hasTarget || player == null) return;
         HandleZoom();
+
+        // 🔥 BỘ NÃO SPECTATOR NẰM Ở ĐÂY (An toàn tuyệt đối)
+        if (isSpectatingMode)
+        {
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
+
+            if (Input.GetKeyDown(KeyCode.A) || Input.GetMouseButtonDown(0))
+            {
+                SpectateNext(-1);
+            }
+            else if (Input.GetKeyDown(KeyCode.D) || Input.GetMouseButtonDown(1))
+            {
+                SpectateNext(1);
+            }
+        }
     }
 
     void LateUpdate()
@@ -75,7 +90,6 @@ public class PZ_CameraController : MonoBehaviour
     {
         Vector3 targetPos = player.position + offset;
 
-        // KHÔNG cho phép lia camera (LookAhead) nếu đang ở chế độ Spectator
         if (Input.GetMouseButton(1) && !IsPlayerBusyWithUI() && !isSpectatingMode)
         {
             Vector3 mouseWorldPos = cam.ScreenToWorldPoint(Input.mousePosition);
@@ -87,14 +101,7 @@ public class PZ_CameraController : MonoBehaviour
             targetPos += (panOffset / 2f);
         }
 
-        transform.position = Vector3.SmoothDamp(
-            transform.position,
-            targetPos,
-            ref velocity,
-            smoothFollow,
-            Mathf.Infinity,
-            Time.deltaTime
-        );
+        transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref velocity, smoothFollow, Mathf.Infinity, Time.deltaTime);
     }
 
     private void HandleZoom()
@@ -117,13 +124,35 @@ public class PZ_CameraController : MonoBehaviour
             targetZoom = Mathf.Clamp(targetZoom, minZoomSize, maxZoomSize);
         }
 
-        cam.orthographicSize = Mathf.SmoothDamp(
-            cam.orthographicSize,
-            targetZoom,
-            ref zoomVelocity,
-            zoomSmoothTime,
-            Mathf.Infinity,
-            Time.deltaTime
-        );
+        cam.orthographicSize = Mathf.SmoothDamp(cam.orthographicSize, targetZoom, ref zoomVelocity, zoomSmoothTime, Mathf.Infinity, Time.deltaTime);
+    }
+
+    // 🔥 HÀM DỊCH CHUYỂN CAMERA QUA NGƯỜI SỐNG SÓT
+    public void SpectateNext(int direction)
+    {
+        List<PlayerHealth> alivePlayers = new List<PlayerHealth>();
+        var allPlayers = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+
+        // Quét tìm tất cả đồng đội còn sống
+        foreach (var p in allPlayers)
+        {
+            if (p != null && !p.isDead && !p.isTransforming)
+            {
+                alivePlayers.Add(p);
+            }
+        }
+
+        // Chết sạch cả team thì khỏi chuyển
+        if (alivePlayers.Count == 0) return;
+
+        spectateIndex += direction;
+        if (spectateIndex < 0) spectateIndex = alivePlayers.Count - 1;
+        if (spectateIndex >= alivePlayers.Count) spectateIndex = 0;
+
+        var targetPlayer = alivePlayers[spectateIndex];
+        SpriteRenderer targetSprite = targetPlayer.GetComponentInChildren<SpriteRenderer>();
+
+        if (targetSprite != null) SpectateTarget(targetSprite.transform);
+        else SpectateTarget(targetPlayer.transform);
     }
 }

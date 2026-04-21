@@ -64,6 +64,8 @@ public class PlayerHealth : NetworkBehaviour
     private Image paranoiaImage;
     private bool isBlinking = false;
 
+    private bool hasTriggeredSpectate = false;
+
     public override void Spawned()
     {
         if (HasStateAuthority) currentHealth = maxHealth;
@@ -115,6 +117,18 @@ public class PlayerHealth : NetworkBehaviour
     private void Update()
     {
         if (!HasInputAuthority) return;
+
+        if (isDead && !hasTriggeredSpectate)
+        {
+            hasTriggeredSpectate = true; // Khóa lại, chỉ gọi 1 lần duy nhất
+
+            // Ép tắt tâm ruồi ngắm bắn (Nếu có)
+            Cursor.SetCursor(null, Vector2.zero, CursorMode.Auto);
+
+            // Gọi Camera tiến hành chuyển mục tiêu sang người sống sót đầu tiên
+            var cam = FindFirstObjectByType<PZ_CameraController>();
+            if (cam != null) cam.SpectateNext(0);
+        }
 
         if (isBitten && !isDead)
         {
