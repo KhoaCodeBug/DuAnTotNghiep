@@ -155,10 +155,7 @@ GameObject:
   - component: {fileID: 2294525064702947934}
   - component: {fileID: 1348887384322338406}
   - component: {fileID: 8265875105454390905}
-  - component: {fileID: 2776453328320552886}
   - component: {fileID: 3815282733675390939}
-  - component: {fileID: 5102988145444310424}
-  - component: {fileID: 6247902095829089576}
   - component: {fileID: 4104682700520458656}
   - component: {fileID: 5223223820511616605}
   - component: {fileID: 496425067498801100}
@@ -363,7 +360,8 @@ MonoBehaviour:
   nextWaypointDistance: 0.5
   obstacleMask:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
+  zombieRadius: 0.5
   detectionRange: 1
   directChaseRange: 3
   moveSpeed: 1
@@ -425,86 +423,7 @@ MonoBehaviour:
   SyncParent: 0
   _autoAOIOverride: 1
   DisableSharedModeInterpolation: 0
---- !u!114 &2776453328320552886
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4396508338874752408}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 373b52eb9bf8c40f785bb6947a1aee66, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  version: 1
-  drawGizmos: 1
-  detailedGizmos: 0
-  startEndModifier:
-    addPoints: 0
-    exactStartPoint: 3
-    exactEndPoint: 3
-    useRaycasting: 0
-    mask:
-      serializedVersion: 2
-      m_Bits: 4294967295
-    useGraphRaycasting: 0
-  traversableTags: -1
-  tagPenalties: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-  graphMask:
-    value: -1
 --- !u!114 &3815282733675390939
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4396508338874752408}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 373b52eb9bf8c40f785bb6947a1aee66, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  version: 1
-  drawGizmos: 1
-  detailedGizmos: 0
-  startEndModifier:
-    addPoints: 0
-    exactStartPoint: 3
-    exactEndPoint: 3
-    useRaycasting: 0
-    mask:
-      serializedVersion: 2
-      m_Bits: 4294967295
-    useGraphRaycasting: 0
-  traversableTags: -1
-  tagPenalties: 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-  graphMask:
-    value: -1
---- !u!114 &5102988145444310424
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4396508338874752408}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b090bec917bbe4c3bbc612ef13f7c4a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  version: 1
-  useRaycasting: 1
-  mask:
-    serializedVersion: 2
-    m_Bits: 64
-  thickRaycast: 1
-  thickRaycastRadius: 0
-  use2DPhysics: 1
-  raycastOffset: {x: 0, y: 0, z: 0}
-  useGraphRaycasting: 0
-  quality: 1
---- !u!114 &6247902095829089576
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

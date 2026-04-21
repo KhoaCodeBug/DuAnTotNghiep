@@ -16,8 +16,9 @@ public class ZombieAI : NetworkBehaviour
     private int currentWaypoint = 0;
     private Rigidbody2D rb;
 
-    [Header("--- Né Vật Cản (MỚI) ---")]
-    [SerializeField] private LayerMask obstacleMask; // Gán layer Wall/Obstacle vào đây
+    [Header("--- Né Vật Cản (Local) ---")]
+    [SerializeField] private LayerMask obstacleMask; // Gán layer Obstacle (Layer 6) vào đây
+    [SerializeField] private float zombieRadius = 0.4f; // Bán kính vòng tròn dò tường của zombie
 
     [Header("--- Phạm vi Phát hiện (Detection) ---")]
     public float detectionRange = 10f;
@@ -116,6 +117,42 @@ public class ZombieAI : NetworkBehaviour
         return hit.collider == null;
     }
 
+    // --- HÀM TRƯỢT TƯỜNG (CẢI TIẾN) ---
+    // Trả về TRUE nếu đụng tường, FALSE nếu đường đi thông thoáng
+    private bool SafeMove(Vector2 targetDir, float currentSpeed)
+    {
+        float distanceToMove = currentSpeed * Runner.DeltaTime;
+
+        // Bắn CircleCast dò tường phía trước
+        RaycastHit2D hit = Physics2D.CircleCast(rb.position, zombieRadius, targetDir, distanceToMove, obstacleMask);
+
+        if (hit.collider == null)
+        {
+            // Trống trải -> Đi bình thường
+            rb.MovePosition(rb.position + targetDir * distanceToMove);
+            NetMoveDir = targetDir;
+            return false;
+        }
+        else
+        {
+            // Đụng tường -> Tính toán hướng trượt dọc theo mặt tường
+            Vector2 slideDirection = targetDir - Vector2.Dot(targetDir, hit.normal) * hit.normal;
+            slideDirection.Normalize();
+
+            if (slideDirection.sqrMagnitude > 0.01f)
+            {
+                // Trượt nhẹ (giảm tốc) khi cọ vào tường
+                rb.MovePosition(rb.position + slideDirection * (currentSpeed * 0.8f) * Runner.DeltaTime);
+                NetMoveDir = slideDirection;
+            }
+            else
+            {
+                StopMovement();
+            }
+            return true; // Báo hiệu là đã va phải tường
+        }
+    }
+
     private void CalculatePath(Vector2 targetPos, AIMode mode)
     {
         if (seeker.IsDone())
@@ -139,9 +176,10 @@ public class ZombieAI : NetworkBehaviour
         }
     }
 
-    private void MoveAlongPath(float currentSpeed)
+    // Trả về TRUE nếu bị kẹt tường trong lúc đi dọc theo A* Path
+    private bool MoveAlongPath(float currentSpeed)
     {
-        if (path == null || currentWaypoint >= path.vectorPath.Count) return;
+        if (path == null || currentWaypoint >= path.vectorPath.Count) return false;
 
         while (currentWaypoint < path.vectorPath.Count &&
                Vector2.Distance(rb.position, path.vectorPath[currentWaypoint]) < nextWaypointDistance)
@@ -149,13 +187,12 @@ public class ZombieAI : NetworkBehaviour
             currentWaypoint++;
         }
 
-        if (currentWaypoint >= path.vectorPath.Count) return;
+        if (currentWaypoint >= path.vectorPath.Count) return false;
 
         Vector2 currentWp = (Vector2)path.vectorPath[currentWaypoint];
         Vector2 targetMoveDir = (currentWp - rb.position).normalized;
 
-        rb.MovePosition(rb.position + targetMoveDir * currentSpeed * Runner.DeltaTime);
-        NetMoveDir = targetMoveDir;
+        return SafeMove(targetMoveDir, currentSpeed);
     }
 
     private void StopMovement()
@@ -236,18 +273,18 @@ public class ZombieAI : NetworkBehaviour
 
         if (distanceToPlayer > attackRange)
         {
-            // CƠ CHẾ THÔNG MINH: Chỉ lao thẳng nếu ở gần VÀ nhìn thấy (không có tường chắn)
             if (distanceToPlayer <= directChaseRange && CanSeePlayer())
             {
                 Vector2 directDir = (player.position - transform.position).normalized;
-                rb.MovePosition(rb.position + directDir * moveSpeed * Runner.DeltaTime);
-                NetMoveDir = directDir;
+
+                // Khi rượt ráo riết thì bỏ qua kết quả boolean, cứ ép trượt tường (SafeMove)
+                SafeMove(directDir, moveSpeed);
+
                 NetIsRunning = true;
                 path = null;
             }
             else
             {
-                // Nếu bị chắn bởi tường hoặc ở quá xa, dùng A* để tìm đường né vật cản
                 pathUpdateTimer -= Runner.DeltaTime;
                 if (pathUpdateTimer <= 0 && seeker.IsDone())
                 {
@@ -317,14 +354,18 @@ public class ZombieAI : NetworkBehaviour
         {
             if (path != null)
             {
-                MoveAlongPath(moveSpeed * wanderSpeedMultiplier);
+                // Kiểm tra xem lúc đi dạo có lỡ đụng tường không
+                bool isHittingWall = MoveAlongPath(moveSpeed * wanderSpeedMultiplier);
                 NetIsRunning = true;
 
-                if (Vector2.Distance(rb.position, wanderTarget) <= nextWaypointDistance * 2f || currentWaypoint >= path.vectorPath.Count)
+                // Nếu đụng tường HOẶC đi tới đích -> Lập tức hủy đường cũ, chuyển hướng mới
+                if (isHittingWall || Vector2.Distance(rb.position, wanderTarget) <= nextWaypointDistance * 2f || currentWaypoint >= path.vectorPath.Count)
                 {
                     isWandering = false;
                     StopMovement();
                     NetIsRunning = false;
+
+                    // Tìm chỗ khác ngay lập tức (không cố cọ xát vào tường gây giật lag)
                     wanderTimer = Random.Range(wanderWaitTimeMin, wanderWaitTimeMax);
                 }
             }
