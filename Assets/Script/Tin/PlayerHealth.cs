@@ -183,6 +183,26 @@ public class PlayerHealth : NetworkBehaviour
                     Runner.Spawn(traitorBossPrefab, transform.position, Quaternion.identity);
                 }
 
+                // 👇 THÊM ĐOẠN NÀY VÀO TRƯỚC KHI DESPAWN 👇
+                if (HasInputAuthority)
+                {
+                    var cameraController = FindFirstObjectByType<PZ_CameraController>();
+                    if (cameraController != null)
+                    {
+                        // Giật cam sang người sống sót đầu tiên tìm thấy trước khi xác này bay màu
+                        PlayerHealth[] allPlayers = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+                        foreach (var p in allPlayers)
+                        {
+                            if (p != this && !p.isDead)
+                            {
+                                cameraController.SpectateTarget(p.transform);
+                                break;
+                            }
+                        }
+                    }
+                }
+                // 👆 KẾT THÚC THÊM 👆
+
                 Runner.Despawn(Object);
             }
             return;
@@ -405,7 +425,12 @@ public class PlayerHealth : NetworkBehaviour
             if (spriteRend != null) spriteRend.enabled = true;
             yield return new WaitForSeconds(0.15f);
         }
-        gameObject.SetActive(false);
+
+        // 👇 XÓA HOẶC COMMENT DÒNG NÀY LẠI
+        // gameObject.SetActive(false); 
+
+        // 👇 THAY BẰNG DÒNG NÀY (Chỉ làm hình ảnh tàng hình, giữ lại code)
+        if (spriteRend != null) spriteRend.enabled = false;
     }
 
     private IEnumerator ParanoiaBlinkRoutine()

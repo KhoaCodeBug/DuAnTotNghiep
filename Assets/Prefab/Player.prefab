@@ -729,7 +729,7 @@ MonoBehaviour:
   iconStamina: {fileID: 2800000, guid: 89ec501f452299c4286a5d68c3695fa7, type: 3}
   _maxStamina: 0
   _currentStamina: 0
-  staminaDrain: 15
+  staminaDrain: 5
   staminaRecoverIdle: 20
   staminaRecoverWalk: 10
   bashRegenDelay: 2
