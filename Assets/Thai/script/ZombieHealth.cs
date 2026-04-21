@@ -31,13 +31,14 @@ public class ZombieHealth : NetworkBehaviour
         anim = GetComponent<Animator>();
         coll = GetComponent<Collider2D>();
 
-        spriteRend = GetComponentInChildren<SpriteRenderer>();
+        spriteRend = GetComponentInChildren<SpriteRenderer>(); //hieu ung trung dan
         if (spriteRend != null) originalColor = spriteRend.color;
     }
 
     // =======================================================
     // 🔥 HÀM NHẬN SÁT THƯƠNG
     // =======================================================
+            //nguon gui        noi xu ly
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_TakeDamage(float damage, PlayerRef shooter = default, bool isMelee = false)
     {
@@ -89,7 +90,7 @@ public class ZombieHealth : NetworkBehaviour
         isDead = true;
 
         if (coll != null) coll.enabled = false;
-        // Đã xóa lệnh tắt aiScript ở đây vì ZombieAI tự biết dừng lại khi isDead = true
+       
 
         // Xử lý cộng điểm hạ gục (Kill) cho Player
         if (shooter != PlayerRef.None)
@@ -98,7 +99,7 @@ public class ZombieHealth : NetworkBehaviour
 
             foreach (var master in allWeaponMasters)
             {
-                if (master.Object != null && master.Object.InputAuthority == shooter)
+                if (master.Object != null && master.Object.InputAuthority == shooter)//Photon Fusion đối chiếu: "Quyền điều khiển nhân vật này có khớp với ID của người vừa nổ súng không?"
                 {
                     master.AddKill();
                     break;
@@ -115,7 +116,7 @@ public class ZombieHealth : NetworkBehaviour
     {
         if (anim != null)
         {
-            // 💡 ĐÃ SỬA LỖI CS0104: Chỉ định rõ ràng dùng hàm Random của UnityEngine
+    
             int randomDeath = UnityEngine.Random.Range(0, 2);
             anim.SetInteger("DeathType", randomDeath);
             anim.SetBool("isDead", true);

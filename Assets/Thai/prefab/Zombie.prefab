@@ -361,6 +361,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   nextWaypointDistance: 0.5
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 0
   detectionRange: 1
   directChaseRange: 3
   moveSpeed: 1

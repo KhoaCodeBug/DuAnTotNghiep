@@ -16,9 +16,12 @@ public class ZombieAI : NetworkBehaviour
     private int currentWaypoint = 0;
     private Rigidbody2D rb;
 
+    [Header("--- Né Vật Cản (MỚI) ---")]
+    [SerializeField] private LayerMask obstacleMask; // Gán layer Wall/Obstacle vào đây
+
     [Header("--- Phạm vi Phát hiện (Detection) ---")]
     public float detectionRange = 10f;
-    [Tooltip("Khoảng cách bỏ qua A* để lao thẳng vào Player")]
+    [Tooltip("Khoảng cách bỏ qua A* để lao thẳng vào Player nếu không có tường")]
     public float directChaseRange = 3f;
 
     [Header("--- Tấn công & Tốc độ ---")]
@@ -42,7 +45,7 @@ public class ZombieAI : NetworkBehaviour
     private bool isWandering = false;
     private Vector2 wanderTarget;
 
-    // 🔊 HỆ THỐNG LẮNG NGHE (Trí tuệ nhân tạo)
+    // 🔊 HỆ THỐNG LẮNG NGHE
     private Vector3 lastHeardPosition;
     private bool hasHeardSound = false;
     private float hearMemoryTimer = 0f;
@@ -61,8 +64,6 @@ public class ZombieAI : NetworkBehaviour
 
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
-
-    // BIẾN ĐỒNG BỘ: Để ZombieAudio có thể đọc được trạng thái
     [Networked] public NetworkBool NetIsWandering { get; set; }
     [Networked] public NetworkBool NetIsChasing { get; set; }
 
@@ -79,7 +80,6 @@ public class ZombieAI : NetworkBehaviour
 
         anim = GetComponent<Animator>();
         healthScript = GetComponent<ZombieHealth>();
-
         wanderTimer = Random.Range(1f, 3f);
 
         if (!HasStateAuthority)
@@ -99,6 +99,21 @@ public class ZombieAI : NetworkBehaviour
         {
             healthScript.OnStunRequested -= ApplyStun;
         }
+    }
+
+    // --- HÀM KIỂM TRA TẦM NHÌN THẲNG ---
+    private bool CanSeePlayer()
+    {
+        if (player == null) return false;
+
+        Vector2 direction = (player.position - transform.position).normalized;
+        float distance = Vector2.Distance(transform.position, player.position);
+
+        // Bắn Raycast check vật cản
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, direction, distance, obstacleMask);
+
+        // Nếu không chạm gì (null) nghĩa là nhìn thấy trực tiếp
+        return hit.collider == null;
     }
 
     private void CalculatePath(Vector2 targetPos, AIMode mode)
@@ -140,7 +155,6 @@ public class ZombieAI : NetworkBehaviour
         Vector2 targetMoveDir = (currentWp - rb.position).normalized;
 
         rb.MovePosition(rb.position + targetMoveDir * currentSpeed * Runner.DeltaTime);
-
         NetMoveDir = targetMoveDir;
     }
 
@@ -171,10 +185,7 @@ public class ZombieAI : NetworkBehaviour
             return;
         }
 
-        if (attackTimer > 0)
-        {
-            attackTimer -= Runner.DeltaTime;
-        }
+        if (attackTimer > 0) attackTimer -= Runner.DeltaTime;
 
         if (hasHeardSound)
         {
@@ -185,10 +196,7 @@ public class ZombieAI : NetworkBehaviour
         if (player != null)
         {
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-            if (pHealth == null || pHealth.isDead || !player.gameObject.activeInHierarchy)
-            {
-                player = null;
-            }
+            if (pHealth == null || pHealth.isDead || !player.gameObject.activeInHierarchy) player = null;
         }
 
         searchTimer -= Runner.DeltaTime;
@@ -199,15 +207,10 @@ public class ZombieAI : NetworkBehaviour
         }
 
         AIMode previousMode = currentMode;
+        if (player != null) currentMode = AIMode.Chase;
+        else if (hasHeardSound) currentMode = AIMode.Investigate;
+        else currentMode = AIMode.Wander;
 
-        if (player != null)
-            currentMode = AIMode.Chase;
-        else if (hasHeardSound)
-            currentMode = AIMode.Investigate;
-        else
-            currentMode = AIMode.Wander;
-
-        // Cập nhật trạng thái để tệp ZombieAudio đọc
         NetIsWandering = (currentMode == AIMode.Wander);
         NetIsChasing = (currentMode == AIMode.Chase);
 
@@ -216,22 +219,14 @@ public class ZombieAI : NetworkBehaviour
             StopMovement();
             pathUpdateTimer = 0f;
             isWandering = false;
-
-            if (currentMode == AIMode.Wander)
-                wanderTimer = 0f;
+            if (currentMode == AIMode.Wander) wanderTimer = 0f;
         }
 
         switch (currentMode)
         {
-            case AIMode.Chase:
-                HandleChaseState();
-                break;
-            case AIMode.Investigate:
-                HandleInvestigateState();
-                break;
-            case AIMode.Wander:
-                HandleWanderState();
-                break;
+            case AIMode.Chase: HandleChaseState(); break;
+            case AIMode.Investigate: HandleInvestigateState(); break;
+            case AIMode.Wander: HandleWanderState(); break;
         }
     }
 
@@ -241,7 +236,8 @@ public class ZombieAI : NetworkBehaviour
 
         if (distanceToPlayer > attackRange)
         {
-            if (distanceToPlayer <= directChaseRange)
+            // CƠ CHẾ THÔNG MINH: Chỉ lao thẳng nếu ở gần VÀ nhìn thấy (không có tường chắn)
+            if (distanceToPlayer <= directChaseRange && CanSeePlayer())
             {
                 Vector2 directDir = (player.position - transform.position).normalized;
                 rb.MovePosition(rb.position + directDir * moveSpeed * Runner.DeltaTime);
@@ -251,13 +247,13 @@ public class ZombieAI : NetworkBehaviour
             }
             else
             {
+                // Nếu bị chắn bởi tường hoặc ở quá xa, dùng A* để tìm đường né vật cản
                 pathUpdateTimer -= Runner.DeltaTime;
                 if (pathUpdateTimer <= 0 && seeker.IsDone())
                 {
                     CalculatePath(player.position, AIMode.Chase);
-                    pathUpdateTimer = 0.2f;
+                    pathUpdateTimer = 0.3f;
                 }
-
                 MoveAlongPath(moveSpeed);
                 NetIsRunning = true;
             }
@@ -284,7 +280,7 @@ public class ZombieAI : NetworkBehaviour
         if (pathUpdateTimer <= 0 && seeker.IsDone())
         {
             CalculatePath(lastHeardPosition, AIMode.Investigate);
-            pathUpdateTimer = 0.2f;
+            pathUpdateTimer = 0.5f;
         }
 
         MoveAlongPath(moveSpeed * 0.8f);
@@ -311,10 +307,7 @@ public class ZombieAI : NetworkBehaviour
                 var nearestNode = AstarPath.active.GetNearest(rawTarget, NNConstraint.Default);
                 wanderTarget = nearestNode.position;
             }
-            else
-            {
-                wanderTarget = rawTarget;
-            }
+            else wanderTarget = rawTarget;
 
             CalculatePath(wanderTarget, AIMode.Wander);
             isWandering = true;
@@ -382,19 +375,14 @@ public class ZombieAI : NetworkBehaviour
     void FindClosestPlayerInRange()
     {
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
-
         float activeRange = (currentMode == AIMode.Chase) ? detectionRange * 1.5f : detectionRange;
         float closestDistance = activeRange;
-
         player = null;
 
         foreach (GameObject p in allPlayers)
         {
             PlayerHealth pHealth = p.GetComponent<PlayerHealth>();
-            if (pHealth != null && pHealth.isDead)
-            {
-                continue;
-            }
+            if (pHealth != null && pHealth.isDead) continue;
 
             float dist = Vector2.Distance(transform.position, p.transform.position);
             if (dist < closestDistance)
@@ -407,7 +395,8 @@ public class ZombieAI : NetworkBehaviour
 
     public void DealDamage()
     {
-        ExecuteDamage(currentAttackIndex == 1 ? damageAtk1 : currentAttackIndex == 2 ? damageAtk2 : currentAttackIndex == 3 ? damageAtk3 : damageAtk4, currentAttackIndex);
+        float damage = currentAttackIndex switch { 1 => damageAtk1, 2 => damageAtk2, 3 => damageAtk3, _ => damageAtk4 };
+        ExecuteDamage(damage, currentAttackIndex);
     }
 
     private void ExecuteDamage(float damageAmount, int attackIndex)
@@ -417,7 +406,6 @@ public class ZombieAI : NetworkBehaviour
         if (Vector2.Distance(transform.position, player.position) <= damageRadius)
         {
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-
             if (pHealth != null && !pHealth.isDead)
             {
                 pHealth.TakeDamage(damageAmount, false, true);
