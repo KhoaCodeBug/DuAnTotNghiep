@@ -506,8 +506,8 @@ public class AutoHealthPanel : MonoBehaviour
         {
             if (Time.time < toggleCooldown) return;
 
-            bool isInvDoingAction = AutoUIManager.Instance != null && AutoUIManager.Instance.isDoingAction;
-            if (isHealing || isInvDoingAction) return;
+            // Đã bỏ cái isInvDoingAction đi cho bớt lỗi ngầm. Chỉ check isHealing.
+            if (isHealing) return;
 
             bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
             if (!isOpen && isInvOpen) return;
@@ -757,5 +757,13 @@ public class AutoHealthPanel : MonoBehaviour
             }
         }
         return uniqueInjuries;
+    }
+
+    private void OnDestroy()
+    {
+        if (healthCanvas != null)
+        {
+            Destroy(healthCanvas);
+        }
     }
 }
