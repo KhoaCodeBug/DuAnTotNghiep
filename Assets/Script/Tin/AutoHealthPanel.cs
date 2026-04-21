@@ -691,9 +691,13 @@ public class AutoHealthPanel : MonoBehaviour
             duration = itemUsed.useTime;
         }
 
+        // 👇 THÊM ĐOẠN NÀY: Xác định chữ sẽ hiển thị dựa vào hành động
+        string actionText = (actionType == "Apply") ? "Applying Bandage..." : "Removing Bandage...";
+
         if (AutoUIManager.Instance != null)
         {
-            AutoUIManager.Instance.ShowReloadUI(0, duration);
+            // Truyền actionText vào
+            AutoUIManager.Instance.ShowReloadUI(0, duration, actionText);
         }
 
         float timer = 0;
@@ -704,7 +708,8 @@ public class AutoHealthPanel : MonoBehaviour
 
             if (AutoUIManager.Instance != null)
             {
-                AutoUIManager.Instance.ShowReloadUI(timer, duration);
+                // Truyền actionText vào
+                AutoUIManager.Instance.ShowReloadUI(timer, duration, actionText);
             }
 
             yield return null;
