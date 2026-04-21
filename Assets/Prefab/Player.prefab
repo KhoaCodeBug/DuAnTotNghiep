@@ -601,7 +601,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SortKey: 2069159445
   ObjectInterest: 1
-  Flags: 262145
+  Flags: 786433
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: 2529962990091390442}
@@ -1134,7 +1134,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 384c1f2bfbf1bec42a5e99bad3b47e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactRange: 3
+  interactRange: 0.5
 --- !u!1 &4528869163461110736
 GameObject:
   m_ObjectHideFlags: 0

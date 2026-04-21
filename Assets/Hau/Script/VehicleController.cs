@@ -18,6 +18,9 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     private Rigidbody2D rb;
 
+    private Vector2 lastDir = Vector2.down;
+    private float stopTimer = 0f;
+
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -53,17 +56,7 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     void Attach(NetworkObject player, Transform seat, bool isDriver)
     {
-        // 🔥 Tắt NetworkTransform
-        var net = player.GetComponent<NetworkTransform>();
-        if (net != null) net.enabled = false;
-
-        // 🔥 Tắt Rigidbody
-        var rb = player.GetComponent<Rigidbody2D>();
-        if (rb != null) rb.simulated = false;
-
-        // 🔥 Đặt đúng vị trí ngay
         player.transform.position = seat.position;
-
         RPC_SetState(player, true, isDriver);
     }
 
@@ -82,24 +75,13 @@ public class VehicleControllerFusion : NetworkBehaviour
 
         Vector3 exitPos = exitPoint.position;
 
-        var net = player.GetComponent<NetworkTransform>();
-        var rb = player.GetComponent<Rigidbody2D>();
+        // 🔥 STOP XE
+        rb.linearVelocity = Vector2.zero;
+        rb.angularVelocity = 0f;
 
-        // 🔥 Bật lại
-        if (net != null) net.enabled = true;
-        if (rb != null) rb.simulated = true;
-
-        // 🔥 Teleport chuẩn
-        if (net != null)
-            net.Teleport(exitPos, Quaternion.identity);
+        stopTimer = 0.1f;
 
         player.transform.position = exitPos;
-
-        if (rb != null)
-        {
-            rb.position = exitPos;
-            rb.linearVelocity = Vector2.zero;
-        }
 
         RPC_SetState(player, false, false);
     }
@@ -113,36 +95,69 @@ public class VehicleControllerFusion : NetworkBehaviour
             p.SetVehicle(this, enter, isDriver);
     }
 
-    // ================= FOLLOW SEAT =================
+    // ================= MOVE =================
     public override void FixedUpdateNetwork()
     {
-        // 🔥 ép player theo ghế (CỰC QUAN TRỌNG)
+        if (stopTimer > 0)
+        {
+            stopTimer -= Runner.DeltaTime;
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
+        if (Driver == null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
+        if (!Driver.HasInputAuthority) return;
+
+        float x = Input.GetKey(KeyCode.A) ? -1 :
+                  Input.GetKey(KeyCode.D) ? 1 : 0;
+
+        float y = Input.GetKey(KeyCode.S) ? -1 :
+                  Input.GetKey(KeyCode.W) ? 1 : 0;
+
+        Vector2 dir = new Vector2(x, y).normalized;
+
+        if (Mathf.Abs(dir.x) > Mathf.Abs(dir.y))
+            dir.y = 0;
+        else
+            dir.x = 0;
+
+        rb.linearVelocity = dir * moveSpeed;
+
+        UpdateAnimation(dir);
+
         if (Driver != null)
             Driver.transform.position = driverSeat.position;
 
         if (Passenger != null)
             Passenger.transform.position = passengerSeat.position;
+    }
 
-        if (Driver == null) return;
-        if (!Driver.HasInputAuthority) return;
+    // ================= ANIMATION =================
+    void UpdateAnimation(Vector2 dir)
+    {
+        if (animator == null) return;
 
-        float x = Input.GetKey(KeyCode.A) ? -1 : Input.GetKey(KeyCode.D) ? 1 : 0;
-        float y = Input.GetKey(KeyCode.S) ? -1 : Input.GetKey(KeyCode.W) ? 1 : 0;
+        if (dir != Vector2.zero)
+            lastDir = dir;
 
-        Vector2 dir = new Vector2(x, y).normalized;
-        rb.linearVelocity = dir * moveSpeed;
-
-        if (animator != null)
-        {
-            animator.SetFloat("MoveX", dir.x);
-            animator.SetFloat("MoveY", dir.y);
-        }
+        animator.SetFloat("MoveX", lastDir.x);
+        animator.SetFloat("MoveY", lastDir.y);
+        animator.SetBool("isMoving", dir != Vector2.zero);
     }
 
     // ================= CAMERA =================
     public void SetCamera(bool enable)
     {
         if (vehicleCamera == null) return;
+
+        // 🔥 FIX: chỉ local mới được bật camera
+        if (!Object.HasInputAuthority && !Object.HasStateAuthority)
+            return;
 
         vehicleCamera.gameObject.SetActive(enable);
 
