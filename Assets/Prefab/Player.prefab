@@ -791,10 +791,10 @@ MonoBehaviour:
   iconThirst: {fileID: 2800000, guid: 86a3b6e0caa9d48469793001bd3204d0, type: 3}
   maxHunger: 100
   _currentHunger: 0
-  hungerDrainRate: 0.1
+  hungerDrainRate: 0.5
   maxThirst: 100
   _currentThirst: 0
-  thirstDrainRate: 0.2
+  thirstDrainRate: 0.5
   damageOverTime: 1
 --- !u!114 &2460234225545820196
 MonoBehaviour:

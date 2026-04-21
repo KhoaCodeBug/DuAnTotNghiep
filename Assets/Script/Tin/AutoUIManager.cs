@@ -1399,12 +1399,15 @@ public class AutoUIManager : MonoBehaviour
         if (ammoText != null) ammoText.text = $"{current} / {reserve}";
     }
 
-    public void ShowReloadUI(float currentTimer, float maxDuration)
+    // Sửa hàm này để nó có thể nhận chữ tùy ý (Mặc định vẫn là Reloading)
+    public void ShowReloadUI(float currentTimer, float maxDuration, string actionName = "Reloading...")
     {
         if (ammoContainer != null) ammoContainer.SetActive(false);
         if (actionBarPanel != null && !actionBarPanel.activeSelf) actionBarPanel.SetActive(true);
         if (actionBarFill != null) actionBarFill.fillAmount = currentTimer / maxDuration;
-        if (actionBarText != null) actionBarText.text = $"Reloading... {(maxDuration - currentTimer):F1}s";
+
+        // Dùng biến actionName thay vì chữ "Reloading" cứng ngắc
+        if (actionBarText != null) actionBarText.text = $"{actionName} {(maxDuration - currentTimer):F1}s";
     }
 
     public void HideReloadUI()
