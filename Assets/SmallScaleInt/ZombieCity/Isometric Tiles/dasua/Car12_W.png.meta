@@ -1,0 +1,256 @@
+fileFormatVersion: 2
+guid: b0e9bffa7155def4fab4a71d5b3345a7
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 2091667501604915181
+    second: Car12_W_0
+  - first:
+      213: -4825063671657709449
+    second: Car12_W_1
+  - first:
+      213: 1918985777449409290
+    second: Car12_W_2
+  - first:
+      213: -3161930072985246534
+    second: Car12_W_3
+  - first:
+      213: 2675837432775929
+    second: Car12_W_4
+  - first:
+      213: 5333129933587875190
+    second: Car12_W_5
+  - first:
+      213: 6282910729979769916
+    second: Car12_W_6
+  - first:
+      213: -6323406148805563095
+    second: Car12_W_7
+  - first:
+      213: 4625658086511061105
+    second: Car12_W_8
+  - first:
+      213: 5091842125476738317
+    second: Car12_W_9
+  - first:
+      213: 288806316708491476
+    second: Car12_W_10
+  - first:
+      213: -2685988695180231064
+    second: Car12_W_11
+  - first:
+      213: -147137371820603518
+    second: Car12_W_12
+  - first:
+      213: 2543575605002102614
+    second: Car12_W_13
+  - first:
+      213: 145944067025441419
+    second: Car12_W_14
+  - first:
+      213: 5631755990240859169
+    second: Car12_W_15
+  - first:
+      213: 1835580261658690331
+    second: Car12_W_16
+  - first:
+      213: 5646409577927370963
+    second: Car12_W_17
+  - first:
+      213: 229490382090274954
+    second: Car12_W_18
+  - first:
+      213: 8966818818767975302
+    second: Car12_W_19
+  - first:
+      213: 3232052295833659187
+    second: Car12_W_20
+  - first:
+      213: 8468566298602276207
+    second: Car12_W_21
+  - first:
+      213: 9095729516165276584
+    second: Car12_W_22
+  - first:
+      213: 4955426827507980809
+    second: Car12_W_23
+  - first:
+      213: 8640905652051426992
+    second: Car12_W_24
+  - first:
+      213: -1031476990697364902
+    second: Car12_W_25
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.18}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: 0
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Car12_W_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 256
+        height: 503
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape:
+      - - {x: -86, y: -136.5}
+        - {x: 41, y: -192.5}
+        - {x: 87, y: -173.5}
+        - {x: 77, y: -153.5}
+        - {x: 37, y: -112.5}
+        - {x: -20, y: -68.5}
+        - {x: -66, y: -80.5}
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7704338a72ee90db0800000000000000
+      internalID: -4825063671657709449
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape:
+    - - {x: -79, y: -91}
+      - {x: -85, y: -141}
+      - {x: 41, y: -200}
+      - {x: 88, y: -177}
+      - {x: 20, y: -102}
+      - {x: -33, y: -70}
+    bones: []
+    spriteID: d4adbe720ae2c48439f6c7ec3feeb583
+    internalID: 1308007709
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Car12_W_0: 2091667501604915181
+      Car12_W_1: -4825063671657709449
+      Car12_W_10: 288806316708491476
+      Car12_W_11: -2685988695180231064
+      Car12_W_12: -147137371820603518
+      Car12_W_13: 2543575605002102614
+      Car12_W_14: 145944067025441419
+      Car12_W_15: 5631755990240859169
+      Car12_W_16: 1835580261658690331
+      Car12_W_17: 5646409577927370963
+      Car12_W_18: 229490382090274954
+      Car12_W_19: 8966818818767975302
+      Car12_W_2: 1918985777449409290
+      Car12_W_20: 3232052295833659187
+      Car12_W_21: 8468566298602276207
+      Car12_W_22: 9095729516165276584
+      Car12_W_23: 4955426827507980809
+      Car12_W_24: 8640905652051426992
+      Car12_W_25: -1031476990697364902
+      Car12_W_3: -3161930072985246534
+      Car12_W_4: 2675837432775929
+      Car12_W_5: 5333129933587875190
+      Car12_W_6: 6282910729979769916
+      Car12_W_7: -6323406148805563095
+      Car12_W_8: 4625658086511061105
+      Car12_W_9: 5091842125476738317
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

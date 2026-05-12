@@ -1,0 +1,268 @@
+fileFormatVersion: 2
+guid: 0612ff3f7eb564f449c4cf8fbeed3be4
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 6901987941397404491
+    second: Car7_N_0
+  - first:
+      213: -6407209961853713690
+    second: Car7_N_1
+  - first:
+      213: -7422895082365571448
+    second: Car7_N_2
+  - first:
+      213: 5940435430940519984
+    second: Car7_N_3
+  - first:
+      213: 2598612289345326319
+    second: Car7_N_4
+  - first:
+      213: 1528325846883002481
+    second: Car7_N_5
+  - first:
+      213: 4098386439126455925
+    second: Car7_N_6
+  - first:
+      213: -8691289509288204521
+    second: Car7_N_7
+  - first:
+      213: -3637674020233686821
+    second: Car7_N_8
+  - first:
+      213: -6618583972778929164
+    second: Car7_N_9
+  - first:
+      213: 1790230913618804713
+    second: Car7_N_10
+  - first:
+      213: 1693543942567144434
+    second: Car7_N_11
+  - first:
+      213: 347888013374746382
+    second: Car7_N_12
+  - first:
+      213: 6544788137665419713
+    second: Car7_N_13
+  - first:
+      213: 6336232904037642687
+    second: Car7_N_14
+  - first:
+      213: -2761838478856302736
+    second: Car7_N_15
+  - first:
+      213: -7513905425260147477
+    second: Car7_N_16
+  - first:
+      213: -4327074562256953913
+    second: Car7_N_17
+  - first:
+      213: -3920947763403986879
+    second: Car7_N_18
+  - first:
+      213: -3082883923335977603
+    second: Car7_N_19
+  - first:
+      213: 8209225051937457428
+    second: Car7_N_20
+  - first:
+      213: 3242527942648920092
+    second: Car7_N_21
+  - first:
+      213: 7531145446580221673
+    second: Car7_N_22
+  - first:
+      213: 4433169003977377320
+    second: Car7_N_23
+  - first:
+      213: -4015416330412835909
+    second: Car7_N_24
+  - first:
+      213: -3324613731945975685
+    second: Car7_N_25
+  - first:
+      213: -4384086945224444698
+    second: Car7_N_26
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.18}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: 0
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Car7_N_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 256
+        height: 503
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape:
+      - - {x: -68, y: -127.5}
+        - {x: -77, y: -149.5}
+        - {x: -74, y: -174.5}
+        - {x: -56, y: -183.5}
+        - {x: 102, y: -141.5}
+        - {x: 94, y: -109.5}
+        - {x: 82, y: -88.5}
+        - {x: 64, y: -86.5}
+        - {x: 45, y: -82.5}
+        - {x: 35, y: -91.5}
+        - {x: -31, y: -112.5}
+        - {x: -42, y: -108.5}
+        - {x: -57, y: -121.5}
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6e28d5e8c740517a0800000000000000
+      internalID: -6407209961853713690
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape:
+    - - {x: -73, y: -165}
+      - {x: -65, y: -185}
+      - {x: -44, y: -185}
+      - {x: 69, y: -156}
+      - {x: 88, y: -146}
+      - {x: 88, y: -125}
+      - {x: 79, y: -107}
+      - {x: -60, y: -143}
+    bones: []
+    spriteID: 6f71c14c533a40c4cac9a6d8c4150711
+    internalID: 1382982219
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Car7_N_0: 6901987941397404491
+      Car7_N_1: -6407209961853713690
+      Car7_N_10: 1790230913618804713
+      Car7_N_11: 1693543942567144434
+      Car7_N_12: 347888013374746382
+      Car7_N_13: 6544788137665419713
+      Car7_N_14: 6336232904037642687
+      Car7_N_15: -2761838478856302736
+      Car7_N_16: -7513905425260147477
+      Car7_N_17: -4327074562256953913
+      Car7_N_18: -3920947763403986879
+      Car7_N_19: -3082883923335977603
+      Car7_N_2: -7422895082365571448
+      Car7_N_20: 8209225051937457428
+      Car7_N_21: 3242527942648920092
+      Car7_N_22: 7531145446580221673
+      Car7_N_23: 4433169003977377320
+      Car7_N_24: -4015416330412835909
+      Car7_N_25: -3324613731945975685
+      Car7_N_26: -4384086945224444698
+      Car7_N_3: 5940435430940519984
+      Car7_N_4: 2598612289345326319
+      Car7_N_5: 1528325846883002481
+      Car7_N_6: 4098386439126455925
+      Car7_N_7: -8691289509288204521
+      Car7_N_8: -3637674020233686821
+      Car7_N_9: -6618583972778929164
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

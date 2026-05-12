@@ -1,0 +1,266 @@
+fileFormatVersion: 2
+guid: d69be5cb5fe6c424f8d94ef783737aa6
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 6215571231714031425
+    second: Car5_N_0
+  - first:
+      213: -3129771603041260713
+    second: Car5_N_1
+  - first:
+      213: 566617134668888995
+    second: Car5_N_2
+  - first:
+      213: 8911322485377077456
+    second: Car5_N_3
+  - first:
+      213: -5567943999275437
+    second: Car5_N_4
+  - first:
+      213: 2854694049252083880
+    second: Car5_N_5
+  - first:
+      213: 7040855211017186422
+    second: Car5_N_6
+  - first:
+      213: 6407524438624373505
+    second: Car5_N_7
+  - first:
+      213: 7035842457655067535
+    second: Car5_N_8
+  - first:
+      213: 8701388185952277637
+    second: Car5_N_9
+  - first:
+      213: -9027809945584619836
+    second: Car5_N_10
+  - first:
+      213: 3692544558719805553
+    second: Car5_N_11
+  - first:
+      213: 3662497864395053751
+    second: Car5_N_12
+  - first:
+      213: -5388746488538416541
+    second: Car5_N_13
+  - first:
+      213: 4439362108508026100
+    second: Car5_N_14
+  - first:
+      213: 8413309750596263004
+    second: Car5_N_15
+  - first:
+      213: 164155871799733537
+    second: Car5_N_16
+  - first:
+      213: -6512975755817983802
+    second: Car5_N_17
+  - first:
+      213: 4134384934569396148
+    second: Car5_N_18
+  - first:
+      213: 7199280479741913459
+    second: Car5_N_19
+  - first:
+      213: -6472733254575319276
+    second: Car5_N_20
+  - first:
+      213: 1075276997036189529
+    second: Car5_N_21
+  - first:
+      213: -4492670880400904235
+    second: Car5_N_22
+  - first:
+      213: 5146387652331765187
+    second: Car5_N_23
+  - first:
+      213: 2949221596334537796
+    second: Car5_N_24
+  - first:
+      213: -81294088557063440
+    second: Car5_N_25
+  - first:
+      213: 916374103661361177
+    second: Car5_N_26
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.18}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: 0
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Car5_N_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 256
+        height: 503
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape:
+      - - {x: -70, y: -79.5}
+        - {x: -88, y: -94.5}
+        - {x: -96, y: -111.5}
+        - {x: 26, y: -174.5}
+        - {x: 50, y: -180.5}
+        - {x: 79, y: -170.5}
+        - {x: 97, y: -155.5}
+        - {x: 96, y: -147.5}
+        - {x: 89, y: -136.5}
+        - {x: 58, y: -120.5}
+        - {x: -15, y: -84.5}
+        - {x: -47, y: -78.5}
+      tessellationDetail: 0
+      bones: []
+      spriteID: 75bee9c2f41d094d0800000000000000
+      internalID: -3129771603041260713
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape:
+    - - {x: -65, y: -88}
+      - {x: -92, y: -118}
+      - {x: -63, y: -134}
+      - {x: 28, y: -180}
+      - {x: 55, y: -184}
+      - {x: 98, y: -163}
+      - {x: -40, y: -91}
+    bones: []
+    spriteID: e89f92f0ebf43814f93a9aef717ca7eb
+    internalID: -862363492
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Car5_N_0: 6215571231714031425
+      Car5_N_1: -3129771603041260713
+      Car5_N_10: -9027809945584619836
+      Car5_N_11: 3692544558719805553
+      Car5_N_12: 3662497864395053751
+      Car5_N_13: -5388746488538416541
+      Car5_N_14: 4439362108508026100
+      Car5_N_15: 8413309750596263004
+      Car5_N_16: 164155871799733537
+      Car5_N_17: -6512975755817983802
+      Car5_N_18: 4134384934569396148
+      Car5_N_19: 7199280479741913459
+      Car5_N_2: 566617134668888995
+      Car5_N_20: -6472733254575319276
+      Car5_N_21: 1075276997036189529
+      Car5_N_22: -4492670880400904235
+      Car5_N_23: 5146387652331765187
+      Car5_N_24: 2949221596334537796
+      Car5_N_25: -81294088557063440
+      Car5_N_26: 916374103661361177
+      Car5_N_3: 8911322485377077456
+      Car5_N_4: -5567943999275437
+      Car5_N_5: 2854694049252083880
+      Car5_N_6: 7040855211017186422
+      Car5_N_7: 6407524438624373505
+      Car5_N_8: 7035842457655067535
+      Car5_N_9: 8701388185952277637
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

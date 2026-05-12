@@ -1,0 +1,242 @@
+fileFormatVersion: 2
+guid: 0d002db4e80f11c40ad79fe57df01c15
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 1200007952537006743
+    second: Car10_S_0
+  - first:
+      213: -4921653010996862365
+    second: Car10_S_1
+  - first:
+      213: 9130016201421478678
+    second: Car10_S_2
+  - first:
+      213: -5808953849922101407
+    second: Car10_S_3
+  - first:
+      213: 4837872819373162459
+    second: Car10_S_4
+  - first:
+      213: -5048275977985017169
+    second: Car10_S_5
+  - first:
+      213: 4775760733063228031
+    second: Car10_S_6
+  - first:
+      213: 8568290109499812929
+    second: Car10_S_7
+  - first:
+      213: -9060758064126243814
+    second: Car10_S_8
+  - first:
+      213: 6554735049786720304
+    second: Car10_S_9
+  - first:
+      213: 7217396500608290683
+    second: Car10_S_10
+  - first:
+      213: -1643432323778421610
+    second: Car10_S_11
+  - first:
+      213: 4615702507484473020
+    second: Car10_S_12
+  - first:
+      213: 1543492191137951483
+    second: Car10_S_13
+  - first:
+      213: 4163706691834509171
+    second: Car10_S_14
+  - first:
+      213: 7282156213920372456
+    second: Car10_S_15
+  - first:
+      213: -5366023836840178451
+    second: Car10_S_16
+  - first:
+      213: 5012576652705885915
+    second: Car10_S_17
+  - first:
+      213: 3154457408162232542
+    second: Car10_S_18
+  - first:
+      213: 4384304947685932330
+    second: Car10_S_19
+  - first:
+      213: 8752549640849604032
+    second: Car10_S_20
+  - first:
+      213: 7267462399181436724
+    second: Car10_S_21
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.18}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: 0
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Car10_S_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 256
+        height: 505
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape:
+      - - {x: -74, y: -197.5}
+        - {x: -49, y: -193.5}
+        - {x: 81, y: -122.5}
+        - {x: 76, y: -76.5}
+        - {x: -65, y: -141.5}
+      tessellationDetail: 0
+      bones: []
+      spriteID: 362eccb99a6c2bbb0800000000000000
+      internalID: -4921653010996862365
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape:
+    - - {x: -75, y: -161}
+      - {x: -76, y: -182}
+      - {x: -73, y: -200}
+      - {x: -58, y: -210}
+      - {x: 80, y: -130}
+      - {x: 83, y: -115}
+      - {x: 82, y: -101}
+      - {x: 76, y: -84}
+      - {x: 60, y: -80}
+      - {x: -65, y: -145}
+    bones: []
+    spriteID: 36a2228a31a564f46854646e22f4176e
+    internalID: -869572296
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Car10_S_0: 1200007952537006743
+      Car10_S_1: -4921653010996862365
+      Car10_S_10: 7217396500608290683
+      Car10_S_11: -1643432323778421610
+      Car10_S_12: 4615702507484473020
+      Car10_S_13: 1543492191137951483
+      Car10_S_14: 4163706691834509171
+      Car10_S_15: 7282156213920372456
+      Car10_S_16: -5366023836840178451
+      Car10_S_17: 5012576652705885915
+      Car10_S_18: 3154457408162232542
+      Car10_S_19: 4384304947685932330
+      Car10_S_2: 9130016201421478678
+      Car10_S_20: 8752549640849604032
+      Car10_S_21: 7267462399181436724
+      Car10_S_3: -5808953849922101407
+      Car10_S_4: 4837872819373162459
+      Car10_S_5: -5048275977985017169
+      Car10_S_6: 4775760733063228031
+      Car10_S_7: 8568290109499812929
+      Car10_S_8: -9060758064126243814
+      Car10_S_9: 6554735049786720304
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
