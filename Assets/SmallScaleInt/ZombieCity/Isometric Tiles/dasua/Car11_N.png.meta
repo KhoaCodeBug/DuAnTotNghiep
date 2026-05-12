@@ -1,0 +1,208 @@
+fileFormatVersion: 2
+guid: 994e6d70f30a71c4da84903cf8089dfd
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -927525373924781669
+    second: Car11_N_0
+  - first:
+      213: 7000297429924642925
+    second: Car11_N_1
+  - first:
+      213: -9157012695657942109
+    second: Car11_N_2
+  - first:
+      213: 6124135428566940152
+    second: Car11_N_3
+  - first:
+      213: -1562646336592592924
+    second: Car11_N_4
+  - first:
+      213: 6382607853623369077
+    second: Car11_N_5
+  - first:
+      213: -8884884538341367782
+    second: Car11_N_6
+  - first:
+      213: 7417679844930902075
+    second: Car11_N_7
+  - first:
+      213: 4656611552667856088
+    second: Car11_N_8
+  - first:
+      213: -7309657541178748870
+    second: Car11_N_9
+  - first:
+      213: -1388066590260553199
+    second: Car11_N_10
+  - first:
+      213: 6850331440602183131
+    second: Car11_N_11
+  - first:
+      213: 2147427734860992924
+    second: Car11_N_12
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.18}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: 0
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Car11_N_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 256
+        height: 505
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape:
+      - - {x: -99, y: -141.5}
+        - {x: -100, y: -169.5}
+        - {x: -85, y: -182.5}
+        - {x: 58, y: -101.5}
+        - {x: 63, y: -81.5}
+        - {x: 58, y: -59.5}
+        - {x: 42, y: -55.5}
+        - {x: -63, y: -109.5}
+        - {x: -86, y: -130.5}
+      tessellationDetail: 0
+      bones: []
+      spriteID: d600db06c6d062160800000000000000
+      internalID: 7000297429924642925
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape:
+    - - {x: -93, y: -137}
+      - {x: -98, y: -167}
+      - {x: -87, y: -183}
+      - {x: 59, y: -114}
+      - {x: 62, y: -93}
+      - {x: 56, y: -73}
+      - {x: 46, y: -59}
+      - {x: -84, y: -118}
+    bones: []
+    spriteID: e66a9ae0c236be146b2807363ac9c817
+    internalID: -2074282921
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Car11_N_0: -927525373924781669
+      Car11_N_1: 7000297429924642925
+      Car11_N_10: -1388066590260553199
+      Car11_N_11: 6850331440602183131
+      Car11_N_12: 2147427734860992924
+      Car11_N_2: -9157012695657942109
+      Car11_N_3: 6124135428566940152
+      Car11_N_4: -1562646336592592924
+      Car11_N_5: 6382607853623369077
+      Car11_N_6: -8884884538341367782
+      Car11_N_7: 7417679844930902075
+      Car11_N_8: 4656611552667856088
+      Car11_N_9: -7309657541178748870
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -1,0 +1,249 @@
+fileFormatVersion: 2
+guid: 2c7311faa1eab814583064e67edb899c
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -4724310326781201828
+    second: Car6_S_0
+  - first:
+      213: -4783306749997633330
+    second: Car6_S_1
+  - first:
+      213: -3911301743099379733
+    second: Car6_S_2
+  - first:
+      213: 6981548528535699581
+    second: Car6_S_3
+  - first:
+      213: 6829067979313310180
+    second: Car6_S_4
+  - first:
+      213: -8293854345070899120
+    second: Car6_S_5
+  - first:
+      213: 1167214674724237658
+    second: Car6_S_6
+  - first:
+      213: -4272500860920747134
+    second: Car6_S_7
+  - first:
+      213: 3925750647591918970
+    second: Car6_S_8
+  - first:
+      213: 2004238566410228802
+    second: Car6_S_9
+  - first:
+      213: -5944808487273963090
+    second: Car6_S_10
+  - first:
+      213: -4653410496104505079
+    second: Car6_S_11
+  - first:
+      213: -5450511253407508961
+    second: Car6_S_12
+  - first:
+      213: -2649092992407729247
+    second: Car6_S_13
+  - first:
+      213: 3931924917304887879
+    second: Car6_S_14
+  - first:
+      213: -4005569465228673072
+    second: Car6_S_15
+  - first:
+      213: 9194488773077634738
+    second: Car6_S_16
+  - first:
+      213: -1352810479739241773
+    second: Car6_S_17
+  - first:
+      213: -848327152357520021
+    second: Car6_S_18
+  - first:
+      213: -4950678298926100990
+    second: Car6_S_19
+  - first:
+      213: 2749632086307488089
+    second: Car6_S_20
+  - first:
+      213: 6107123679327262027
+    second: Car6_S_21
+  - first:
+      213: -2620053831942863760
+    second: Car6_S_22
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 1
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 9
+  spritePivot: {x: 0.5, y: 0.18}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: 0
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Car6_S_1
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 256
+        height: 216
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape:
+      - - {x: -60, y: -3}
+        - {x: -83, y: -27}
+        - {x: -52, y: -48}
+        - {x: -19, y: -49}
+        - {x: 108, y: 16}
+        - {x: 102, y: 37}
+        - {x: 85, y: 50}
+        - {x: 63, y: 54}
+        - {x: -15, y: 29}
+      tessellationDetail: 0
+      bones: []
+      spriteID: ec0b9aa9ad74e9db0800000000000000
+      internalID: -4783306749997633330
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape:
+    - - {x: -59, y: -194}
+      - {x: -35, y: -199}
+      - {x: -17, y: -196}
+      - {x: 109, y: -132}
+      - {x: 96, y: -104}
+      - {x: 53, y: -96}
+      - {x: 14, y: -109}
+      - {x: -55, y: -149}
+      - {x: -83, y: -175}
+    bones: []
+    spriteID: 2a0c9cdb98878c14bb4fb365a268246a
+    internalID: 830646806
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Car6_S_0: -4724310326781201828
+      Car6_S_1: -4783306749997633330
+      Car6_S_10: -5944808487273963090
+      Car6_S_11: -4653410496104505079
+      Car6_S_12: -5450511253407508961
+      Car6_S_13: -2649092992407729247
+      Car6_S_14: 3931924917304887879
+      Car6_S_15: -4005569465228673072
+      Car6_S_16: 9194488773077634738
+      Car6_S_17: -1352810479739241773
+      Car6_S_18: -848327152357520021
+      Car6_S_19: -4950678298926100990
+      Car6_S_2: -3911301743099379733
+      Car6_S_20: 2749632086307488089
+      Car6_S_21: 6107123679327262027
+      Car6_S_22: -2620053831942863760
+      Car6_S_3: 6981548528535699581
+      Car6_S_4: 6829067979313310180
+      Car6_S_5: -8293854345070899120
+      Car6_S_6: 1167214674724237658
+      Car6_S_7: -4272500860920747134
+      Car6_S_8: 3925750647591918970
+      Car6_S_9: 2004238566410228802
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
