@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: 39f9c8a75ec39434eaa45527f0f5522d
+AssetOrigin:
+  serializedVersion: 1
+  productId: 327298
+  packageName: Zombie Interior - HD Isometric Tileset
+  packageVersion: 1.0
+  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Environment/Sprites/Door14_E.png
+  uploadId: 777992
 TextureImporter:
   internalIDToNameTable:
   - first:
@@ -59,7 +66,7 @@ TextureImporter:
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
-  spriteTessellationDetail: -1
+  spriteTessellationDetail: 0
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
@@ -117,10 +124,18 @@ TextureImporter:
     sprites: []
     outline: []
     customData: 
-    physicsShape: []
+    physicsShape:
+    - - {x: -33, y: -91}
+      - {x: -2, y: -107}
+      - {x: -2, y: -100}
+      - {x: -33, y: -85}
+    - - {x: 23, y: -64}
+      - {x: 58, y: -79}
+      - {x: 58, y: -73}
+      - {x: 23, y: -59}
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
-    internalID: 0
+    internalID: 1537655665
     vertices: []
     indices: 
     edges: []
@@ -134,10 +149,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 327298
-  packageName: Zombie Interior - HD Isometric Tileset
-  packageVersion: 1.0
-  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Environment/Sprites/Door14_E.png
-  uploadId: 777992
