@@ -1,5 +1,12 @@
 fileFormatVersion: 2
 guid: e3256489b7886f84ab6d2ead6ebc8487
+AssetOrigin:
+  serializedVersion: 1
+  productId: 327298
+  packageName: Zombie Interior - HD Isometric Tileset
+  packageVersion: 1.0
+  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Environment/Sprites/Door19_W.png
+  uploadId: 777992
 TextureImporter:
   internalIDToNameTable:
   - first:
@@ -56,7 +63,7 @@ TextureImporter:
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
-  spriteTessellationDetail: -1
+  spriteTessellationDetail: 0
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
@@ -114,10 +121,24 @@ TextureImporter:
     sprites: []
     outline: []
     customData: 
-    physicsShape: []
+    physicsShape:
+    - - {x: -63, y: -63}
+      - {x: -63, y: -80}
+      - {x: -46, y: -89}
+      - {x: -37, y: -85}
+      - {x: -37, y: -67}
+      - {x: -46, y: -69}
+    - - {x: -11, y: -53}
+      - {x: 3, y: -60}
+      - {x: 8, y: -58}
+      - {x: 8, y: -63}
+      - {x: 18, y: -57}
+      - {x: 18, y: -47}
+      - {x: 3, y: -51}
+      - {x: -11, y: -47}
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
-    internalID: 0
+    internalID: 1537655665
     vertices: []
     indices: 
     edges: []
@@ -131,10 +152,3 @@ TextureImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 327298
-  packageName: Zombie Interior - HD Isometric Tileset
-  packageVersion: 1.0
-  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Environment/Sprites/Door19_W.png
-  uploadId: 777992
