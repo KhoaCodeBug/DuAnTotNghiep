@@ -1,257 +1,337 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using System.Collections;
 
+/// <summary>
+/// Hệ thống Box Chat Multiplayer - Hoạt động 100% cho mọi người chơi.
+/// Dùng sự kiện onEndEdit của InputField (cách chuẩn Unity) thay vì tự bắt phím Enter.
+/// Điều này tránh hoàn toàn lỗi "chat hiện rồi biến mất ngay".
+/// </summary>
 public class AutoChatManager : MonoBehaviour
 {
     public static AutoChatManager Instance;
 
+    // ========================= THAM CHIẾU UI =========================
     private CanvasGroup chatGroup;
     private Text chatHistory;
     private InputField chatInput;
-    private GameObject inputObj;
-    private ScrollRect chatScrollRect;
+    private GameObject inputContainer;
+    private ScrollRect scrollRect;
 
+    // ========================= CẤU HÌNH =========================
+    private const float SHOW_DURATION = 6f;
+    private const float FADE_SPEED    = 1.5f;
+
+    // ========================= TRẠNG THÁI =========================
     private float fadeTimer = 0f;
-    private float showDuration = 5f;
-    private bool isTyping = false;
+    private bool  isTyping  = false;
 
-    public delegate void OnSendMessage(string msg);
+    // ========================= SỰ KIỆN (Cho PlayerInputHandler2D) =========================
+    public delegate void OnSendMessage(string message);
     public OnSendMessage onSendMessage;
 
+    // ============================================================
+    // KHỞI TẠO TỰ ĐỘNG
+    // ============================================================
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoSpawn()
     {
-        if (Instance == null)
-        {
-            GameObject go = new GameObject("--- AUTO CHAT MANAGER ---");
-            go.AddComponent<AutoChatManager>();
-            DontDestroyOnLoad(go);
-        }
+        if (Instance != null) return;
+        var go = new GameObject("--- AUTO CHAT MANAGER ---");
+        DontDestroyOnLoad(go);
+        go.AddComponent<AutoChatManager>();
     }
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
-        else { Destroy(gameObject); return; }
-
-        SetupChatUI();
+        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        Instance = this;
+        BuildChatUI();
     }
 
-    void SetupChatUI()
+    // ============================================================
+    // XÂY DỰNG GIAO DIỆN (Chạy 1 lần duy nhất)
+    // ============================================================
+    void BuildChatUI()
     {
+        // --- Đảm bảo có EventSystem ---
         if (FindFirstObjectByType<EventSystem>() == null)
         {
-            GameObject esObj = new GameObject("EventSystem");
-            esObj.AddComponent<EventSystem>();
-            esObj.AddComponent<StandaloneInputModule>();
+            var esGo = new GameObject("EventSystem");
+            esGo.AddComponent<EventSystem>();
+            esGo.AddComponent<StandaloneInputModule>();
         }
 
-        GameObject canvasObj = new GameObject("AutoChatCanvas");
-        Canvas canvas = canvasObj.AddComponent<Canvas>();
+        // --- Canvas ---
+        var canvasGo = new GameObject("ChatCanvas");
+        DontDestroyOnLoad(canvasGo);
+        var canvas = canvasGo.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 100;
-        canvasObj.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        canvasObj.AddComponent<GraphicRaycaster>();
-        DontDestroyOnLoad(canvasObj);
+        canvas.sortingOrder = 200;
+        var scaler = canvasGo.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        canvasGo.AddComponent<GraphicRaycaster>();
 
-        // --- KHUNG TỔNG ---
-        GameObject panelObj = new GameObject("ChatPanel");
-        panelObj.transform.SetParent(canvasObj.transform, false);
-        RectTransform panelRect = panelObj.AddComponent<RectTransform>();
-        panelRect.anchorMin = new Vector2(0, 0); panelRect.anchorMax = new Vector2(0, 0);
-        panelRect.pivot = new Vector2(0, 0);
+        // --- Panel tổng (Góc dưới trái) ---
+        var panel = MakeRect("ChatPanel", canvasGo.transform,
+            new Vector2(0, 0), new Vector2(0, 0),
+            new Vector2(20, 20), new Vector2(400, 230));
+        panel.pivot = new Vector2(0, 0);
 
-        // 👉 ĐỔI SỐ NÀY: 20 -> 150 để khung chat nhích lên cao khỏi mép dưới
-        panelRect.anchoredPosition = new Vector2(20, 60);
+        chatGroup = panel.gameObject.AddComponent<CanvasGroup>();
+        chatGroup.alpha           = 0f;
+        chatGroup.blocksRaycasts  = false;
+        chatGroup.interactable    = true;
 
-        // 🔥 Đã thu nhỏ gọn gàng (Trước đó là 450x250)
-        panelRect.sizeDelta = new Vector2(350, 200);
+        // --- Khu vực hiển thị lịch sử chat (Scroll View) ---
+        var scrollGo = new GameObject("ScrollView");
+        scrollGo.transform.SetParent(panel, false);
+        var scrollRt = scrollGo.AddComponent<RectTransform>();
+        scrollRt.anchorMin = new Vector2(0f, 0.18f);
+        scrollRt.anchorMax = new Vector2(1f, 1f);
+        scrollRt.offsetMin = Vector2.zero;
+        scrollRt.offsetMax = Vector2.zero;
 
-        chatGroup = panelObj.AddComponent<CanvasGroup>();
-        chatGroup.alpha = 0f;
-        // Bắt đầu game: Xuyên thấu để không cản trở chuột khi bắn súng
-        chatGroup.blocksRaycasts = false;
+        scrollRect = scrollGo.AddComponent<ScrollRect>();
+        scrollRect.horizontal        = false;
+        scrollRect.scrollSensitivity = 20f;
+        scrollRect.movementType      = ScrollRect.MovementType.Clamped;
 
-        // ===============================================
-        // 🔥 HỆ THỐNG LĂN CHUỘT (SCROLL VIEW) HOÀN TOÀN MỚI
-        // ===============================================
-        GameObject scrollViewObj = new GameObject("ScrollView");
-        scrollViewObj.transform.SetParent(panelObj.transform, false);
-        RectTransform scrollRectTrans = scrollViewObj.AddComponent<RectTransform>();
-        scrollRectTrans.anchorMin = new Vector2(0, 0.18f); // Chừa chỗ dưới cùng cho Input gõ chữ
-        scrollRectTrans.anchorMax = new Vector2(1, 1);
-        scrollRectTrans.offsetMin = Vector2.zero; scrollRectTrans.offsetMax = Vector2.zero;
-
-        chatScrollRect = scrollViewObj.AddComponent<ScrollRect>();
-        chatScrollRect.horizontal = false; // Không cuộn ngang
-        chatScrollRect.vertical = true;    // Cho phép cuộn dọc
-        chatScrollRect.scrollSensitivity = 20f; // Độ nhạy lăn chuột
-
-        // Viewport (Mặt nạ cắt chữ bị tràn ra ngoài)
-        GameObject viewportObj = new GameObject("Viewport");
-        viewportObj.transform.SetParent(scrollViewObj.transform, false);
-        RectTransform viewportRect = viewportObj.AddComponent<RectTransform>();
-        viewportRect.anchorMin = new Vector2(0, 0); viewportRect.anchorMax = new Vector2(1, 1);
-        viewportRect.offsetMin = Vector2.zero; viewportRect.offsetMax = Vector2.zero;
-
-        Image viewportBg = viewportObj.AddComponent<Image>();
-        viewportBg.color = new Color(0, 0, 0, 0.4f); // Nền hơi đen trong suốt làm nổi bật chữ
-        Mask mask = viewportObj.AddComponent<Mask>();
+        // Viewport
+        var viewport = MakeRectStretch("Viewport", scrollGo.transform);
+        var vpBg     = viewport.gameObject.AddComponent<Image>();
+        vpBg.color   = new Color(0f, 0f, 0f, 0.45f);
+        var mask     = viewport.gameObject.AddComponent<Mask>();
         mask.showMaskGraphic = true;
+        scrollRect.viewport  = viewport;
 
-        // Content (Cục co giãn chứa text có thể dài ra vô hạn)
-        GameObject contentObj = new GameObject("Content");
-        contentObj.transform.SetParent(viewportObj.transform, false);
-        RectTransform contentRect = contentObj.AddComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0, 0); contentRect.anchorMax = new Vector2(1, 0);
-        contentRect.pivot = new Vector2(0, 0); // Neo dưới đáy đẩy lên
-        contentRect.offsetMin = Vector2.zero; contentRect.offsetMax = Vector2.zero;
+        // Content (kéo dài vô hạn theo nội dung)
+        var content    = new GameObject("Content");
+        content.transform.SetParent(viewport, false);
+        var contentRt  = content.AddComponent<RectTransform>();
+        contentRt.anchorMin = new Vector2(0f, 0f);
+        contentRt.anchorMax = new Vector2(1f, 0f);
+        contentRt.pivot     = new Vector2(0.5f, 0f);
+        contentRt.offsetMin = new Vector2(5f, 0f);
+        contentRt.offsetMax = new Vector2(-5f, 0f);
+        scrollRect.content  = contentRt;
 
-        chatHistory = contentObj.AddComponent<Text>();
-        chatHistory.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        chatHistory.fontSize = 15; // 🔥 Chữ thu nhỏ lại 
-        chatHistory.color = Color.white;
-        chatHistory.alignment = TextAnchor.LowerLeft;
+        var csf = content.AddComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        // Thêm Outline đen cho chữ để dễ đọc trên mọi nền cảnh vật
-        Outline outline = contentObj.AddComponent<Outline>();
-        outline.effectColor = Color.black;
-        outline.effectDistance = new Vector2(1, -1);
+        chatHistory = content.AddComponent<Text>();
+        chatHistory.font              = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        chatHistory.fontSize          = 14;
+        chatHistory.color             = Color.white;
+        chatHistory.alignment         = TextAnchor.LowerLeft;
+        chatHistory.horizontalOverflow = HorizontalWrapMode.Wrap;
+        chatHistory.verticalOverflow   = VerticalWrapMode.Overflow;
+        chatHistory.raycastTarget      = false;
 
-        // Cục Fitter phép thuật: Tự kéo dài khung khi chữ nhiều lên
-        ContentSizeFitter fitter = contentObj.AddComponent<ContentSizeFitter>();
-        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        var outline = content.AddComponent<Outline>();
+        outline.effectColor    = new Color(0f, 0f, 0f, 0.9f);
+        outline.effectDistance = new Vector2(1f, -1f);
 
-        chatScrollRect.viewport = viewportRect;
-        chatScrollRect.content = contentRect;
+        // --- Ô nhập liệu (Bottom 18%) ---
+        inputContainer = new GameObject("InputContainer");
+        inputContainer.transform.SetParent(panel, false);
+        var inputRt       = inputContainer.AddComponent<RectTransform>();
+        inputRt.anchorMin = new Vector2(0f, 0f);
+        inputRt.anchorMax = new Vector2(1f, 0.17f);
+        inputRt.offsetMin = new Vector2(0f, 0f);
+        inputRt.offsetMax = new Vector2(0f, 0f);
 
-        // --- Ô GÕ CHỮ ---
-        inputObj = new GameObject("ChatInput");
-        inputObj.transform.SetParent(panelObj.transform, false);
-        RectTransform inputRect = inputObj.AddComponent<RectTransform>();
-        inputRect.anchorMin = new Vector2(0, 0); inputRect.anchorMax = new Vector2(1, 0.16f);
-        inputRect.offsetMin = Vector2.zero; inputRect.offsetMax = Vector2.zero;
+        var inputBg   = inputContainer.AddComponent<Image>();
+        inputBg.color = new Color(0.05f, 0.05f, 0.05f, 0.92f);
 
-        Image inputBg = inputObj.AddComponent<Image>();
-        inputBg.color = new Color(0, 0, 0, 0.8f);
-        chatInput = inputObj.AddComponent<InputField>();
+        chatInput                  = inputContainer.AddComponent<InputField>();
+        chatInput.targetGraphic    = inputBg;
+        chatInput.customCaretColor = true;
+        chatInput.caretColor       = Color.white;
+        chatInput.caretWidth       = 2;
+        chatInput.lineType         = InputField.LineType.SingleLine;
 
-        GameObject inputTextObj = new GameObject("Text");
-        inputTextObj.transform.SetParent(inputObj.transform, false);
-        RectTransform textRect = inputTextObj.AddComponent<RectTransform>();
-        textRect.anchorMin = new Vector2(0, 0); textRect.anchorMax = new Vector2(1, 1);
-        textRect.offsetMin = new Vector2(10, 0); textRect.offsetMax = new Vector2(-10, 0);
+        // Placeholder
+        var phGo = new GameObject("Placeholder");
+        phGo.transform.SetParent(inputContainer.transform, false);
+        var phRt       = phGo.AddComponent<RectTransform>();
+        phRt.anchorMin = Vector2.zero;
+        phRt.anchorMax = Vector2.one;
+        phRt.offsetMin = new Vector2(8f, 2f);
+        phRt.offsetMax = new Vector2(-8f, -2f);
+        var phText          = phGo.AddComponent<Text>();
+        phText.font         = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        phText.fontSize     = 13;
+        phText.color        = new Color(0.75f, 0.75f, 0.75f, 0.6f);
+        phText.text         = "Nhấn Enter để chat...";
+        phText.fontStyle    = FontStyle.Italic;
+        phText.raycastTarget = false;
+        chatInput.placeholder = phText;
 
-        Text inputText = inputTextObj.AddComponent<Text>();
-        inputText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        inputText.fontSize = 15;
-        inputText.color = Color.white;
-        inputText.alignment = TextAnchor.MiddleLeft;
+        // Text hiển thị người dùng gõ
+        var textGo = new GameObject("Text");
+        textGo.transform.SetParent(inputContainer.transform, false);
+        var textRt       = textGo.AddComponent<RectTransform>();
+        textRt.anchorMin = Vector2.zero;
+        textRt.anchorMax = Vector2.one;
+        textRt.offsetMin = new Vector2(8f, 2f);
+        textRt.offsetMax = new Vector2(-8f, -2f);
+        var inputText             = textGo.AddComponent<Text>();
+        inputText.font            = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        inputText.fontSize        = 14;
+        inputText.color           = Color.white;
+        inputText.alignment       = TextAnchor.MiddleLeft;
+        inputText.supportRichText = false;
+        chatInput.textComponent   = inputText;
 
-        chatInput.textComponent = inputText;
+        // 🔥 Móc sự kiện onEndEdit: Unity tự động gọi khi người dùng nhấn Enter TRONG InputField
+        // Đây là cách CHUẨN Unity - không bao giờ bị lỗi xung đột frame
+        chatInput.onEndEdit.AddListener(OnChatSubmit);
 
-        inputObj.SetActive(false);
+        inputContainer.SetActive(false);
     }
 
+    // ============================================================
+    // VÒNG LẶP CHÍNH
+    // ============================================================
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+        // Bắt phím Enter để MỞ chat (chỉ khi chưa mở)
+        if (!isTyping && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
         {
-            if (!isTyping)
-            {
-                // 🔥 LẦN 1: MỞ KHUNG CHAT LÊN
-                isTyping = true;
-                inputObj.SetActive(true);
-                chatInput.Select();
-                chatInput.ActivateInputField();
-                chatGroup.blocksRaycasts = true;
-                fadeTimer = showDuration;
-            }
-            else
-            {
-                // 🔥 ĐANG MỞ CHAT VÀ BẤM ENTER LẦN NỮA
-                if (!string.IsNullOrWhiteSpace(chatInput.text))
-                {
-                    // 1. Nếu CÓ CHỮ: Gửi tin nhắn đi
-                    onSendMessage?.Invoke(chatInput.text);
-
-                    // 2. Xóa trắng ô gõ chữ
-                    chatInput.text = "";
-
-                    // 3. Quan trọng: Ép con trỏ chuột quay lại ô gõ để nhập tiếp luôn!
-                    chatInput.Select();
-                    chatInput.ActivateInputField();
-
-                    // Reset thời gian để khung chat sáng rực rỡ
-                    fadeTimer = showDuration;
-                }
-                else
-                {
-                    // 4. Nếu KHÔNG CÓ CHỮ (Trống rỗng): Đóng khung chat lại, cho phép nhân vật đi lại
-                    CloseChat();
-                }
-            }
+            OpenChat();
         }
 
-        // Bấm ESC để hủy ngang
+        // ESC để thoát chat
         if (isTyping && Input.GetKeyDown(KeyCode.Escape))
         {
             CloseChat();
         }
 
-        // Tự động mờ dần
+        // --- Logic làm mờ dần ---
         if (isTyping)
         {
             chatGroup.alpha = 1f;
-            fadeTimer = showDuration; // Đang gõ thì luôn sáng
+        }
+        else if (fadeTimer > 0f)
+        {
+            fadeTimer        -= Time.deltaTime;
+            chatGroup.alpha   = 1f;
         }
         else
         {
-            if (fadeTimer > 0)
-            {
-                fadeTimer -= Time.deltaTime;
-                chatGroup.alpha = 1f;
-            }
-            else
-            {
-                // Mờ tàng hình dần
-                chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * 2f);
-            }
+            chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
         }
     }
 
-    void CloseChat()
+    // ============================================================
+    // MỞ / ĐÓNG CHAT
+    // ============================================================
+    private void OpenChat()
+    {
+        isTyping = true;
+        inputContainer.SetActive(true);
+        chatGroup.blocksRaycasts = true;
+        chatGroup.alpha          = 1f;
+
+        // Delay 2 frame để phím Enter của frame hiện tại được xử lý xong
+        // trước khi InputField bắt đầu lắng nghe bàn phím
+        StartCoroutine(FocusAfterDelay());
+    }
+
+    private IEnumerator FocusAfterDelay()
+    {
+        yield return null;
+        yield return null;
+
+        if (chatInput == null || !isTyping) yield break;
+
+        chatInput.text = "";
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(chatInput.gameObject);
+        chatInput.ActivateInputField();
+        chatInput.Select();
+    }
+
+    private void CloseChat()
     {
         isTyping = false;
-        chatInput.text = "";
-        inputObj.SetActive(false);
-        chatGroup.blocksRaycasts = false; // Tắt chặn chuột để chơi game không bị vướng
-        EventSystem.current.SetSelectedGameObject(null);
-        fadeTimer = showDuration;
+        if (chatInput != null) chatInput.text = "";
+        inputContainer.SetActive(false);
+        chatGroup.blocksRaycasts = false;
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(null);
+        fadeTimer = SHOW_DURATION;
     }
 
-    public void AddMessage(string sender, string msg)
+    // ============================================================
+    // XỬ LÝ GỬI TIN NHẮN (Do InputField.onEndEdit gọi)
+    // ============================================================
+    private void OnChatSubmit(string message)
     {
-        // Chống lag nếu chat quá nhiều (Tự động xóa bớt lịch sử cũ nếu > 2000 ký tự)
-        if (chatHistory.text.Length > 2000)
+        // Unity gọi onEndEdit cả khi mất focus (click ra ngoài) - ta chỉ xử lý khi nhấn Enter
+        if (!Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter)) return;
+
+        if (!string.IsNullOrWhiteSpace(message))
         {
-            chatHistory.text = chatHistory.text.Substring(chatHistory.text.Length - 1000);
+            onSendMessage?.Invoke(message.Trim());
         }
+        CloseChat();
+    }
 
-        chatHistory.text += $"\n<color=yellow><b>[{sender}]</b></color>: {msg}";
-        fadeTimer = showDuration;
+    // ============================================================
+    // NHẬN TIN NHẮN VÀ HIỂN THỊ (RPC sẽ gọi hàm này)
+    // ============================================================
+    public void AddMessage(string sender, string message)
+    {
+        if (chatHistory == null) return;
 
-        // 🔥 Tự động cuộn xuống dưới cùng mỗi khi có tin nhắn mới
+        // Chống phình RAM: Cắt bớt lịch sử cũ khi quá dài
+        if (chatHistory.text.Length > 3000)
+            chatHistory.text = chatHistory.text.Substring(chatHistory.text.Length - 1500);
+
+        chatHistory.text += $"\n<color=yellow><b>[{sender}]</b></color>: {message}";
+        fadeTimer = SHOW_DURATION;
+
         Canvas.ForceUpdateCanvases();
-        if (chatScrollRect != null)
-        {
-            chatScrollRect.verticalNormalizedPosition = 0f;
-        }
+        if (scrollRect != null)
+            scrollRect.verticalNormalizedPosition = 0f;
     }
 
-    public bool IsTyping()
+    // ============================================================
+    // API CÔNG KHAI
+    // ============================================================
+
+    /// <summary>Được PlayerInputHandler2D dùng để chặn WASD khi đang chat</summary>
+    public bool IsTyping() => isTyping;
+
+    // ============================================================
+    // HELPER METHODS
+    // ============================================================
+    private RectTransform MakeRect(string name, Transform parent,
+        Vector2 anchorMin, Vector2 anchorMax, Vector2 anchoredPos, Vector2 size)
     {
-        return isTyping;
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rt             = go.AddComponent<RectTransform>();
+        rt.anchorMin       = anchorMin;
+        rt.anchorMax       = anchorMax;
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta       = size;
+        return rt;
+    }
+
+    private RectTransform MakeRectStretch(string name, Transform parent)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rt       = go.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+        return rt;
     }
 }

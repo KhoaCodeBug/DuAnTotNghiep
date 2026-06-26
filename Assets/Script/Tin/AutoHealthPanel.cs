@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
@@ -269,17 +269,15 @@ public class AutoHealthPanel : MonoBehaviour
 
     private void FindLocalPlayerCache()
     {
-        if (localPlayerHealth != null && localInventory != null) return;
-
-        PlayerHealth[] allPlayers = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
-        foreach (var p in allPlayers)
+        if (PlayerHealth.LocalHealthInstance != null)
         {
-            if (p != null && p.HasInputAuthority)
-            {
-                localPlayerHealth = p;
-                localInventory = p.GetComponent<InventorySystem>();
-                break;
-            }
+            localPlayerHealth = PlayerHealth.LocalHealthInstance;
+            localInventory = localPlayerHealth.GetComponent<InventorySystem>();
+        }
+        else
+        {
+            localPlayerHealth = null;
+            localInventory = null;
         }
     }
 
@@ -504,6 +502,8 @@ public class AutoHealthPanel : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.H) || (isOpen && Input.GetKeyDown(KeyCode.Escape)))
         {
+            // 🔥 CHẶN: Không mở Health Panel khi đang gõ chat
+            if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
             if (Time.time < toggleCooldown) return;
 
             // Đã bỏ cái isInvDoingAction đi cho bớt lỗi ngầm. Chỉ check isHealing.

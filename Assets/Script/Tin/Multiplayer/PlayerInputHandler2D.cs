@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
@@ -24,11 +24,19 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (HasInputAuthority)
         {
             Runner.AddCallbacks(this);
-            globalRecorder = FindFirstObjectByType<Recorder>();
+            globalRecorder = GetComponentInChildren<Recorder>();
+            if (globalRecorder == null)
+            {
+                globalRecorder = FindAnyObjectByType<Recorder>();
+            }
+
             if (globalRecorder != null) globalRecorder.TransmitEnabled = false;
 
             if (AutoChatManager.Instance != null)
+            {
+                AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
                 AutoChatManager.Instance.onSendMessage += HandleSendMessage;
+            }
         }
     }
 
@@ -184,7 +192,11 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
     private void HandleSendMessage(string msg)
     {
-        Rpc_SendChat("Vô Danh", msg);
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (health != null && health.isDead) return;
+
+        string myPlayerName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
+        Rpc_SendChat(myPlayerName, msg);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.All)]

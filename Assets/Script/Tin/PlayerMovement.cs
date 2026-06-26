@@ -1,4 +1,4 @@
-﻿using Fusion;
+using Fusion;
 using Fusion.Addons.Physics;
 using System.Collections.Generic;
 using UnityEngine;
@@ -42,6 +42,8 @@ public class PlayerMovement : NetworkBehaviour
     // ==========================================
     // 🔥 BIẾN ĐỒNG BỘ MẠNG
     // ==========================================
+    public static PlayerMovement LocalPlayerInstance;
+
     [Networked] public Vector2 NetMoveInput { get; set; }
     [Networked] public Vector2 NetLastLookDir { get; set; }
     [Networked] public NetworkBool NetIsMoving { get; set; }
@@ -83,6 +85,7 @@ public class PlayerMovement : NetworkBehaviour
         // Nếu nhân vật này LÀ CỦA MÌNH (Mình có quyền bấm nút điều khiển nó)
         if (HasInputAuthority)
         {
+            LocalPlayerInstance = this;
             var cameraController = FindAnyObjectByType<PZ_CameraController>();
             if (cameraController != null) cameraController.SetTarget(this.transform);
 

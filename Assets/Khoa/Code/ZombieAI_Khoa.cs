@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 using Fusion;
 using Pathfinding;
@@ -474,7 +474,11 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             if (p.TryGetComponent(out Skill_StealthCrouch stealth) && stealth.IsInvisible) continue;
 
             // BỎ QUA NẾU ĐÃ CHẾT (Fix bug gõ không khí ở đây)
-            if (p.TryGetComponent(out PlayerHealth pHealth) && pHealth.isDead) continue;
+            if (p.TryGetComponent(out PlayerHealth pHealth))
+            {
+                if (pHealth.Object == null || !pHealth.Object.IsValid) continue;
+                if (pHealth.isDead) continue;
+            }
 
             float dist = Vector2.Distance(myPos, p.transform.position);
             if (dist < minDist)
