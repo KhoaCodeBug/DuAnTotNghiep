@@ -509,6 +509,14 @@ public class AutoHealthPanel : MonoBehaviour
             // Đã bỏ cái isInvDoingAction đi cho bớt lỗi ngầm. Chỉ check isHealing.
             if (isHealing) return;
 
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (AutoMainMenuManager.Instance != null)
+                {
+                    AutoMainMenuManager.EscapeConsumedThisFrame = true;
+                }
+            }
+
             bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
             if (!isOpen && isInvOpen) return;
 

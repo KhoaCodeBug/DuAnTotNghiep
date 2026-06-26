@@ -174,6 +174,7 @@ public class AutoUIManager : MonoBehaviour
                 if (tradeWindowPanel != null) tradeWindowPanel.SetActive(true);
                 HideContextMenu();
                 HideTooltip();
+                if (AutoMainMenuManager.Instance != null) AutoMainMenuManager.EscapeConsumedThisFrame = true;
                 return; // Dừng tại đây
             }
 
@@ -188,12 +189,14 @@ public class AutoUIManager : MonoBehaviour
                 CloseContainerUI();
                 HideContextMenu();
                 HideTooltip();
+                if (AutoMainMenuManager.Instance != null) AutoMainMenuManager.EscapeConsumedThisFrame = true;
             }
 
             // Đang ở bảng Trade (không mở balo) -> Bấm ESC -> Hủy Trade hoàn toàn
             if (tradeWindowPanel != null && tradeWindowPanel.activeSelf && localPlayer != null)
             {
                 localPlayer.GetComponent<PlayerTrade>().CancelTrade();
+                if (AutoMainMenuManager.Instance != null) AutoMainMenuManager.EscapeConsumedThisFrame = true;
             }
         }
 

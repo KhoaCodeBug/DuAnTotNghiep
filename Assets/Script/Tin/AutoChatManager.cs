@@ -26,6 +26,7 @@ public class AutoChatManager : MonoBehaviour
     // ========================= TRẠNG THÁI =========================
     private float fadeTimer = 0f;
     private bool  isTyping  = false;
+    private bool  justClosed = false;
 
     // ========================= SỰ KIỆN (Cho PlayerInputHandler2D) =========================
     public delegate void OnSendMessage(string message);
@@ -186,9 +187,8 @@ public class AutoChatManager : MonoBehaviour
         inputText.supportRichText = false;
         chatInput.textComponent   = inputText;
 
-        // 🔥 Móc sự kiện onEndEdit: Unity tự động gọi khi người dùng nhấn Enter TRONG InputField
-        // Đây là cách CHUẨN Unity - không bao giờ bị lỗi xung đột frame
-        chatInput.onEndEdit.AddListener(OnChatSubmit);
+        // 🔥 Móc sự kiện onEndEdit: Unity tự động gọi khi kết thúc nhập (Enter, ESC hoặc click ra ngoài)
+        chatInput.onEndEdit.AddListener(OnChatEndEdit);
 
         inputContainer.SetActive(false);
     }
@@ -198,8 +198,8 @@ public class AutoChatManager : MonoBehaviour
     // ============================================================
     void Update()
     {
-        // Bắt phím Enter để MỞ chat (chỉ khi chưa mở)
-        if (!isTyping && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+        // Bắt phím Enter để MỞ chat (chỉ khi chưa mở và không vừa mới đóng ở cùng frame)
+        if (!isTyping && !justClosed && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
         {
             OpenChat();
         }
@@ -207,6 +207,10 @@ public class AutoChatManager : MonoBehaviour
         // ESC để thoát chat
         if (isTyping && Input.GetKeyDown(KeyCode.Escape))
         {
+            if (AutoMainMenuManager.Instance != null)
+            {
+                AutoMainMenuManager.EscapeConsumedThisFrame = true;
+            }
             CloseChat();
         }
 
@@ -224,6 +228,9 @@ public class AutoChatManager : MonoBehaviour
         {
             chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
         }
+
+        // Reset cờ ở cuối frame Update
+        justClosed = false;
     }
 
     // ============================================================
@@ -258,26 +265,39 @@ public class AutoChatManager : MonoBehaviour
     private void CloseChat()
     {
         isTyping = false;
+        justClosed = true; // Đánh dấu là vừa đóng chat
         if (chatInput != null) chatInput.text = "";
         inputContainer.SetActive(false);
         chatGroup.blocksRaycasts = false;
-        if (EventSystem.current != null)
+        if (EventSystem.current != null && !EventSystem.current.alreadySelecting)
             EventSystem.current.SetSelectedGameObject(null);
         fadeTimer = SHOW_DURATION;
     }
 
     // ============================================================
-    // XỬ LÝ GỬI TIN NHẮN (Do InputField.onEndEdit gọi)
+    // XỬ LÝ KẾT THÚC CHAT (Gửi tin nhắn hoặc hủy bỏ)
     // ============================================================
-    private void OnChatSubmit(string message)
+    private void OnChatEndEdit(string message)
     {
-        // Unity gọi onEndEdit cả khi mất focus (click ra ngoài) - ta chỉ xử lý khi nhấn Enter
-        if (!Input.GetKeyDown(KeyCode.Return) && !Input.GetKeyDown(KeyCode.KeypadEnter)) return;
+        if (!isTyping) return;
 
-        if (!string.IsNullOrWhiteSpace(message))
+        // Nếu không bấm ESC (tức là bấm Enter hoặc click ra ngoài)
+        if (chatInput != null && !chatInput.wasCanceled)
         {
-            onSendMessage?.Invoke(message.Trim());
+            if (!string.IsNullOrWhiteSpace(message))
+            {
+                onSendMessage?.Invoke(message.Trim());
+            }
         }
+        else
+        {
+            // Bấm ESC
+            if (AutoMainMenuManager.Instance != null)
+            {
+                AutoMainMenuManager.EscapeConsumedThisFrame = true;
+            }
+        }
+
         CloseChat();
     }
 
