@@ -13,6 +13,7 @@ using UnityEngine.UI;
 public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     public static AutoMainMenuManager Instance { get; private set; }
+    public static bool EscapeConsumedThisFrame = false;
 
     [Header("Cài đặt chung")]
     public TMP_FontAsset gameFont;
@@ -156,33 +157,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void Update()
     {
-
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            if (isLocalSceneLoaded && !isLoadingScreenActive)
-            {
-                if (isPauseMenuOpen)
-                {
-                    TogglePauseMenu(); // Đang bật Pause thì tắt
-                }
-                else
-                {
-                    bool isAnyUIOpen = false;
-
-                    // Hỏi các UI khác xem có đang mở không
-                    if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) isAnyUIOpen = true;
-                    if (AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen) isAnyUIOpen = true;
-                    if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) isAnyUIOpen = true;
-
-                    // Chỉ bật Pause Menu khi KHÔNG có UI nào đang che màn hình
-                    if (!isAnyUIOpen)
-                    {
-                        TogglePauseMenu();
-                    }
-                }
-            }
-        }
-
         if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null
             && EventSystem.current.currentSelectedGameObject.GetComponent<TMP_InputField>() == null
             && EventSystem.current.currentSelectedGameObject.GetComponent<InputField>() == null)
@@ -211,6 +185,42 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             // Đẩy khung chữ lên trên liên tục mỗi khung hình
             creditsContent.anchoredPosition += new Vector2(0, creditsScrollSpeed * Time.deltaTime);
         }
+    }
+
+    private void LateUpdate()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (isLocalSceneLoaded && !isLoadingScreenActive)
+            {
+                if (EscapeConsumedThisFrame)
+                {
+                    EscapeConsumedThisFrame = false;
+                    return;
+                }
+
+                if (isPauseMenuOpen)
+                {
+                    TogglePauseMenu(); // Đang bật Pause thì tắt
+                }
+                else
+                {
+                    bool isAnyUIOpen = false;
+
+                    // Hỏi các UI khác xem có đang mở không
+                    if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) isAnyUIOpen = true;
+                    if (AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen) isAnyUIOpen = true;
+                    if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) isAnyUIOpen = true;
+
+                    // Chỉ bật Pause Menu khi KHÔNG có UI nào đang che màn hình
+                    if (!isAnyUIOpen)
+                    {
+                        TogglePauseMenu();
+                    }
+                }
+            }
+        }
+        EscapeConsumedThisFrame = false;
     }
 
     // 1. HÀM TẠO GIAO DIỆN IN-GAME MENU
