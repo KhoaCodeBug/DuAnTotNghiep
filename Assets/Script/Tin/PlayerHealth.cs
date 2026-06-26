@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class PlayerHealth : NetworkBehaviour
 {
+    public static PlayerHealth LocalHealthInstance;
+
     [Header("Chỉ số Máu")]
     public float maxHealth = 100f;
     [Networked] public float currentHealth { get; set; }
@@ -79,6 +81,7 @@ public class PlayerHealth : NetworkBehaviour
 
         if (HasInputAuthority)
         {
+            LocalHealthInstance = this;
             SetupParanoiaUI();
         }
     }

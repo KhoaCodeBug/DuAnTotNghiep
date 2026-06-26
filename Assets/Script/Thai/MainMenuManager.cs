@@ -1,4 +1,4 @@
-﻿using Fusion;
+using Fusion;
 using Fusion.Sockets;
 using System.Collections;
 using System.Collections.Generic;
@@ -184,7 +184,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null
-            && EventSystem.current.currentSelectedGameObject.GetComponent<TMP_InputField>() == null)
+            && EventSystem.current.currentSelectedGameObject.GetComponent<TMP_InputField>() == null
+            && EventSystem.current.currentSelectedGameObject.GetComponent<InputField>() == null)
         {
             EventSystem.current.SetSelectedGameObject(null);
         }

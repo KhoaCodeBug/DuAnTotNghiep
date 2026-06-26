@@ -1,4 +1,4 @@
-﻿using Fusion;
+using Fusion;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -97,19 +97,16 @@ public class AutoUIManager : MonoBehaviour
         UpdateTradeWindowRealtime();
     }
 
-    // 🔥 HÀM BẢO VỆ MULTIPLAYER: Đảm bảo luôn lấy đúng nhân vật của máy mình
+    // 🔥 HÀM BẢO VỆ MULTIPLAYER: Lấy trực tiếp Instance tĩnh đã được PlayerMovement gán
     private void EnsureLocalPlayer()
     {
-        if (localPlayer != null && localPlayer.GetComponent<NetworkObject>().HasInputAuthority) return;
-
-        var players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
-        foreach (var pMove in players)
+        if (PlayerMovement.LocalPlayerInstance != null)
         {
-            if (pMove.Object != null && pMove.HasInputAuthority)
-            {
-                localPlayer = pMove.gameObject;
-                return;
-            }
+            localPlayer = PlayerMovement.LocalPlayerInstance.gameObject;
+        }
+        else
+        {
+            localPlayer = null;
         }
     }
 

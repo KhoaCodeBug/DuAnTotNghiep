@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 using System.Collections.Generic;
 
@@ -46,7 +46,7 @@ public class MinimapController : MonoBehaviour
         foreach (GameObject pObj in players)
         {
             NetworkObject netObj = pObj.GetComponent<NetworkObject>();
-            if (netObj == null) continue;
+            if (netObj == null || !netObj.IsValid || netObj.Runner == null) continue;
 
             // 3. Phân loại Mình và Người Khác
             // (Thêm HasStateAuthority để phòng trường hợp bạn dùng Fusion Shared Mode)
