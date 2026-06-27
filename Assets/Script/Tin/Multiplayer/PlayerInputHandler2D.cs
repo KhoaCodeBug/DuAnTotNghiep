@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Fusion;
 using Fusion.Sockets;
 using Photon.Voice.Unity;
+using Photon.Voice.Fusion;
 using UnityEngine;
 
 public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
@@ -24,13 +25,36 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (HasInputAuthority)
         {
             Runner.AddCallbacks(this);
+
+            // 🔥 TÌM RECORDER ĐÚNG CÁCH: Ưu tiên lấy từ FusionVoiceClient
             globalRecorder = GetComponentInChildren<Recorder>();
+
+            if (globalRecorder == null && Runner != null)
+            {
+                var voiceClient = Runner.GetComponent<FusionVoiceClient>();
+                if (voiceClient != null)
+                {
+                    globalRecorder = voiceClient.PrimaryRecorder;
+                    Debug.Log($"[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner");
+                }
+            }
+
             if (globalRecorder == null)
             {
                 globalRecorder = FindAnyObjectByType<Recorder>();
+                if (globalRecorder != null)
+                    Debug.Log($"[VOICE] ⚠️ Dùng Recorder tìm bừa trong Scene (fallback)");
             }
 
-            if (globalRecorder != null) globalRecorder.TransmitEnabled = false;
+            if (globalRecorder != null)
+            {
+                globalRecorder.TransmitEnabled = false;
+                Debug.Log($"[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)");
+            }
+            else
+            {
+                Debug.LogError("[VOICE] ❌ KHÔNG TÌM THẤY RECORDER! Voice Chat sẽ không hoạt động!");
+            }
 
             if (AutoChatManager.Instance != null)
             {
@@ -86,10 +110,9 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
                 if (Time.time >= nextVoiceNoiseTime)
                 {
-                    Debug.Log($"[TEST MIC] Âm lượng thật: {voiceVolume:F3} | Bán kính gọi Zombie: {noiseRadius:F1} mét");
-
+                    // 🔥 GIẢM TẦN SUẤT RPC: Từ 20/giây → 2/giây để giảm lag mạng
                     RPC_MakeVoiceNoise(noiseRadius);
-                    nextVoiceNoiseTime = Time.time + 0.05f;
+                    nextVoiceNoiseTime = Time.time + 0.5f;
                 }
             }
             else
