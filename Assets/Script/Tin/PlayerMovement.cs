@@ -39,6 +39,17 @@ public class PlayerMovement : NetworkBehaviour
     // 🔥 CÔNG TẮC KHÓA LỖI VÀNG KHÈ KHI BỊ ẢO GIÁC
     public bool isParanoiaZombie = false;
 
+    // 🔥 BIẾN CACHE ĐỂ GIẢM LAG MULTIPLAYER
+    private Vector3 lastNoisePosition;
+    private float lastNoisePositionThreshold = 0.5f; // Không quét lại nếu chưa đi được 0.5 mét
+    
+    // 🔥 SMOOTH ANIMATION CHO REMOTE PLAYER
+    private float smoothMoveX;
+    private float smoothMoveY;
+    private float smoothStrafeX;
+    private float smoothStrafeY;
+    private const float ANIM_SMOOTH_SPEED = 10f;
+
     // ==========================================
     // 🔥 BIẾN ĐỒNG BỘ MẠNG
     // ==========================================
@@ -227,23 +238,29 @@ public class PlayerMovement : NetworkBehaviour
         anim.SetBool("IsExhausted", staminaSystem.IsExhausted);
         anim.SetBool("IsCrouching", NetIsCrouching);
 
-        float strafeX = 0f;
-        float strafeY = 0f;
+        float targetStrafeX = 0f;
+        float targetStrafeY = 0f;
 
         if (NetIsAiming && isMovingNow)
         {
             Vector2 forwardDir = NetLastLookDir.normalized;
             Vector2 rightDir = new Vector2(forwardDir.y, -forwardDir.x);
 
-            strafeY = Vector2.Dot(NetMoveInput.normalized, forwardDir);
-            strafeX = Vector2.Dot(NetMoveInput.normalized, rightDir);
+            targetStrafeY = Vector2.Dot(NetMoveInput.normalized, forwardDir);
+            targetStrafeX = Vector2.Dot(NetMoveInput.normalized, rightDir);
         }
 
-        anim.SetFloat("StrafeX", strafeX);
-        anim.SetFloat("StrafeY", strafeY);
+        // 🔥 SMOOTH ANIMATION: Dùng Lerp để animation mượt hơn cho remote player
+        float dt = Time.deltaTime;
+        smoothStrafeX = Mathf.Lerp(smoothStrafeX, targetStrafeX, ANIM_SMOOTH_SPEED * dt);
+        smoothStrafeY = Mathf.Lerp(smoothStrafeY, targetStrafeY, ANIM_SMOOTH_SPEED * dt);
+        smoothMoveX = Mathf.Lerp(smoothMoveX, NetLastLookDir.x, ANIM_SMOOTH_SPEED * dt);
+        smoothMoveY = Mathf.Lerp(smoothMoveY, NetLastLookDir.y, ANIM_SMOOTH_SPEED * dt);
 
-        anim.SetFloat("MoveX", NetLastLookDir.x);
-        anim.SetFloat("MoveY", NetLastLookDir.y);
+        anim.SetFloat("StrafeX", smoothStrafeX);
+        anim.SetFloat("StrafeY", smoothStrafeY);
+        anim.SetFloat("MoveX", smoothMoveX);
+        anim.SetFloat("MoveY", smoothMoveY);
 
         if (NetIsUsingItem && isMovingNow)
         {
@@ -304,7 +321,21 @@ public class PlayerMovement : NetworkBehaviour
             noiseEmitTimer -= Runner.DeltaTime;
             return;
         }
-        noiseEmitTimer = 0.2f;
+
+        // 🔥 GIẢM TẦN SUẤT NOISE: Chạy 0.3s, đi bộ 0.5s (thay vì 0.2s cho cả hai)
+        if (NetIsRunning)
+        {
+            noiseEmitTimer = 0.3f;
+        }
+        else
+        {
+            noiseEmitTimer = 0.5f;
+        }
+
+        // 🔥 CACHE VỊ TRÍ: Bỏ qua nếu player chưa di chuyển đủ xa
+        float distMoved = Vector3.Distance(transform.position, lastNoisePosition);
+        if (distMoved < lastNoisePositionThreshold) return;
+        lastNoisePosition = transform.position;
 
         if (NetIsRunning) MakeNoise(runNoiseRadius);
         else MakeNoise(walkNoiseRadius);
