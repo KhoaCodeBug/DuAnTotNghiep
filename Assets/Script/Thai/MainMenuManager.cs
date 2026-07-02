@@ -1000,13 +1000,19 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         hasDetectedGameStart = false;
 
-        string[] targetNames = { "AutoChatCanvas", "--- AUTO CHAT MANAGER ---", "--- AUTO HEALTH CANVAS ---", "--- AUTO HEALTH MANAGER ---", "HealthPanel" };
+        // 🔥 FIX: Hủy diệt UIManager GameObject để scene mới tự load lại GameManager mới
+        if (AutoUIManager.Instance != null)
+        {
+            Destroy(AutoUIManager.Instance.gameObject);
+        }
+
+        string[] targetNames = { "ChatCanvas", "--- AUTO CHAT MANAGER ---", "--- AUTO HEALTH CANVAS ---", "--- AUTO HEALTH MANAGER ---", "HealthPanel" };
         foreach (string target in targetNames)
         {
             GameObject oldUI = GameObject.Find(target);
             if (oldUI != null)
             {
-                Destroy(oldUI); // Hủy diệt hoàn toàn, ván sau để Player tự đẻ cái mới
+                Destroy(oldUI);
             }
         }
         temporarilyDisabledObjects.Clear();

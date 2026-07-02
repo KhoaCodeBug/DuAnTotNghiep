@@ -92,6 +92,8 @@ public class PlayerHealth : NetworkBehaviour
         {
             Destroy(paranoiaCanvas.gameObject);
         }
+        // 🔥 FIX: Reset static reference khi bị Despawn để ván sau tìm lại đúng player
+        if (LocalHealthInstance == this) LocalHealthInstance = null;
     }
 
     private void SetupParanoiaUI()

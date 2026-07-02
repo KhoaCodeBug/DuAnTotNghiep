@@ -10,7 +10,28 @@ using System.Collections;
 /// </summary>
 public class AutoChatManager : MonoBehaviour
 {
-    public static AutoChatManager Instance;
+    private static AutoChatManager instance;
+    public static AutoChatManager Instance
+    {
+        get
+        {
+            if (instance == null || instance.gameObject == null)
+            {
+                instance = FindFirstObjectByType<AutoChatManager>();
+                if (instance == null)
+                {
+                    var go = new GameObject("--- AUTO CHAT MANAGER ---");
+                    DontDestroyOnLoad(go);
+                    instance = go.AddComponent<AutoChatManager>();
+                }
+            }
+            return instance;
+        }
+        private set
+        {
+            instance = value;
+        }
+    }
 
     // ========================= THAM CHIẾU UI =========================
     private CanvasGroup chatGroup;
@@ -38,17 +59,20 @@ public class AutoChatManager : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoSpawn()
     {
-        if (Instance != null) return;
-        var go = new GameObject("--- AUTO CHAT MANAGER ---");
-        DontDestroyOnLoad(go);
-        go.AddComponent<AutoChatManager>();
+        // Kích hoạt qua cơ chế Lazy initialization
+        var trigger = Instance;
     }
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
-        Instance = this;
+        if (instance != null && instance != this) { Destroy(gameObject); return; }
+        instance = this;
         BuildChatUI();
+    }
+
+    void OnDestroy()
+    {
+        if (instance == this) instance = null;
     }
 
     // ============================================================

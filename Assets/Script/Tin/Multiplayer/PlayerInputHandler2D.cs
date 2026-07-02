@@ -44,10 +44,14 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (HasInputAuthority)
         {
             runner.RemoveCallbacks(this);
-            if (isChatSubscribed && AutoChatManager.Instance != null)
+            // 🔥 FIX: Luôn reset flag, vì Instance có thể đã bị Destroy trước
+            if (isChatSubscribed)
             {
-                AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
-                isChatSubscribed = false;
+                if (AutoChatManager.Instance != null)
+                {
+                    AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
+                }
+                isChatSubscribed = false; // Luôn reset để lần sau đăng ký lại
             }
         }
     }

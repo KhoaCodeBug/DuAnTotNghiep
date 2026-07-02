@@ -87,6 +87,9 @@ public class AutoUIManager : MonoBehaviour
         {
             Destroy(ammoContainer);
         }
+
+        // 🔥 FIX: Reset Instance khi bị Destroy để tạo lại ván sau
+        if (Instance == this) Instance = null;
     }
 
     private void Update()
