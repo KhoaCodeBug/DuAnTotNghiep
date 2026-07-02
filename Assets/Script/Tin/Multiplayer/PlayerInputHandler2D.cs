@@ -16,6 +16,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
     [Header("--- HỆ THỐNG VOICE CHAT ---")]
     private Recorder globalRecorder;
+    private bool isChatSubscribed = false;
 
     private float nextVoiceNoiseTime = 0f;
     private float currentVoiceRadius = 0f;
@@ -26,40 +27,14 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         {
             Runner.AddCallbacks(this);
 
-            // 🔥 TÌM RECORDER ĐÚNG CÁCH: Ưu tiên lấy từ FusionVoiceClient
-            globalRecorder = GetComponentInChildren<Recorder>();
-
-            if (globalRecorder == null && Runner != null)
-            {
-                var voiceClient = Runner.GetComponent<FusionVoiceClient>();
-                if (voiceClient != null)
-                {
-                    globalRecorder = voiceClient.PrimaryRecorder;
-                    Debug.Log($"[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner");
-                }
-            }
-
-            if (globalRecorder == null)
-            {
-                globalRecorder = FindAnyObjectByType<Recorder>();
-                if (globalRecorder != null)
-                    Debug.Log($"[VOICE] ⚠️ Dùng Recorder tìm bừa trong Scene (fallback)");
-            }
-
-            if (globalRecorder != null)
-            {
-                globalRecorder.TransmitEnabled = false;
-                Debug.Log($"[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)");
-            }
-            else
-            {
-                Debug.LogError("[VOICE] ❌ KHÔNG TÌM THẤY RECORDER! Voice Chat sẽ không hoạt động!");
-            }
+            FindVoiceRecorder();
 
             if (AutoChatManager.Instance != null)
             {
                 AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
                 AutoChatManager.Instance.onSendMessage += HandleSendMessage;
+                isChatSubscribed = true;
+                Debug.Log($"[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned");
             }
         }
     }
@@ -69,8 +44,44 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (HasInputAuthority)
         {
             runner.RemoveCallbacks(this);
-            if (AutoChatManager.Instance != null)
+            if (isChatSubscribed && AutoChatManager.Instance != null)
+            {
                 AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
+                isChatSubscribed = false;
+            }
+        }
+    }
+
+    private void FindVoiceRecorder()
+    {
+        if (globalRecorder != null) return;
+
+        globalRecorder = GetComponentInChildren<Recorder>();
+
+        if (globalRecorder == null && Runner != null)
+        {
+            var voiceClient = Runner.GetComponent<FusionVoiceClient>();
+            if (voiceClient != null)
+            {
+                globalRecorder = voiceClient.PrimaryRecorder;
+                if (globalRecorder != null)
+                {
+                    Debug.Log($"[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner");
+                }
+            }
+        }
+
+        if (globalRecorder == null)
+        {
+            globalRecorder = FindAnyObjectByType<Recorder>();
+            if (globalRecorder != null)
+                Debug.Log($"[VOICE] ⚠️ Dùng Recorder tìm bừa trong Scene (fallback)");
+        }
+
+        if (globalRecorder != null)
+        {
+            globalRecorder.TransmitEnabled = false;
+            Debug.Log($"[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)");
         }
     }
 
@@ -81,7 +92,24 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             voiceIcon.SetActive(IsSpeaking);
         }
 
-        if (HasInputAuthority == false || globalRecorder == null) return;
+        if (HasInputAuthority == false) return;
+
+        // 🔥 ĐĂNG KÝ CHAT ĐỘNG NẾU TRƯỚC ĐÓ CHƯA ĐĂNG KÝ ĐƯỢC
+        if (!isChatSubscribed && AutoChatManager.Instance != null)
+        {
+            AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
+            AutoChatManager.Instance.onSendMessage += HandleSendMessage;
+            isChatSubscribed = true;
+            Debug.Log($"[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat động thành công lúc Update");
+        }
+
+        // 🔥 TÌM MICROPHONE ĐỘNG NẾU TRƯỚC ĐÓ CHƯA TÌM THẤY
+        if (globalRecorder == null)
+        {
+            FindVoiceRecorder();
+        }
+
+        if (globalRecorder == null) return;
 
         // BẬT / TẮT MIC
         if (Input.GetKeyDown(KeyCode.V))

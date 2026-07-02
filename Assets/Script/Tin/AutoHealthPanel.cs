@@ -276,6 +276,18 @@ public class AutoHealthPanel : MonoBehaviour
         }
         else
         {
+            // Fallback: Tìm PlayerHealth có InputAuthority
+            foreach (var ph in FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None))
+            {
+                if (ph != null && ph.Object != null && ph.HasInputAuthority)
+                {
+                    PlayerHealth.LocalHealthInstance = ph;
+                    localPlayerHealth = ph;
+                    localInventory = ph.GetComponent<InventorySystem>();
+                    Debug.Log("[HEALTH] ✅ Đã tìm thấy LocalHealthInstance qua fallback");
+                    return;
+                }
+            }
             localPlayerHealth = null;
             localInventory = null;
         }
@@ -500,6 +512,16 @@ public class AutoHealthPanel : MonoBehaviour
 
     void Update()
     {
+        // 🔥 ĐĂNG KÝ NGƯỜI CHƠI ĐỘNG NẾU CHƯA TÌM THẤY
+        if (localPlayerHealth == null)
+        {
+            FindLocalPlayerCache();
+            if (localPlayerHealth != null && isOpen)
+            {
+                UpdateAllUI();
+            }
+        }
+
         if (Input.GetKeyDown(KeyCode.H) || (isOpen && Input.GetKeyDown(KeyCode.Escape)))
         {
             // 🔥 CHẶN: Không mở Health Panel khi đang gõ chat
@@ -524,7 +546,7 @@ public class AutoHealthPanel : MonoBehaviour
             TogglePanel();
         }
 
-        if (Input.GetMouseButtonDown(0) && !EventSystem.current.IsPointerOverGameObject())
+        if (Input.GetMouseButtonDown(0) && EventSystem.current != null && !EventSystem.current.IsPointerOverGameObject())
         {
             HideContextMenu();
         }
