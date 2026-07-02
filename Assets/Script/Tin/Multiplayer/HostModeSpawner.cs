@@ -19,6 +19,21 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     public override void Spawned()
     {
+        StartCoroutine(SpawnRoutine());
+    }
+
+    private IEnumerator SpawnRoutine()
+    {
+        // 🔥 ĐỢI CHO ĐẾN KHI LOCAL PLAYER CÓ ID HỢP LỆ (Tránh lỗi PlayerRef.None làm mất InputAuthority trên Host)
+        float timeout = 4f;
+        while (Runner != null && Runner.LocalPlayer == PlayerRef.None && timeout > 0f)
+        {
+            timeout -= Time.deltaTime;
+            yield return null;
+        }
+
+        if (Runner == null) yield break;
+
         int myCharacterID = PlayerPrefs.GetInt("SelectedCharacterID", 0);
         string myPlayerName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
 
