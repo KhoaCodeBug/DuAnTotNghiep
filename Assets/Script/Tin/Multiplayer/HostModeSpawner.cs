@@ -1,4 +1,4 @@
-﻿using Fusion;
+using Fusion;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -45,6 +45,11 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     private void SpawnCharacter(PlayerRef player, int characterID, string playerName)
     {
+        if (spawnedPlayers.ContainsKey(player) && spawnedPlayers[player] != null)
+        {
+            Debug.LogWarning($"[SPAWNER] Người chơi {player} ({playerName}) đã có nhân vật! Bỏ qua đẻ trùng.");
+            return;
+        }
         if (characterID < 0 || characterID >= playerPrefabs.Length) characterID = 0;
 
         Vector3 safeSpawnPos = Vector3.zero;

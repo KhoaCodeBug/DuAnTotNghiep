@@ -93,6 +93,11 @@ public class AutoUIManager : MonoBehaviour
     {
         if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
 
+        if (localPlayer == null)
+        {
+            EnsureLocalPlayer();
+        }
+
         HandleInput();
         UpdateTradeWindowRealtime();
     }
@@ -106,6 +111,17 @@ public class AutoUIManager : MonoBehaviour
         }
         else
         {
+            // Fallback: Nếu LocalPlayerInstance chưa gán, thử tìm đối tượng PlayerMovement có InputAuthority
+            foreach (var pm in FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None))
+            {
+                if (pm != null && pm.Object != null && pm.HasInputAuthority)
+                {
+                    PlayerMovement.LocalPlayerInstance = pm;
+                    localPlayer = pm.gameObject;
+                    Debug.Log("[UI] ✅ Đã tìm thấy LocalPlayer qua fallback HasInputAuthority");
+                    return;
+                }
+            }
             localPlayer = null;
         }
     }
