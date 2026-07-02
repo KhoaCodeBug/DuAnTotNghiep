@@ -112,6 +112,12 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
+    // 🔥 FIX: Reset static reference khi bị Despawn để ván sau tìm lại đúng player
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        if (LocalPlayerInstance == this) LocalPlayerInstance = null;
+    }
+
     public override void FixedUpdateNetwork()
     {
         if (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming))

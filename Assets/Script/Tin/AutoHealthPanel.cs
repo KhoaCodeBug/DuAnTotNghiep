@@ -7,7 +7,28 @@ using System.Collections;
 
 public class AutoHealthPanel : MonoBehaviour
 {
-    public static AutoHealthPanel Instance;
+    private static AutoHealthPanel instance;
+    public static AutoHealthPanel Instance
+    {
+        get
+        {
+            if (instance == null || instance.gameObject == null)
+            {
+                instance = FindFirstObjectByType<AutoHealthPanel>();
+                if (instance == null)
+                {
+                    GameObject go = new GameObject("--- AUTO HEALTH MANAGER ---");
+                    instance = go.AddComponent<AutoHealthPanel>();
+                    DontDestroyOnLoad(go);
+                }
+            }
+            return instance;
+        }
+        private set
+        {
+            instance = value;
+        }
+    }
 
     private GameObject healthCanvas;
     private GameObject panelObj;
@@ -50,17 +71,13 @@ public class AutoHealthPanel : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoSpawn()
     {
-        if (Instance == null)
-        {
-            GameObject go = new GameObject("--- AUTO HEALTH MANAGER ---");
-            go.AddComponent<AutoHealthPanel>();
-            DontDestroyOnLoad(go);
-        }
+        // Kích hoạt qua cơ chế Lazy initialization
+        var trigger = Instance;
     }
 
     void Awake()
     {
-        if (Instance == null) Instance = this;
+        if (instance == null) instance = this;
         else { Destroy(gameObject); return; }
 
         SetupHealthUI();
@@ -800,5 +817,6 @@ public class AutoHealthPanel : MonoBehaviour
         {
             Destroy(healthCanvas);
         }
+        if (instance == this) instance = null;
     }
 }
