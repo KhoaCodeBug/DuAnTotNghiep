@@ -40,24 +40,40 @@ public class PlayerVision : NetworkBehaviour
         pMove = GetComponent<PlayerMovement>();
     }
 
+    private bool wasTarget = false;
+
     public override void Spawned()
     {
         base.Spawned();
 
-        // 🔥 Tắt xử lý bóng đèn của những người chơi khác (Đồng đội)
-        if (!HasInputAuthority)
+        if (playerLight != null)
         {
-            if (playerLight != null)
-            {
-                playerLight.gameObject.SetActive(false);
-            }
-            this.enabled = false;
+            playerLight.gameObject.SetActive(HasInputAuthority);
         }
     }
 
     private void Update()
     {
-        if (!HasInputAuthority || playerLight == null || pMove == null) return;
+        bool isTarget = HasInputAuthority || (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode && PZ_CameraController.Instance.CurrentTarget == this.transform);
+
+        if (playerLight != null)
+        {
+            playerLight.gameObject.SetActive(isTarget);
+        }
+
+        if (!isTarget)
+        {
+            if (wasTarget)
+            {
+                HideAllZombies();
+                wasTarget = false;
+            }
+            return;
+        }
+
+        wasTarget = true;
+
+        if (playerLight == null || pMove == null) return;
 
         // 1. ÁNH SÁNG NGÀY ĐÊM
         if (DayNightManager.Instance != null)
@@ -68,7 +84,7 @@ public class PlayerVision : NetworkBehaviour
         }
 
         // 2. BÓP GÓC KHI NGẮM BẮN
-        bool isAiming = Input.GetMouseButton(1);
+        bool isAiming = HasInputAuthority ? Input.GetMouseButton(1) : pMove.NetIsAiming;
         float targetInner = isAiming ? aimInnerAngle : normalInnerAngle;
         float targetOuter = isAiming ? aimOuterAngle : normalOuterAngle;
 
@@ -77,6 +93,21 @@ public class PlayerVision : NetworkBehaviour
 
         // 3. FOG OF WAR - TẮT/BẬT ZOMBIE
         UpdateZombieVisibility(targetOuter);
+    }
+
+    private void HideAllZombies()
+    {
+        int zombieCount = Physics2D.OverlapCircle(transform.position, 40f, zombieFilter, zombiesInRadius);
+        for (int i = 0; i < zombieCount; i++)
+        {
+            Collider2D zCollider = zombiesInRadius[i];
+            if (zCollider == null) continue;
+            SpriteRenderer[] srs = zCollider.GetComponentsInChildren<SpriteRenderer>();
+            foreach (var sr in srs)
+            {
+                if (sr != null) sr.enabled = false;
+            }
+        }
     }
 
     private void UpdateZombieVisibility(float currentLogicAngle)

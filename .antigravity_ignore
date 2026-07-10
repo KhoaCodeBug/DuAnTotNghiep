@@ -1,0 +1,92 @@
+# Ignore Temp / Build / VS folders
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/.vs/
+/.vscode/
+/.vsconfig
+/*.csproj
+/*.sln
+/*.suo
+/*.user
+/*.userprefs
+
+# Ignore Unity auto-generated metadata
+*.meta
+
+# Ignore binary/media assets
+*.png
+*.jpg
+*.jpeg
+*.tga
+*.tiff
+*.psd
+*.exr
+*.bmp
+*.gif
+*.svg
+*.mp3
+*.wav
+*.ogg
+*.aif
+*.flac
+*.m4a
+*.mp4
+*.mov
+*.avi
+*.webm
+*.ttf
+*.otf
+*.woff
+*.woff2
+*.fbx
+*.obj
+*.max
+*.blend
+*.3ds
+*.dae
+*.pdf
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# Ignore Unity-specific serialized assets (huge text/binary/YAML files)
+*.unity
+*.prefab
+*.asset
+*.controller
+*.anim
+*.mat
+*.playable
+*.physicsMaterial2D
+*.physicMaterial
+*.spriteatlas
+*.terrain
+*.mixer
+*.overrideController
+*.guiskin
+*.fontsettings
+
+# Ignore third-party plug-ins and folders we don't modify in Assets
+/Assets/AstarPathfindingProject/
+/Assets/Joystick Pack/
+/Assets/Kevin Iglesias/
+/Assets/ParrelSync-master/
+/Assets/Photon/
+/Assets/Plugins/
+/Assets/TextMesh Pro/
+/Assets/IsoTools/
+/Assets/Font/
+/Assets/Image/
+/Assets/Material/
+/Assets/Prefab/
+/Assets/-----PreFab----/
+/Assets/Sound/
+/Assets/Tile/
+/Assets/__Clean_Isometric_Tiles/
+/Assets/SmallScaleInt/

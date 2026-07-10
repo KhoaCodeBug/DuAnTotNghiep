@@ -36,6 +36,10 @@ public class AutoHealthPanel : MonoBehaviour
     // --- UI ELEMENTS ---
     private Text fixedHeaderText;
     private RectTransform textContentRect;
+    
+    // --- Graphical Health Bar ---
+    private Image healthBarFill;
+    private Text healthBarText;
 
     private bool isOpen = false;
     public bool IsOpen => isOpen;
@@ -154,13 +158,53 @@ public class AutoHealthPanel : MonoBehaviour
         headerRect.anchoredPosition = new Vector2(200, 0);
         fixedHeaderText.lineSpacing = 1.3f;
 
+        // Create Overall Health Bar
+        GameObject hbBgObj = new GameObject("HealthBarBG");
+        hbBgObj.transform.SetParent(rightContainer.transform, false);
+        RectTransform hbBgRect = hbBgObj.AddComponent<RectTransform>();
+        hbBgRect.anchorMin = new Vector2(0, 0); hbBgRect.anchorMax = new Vector2(0, 0);
+        hbBgRect.pivot = new Vector2(0.5f, 1);
+        hbBgRect.sizeDelta = new Vector2(400, 20);
+        hbBgRect.anchoredPosition = new Vector2(200, 390);
+        
+        Image hbBgImg = hbBgObj.AddComponent<Image>();
+        hbBgImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+        hbBgObj.AddComponent<Outline>().effectColor = Color.black;
+
+        GameObject hbFillObj = new GameObject("HealthBarFill");
+        hbFillObj.transform.SetParent(hbBgObj.transform, false);
+        RectTransform hbFillRect = hbFillObj.AddComponent<RectTransform>();
+        hbFillRect.anchorMin = Vector2.zero; hbFillRect.anchorMax = Vector2.one;
+        hbFillRect.offsetMin = new Vector2(2, 2); hbFillRect.offsetMax = new Vector2(-2, -2);
+        
+        healthBarFill = hbFillObj.AddComponent<Image>();
+        healthBarFill.type = Image.Type.Filled;
+        healthBarFill.fillMethod = Image.FillMethod.Horizontal;
+        healthBarFill.fillAmount = 1f;
+        healthBarFill.color = Color.green;
+
+        GameObject hbTxtObj = new GameObject("HealthBarText");
+        hbTxtObj.transform.SetParent(hbBgObj.transform, false);
+        RectTransform hbTxtRect = hbTxtObj.AddComponent<RectTransform>();
+        hbTxtRect.anchorMin = Vector2.zero; hbTxtRect.anchorMax = Vector2.one;
+        hbTxtRect.offsetMin = hbTxtRect.offsetMax = Vector2.zero;
+        
+        healthBarText = hbTxtObj.AddComponent<Text>();
+        healthBarText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        healthBarText.fontSize = 14;
+        healthBarText.fontStyle = FontStyle.Bold;
+        healthBarText.color = Color.white;
+        healthBarText.alignment = TextAnchor.MiddleCenter;
+        healthBarText.text = "HP: 100/100";
+        hbTxtObj.AddComponent<Shadow>().effectColor = Color.black;
+
         GameObject scrollViewObj = new GameObject("Scroll View");
         scrollViewObj.transform.SetParent(rightContainer.transform, false);
         RectTransform scrollRectTransform = scrollViewObj.AddComponent<RectTransform>();
         scrollRectTransform.anchorMin = new Vector2(0, 0); scrollRectTransform.anchorMax = new Vector2(0, 0);
         scrollRectTransform.pivot = new Vector2(0.5f, 1);
-        scrollRectTransform.sizeDelta = new Vector2(400, 390);
-        scrollRectTransform.anchoredPosition = new Vector2(200, 400);
+        scrollRectTransform.sizeDelta = new Vector2(400, 360);
+        scrollRectTransform.anchoredPosition = new Vector2(200, 370);
 
         ScrollRect scrollRect = scrollViewObj.AddComponent<ScrollRect>();
         scrollRect.horizontal = false;
@@ -405,10 +449,23 @@ public class AutoHealthPanel : MonoBehaviour
         float displayHP = 100f;
         bool isPainReal = false;
 
+        float maxHP = 100f;
         if (localPlayerHealth != null)
         {
             displayHP = localPlayerHealth.currentHealth;
+            maxHP = localPlayerHealth.maxHealth;
             isPainReal = localPlayerHealth.isInPain;
+        }
+
+        if (healthBarFill != null)
+        {
+            float pct = maxHP > 0 ? displayHP / maxHP : 0f;
+            healthBarFill.fillAmount = pct;
+            healthBarFill.color = Color.Lerp(colInjured, Color.green, pct);
+        }
+        if (healthBarText != null)
+        {
+            healthBarText.text = $"HP: {Mathf.RoundToInt(displayHP)}/{Mathf.RoundToInt(maxHP)}";
         }
 
         StringBuilder headerText = new StringBuilder();
