@@ -1,14 +1,23 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Collections.Generic; // 🔥 Bắt buộc có dòng này
 
 public class PZ_CameraController : MonoBehaviour
 {
+    public static PZ_CameraController Instance { get; private set; }
+
     [Header("--- Target Setup ---")]
     private Transform player;
     private bool hasTarget = false;
 
+    public Transform CurrentTarget => player;
+
     public Vector3 offset = new Vector3(0, 0, -10f);
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     [Header("--- PZ Camera Panning ---")]
     public float smoothFollow = 0.12f;

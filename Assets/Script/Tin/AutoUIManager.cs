@@ -23,11 +23,18 @@ public class AutoUIManager : MonoBehaviour
     private GameObject inventoryPanel, tooltipPanel, contextMenuPanel, actionBarPanel, ammoContainer;
     private TextMeshProUGUI tooltipTitleText, tooltipDescText, actionBarText, ammoText;
     private Image actionBarFill;
+    private RectTransform edgeGlowRt; // Edge glow for loading bar
     private List<SlotUIElements> slotUIList = new List<SlotUIElements>();
     private List<InventorySlot> currentSlots = new List<InventorySlot>();
     private int selectedSlotIndex = -1;
     private float invToggleCooldown = 0f;
     public bool isDoingAction;
+    #endregion
+
+    #region Biến UI - Spectator
+    private GameObject spectatorPanel;
+    private Button btnRespawn;
+    private TextMeshProUGUI spectatorText;
     #endregion
 
     #region Biến UI - Tủ Đồ
@@ -103,6 +110,38 @@ public class AutoUIManager : MonoBehaviour
 
         HandleInput();
         UpdateTradeWindowRealtime();
+        UpdateSpectatorUI();
+    }
+
+    private void UpdateSpectatorUI()
+    {
+        if (localPlayer != null)
+        {
+            PlayerHealth health = localPlayer.GetComponent<PlayerHealth>();
+            if (health != null && health.isDead)
+            {
+                if (spectatorPanel != null && !spectatorPanel.activeSelf)
+                {
+                    spectatorPanel.SetActive(true);
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                }
+            }
+            else
+            {
+                if (spectatorPanel != null && spectatorPanel.activeSelf)
+                {
+                    spectatorPanel.SetActive(false);
+                }
+            }
+        }
+        else
+        {
+            if (spectatorPanel != null && spectatorPanel.activeSelf)
+            {
+                spectatorPanel.SetActive(false);
+            }
+        }
     }
 
     // 🔥 HÀM BẢO VỆ MULTIPLAYER: Lấy trực tiếp Instance tĩnh đã được PlayerMovement gán
@@ -258,6 +297,7 @@ public class AutoUIManager : MonoBehaviour
         GenerateTradeRequestUI(canvasGO);
         GenerateTradeWindowUI(canvasGO);
         GenerateClockUI(canvasGO);
+        GenerateSpectatorUI(canvasGO);
     }
 
     private void UpdatePanelsLayout()
@@ -711,6 +751,19 @@ public class AutoUIManager : MonoBehaviour
         actionBarFill.type = Image.Type.Filled;
         actionBarFill.fillMethod = Image.FillMethod.Horizontal;
         actionBarFill.fillAmount = 0f;
+
+        GameObject glowObj = new GameObject("EdgeGlow");
+        glowObj.transform.SetParent(actionBarPanel.transform, false);
+        edgeGlowRt = glowObj.AddComponent<RectTransform>();
+        edgeGlowRt.anchorMin = new Vector2(0f, 0.5f);
+        edgeGlowRt.anchorMax = new Vector2(0f, 0.5f);
+        edgeGlowRt.pivot = new Vector2(0.5f, 0.5f);
+        edgeGlowRt.sizeDelta = new Vector2(8, 21);
+        edgeGlowRt.anchoredPosition = new Vector2(2, 0);
+        
+        Image glowImg = glowObj.AddComponent<Image>();
+        glowImg.color = new Color(1f, 1f, 1f, 0.9f);
+        glowObj.AddComponent<Outline>().effectColor = new Color(0.2f, 0.8f, 0.3f, 0.8f);
 
         GameObject txtObj = new GameObject("Text");
         txtObj.transform.SetParent(actionBarPanel.transform, false);
@@ -1272,10 +1325,17 @@ public class AutoUIManager : MonoBehaviour
         float timer = 0f;
         float duration = itemToUse.useTime;
 
+        if (edgeGlowRt != null) edgeGlowRt.anchoredPosition = new Vector2(2f, 0f);
+
         while (timer < duration)
         {
             timer += Time.deltaTime;
-            actionBarFill.fillAmount = timer / duration;
+            float pct = timer / duration;
+            actionBarFill.fillAmount = pct;
+            if (edgeGlowRt != null)
+            {
+                edgeGlowRt.anchoredPosition = new Vector2(2f + pct * 246f, 0f);
+            }
             actionBarText.text = $"Using {itemToUse.itemName}... {(duration - timer):F1}s";
 
             if (Input.GetKey(KeyCode.LeftShift) || Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.1f)
@@ -1423,7 +1483,12 @@ public class AutoUIManager : MonoBehaviour
     {
         if (ammoContainer != null) ammoContainer.SetActive(false);
         if (actionBarPanel != null && !actionBarPanel.activeSelf) actionBarPanel.SetActive(true);
-        if (actionBarFill != null) actionBarFill.fillAmount = currentTimer / maxDuration;
+        float pct = maxDuration > 0 ? currentTimer / maxDuration : 0f;
+        if (actionBarFill != null) actionBarFill.fillAmount = pct;
+        if (edgeGlowRt != null)
+        {
+            edgeGlowRt.anchoredPosition = new Vector2(2f + pct * 246f, 0f);
+        }
 
         // Dùng biến actionName thay vì chữ "Reloading" cứng ngắc
         if (actionBarText != null) actionBarText.text = $"{actionName} {(maxDuration - currentTimer):F1}s";
@@ -1485,6 +1550,93 @@ public class AutoUIManager : MonoBehaviour
         bool isTrade = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
 
         return isInv || isLoot || isTrade;
+    }
+
+    private void GenerateSpectatorUI(GameObject canvasGO)
+    {
+        spectatorPanel = new GameObject("SpectatorPanel");
+        spectatorPanel.transform.SetParent(canvasGO.transform, false);
+
+        RectTransform rect = spectatorPanel.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.5f, 0.1f);
+        rect.anchorMax = new Vector2(0.5f, 0.1f);
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = new Vector2(500, 100);
+        rect.anchoredPosition = Vector2.zero;
+
+        Image bg = spectatorPanel.AddComponent<Image>();
+        bg.color = new Color(0.05f, 0.05f, 0.05f, 0.85f);
+        spectatorPanel.AddComponent<Outline>().effectColor = Color.red;
+
+        // Text
+        GameObject txtObj = new GameObject("SpectatorText");
+        txtObj.transform.SetParent(spectatorPanel.transform, false);
+        spectatorText = txtObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) spectatorText.font = gameFont;
+        spectatorText.fontSize = 20;
+        spectatorText.fontStyle = FontStyles.Bold;
+        spectatorText.color = Color.white;
+        spectatorText.alignment = TextAlignmentOptions.Center;
+        spectatorText.text = "YOU DIED. SPECTATING TEAMMATES.\nUse A/D or Click to cycle.";
+
+        RectTransform txtRect = txtObj.GetComponent<RectTransform>();
+        txtRect.anchorMin = new Vector2(0, 0.4f);
+        txtRect.anchorMax = new Vector2(1, 1);
+        txtRect.offsetMin = txtRect.offsetMax = Vector2.zero;
+
+        // Respawn Button
+        GameObject btnObj = new GameObject("BtnRespawn");
+        btnObj.transform.SetParent(spectatorPanel.transform, false);
+        RectTransform btnRect = btnObj.AddComponent<RectTransform>();
+        btnRect.anchorMin = new Vector2(0.5f, 0f);
+        btnRect.anchorMax = new Vector2(0.5f, 0f);
+        btnRect.pivot = new Vector2(0.5f, 0f);
+        btnRect.sizeDelta = new Vector2(160, 35);
+        btnRect.anchoredPosition = new Vector2(0, 10);
+
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(0.7f, 0.15f, 0.15f, 1f);
+        btnObj.AddComponent<Outline>().effectColor = Color.black;
+
+        btnRespawn = btnObj.AddComponent<Button>();
+        btnRespawn.onClick.AddListener(OnRespawnClicked);
+
+        GameObject btnTxtObj = new GameObject("Text");
+        btnTxtObj.transform.SetParent(btnObj.transform, false);
+        TextMeshProUGUI btnTxt = btnTxtObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) btnTxt.font = gameFont;
+        btnTxt.fontSize = 16;
+        btnTxt.fontStyle = FontStyles.Bold;
+        btnTxt.color = Color.white;
+        btnTxt.alignment = TextAlignmentOptions.Center;
+        btnTxt.text = "RESPAWN";
+
+        RectTransform btnTxtRect = btnTxtObj.GetComponent<RectTransform>();
+        btnTxtRect.anchorMin = Vector2.zero;
+        btnTxtRect.anchorMax = Vector2.one;
+        btnTxtRect.offsetMin = btnTxtRect.offsetMax = Vector2.zero;
+
+        spectatorPanel.SetActive(false);
+    }
+
+    private void OnRespawnClicked()
+    {
+        EnsureLocalPlayer();
+        if (localPlayer == null) return;
+
+        var health = localPlayer.GetComponent<PlayerHealth>();
+        if (health == null || !health.isDead) return;
+
+        var spawner = FindAnyObjectByType<HostModeSpawner>();
+        if (spawner != null)
+        {
+            int characterID = PlayerPrefs.GetInt("SelectedCharacterID", 0);
+            string playerName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
+            
+            if (spectatorPanel != null) spectatorPanel.SetActive(false);
+
+            spawner.RPC_RequestRespawn(localPlayer.GetComponent<NetworkObject>().InputAuthority, characterID, playerName);
+        }
     }
     #endregion
 }

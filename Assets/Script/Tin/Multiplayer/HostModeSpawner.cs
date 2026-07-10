@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 {
+    public static HostModeSpawner Instance { get; private set; }
+
     [Header("--- Lò Đẻ Kép (Nam & Nữ) ---")]
     public NetworkPrefabRef[] playerPrefabs;
 
@@ -19,7 +21,13 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     public override void Spawned()
     {
+        Instance = this;
         StartCoroutine(SpawnRoutine());
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     private IEnumerator SpawnRoutine()
@@ -55,6 +63,21 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     public void RPC_RequestSpawn(PlayerRef player, int characterID, string playerName)
     {
         if (!Runner.IsServer) return;
+        SpawnCharacter(player, characterID, playerName);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_RequestRespawn(PlayerRef player, int characterID, string playerName)
+    {
+        if (!Runner.IsServer) return;
+
+        // Despawn old character if it exists
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject oldNetObj) && oldNetObj != null)
+        {
+            Runner.Despawn(oldNetObj);
+            spawnedPlayers.Remove(player);
+        }
+
         SpawnCharacter(player, characterID, playerName);
     }
 

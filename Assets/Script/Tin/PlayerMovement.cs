@@ -199,8 +199,18 @@ public class PlayerMovement : NetworkBehaviour
 
     public override void Render()
     {
+        bool isTarget = HasInputAuthority || (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode && PZ_CameraController.Instance.CurrentTarget == this.transform);
+        if (flashlightTransform != null)
+        {
+            flashlightTransform.gameObject.SetActive(isTarget);
+        }
+
         if (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming))
         {
+            if (flashlightTransform != null)
+            {
+                flashlightTransform.gameObject.SetActive(false);
+            }
             return;
         }
 

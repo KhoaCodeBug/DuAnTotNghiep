@@ -457,13 +457,19 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         foreach (SessionInfo session in sessionList)
         {
             string roomName = session.Name; int currentPlayers = session.PlayerCount; int maxPlayers = session.MaxPlayers;
-            bool isLocked = false; int gameState = 0;
-            if (session.Properties != null) { if (session.Properties.TryGetValue("IsLocked", out SessionProperty lockedProp)) isLocked = (int)lockedProp == 1; if (session.Properties.TryGetValue("GameState", out SessionProperty stateProp)) gameState = (int)stateProp; }
+            bool isLocked = false; bool hasPassword = false; int gameState = 0;
+            if (session.Properties != null) 
+            { 
+                if (session.Properties.TryGetValue("IsLocked", out SessionProperty lockedProp)) isLocked = (int)lockedProp == 1; 
+                if (session.Properties.TryGetValue("HasPassword", out SessionProperty hasPassProp)) hasPassword = (int)hasPassProp == 1;
+                else hasPassword = isLocked; // Fallback
+                if (session.Properties.TryGetValue("GameState", out SessionProperty stateProp)) gameState = (int)stateProp; 
+            }
             bool isFull = currentPlayers >= maxPlayers;
 
             string statusString = "<color=white>WAITING</color>";
             if (isFull) statusString = "<color=red>FULL</color>"; else if (gameState == 1) statusString = "<color=orange>IN COMBAT</color>";
-            string lockText = isLocked ? "<color=red>[LOCKED]</color>" : "<color=green>[OPEN]</color>";
+            string lockText = hasPassword ? "<color=red>[LOCKED]</color>" : "<color=green>[OPEN]</color>";
             if (isFull) lockText = "<color=gray>[FULL]</color>";
 
             string finalDisplayString = $"{lockText} Base: {roomName} | Players: {currentPlayers}/{maxPlayers} | Status: {statusString}";
@@ -472,7 +478,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             {
                 if (isFull) { ShowError("BASE IS FULL! CANNOT JOIN."); return; }
                 pendingRoomName = roomName;
-                if (isLocked) { joinPassInput.text = ""; passPromptPanel.SetActive(true); } else { pendingJoinPassword = ""; pendingIsHost = false; OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); }
+                if (hasPassword) { joinPassInput.text = ""; passPromptPanel.SetActive(true); } else { pendingJoinPassword = ""; pendingIsHost = false; OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); }
             });
         }
     }
@@ -730,9 +736,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             var roomProps = new Dictionary<string, SessionProperty>
         {
             { "IsLocked", hostHasPassword ? 1 : 0 },
+            { "HasPassword", hostHasPassword ? 1 : 0 },
             { "GameState", 0 }
         };
             args.SessionProperties = roomProps;
+            args.CustomLobbyProperties = new List<string> { "IsLocked", "HasPassword", "GameState" };
             args.PlayerCount = hostMaxPlayers;
         }
         else // Client
