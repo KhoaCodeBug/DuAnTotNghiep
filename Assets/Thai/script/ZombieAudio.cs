@@ -5,8 +5,11 @@ using Fusion;
 public class ZombieAudio : NetworkBehaviour
 {
     [Header("--- Cấu hình Âm thanh ---")]
-    public AudioClip wanderSound; // Âm thanh rên rỉ tản bộ
-    public AudioClip chaseSound;  // 💡 Âm thanh gầm thét khi rượt đuổi
+    [Tooltip("Âm thanh rên rỉ rảnh rỗi khi đứng yên (Idle)")]
+    public AudioClip wanderSound;
+
+    [Tooltip("Âm thanh gầm thét khi rượt đuổi (Chase)")]
+    public AudioClip chaseSound;
 
     private AudioSource audioSource;
     private ZombieAI aiScript;
@@ -31,8 +34,8 @@ public class ZombieAudio : NetworkBehaviour
                 audioSource.Play();
             }
         }
-        // 2. ƯU TIÊN 2: Nếu không rượt mà đang tản bộ -> Phát tiếng rên rỉ
-        else if (aiScript.NetIsWandering && wanderSound != null)
+        // 2. ƯU TIÊN 2: Nếu KHÔNG rượt đuổi (đang ĐỨNG YÊN) -> Vẫn phát tiếng rên rỉ gầm gừ nhẹ
+        else if (!aiScript.NetIsChasing && wanderSound != null)
         {
             if (audioSource.clip != wanderSound || !audioSource.isPlaying)
             {
@@ -40,7 +43,7 @@ public class ZombieAudio : NetworkBehaviour
                 audioSource.Play();
             }
         }
-        // 3. NGHỈ NGƠI: Nếu không làm gì cả (Idle/Bị choáng) -> Tắt tiếng
+        // 3. NGHỈ NGƠI: Nếu rơi vào trường hợp đặc biệt khác không cần âm thanh -> Tắt tiếng
         else
         {
             if (audioSource.isPlaying)
