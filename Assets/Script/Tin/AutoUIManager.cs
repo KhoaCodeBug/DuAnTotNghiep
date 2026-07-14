@@ -386,7 +386,7 @@ public class AutoUIManager : MonoBehaviour
 
             if (containerPanel != null && containerPanel.activeSelf)
             {
-                rect.anchoredPosition = new Vector2(-150, 0); // Giữ khoảng cách sếp đã chỉnh
+                rect.anchoredPosition = new Vector2(-220, 0); // Spaced side-by-side with container panel
             }
             else
             {
@@ -402,8 +402,8 @@ public class AutoUIManager : MonoBehaviour
         inventoryPanel.transform.SetParent(canvasGO.transform, false);
 
         RectTransform panelRect = inventoryPanel.AddComponent<RectTransform>();
-        panelRect.sizeDelta = new Vector2(500, 450);
-        panelRect.localScale = new Vector3(0.85f, 0.85f, 1f);
+        panelRect.sizeDelta = new Vector2(620, 530);
+        panelRect.localScale = Vector3.one;
 
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -442,11 +442,11 @@ public class AutoUIManager : MonoBehaviour
         gridObj.transform.SetParent(inventoryPanel.transform, false);
         RectTransform gridRect = gridObj.AddComponent<RectTransform>();
         gridRect.anchorMin = new Vector2(0, 0); gridRect.anchorMax = new Vector2(1, 1);
-        gridRect.offsetMin = new Vector2(20, 35);
-        gridRect.offsetMax = new Vector2(-20, -70);
+        gridRect.offsetMin = new Vector2(30, 40);
+        gridRect.offsetMax = new Vector2(-30, -75);
 
         GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
-        gridLayout.cellSize = new Vector2(75, 75); gridLayout.spacing = new Vector2(10, 10);
+        gridLayout.cellSize = new Vector2(90, 90); gridLayout.spacing = new Vector2(10, 10);
         gridLayout.childAlignment = TextAnchor.UpperCenter;
 
         for (int i = 0; i < maxSlots; i++)
@@ -612,13 +612,13 @@ public class AutoUIManager : MonoBehaviour
         containerPanel.transform.SetParent(canvasGO.transform, false);
 
         RectTransform panelRect = containerPanel.AddComponent<RectTransform>();
-        panelRect.sizeDelta = new Vector2(300, 360);
-        panelRect.localScale = new Vector3(0.85f, 0.85f, 1f);
+        panelRect.sizeDelta = new Vector2(400, 480);
+        panelRect.localScale = Vector3.one;
 
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
-        panelRect.anchoredPosition = new Vector2(250, 0);
+        panelRect.anchoredPosition = new Vector2(220, 0);
 
         Image panelBg = containerPanel.AddComponent<Image>();
         if (generatedBorderSprite != null)
@@ -652,10 +652,10 @@ public class AutoUIManager : MonoBehaviour
         gridObj.transform.SetParent(containerPanel.transform, false);
         RectTransform gridRect = gridObj.AddComponent<RectTransform>();
         gridRect.anchorMin = new Vector2(0, 0); gridRect.anchorMax = new Vector2(1, 1);
-        gridRect.offsetMin = new Vector2(20, 20); gridRect.offsetMax = new Vector2(-20, -70);
+        gridRect.offsetMin = new Vector2(30, 40); gridRect.offsetMax = new Vector2(-30, -75);
 
         GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
-        gridLayout.cellSize = new Vector2(75, 75);
+        gridLayout.cellSize = new Vector2(90, 90);
         gridLayout.spacing = new Vector2(10, 10);
         gridLayout.childAlignment = TextAnchor.UpperCenter;
 
@@ -888,7 +888,7 @@ public class AutoUIManager : MonoBehaviour
         tradeWindowPanel.transform.SetParent(canvasGO.transform, false);
 
         RectTransform panelRect = tradeWindowPanel.AddComponent<RectTransform>();
-        panelRect.sizeDelta = new Vector2(600, 420);
+        panelRect.sizeDelta = new Vector2(750, 520);
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
@@ -1623,8 +1623,8 @@ public class AutoUIManager : MonoBehaviour
         panelRect.anchorMin = new Vector2(1, 1);
         panelRect.anchorMax = new Vector2(1, 1);
         panelRect.pivot = new Vector2(1, 1);
-        panelRect.anchoredPosition = new Vector2(-1, -1);
-        panelRect.sizeDelta = new Vector2(50, 20);
+        panelRect.anchoredPosition = new Vector2(-15, -15);
+        panelRect.sizeDelta = new Vector2(90, 30);
 
         Image bg = clockPanel.AddComponent<Image>();
         bg.color = new Color(0.1f, 0.1f, 0.15f, 0.9f);
@@ -1641,7 +1641,7 @@ public class AutoUIManager : MonoBehaviour
         }
 
         clockText.text = "12:00";
-        clockText.fontSize = 15;
+        clockText.fontSize = 20;
         clockText.fontStyle = FontStyles.Bold;
         clockText.alignment = TextAlignmentOptions.Center;
         clockText.color = new Color(0.9f, 0.9f, 0.9f, 1f);

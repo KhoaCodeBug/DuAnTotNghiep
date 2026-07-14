@@ -54,12 +54,12 @@ public class GlobalSettingsManager : MonoBehaviour
         fpsRt.anchorMin = new Vector2(1f, 1f);
         fpsRt.anchorMax = new Vector2(1f, 1f);
         fpsRt.pivot = new Vector2(1f, 1f);
-        fpsRt.anchoredPosition = new Vector2(-15f, -15f); // Cách góc 15px
+        fpsRt.anchoredPosition = new Vector2(-15f, -50f); // Shifted down below clock
         fpsRt.sizeDelta = new Vector2(150, 40);
 
         fpsCounterText = fpsGo.AddComponent<TextMeshProUGUI>();
         fpsCounterText.alignment = TextAlignmentOptions.Right;
-        fpsCounterText.fontSize = 22;
+        fpsCounterText.fontSize = 24;
         fpsCounterText.color = Color.green;
         fpsCounterText.text = "--- FPS";
         fpsCounterText.raycastTarget = false;

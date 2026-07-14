@@ -105,7 +105,7 @@ public class AutoHealthPanel : MonoBehaviour
         panelObj.transform.SetParent(healthCanvas.transform, false);
         RectTransform panelRect = panelObj.AddComponent<RectTransform>();
         panelRect.anchorMin = new Vector2(0.5f, 0.5f); panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-        panelRect.sizeDelta = new Vector2(900, 600);
+        panelRect.sizeDelta = new Vector2(700, 480);
 
         Image panelBg = panelObj.AddComponent<Image>();
         panelBg.color = new Color(0.06f, 0.07f, 0.08f, 1f);
