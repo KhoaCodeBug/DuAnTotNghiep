@@ -1,5 +1,13 @@
 fileFormatVersion: 2
-guid: 9ebb86500f4bba74faec9d69a1c8f2af
+guid: 90ac7ec7420aadb4daf0e6bc2f9220c2
+AssetOrigin:
+  serializedVersion: 1
+  productId: 327298
+  packageName: Zombie Interior - HD Isometric Tileset
+  packageVersion: 1.0
+  assetPath: Assets/SmallScaleInt/2D Zombie interior Tile pack 1/Characters/Animations/Spritesheets/Survivor
+    3/Taunt.png
+  uploadId: 777992
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -67,12 +75,12 @@ TextureImporter:
   swizzle: 50462976
   cookieLightType: 0
   platformSettings:
-  - serializedVersion: 3
+  - serializedVersion: 4
     buildTarget: DefaultTexturePlatform
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
-    textureCompression: 0
+    textureCompression: 2
     compressionQuality: 50
     crunchedCompression: 0
     allowsAlphaSplitting: 0
@@ -80,7 +88,7 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 3
+  - serializedVersion: 4
     buildTarget: Standalone
     maxTextureSize: 2048
     resizeAlgorithm: 0
@@ -93,2530 +101,2664 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Idle_0_0
+      name: Taunt_0_0
       rect:
         serializedVersion: 2
         x: 0
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8784899352d0e1500800000000000000
-      internalID: 368746673022191736
+      spriteID: c121e0dc0c338b710800000000000000
+      internalID: 1709172961754092060
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_1
+      name: Taunt_0_1
       rect:
         serializedVersion: 2
         x: 128
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c6ae810ad42d9d0e0800000000000000
-      internalID: -2244531708427179412
+      spriteID: be6f713951bc2fb60800000000000000
+      internalID: 7778502799944840939
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_2
+      name: Taunt_0_2
       rect:
         serializedVersion: 2
         x: 256
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6ce880fe4170db5b0800000000000000
-      internalID: -5351112995755225402
+      spriteID: d0cdc1fe25f28e4e0800000000000000
+      internalID: -1952258405219640307
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_3
+      name: Taunt_0_3
       rect:
         serializedVersion: 2
         x: 384
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 1325a859a88c3c970800000000000000
-      internalID: 8774076996587770417
+      spriteID: eed544d31fccc5e90800000000000000
+      internalID: -7035523181372482066
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_4
+      name: Taunt_0_4
       rect:
         serializedVersion: 2
         x: 512
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f984aed4f6541e580800000000000000
-      internalID: -8799675852554352481
+      spriteID: a774bf7df4695e430800000000000000
+      internalID: 3811617929309144954
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_5
+      name: Taunt_0_5
       rect:
         serializedVersion: 2
         x: 640
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 61a69860b77b09b70800000000000000
-      internalID: 8903818202329999894
+      spriteID: 7614f942f7709bd00800000000000000
+      internalID: 988829835841192295
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_6
+      name: Taunt_0_6
       rect:
         serializedVersion: 2
         x: 768
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f171e56a82cb0d8a0800000000000000
-      internalID: -6282314597405944033
+      spriteID: bb26e48ebb7ada200800000000000000
+      internalID: 192994784544973499
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_7
+      name: Taunt_0_7
       rect:
         serializedVersion: 2
         x: 896
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 1f37f484167740da0800000000000000
-      internalID: -5979523145532476431
+      spriteID: b782beeff0e0e8520800000000000000
+      internalID: 2706115887960369275
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_8
+      name: Taunt_0_8
       rect:
         serializedVersion: 2
         x: 1024
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7fab6373c16c193e0800000000000000
-      internalID: -2048638530989147401
+      spriteID: cfc51501b58d1cf30800000000000000
+      internalID: 4594190980522007804
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_9
+      name: Taunt_0_9
       rect:
         serializedVersion: 2
         x: 1152
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7f58ab0c409a72110800000000000000
-      internalID: 1236142460614903287
+      spriteID: 4e258c1db7504bc10800000000000000
+      internalID: 2068284158228583140
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_10
+      name: Taunt_0_10
       rect:
         serializedVersion: 2
         x: 1280
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5ae3762c447fdbd80800000000000000
-      internalID: -8233152669072015707
+      spriteID: 0498e8db7412ff8d0800000000000000
+      internalID: -2810491050449270464
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_11
+      name: Taunt_0_11
       rect:
         serializedVersion: 2
         x: 1408
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5db33841c319c0d10800000000000000
-      internalID: 2093207614048648149
+      spriteID: ecb8fa51807e45b60800000000000000
+      internalID: 7734060482011565006
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_12
+      name: Taunt_0_12
       rect:
         serializedVersion: 2
         x: 1536
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 42b0aed12162ebda0800000000000000
-      internalID: -5927258200319849692
+      spriteID: fd61b2a884d5b9290800000000000000
+      internalID: -7882604156644813089
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_13
+      name: Taunt_0_13
       rect:
         serializedVersion: 2
         x: 1664
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 2b7c79601a9bb1a10800000000000000
-      internalID: 1881301370608797618
+      spriteID: cc275726986f9ab00800000000000000
+      internalID: 840473875404124876
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_0_14
+      name: Taunt_0_14
       rect:
         serializedVersion: 2
         x: 1792
         y: 896
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4079c160b9897cd20800000000000000
-      internalID: 3298773043662067460
+      spriteID: 0d85850c12eaa7420800000000000000
+      internalID: 2628604792508274896
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_0
+      name: Taunt_1_0
       rect:
         serializedVersion: 2
         x: 0
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ee0b85815a7092790800000000000000
-      internalID: -7554498494277832466
+      spriteID: 46cb060084e1e19d0800000000000000
+      internalID: -2801768623585051548
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_1
+      name: Taunt_1_1
       rect:
         serializedVersion: 2
         x: 128
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ce9cfc72c748ca130800000000000000
-      internalID: 3579381472631441900
+      spriteID: 4f52c66a6ff026660800000000000000
+      internalID: 7377476691614770676
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_2
+      name: Taunt_1_2
       rect:
         serializedVersion: 2
         x: 256
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f51a8528e22355760800000000000000
-      internalID: 7445912734263714143
+      spriteID: 126e456a1a3371760800000000000000
+      internalID: 7428462879744255521
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_3
+      name: Taunt_1_3
       rect:
         serializedVersion: 2
         x: 384
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d02670e6d97e09d10800000000000000
-      internalID: 2130457287088103949
+      spriteID: cff854b4c7d29aec0800000000000000
+      internalID: -3555260418970251268
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_4
+      name: Taunt_1_4
       rect:
         serializedVersion: 2
         x: 512
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e80021551b8f41870800000000000000
-      internalID: 8652814224605708430
+      spriteID: 01f3e367d1d9a6470800000000000000
+      internalID: 8388690005794373392
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_5
+      name: Taunt_1_5
       rect:
         serializedVersion: 2
         x: 640
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c5ede2622e8a75190800000000000000
-      internalID: -7973718925979492772
+      spriteID: f5feca26671f76b00800000000000000
+      internalID: 821890947782340447
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_6
+      name: Taunt_1_6
       rect:
         serializedVersion: 2
         x: 768
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7f697dd98e48ed9b0800000000000000
-      internalID: -5053455597247686921
+      spriteID: 7aaabb7c3ecc3ab00800000000000000
+      internalID: 838739234301651623
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_7
+      name: Taunt_1_7
       rect:
         serializedVersion: 2
         x: 896
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 31606993d357e2c10800000000000000
-      internalID: 2030689387810260499
+      spriteID: 92c6e058568de03f0800000000000000
+      internalID: -932570142283502551
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_8
+      name: Taunt_1_8
       rect:
         serializedVersion: 2
         x: 1024
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 06a2b68d167b43740800000000000000
-      internalID: 5130927506352450144
+      spriteID: f3466d7b3fc035bd0800000000000000
+      internalID: -2642754315435482049
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_9
+      name: Taunt_1_9
       rect:
         serializedVersion: 2
         x: 1152
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7d668d165c4bc5080800000000000000
-      internalID: -9197277579154266409
+      spriteID: bd7ea03ebad6592c0800000000000000
+      internalID: -4425510473805666341
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_10
+      name: Taunt_1_10
       rect:
         serializedVersion: 2
         x: 1280
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7e0e68982ab57f690800000000000000
-      internalID: -7568479895122681625
+      spriteID: bd6c4e4b537ff2910800000000000000
+      internalID: 1814940984893818587
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_11
+      name: Taunt_1_11
       rect:
         serializedVersion: 2
         x: 1408
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5213d7acf0ab20ec0800000000000000
-      internalID: -3602112174958497499
+      spriteID: 997b87b48a56e77d0800000000000000
+      internalID: -2918783734994389095
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_12
+      name: Taunt_1_12
       rect:
         serializedVersion: 2
         x: 1536
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ebe09e264fa3bf490800000000000000
-      internalID: -7711505115635970370
+      spriteID: 3ea861ce03f936470800000000000000
+      internalID: 8386721963562142435
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_13
+      name: Taunt_1_13
       rect:
         serializedVersion: 2
         x: 1664
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f2cd46aae76b7f5d0800000000000000
-      internalID: -3028751569242498001
+      spriteID: 9a22d115f7bf94fc0800000000000000
+      internalID: -3509997910318308695
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_1_14
+      name: Taunt_1_14
       rect:
         serializedVersion: 2
         x: 1792
         y: 768
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4b17902b5f1e2e410800000000000000
-      internalID: 1505013670865367476
+      spriteID: ba59ad8e4ea93b2e0800000000000000
+      internalID: -2111173492356770389
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_0
+      name: Taunt_2_0
       rect:
         serializedVersion: 2
         x: 0
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4eeecacb2631d1aa0800000000000000
-      internalID: -6188768998144020764
+      spriteID: c4b433b6137967fa0800000000000000
+      internalID: -5803284831312590004
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_1
+      name: Taunt_2_1
       rect:
         serializedVersion: 2
         x: 128
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: bfaa1a1a3bbdb6b70800000000000000
-      internalID: 8893443453730532091
+      spriteID: 145a9265db2ad5160800000000000000
+      internalID: 7015942728591189313
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_2
+      name: Taunt_2_2
       rect:
         serializedVersion: 2
         x: 256
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d133a6df6fcd06bd0800000000000000
-      internalID: -2638866428267449571
+      spriteID: 6b26b6ff845a37df0800000000000000
+      internalID: -183621426850602314
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_3
+      name: Taunt_2_3
       rect:
         serializedVersion: 2
         x: 384
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3e1c62181c05d1170800000000000000
-      internalID: 8150759692636176867
+      spriteID: 32bca263abf154990800000000000000
+      internalID: -7402475527880389853
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_4
+      name: Taunt_2_4
       rect:
         serializedVersion: 2
         x: 512
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 94cdcaa1faebe2960800000000000000
-      internalID: 7579204882187213897
+      spriteID: 24cdf6ea94625dd10800000000000000
+      internalID: 2149666495040314434
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_5
+      name: Taunt_2_5
       rect:
         serializedVersion: 2
         x: 640
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 39bd25c787feceff0800000000000000
-      internalID: -5366198773294189
+      spriteID: 8473fbf646d2382c0800000000000000
+      internalID: -4430647699007654072
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_6
+      name: Taunt_2_6
       rect:
         serializedVersion: 2
         x: 768
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d1bccae7af0c3fa00800000000000000
-      internalID: 789186541819579165
+      spriteID: cc9d2c54f72a1d520800000000000000
+      internalID: 2725137917050804684
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_7
+      name: Taunt_2_7
       rect:
         serializedVersion: 2
         x: 896
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: be11411f2720d9b50800000000000000
-      internalID: 6601435321489166827
+      spriteID: 93a6242bdd10bec60800000000000000
+      internalID: 7848368827313318457
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_8
+      name: Taunt_2_8
       rect:
         serializedVersion: 2
         x: 1024
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 4118ee14353dd1370800000000000000
-      internalID: 8295018443228217620
+      spriteID: 9b57062c40c040ae0800000000000000
+      internalID: -1584127954347067975
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_9
+      name: Taunt_2_9
       rect:
         serializedVersion: 2
         x: 1152
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 23724ec3e0d78ab90800000000000000
-      internalID: -7230391701638731982
+      spriteID: b24ebe0ecd4045da0800000000000000
+      internalID: -5957131060391451605
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_10
+      name: Taunt_2_10
       rect:
         serializedVersion: 2
         x: 1280
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 910e11c9b2ef165e0800000000000000
-      internalID: -1917972503027654631
+      spriteID: 9076e535123cc5e40800000000000000
+      internalID: 5646602580715792137
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_11
+      name: Taunt_2_11
       rect:
         serializedVersion: 2
         x: 1408
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 48051880c0d6686a0800000000000000
-      internalID: -6447345918084558716
+      spriteID: 346352945016c38a0800000000000000
+      internalID: -6324073101405112765
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_12
+      name: Taunt_2_12
       rect:
         serializedVersion: 2
         x: 1536
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e1a9208cc7bfaf920800000000000000
-      internalID: 3025006613082839582
+      spriteID: 2d295ac357a96f6c0800000000000000
+      internalID: -4109927781609663790
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_13
+      name: Taunt_2_13
       rect:
         serializedVersion: 2
         x: 1664
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c9fb83a5cfa30b360800000000000000
-      internalID: 7183306261175779228
+      spriteID: 0ae9da4ab69b684f0800000000000000
+      internalID: -826769609600426336
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_2_14
+      name: Taunt_2_14
       rect:
         serializedVersion: 2
         x: 1792
         y: 640
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: be67b08d42961e660800000000000000
-      internalID: 7413322068592916203
+      spriteID: 84abe81baa1473180800000000000000
+      internalID: -9135761117718595000
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_0
+      name: Taunt_3_0
       rect:
         serializedVersion: 2
         x: 0
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e3aedf5ab3fd3b810800000000000000
-      internalID: 1780011725022423614
+      spriteID: b03bfd12bd23cd5b0800000000000000
+      internalID: -5342339141220715765
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_1
+      name: Taunt_3_1
       rect:
         serializedVersion: 2
         x: 128
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e718c8d508de1e650800000000000000
-      internalID: 6260546092602786174
+      spriteID: 551d87f91a86b3d30800000000000000
+      internalID: 4412235303314051413
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_2
+      name: Taunt_3_2
       rect:
         serializedVersion: 2
         x: 256
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c98d59e7124f0f990800000000000000
-      internalID: -7354109766801172324
+      spriteID: 7934e014ccf1dfdd0800000000000000
+      internalID: -2450767660094438505
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_3
+      name: Taunt_3_3
       rect:
         serializedVersion: 2
         x: 384
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b768d251ff79ed4c0800000000000000
-      internalID: -4260801075618150789
+      spriteID: d2e9b4f87f3e30230800000000000000
+      internalID: 3603974779227053613
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_4
+      name: Taunt_3_4
       rect:
         serializedVersion: 2
         x: 512
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 728021713b9ce5440800000000000000
-      internalID: 4926596813413287975
+      spriteID: fa4d354c6bdfa86d0800000000000000
+      internalID: -2987296441387199313
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_5
+      name: Taunt_3_5
       rect:
         serializedVersion: 2
         x: 640
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7c4232f983b443ff0800000000000000
-      internalID: -57338188688841529
+      spriteID: f0d803dfda6b3f400800000000000000
+      internalID: 356829653885816079
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_6
+      name: Taunt_3_6
       rect:
         serializedVersion: 2
         x: 768
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: dbead028351b04980800000000000000
-      internalID: -8556644319781605699
+      spriteID: 423b3b88b39417230800000000000000
+      internalID: 3634766894310077220
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_7
+      name: Taunt_3_7
       rect:
         serializedVersion: 2
         x: 896
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8be272a2941c54d00800000000000000
-      internalID: 956383015870082744
+      spriteID: 5da80339bca1ba6a0800000000000000
+      internalID: -6437021780745876779
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_8
+      name: Taunt_3_8
       rect:
         serializedVersion: 2
         x: 1024
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 870799b3ea71d7680800000000000000
-      internalID: -8755816063446716296
+      spriteID: 076092bbb2c9ecd40800000000000000
+      internalID: 5606590297760401008
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_9
+      name: Taunt_3_9
       rect:
         serializedVersion: 2
         x: 1152
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 02b29adaa5ec3c8c0800000000000000
-      internalID: -3980110756809463008
+      spriteID: 0f9b3701046fbfb90800000000000000
+      internalID: -7206896023661987344
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_10
+      name: Taunt_3_10
       rect:
         serializedVersion: 2
         x: 1280
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 64d892ae11d47f800800000000000000
-      internalID: 646069810889329990
+      spriteID: 5d5c7d8545203f490800000000000000
+      internalID: -7713819175464483371
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_11
+      name: Taunt_3_11
       rect:
         serializedVersion: 2
         x: 1408
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 8ca78067cf2a50c20800000000000000
-      internalID: 3172120717748107976
+      spriteID: 25563f0da4fb950b0800000000000000
+      internalID: -5739345922052889262
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_12
+      name: Taunt_3_12
       rect:
         serializedVersion: 2
         x: 1536
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: f147ed854b865e6c0800000000000000
-      internalID: -4114767560738704353
+      spriteID: 0a88d8a9bdc89dbc0800000000000000
+      internalID: -3757817539245274976
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_13
+      name: Taunt_3_13
       rect:
         serializedVersion: 2
         x: 1664
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 95ae4013bc5be8c50800000000000000
-      internalID: 6669467982487677529
+      spriteID: 767193f444f20cc40800000000000000
+      internalID: 5530472312844392295
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_3_14
+      name: Taunt_3_14
       rect:
         serializedVersion: 2
         x: 1792
         y: 512
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: fde9e6663a7e27ba0800000000000000
-      internalID: -6092552656894648609
+      spriteID: 28a13f2db59f65f30800000000000000
+      internalID: 4564109445163063938
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_0
+      name: Taunt_4_0
       rect:
         serializedVersion: 2
         x: 0
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 75ce49c2e386db030800000000000000
-      internalID: 3512077900664073303
+      spriteID: 249ca82d3635e59e0800000000000000
+      internalID: -1630774326862362302
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_1
+      name: Taunt_4_1
       rect:
         serializedVersion: 2
         x: 128
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 92fff3319bab83db0800000000000000
-      internalID: -4811890897790697687
+      spriteID: 8914c66422d4a82a0800000000000000
+      internalID: -6734485483173428840
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_2
+      name: Taunt_4_2
       rect:
         serializedVersion: 2
         x: 256
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 45d34174bd5ae21b0800000000000000
-      internalID: -5679419718858687148
+      spriteID: bc2ecfd3e5dcf1830800000000000000
+      internalID: 4044176795052597963
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_3
+      name: Taunt_4_3
       rect:
         serializedVersion: 2
         x: 384
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 07423256c73054dd0800000000000000
-      internalID: -2502590185126812560
+      spriteID: 643cb10596280d510800000000000000
+      internalID: 1571899658779476806
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_4
+      name: Taunt_4_4
       rect:
         serializedVersion: 2
         x: 512
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a951f9feeedf1bff0800000000000000
-      internalID: -21957320495917670
+      spriteID: 3cebb3dc5335f8250800000000000000
+      internalID: 5949065123321331395
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_5
+      name: Taunt_4_5
       rect:
         serializedVersion: 2
         x: 640
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6925be2e810e194f0800000000000000
-      internalID: -823630859341180266
+      spriteID: 0a08f3b42e1ce8e00800000000000000
+      internalID: 1048988940893126816
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_6
+      name: Taunt_4_6
       rect:
         serializedVersion: 2
         x: 768
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: ad9e28ecfc6c24330800000000000000
-      internalID: 3693733240222443994
+      spriteID: c8e04c2ec31ffd480800000000000000
+      internalID: -8872107497091756404
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_7
+      name: Taunt_4_7
       rect:
         serializedVersion: 2
         x: 896
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: adadaedf74e2cd470800000000000000
-      internalID: 8420656290013567706
+      spriteID: f87053c154c9a0440800000000000000
+      internalID: 4902902964986120079
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_8
+      name: Taunt_4_8
       rect:
         serializedVersion: 2
         x: 1024
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c3930e190abc3f8f0800000000000000
-      internalID: -507838442460137156
+      spriteID: 19bdbb6d391731a10800000000000000
+      internalID: 1878970349320395665
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_9
+      name: Taunt_4_9
       rect:
         serializedVersion: 2
         x: 1152
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 80dd809d4b7a7d2e0800000000000000
-      internalID: -2101026305967858424
+      spriteID: ae1ee12b03612a180800000000000000
+      internalID: -9105691098187111958
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_10
+      name: Taunt_4_10
       rect:
         serializedVersion: 2
         x: 1280
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0725a67b16dc00040800000000000000
-      internalID: 4611911838000108144
+      spriteID: 7e30aff58a2e88760800000000000000
+      internalID: 7460461995531830247
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_11
+      name: Taunt_4_11
       rect:
         serializedVersion: 2
         x: 1408
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b81330a3aa3f4fa10800000000000000
-      internalID: 1942445251746804107
+      spriteID: 81f7d48800fb25570800000000000000
+      internalID: 8454029459535527704
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_12
+      name: Taunt_4_12
       rect:
         serializedVersion: 2
         x: 1536
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5cadaa4593dd94b20800000000000000
-      internalID: 3119267455234136773
+      spriteID: 5dd73d70941bf2be0800000000000000
+      internalID: -1499785223669056043
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_13
+      name: Taunt_4_13
       rect:
         serializedVersion: 2
         x: 1664
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: eb3d01396253ed7a0800000000000000
-      internalID: -6350579984753437762
+      spriteID: 2fc59338dae08f570800000000000000
+      internalID: 8500560435055516914
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_4_14
+      name: Taunt_4_14
       rect:
         serializedVersion: 2
         x: 1792
         y: 384
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 77e7747ed2006f0e0800000000000000
-      internalID: -2236599967789121929
+      spriteID: 4949393f22da17fa0800000000000000
+      internalID: -5804668079076830060
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_0
+      name: Taunt_5_0
       rect:
         serializedVersion: 2
         x: 0
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 2010978422b0a03f0800000000000000
-      internalID: -933921730853273342
+      spriteID: 9ff93963f13dd09e0800000000000000
+      internalID: -1653433357162012679
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_1
+      name: Taunt_5_1
       rect:
         serializedVersion: 2
         x: 128
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7636040b8953f5fe0800000000000000
-      internalID: -1198180045948951705
+      spriteID: f5f24792f9e216fa0800000000000000
+      internalID: -5809310783201071265
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_2
+      name: Taunt_5_2
       rect:
         serializedVersion: 2
         x: 256
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0e7609440072ba130800000000000000
-      internalID: 3578997210979788768
+      spriteID: 05fd87d7e667d3460800000000000000
+      internalID: 7223059594295697232
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_3
+      name: Taunt_5_3
       rect:
         serializedVersion: 2
         x: 384
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e546bf1832f06ee70800000000000000
-      internalID: 9144012738601378910
+      spriteID: fecce2c87afd4d1f0800000000000000
+      internalID: -1020945304801850129
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_4
+      name: Taunt_5_4
       rect:
         serializedVersion: 2
         x: 512
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 72e405284865338e0800000000000000
-      internalID: -1714931905976054233
+      spriteID: 95db96a28d8376a70800000000000000
+      internalID: 8820080896304069977
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_5
+      name: Taunt_5_5
       rect:
         serializedVersion: 2
         x: 640
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 0614ce255757811a0800000000000000
-      internalID: -6838586887399259808
+      spriteID: b8ddd99f967db7fd0800000000000000
+      internalID: -2343042330956800629
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_6
+      name: Taunt_5_6
       rect:
         serializedVersion: 2
         x: 768
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9f745180fb579f8e0800000000000000
-      internalID: -1659165524374501383
+      spriteID: 67c39a0a30f437860800000000000000
+      internalID: 7526446279265172598
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_7
+      name: Taunt_5_7
       rect:
         serializedVersion: 2
         x: 896
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e3c76e0ed08ebb040800000000000000
-      internalID: 4664576985377700926
+      spriteID: 602964c7d37860410800000000000000
+      internalID: 1442989428766577158
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_8
+      name: Taunt_5_8
       rect:
         serializedVersion: 2
         x: 1024
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 397a0b77e1cccc6e0800000000000000
-      internalID: -1815852118508001389
+      spriteID: 725870a27ec236ae0800000000000000
+      internalID: -1557351674785856217
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_9
+      name: Taunt_5_9
       rect:
         serializedVersion: 2
         x: 1152
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 88ad27ed053464500800000000000000
-      internalID: 380065233167899272
+      spriteID: cc1582c294b112440800000000000000
+      internalID: 4909235069897953740
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_10
+      name: Taunt_5_10
       rect:
         serializedVersion: 2
         x: 1280
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5e01394e92191dfc0800000000000000
-      internalID: -3471834228611411739
+      spriteID: 9011f4c6ff1226c30800000000000000
+      internalID: 4351077570910818569
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_11
+      name: Taunt_5_11
       rect:
         serializedVersion: 2
         x: 1408
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 202cdc9ac252a2100800000000000000
-      internalID: 83920416817398274
+      spriteID: d0daa37488cb71840800000000000000
+      internalID: 5194827988691758349
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_12
+      name: Taunt_5_12
       rect:
         serializedVersion: 2
         x: 1536
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b81e7e0c9f9a66e90800000000000000
-      internalID: -7032746877944077941
+      spriteID: d85b48e8cfb5b2440800000000000000
+      internalID: 4912120958858605965
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_13
+      name: Taunt_5_13
       rect:
         serializedVersion: 2
         x: 1664
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 513239c55b9a4dfd0800000000000000
-      internalID: -2318041311781641451
+      spriteID: be4fd9ba8cc73ca70800000000000000
+      internalID: 8846051294400345323
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_5_14
+      name: Taunt_5_14
       rect:
         serializedVersion: 2
         x: 1792
         y: 256
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 114f9c1e1870032b0800000000000000
-      internalID: -5606973281655983087
+      spriteID: 43cb7859668e5d820800000000000000
+      internalID: 2942513458849496116
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_0
+      name: Taunt_6_0
       rect:
         serializedVersion: 2
         x: 0
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3542578c022147f80800000000000000
-      internalID: -8109837096976047021
+      spriteID: 2df8ac3ebb6acdf10800000000000000
+      internalID: 2295893235962908626
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_1
+      name: Taunt_6_1
       rect:
         serializedVersion: 2
         x: 128
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: c1aaae9cadf4f54e0800000000000000
-      internalID: -1990784709165405668
+      spriteID: 299f37ddb5f983900800000000000000
+      internalID: 664456161943353746
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_2
+      name: Taunt_6_2
       rect:
         serializedVersion: 2
         x: 256
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 17aa7bc3409dffc90800000000000000
-      internalID: -7133744672509810063
+      spriteID: 0ffa01dbf05ea4a20800000000000000
+      internalID: 3047499953628819440
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_3
+      name: Taunt_6_3
       rect:
         serializedVersion: 2
         x: 384
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a38cace64cd747350800000000000000
-      internalID: 6013569685072300090
+      spriteID: e79886ea093a10a10800000000000000
+      internalID: 1873958761759541630
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_4
+      name: Taunt_6_4
       rect:
         serializedVersion: 2
         x: 512
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 224b8f61be50847d0800000000000000
-      internalID: -2934088649971026910
+      spriteID: 3bba29520fb02a180800000000000000
+      internalID: -9105702370539295821
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_5
+      name: Taunt_6_5
       rect:
         serializedVersion: 2
         x: 640
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a4ca7d09b5d67fa20800000000000000
-      internalID: 3096063508880010314
+      spriteID: 9ca1fef83e384e9b0800000000000000
+      internalID: -5051767868607227191
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_6
+      name: Taunt_6_6
       rect:
         serializedVersion: 2
         x: 768
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6e946004de4745830800000000000000
-      internalID: 4058997726497884646
+      spriteID: 63788eb5a56b46670800000000000000
+      internalID: 8531144093351839542
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_7
+      name: Taunt_6_7
       rect:
         serializedVersion: 2
         x: 896
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 3b44218d357059fb0800000000000000
-      internalID: -4641795784246672205
+      spriteID: b733c249ded6cbcf0800000000000000
+      internalID: -235192213369506949
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_8
+      name: Taunt_6_8
       rect:
         serializedVersion: 2
         x: 1024
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 15202a382899c10e0800000000000000
-      internalID: -2297792924032564655
+      spriteID: f2ac16a0276cc0020800000000000000
+      internalID: 2309438902036974127
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_9
+      name: Taunt_6_9
       rect:
         serializedVersion: 2
         x: 1152
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6579198504f2995f0800000000000000
-      internalID: -749515909570128042
+      spriteID: aba043f94dde6d110800000000000000
+      internalID: 1285476241120692922
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_10
+      name: Taunt_6_10
       rect:
         serializedVersion: 2
         x: 1280
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 074525eaeff72b450800000000000000
-      internalID: 6103081176863495280
+      spriteID: 15e1ef2f78d6b3110800000000000000
+      internalID: 1241706552935456337
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_11
+      name: Taunt_6_11
       rect:
         serializedVersion: 2
         x: 1408
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 6d1ed8845eb9f9510800000000000000
-      internalID: 1558135405160554966
+      spriteID: 646ea885c0f97df80800000000000000
+      internalID: -8081816130919143866
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_12
+      name: Taunt_6_12
       rect:
         serializedVersion: 2
         x: 1536
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7099d4c71b4c87080800000000000000
-      internalID: -9189378773075781369
+      spriteID: 81be9134507e73fd0800000000000000
+      internalID: -2362165469745911016
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_13
+      name: Taunt_6_13
       rect:
         serializedVersion: 2
         x: 1664
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 652e8057f1ca69f10800000000000000
-      internalID: 2276195912789844566
+      spriteID: 2e896fe7a64ad83b0800000000000000
+      internalID: -5508565991900669726
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_6_14
+      name: Taunt_6_14
       rect:
         serializedVersion: 2
         x: 1792
         y: 128
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: cd7f5f47c82221820800000000000000
-      internalID: 2887408297750951900
+      spriteID: 5e584ffbfa1af5d20800000000000000
+      internalID: 3269509630706091493
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_0
+      name: Taunt_7_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 60e7f9d330b8450d0800000000000000
-      internalID: -3434967769741820410
+      spriteID: ac6aadb8e0c9a8f90800000000000000
+      internalID: -6950571488603101494
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_1
+      name: Taunt_7_1
       rect:
         serializedVersion: 2
         x: 128
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: e7532191f6853bac0800000000000000
-      internalID: -3840628823031663234
+      spriteID: f44ab1820edb72fc0800000000000000
+      internalID: -3519635813323529137
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_2
+      name: Taunt_7_2
       rect:
         serializedVersion: 2
         x: 256
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 721dc8adccd4ed570800000000000000
-      internalID: 8493311489502662951
+      spriteID: 5768db09f31e1f0f0800000000000000
+      internalID: -1084838372092049803
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_3
+      name: Taunt_7_3
       rect:
         serializedVersion: 2
         x: 384
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a92f625f7a82c7df0800000000000000
-      internalID: -181225183164042598
+      spriteID: f8e27459b45996830800000000000000
+      internalID: 4064944290538139279
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_4
+      name: Taunt_7_4
       rect:
         serializedVersion: 2
         x: 512
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 02cefc323cd536f40800000000000000
-      internalID: 5720519044391496736
+      spriteID: aa268718ceb3b1190800000000000000
+      internalID: -7990727226868342102
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_5
+      name: Taunt_7_5
       rect:
         serializedVersion: 2
         x: 640
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 5cd8e4de9eae504d0800000000000000
-      internalID: -3168868472355648059
+      spriteID: d3985d6a3fcce7cc0800000000000000
+      internalID: -3711303696058578627
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_6
+      name: Taunt_7_6
       rect:
         serializedVersion: 2
         x: 768
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d9b936ef8867d4540800000000000000
-      internalID: 4993777892579318685
+      spriteID: 9495860c3dbf0e0f0800000000000000
+      internalID: -1089594222938924727
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_7
+      name: Taunt_7_7
       rect:
         serializedVersion: 2
         x: 896
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a1e4c2504893200d0800000000000000
-      internalID: -3458138324681863654
+      spriteID: 4079026c8e690a3f0800000000000000
+      internalID: -891546799718754556
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_8
+      name: Taunt_7_8
       rect:
         serializedVersion: 2
         x: 1024
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 42c93cb5bec4b05d0800000000000000
-      internalID: -3095295745146512348
+      spriteID: ffe25e3779908b320800000000000000
+      internalID: 2573817733131349759
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_9
+      name: Taunt_7_9
       rect:
         serializedVersion: 2
         x: 1152
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d646a8e19fbd19100800000000000000
-      internalID: 113113328666698861
+      spriteID: 49c027555f241b340800000000000000
+      internalID: 4877753492886916244
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_10
+      name: Taunt_7_10
       rect:
         serializedVersion: 2
         x: 1280
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 7fdc8803883eab700800000000000000
-      internalID: 557007678003006967
+      spriteID: e0959bd1843165ff0800000000000000
+      internalID: -47829545583552242
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_11
+      name: Taunt_7_11
       rect:
         serializedVersion: 2
         x: 1408
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9596e5fcef8ca05a0800000000000000
-      internalID: -6554205310958016167
+      spriteID: 51fd2698e631e1d50800000000000000
+      internalID: 6709821860300906261
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_12
+      name: Taunt_7_12
       rect:
         serializedVersion: 2
         x: 1536
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 78884431ef8611f90800000000000000
-      internalID: -6984686106620688249
+      spriteID: f77399ed7fdcc7010800000000000000
+      internalID: 1188050866194167679
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_13
+      name: Taunt_7_13
       rect:
         serializedVersion: 2
         x: 1664
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: aa1a6cfa386d7a480800000000000000
-      internalID: -8887899478514294358
+      spriteID: 3b9570061428c2b20800000000000000
+      internalID: 3111004659901749683
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: Idle_7_14
+      name: Taunt_7_14
       rect:
         serializedVersion: 2
         x: 1792
         y: 0
         width: 128
         height: 128
-      alignment: 0
-      pivot: {x: 0, y: 0}
+      alignment: 9
+      pivot: {x: 0.5, y: 0.35}
       border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9dd1214fae5a46790800000000000000
-      internalID: -7537717447775609383
+      spriteID: 7f94e7ab408af71e0800000000000000
+      internalID: -2197853354871338505
       vertices: []
       indices: 
       edges: []
       weights: []
     outline: []
+    customData: 
     physicsShape: []
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
@@ -2626,137 +2768,131 @@ TextureImporter:
     edges: []
     weights: []
     secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
     nameFileIdTable:
-      Idle_0_0: 368746673022191736
-      Idle_0_1: -2244531708427179412
-      Idle_0_10: -8233152669072015707
-      Idle_0_11: 2093207614048648149
-      Idle_0_12: -5927258200319849692
-      Idle_0_13: 1881301370608797618
-      Idle_0_14: 3298773043662067460
-      Idle_0_2: -5351112995755225402
-      Idle_0_3: 8774076996587770417
-      Idle_0_4: -8799675852554352481
-      Idle_0_5: 8903818202329999894
-      Idle_0_6: -6282314597405944033
-      Idle_0_7: -5979523145532476431
-      Idle_0_8: -2048638530989147401
-      Idle_0_9: 1236142460614903287
-      Idle_1_0: -7554498494277832466
-      Idle_1_1: 3579381472631441900
-      Idle_1_10: -7568479895122681625
-      Idle_1_11: -3602112174958497499
-      Idle_1_12: -7711505115635970370
-      Idle_1_13: -3028751569242498001
-      Idle_1_14: 1505013670865367476
-      Idle_1_2: 7445912734263714143
-      Idle_1_3: 2130457287088103949
-      Idle_1_4: 8652814224605708430
-      Idle_1_5: -7973718925979492772
-      Idle_1_6: -5053455597247686921
-      Idle_1_7: 2030689387810260499
-      Idle_1_8: 5130927506352450144
-      Idle_1_9: -9197277579154266409
-      Idle_2_0: -6188768998144020764
-      Idle_2_1: 8893443453730532091
-      Idle_2_10: -1917972503027654631
-      Idle_2_11: -6447345918084558716
-      Idle_2_12: 3025006613082839582
-      Idle_2_13: 7183306261175779228
-      Idle_2_14: 7413322068592916203
-      Idle_2_2: -2638866428267449571
-      Idle_2_3: 8150759692636176867
-      Idle_2_4: 7579204882187213897
-      Idle_2_5: -5366198773294189
-      Idle_2_6: 789186541819579165
-      Idle_2_7: 6601435321489166827
-      Idle_2_8: 8295018443228217620
-      Idle_2_9: -7230391701638731982
-      Idle_3_0: 1780011725022423614
-      Idle_3_1: 6260546092602786174
-      Idle_3_10: 646069810889329990
-      Idle_3_11: 3172120717748107976
-      Idle_3_12: -4114767560738704353
-      Idle_3_13: 6669467982487677529
-      Idle_3_14: -6092552656894648609
-      Idle_3_2: -7354109766801172324
-      Idle_3_3: -4260801075618150789
-      Idle_3_4: 4926596813413287975
-      Idle_3_5: -57338188688841529
-      Idle_3_6: -8556644319781605699
-      Idle_3_7: 956383015870082744
-      Idle_3_8: -8755816063446716296
-      Idle_3_9: -3980110756809463008
-      Idle_4_0: 3512077900664073303
-      Idle_4_1: -4811890897790697687
-      Idle_4_10: 4611911838000108144
-      Idle_4_11: 1942445251746804107
-      Idle_4_12: 3119267455234136773
-      Idle_4_13: -6350579984753437762
-      Idle_4_14: -2236599967789121929
-      Idle_4_2: -5679419718858687148
-      Idle_4_3: -2502590185126812560
-      Idle_4_4: -21957320495917670
-      Idle_4_5: -823630859341180266
-      Idle_4_6: 3693733240222443994
-      Idle_4_7: 8420656290013567706
-      Idle_4_8: -507838442460137156
-      Idle_4_9: -2101026305967858424
-      Idle_5_0: -933921730853273342
-      Idle_5_1: -1198180045948951705
-      Idle_5_10: -3471834228611411739
-      Idle_5_11: 83920416817398274
-      Idle_5_12: -7032746877944077941
-      Idle_5_13: -2318041311781641451
-      Idle_5_14: -5606973281655983087
-      Idle_5_2: 3578997210979788768
-      Idle_5_3: 9144012738601378910
-      Idle_5_4: -1714931905976054233
-      Idle_5_5: -6838586887399259808
-      Idle_5_6: -1659165524374501383
-      Idle_5_7: 4664576985377700926
-      Idle_5_8: -1815852118508001389
-      Idle_5_9: 380065233167899272
-      Idle_6_0: -8109837096976047021
-      Idle_6_1: -1990784709165405668
-      Idle_6_10: 6103081176863495280
-      Idle_6_11: 1558135405160554966
-      Idle_6_12: -9189378773075781369
-      Idle_6_13: 2276195912789844566
-      Idle_6_14: 2887408297750951900
-      Idle_6_2: -7133744672509810063
-      Idle_6_3: 6013569685072300090
-      Idle_6_4: -2934088649971026910
-      Idle_6_5: 3096063508880010314
-      Idle_6_6: 4058997726497884646
-      Idle_6_7: -4641795784246672205
-      Idle_6_8: -2297792924032564655
-      Idle_6_9: -749515909570128042
-      Idle_7_0: -3434967769741820410
-      Idle_7_1: -3840628823031663234
-      Idle_7_10: 557007678003006967
-      Idle_7_11: -6554205310958016167
-      Idle_7_12: -6984686106620688249
-      Idle_7_13: -8887899478514294358
-      Idle_7_14: -7537717447775609383
-      Idle_7_2: 8493311489502662951
-      Idle_7_3: -181225183164042598
-      Idle_7_4: 5720519044391496736
-      Idle_7_5: -3168868472355648059
-      Idle_7_6: 4993777892579318685
-      Idle_7_7: -3458138324681863654
-      Idle_7_8: -3095295745146512348
-      Idle_7_9: 113113328666698861
+      Taunt_0_0: 1709172961754092060
+      Taunt_0_1: 7778502799944840939
+      Taunt_0_10: -2810491050449270464
+      Taunt_0_11: 7734060482011565006
+      Taunt_0_12: -7882604156644813089
+      Taunt_0_13: 840473875404124876
+      Taunt_0_14: 2628604792508274896
+      Taunt_0_2: -1952258405219640307
+      Taunt_0_3: -7035523181372482066
+      Taunt_0_4: 3811617929309144954
+      Taunt_0_5: 988829835841192295
+      Taunt_0_6: 192994784544973499
+      Taunt_0_7: 2706115887960369275
+      Taunt_0_8: 4594190980522007804
+      Taunt_0_9: 2068284158228583140
+      Taunt_1_0: -2801768623585051548
+      Taunt_1_1: 7377476691614770676
+      Taunt_1_10: 1814940984893818587
+      Taunt_1_11: -2918783734994389095
+      Taunt_1_12: 8386721963562142435
+      Taunt_1_13: -3509997910318308695
+      Taunt_1_14: -2111173492356770389
+      Taunt_1_2: 7428462879744255521
+      Taunt_1_3: -3555260418970251268
+      Taunt_1_4: 8388690005794373392
+      Taunt_1_5: 821890947782340447
+      Taunt_1_6: 838739234301651623
+      Taunt_1_7: -932570142283502551
+      Taunt_1_8: -2642754315435482049
+      Taunt_1_9: -4425510473805666341
+      Taunt_2_0: -5803284831312590004
+      Taunt_2_1: 7015942728591189313
+      Taunt_2_10: 5646602580715792137
+      Taunt_2_11: -6324073101405112765
+      Taunt_2_12: -4109927781609663790
+      Taunt_2_13: -826769609600426336
+      Taunt_2_14: -9135761117718595000
+      Taunt_2_2: -183621426850602314
+      Taunt_2_3: -7402475527880389853
+      Taunt_2_4: 2149666495040314434
+      Taunt_2_5: -4430647699007654072
+      Taunt_2_6: 2725137917050804684
+      Taunt_2_7: 7848368827313318457
+      Taunt_2_8: -1584127954347067975
+      Taunt_2_9: -5957131060391451605
+      Taunt_3_0: -5342339141220715765
+      Taunt_3_1: 4412235303314051413
+      Taunt_3_10: -7713819175464483371
+      Taunt_3_11: -5739345922052889262
+      Taunt_3_12: -3757817539245274976
+      Taunt_3_13: 5530472312844392295
+      Taunt_3_14: 4564109445163063938
+      Taunt_3_2: -2450767660094438505
+      Taunt_3_3: 3603974779227053613
+      Taunt_3_4: -2987296441387199313
+      Taunt_3_5: 356829653885816079
+      Taunt_3_6: 3634766894310077220
+      Taunt_3_7: -6437021780745876779
+      Taunt_3_8: 5606590297760401008
+      Taunt_3_9: -7206896023661987344
+      Taunt_4_0: -1630774326862362302
+      Taunt_4_1: -6734485483173428840
+      Taunt_4_10: 7460461995531830247
+      Taunt_4_11: 8454029459535527704
+      Taunt_4_12: -1499785223669056043
+      Taunt_4_13: 8500560435055516914
+      Taunt_4_14: -5804668079076830060
+      Taunt_4_2: 4044176795052597963
+      Taunt_4_3: 1571899658779476806
+      Taunt_4_4: 5949065123321331395
+      Taunt_4_5: 1048988940893126816
+      Taunt_4_6: -8872107497091756404
+      Taunt_4_7: 4902902964986120079
+      Taunt_4_8: 1878970349320395665
+      Taunt_4_9: -9105691098187111958
+      Taunt_5_0: -1653433357162012679
+      Taunt_5_1: -5809310783201071265
+      Taunt_5_10: 4351077570910818569
+      Taunt_5_11: 5194827988691758349
+      Taunt_5_12: 4912120958858605965
+      Taunt_5_13: 8846051294400345323
+      Taunt_5_14: 2942513458849496116
+      Taunt_5_2: 7223059594295697232
+      Taunt_5_3: -1020945304801850129
+      Taunt_5_4: 8820080896304069977
+      Taunt_5_5: -2343042330956800629
+      Taunt_5_6: 7526446279265172598
+      Taunt_5_7: 1442989428766577158
+      Taunt_5_8: -1557351674785856217
+      Taunt_5_9: 4909235069897953740
+      Taunt_6_0: 2295893235962908626
+      Taunt_6_1: 664456161943353746
+      Taunt_6_10: 1241706552935456337
+      Taunt_6_11: -8081816130919143866
+      Taunt_6_12: -2362165469745911016
+      Taunt_6_13: -5508565991900669726
+      Taunt_6_14: 3269509630706091493
+      Taunt_6_2: 3047499953628819440
+      Taunt_6_3: 1873958761759541630
+      Taunt_6_4: -9105702370539295821
+      Taunt_6_5: -5051767868607227191
+      Taunt_6_6: 8531144093351839542
+      Taunt_6_7: -235192213369506949
+      Taunt_6_8: 2309438902036974127
+      Taunt_6_9: 1285476241120692922
+      Taunt_7_0: -6950571488603101494
+      Taunt_7_1: -3519635813323529137
+      Taunt_7_10: -47829545583552242
+      Taunt_7_11: 6709821860300906261
+      Taunt_7_12: 1188050866194167679
+      Taunt_7_13: 3111004659901749683
+      Taunt_7_14: -2197853354871338505
+      Taunt_7_2: -1084838372092049803
+      Taunt_7_3: 4064944290538139279
+      Taunt_7_4: -7990727226868342102
+      Taunt_7_5: -3711303696058578627
+      Taunt_7_6: -1089594222938924727
+      Taunt_7_7: -891546799718754556
+      Taunt_7_8: 2573817733131349759
+      Taunt_7_9: 4877753492886916244
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
   assetBundleName: 
   assetBundleVariant: 
-AssetOrigin:
-  serializedVersion: 1
-  productId: 312874
-  packageName: Zombie Rural - HD Isometric Tileset
-  packageVersion: 1.1
-  assetPath: Assets/SmallScaleInt/2D Zombie Rural Tile pack 1/Characters/Animations/Spritesheets/Survivor
-    2/Idle.png
-  uploadId: 742232
