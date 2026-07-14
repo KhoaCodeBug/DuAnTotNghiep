@@ -6,11 +6,14 @@ using Pathfinding;
 
 public class ZombieSpawnZone : NetworkBehaviour
 {
-    public enum ZoneLevel { Level1, Level2, Level3 }
+    public enum ZoneLevel { Level1, Level2, Level3, Level4, Level5, Level6 }
 
     [Header("=== Cấu hình Zone ===")]
     public ZoneLevel level = ZoneLevel.Level1;
     public Vector2 zoneSize = new Vector2(10f, 10f);
+
+    [Header("=== Tự động thiết lập theo Level (Đọc từ bảng mẫu) ===")]
+    public bool useAutoConfig = false; // Mặc định false để không đè lên các Zone đã setup tay của bạn
 
     [Header("=== Cấu hình Zombie ===")]
     public List<NetworkPrefabRef> zombiePrefabs;
@@ -39,6 +42,11 @@ public class ZombieSpawnZone : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority || isSpawning) return;
+
+        if (useAutoConfig)
+        {
+            ApplyLevelConfig(GetEffectiveLevel());
+        }
 
         aliveZombies.RemoveAll(z => z == null || z.NetIsDead);
 
@@ -131,6 +139,70 @@ public class ZombieSpawnZone : NetworkBehaviour
         isSpawning = false;
     }
 
+    public ZoneLevel GetEffectiveLevel()
+    {
+        int currentLevelInt = (int)level;
+        
+        // Đọc độ khó từ PlayerPrefs (Easy=0, Normal=1, Hardcore=2)
+        int difficulty = PlayerPrefs.GetInt("GameDifficulty", 1); 
+        
+        // Nếu độ khó là Hardcore (2), tăng level lên 1 bậc
+        if (difficulty == 2)
+        {
+            currentLevelInt = Mathf.Min(currentLevelInt + 1, (int)ZoneLevel.Level6);
+        }
+        // Nếu độ khó là Easy (0), giảm level đi 1 bậc
+        else if (difficulty == 0)
+        {
+            currentLevelInt = Mathf.Max(currentLevelInt - 1, (int)ZoneLevel.Level1);
+        }
+        
+        return (ZoneLevel)currentLevelInt;
+    }
+
+    public void ApplyLevelConfig(ZoneLevel targetLevel)
+    {
+        switch (targetLevel)
+        {
+            case ZoneLevel.Level1:
+                minZombies = 1;
+                maxZombies = 3;
+                safeDistance = 10f;
+                respawnCooldown = 180f;
+                break;
+            case ZoneLevel.Level2:
+                minZombies = 3;
+                maxZombies = 6;
+                safeDistance = 9f;
+                respawnCooldown = 150f;
+                break;
+            case ZoneLevel.Level3:
+                minZombies = 6;
+                maxZombies = 12;
+                safeDistance = 8f;
+                respawnCooldown = 120f;
+                break;
+            case ZoneLevel.Level4:
+                minZombies = 12;
+                maxZombies = 20;
+                safeDistance = 8f;
+                respawnCooldown = 90f;
+                break;
+            case ZoneLevel.Level5:
+                minZombies = 20;
+                maxZombies = 35;
+                safeDistance = 7f;
+                respawnCooldown = 60f;
+                break;
+            case ZoneLevel.Level6:
+                minZombies = 35;
+                maxZombies = 50;
+                safeDistance = 6f;
+                respawnCooldown = 45f;
+                break;
+        }
+    }
+
     private Vector2 GetRandomPointInZone()
     {
         float halfWidth = zoneSize.x / 2f;
@@ -143,8 +215,11 @@ public class ZombieSpawnZone : NetworkBehaviour
     private void OnDrawGizmos()
     {
         Color zoneColor = Color.green;
-        if (level == ZoneLevel.Level2) zoneColor = Color.yellow;
-        else if (level == ZoneLevel.Level3) zoneColor = Color.red;
+        if (level == ZoneLevel.Level2) zoneColor = new Color(0.9f, 0.7f, 0f); // Cam vàng
+        else if (level == ZoneLevel.Level3) zoneColor = Color.red; // Đỏ
+        else if (level == ZoneLevel.Level4) zoneColor = new Color(0.8f, 0f, 0.8f); // Tím
+        else if (level == ZoneLevel.Level5) zoneColor = new Color(0.4f, 0f, 0.4f); // Tím đậm
+        else if (level == ZoneLevel.Level6) zoneColor = Color.black; // Đen nguy hiểm
 
         Gizmos.color = new Color(zoneColor.r, zoneColor.g, zoneColor.b, 0.3f);
         Gizmos.DrawCube(transform.position, new Vector3(zoneSize.x, zoneSize.y, 0.1f));
