@@ -359,7 +359,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         rect.offsetMax = Vector2.zero;
         settingsArea.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.97f);
 
-        CreateTitleText(pauseOptionsPanel, "OPTIONS", 0.93f, 35);
+        CreateTitleText(pauseOptionsPanel, "OPTIONS", 0.95f, 35);
 
         // Tạo Tab containers
         GameObject pDisplayTab = new GameObject("PDisplayTab");
@@ -1613,7 +1613,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CanvasGroup cg = optionsPanel.AddComponent<CanvasGroup>();
         cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false;
         
-        CreateTitleText(optionsPanel, "OPTIONS");
+        CreateTitleText(optionsPanel, "OPTIONS", 0.95f);
 
         GameObject settingsArea = new GameObject("Settings_Container");
         settingsArea.transform.SetParent(optionsPanel.transform, false);
@@ -2319,6 +2319,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     }
 
     public bool IsOptionsOpen => optionsPanel != null && optionsPanel.activeSelf;
+    public bool IsPauseMenuOpen => isPauseMenuOpen || (pauseMenuPanel != null && pauseMenuPanel.activeSelf);
+    public bool IsPauseOptionsOpen => isPauseOptionsOpen || (pauseOptionsPanel != null && pauseOptionsPanel.activeSelf);
 
     public float GetTempSensitivity()
     {
