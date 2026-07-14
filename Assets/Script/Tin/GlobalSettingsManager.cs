@@ -100,6 +100,37 @@ public class GlobalSettingsManager : MonoBehaviour
         // 2. Độ sáng màn hình (Brightness)
         float brightness = PlayerPrefs.GetFloat("GameBrightness", 1.0f); // Tầm chạy: 0.5f (tối) đến 1.5f (sáng)
         ApplyBrightness(brightness);
+
+        // 6. Chất lượng đồ họa (Graphics Quality)
+        int qual = PlayerPrefs.GetInt("GameQualityLevel", 2); // 0 = Low, 1 = Medium, 2 = High
+        ApplyGraphicsQuality(qual);
+
+        // 7. Chất lượng đổ bóng (Shadow Quality)
+        int shad = PlayerPrefs.GetInt("GameShadowQuality", 2); // 0 = Disabled, 1 = Hard Only, 2 = Soft Shadows
+        ApplyShadowQuality(shad);
+
+        // 8. Khử răng cưa (Anti-Aliasing)
+        int aa = PlayerPrefs.GetInt("GameAntiAliasing", 2); // 0 = Disabled, 1 = 2x, 2 = 4x, 3 = 8x
+        ApplyAntiAliasing(aa);
+
+        // 9. Hiện FPS
+        int showFps = PlayerPrefs.GetInt("GameShowFPS", 1); // 0 = Off, 1 = On
+        ApplyShowFPS(showFps == 1);
+
+        // 3. Giới hạn khung hình (FPS Limit)
+        int fps = PlayerPrefs.GetInt("GameFPSLimit", 60); // 30, 60, 120, -1 (unlimited)
+        QualitySettings.vSyncCount = 0; // Bắt buộc tắt VSync để giới hạn FPS hoạt động thực tế chính xác
+        Application.targetFrameRate = fps;
+
+        // 4. Âm lượng Master
+        float volume = PlayerPrefs.GetFloat("GameMasterVolume", 1.0f);
+        AudioListener.volume = volume;
+
+        // 5. Cập nhật Âm lượng Nhạc & SFX cho Menu
+        if (AutoMainMenuManager.Instance != null)
+        {
+            AutoMainMenuManager.Instance.UpdateAudioSettings();
+        }
     }
 
     public void ApplyBrightness(float brightness)
@@ -119,20 +150,41 @@ public class GlobalSettingsManager : MonoBehaviour
                 brightnessImage.color = new Color(0f, 0f, 0f, alpha);
             }
         }
+    }
 
-        // 3. Giới hạn khung hình (FPS Limit)
-        int fps = PlayerPrefs.GetInt("GameFPSLimit", 60); // 30, 60, 120, -1 (unlimited)
-        QualitySettings.vSyncCount = 0; // Bắt buộc tắt VSync để giới hạn FPS hoạt động thực tế chính xác
-        Application.targetFrameRate = fps;
+    public void ApplyGraphicsQuality(int level)
+    {
+        QualitySettings.SetQualityLevel(level, true);
+    }
 
-        // 4. Âm lượng Master
-        float volume = PlayerPrefs.GetFloat("GameMasterVolume", 1.0f);
-        AudioListener.volume = volume;
-
-        // 5. Cập nhật Âm lượng Nhạc & SFX cho Menu
-        if (AutoMainMenuManager.Instance != null)
+    public void ApplyShadowQuality(int level)
+    {
+        if (level == 0)
         {
-            AutoMainMenuManager.Instance.UpdateAudioSettings();
+            QualitySettings.shadows = ShadowQuality.Disable;
+        }
+        else if (level == 1)
+        {
+            QualitySettings.shadows = ShadowQuality.HardOnly;
+        }
+        else
+        {
+            QualitySettings.shadows = ShadowQuality.All;
+        }
+    }
+
+    public void ApplyAntiAliasing(int levelIndex)
+    {
+        int[] aaValues = new int[] { 0, 2, 4, 8 };
+        int idx = Mathf.Clamp(levelIndex, 0, aaValues.Length - 1);
+        QualitySettings.antiAliasing = aaValues[idx];
+    }
+
+    public void ApplyShowFPS(bool show)
+    {
+        if (fpsCounterText != null)
+        {
+            fpsCounterText.gameObject.SetActive(show);
         }
     }
 

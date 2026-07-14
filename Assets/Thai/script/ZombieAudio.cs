@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 
 [RequireComponent(typeof(AudioSource), typeof(ZombieAI))]
@@ -23,6 +23,9 @@ public class ZombieAudio : NetworkBehaviour
     public override void Render()
     {
         if (aiScript == null || audioSource == null) return;
+
+        // Cập nhật âm lượng theo cấu hình SFX của người chơi
+        audioSource.volume = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
 
         // 1. ƯU TIÊN 1: Nếu đang rượt đuổi Player -> Phát tiếng gầm thét
         if (aiScript.NetIsChasing && chaseSound != null)
