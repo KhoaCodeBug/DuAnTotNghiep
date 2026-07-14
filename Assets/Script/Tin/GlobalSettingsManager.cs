@@ -98,6 +98,7 @@ public class GlobalSettingsManager : MonoBehaviour
 
         // 3. Giới hạn khung hình (FPS Limit)
         int fps = PlayerPrefs.GetInt("GameFPSLimit", 60); // 30, 60, 120, -1 (unlimited)
+        QualitySettings.vSyncCount = 0; // Bắt buộc tắt VSync để giới hạn FPS hoạt động thực tế chính xác
         Application.targetFrameRate = fps;
 
         // 4. Âm lượng Master
