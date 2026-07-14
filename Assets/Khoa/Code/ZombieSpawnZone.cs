@@ -229,4 +229,14 @@ public class ZombieSpawnZone : NetworkBehaviour
         Gizmos.color = Color.white;
         Gizmos.DrawWireSphere(transform.position, safeDistance);
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (useAutoConfig)
+        {
+            ApplyLevelConfig(level);
+        }
+    }
+#endif
 }
