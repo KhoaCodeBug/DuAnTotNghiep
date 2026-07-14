@@ -31,6 +31,8 @@ public class ZombieAI : NetworkBehaviour
     public float attackRange = 1.5f;
     public float damageRadius = 1.8f;
     public float attackCooldown = 1.5f;
+    [SerializeField] private float attackCommitDuration = 1.25f;
+    [SerializeField] private float attackRangeBuffer = 0.05f;
 
     [Header("--- Sát thương các chiêu ---")]
     public float damageAtk1 = 10f;
@@ -55,6 +57,8 @@ public class ZombieAI : NetworkBehaviour
 
     private int currentAttackIndex = 1;
     private bool hasDealtDamageThisAttack = false;
+    private bool isAttackLocked = false;
+    private float attackCommitTimer = 0f;
 
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
@@ -106,9 +110,15 @@ public class ZombieAI : NetworkBehaviour
     }
 
     // --- HÀM TRƯỢT TƯỜNG (CẢI TIẾN) ---
-    private bool SafeMove(Vector2 targetDir, float currentSpeed)
+    private bool SafeMove(Vector2 targetDir, float currentSpeed, float maxMoveDistance = float.PositiveInfinity)
     {
-        float distanceToMove = currentSpeed * Runner.DeltaTime;
+        float distanceToMove = Mathf.Min(currentSpeed * Runner.DeltaTime, maxMoveDistance);
+        if (distanceToMove <= 0f)
+        {
+            StopMovement();
+            return false;
+        }
+
         RaycastHit2D hit = Physics2D.CircleCast(rb.position, zombieRadius, targetDir, distanceToMove, obstacleMask);
 
         if (hit.collider == null)
@@ -124,7 +134,8 @@ public class ZombieAI : NetworkBehaviour
 
             if (slideDirection.sqrMagnitude > 0.01f)
             {
-                rb.MovePosition(rb.position + slideDirection * (currentSpeed * 0.8f) * Runner.DeltaTime);
+                float slideDistance = Mathf.Min((currentSpeed * 0.8f) * Runner.DeltaTime, maxMoveDistance);
+                rb.MovePosition(rb.position + slideDirection * slideDistance);
                 NetMoveDir = slideDirection;
             }
             else
@@ -222,6 +233,8 @@ public class ZombieAI : NetworkBehaviour
             searchTimer = 0.2f;
         }
 
+        if (HandleCommittedAttack()) return;
+
         AIMode previousMode = currentMode;
 
         // CẬP NHẬT LOGIC TRẠNG THÁI: Nếu không đuổi, không điều tra thì sẽ IDLE (Đứng yên)
@@ -255,13 +268,15 @@ public class ZombieAI : NetworkBehaviour
     private void HandleChaseState()
     {
         float distanceToPlayer = Vector2.Distance(transform.position, player.position);
+        float attackStartRange = Mathf.Max(attackRange, damageRadius);
+        float chaseResumeRange = attackStartRange + attackRangeBuffer;
 
-        if (distanceToPlayer > attackRange)
+        if (distanceToPlayer > chaseResumeRange)
         {
             if (distanceToPlayer <= directChaseRange && CanSeePlayer())
             {
                 Vector2 directDir = (player.position - transform.position).normalized;
-                SafeMove(directDir, moveSpeed);
+                SafeMove(directDir, moveSpeed, distanceToPlayer - attackStartRange);
                 NetIsRunning = true;
                 path = null;
             }
@@ -285,13 +300,46 @@ public class ZombieAI : NetworkBehaviour
 
             if (attackTimer <= 0)
             {
-                int randomAtk = Random.Range(1, 5);
-                currentAttackIndex = randomAtk;
-                hasDealtDamageThisAttack = false;
-                RPC_TriggerAttack(randomAtk);
-                attackTimer = attackCooldown;
+                StartAttack();
             }
         }
+    }
+
+    private bool HandleCommittedAttack()
+    {
+        if (!isAttackLocked) return false;
+
+        attackCommitTimer -= Runner.DeltaTime;
+        StopMovement();
+        NetIsRunning = false;
+        NetIsChasing = player != null;
+
+        if (player != null)
+        {
+            Vector2 faceDir = player.position - transform.position;
+            if (faceDir.sqrMagnitude > 0.0001f)
+            {
+                NetMoveDir = faceDir.normalized;
+            }
+        }
+
+        if (attackCommitTimer <= 0f)
+        {
+            isAttackLocked = false;
+        }
+
+        return true;
+    }
+
+    private void StartAttack()
+    {
+        int randomAtk = Random.Range(1, 5);
+        currentAttackIndex = randomAtk;
+        hasDealtDamageThisAttack = false;
+        isAttackLocked = true;
+        attackCommitTimer = attackCommitDuration;
+        RPC_TriggerAttack(randomAtk);
+        attackTimer = attackCooldown;
     }
 
     private void HandleInvestigateState()
@@ -400,5 +448,6 @@ public class ZombieAI : NetworkBehaviour
     {
         stunTimer = duration;
         attackTimer = duration;
+        isAttackLocked = false;
     }
 }
