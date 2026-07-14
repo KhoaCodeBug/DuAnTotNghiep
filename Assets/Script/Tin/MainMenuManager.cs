@@ -188,8 +188,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     // 🔥 BIẾN CHO CHARACTER ANIMATION
     private string[][] characterResourcePaths = {
-        new string[] { "CharacterPreview/Survivor1", "Idle2", "Attack1", "Taunt" },
-        new string[] { "CharacterPreview/Survivor2", "Idle2", "Attack1", "Taunt" }
+        new string[] { "CharacterPreview/Survivor1", "Run", "Attack1", "Taunt" },
+        new string[] { "CharacterPreview/Survivor2", "Run", "Attack1", "Taunt" }
     };
     private GameObject backgroundImageObj;
 
@@ -1865,13 +1865,18 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             activeDropdownOverlay.transform.SetAsLastSibling();
 
             RectTransform overlayRect = activeDropdownOverlay.AddComponent<RectTransform>();
-            overlayRect.anchorMin = new Vector2(btnMin.x, btnMin.y - (options.Length * 0.065f));
-            overlayRect.anchorMax = new Vector2(btnMax.x, btnMin.y - 0.005f);
-            overlayRect.offsetMin = Vector2.zero;
-            overlayRect.offsetMax = Vector2.zero;
+            overlayRect.anchorMin = new Vector2(btnMin.x, btnMin.y);
+            overlayRect.anchorMax = new Vector2(btnMax.x, btnMin.y);
+            overlayRect.pivot = new Vector2(0.5f, 1f);
+            overlayRect.offsetMin = new Vector2(0, 0);
+            overlayRect.offsetMax = new Vector2(0, -5);
+
+            ContentSizeFitter csf = activeDropdownOverlay.AddComponent<ContentSizeFitter>();
+            csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+            csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
             Image overlayImg = activeDropdownOverlay.AddComponent<Image>();
-            overlayImg.color = new Color(0.02f, 0.02f, 0.02f, 0.98f);
+            overlayImg.color = new Color(0.04f, 0.04f, 0.04f, 1f);
 
             VerticalLayoutGroup vlg = activeDropdownOverlay.AddComponent<VerticalLayoutGroup>();
             vlg.spacing = 2;
@@ -1885,8 +1890,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 GameObject itemObj = new GameObject("Item_" + index);
                 itemObj.transform.SetParent(activeDropdownOverlay.transform, false);
                 
+                LayoutElement le = itemObj.AddComponent<LayoutElement>();
+                le.preferredHeight = 45f;
+
                 Image itemImg = itemObj.AddComponent<Image>();
-                itemImg.color = (index == currentIndex) ? new Color(0.2f, 0.05f, 0.05f, 1f) : new Color(0.05f, 0.05f, 0.05f, 1f);
+                itemImg.color = (index == currentIndex) ? new Color(0.25f, 0.2f, 0.05f, 1f) : new Color(0.06f, 0.06f, 0.06f, 1f);
 
                 Button itemBtn = itemObj.AddComponent<Button>();
                 
@@ -1901,6 +1909,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 RectTransform itemTxtRect = itemTxtObj.GetComponent<RectTransform>();
                 itemTxtRect.anchorMin = Vector2.zero;
                 itemTxtRect.anchorMax = Vector2.one;
+                itemTxtRect.offsetMin = Vector2.zero;
+                itemTxtRect.offsetMax = Vector2.zero;
 
                 itemBtn.onClick.AddListener(() =>
                 {
