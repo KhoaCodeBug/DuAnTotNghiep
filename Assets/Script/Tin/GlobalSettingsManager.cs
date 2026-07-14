@@ -77,5 +77,11 @@ public class GlobalSettingsManager : MonoBehaviour
         // 4. Âm lượng Master
         float volume = PlayerPrefs.GetFloat("GameMasterVolume", 1.0f);
         AudioListener.volume = volume;
+
+        // 5. Cập nhật Âm lượng Nhạc & SFX cho Menu
+        if (AutoMainMenuManager.Instance != null)
+        {
+            AutoMainMenuManager.Instance.UpdateAudioSettings();
+        }
     }
 }

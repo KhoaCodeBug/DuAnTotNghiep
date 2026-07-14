@@ -127,7 +127,8 @@ public class PZ_CameraController : MonoBehaviour
             Vector3 directionToMouse = mouseWorldPos - player.position;
             Vector3 panOffset = Vector3.ClampMagnitude(directionToMouse, maxLookAhead);
 
-            targetPos += (panOffset / 2f);
+            float sensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 1.0f);
+            targetPos += (panOffset / 2f) * sensitivity;
         }
 
         transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref velocity, smoothFollow, Mathf.Infinity, Time.deltaTime);
