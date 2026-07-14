@@ -54,6 +54,7 @@ public class ZombieAI : NetworkBehaviour
     private float pathUpdateTimer = 0f;
 
     private int currentAttackIndex = 1;
+    private bool hasDealtDamageThisAttack = false;
 
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
@@ -286,6 +287,7 @@ public class ZombieAI : NetworkBehaviour
             {
                 int randomAtk = Random.Range(1, 5);
                 currentAttackIndex = randomAtk;
+                hasDealtDamageThisAttack = false;
                 RPC_TriggerAttack(randomAtk);
                 attackTimer = attackCooldown;
             }
@@ -368,8 +370,14 @@ public class ZombieAI : NetworkBehaviour
         ExecuteDamage(damage, currentAttackIndex);
     }
 
+    public void DealDamage(int damageFromAnimation)
+    {
+        ExecuteDamage(damageFromAnimation, currentAttackIndex);
+    }
+
     private void ExecuteDamage(float damageAmount, int attackIndex)
     {
+        if (hasDealtDamageThisAttack) return;
         if (!HasStateAuthority || player == null) return;
 
         if (Vector2.Distance(transform.position, player.position) <= damageRadius)
@@ -378,6 +386,7 @@ public class ZombieAI : NetworkBehaviour
             if (pHealth != null && !pHealth.isDead)
             {
                 pHealth.TakeDamage(damageAmount, false, true);
+                hasDealtDamageThisAttack = true;
                 if (attackIndex == 2) pHealth.SetBitten();
             }
         }
