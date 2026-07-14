@@ -10,7 +10,16 @@ public class PZ_CameraController : MonoBehaviour
     private Transform player;
     private bool hasTarget = false;
 
-    public Transform CurrentTarget => player;
+    public Transform CurrentTarget
+    {
+        get
+        {
+            if (player != null && player.parent != null && player.GetComponent<SpriteRenderer>() != null)
+                return player.parent;
+            return player;
+        }
+    }
+    public float GetTargetZoom() => targetZoom;
 
     public Vector3 offset = new Vector3(0, 0, -10f);
 
@@ -121,7 +130,15 @@ public class PZ_CameraController : MonoBehaviour
 
         float scroll = 0f;
 
-        if (!IsPlayerBusyWithUI())
+        if (isSpectatingMode && player != null)
+        {
+            PlayerMovement pm = player.GetComponentInParent<PlayerMovement>();
+            if (pm != null && pm.NetCameraZoom > 0)
+            {
+                targetZoom = pm.NetCameraZoom;
+            }
+        }
+        else if (!IsPlayerBusyWithUI())
         {
             scroll = Input.GetAxis("Mouse ScrollWheel");
             scroll = Mathf.Clamp(scroll, -0.2f, 0.2f);

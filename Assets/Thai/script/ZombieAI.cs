@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Pathfinding; // A* Pathfinding Project
 using Fusion;
 
@@ -353,7 +353,11 @@ public class ZombieAI : NetworkBehaviour
         foreach (GameObject p in allPlayers)
         {
             PlayerHealth pHealth = p.GetComponent<PlayerHealth>();
-            if (pHealth != null && pHealth.isDead) continue;
+            if (pHealth != null)
+            {
+                if (pHealth.Object == null || !pHealth.Object.IsValid) continue;
+                if (pHealth.isDead) continue;
+            }
 
             float dist = Vector2.Distance(transform.position, p.transform.position);
             if (dist < closestDistance)

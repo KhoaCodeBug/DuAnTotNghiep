@@ -3,6 +3,7 @@ using Fusion;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 
 public class PlayerHealth : NetworkBehaviour
 {
@@ -33,8 +34,9 @@ public class PlayerHealth : NetworkBehaviour
 
     private float blinkCooldown = 0f;
 
-    [Header("Kẻ Phản Bội (Boss)")]
-    public NetworkPrefabRef traitorBossPrefab;
+    [Header("Hóa Zombie Khi Chết")]
+    [FormerlySerializedAs("traitorBossPrefab")]
+    public NetworkPrefabRef zombieTurnPrefab;
     [Networked] public NetworkBool isTransforming { get; set; }
     [Networked] public float transformTimer { get; set; } = 5f;
 
@@ -83,6 +85,11 @@ public class PlayerHealth : NetworkBehaviour
         {
             LocalHealthInstance = this;
             SetupParanoiaUI();
+
+            if (AutoHealthPanel.Instance != null)
+            {
+                AutoHealthPanel.Instance.ResetAllInjuries();
+            }
         }
     }
 
@@ -197,9 +204,9 @@ public class PlayerHealth : NetworkBehaviour
             {
                 isTransforming = false;
 
-                if (traitorBossPrefab.IsValid)
+                if (zombieTurnPrefab.IsValid)
                 {
-                    Runner.Spawn(traitorBossPrefab, transform.position, Quaternion.identity);
+                    Runner.Spawn(zombieTurnPrefab, transform.position, Quaternion.identity);
                 }
 
                 // 👇 THÊM ĐOẠN NÀY VÀO TRƯỚC KHI DESPAWN 👇

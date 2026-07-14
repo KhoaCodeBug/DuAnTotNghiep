@@ -1,4 +1,4 @@
-﻿using SmallScaleInc.ZombieRural;
+using SmallScaleInc.ZombieRural;
 using UnityEngine;
 using Fusion;
 
@@ -23,8 +23,11 @@ public class RoofDetector : MonoBehaviour
         // 1. Chặn lỗi rác
         if (localPlayerMovement == null || myCollider == null) return;
 
-        // 2. CHỈ CÓ CHỦ MÁY MỚI ĐƯỢC PHÉP QUÉT MÁI NHÀ
-        if (!localPlayerMovement.HasInputAuthority) return;
+        // 2. CHỈ CÓ CHỦ MÁY HOẶC CAMERA ĐANG SPECTATE MỚI ĐƯỢC QUÉT MÁI NHÀ
+        bool isTarget = localPlayerMovement.HasInputAuthority || 
+                        (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode && PZ_CameraController.Instance.CurrentTarget == localPlayerMovement.transform);
+        
+        if (!isTarget) return;
 
         // 3. RADAR QUÉT CHỦ ĐỘNG (Phá vỡ giới hạn mù vật lý của Client)
         Collider2D[] hitColliders = new Collider2D[10]; // Quét tối đa 10 vật thể chạm vào chân

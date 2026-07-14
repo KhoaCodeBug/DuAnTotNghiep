@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 using System.Collections;
 using System.Collections.Generic;
@@ -41,6 +41,7 @@ public class PlayerCombat : NetworkBehaviour
 
     [Networked] private TickTimer nextFireTimer { get; set; }
     [Networked] private TickTimer nextBashTimer { get; set; }
+    private float muzzleFlashTimer = 0f;
 
     public override void Spawned()
     {
@@ -56,6 +57,20 @@ public class PlayerCombat : NetworkBehaviour
 
     void Update()
     {
+        // Fix Late Join & Respawn Muzzle Flash Stuck: Dùng biến đếm thời gian thực tế thay vì dựa vào Coroutine/Animator
+        if (muzzleFlashRenderer != null && muzzleFlashRenderer.enabled)
+        {
+            if (muzzleFlashTimer > 0)
+            {
+                muzzleFlashTimer -= Time.deltaTime;
+            }
+            
+            if (muzzleFlashTimer <= 0)
+            {
+                muzzleFlashRenderer.enabled = false;
+            }
+        }
+
         if (!HasInputAuthority) return;
 
         UpdateAmmoHUD();
@@ -256,14 +271,6 @@ public class PlayerCombat : NetworkBehaviour
                     break; // Đạn ghim vào Zombie, kết thúc tia đạn
                 }
 
-                // XỬ LÝ SÁT THƯƠNG TRAITOR BOSS
-                TraitorBossAI boss = hit.collider.GetComponentInParent<TraitorBossAI>();
-                if (boss != null)
-                {
-                    boss.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
-                    break; // Đạn ghim vào Boss, kết thúc tia đạn
-                }
-
                 ZombieHealth zombie = hit.collider.GetComponentInParent<ZombieHealth>();   
                 if(zombie != null)
                 {
@@ -332,13 +339,6 @@ public class PlayerCombat : NetworkBehaviour
                     alreadyHitIDs.Add(enemyStats.GetInstanceID());
                 }
 
-                // XỬ LÝ ĐẬP TRAITOR BOSS
-                TraitorBossAI bossStats = enemy.GetComponentInParent<TraitorBossAI>();
-                if (bossStats != null && !alreadyHitIDs.Contains(bossStats.GetInstanceID()))
-                {
-                    bossStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority);
-                    alreadyHitIDs.Add(bossStats.GetInstanceID());
-                }
                 //Thai 
                 ZombieHealth newZombieStats = enemy.GetComponentInParent<ZombieHealth>();
                 if (newZombieStats != null && !alreadyHitIDs.Contains(newZombieStats.gameObject.GetInstanceID()))
@@ -380,8 +380,8 @@ public class PlayerCombat : NetworkBehaviour
                 muzzleAnimator.Play(animName, -1, 0f);
             }
 
-            StopCoroutine("HideMuzzleFlash");
-            StartCoroutine("HideMuzzleFlash");
+            // Gán lại timer đếm ngược
+            muzzleFlashTimer = muzzleFlashDuration;
         }
     }
 
@@ -389,12 +389,6 @@ public class PlayerCombat : NetworkBehaviour
     {
         int reserve = (invSys != null && ammoType != null) ? invSys.GetItemCount(ammoType) : 0;
         if (AutoUIManager.Instance != null) AutoUIManager.Instance.UpdateAmmoUI(currentAmmo, reserve);
-    }
-
-    private IEnumerator HideMuzzleFlash()
-    {
-        yield return new WaitForSeconds(muzzleFlashDuration);
-        if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
     }
 
     private string DetermineDirectionFromAngle(float angle)

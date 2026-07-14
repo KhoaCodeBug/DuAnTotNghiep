@@ -69,8 +69,8 @@ public class AutoHealthPanel : MonoBehaviour
 
     private bool isHealing = false;
     public bool IsHealing => isHealing;
-
     private float toggleCooldown = 0f;
+    private float currentDisplayedHealth = 100f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoSpawn()
@@ -158,14 +158,15 @@ public class AutoHealthPanel : MonoBehaviour
         headerRect.anchoredPosition = new Vector2(200, 0);
         fixedHeaderText.lineSpacing = 1.3f;
 
-        // Create Overall Health Bar
+        // Create Overall Health Bar (Dọc theo yêu cầu Hình 2)
         GameObject hbBgObj = new GameObject("HealthBarBG");
-        hbBgObj.transform.SetParent(rightContainer.transform, false);
+        hbBgObj.transform.SetParent(panelObj.transform, false); // Đưa ra ngoài panel gốc thay vì rightContainer
         RectTransform hbBgRect = hbBgObj.AddComponent<RectTransform>();
-        hbBgRect.anchorMin = new Vector2(0, 0); hbBgRect.anchorMax = new Vector2(0, 0);
-        hbBgRect.pivot = new Vector2(0.5f, 1);
-        hbBgRect.sizeDelta = new Vector2(400, 20);
-        hbBgRect.anchoredPosition = new Vector2(200, 390);
+        hbBgRect.anchorMin = new Vector2(0.5f, 0.5f); hbBgRect.anchorMax = new Vector2(0.5f, 0.5f);
+        hbBgRect.pivot = new Vector2(0.5f, 0.5f);
+        hbBgRect.sizeDelta = new Vector2(25, 300); // Rộng 25, Cao 300
+        hbBgRect.anchoredPosition = new Vector2(-50, 20); // Đặt cạnh Mannequin (-225)
+
         
         Image hbBgImg = hbBgObj.AddComponent<Image>();
         hbBgImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
@@ -179,7 +180,8 @@ public class AutoHealthPanel : MonoBehaviour
         
         healthBarFill = hbFillObj.AddComponent<Image>();
         healthBarFill.type = Image.Type.Filled;
-        healthBarFill.fillMethod = Image.FillMethod.Horizontal;
+        healthBarFill.fillMethod = Image.FillMethod.Vertical; // Máu dựt dọc
+
         healthBarFill.fillAmount = 1f;
         healthBarFill.color = Color.green;
 
@@ -195,8 +197,9 @@ public class AutoHealthPanel : MonoBehaviour
         healthBarText.fontStyle = FontStyle.Bold;
         healthBarText.color = Color.white;
         healthBarText.alignment = TextAnchor.MiddleCenter;
-        healthBarText.text = "HP: 100/100";
-        hbTxtObj.AddComponent<Shadow>().effectColor = Color.black;
+        healthBarText.text = ""; // Xóa chữ HP ngang
+        hbTxtObj.SetActive(false); // Ẩn luôn vì giao diện Zomboid không có chữ HP ở đây
+
 
         GameObject scrollViewObj = new GameObject("Scroll View");
         scrollViewObj.transform.SetParent(rightContainer.transform, false);
@@ -457,13 +460,9 @@ public class AutoHealthPanel : MonoBehaviour
             isPainReal = localPlayerHealth.isInPain;
         }
 
-        if (healthBarFill != null)
-        {
-            float pct = maxHP > 0 ? displayHP / maxHP : 0f;
-            healthBarFill.fillAmount = pct;
-            healthBarFill.color = Color.Lerp(colInjured, Color.green, pct);
-        }
-        if (healthBarText != null)
+        // Bỏ cập nhật ngang lập tức, thay bằng hiệu ứng Lerp ở hàm Update()
+        // Chỉ lưu lại text nếu có
+        if (healthBarText != null && healthBarText.gameObject.activeSelf)
         {
             healthBarText.text = $"HP: {Mathf.RoundToInt(displayHP)}/{Mathf.RoundToInt(maxHP)}";
         }
@@ -593,6 +592,23 @@ public class AutoHealthPanel : MonoBehaviour
             if (localPlayerHealth != null && isOpen)
             {
                 UpdateAllUI();
+            }
+        }
+        
+        // Hiệu ứng máu giật mượt mà (Lerp)
+        if (localPlayerHealth != null && localPlayerHealth.Object != null && localPlayerHealth.Object.IsValid && healthBarFill != null)
+        {
+            float targetHealth = localPlayerHealth.currentHealth;
+            if (Mathf.Abs(currentDisplayedHealth - targetHealth) > 0.1f)
+            {
+                // Tốc độ giật máu: Nếu mất máu đột ngột -> giật nhanh, hồi máu -> lên chậm
+                float lerpSpeed = (targetHealth < currentDisplayedHealth) ? 8f : 2f; 
+                currentDisplayedHealth = Mathf.Lerp(currentDisplayedHealth, targetHealth, Time.deltaTime * lerpSpeed);
+                
+                float maxHP = localPlayerHealth.maxHealth;
+                float pct = maxHP > 0 ? currentDisplayedHealth / maxHP : 0f;
+                healthBarFill.fillAmount = pct;
+                healthBarFill.color = Color.Lerp(colInjured, Color.white, pct); // Theo Hình 2 thì máu từ Trắng ngả xuống Đỏ
             }
         }
 
@@ -866,6 +882,22 @@ public class AutoHealthPanel : MonoBehaviour
             }
         }
         return uniqueInjuries;
+    }
+
+    public void ResetAllInjuries()
+    {
+        FindLocalPlayerCache(); // 🔥 Cập nhật cache người chơi trước khi xử lý
+        foreach (var part in bodyParts.Values)
+        {
+            part.Injuries.Clear();
+            part.IsBandaged = false;
+            if (part.Img != null)
+            {
+                part.Img.color = colHealthy;
+            }
+        }
+        EvaluateGlobalBleeding();
+        UpdateAllUI();
     }
 
     private void OnDestroy()

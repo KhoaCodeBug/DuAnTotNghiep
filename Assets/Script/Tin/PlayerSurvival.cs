@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 
 public class PlayerSurvival : NetworkBehaviour
@@ -98,18 +98,17 @@ public class PlayerSurvival : NetworkBehaviour
         GUIStyle style = new GUIStyle(GUI.skin.label);
         style.fontSize = 22; // To rõ giống Stamina
         style.fontStyle = FontStyle.Bold;
-        style.alignment = TextAnchor.MiddleLeft;
+        style.alignment = TextAnchor.MiddleRight; // Căn phải để chữ hiển thị bên trái Icon
 
         // --- TỌA ĐỘ GÓC TRÊN BÊN PHẢI (Giống sếp) ---
         float iconSize = 40f;
-        float xPosRoot = Screen.width - 280f; // Điểm bắt đầu vẽ
+        float xPosRoot = Screen.width - 60f; // Cách lề phải 60px để căn lề phải icon
         float yPos = 130f; // Bắt đầu thấp hơn Stamina một chút để tạo cột
         float spacingY = 50f; // Khoảng cách giữa Đ đói và Khát
 
         // ==========================
-        // 1. VẼ MOODLE ĐÓI (Icon trước, Chữ sau, Chỉ vẽ Debuff)
+        // 1. VẼ MOODLE ĐÓI (Chỉ vẽ icon, hover hiện chữ)
         // ==========================
-        // 🔥 LÓGIC ĐÃ SỬA: Chỉ vẽ khi đói (< 40%). Khi no (> 40%) thì tàng hình hoàn toàn.
         if (hungerRatio < 0.40f)
         {
             string hungerText = "";
@@ -118,18 +117,21 @@ public class PlayerSurvival : NetworkBehaviour
             else if (hungerRatio > 0f) { style.normal.textColor = red3; hungerText = "Very Hungry"; }
             else { style.normal.textColor = red4; hungerText = "Starving"; }
 
-            // 1. Vẽ Icon Đói bên trái
-            if (iconHunger != null) GUI.DrawTexture(new Rect(xPosRoot, yPos, iconSize, iconSize), iconHunger);
-            // 2. Vẽ Chữ Đói nối đuôi bên phải
-            GUI.Label(new Rect(xPosRoot + iconSize + 10f, yPos, 230, iconSize), hungerText, style);
+            Rect iconRect = new Rect(xPosRoot, yPos, iconSize, iconSize);
+            if (iconHunger != null) GUI.DrawTexture(iconRect, iconHunger);
+
+            Vector2 mousePos = Event.current.mousePosition;
+            if (iconRect.Contains(mousePos))
+            {
+                GUI.Label(new Rect(xPosRoot - 240f, yPos, 230f, iconSize), hungerText, style);
+            }
 
             yPos += spacingY; // Đẩy tọa độ Y xuống để chuẩn bị vẽ Khát (nếu có)
         }
 
         // ==========================
-        // 2. VẼ MOODLE KHÁT (Icon trước, Chữ sau, Chỉ vẽ Debuff)
+        // 2. VẼ MOODLE KHÁT (Chỉ vẽ icon, hover hiện chữ)
         // ==========================
-        // Chỉ vẽ khi khát (< 40%)
         if (thirstRatio < 0.40f)
         {
             string thirstText = "";
@@ -138,10 +140,14 @@ public class PlayerSurvival : NetworkBehaviour
             else if (thirstRatio > 0f) { style.normal.textColor = red3; thirstText = "Parched"; }
             else { style.normal.textColor = red4; thirstText = "Dying of Thirst"; }
 
-            // 1. Vẽ Icon Khát bên trái
-            if (iconThirst != null) GUI.DrawTexture(new Rect(xPosRoot, yPos, iconSize, iconSize), iconThirst);
-            // 2. Vẽ Chữ Khát nối đuôi bên phải
-            GUI.Label(new Rect(xPosRoot + iconSize + 10f, yPos, 230, iconSize), thirstText, style);
+            Rect iconRect = new Rect(xPosRoot, yPos, iconSize, iconSize);
+            if (iconThirst != null) GUI.DrawTexture(iconRect, iconThirst);
+
+            Vector2 mousePos = Event.current.mousePosition;
+            if (iconRect.Contains(mousePos))
+            {
+                GUI.Label(new Rect(xPosRoot - 240f, yPos, 230f, iconSize), thirstText, style);
+            }
         }
     }
 }

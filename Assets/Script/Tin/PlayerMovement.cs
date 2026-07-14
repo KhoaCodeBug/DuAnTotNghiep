@@ -62,6 +62,7 @@ public class PlayerMovement : NetworkBehaviour
     [Networked] public NetworkBool NetIsAiming { get; set; }
     [Networked] public NetworkBool NetIsCrouching { get; set; }
     [Networked] public NetworkBool NetIsUsingItem { get; set; }
+    [Networked] public float NetCameraZoom { get; set; }
 
     [Networked] public float NetStunTimer { get; set; }
     [Networked] public float NetAttackLockTimer { get; set; }
@@ -98,8 +99,15 @@ public class PlayerMovement : NetworkBehaviour
         {
             LocalPlayerInstance = this;
             var cameraController = FindAnyObjectByType<PZ_CameraController>();
-            if (cameraController != null) cameraController.SetTarget(this.transform);
-
+            if (cameraController != null) 
+            {
+                cameraController.SetTarget(this.transform);
+                // Reset lại trạng thái spectating khi respawn
+                cameraController.SpectateTarget(null); // Just to clear if needed
+                cameraController.SetTarget(this.transform);
+            }
+            
+            isSpectating = false; // Reset cờ spectate của bản thân
             // (Đèn pin vẫn giữ nguyên không làm gì cả -> Sáng bình thường)
         }
         else
@@ -194,6 +202,12 @@ public class PlayerMovement : NetworkBehaviour
 
             staminaSystem.UpdateStamina(NetIsRunning, NetIsMoving);
             HandleMovementNoise(NetIsMoving);
+            
+            // Đồng bộ zoom của camera
+            if (PZ_CameraController.Instance != null && !PZ_CameraController.Instance.isSpectatingMode)
+            {
+                NetCameraZoom = PZ_CameraController.Instance.GetTargetZoom();
+            }
         }
     }
 

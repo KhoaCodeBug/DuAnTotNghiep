@@ -434,7 +434,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         if (isChasing && player != null)
         {
             // Nếu Player bị tắt, hoặc biến isDead = true -> Bỏ theo dõi ngay lập tức
-            if (!player.gameObject.activeInHierarchy || (playerHealth != null && playerHealth.isDead))
+            if (!player.gameObject.activeInHierarchy || playerHealth == null || playerHealth.Object == null || !playerHealth.Object.IsValid || playerHealth.isDead)
             {
                 isChasing = false;
                 player = null;

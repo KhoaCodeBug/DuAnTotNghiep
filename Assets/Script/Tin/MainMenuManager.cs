@@ -740,7 +740,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             { "GameState", 0 }
         };
             args.SessionProperties = roomProps;
-            args.CustomLobbyProperties = new List<string> { "IsLocked", "HasPassword", "GameState" };
             args.PlayerCount = hostMaxPlayers;
         }
         else // Client
@@ -1171,12 +1170,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // Xóa thẻ cũ
         foreach (Transform child in waitingRoomPlayerListContent) Destroy(child.gameObject);
 
-        int playerCount = activeRunner.ActivePlayers.Count();
         int maxSlots = activeRunner.SessionInfo.MaxPlayers;
+        List<PlayerRef> activePlayers = activeRunner.ActivePlayers.ToList();
+        int playerCount = activePlayers.Count;
 
         for (int i = 0; i < maxSlots; i++)
         {
             bool hasPlayer = i < playerCount;
+            PlayerRef currentSlotPlayer = hasPlayer ? activePlayers[i] : default;
+            bool isLocal = hasPlayer && (currentSlotPlayer == activeRunner.LocalPlayer);
+            bool isHostSlot = hasPlayer && (i == 0); // Giả định người đầu tiên trong list là Host
 
             // 1. Khung nền của Thẻ
             GameObject slotObj = new GameObject("PlayerCard_" + i);
@@ -1219,18 +1222,26 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             // Cập nhật thông tin theo trạng thái
             if (hasPlayer)
             {
-                if (i == 0) // Slot 0 luôn là Host
+                if (isHostSlot)
                 {
                     roleBg.color = new Color(0.6f, 0.4f, 0.1f, 1f); // Vàng đất cho Host
                     roleTxt.text = "HOST";
-                    roleTxt.color = Color.white;
-                    nameTxt.text = "<color=#ffffff>YOU</color>\n<size=16><color=#aaaaaa>(Survivor)</color></size>";
                 }
                 else
                 {
                     roleBg.color = new Color(0.2f, 0.3f, 0.4f, 1f); // Xanh biển tối cho Thành viên
                     roleTxt.text = "TEAMMATE";
-                    roleTxt.color = Color.white;
+                }
+
+                roleTxt.color = Color.white;
+
+                if (isLocal)
+                {
+                    string myName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
+                    nameTxt.text = $"<color=#ffffff>YOU</color>\n<size=16><color=#aaaaaa>({myName})</color></size>";
+                }
+                else
+                {
                     nameTxt.text = $"<color=#dddddd>SURVIVOR {i + 1}</color>\n<size=16><color=#55ff55>CONNECTED</color></size>";
                 }
             }
