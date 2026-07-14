@@ -74,15 +74,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private TextMeshProUGUI maxPlayersText; // Hiển thị con số hiện tại
     
-    // CẤU HÌNH OPTIONS MỚI
     private int selectedResIndex = 3; // Mặc định 1920x1080
     private Vector2Int[] commonResolutions = new Vector2Int[]
     {
         new Vector2Int(1280, 720),
         new Vector2Int(1366, 768),
         new Vector2Int(1600, 900),
-        new Vector2Int(1920, 1080),
-        new Vector2Int(2560, 1440)
+        new Vector2Int(1920, 1080)
     };
     private int selectedFpsIndex = 1; // Mặc định 60 FPS
     private int[] fpsOptions = new int[] { 30, 60, 120, -1 };
@@ -92,6 +90,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private TextMeshProUGUI sensValText;
     private TextMeshProUGUI brightValText;
     private TextMeshProUGUI volValText;
+    private TextMeshProUGUI musicValText;
+    private TextMeshProUGUI sfxValText;
     
     // Biến cho danh sách người chơi trong Waiting Room
     private RectTransform waitingRoomPlayerListContent;
@@ -155,6 +155,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         GenerateEntireMenu();
+
+        UpdateAudioSettings();
 
         if (menuBGM != null)
         {
@@ -1343,14 +1345,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject settingsArea = new GameObject("Settings_Container");
         settingsArea.transform.SetParent(optionsPanel.transform, false);
         RectTransform rect = settingsArea.AddComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.2f, 0.2f);
-        rect.anchorMax = new Vector2(0.8f, 0.8f);
+        // Làm container cao hơn để chứa 7 cài đặt thoải mái
+        rect.anchorMin = new Vector2(0.2f, 0.12f);
+        rect.anchorMax = new Vector2(0.8f, 0.88f);
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
         settingsArea.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
 
         // Khởi tạo các giá trị từ PlayerPrefs
-        selectedResIndex = PlayerPrefs.GetInt("SelectedResIndex", 3);
+        selectedResIndex = Mathf.Clamp(PlayerPrefs.GetInt("SelectedResIndex", 3), 0, commonResolutions.Length - 1);
         
         int savedFps = PlayerPrefs.GetInt("GameFPSLimit", 60);
         selectedFpsIndex = 1;
@@ -1360,38 +1363,50 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         // Vị trí trục Y của các dòng
-        float startY = 0.8f;
-        float spacingY = 0.13f;
+        float startY = 0.86f;
+        float spacingY = 0.115f;
 
         // 1. Độ phân giải (Resolution)
-        CreateLabel(settingsArea, "RESOLUTION:", new Vector2(0.1f, startY - 0.05f), new Vector2(0.4f, startY));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - 0.07f), new Vector2(0.9f, startY + 0.02f),
+        CreateLabel(settingsArea, "RESOLUTION:", new Vector2(0.05f, startY - 0.04f), new Vector2(0.4f, startY + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - 0.05f), new Vector2(0.95f, startY + 0.03f),
             () => AdjustResolution(-1), () => AdjustResolution(1), out resValText);
         UpdateResText();
 
         // 2. Độ sáng (Brightness)
-        CreateLabel(settingsArea, "BRIGHTNESS:", new Vector2(0.1f, startY - spacingY - 0.05f), new Vector2(0.4f, startY - spacingY));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY - 0.07f), new Vector2(0.9f, startY - spacingY + 0.02f),
+        CreateLabel(settingsArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY - 0.04f), new Vector2(0.4f, startY - spacingY + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY - 0.05f), new Vector2(0.95f, startY - spacingY + 0.03f),
             () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out brightValText);
         UpdateBrightText();
 
         // 3. Khung hình (FPS Limit)
-        CreateLabel(settingsArea, "FPS LIMIT:", new Vector2(0.1f, startY - spacingY*2 - 0.05f), new Vector2(0.4f, startY - spacingY*2));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*2 - 0.07f), new Vector2(0.9f, startY - spacingY*2 + 0.02f),
+        CreateLabel(settingsArea, "FPS LIMIT:", new Vector2(0.05f, startY - spacingY*2 - 0.04f), new Vector2(0.4f, startY - spacingY*2 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*2 - 0.05f), new Vector2(0.95f, startY - spacingY*2 + 0.03f),
             () => AdjustFPS(-1), () => AdjustFPS(1), out fpsValText);
         UpdateFPSText();
 
         // 4. Tốc độ chuột / Độ nhạy camera nhắm bắn (Mouse Sensitivity)
-        CreateLabel(settingsArea, "AIM SENSITIVITY:", new Vector2(0.1f, startY - spacingY*3 - 0.05f), new Vector2(0.4f, startY - spacingY*3));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*3 - 0.07f), new Vector2(0.9f, startY - spacingY*3 + 0.02f),
+        CreateLabel(settingsArea, "AIM SENSITIVITY:", new Vector2(0.05f, startY - spacingY*3 - 0.04f), new Vector2(0.4f, startY - spacingY*3 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*3 - 0.05f), new Vector2(0.95f, startY - spacingY*3 + 0.03f),
             () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), out sensValText);
         UpdateSensText();
 
         // 5. Âm lượng Master (Master Volume)
-        CreateLabel(settingsArea, "MASTER VOLUME:", new Vector2(0.1f, startY - spacingY*4 - 0.05f), new Vector2(0.4f, startY - spacingY*4));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*4 - 0.07f), new Vector2(0.9f, startY - spacingY*4 + 0.02f),
+        CreateLabel(settingsArea, "MASTER VOLUME:", new Vector2(0.05f, startY - spacingY*4 - 0.04f), new Vector2(0.4f, startY - spacingY*4 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*4 - 0.05f), new Vector2(0.95f, startY - spacingY*4 + 0.03f),
             () => AdjustVolume(-0.1f), () => AdjustVolume(0.1f), out volValText);
         UpdateVolumeText();
+
+        // 6. Âm lượng Nhạc nền (Music Volume)
+        CreateLabel(settingsArea, "MUSIC VOLUME:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
+            () => AdjustMusicVolume(-0.1f), () => AdjustMusicVolume(0.1f), out musicValText);
+        UpdateMusicVolumeText();
+
+        // 7. Âm lượng Hiệu ứng (SFX Volume)
+        CreateLabel(settingsArea, "SFX VOLUME:", new Vector2(0.05f, startY - spacingY*6 - 0.04f), new Vector2(0.4f, startY - spacingY*6 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*6 - 0.05f), new Vector2(0.95f, startY - spacingY*6 + 0.03f),
+            () => AdjustSFXVolume(-0.1f), () => AdjustSFXVolume(0.1f), out sfxValText);
+        UpdateSFXVolumeText();
 
         CreateMenuButton(optionsPanel, "BACK", () => {
             OpenPanel(mainPanel.GetComponent<CanvasGroup>());
@@ -1519,6 +1534,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
+    public void UpdateAudioSettings()
+    {
+        bgmVolume = PlayerPrefs.GetFloat("GameMusicVolume", 0.5f);
+        sfxVolume = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        if (bgmSource != null)
+        {
+            bgmSource.volume = bgmVolume;
+        }
+    }
+
     private void AdjustVolume(float delta)
     {
         float val = PlayerPrefs.GetFloat("GameMasterVolume", 1.0f);
@@ -1539,6 +1564,46 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             float val = PlayerPrefs.GetFloat("GameMasterVolume", 1.0f);
             volValText.text = Mathf.RoundToInt(val * 100f) + "%";
+        }
+    }
+
+    private void AdjustMusicVolume(float delta)
+    {
+        float val = PlayerPrefs.GetFloat("GameMusicVolume", 0.5f);
+        val = Mathf.Clamp(val + delta, 0f, 1.0f);
+        PlayerPrefs.SetFloat("GameMusicVolume", val);
+        PlayerPrefs.Save();
+
+        UpdateAudioSettings();
+        UpdateMusicVolumeText();
+    }
+
+    private void UpdateMusicVolumeText()
+    {
+        if (musicValText != null)
+        {
+            float val = PlayerPrefs.GetFloat("GameMusicVolume", 0.5f);
+            musicValText.text = Mathf.RoundToInt(val * 100f) + "%";
+        }
+    }
+
+    private void AdjustSFXVolume(float delta)
+    {
+        float val = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        val = Mathf.Clamp(val + delta, 0f, 1.0f);
+        PlayerPrefs.SetFloat("GameSFXVolume", val);
+        PlayerPrefs.Save();
+
+        UpdateAudioSettings();
+        UpdateSFXVolumeText();
+    }
+
+    private void UpdateSFXVolumeText()
+    {
+        if (sfxValText != null)
+        {
+            float val = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+            sfxValText.text = Mathf.RoundToInt(val * 100f) + "%";
         }
     }
     private void GenerateCreditsPanel(GameObject canvasGO) { creditsPanel = CreateBasePanel("CreditsPanel", canvasGO); CanvasGroup cg = creditsPanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false; CreateTitleText(creditsPanel, "SURVIVAL TEAM", 0.9f); GameObject scrollObj = new GameObject("Credits_Scroll"); scrollObj.transform.SetParent(creditsPanel.transform, false); RectTransform scrollRectT = scrollObj.AddComponent<RectTransform>(); scrollRectT.anchorMin = new Vector2(0.15f, 0.2f); scrollRectT.anchorMax = new Vector2(0.85f, 0.8f); scrollRectT.offsetMin = Vector2.zero; scrollRectT.offsetMax = Vector2.zero; ScrollRect sr = scrollObj.AddComponent<ScrollRect>(); sr.horizontal = false; sr.vertical = true; sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide; GameObject vp = new GameObject("Viewport"); vp.transform.SetParent(scrollObj.transform, false); RectTransform vpRT = vp.AddComponent<RectTransform>(); vpRT.anchorMin = Vector2.zero; vpRT.anchorMax = Vector2.one; vpRT.offsetMin = Vector2.zero; vpRT.offsetMax = Vector2.zero; vp.AddComponent<RectMask2D>(); GameObject content = new GameObject("Content"); content.transform.SetParent(vp.transform, false); RectTransform contentRT = content.AddComponent<RectTransform>(); contentRT.anchorMin = new Vector2(0, 1); contentRT.anchorMax = new Vector2(1, 1); contentRT.pivot = new Vector2(0.5f, 1); contentRT.offsetMin = Vector2.zero; contentRT.offsetMax = Vector2.zero; VerticalLayoutGroup vlg = content.AddComponent<VerticalLayoutGroup>(); vlg.childAlignment = TextAnchor.UpperCenter; vlg.spacing = 40; vlg.padding = new RectOffset(0, 0, 400, 400); ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize; sr.content = contentRT; creditsContent = contentRT; CreateCreditLine(content, "LEAD PROGRAMMER", "TRẦN NGỌC ĐĂNG KHOA", Color.cyan); CreateCreditLine(content, "SYSTEM & PLAYER UI", "NGUYỄN TRÍ TÍN", Color.yellow); CreateCreditLine(content, "WORLD ARCHITECT (MAP)", "YÊN NHI", Color.white); CreateCreditLine(content, "LEAD AI & ZOMBIE BOSS", "HOÀNG THÁI", Color.red); CreateCreditLine(content, "VEHICLE MECHANICS", "VĂN HẬU", Color.green); CreateCreditLine(content, "TECHNICAL ARTIST (LOS FOW)", "ĐĂNG KHOA", Color.white); CreateCreditLine(content, "POWERED BY", "UNITY 6.0 / PHOTON FUSION", new Color(0.7f, 0.7f, 0.7f)); CreateCreditLine(content, "AUDIO DESIGN", "BGM: PROJECT ZOMBOID\nSFX: KENNEY / FREESOUND", new Color(0.7f, 0.7f, 0.7f)); CreateCreditLine(content, "SPECIAL THANKS", "TO ALL SURVIVORS WHO TESTED THIS GAME", Color.white); CreateMenuButton(creditsPanel, "BACK", () => { isCreditsOpen = false; OpenPanel(mainPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.1f, 0.1f)); }
