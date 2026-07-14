@@ -1379,8 +1379,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject settingsArea = new GameObject("Settings_Container");
         settingsArea.transform.SetParent(optionsPanel.transform, false);
         RectTransform rect = settingsArea.AddComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.2f, 0.12f);
-        rect.anchorMax = new Vector2(0.8f, 0.88f);
+        rect.anchorMin = new Vector2(0.2f, 0.18f);
+        rect.anchorMax = new Vector2(0.8f, 0.90f);
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
         settingsArea.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
@@ -1390,7 +1390,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         displayTabArea.transform.SetParent(settingsArea.transform, false);
         RectTransform dRt = displayTabArea.AddComponent<RectTransform>();
         dRt.anchorMin = new Vector2(0f, 0f);
-        dRt.anchorMax = new Vector2(1f, 0.90f);
+        dRt.anchorMax = new Vector2(1f, 0.92f);
         dRt.offsetMin = Vector2.zero;
         dRt.offsetMax = Vector2.zero;
 
@@ -1398,7 +1398,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         controlsTabArea.transform.SetParent(settingsArea.transform, false);
         RectTransform cRt = controlsTabArea.AddComponent<RectTransform>();
         cRt.anchorMin = new Vector2(0f, 0f);
-        cRt.anchorMax = new Vector2(1f, 0.90f);
+        cRt.anchorMax = new Vector2(1f, 0.92f);
         cRt.offsetMin = Vector2.zero;
         cRt.offsetMax = Vector2.zero;
 
@@ -1406,7 +1406,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         audioTabArea.transform.SetParent(settingsArea.transform, false);
         RectTransform aRt = audioTabArea.AddComponent<RectTransform>();
         aRt.anchorMin = new Vector2(0f, 0f);
-        aRt.anchorMax = new Vector2(1f, 0.90f);
+        aRt.anchorMax = new Vector2(1f, 0.92f);
         aRt.offsetMin = Vector2.zero;
         aRt.offsetMax = Vector2.zero;
 
@@ -1414,15 +1414,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject tabBar = new GameObject("TabBar");
         tabBar.transform.SetParent(settingsArea.transform, false);
         RectTransform tbRt = tabBar.AddComponent<RectTransform>();
-        tbRt.anchorMin = new Vector2(0f, 0.90f);
+        tbRt.anchorMin = new Vector2(0f, 0.92f);
         tbRt.anchorMax = new Vector2(1f, 1.0f);
         tbRt.offsetMin = Vector2.zero;
         tbRt.offsetMax = Vector2.zero;
         tabBar.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.04f, 1.5f);
 
-        CreateTabButton(tabBar, "DISPLAY", () => ShowTab(0), new Vector2(0.02f, 0.1f), new Vector2(0.32f, 0.9f), out displayTabBtnText);
-        CreateTabButton(tabBar, "CONTROLS", () => ShowTab(1), new Vector2(0.35f, 0.1f), new Vector2(0.65f, 0.9f), out controlsTabBtnText);
-        CreateTabButton(tabBar, "AUDIO", () => ShowTab(2), new Vector2(0.68f, 0.1f), new Vector2(0.98f, 0.9f), out audioTabBtnText);
+        CreateTabButton(tabBar, "DISPLAY", () => ShowTab(0), new Vector2(0.22f, 0.1f), new Vector2(0.38f, 0.9f), out displayTabBtnText);
+        CreateTabButton(tabBar, "CONTROLS", () => ShowTab(1), new Vector2(0.42f, 0.1f), new Vector2(0.58f, 0.9f), out controlsTabBtnText);
+        CreateTabButton(tabBar, "AUDIO", () => ShowTab(2), new Vector2(0.62f, 0.1f), new Vector2(0.78f, 0.9f), out audioTabBtnText);
 
         // POPULATE TAB 1: DISPLAY (startY = 0.88f, spacingY = 0.11f)
         float startY = 0.88f;
@@ -1568,7 +1568,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         textMesh = txtObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) textMesh.font = gameFont;
         textMesh.text = text;
-        textMesh.fontSize = 20f;
+        textMesh.fontSize = 18f;
         textMesh.alignment = TextAlignmentOptions.Center;
         textMesh.color = new Color(0.7f, 0.7f, 0.7f);
 
