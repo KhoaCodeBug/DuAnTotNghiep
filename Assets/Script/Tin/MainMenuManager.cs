@@ -83,6 +83,29 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private float tempMusicVolume = 0.5f;
     private float tempSFXVolume = 0.8f;
 
+    // Các biến tạm thời mới
+    private int tempQualityLevel = 2;       // 0=Low, 1=Medium, 2=High
+    private int tempShadowQuality = 2;      // 0=Disabled, 1=Hard, 2=Soft
+    private int tempAntiAliasing = 2;       // 0=Off, 1=2x, 2=4x, 3=8x
+    private int tempShowFPS = 1;            // 0=Off, 1=On
+    private float tempZoomSensitivity = 1.0f; // 0.5f đến 2.0f
+
+    // Đối tượng Tab area và Text hiển thị
+    private int activeTab = 0; // 0 = Display, 1 = Controls, 2 = Audio
+    private GameObject displayTabArea;
+    private GameObject controlsTabArea;
+    private GameObject audioTabArea;
+
+    private TextMeshProUGUI displayTabBtnText;
+    private TextMeshProUGUI controlsTabBtnText;
+    private TextMeshProUGUI audioTabBtnText;
+
+    private TextMeshProUGUI qualityValText;
+    private TextMeshProUGUI shadowValText;
+    private TextMeshProUGUI aaValText;
+    private TextMeshProUGUI fpsShowValText;
+    private TextMeshProUGUI zoomSensValText;
+
     private Vector2Int[] commonResolutions = new Vector2Int[]
     {
         new Vector2Int(1280, 720),
@@ -1356,19 +1379,57 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject settingsArea = new GameObject("Settings_Container");
         settingsArea.transform.SetParent(optionsPanel.transform, false);
         RectTransform rect = settingsArea.AddComponent<RectTransform>();
-        // Làm container cao hơn để chứa 8 cài đặt thoải mái
         rect.anchorMin = new Vector2(0.2f, 0.12f);
         rect.anchorMax = new Vector2(0.8f, 0.88f);
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
         settingsArea.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
 
-        // Vị trí trục Y của các dòng
-        float startY = 0.88f;
-        float spacingY = 0.10f;
+        // Khởi tạo các Container Area cho từng Tab
+        displayTabArea = new GameObject("DisplayTabArea");
+        displayTabArea.transform.SetParent(settingsArea.transform, false);
+        RectTransform dRt = displayTabArea.AddComponent<RectTransform>();
+        dRt.anchorMin = new Vector2(0f, 0f);
+        dRt.anchorMax = new Vector2(1f, 0.90f);
+        dRt.offsetMin = Vector2.zero;
+        dRt.offsetMax = Vector2.zero;
 
-        // 1. Chế độ hiển thị (Display Mode) - DẠNG DROPDOWN (Dời lên trên)
-        CreateDropdown(settingsArea, "DISPLAY MODE:", 
+        controlsTabArea = new GameObject("ControlsTabArea");
+        controlsTabArea.transform.SetParent(settingsArea.transform, false);
+        RectTransform cRt = controlsTabArea.AddComponent<RectTransform>();
+        cRt.anchorMin = new Vector2(0f, 0f);
+        cRt.anchorMax = new Vector2(1f, 0.90f);
+        cRt.offsetMin = Vector2.zero;
+        cRt.offsetMax = Vector2.zero;
+
+        audioTabArea = new GameObject("AudioTabArea");
+        audioTabArea.transform.SetParent(settingsArea.transform, false);
+        RectTransform aRt = audioTabArea.AddComponent<RectTransform>();
+        aRt.anchorMin = new Vector2(0f, 0f);
+        aRt.anchorMax = new Vector2(1f, 0.90f);
+        aRt.offsetMin = Vector2.zero;
+        aRt.offsetMax = Vector2.zero;
+
+        // Khởi tạo Tab Bar ở trên đầu
+        GameObject tabBar = new GameObject("TabBar");
+        tabBar.transform.SetParent(settingsArea.transform, false);
+        RectTransform tbRt = tabBar.AddComponent<RectTransform>();
+        tbRt.anchorMin = new Vector2(0f, 0.90f);
+        tbRt.anchorMax = new Vector2(1f, 1.0f);
+        tbRt.offsetMin = Vector2.zero;
+        tbRt.offsetMax = Vector2.zero;
+        tabBar.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.04f, 1.5f);
+
+        CreateTabButton(tabBar, "DISPLAY", () => ShowTab(0), new Vector2(0.02f, 0.1f), new Vector2(0.32f, 0.9f), out displayTabBtnText);
+        CreateTabButton(tabBar, "CONTROLS", () => ShowTab(1), new Vector2(0.35f, 0.1f), new Vector2(0.65f, 0.9f), out controlsTabBtnText);
+        CreateTabButton(tabBar, "AUDIO", () => ShowTab(2), new Vector2(0.68f, 0.1f), new Vector2(0.98f, 0.9f), out audioTabBtnText);
+
+        // POPULATE TAB 1: DISPLAY (startY = 0.88f, spacingY = 0.11f)
+        float startY = 0.88f;
+        float spacingY = 0.11f;
+
+        // 1. Display Mode
+        CreateDropdown(displayTabArea, "DISPLAY MODE:", 
             new Vector2(0.05f, startY - 0.04f), new Vector2(0.4f, startY + 0.02f),
             new Vector2(0.45f, startY - 0.05f), new Vector2(0.95f, startY + 0.03f),
             windowModeLabels, tempWindowMode, (idx) => {
@@ -1376,13 +1437,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 UpdateDropdownTexts();
             }, out modeDropdownText);
 
-        // 2. Độ phân giải (Resolution) - DẠNG DROPDOWN (Dời xuống dưới)
+        // 2. Resolution
         string[] resStrings = new string[commonResolutions.Length];
         for (int i = 0; i < commonResolutions.Length; i++)
         {
             resStrings[i] = $"{commonResolutions[i].x} x {commonResolutions[i].y}";
         }
-        CreateDropdown(settingsArea, "RESOLUTION:", 
+        CreateDropdown(displayTabArea, "RESOLUTION:", 
             new Vector2(0.05f, startY - spacingY - 0.04f), new Vector2(0.4f, startY - spacingY + 0.02f),
             new Vector2(0.45f, startY - spacingY - 0.05f), new Vector2(0.95f, startY - spacingY + 0.03f),
             resStrings, tempResIndex, (idx) => {
@@ -1390,35 +1451,71 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 UpdateDropdownTexts();
             }, out resDropdownText);
 
-        // 3. Độ sáng (Brightness)
-        CreateLabel(settingsArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*2 - 0.04f), new Vector2(0.4f, startY - spacingY*2 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*2 - 0.05f), new Vector2(0.95f, startY - spacingY*2 + 0.03f),
-            () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out brightValText);
+        // 3. Graphics Quality
+        CreateLabel(displayTabArea, "GRAPHICS QUALITY:", new Vector2(0.05f, startY - spacingY*2 - 0.04f), new Vector2(0.4f, startY - spacingY*2 + 0.02f));
+        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*2 - 0.05f), new Vector2(0.95f, startY - spacingY*2 + 0.03f),
+            () => AdjustQuality(-1), () => AdjustQuality(1), out qualityValText);
 
-        // 4. Khung hình (FPS Limit)
-        CreateLabel(settingsArea, "FPS LIMIT:", new Vector2(0.05f, startY - spacingY*3 - 0.04f), new Vector2(0.4f, startY - spacingY*3 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*3 - 0.05f), new Vector2(0.95f, startY - spacingY*3 + 0.03f),
+        // 4. Shadow Quality
+        CreateLabel(displayTabArea, "SHADOW QUALITY:", new Vector2(0.05f, startY - spacingY*3 - 0.04f), new Vector2(0.4f, startY - spacingY*3 + 0.02f));
+        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*3 - 0.05f), new Vector2(0.95f, startY - spacingY*3 + 0.03f),
+            () => AdjustShadows(-1), () => AdjustShadows(1), out shadowValText);
+
+        // 5. Anti Aliasing
+        CreateLabel(displayTabArea, "ANTI-ALIASING:", new Vector2(0.05f, startY - spacingY*4 - 0.04f), new Vector2(0.4f, startY - spacingY*4 + 0.02f));
+        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*4 - 0.05f), new Vector2(0.95f, startY - spacingY*4 + 0.03f),
+            () => AdjustAntiAliasing(-1), () => AdjustAntiAliasing(1), out aaValText);
+
+        // 6. FPS Limit
+        CreateLabel(displayTabArea, "FPS LIMIT:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
+        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
             () => AdjustFPS(-1), () => AdjustFPS(1), out fpsValText);
 
-        // 5. Tốc độ chuột / Độ nhạy camera nhắm bắn (Mouse Sensitivity)
-        CreateLabel(settingsArea, "AIM SENSITIVITY:", new Vector2(0.05f, startY - spacingY*4 - 0.04f), new Vector2(0.4f, startY - spacingY*4 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*4 - 0.05f), new Vector2(0.95f, startY - spacingY*4 + 0.03f),
+        // 7. Brightness
+        CreateLabel(displayTabArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*6 - 0.04f), new Vector2(0.4f, startY - spacingY*6 + 0.02f));
+        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*6 - 0.05f), new Vector2(0.95f, startY - spacingY*6 + 0.03f),
+            () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out brightValText);
+
+        // 8. Show FPS
+        CreateLabel(displayTabArea, "SHOW FPS:", new Vector2(0.05f, startY - spacingY*7 - 0.04f), new Vector2(0.4f, startY - spacingY*7 + 0.02f));
+        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*7 - 0.05f), new Vector2(0.95f, startY - spacingY*7 + 0.03f),
+            () => AdjustShowFPS(-1), () => AdjustShowFPS(1), out fpsShowValText);
+
+
+        // POPULATE TAB 2: CONTROLS
+        float startYCtrl = 0.70f;
+        float spacingYCtrl = 0.15f;
+
+        // 1. Aim Sensitivity
+        CreateLabel(controlsTabArea, "AIM SENSITIVITY:", new Vector2(0.05f, startYCtrl - 0.04f), new Vector2(0.4f, startYCtrl + 0.02f));
+        CreateHorizontalSelector(controlsTabArea, new Vector2(0.45f, startYCtrl - 0.05f), new Vector2(0.95f, startYCtrl + 0.03f),
             () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), out sensValText);
 
-        // 6. Âm lượng Master (Master Volume)
-        CreateLabel(settingsArea, "MASTER VOLUME:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
+        // 2. Zoom Sensitivity
+        CreateLabel(controlsTabArea, "ZOOM SENSITIVITY:", new Vector2(0.05f, startYCtrl - spacingYCtrl - 0.04f), new Vector2(0.4f, startYCtrl - spacingYCtrl + 0.02f));
+        CreateHorizontalSelector(controlsTabArea, new Vector2(0.45f, startYCtrl - spacingYCtrl - 0.05f), new Vector2(0.95f, startYCtrl - spacingYCtrl + 0.03f),
+            () => AdjustZoomSensitivity(-0.1f), () => AdjustZoomSensitivity(0.1f), out zoomSensValText);
+
+
+        // POPULATE TAB 3: AUDIO
+        float startYAud = 0.70f;
+        float spacingYAud = 0.15f;
+
+        // 1. Master Volume
+        CreateLabel(audioTabArea, "MASTER VOLUME:", new Vector2(0.05f, startYAud - 0.04f), new Vector2(0.4f, startYAud + 0.02f));
+        CreateHorizontalSelector(audioTabArea, new Vector2(0.45f, startYAud - 0.05f), new Vector2(0.95f, startYAud + 0.03f),
             () => AdjustVolume(-0.1f), () => AdjustVolume(0.1f), out volValText);
 
-        // 7. Âm lượng Nhạc nền (Music Volume)
-        CreateLabel(settingsArea, "MUSIC VOLUME:", new Vector2(0.05f, startY - spacingY*6 - 0.04f), new Vector2(0.4f, startY - spacingY*6 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*6 - 0.05f), new Vector2(0.95f, startY - spacingY*6 + 0.03f),
+        // 2. Music Volume
+        CreateLabel(audioTabArea, "MUSIC VOLUME:", new Vector2(0.05f, startYAud - spacingYAud - 0.04f), new Vector2(0.4f, startYAud - spacingYAud + 0.02f));
+        CreateHorizontalSelector(audioTabArea, new Vector2(0.45f, startYAud - spacingYAud - 0.05f), new Vector2(0.95f, startYAud - spacingYAud + 0.03f),
             () => AdjustMusicVolume(-0.1f), () => AdjustMusicVolume(0.1f), out musicValText);
 
-        // 8. Âm lượng Hiệu ứng (SFX Volume)
-        CreateLabel(settingsArea, "SFX VOLUME:", new Vector2(0.05f, startY - spacingY*7 - 0.04f), new Vector2(0.4f, startY - spacingY*7 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*7 - 0.05f), new Vector2(0.95f, startY - spacingY*7 + 0.03f),
+        // 3. SFX Volume
+        CreateLabel(audioTabArea, "SFX VOLUME:", new Vector2(0.05f, startYAud - spacingYAud*2 - 0.04f), new Vector2(0.4f, startYAud - spacingYAud*2 + 0.02f));
+        CreateHorizontalSelector(audioTabArea, new Vector2(0.45f, startYAud - spacingYAud*2 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*2 + 0.03f),
             () => AdjustSFXVolume(-0.1f), () => AdjustSFXVolume(0.1f), out sfxValText);
+
 
         // Nút BACK (Bên trái)
         CreateMenuButton(optionsPanel, "BACK", () => {
@@ -1439,6 +1536,46 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }, new Vector2(0.9f, 0.1f));
 
         LoadSavedSettingsToTemp();
+    }
+
+    private GameObject CreateTabButton(GameObject parent, string text, System.Action onClick, Vector2 anchorMin, Vector2 anchorMax, out TextMeshProUGUI textMesh)
+    {
+        GameObject btnObj = new GameObject("TabBtn_" + text);
+        btnObj.transform.SetParent(parent.transform, false);
+        RectTransform rect = btnObj.AddComponent<RectTransform>();
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        Image img = btnObj.AddComponent<Image>();
+        img.color = new Color(0.06f, 0.06f, 0.06f, 1f);
+
+        Button btn = btnObj.AddComponent<Button>();
+        btn.onClick.AddListener(() => {
+            PlayClickSFX();
+            onClick();
+        });
+
+        GameObject txtObj = new GameObject("Text");
+        txtObj.transform.SetParent(btnObj.transform, false);
+        RectTransform txtRt = txtObj.AddComponent<RectTransform>();
+        txtRt.anchorMin = Vector2.zero;
+        txtRt.anchorMax = Vector2.one;
+        txtRt.offsetMin = Vector2.zero;
+        txtRt.offsetMax = Vector2.zero;
+
+        textMesh = txtObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) textMesh.font = gameFont;
+        textMesh.text = text;
+        textMesh.fontSize = 20f;
+        textMesh.alignment = TextAlignmentOptions.Center;
+        textMesh.color = new Color(0.7f, 0.7f, 0.7f);
+
+        AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>();
+        effect.Setup(textMesh, true);
+
+        return btnObj;
     }
 
     private void CreateDropdown(GameObject parent, string title, Vector2 labelMin, Vector2 labelMax, Vector2 btnMin, Vector2 btnMax, string[] options, int currentIndex, System.Action<int> onSelect, out TextMeshProUGUI valueTextObj)
@@ -1593,6 +1730,99 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
+    private void AdjustQuality(int delta)
+    {
+        tempQualityLevel = Mathf.Clamp(tempQualityLevel + delta, 0, 2);
+        UpdateQualityText();
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyGraphicsQuality(tempQualityLevel);
+        }
+    }
+
+    private void UpdateQualityText()
+    {
+        if (qualityValText != null)
+        {
+            string[] labels = new string[] { "LOW", "MEDIUM", "HIGH" };
+            qualityValText.text = labels[tempQualityLevel];
+        }
+    }
+
+    private void AdjustShadows(int delta)
+    {
+        tempShadowQuality = Mathf.Clamp(tempShadowQuality + delta, 0, 2);
+        UpdateShadowText();
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyShadowQuality(tempShadowQuality);
+        }
+    }
+
+    private void UpdateShadowText()
+    {
+        if (shadowValText != null)
+        {
+            string[] labels = new string[] { "DISABLED", "HARD ONLY", "SOFT SHADOWS" };
+            shadowValText.text = labels[tempShadowQuality];
+        }
+    }
+
+    private void AdjustAntiAliasing(int delta)
+    {
+        tempAntiAliasing = Mathf.Clamp(tempAntiAliasing + delta, 0, 3);
+        UpdateAAText();
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyAntiAliasing(tempAntiAliasing);
+        }
+    }
+
+    private void UpdateAAText()
+    {
+        if (aaValText != null)
+        {
+            string[] labels = new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" };
+            aaValText.text = labels[tempAntiAliasing];
+        }
+    }
+
+    private void AdjustShowFPS(int delta)
+    {
+        tempShowFPS = (tempShowFPS == 1) ? 0 : 1;
+        UpdateShowFPSText();
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyShowFPS(tempShowFPS == 1);
+        }
+    }
+
+    private void UpdateShowFPSText()
+    {
+        if (fpsShowValText != null)
+        {
+            fpsShowValText.text = (tempShowFPS == 1) ? "ON" : "OFF";
+        }
+    }
+
+    private void AdjustZoomSensitivity(float delta)
+    {
+        tempZoomSensitivity = Mathf.Clamp(tempZoomSensitivity + delta, 0.5f, 2.0f);
+        UpdateZoomSensText();
+        if (PZ_CameraController.Instance != null)
+        {
+            PZ_CameraController.Instance.UpdateSensitivity();
+        }
+    }
+
+    private void UpdateZoomSensText()
+    {
+        if (zoomSensValText != null)
+        {
+            zoomSensValText.text = tempZoomSensitivity.ToString("F1") + "x";
+        }
+    }
+
     private void AdjustFPS(int delta)
     {
         tempFpsIndex = Mathf.Clamp(tempFpsIndex + delta, 0, fpsOptions.Length - 1);
@@ -1725,6 +1955,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         tempMusicVolume = PlayerPrefs.GetFloat("GameMusicVolume", 0.5f);
         tempSFXVolume = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
 
+        // Load các cấu hình đồ họa/zoom mới
+        tempQualityLevel = Mathf.Clamp(PlayerPrefs.GetInt("GameQualityLevel", 2), 0, 2);
+        tempShadowQuality = Mathf.Clamp(PlayerPrefs.GetInt("GameShadowQuality", 2), 0, 2);
+        tempAntiAliasing = Mathf.Clamp(PlayerPrefs.GetInt("GameAntiAliasing", 2), 0, 3);
+        tempShowFPS = Mathf.Clamp(PlayerPrefs.GetInt("GameShowFPS", 1), 0, 1);
+        tempZoomSensitivity = PlayerPrefs.GetFloat("ZoomSensitivity", 1.0f);
+
         UpdateFPSText();
         UpdateBrightText();
         UpdateVolumeText();
@@ -1733,6 +1970,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         UpdateSensText();
         UpdateDropdownTexts();
 
+        // Refresh UI cho các cài đặt mới
+        UpdateQualityText();
+        UpdateShadowText();
+        UpdateAAText();
+        UpdateShowFPSText();
+        UpdateZoomSensText();
+
         // Áp dụng lập tức vào thực tế game
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = fpsOptions[tempFpsIndex];
@@ -1740,10 +1984,22 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         bgmVolume = tempMusicVolume;
         if (bgmSource != null) bgmSource.volume = bgmVolume;
         sfxVolume = tempSFXVolume;
+        
         if (GlobalSettingsManager.Instance != null)
         {
             GlobalSettingsManager.Instance.ApplyBrightness(tempBrightness);
+            GlobalSettingsManager.Instance.ApplyGraphicsQuality(tempQualityLevel);
+            GlobalSettingsManager.Instance.ApplyShadowQuality(tempShadowQuality);
+            GlobalSettingsManager.Instance.ApplyAntiAliasing(tempAntiAliasing);
+            GlobalSettingsManager.Instance.ApplyShowFPS(tempShowFPS == 1);
         }
+
+        if (PZ_CameraController.Instance != null)
+        {
+            PZ_CameraController.Instance.UpdateSensitivity();
+        }
+
+        ShowTab(0);
     }
 
     private void SaveSettings()
@@ -1756,6 +2012,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         PlayerPrefs.SetFloat("GameMasterVolume", tempMasterVolume);
         PlayerPrefs.SetFloat("GameMusicVolume", tempMusicVolume);
         PlayerPrefs.SetFloat("GameSFXVolume", tempSFXVolume);
+
+        // Lưu các cấu hình đồ họa/zoom mới
+        PlayerPrefs.SetInt("GameQualityLevel", tempQualityLevel);
+        PlayerPrefs.SetInt("GameShadowQuality", tempShadowQuality);
+        PlayerPrefs.SetInt("GameAntiAliasing", tempAntiAliasing);
+        PlayerPrefs.SetInt("GameShowFPS", tempShowFPS);
+        PlayerPrefs.SetFloat("ZoomSensitivity", tempZoomSensitivity);
         PlayerPrefs.Save();
 
         FullScreenMode mode = FullScreenMode.ExclusiveFullScreen;
@@ -1789,7 +2052,33 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         if (Mathf.Abs(tempMusicVolume - PlayerPrefs.GetFloat("GameMusicVolume", 0.5f)) > 0.01f) return true;
         if (Mathf.Abs(tempSFXVolume - PlayerPrefs.GetFloat("GameSFXVolume", 0.8f)) > 0.01f) return true;
 
+        // Check các cài đặt mới
+        if (tempQualityLevel != PlayerPrefs.GetInt("GameQualityLevel", 2)) return true;
+        if (tempShadowQuality != PlayerPrefs.GetInt("GameShadowQuality", 2)) return true;
+        if (tempAntiAliasing != PlayerPrefs.GetInt("GameAntiAliasing", 2)) return true;
+        if (tempShowFPS != PlayerPrefs.GetInt("GameShowFPS", 1)) return true;
+        if (Mathf.Abs(tempZoomSensitivity - PlayerPrefs.GetFloat("ZoomSensitivity", 1.0f)) > 0.01f) return true;
+
         return false;
+    }
+
+    private void ShowTab(int tabIndex)
+    {
+        activeTab = tabIndex;
+
+        if (displayTabArea != null) displayTabArea.SetActive(activeTab == 0);
+        if (controlsTabArea != null) controlsTabArea.SetActive(activeTab == 1);
+        if (audioTabArea != null) audioTabArea.SetActive(activeTab == 2);
+
+        if (displayTabBtnText != null) displayTabBtnText.color = (activeTab == 0) ? Color.yellow : new Color(0.7f, 0.7f, 0.7f);
+        if (controlsTabBtnText != null) controlsTabBtnText.color = (activeTab == 1) ? Color.yellow : new Color(0.7f, 0.7f, 0.7f);
+        if (audioTabBtnText != null) audioTabBtnText.color = (activeTab == 2) ? Color.yellow : new Color(0.7f, 0.7f, 0.7f);
+
+        if (activeDropdownOverlay != null)
+        {
+            Destroy(activeDropdownOverlay);
+            activeDropdownOverlay = null;
+        }
     }
 
     private void UpdateDropdownTexts()
@@ -1804,9 +2093,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
+    public bool IsOptionsOpen => optionsPanel != null && optionsPanel.activeSelf;
+
     public float GetTempSensitivity()
     {
         return tempSensitivity;
+    }
+
+    public float GetTempZoomSensitivity()
+    {
+        return tempZoomSensitivity;
     }
 
     private void ShowUnsavedChangesPopup()

@@ -62,6 +62,7 @@ public class PZ_CameraController : MonoBehaviour
     }
 
     private float baseMaxLookAhead = 6f;
+    private float baseZoomSpeed = 15f;
 
     void Start()
     {
@@ -69,13 +70,25 @@ public class PZ_CameraController : MonoBehaviour
         if (!cam.orthographic) cam.orthographic = true;
         targetZoom = cam.orthographicSize;
         baseMaxLookAhead = maxLookAhead;
+        baseZoomSpeed = zoomSpeed;
         UpdateSensitivity();
     }
 
     public void UpdateSensitivity()
     {
         float sensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 1f);
+        if (AutoMainMenuManager.Instance != null && AutoMainMenuManager.Instance.IsOptionsOpen)
+        {
+            sensitivity = AutoMainMenuManager.Instance.GetTempSensitivity();
+        }
         maxLookAhead = baseMaxLookAhead * sensitivity;
+
+        float zoomSens = PlayerPrefs.GetFloat("ZoomSensitivity", 1f);
+        if (AutoMainMenuManager.Instance != null && AutoMainMenuManager.Instance.IsOptionsOpen)
+        {
+            zoomSens = AutoMainMenuManager.Instance.GetTempZoomSensitivity();
+        }
+        zoomSpeed = baseZoomSpeed * zoomSens;
     }
 
     void Update()
