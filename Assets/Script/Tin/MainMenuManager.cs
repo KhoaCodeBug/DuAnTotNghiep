@@ -106,6 +106,19 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private TextMeshProUGUI fpsShowValText;
     private TextMeshProUGUI zoomSensValText;
 
+    // Pause menu options UI fields
+    private TextMeshProUGUI pQualText;
+    private TextMeshProUGUI pShadText;
+    private TextMeshProUGUI pAAText;
+    private TextMeshProUGUI pFpsText;
+    private TextMeshProUGUI pBrightText;
+    private TextMeshProUGUI pFpsShowText;
+    private TextMeshProUGUI pSensText;
+    private TextMeshProUGUI pZoomText;
+    private TextMeshProUGUI pVolText;
+    private TextMeshProUGUI pMusText;
+    private TextMeshProUGUI pSfxText;
+
     private Vector2Int[] commonResolutions = new Vector2Int[]
     {
         new Vector2Int(1280, 720),
@@ -170,6 +183,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     // 🔥 BIẾN CHO PAUSE MENU
     private GameObject pauseMenuPanel;
     private bool isPauseMenuOpen = false;
+    private GameObject pauseOptionsPanel;
+    private bool isPauseOptionsOpen = false;
+
+    // 🔥 BIẾN CHO CHARACTER ANIMATION
+    private string[][] characterResourcePaths = {
+        new string[] { "CharacterPreview/Survivor1", "Idle_Shadowless", "Attack1_Shadowless", "Taunt_Shadowless" },
+        new string[] { "CharacterPreview/Survivor2", "Idle", "Attack1", "Taunt" }
+    };
     private GameObject backgroundImageObj;
 
     private void Awake()
@@ -261,7 +282,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                     return;
                 }
 
-                if (isPauseMenuOpen)
+                if (isPauseOptionsOpen)
+                {
+                    ClosePauseOptions(false); // Close options and show pause menu
+                }
+                else if (isPauseMenuOpen)
                 {
                     TogglePauseMenu(); // Đang bật Pause thì tắt
                 }
@@ -297,22 +322,183 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject boxObj = new GameObject("PauseBox");
         boxObj.transform.SetParent(pauseMenuPanel.transform, false);
         RectTransform boxRt = boxObj.AddComponent<RectTransform>();
-        boxRt.anchorMin = new Vector2(0.35f, 0.35f); boxRt.anchorMax = new Vector2(0.65f, 0.65f);
+        boxRt.anchorMin = new Vector2(0.35f, 0.3f); boxRt.anchorMax = new Vector2(0.65f, 0.7f);
         boxRt.offsetMin = Vector2.zero; boxRt.offsetMax = Vector2.zero;
-        boxObj.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 0.95f); // Xám đen
+        boxObj.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
 
         // Viền trang trí
         Outline outline = boxObj.AddComponent<Outline>();
         outline.effectColor = new Color(0.3f, 0.3f, 0.3f, 1f);
         outline.effectDistance = new Vector2(2, -2);
 
-        CreateTitleText(boxObj, "PAUSED", 0.8f, 45);
+        CreateTitleText(boxObj, "PAUSED", 0.85f, 45);
 
         // Nút bấm
-        CreateMenuButton(boxObj, "RESUME", () => TogglePauseMenu(), new Vector2(0.5f, 0.5f), true, new Vector2(300, 50), 22);
+        CreateMenuButton(boxObj, "RESUME", () => TogglePauseMenu(), new Vector2(0.5f, 0.6f), true, new Vector2(300, 50), 22);
+        CreateMenuButton(boxObj, "OPTIONS", () => OpenPauseOptions(), new Vector2(0.5f, 0.45f), true, new Vector2(300, 50), 22);
         CreateMenuButton(boxObj, "QUIT", () => LeaveGame(), new Vector2(0.5f, 0.3f), true, new Vector2(300, 50), 22);
 
         pauseMenuPanel.SetActive(false);
+
+        // ===== PAUSE OPTIONS PANEL =====
+        GeneratePauseOptionsPanel(canvasGO);
+    }
+
+    private void GeneratePauseOptionsPanel(GameObject canvasGO)
+    {
+        pauseOptionsPanel = CreateBasePanel("PauseOptionsPanel", canvasGO);
+        pauseOptionsPanel.AddComponent<Image>().color = new Color(0, 0, 0, 0.5f);
+
+        // Container chính
+        GameObject settingsArea = new GameObject("PauseSettings_Container");
+        settingsArea.transform.SetParent(pauseOptionsPanel.transform, false);
+        RectTransform rect = settingsArea.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.15f, 0.15f);
+        rect.anchorMax = new Vector2(0.85f, 0.90f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        settingsArea.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.97f);
+
+        CreateTitleText(pauseOptionsPanel, "OPTIONS", 0.93f, 35);
+
+        // Tạo Tab containers
+        GameObject pDisplayTab = new GameObject("PDisplayTab");
+        pDisplayTab.transform.SetParent(settingsArea.transform, false);
+        RectTransform pdRt = pDisplayTab.AddComponent<RectTransform>();
+        pdRt.anchorMin = Vector2.zero; pdRt.anchorMax = new Vector2(1f, 0.92f);
+        pdRt.offsetMin = Vector2.zero; pdRt.offsetMax = Vector2.zero;
+
+        GameObject pControlsTab = new GameObject("PControlsTab");
+        pControlsTab.transform.SetParent(settingsArea.transform, false);
+        RectTransform pcRt = pControlsTab.AddComponent<RectTransform>();
+        pcRt.anchorMin = Vector2.zero; pcRt.anchorMax = new Vector2(1f, 0.92f);
+        pcRt.offsetMin = Vector2.zero; pcRt.offsetMax = Vector2.zero;
+
+        GameObject pAudioTab = new GameObject("PAudioTab");
+        pAudioTab.transform.SetParent(settingsArea.transform, false);
+        RectTransform paRt = pAudioTab.AddComponent<RectTransform>();
+        paRt.anchorMin = Vector2.zero; paRt.anchorMax = new Vector2(1f, 0.92f);
+        paRt.offsetMin = Vector2.zero; paRt.offsetMax = Vector2.zero;
+
+        // Tab bar
+        GameObject pTabBar = new GameObject("PTabBar");
+        pTabBar.transform.SetParent(settingsArea.transform, false);
+        RectTransform ptbRt = pTabBar.AddComponent<RectTransform>();
+        ptbRt.anchorMin = new Vector2(0f, 0.92f); ptbRt.anchorMax = new Vector2(1f, 1.0f);
+        ptbRt.offsetMin = Vector2.zero; ptbRt.offsetMax = Vector2.zero;
+        pTabBar.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.04f, 1f);
+
+        // Biến local cho tab switching
+        TextMeshProUGUI pDispBtnTxt, pCtrlBtnTxt, pAudBtnTxt;
+        int pauseTabIndex = 0;
+
+        System.Action<int> showPauseTab = null;
+        showPauseTab = (int idx) => {
+            pauseTabIndex = idx;
+            pDisplayTab.SetActive(idx == 0);
+            pControlsTab.SetActive(idx == 1);
+            pAudioTab.SetActive(idx == 2);
+        };
+
+        CreateTabButton(pTabBar, "DISPLAY", () => showPauseTab(0), new Vector2(0.22f, 0.1f), new Vector2(0.38f, 0.9f), out pDispBtnTxt);
+        CreateTabButton(pTabBar, "CONTROLS", () => showPauseTab(1), new Vector2(0.42f, 0.1f), new Vector2(0.58f, 0.9f), out pCtrlBtnTxt);
+        CreateTabButton(pTabBar, "AUDIO", () => showPauseTab(2), new Vector2(0.62f, 0.1f), new Vector2(0.78f, 0.9f), out pAudBtnTxt);
+
+        // === DISPLAY TAB (không có Resolution và Display Mode) ===
+        float pStartY = 0.82f;
+        float pSpacing = 0.13f;
+
+        // 1. Graphics Quality
+        CreateLabel(pDisplayTab, "GRAPHICS QUALITY:", new Vector2(0.05f, pStartY - 0.04f), new Vector2(0.4f, pStartY + 0.02f));
+        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - 0.05f), new Vector2(0.95f, pStartY + 0.03f),
+            () => AdjustQuality(-1), () => AdjustQuality(1), out pQualText);
+
+        // 2. Shadow Quality
+        CreateLabel(pDisplayTab, "SHADOW QUALITY:", new Vector2(0.05f, pStartY - pSpacing - 0.04f), new Vector2(0.4f, pStartY - pSpacing + 0.02f));
+        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing - 0.05f), new Vector2(0.95f, pStartY - pSpacing + 0.03f),
+            () => AdjustShadows(-1), () => AdjustShadows(1), out pShadText);
+
+        // 3. Anti-Aliasing
+        CreateLabel(pDisplayTab, "ANTI-ALIASING:", new Vector2(0.05f, pStartY - pSpacing*2 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*2 + 0.02f));
+        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*2 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*2 + 0.03f),
+            () => AdjustAntiAliasing(-1), () => AdjustAntiAliasing(1), out pAAText);
+
+        // 4. FPS Limit
+        CreateLabel(pDisplayTab, "FPS LIMIT:", new Vector2(0.05f, pStartY - pSpacing*3 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*3 + 0.02f));
+        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
+            () => AdjustFPS(-1), () => AdjustFPS(1), out pFpsText);
+
+        // 5. Brightness
+        CreateLabel(pDisplayTab, "BRIGHTNESS:", new Vector2(0.05f, pStartY - pSpacing*4 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*4 + 0.02f));
+        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*4 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*4 + 0.03f),
+            () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out pBrightText);
+
+        // 6. Show FPS
+        CreateLabel(pDisplayTab, "SHOW FPS:", new Vector2(0.05f, pStartY - pSpacing*5 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*5 + 0.02f));
+        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*5 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*5 + 0.03f),
+            () => AdjustShowFPS(-1), () => AdjustShowFPS(1), out pFpsShowText);
+
+        // === CONTROLS TAB ===
+        float pStartYCtrl = 0.70f;
+        float pSpacingCtrl = 0.15f;
+
+        CreateLabel(pControlsTab, "AIM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl + 0.02f));
+        CreateHorizontalSelector(pControlsTab, new Vector2(0.45f, pStartYCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl + 0.03f),
+            () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), out pSensText);
+
+        CreateLabel(pControlsTab, "ZOOM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - pSpacingCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl - pSpacingCtrl + 0.02f));
+        CreateHorizontalSelector(pControlsTab, new Vector2(0.45f, pStartYCtrl - pSpacingCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl - pSpacingCtrl + 0.03f),
+            () => AdjustZoomSensitivity(-0.1f), () => AdjustZoomSensitivity(0.1f), out pZoomText);
+
+        // === AUDIO TAB ===
+        float pStartYAud = 0.70f;
+        float pSpacingAud = 0.15f;
+
+        CreateLabel(pAudioTab, "MASTER VOLUME:", new Vector2(0.05f, pStartYAud - 0.04f), new Vector2(0.4f, pStartYAud + 0.02f));
+        CreateHorizontalSelector(pAudioTab, new Vector2(0.45f, pStartYAud - 0.05f), new Vector2(0.95f, pStartYAud + 0.03f),
+            () => AdjustVolume(-0.1f), () => AdjustVolume(0.1f), out pVolText);
+
+        CreateLabel(pAudioTab, "MUSIC VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud + 0.02f));
+        CreateHorizontalSelector(pAudioTab, new Vector2(0.45f, pStartYAud - pSpacingAud - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud + 0.03f),
+            () => AdjustMusicVolume(-0.1f), () => AdjustMusicVolume(0.1f), out pMusText);
+
+        CreateLabel(pAudioTab, "SFX VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud*2 - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud*2 + 0.02f));
+        CreateHorizontalSelector(pAudioTab, new Vector2(0.45f, pStartYAud - pSpacingAud*2 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*2 + 0.03f),
+            () => AdjustSFXVolume(-0.1f), () => AdjustSFXVolume(0.1f), out pSfxText);
+
+        // Nút BACK + SAVE
+        CreateMenuButton(pauseOptionsPanel, "BACK", () => ClosePauseOptions(false), new Vector2(0.1f, 0.08f));
+        CreateMenuButton(pauseOptionsPanel, "SAVE", () => ClosePauseOptions(true), new Vector2(0.9f, 0.08f));
+
+        // Mặc định ẩn, hiện tab DISPLAY
+        showPauseTab(0);
+        pauseOptionsPanel.SetActive(false);
+    }
+
+    private void OpenPauseOptions()
+    {
+        isPauseOptionsOpen = true;
+        LoadSavedSettingsToTemp();
+        pauseOptionsPanel.transform.SetAsLastSibling();
+        pauseOptionsPanel.SetActive(true);
+        pauseMenuPanel.SetActive(false);
+    }
+
+    private void ClosePauseOptions(bool save)
+    {
+        if (save)
+        {
+            SaveSettings();
+        }
+        else
+        {
+            // Revert to saved settings
+            LoadSavedSettingsToTemp();
+        }
+        isPauseOptionsOpen = false;
+        pauseOptionsPanel.SetActive(false);
+        pauseMenuPanel.transform.SetAsLastSibling();
+        pauseMenuPanel.SetActive(true);
     }
 
     // 2. HÀM BẬT/TẮT MENU (KHÔNG CÓ TIME.TIMESCALE)
@@ -337,6 +523,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         else
         {
             pauseMenuPanel.SetActive(false);
+            // Đóng pause options panel nếu đang mở
+            if (pauseOptionsPanel != null) pauseOptionsPanel.SetActive(false);
+            isPauseOptionsOpen = false;
             mainCanvas.gameObject.SetActive(false); // Trả lại toàn bộ màn hình cho game
 
             // Khóa chuột lại (NẾU game của bạn là dạng bắn súng góc nhìn thứ 1/thứ 3)
@@ -1359,7 +1548,57 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void SetDifficulty(int id) { hostDifficulty = id; PlayerPrefs.SetInt("GameDifficulty", id); PlayerPrefs.Save(); for (int i = 0; i < diffTexts.Length; i++) { if (i == id) { diffTexts[i].color = Color.yellow; diffTexts[i].fontStyle = FontStyles.Bold; } else { diffTexts[i].color = Color.gray; diffTexts[i].fontStyle = FontStyles.Normal; } } }
     private void TogglePassword() { hostHasPassword = !hostHasPassword; if (hostHasPassword) { toggleText.text = "[ YES ]"; toggleText.color = Color.red; passwordInputObj.SetActive(true); } else { toggleText.text = "[ NO ]"; toggleText.color = Color.gray; passwordInputObj.SetActive(false); } }
     private void ChangeCharacter(int direction) { previewID = (previewID + direction + characterNames.Length) % characterNames.Length; charNameText.text = characterNames[previewID]; charStatsText.text = characterStats[previewID]; UpdatePreview(); }
-    private void UpdatePreview() { if (previewImages == null || previewContainer == null) return; for (int i = 0; i < previewImages.Length; i++) { if (previewImages[i] != null) { bool isActive = (i == previewID); previewImages[i].SetActive(isActive); if (isActive) { previewImages[i].transform.SetParent(previewContainer, false); RectTransform rt = previewImages[i].GetComponent<RectTransform>(); if (rt != null) { rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero; } Image img = previewImages[i].GetComponent<Image>(); if (img != null) img.preserveAspect = true; } } } }
+    private void UpdatePreview()
+    {
+        if (previewImages == null || previewContainer == null) return;
+        for (int i = 0; i < previewImages.Length; i++)
+        {
+            if (previewImages[i] != null)
+            {
+                bool isActive = (i == previewID);
+                previewImages[i].SetActive(isActive);
+                if (isActive)
+                {
+                    previewImages[i].transform.SetParent(previewContainer, false);
+                    RectTransform rt = previewImages[i].GetComponent<RectTransform>();
+                    if (rt != null)
+                    {
+                        rt.anchorMin = Vector2.zero;
+                        rt.anchorMax = Vector2.one;
+                        rt.offsetMin = Vector2.zero;
+                        rt.offsetMax = Vector2.zero;
+                    }
+
+                    // Đảm bảo có Image component
+                    Image img = previewImages[i].GetComponent<Image>();
+                    if (img == null) img = previewImages[i].AddComponent<Image>();
+                    img.preserveAspect = true;
+
+                    // Gắn UICharacterAnimator nếu chưa có, và khởi chạy animation
+                    UICharacterAnimator animator = previewImages[i].GetComponent<UICharacterAnimator>();
+                    if (animator == null)
+                        animator = previewImages[i].AddComponent<UICharacterAnimator>();
+
+                    // Lấy dữ liệu sprite sheet cho nhân vật hiện tại
+                    if (i < characterResourcePaths.Length)
+                    {
+                        string[] paths = characterResourcePaths[i];
+                        string folder = paths[0];
+                        string idleSheet = paths[1];
+                        string[] actionSheets = new string[paths.Length - 2];
+                        System.Array.Copy(paths, 2, actionSheets, 0, actionSheets.Length);
+                        animator.Initialize(folder, idleSheet, actionSheets);
+                    }
+                }
+                else
+                {
+                    // Dừng animation khi không hiển thị
+                    UICharacterAnimator animator = previewImages[i].GetComponent<UICharacterAnimator>();
+                    if (animator != null) animator.StopAnimation();
+                }
+            }
+        }
+    }
     private void EnableGameplayUI() { foreach (var obj in temporarilyDisabledObjects) { if (obj != null) obj.SetActive(true); } temporarilyDisabledObjects.Clear(); }
     private void OnDestroy() { EnableGameplayUI(); isMenuDestroyed = true; }
     private GameObject CreateBasePanel(string name, GameObject parent) { GameObject p = new GameObject(name); p.transform.SetParent(parent.transform, false); RectTransform r = p.AddComponent<RectTransform>(); r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero; return p; }
@@ -1724,10 +1963,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateBrightText()
     {
-        if (brightValText != null)
-        {
-            brightValText.text = Mathf.RoundToInt(tempBrightness * 100f) + "%";
-        }
+        string val = Mathf.RoundToInt(tempBrightness * 100f) + "%";
+        if (brightValText != null) brightValText.text = val;
+        if (pBrightText != null) pBrightText.text = val;
     }
 
     private void AdjustQuality(int delta)
@@ -1742,11 +1980,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateQualityText()
     {
-        if (qualityValText != null)
-        {
-            string[] labels = new string[] { "LOW", "MEDIUM", "HIGH" };
-            qualityValText.text = labels[tempQualityLevel];
-        }
+        string[] labels = new string[] { "LOW", "MEDIUM", "HIGH" };
+        if (qualityValText != null) qualityValText.text = labels[tempQualityLevel];
+        if (pQualText != null) pQualText.text = labels[tempQualityLevel];
     }
 
     private void AdjustShadows(int delta)
@@ -1761,11 +1997,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateShadowText()
     {
-        if (shadowValText != null)
-        {
-            string[] labels = new string[] { "DISABLED", "HARD ONLY", "SOFT SHADOWS" };
-            shadowValText.text = labels[tempShadowQuality];
-        }
+        string[] labels = new string[] { "DISABLED", "HARD ONLY", "SOFT SHADOWS" };
+        if (shadowValText != null) shadowValText.text = labels[tempShadowQuality];
+        if (pShadText != null) pShadText.text = labels[tempShadowQuality];
     }
 
     private void AdjustAntiAliasing(int delta)
@@ -1780,11 +2014,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateAAText()
     {
-        if (aaValText != null)
-        {
-            string[] labels = new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" };
-            aaValText.text = labels[tempAntiAliasing];
-        }
+        string[] labels = new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" };
+        if (aaValText != null) aaValText.text = labels[tempAntiAliasing];
+        if (pAAText != null) pAAText.text = labels[tempAntiAliasing];
     }
 
     private void AdjustShowFPS(int delta)
@@ -1799,10 +2031,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateShowFPSText()
     {
-        if (fpsShowValText != null)
-        {
-            fpsShowValText.text = (tempShowFPS == 1) ? "ON" : "OFF";
-        }
+        string val = (tempShowFPS == 1) ? "ON" : "OFF";
+        if (fpsShowValText != null) fpsShowValText.text = val;
+        if (pFpsShowText != null) pFpsShowText.text = val;
     }
 
     private void AdjustZoomSensitivity(float delta)
@@ -1817,10 +2048,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateZoomSensText()
     {
-        if (zoomSensValText != null)
-        {
-            zoomSensValText.text = tempZoomSensitivity.ToString("F1") + "x";
-        }
+        string val = tempZoomSensitivity.ToString("F1") + "x";
+        if (zoomSensValText != null) zoomSensValText.text = val;
+        if (pZoomText != null) pZoomText.text = val;
     }
 
     private void AdjustFPS(int delta)
@@ -1833,10 +2063,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateFPSText()
     {
-        if (fpsValText != null)
-        {
-            fpsValText.text = fpsLabels[tempFpsIndex];
-        }
+        string val = fpsLabels[tempFpsIndex];
+        if (fpsValText != null) fpsValText.text = val;
+        if (pFpsText != null) pFpsText.text = val;
     }
 
     private void AdjustSensitivity(float delta)
@@ -1847,10 +2076,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateSensText()
     {
-        if (sensValText != null)
-        {
-            sensValText.text = tempSensitivity.ToString("F1") + "x";
-        }
+        string val = tempSensitivity.ToString("F1") + "x";
+        if (sensValText != null) sensValText.text = val;
+        if (pSensText != null) pSensText.text = val;
     }
 
     public void UpdateAudioSettings()
@@ -1872,10 +2100,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateVolumeText()
     {
-        if (volValText != null)
-        {
-            volValText.text = Mathf.RoundToInt(tempMasterVolume * 100f) + "%";
-        }
+        string val = Mathf.RoundToInt(tempMasterVolume * 100f) + "%";
+        if (volValText != null) volValText.text = val;
+        if (pVolText != null) pVolText.text = val;
     }
 
     private void AdjustMusicVolume(float delta)
@@ -1891,10 +2118,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateMusicVolumeText()
     {
-        if (musicValText != null)
-        {
-            musicValText.text = Mathf.RoundToInt(tempMusicVolume * 100f) + "%";
-        }
+        string val = Mathf.RoundToInt(tempMusicVolume * 100f) + "%";
+        if (musicValText != null) musicValText.text = val;
+        if (pMusText != null) pMusText.text = val;
     }
 
     private void AdjustSFXVolume(float delta)
@@ -1906,10 +2132,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateSFXVolumeText()
     {
-        if (sfxValText != null)
-        {
-            sfxValText.text = Mathf.RoundToInt(tempSFXVolume * 100f) + "%";
-        }
+        string val = Mathf.RoundToInt(tempSFXVolume * 100f) + "%";
+        if (sfxValText != null) sfxValText.text = val;
+        if (pSfxText != null) pSfxText.text = val;
     }
     private void GenerateCreditsPanel(GameObject canvasGO) { creditsPanel = CreateBasePanel("CreditsPanel", canvasGO); CanvasGroup cg = creditsPanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false; CreateTitleText(creditsPanel, "SURVIVAL TEAM", 0.9f); GameObject scrollObj = new GameObject("Credits_Scroll"); scrollObj.transform.SetParent(creditsPanel.transform, false); RectTransform scrollRectT = scrollObj.AddComponent<RectTransform>(); scrollRectT.anchorMin = new Vector2(0.15f, 0.2f); scrollRectT.anchorMax = new Vector2(0.85f, 0.8f); scrollRectT.offsetMin = Vector2.zero; scrollRectT.offsetMax = Vector2.zero; ScrollRect sr = scrollObj.AddComponent<ScrollRect>(); sr.horizontal = false; sr.vertical = true; sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide; GameObject vp = new GameObject("Viewport"); vp.transform.SetParent(scrollObj.transform, false); RectTransform vpRT = vp.AddComponent<RectTransform>(); vpRT.anchorMin = Vector2.zero; vpRT.anchorMax = Vector2.one; vpRT.offsetMin = Vector2.zero; vpRT.offsetMax = Vector2.zero; vp.AddComponent<RectMask2D>(); GameObject content = new GameObject("Content"); content.transform.SetParent(vp.transform, false); RectTransform contentRT = content.AddComponent<RectTransform>(); contentRT.anchorMin = new Vector2(0, 1); contentRT.anchorMax = new Vector2(1, 1); contentRT.pivot = new Vector2(0.5f, 1); contentRT.offsetMin = Vector2.zero; contentRT.offsetMax = Vector2.zero; VerticalLayoutGroup vlg = content.AddComponent<VerticalLayoutGroup>(); vlg.childAlignment = TextAnchor.UpperCenter; vlg.spacing = 40; vlg.padding = new RectOffset(0, 0, 400, 400); ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize; sr.content = contentRT; creditsContent = contentRT; CreateCreditLine(content, "LEAD PROGRAMMER", "TRẦN NGỌC ĐĂNG KHOA", Color.cyan); CreateCreditLine(content, "SYSTEM & PLAYER UI", "NGUYỄN TRÍ TÍN", Color.yellow); CreateCreditLine(content, "WORLD ARCHITECT (MAP)", "YÊN NHI", Color.white); CreateCreditLine(content, "LEAD AI & ZOMBIE BOSS", "HOÀNG THÁI", Color.red); CreateCreditLine(content, "VEHICLE MECHANICS", "VĂN HẬU", Color.green); CreateCreditLine(content, "TECHNICAL ARTIST (LOS FOW)", "ĐĂNG KHOA", Color.white); CreateCreditLine(content, "POWERED BY", "UNITY 6.0 / PHOTON FUSION", new Color(0.7f, 0.7f, 0.7f)); CreateCreditLine(content, "AUDIO DESIGN", "BGM: PROJECT ZOMBOID\nSFX: KENNEY / FREESOUND", new Color(0.7f, 0.7f, 0.7f)); CreateCreditLine(content, "SPECIAL THANKS", "TO ALL SURVIVORS WHO TESTED THIS GAME", Color.white); CreateMenuButton(creditsPanel, "BACK", () => { isCreditsOpen = false; OpenPanel(mainPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.1f, 0.1f)); }
     private void CreateCreditLine(GameObject parent, string role, string name, Color nameColor) { GameObject lineObj = new GameObject("CreditLine"); lineObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = lineObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = $"<size=20><color=#aaaaaa>{role}</color></size>\n<size=32><color=#{ColorUtility.ToHtmlStringRGB(nameColor)}>{name}</color></size>"; txt.alignment = TextAlignmentOptions.Center; }
