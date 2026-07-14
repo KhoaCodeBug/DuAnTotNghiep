@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class GlobalSettingsManager : MonoBehaviour
 {
@@ -7,6 +8,12 @@ public class GlobalSettingsManager : MonoBehaviour
 
     private Canvas brightnessCanvas;
     private Image brightnessImage;
+
+    // Các biến cho FPS Counter overlay
+    private TextMeshProUGUI fpsCounterText;
+    private float fpsUpdateInterval = 0.25f;
+    private float fpsTimeCounter = 0f;
+    private int fpsFrameCounter = 0;
 
     private void Awake()
     {
@@ -39,6 +46,23 @@ public class GlobalSettingsManager : MonoBehaviour
 
         // Bỏ Raycast Target để tấm che không chặn click chuột vào game
         brightnessImage.raycastTarget = false;
+
+        // Khởi tạo FPS Counter Text ở góc trên bên phải
+        GameObject fpsGo = new GameObject("FPS_Counter");
+        fpsGo.transform.SetParent(canvasGo.transform, false);
+        RectTransform fpsRt = fpsGo.AddComponent<RectTransform>();
+        fpsRt.anchorMin = new Vector2(1f, 1f);
+        fpsRt.anchorMax = new Vector2(1f, 1f);
+        fpsRt.pivot = new Vector2(1f, 1f);
+        fpsRt.anchoredPosition = new Vector2(-15f, -15f); // Cách góc 15px
+        fpsRt.sizeDelta = new Vector2(150, 40);
+
+        fpsCounterText = fpsGo.AddComponent<TextMeshProUGUI>();
+        fpsCounterText.alignment = TextAlignmentOptions.Right;
+        fpsCounterText.fontSize = 22;
+        fpsCounterText.color = Color.green;
+        fpsCounterText.text = "--- FPS";
+        fpsCounterText.raycastTarget = false;
 
         ApplyAllSettings();
     }
@@ -109,6 +133,26 @@ public class GlobalSettingsManager : MonoBehaviour
         if (AutoMainMenuManager.Instance != null)
         {
             AutoMainMenuManager.Instance.UpdateAudioSettings();
+        }
+    }
+
+    private void Update()
+    {
+        fpsFrameCounter++;
+        fpsTimeCounter += Time.unscaledDeltaTime;
+
+        if (fpsTimeCounter >= fpsUpdateInterval)
+        {
+            float lastFps = fpsFrameCounter / fpsTimeCounter;
+            if (fpsCounterText != null)
+            {
+                fpsCounterText.text = Mathf.RoundToInt(lastFps) + " FPS";
+                if (lastFps >= 55f) fpsCounterText.color = Color.green;
+                else if (lastFps >= 30f) fpsCounterText.color = Color.yellow;
+                else fpsCounterText.color = Color.red;
+            }
+            fpsFrameCounter = 0;
+            fpsTimeCounter = 0f;
         }
     }
 }
