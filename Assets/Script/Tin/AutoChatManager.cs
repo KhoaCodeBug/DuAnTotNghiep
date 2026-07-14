@@ -101,10 +101,10 @@ public class AutoChatManager : MonoBehaviour
         scaler.matchWidthOrHeight = 0.5f;
         canvasGo.AddComponent<GraphicRaycaster>();
 
-        // --- Panel tổng (Góc dưới trái) ---
+        // --- Panel tổng (Góc dưới trái, nhích lên tránh đè Ammo UI) ---
         var panel = MakeRect("ChatPanel", canvasGo.transform,
             new Vector2(0, 0), new Vector2(0, 0),
-            new Vector2(20, 20), new Vector2(400, 230));
+            new Vector2(20, 95), new Vector2(400, 230));
         panel.pivot = new Vector2(0, 0);
 
         chatGroup = panel.gameObject.AddComponent<CanvasGroup>();
@@ -133,6 +133,9 @@ public class AutoChatManager : MonoBehaviour
         var mask     = viewport.gameObject.AddComponent<Mask>();
         mask.showMaskGraphic = true;
         scrollRect.viewport  = viewport;
+
+        var draggable = viewport.gameObject.AddComponent<UIDraggable>();
+        draggable.targetToDrag = panel;
 
         // Content (kéo dài vô hạn theo nội dung)
         var content    = new GameObject("Content");
@@ -379,5 +382,59 @@ public class AutoChatManager : MonoBehaviour
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
         return rt;
+    }
+}
+
+public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
+{
+    public RectTransform targetToDrag;
+    private Vector2 dragOffset;
+
+    void Start()
+    {
+        if (targetToDrag == null)
+            targetToDrag = GetComponent<RectTransform>();
+    }
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        if (targetToDrag == null) return;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            targetToDrag.parent as RectTransform,
+            eventData.position,
+            eventData.pressEventCamera,
+            out Vector2 localMousePos);
+        dragOffset = targetToDrag.anchoredPosition - localMousePos;
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (targetToDrag == null) return;
+        
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            targetToDrag.parent as RectTransform,
+            eventData.position,
+            eventData.pressEventCamera,
+            out Vector2 localMousePos);
+            
+        targetToDrag.anchoredPosition = localMousePos + dragOffset;
+        ClampToParent();
+    }
+
+    private void ClampToParent()
+    {
+        if (targetToDrag == null || targetToDrag.parent == null) return;
+        RectTransform parentRect = targetToDrag.parent as RectTransform;
+        
+        Vector2 pos = targetToDrag.anchoredPosition;
+        
+        float minX = -parentRect.rect.width * targetToDrag.anchorMin.x + targetToDrag.rect.width * targetToDrag.pivot.x;
+        float maxX = parentRect.rect.width * (1f - targetToDrag.anchorMax.x) - targetToDrag.rect.width * (1f - targetToDrag.pivot.x);
+        float minY = -parentRect.rect.height * targetToDrag.anchorMin.y + targetToDrag.rect.height * targetToDrag.pivot.y;
+        float maxY = parentRect.rect.height * (1f - targetToDrag.anchorMax.y) - targetToDrag.rect.height * (1f - targetToDrag.pivot.y);
+        
+        pos.x = Mathf.Clamp(pos.x, minX, maxX);
+        pos.y = Mathf.Clamp(pos.y, minY, maxY);
+        targetToDrag.anchoredPosition = pos;
     }
 }
