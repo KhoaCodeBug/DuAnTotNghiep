@@ -188,8 +188,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     // 🔥 BIẾN CHO CHARACTER ANIMATION
     private string[][] characterResourcePaths = {
-        new string[] { "CharacterPreview/Survivor1", "Idle_Shadowless", "Attack1_Shadowless", "Taunt_Shadowless" },
-        new string[] { "CharacterPreview/Survivor2", "Idle", "Attack1", "Taunt" }
+        new string[] { "CharacterPreview/Survivor1", "Idle2", "Attack1", "Taunt" },
+        new string[] { "CharacterPreview/Survivor2", "Idle2", "Attack1", "Taunt" }
     };
     private GameObject backgroundImageObj;
 
