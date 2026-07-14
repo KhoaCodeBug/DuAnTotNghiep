@@ -1579,6 +1579,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         tempBrightness = Mathf.Clamp(tempBrightness + delta, 0.5f, 1.5f);
         UpdateBrightText();
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyBrightness(tempBrightness);
+        }
     }
 
     private void UpdateBrightText()
@@ -1593,6 +1597,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         tempFpsIndex = Mathf.Clamp(tempFpsIndex + delta, 0, fpsOptions.Length - 1);
         UpdateFPSText();
+        Application.targetFrameRate = fpsOptions[tempFpsIndex];
     }
 
     private void UpdateFPSText()
@@ -1631,6 +1636,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         tempMasterVolume = Mathf.Clamp(tempMasterVolume + delta, 0f, 1.0f);
         UpdateVolumeText();
+        AudioListener.volume = tempMasterVolume;
     }
 
     private void UpdateVolumeText()
@@ -1645,14 +1651,18 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         tempMusicVolume = Mathf.Clamp(tempMusicVolume + delta, 0f, 1.0f);
         UpdateMusicVolumeText();
+        bgmVolume = tempMusicVolume;
+        if (bgmSource != null)
+        {
+            bgmSource.volume = bgmVolume;
+        }
     }
 
     private void UpdateMusicVolumeText()
     {
         if (musicValText != null)
         {
-            float val = PlayerPrefs.GetFloat("GameMusicVolume", 0.5f);
-            musicValText.text = Mathf.RoundToInt(val * 100f) + "%";
+            musicValText.text = Mathf.RoundToInt(tempMusicVolume * 100f) + "%";
         }
     }
 
@@ -1660,6 +1670,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         tempSFXVolume = Mathf.Clamp(tempSFXVolume + delta, 0f, 1.0f);
         UpdateSFXVolumeText();
+        sfxVolume = tempSFXVolume;
     }
 
     private void UpdateSFXVolumeText()
@@ -1720,6 +1731,17 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         UpdateSFXVolumeText();
         UpdateSensText();
         UpdateDropdownTexts();
+
+        // Áp dụng lập tức vào thực tế game
+        Application.targetFrameRate = fpsOptions[tempFpsIndex];
+        AudioListener.volume = tempMasterVolume;
+        bgmVolume = tempMusicVolume;
+        if (bgmSource != null) bgmSource.volume = bgmVolume;
+        sfxVolume = tempSFXVolume;
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyBrightness(tempBrightness);
+        }
     }
 
     private void SaveSettings()
@@ -1778,6 +1800,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             modeDropdownText.text = $"{windowModeLabels[tempWindowMode]}  ▼";
         }
+    }
+
+    public float GetTempSensitivity()
+    {
+        return tempSensitivity;
     }
 
     private void ShowUnsavedChangesPopup()

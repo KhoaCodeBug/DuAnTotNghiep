@@ -75,6 +75,11 @@ public class GlobalSettingsManager : MonoBehaviour
 
         // 2. Độ sáng màn hình (Brightness)
         float brightness = PlayerPrefs.GetFloat("GameBrightness", 1.0f); // Tầm chạy: 0.5f (tối) đến 1.5f (sáng)
+        ApplyBrightness(brightness);
+    }
+
+    public void ApplyBrightness(float brightness)
+    {
         if (brightnessImage != null)
         {
             if (brightness >= 1.0f)
