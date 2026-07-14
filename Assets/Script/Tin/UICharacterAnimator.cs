@@ -48,10 +48,9 @@ public class UICharacterAnimator : MonoBehaviour
 
         // Load Idle sprite sheet
         Sprite[] idleSprites = Resources.LoadAll<Sprite>(resourceFolderPath + "/" + idleSheetName);
+        idleSprites = FilterAndSortSprites(idleSprites);
         if (idleSprites != null && idleSprites.Length > 0)
         {
-            // Sắp xếp theo tên để đảm bảo thứ tự frame đúng
-            idleSprites = idleSprites.OrderBy(s => ExtractFrameIndex(s.name)).ToArray();
             animationClips[idleSheetName] = idleSprites;
             idleClipName = idleSheetName;
         }
@@ -65,9 +64,9 @@ public class UICharacterAnimator : MonoBehaviour
         foreach (string actionName in actionSheetNames)
         {
             Sprite[] actionSprites = Resources.LoadAll<Sprite>(resourceFolderPath + "/" + actionName);
+            actionSprites = FilterAndSortSprites(actionSprites);
             if (actionSprites != null && actionSprites.Length > 0)
             {
-                actionSprites = actionSprites.OrderBy(s => ExtractFrameIndex(s.name)).ToArray();
                 animationClips[actionName] = actionSprites;
                 actionClipNames.Add(actionName);
             }
@@ -81,6 +80,63 @@ public class UICharacterAnimator : MonoBehaviour
         // Đảm bảo Image hiển thị đúng
         targetImage.preserveAspect = true;
         targetImage.type = Image.Type.Simple;
+    }
+
+    /// <summary>
+    /// Lọc và sắp xếp các sprite để chỉ lấy hướng nhìn chính diện (hướng 0)
+    /// của nhân vật thay vì chạy xoay vòng qua 8 hướng.
+    /// </summary>
+    private Sprite[] FilterAndSortSprites(Sprite[] rawSprites)
+    {
+        if (rawSprites == null || rawSprites.Length == 0) return rawSprites;
+
+        string firstName = rawSprites[0].name;
+        string[] parts = firstName.Split('_');
+
+        List<Sprite> filteredList = new List<Sprite>();
+
+        if (parts.Length >= 3)
+        {
+            // Format: TênSheet_Hướng_Frame (ví dụ: Idle2_0_5)
+            // Lọc các sprite có hướng là "0" (nhìn chính diện)
+            foreach (var sprite in rawSprites)
+            {
+                string[] p = sprite.name.Split('_');
+                if (p.Length >= 3 && p[p.Length - 2] == "0")
+                {
+                    filteredList.Add(sprite);
+                }
+            }
+            // Sắp xếp theo chỉ số frame (số cuối cùng)
+            return filteredList.OrderBy(s => {
+                string[] p = s.name.Split('_');
+                int.TryParse(p[p.Length - 1], out int index);
+                return index;
+            }).ToArray();
+        }
+        else
+        {
+            // Format: TênSheet_ChỉSốFrameToànCục (ví dụ: Idle2_45)
+            // Tấm sprite sheet chứa toàn bộ 8 hướng xếp liên tiếp.
+            // Số frame mỗi hướng = tổng số frame / 8 hướng.
+            int totalFrames = rawSprites.Length;
+            int framesPerDirection = totalFrames / 8;
+            if (framesPerDirection <= 0) framesPerDirection = totalFrames;
+
+            // Sắp xếp toàn bộ trước
+            var sortedRaw = rawSprites.OrderBy(s => {
+                string[] p = s.name.Split('_');
+                int.TryParse(p[p.Length - 1], out int index);
+                return index;
+            }).ToList();
+
+            // Lấy hướng đầu tiên (hướng 0, ví dụ 15 frame đầu từ 0 đến 14)
+            for (int i = 0; i < Mathf.Min(framesPerDirection, sortedRaw.Count); i++)
+            {
+                filteredList.Add(sortedRaw[i]);
+            }
+            return filteredList.ToArray();
+        }
     }
 
     /// <summary>
