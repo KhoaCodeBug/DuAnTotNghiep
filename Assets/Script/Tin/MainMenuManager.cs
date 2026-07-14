@@ -140,6 +140,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private string[] windowModeLabels = new string[] { "FULLSCREEN", "BORDERLESS", "WINDOWED" };
     private GameObject activeDropdownOverlay = null;
     
+    // Biến cho bảng thông tin độ khó ở mục Solo
+    private GameObject diffInfoPanel;
+    private TextMeshProUGUI diffTitleText;
+    private TextMeshProUGUI diffDescText;
+    private TextMeshProUGUI diffStatsText;
+    
     // Biến cho danh sách người chơi trong Waiting Room
     private RectTransform waitingRoomPlayerListContent;
 
@@ -615,13 +621,140 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         newGamePanel = CreateBasePanel("NewGamePanel", canvasGO); CanvasGroup cg = newGamePanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false;
         CreateTitleText(newGamePanel, "SELECT DIFFICULTY");
-        GameObject btnContainer = new GameObject("DiffContainer"); btnContainer.transform.SetParent(newGamePanel.transform, false);
-        RectTransform btnRect = btnContainer.AddComponent<RectTransform>(); btnRect.anchorMin = new Vector2(0.4f, 0.3f); btnRect.anchorMax = new Vector2(0.6f, 0.7f); btnRect.offsetMin = Vector2.zero; btnRect.offsetMax = Vector2.zero;
-        VerticalLayoutGroup vlg = btnContainer.AddComponent<VerticalLayoutGroup>(); vlg.spacing = 20;
+        
+        // 1. Cột chọn bên trái
+        GameObject btnContainer = new GameObject("DiffContainer"); 
+        btnContainer.transform.SetParent(newGamePanel.transform, false);
+        RectTransform btnRect = btnContainer.AddComponent<RectTransform>(); 
+        btnRect.anchorMin = new Vector2(0.15f, 0.25f); 
+        btnRect.anchorMax = new Vector2(0.45f, 0.75f); 
+        btnRect.offsetMin = Vector2.zero; 
+        btnRect.offsetMax = Vector2.zero;
+        
+        VerticalLayoutGroup vlg = btnContainer.AddComponent<VerticalLayoutGroup>(); 
+        vlg.spacing = 30;
+        vlg.childAlignment = TextAnchor.MiddleCenter;
+
         CreateMenuButton(btnContainer, "EASY", () => { SetDifficulty(0); pendingRoomName = "Solo_Easy_" + Random.Range(1000, 9999); OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); }); 
         CreateMenuButton(btnContainer, "MEDIUM", () => { SetDifficulty(1); pendingRoomName = "Solo_Normal_" + Random.Range(1000, 9999); OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); }); 
         CreateMenuButton(btnContainer, "HARD", () => { SetDifficulty(2); pendingRoomName = "Solo_Hard_" + Random.Range(1000, 9999); OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); });
+
+        // 2. Bảng thông tin bên phải
+        diffInfoPanel = new GameObject("DifficultyInfoPanel");
+        diffInfoPanel.transform.SetParent(newGamePanel.transform, false);
+        RectTransform infoRect = diffInfoPanel.AddComponent<RectTransform>();
+        infoRect.anchorMin = new Vector2(0.52f, 0.25f);
+        infoRect.anchorMax = new Vector2(0.85f, 0.75f);
+        infoRect.offsetMin = Vector2.zero;
+        infoRect.offsetMax = Vector2.zero;
+
+        Image infoBg = diffInfoPanel.AddComponent<Image>();
+        infoBg.color = new Color(0.06f, 0.06f, 0.06f, 0.95f);
+        Outline outline = diffInfoPanel.AddComponent<Outline>();
+        outline.effectColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
+        outline.effectDistance = new Vector2(1, -1);
+
+        // Tiêu đề bảng thông tin
+        GameObject titleObj = new GameObject("InfoTitle");
+        titleObj.transform.SetParent(diffInfoPanel.transform, false);
+        diffTitleText = titleObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) diffTitleText.font = gameFont;
+        diffTitleText.fontSize = 32;
+        diffTitleText.fontStyle = FontStyles.Bold;
+        diffTitleText.alignment = TextAlignmentOptions.Center;
+        RectTransform titleRect = titleObj.GetComponent<RectTransform>();
+        titleRect.anchorMin = new Vector2(0.05f, 0.8f);
+        titleRect.anchorMax = new Vector2(0.95f, 0.95f);
+        titleRect.offsetMin = Vector2.zero;
+        titleRect.offsetMax = Vector2.zero;
+
+        // Các thông số đo lường
+        GameObject statsObj = new GameObject("InfoStats");
+        statsObj.transform.SetParent(diffInfoPanel.transform, false);
+        diffStatsText = statsObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) diffStatsText.font = gameFont;
+        diffStatsText.fontSize = 22;
+        diffStatsText.lineSpacing = 10;
+        diffStatsText.alignment = TextAlignmentOptions.TopLeft;
+        RectTransform statsRect = statsObj.GetComponent<RectTransform>();
+        statsRect.anchorMin = new Vector2(0.08f, 0.45f);
+        statsRect.anchorMax = new Vector2(0.92f, 0.75f);
+        statsRect.offsetMin = Vector2.zero;
+        statsRect.offsetMax = Vector2.zero;
+
+        // Mô tả chi tiết
+        GameObject descObj = new GameObject("InfoDesc");
+        descObj.transform.SetParent(diffInfoPanel.transform, false);
+        diffDescText = descObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) diffDescText.font = gameFont;
+        diffDescText.fontSize = 20;
+        diffDescText.alignment = TextAlignmentOptions.TopLeft;
+        RectTransform descRect = descObj.GetComponent<RectTransform>();
+        descRect.anchorMin = new Vector2(0.08f, 0.05f);
+        descRect.anchorMax = new Vector2(0.92f, 0.4f);
+        descRect.offsetMin = Vector2.zero;
+        descRect.offsetMax = Vector2.zero;
+
+        // Gắn Trigger di chuột vào các nút để thay đổi thông tin động
+        var easyTrigger = btnContainer.transform.Find("Btn_EASY").gameObject.AddComponent<DifficultyHoverTrigger>();
+        easyTrigger.difficultyIndex = 0;
+        easyTrigger.menuManager = this;
+
+        var mediumTrigger = btnContainer.transform.Find("Btn_MEDIUM").gameObject.AddComponent<DifficultyHoverTrigger>();
+        mediumTrigger.difficultyIndex = 1;
+        mediumTrigger.menuManager = this;
+
+        var hardTrigger = btnContainer.transform.Find("Btn_HARD").gameObject.AddComponent<DifficultyHoverTrigger>();
+        hardTrigger.difficultyIndex = 2;
+        hardTrigger.menuManager = this;
+
+        // Thiết lập hiển thị mặc định ban đầu là MEDIUM
+        ShowDifficultyInfo(1);
+
         CreateMenuButton(newGamePanel, "BACK", () => OpenPanel(mainPanel.GetComponent<CanvasGroup>()), new Vector2(0.1f, 0.1f));
+    }
+
+    public void ShowDifficultyInfo(int id)
+    {
+        if (diffInfoPanel == null || diffTitleText == null || diffDescText == null || diffStatsText == null) return;
+
+        string title = "";
+        string desc = "";
+        string stats = "";
+        Color themeColor = Color.white;
+
+        switch (id)
+        {
+            case 0:
+                title = "EASY MODE";
+                themeColor = new Color(0.2f, 0.8f, 0.2f);
+                stats = "<color=#99FF99>ZOMBIE DENSITY:</color> Low\n" +
+                        "<color=#99FF99>SURVIVAL RATE:</color> High (90%)\n" +
+                        "<color=#99FF99>RECOMMENDED FOR:</color> Beginners";
+                desc = "Zombie spawn count is reduced. Ideal for exploring, gathering resources, and learning basic survival mechanics without heavy pressure.";
+                break;
+            case 1:
+                title = "MEDIUM MODE";
+                themeColor = new Color(1f, 0.8f, 0.2f);
+                stats = "<color=#FFFF99>ZOMBIE DENSITY:</color> Standard\n" +
+                        "<color=#FFFF99>SURVIVAL RATE:</color> Balanced (50%)\n" +
+                        "<color=#FFFF99>RECOMMENDED FOR:</color> Normal Players";
+                desc = "The standard zombie survival experience. Spawn rates and cooldown values are set to their default balanced values.";
+                break;
+            case 2:
+                title = "HARDCORE MODE";
+                themeColor = new Color(0.9f, 0.15f, 0.15f);
+                stats = "<color=#FF9999>ZOMBIE DENSITY:</color> High\n" +
+                        "<color=#FF9999>SURVIVAL RATE:</color> Extreme (<10%)\n" +
+                        "<color=#FF9999>RECOMMENDED FOR:</color> Hardcore Veterans";
+                desc = "A true nightmare. Zombies are extremely numerous and spawn very quickly. Demands maximum skill and tactical planning.";
+                break;
+        }
+
+        diffTitleText.text = title;
+        diffTitleText.color = themeColor;
+        diffStatsText.text = stats;
+        diffDescText.text = desc;
     }
 
     private void GenerateMultiplayerPanel_NEW(GameObject canvasGO)
@@ -2456,4 +2589,18 @@ public class AutoMenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointe
     private void AnimateMove(Vector3 target) { if (btnText == null) return; if (moveRoutine != null) StopCoroutine(moveRoutine); moveRoutine = StartCoroutine(DoMove(target, 0.15f)); }
     private IEnumerator DoColor(Color targetColor, float duration) { Color startColor = btnText.color; float t = 0; while (t < duration) { t += Time.unscaledDeltaTime; btnText.color = Color.Lerp(startColor, targetColor, t / duration); yield return null; } btnText.color = targetColor; }
     private IEnumerator DoMove(Vector3 targetPos, float duration) { Vector3 startPos = btnText.transform.localPosition; float t = 0; while (t < duration) { t += Time.unscaledDeltaTime; float percent = t / duration; percent = percent * (2f - percent); btnText.transform.localPosition = Vector3.Lerp(startPos, targetPos, percent); yield return null; } btnText.transform.localPosition = targetPos; }
+}
+
+public class DifficultyHoverTrigger : MonoBehaviour, IPointerEnterHandler
+{
+    public int difficultyIndex;
+    public AutoMainMenuManager menuManager;
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (menuManager != null)
+        {
+            menuManager.ShowDifficultyInfo(difficultyIndex);
+        }
+    }
 }
