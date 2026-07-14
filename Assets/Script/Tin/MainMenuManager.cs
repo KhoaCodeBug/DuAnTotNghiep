@@ -64,6 +64,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private string pendingRoomName = "";
     private bool pendingIsHost = false;
+    private bool pendingIsSolo = false;
     private string pendingJoinPassword = "";
 
     private int hostDifficulty = 1;
@@ -353,8 +354,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject btnContainer = new GameObject("ButtonContainer"); btnContainer.transform.SetParent(mainPanel.transform, false);
         RectTransform btnRect = btnContainer.AddComponent<RectTransform>(); btnRect.anchorMin = new Vector2(0.1f, 0.1f); btnRect.anchorMax = new Vector2(0.3f, 0.6f); btnRect.offsetMin = Vector2.zero; btnRect.offsetMax = Vector2.zero;
         VerticalLayoutGroup vlg = btnContainer.AddComponent<VerticalLayoutGroup>(); vlg.spacing = 15; vlg.childAlignment = TextAnchor.MiddleLeft; vlg.childControlHeight = false; vlg.childControlWidth = true;
-        CreateMenuButton(btnContainer, "SOLO", () => OpenPanel(newGamePanel.GetComponent<CanvasGroup>()));
-        CreateMenuButton(btnContainer, "MULTIPLAYER", () => OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>()));
+        CreateMenuButton(btnContainer, "SOLO", () => { pendingIsSolo = true; pendingIsHost = false; OpenPanel(newGamePanel.GetComponent<CanvasGroup>()); });
+        CreateMenuButton(btnContainer, "MULTIPLAYER", () => { pendingIsSolo = false; OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>()); });
         CreateMenuButton(btnContainer, "OPTIONS", () => OpenPanel(optionsPanel.GetComponent<CanvasGroup>()));
         CreateMenuButton(btnContainer, "CREDITS", () => OpenPanel(creditsPanel.GetComponent<CanvasGroup>()));
         CreateMenuButton(btnContainer, "QUIT", () => Application.Quit());
@@ -367,7 +368,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject btnContainer = new GameObject("DiffContainer"); btnContainer.transform.SetParent(newGamePanel.transform, false);
         RectTransform btnRect = btnContainer.AddComponent<RectTransform>(); btnRect.anchorMin = new Vector2(0.4f, 0.3f); btnRect.anchorMax = new Vector2(0.6f, 0.7f); btnRect.offsetMin = Vector2.zero; btnRect.offsetMax = Vector2.zero;
         VerticalLayoutGroup vlg = btnContainer.AddComponent<VerticalLayoutGroup>(); vlg.spacing = 20;
-        CreateMenuButton(btnContainer, "BUILDER (EASY)", () => Debug.Log("Start Easy")); CreateMenuButton(btnContainer, "SURVIVOR (NORMAL)", () => Debug.Log("Start Normal")); CreateMenuButton(btnContainer, "APOCALYPSE (HARD)", () => Debug.Log("Start Hard"));
+        CreateMenuButton(btnContainer, "BUILDER (EASY)", () => { SetDifficulty(0); pendingRoomName = "Solo_Easy_" + Random.Range(1000, 9999); OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); }); 
+        CreateMenuButton(btnContainer, "SURVIVOR (NORMAL)", () => { SetDifficulty(1); pendingRoomName = "Solo_Normal_" + Random.Range(1000, 9999); OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); }); 
+        CreateMenuButton(btnContainer, "APOCALYPSE (HARD)", () => { SetDifficulty(2); pendingRoomName = "Solo_Hard_" + Random.Range(1000, 9999); OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>()); });
         CreateMenuButton(newGamePanel, "BACK", () => OpenPanel(mainPanel.GetComponent<CanvasGroup>()), new Vector2(0.1f, 0.1f));
     }
 
@@ -520,14 +523,23 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             await Task.Yield(); // Đợi 1 frame cho UI cập nhật
 
             // Gọi trực tiếp thay vì qua StartHostGame / StartClientGame
-            if (pendingIsHost)
+            if (pendingIsSolo)
+                StartGameInternal(GameMode.Single, pendingRoomName);
+            else if (pendingIsHost)
                 StartGameInternal(GameMode.Host, pendingRoomName);
             else
                 StartGameInternal(GameMode.Client, pendingRoomName);
 
         }, new Vector2(0.5f, 0.1f), true, new Vector2(450, 70), 25f);
 
-        CreateMenuButton(characterSelectPanel, "BACK", () => { isConnecting = false; OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.1f, 0.1f), false, new Vector2(300, 50));
+        CreateMenuButton(characterSelectPanel, "BACK", () => 
+        { 
+            isConnecting = false; 
+            if (pendingIsSolo)
+                OpenPanel(newGamePanel.GetComponent<CanvasGroup>());
+            else
+                OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>()); 
+        }, new Vector2(0.1f, 0.1f), false, new Vector2(300, 50));
     }
     #endregion
 
@@ -709,9 +721,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     #region HỆ THỐNG MẠNG
     private async void StartGameInternal(GameMode mode, string roomName)
     {
-        string popupMsg = mode == GameMode.Host
-            ? "PLANNING SURVIVAL PROTOCOL..."
-            : "SEARCHING FOR SURVIVORS...";
+        string popupMsg = mode == GameMode.Single
+            ? "INITIALIZING SOLO PROTOCOL..."
+            : (mode == GameMode.Host ? "PLANNING SURVIVAL PROTOCOL..." : "SEARCHING FOR SURVIVORS...");
 
         ShowConnectionPopup(popupMsg);
         isConnecting = true;
@@ -734,15 +746,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         if (mode == GameMode.Host)
         {
             var roomProps = new Dictionary<string, SessionProperty>
-        {
-            { "IsLocked", hostHasPassword ? 1 : 0 },
-            { "HasPassword", hostHasPassword ? 1 : 0 },
-            { "GameState", 0 }
-        };
+            {
+                { "IsLocked", hostHasPassword ? 1 : 0 },
+                { "HasPassword", hostHasPassword ? 1 : 0 },
+                { "GameState", 0 }
+            };
             args.SessionProperties = roomProps;
             args.PlayerCount = hostMaxPlayers;
         }
-        else // Client
+        else if (mode == GameMode.Client)
         {
             if (!string.IsNullOrEmpty(pendingJoinPassword))
             {
