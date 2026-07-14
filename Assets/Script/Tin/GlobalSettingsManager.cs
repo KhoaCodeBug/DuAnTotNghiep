@@ -45,6 +45,27 @@ public class GlobalSettingsManager : MonoBehaviour
 
     public void ApplyAllSettings()
     {
+        // 0. Độ phân giải & Chế độ màn hình (Resolution & Display Mode)
+        int savedResIndex = PlayerPrefs.GetInt("SelectedResIndex", 3);
+        int savedWindowMode = PlayerPrefs.GetInt("GameWindowMode", 0);
+        
+        Vector2Int[] commonResolutions = new Vector2Int[]
+        {
+            new Vector2Int(1280, 720),
+            new Vector2Int(1366, 768),
+            new Vector2Int(1600, 900),
+            new Vector2Int(1920, 1080)
+        };
+        
+        int resIndex = Mathf.Clamp(savedResIndex, 0, commonResolutions.Length - 1);
+        Vector2Int res = commonResolutions[resIndex];
+        
+        FullScreenMode mode = FullScreenMode.ExclusiveFullScreen;
+        if (savedWindowMode == 1) mode = FullScreenMode.FullScreenWindow;
+        else if (savedWindowMode == 2) mode = FullScreenMode.Windowed;
+        
+        Screen.SetResolution(res.x, res.y, mode);
+
         // 1. Độ nhạy chuột (Mouse Sensitivity)
         float sensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 1.0f);
         if (PZ_CameraController.Instance != null)

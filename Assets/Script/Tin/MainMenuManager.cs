@@ -85,13 +85,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private int selectedFpsIndex = 1; // Mặc định 60 FPS
     private int[] fpsOptions = new int[] { 30, 60, 120, -1 };
     private string[] fpsLabels = new string[] { "30 FPS", "60 FPS", "120 FPS", "UNLIMITED" };
-    private TextMeshProUGUI resValText;
     private TextMeshProUGUI fpsValText;
     private TextMeshProUGUI sensValText;
     private TextMeshProUGUI brightValText;
     private TextMeshProUGUI volValText;
     private TextMeshProUGUI musicValText;
     private TextMeshProUGUI sfxValText;
+    
+    private int selectedWindowMode = 0; // 0 = Fullscreen, 1 = Borderless, 2 = Windowed
+    private string[] windowModeLabels = new string[] { "FULLSCREEN", "BORDERLESS", "WINDOWED" };
+    private GameObject activeDropdownOverlay = null;
     
     // Biến cho danh sách người chơi trong Waiting Room
     private RectTransform waitingRoomPlayerListContent;
@@ -1345,7 +1348,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject settingsArea = new GameObject("Settings_Container");
         settingsArea.transform.SetParent(optionsPanel.transform, false);
         RectTransform rect = settingsArea.AddComponent<RectTransform>();
-        // Làm container cao hơn để chứa 7 cài đặt thoải mái
+        // Làm container cao hơn để chứa 8 cài đặt thoải mái
         rect.anchorMin = new Vector2(0.2f, 0.12f);
         rect.anchorMax = new Vector2(0.8f, 0.88f);
         rect.offsetMin = Vector2.zero;
@@ -1354,6 +1357,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // Khởi tạo các giá trị từ PlayerPrefs
         selectedResIndex = Mathf.Clamp(PlayerPrefs.GetInt("SelectedResIndex", 3), 0, commonResolutions.Length - 1);
+        selectedWindowMode = Mathf.Clamp(PlayerPrefs.GetInt("GameWindowMode", 0), 0, windowModeLabels.Length - 1);
         
         int savedFps = PlayerPrefs.GetInt("GameFPSLimit", 60);
         selectedFpsIndex = 1;
@@ -1363,54 +1367,183 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         // Vị trí trục Y của các dòng
-        float startY = 0.86f;
-        float spacingY = 0.115f;
+        float startY = 0.88f;
+        float spacingY = 0.10f;
 
-        // 1. Độ phân giải (Resolution)
-        CreateLabel(settingsArea, "RESOLUTION:", new Vector2(0.05f, startY - 0.04f), new Vector2(0.4f, startY + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - 0.05f), new Vector2(0.95f, startY + 0.03f),
-            () => AdjustResolution(-1), () => AdjustResolution(1), out resValText);
-        UpdateResText();
+        // 1. Độ phân giải (Resolution) - DẠNG DROPDOWN
+        string[] resStrings = new string[commonResolutions.Length];
+        for (int i = 0; i < commonResolutions.Length; i++)
+        {
+            resStrings[i] = $"{commonResolutions[i].x} x {commonResolutions[i].y}";
+        }
+        CreateDropdown(settingsArea, "RESOLUTION:", 
+            new Vector2(0.05f, startY - 0.04f), new Vector2(0.4f, startY + 0.02f),
+            new Vector2(0.45f, startY - 0.05f), new Vector2(0.95f, startY + 0.03f),
+            resStrings, selectedResIndex, (idx) => {
+                selectedResIndex = idx;
+                PlayerPrefs.SetInt("SelectedResIndex", selectedResIndex);
+                PlayerPrefs.Save();
+                ApplyWindowMode(selectedWindowMode); // Áp dụng độ phân giải và chế độ hiển thị
+            });
 
-        // 2. Độ sáng (Brightness)
-        CreateLabel(settingsArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY - 0.04f), new Vector2(0.4f, startY - spacingY + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY - 0.05f), new Vector2(0.95f, startY - spacingY + 0.03f),
+        // 2. Chế độ hiển thị (Display Mode) - DẠNG DROPDOWN
+        CreateDropdown(settingsArea, "DISPLAY MODE:", 
+            new Vector2(0.05f, startY - spacingY - 0.04f), new Vector2(0.4f, startY - spacingY + 0.02f),
+            new Vector2(0.45f, startY - spacingY - 0.05f), new Vector2(0.95f, startY - spacingY + 0.03f),
+            windowModeLabels, selectedWindowMode, (idx) => {
+                ApplyWindowMode(idx);
+            });
+
+        // 3. Độ sáng (Brightness)
+        CreateLabel(settingsArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*2 - 0.04f), new Vector2(0.4f, startY - spacingY*2 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*2 - 0.05f), new Vector2(0.95f, startY - spacingY*2 + 0.03f),
             () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out brightValText);
         UpdateBrightText();
 
-        // 3. Khung hình (FPS Limit)
-        CreateLabel(settingsArea, "FPS LIMIT:", new Vector2(0.05f, startY - spacingY*2 - 0.04f), new Vector2(0.4f, startY - spacingY*2 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*2 - 0.05f), new Vector2(0.95f, startY - spacingY*2 + 0.03f),
+        // 4. Khung hình (FPS Limit)
+        CreateLabel(settingsArea, "FPS LIMIT:", new Vector2(0.05f, startY - spacingY*3 - 0.04f), new Vector2(0.4f, startY - spacingY*3 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*3 - 0.05f), new Vector2(0.95f, startY - spacingY*3 + 0.03f),
             () => AdjustFPS(-1), () => AdjustFPS(1), out fpsValText);
         UpdateFPSText();
 
-        // 4. Tốc độ chuột / Độ nhạy camera nhắm bắn (Mouse Sensitivity)
-        CreateLabel(settingsArea, "AIM SENSITIVITY:", new Vector2(0.05f, startY - spacingY*3 - 0.04f), new Vector2(0.4f, startY - spacingY*3 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*3 - 0.05f), new Vector2(0.95f, startY - spacingY*3 + 0.03f),
+        // 5. Tốc độ chuột / Độ nhạy camera nhắm bắn (Mouse Sensitivity)
+        CreateLabel(settingsArea, "AIM SENSITIVITY:", new Vector2(0.05f, startY - spacingY*4 - 0.04f), new Vector2(0.4f, startY - spacingY*4 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*4 - 0.05f), new Vector2(0.95f, startY - spacingY*4 + 0.03f),
             () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), out sensValText);
         UpdateSensText();
 
-        // 5. Âm lượng Master (Master Volume)
-        CreateLabel(settingsArea, "MASTER VOLUME:", new Vector2(0.05f, startY - spacingY*4 - 0.04f), new Vector2(0.4f, startY - spacingY*4 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*4 - 0.05f), new Vector2(0.95f, startY - spacingY*4 + 0.03f),
+        // 6. Âm lượng Master (Master Volume)
+        CreateLabel(settingsArea, "MASTER VOLUME:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
             () => AdjustVolume(-0.1f), () => AdjustVolume(0.1f), out volValText);
         UpdateVolumeText();
 
-        // 6. Âm lượng Nhạc nền (Music Volume)
-        CreateLabel(settingsArea, "MUSIC VOLUME:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
+        // 7. Âm lượng Nhạc nền (Music Volume)
+        CreateLabel(settingsArea, "MUSIC VOLUME:", new Vector2(0.05f, startY - spacingY*6 - 0.04f), new Vector2(0.4f, startY - spacingY*6 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*6 - 0.05f), new Vector2(0.95f, startY - spacingY*6 + 0.03f),
             () => AdjustMusicVolume(-0.1f), () => AdjustMusicVolume(0.1f), out musicValText);
         UpdateMusicVolumeText();
 
-        // 7. Âm lượng Hiệu ứng (SFX Volume)
-        CreateLabel(settingsArea, "SFX VOLUME:", new Vector2(0.05f, startY - spacingY*6 - 0.04f), new Vector2(0.4f, startY - spacingY*6 + 0.02f));
-        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*6 - 0.05f), new Vector2(0.95f, startY - spacingY*6 + 0.03f),
+        // 8. Âm lượng Hiệu ứng (SFX Volume)
+        CreateLabel(settingsArea, "SFX VOLUME:", new Vector2(0.05f, startY - spacingY*7 - 0.04f), new Vector2(0.4f, startY - spacingY*7 + 0.02f));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*7 - 0.05f), new Vector2(0.95f, startY - spacingY*7 + 0.03f),
             () => AdjustSFXVolume(-0.1f), () => AdjustSFXVolume(0.1f), out sfxValText);
         UpdateSFXVolumeText();
 
         CreateMenuButton(optionsPanel, "BACK", () => {
             OpenPanel(mainPanel.GetComponent<CanvasGroup>());
         }, new Vector2(0.1f, 0.1f));
+    }
+
+    private void CreateDropdown(GameObject parent, string title, Vector2 labelMin, Vector2 labelMax, Vector2 btnMin, Vector2 btnMax, string[] options, int currentIndex, System.Action<int> onSelect)
+    {
+        // 1. Tên nhãn
+        CreateLabel(parent, title, labelMin, labelMax);
+
+        // 2. Nút bấm chính
+        GameObject btnObj = new GameObject("Dropdown_" + title);
+        btnObj.transform.SetParent(parent.transform, false);
+        RectTransform btnRect = btnObj.AddComponent<RectTransform>();
+        btnRect.anchorMin = btnMin;
+        btnRect.anchorMax = btnMax;
+        btnRect.offsetMin = Vector2.zero;
+        btnRect.offsetMax = Vector2.zero;
+
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(0.04f, 0.04f, 0.04f, 1f);
+
+        GameObject txtObj = new GameObject("Text");
+        txtObj.transform.SetParent(btnObj.transform, false);
+        TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) tmpText.font = gameFont;
+        tmpText.text = $"{options[currentIndex]}  ▼";
+        tmpText.alignment = TextAlignmentOptions.Center;
+        tmpText.color = Color.yellow;
+        tmpText.fontSize = 22;
+        RectTransform txtRect = txtObj.GetComponent<RectTransform>();
+        txtRect.anchorMin = Vector2.zero;
+        txtRect.anchorMax = Vector2.one;
+        txtRect.offsetMin = Vector2.zero;
+        txtRect.offsetMax = Vector2.zero;
+
+        Button btn = btnObj.AddComponent<Button>();
+        btn.onClick.AddListener(() =>
+        {
+            if (activeDropdownOverlay != null)
+            {
+                Destroy(activeDropdownOverlay);
+                activeDropdownOverlay = null;
+                return;
+            }
+
+            activeDropdownOverlay = new GameObject("DropdownOverlay");
+            activeDropdownOverlay.transform.SetParent(parent.transform, false);
+            activeDropdownOverlay.transform.SetAsLastSibling();
+
+            RectTransform overlayRect = activeDropdownOverlay.AddComponent<RectTransform>();
+            overlayRect.anchorMin = new Vector2(btnMin.x, btnMin.y - (options.Length * 0.065f));
+            overlayRect.anchorMax = new Vector2(btnMax.x, btnMin.y - 0.005f);
+            overlayRect.offsetMin = Vector2.zero;
+            overlayRect.offsetMax = Vector2.zero;
+
+            Image overlayImg = activeDropdownOverlay.AddComponent<Image>();
+            overlayImg.color = new Color(0.02f, 0.02f, 0.02f, 0.98f);
+
+            VerticalLayoutGroup vlg = activeDropdownOverlay.AddComponent<VerticalLayoutGroup>();
+            vlg.spacing = 2;
+            vlg.padding = new RectOffset(2, 2, 2, 2);
+            vlg.childControlHeight = true;
+            vlg.childControlWidth = true;
+
+            for (int i = 0; i < options.Length; i++)
+            {
+                int index = i;
+                GameObject itemObj = new GameObject("Item_" + index);
+                itemObj.transform.SetParent(activeDropdownOverlay.transform, false);
+                
+                Image itemImg = itemObj.AddComponent<Image>();
+                itemImg.color = (index == currentIndex) ? new Color(0.2f, 0.05f, 0.05f, 1f) : new Color(0.05f, 0.05f, 0.05f, 1f);
+
+                Button itemBtn = itemObj.AddComponent<Button>();
+                
+                GameObject itemTxtObj = new GameObject("Text");
+                itemTxtObj.transform.SetParent(itemObj.transform, false);
+                TextMeshProUGUI itemTmpText = itemTxtObj.AddComponent<TextMeshProUGUI>();
+                if (gameFont != null) itemTmpText.font = gameFont;
+                itemTmpText.text = options[index];
+                itemTmpText.alignment = TextAlignmentOptions.Center;
+                itemTmpText.fontSize = 20;
+                itemTmpText.color = (index == currentIndex) ? Color.yellow : Color.white;
+                RectTransform itemTxtRect = itemTxtObj.GetComponent<RectTransform>();
+                itemTxtRect.anchorMin = Vector2.zero;
+                itemTxtRect.anchorMax = Vector2.one;
+
+                itemBtn.onClick.AddListener(() =>
+                {
+                    tmpText.text = $"{options[index]}  ▼";
+                    onSelect(index);
+                    Destroy(activeDropdownOverlay);
+                    activeDropdownOverlay = null;
+                });
+
+                AutoMenuButtonEffect eff = itemObj.AddComponent<AutoMenuButtonEffect>();
+                eff.Setup(itemTmpText, true);
+            }
+        });
+    }
+
+    private void ApplyWindowMode(int modeIndex)
+    {
+        selectedWindowMode = modeIndex;
+        PlayerPrefs.SetInt("GameWindowMode", selectedWindowMode);
+        PlayerPrefs.Save();
+
+        FullScreenMode mode = FullScreenMode.ExclusiveFullScreen;
+        if (selectedWindowMode == 1) mode = FullScreenMode.FullScreenWindow;
+        else if (selectedWindowMode == 2) mode = FullScreenMode.Windowed;
+
+        Vector2Int res = commonResolutions[selectedResIndex];
+        Screen.SetResolution(res.x, res.y, mode);
     }
 
     private GameObject CreateHorizontalSelector(GameObject parent, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onLeft, UnityEngine.Events.UnityAction onRight, out TextMeshProUGUI valueTextObj)
@@ -1446,26 +1579,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         return container;
     }
 
-    private void AdjustResolution(int delta)
-    {
-        selectedResIndex = Mathf.Clamp(selectedResIndex + delta, 0, commonResolutions.Length - 1);
-        PlayerPrefs.SetInt("SelectedResIndex", selectedResIndex);
-        PlayerPrefs.Save();
-        
-        Vector2Int res = commonResolutions[selectedResIndex];
-        Screen.SetResolution(res.x, res.y, Screen.fullScreen);
-        
-        UpdateResText();
-    }
 
-    private void UpdateResText()
-    {
-        if (resValText != null)
-        {
-            Vector2Int res = commonResolutions[selectedResIndex];
-            resValText.text = $"{res.x} x {res.y}";
-        }
-    }
 
     private void AdjustBrightness(float delta)
     {
@@ -1610,6 +1724,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void CreateCreditLine(GameObject parent, string role, string name, Color nameColor) { GameObject lineObj = new GameObject("CreditLine"); lineObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = lineObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = $"<size=20><color=#aaaaaa>{role}</color></size>\n<size=32><color=#{ColorUtility.ToHtmlStringRGB(nameColor)}>{name}</color></size>"; txt.alignment = TextAlignmentOptions.Center; }
     private void OpenPanel(CanvasGroup targetPanel)
     {
+        if (activeDropdownOverlay != null)
+        {
+            Destroy(activeDropdownOverlay);
+            activeDropdownOverlay = null;
+        }
+
         if (connectionPopupPanel != null && connectionPopupPanel.activeSelf)
             connectionPopupPanel.SetActive(false);
 
