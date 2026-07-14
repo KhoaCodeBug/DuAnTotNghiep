@@ -1671,7 +1671,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateDropdown(displayTabArea, "DISPLAY MODE:", 
             new Vector2(0.05f, startY - 0.04f), new Vector2(0.4f, startY + 0.02f),
             new Vector2(0.45f, startY - 0.05f), new Vector2(0.95f, startY + 0.03f),
-            windowModeLabels, tempWindowMode, (idx) => {
+            windowModeLabels, () => tempWindowMode, (idx) => {
                 tempWindowMode = idx;
                 UpdateDropdownTexts();
             }, out modeDropdownText);
@@ -1685,7 +1685,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateDropdown(displayTabArea, "RESOLUTION:", 
             new Vector2(0.05f, startY - spacingY - 0.04f), new Vector2(0.4f, startY - spacingY + 0.02f),
             new Vector2(0.45f, startY - spacingY - 0.05f), new Vector2(0.95f, startY - spacingY + 0.03f),
-            resStrings, tempResIndex, (idx) => {
+            resStrings, () => tempResIndex, (idx) => {
                 tempResIndex = idx;
                 UpdateDropdownTexts();
             }, out resDropdownText);
@@ -1817,7 +1817,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         return btnObj;
     }
 
-    private void CreateDropdown(GameObject parent, string title, Vector2 labelMin, Vector2 labelMax, Vector2 btnMin, Vector2 btnMax, string[] options, int currentIndex, System.Action<int> onSelect, out TextMeshProUGUI valueTextObj)
+    private void CreateDropdown(GameObject parent, string title, Vector2 labelMin, Vector2 labelMax, Vector2 btnMin, Vector2 btnMax, string[] options, System.Func<int> getCurrentIndex, System.Action<int> onSelect, out TextMeshProUGUI valueTextObj)
     {
         // 1. Tên nhãn
         CreateLabel(parent, title, labelMin, labelMax);
@@ -1838,7 +1838,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         txtObj.transform.SetParent(btnObj.transform, false);
         TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) tmpText.font = gameFont;
-        tmpText.text = $"{options[currentIndex]}  ▼";
+        tmpText.text = $"{options[getCurrentIndex()]}  ▼";
         tmpText.alignment = TextAlignmentOptions.Center;
         tmpText.color = Color.yellow;
         tmpText.fontSize = 22;
@@ -1859,6 +1859,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 activeDropdownOverlay = null;
                 return;
             }
+
+            int currentIndex = getCurrentIndex(); // Query live index when opened
 
             activeDropdownOverlay = new GameObject("DropdownOverlay");
             activeDropdownOverlay.transform.SetParent(parent.transform, false);
@@ -1894,9 +1896,24 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 le.preferredHeight = 45f;
 
                 Image itemImg = itemObj.AddComponent<Image>();
-                itemImg.color = (index == currentIndex) ? new Color(0.25f, 0.2f, 0.05f, 1f) : new Color(0.06f, 0.06f, 0.06f, 1f);
+                itemImg.color = new Color(0.06f, 0.06f, 0.06f, 1f); // Uniform dark background
 
                 Button itemBtn = itemObj.AddComponent<Button>();
+                itemBtn.targetGraphic = itemImg;
+                itemBtn.transition = Selectable.Transition.ColorTint;
+                
+                // Color Block for clean hover states, no sticky selected color blocks
+                ColorBlock cb = itemBtn.colors;
+                cb.normalColor = new Color(0.06f, 0.06f, 0.06f, 1f);
+                cb.highlightedColor = new Color(0.15f, 0.15f, 0.15f, 1f); // Subtle hover color
+                cb.pressedColor = new Color(0.03f, 0.03f, 0.03f, 1f);
+                cb.selectedColor = new Color(0.06f, 0.06f, 0.06f, 1f); // Keep normal when selected, no sticky background selection bars
+                cb.disabledColor = new Color(0.06f, 0.06f, 0.06f, 1f);
+                itemBtn.colors = cb;
+
+                Navigation nav = new Navigation();
+                nav.mode = Navigation.Mode.None;
+                itemBtn.navigation = nav;
                 
                 GameObject itemTxtObj = new GameObject("Text");
                 itemTxtObj.transform.SetParent(itemObj.transform, false);
@@ -1905,7 +1922,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 itemTmpText.text = options[index];
                 itemTmpText.alignment = TextAlignmentOptions.Center;
                 itemTmpText.fontSize = 20;
-                itemTmpText.color = (index == currentIndex) ? Color.yellow : Color.white;
+                itemTmpText.color = (index == currentIndex) ? Color.yellow : Color.white; // Text highlighted in yellow
                 RectTransform itemTxtRect = itemTxtObj.GetComponent<RectTransform>();
                 itemTxtRect.anchorMin = Vector2.zero;
                 itemTxtRect.anchorMax = Vector2.one;
