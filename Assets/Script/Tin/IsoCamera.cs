@@ -61,17 +61,28 @@ public class PZ_CameraController : MonoBehaviour
         isSpectatingMode = true;
     }
 
+    private float baseMaxLookAhead = 6f;
+
     void Start()
     {
         cam = GetComponentInChildren<Camera>();
         if (!cam.orthographic) cam.orthographic = true;
         targetZoom = cam.orthographicSize;
+        baseMaxLookAhead = maxLookAhead;
+        UpdateSensitivity();
+    }
+
+    public void UpdateSensitivity()
+    {
+        float sensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 1f);
+        maxLookAhead = baseMaxLookAhead * sensitivity;
     }
 
     void Update()
     {
         if (!hasTarget || player == null) return;
         HandleZoom();
+        UpdateSensitivity();
 
         // 🔥 BỘ NÃO SPECTATOR NẰM Ở ĐÂY (An toàn tuyệt đối)
         if (isSpectatingMode)
