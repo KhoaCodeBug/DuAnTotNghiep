@@ -74,6 +74,25 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private TextMeshProUGUI maxPlayersText; // Hiển thị con số hiện tại
     
+    // CẤU HÌNH OPTIONS MỚI
+    private int selectedResIndex = 3; // Mặc định 1920x1080
+    private Vector2Int[] commonResolutions = new Vector2Int[]
+    {
+        new Vector2Int(1280, 720),
+        new Vector2Int(1366, 768),
+        new Vector2Int(1600, 900),
+        new Vector2Int(1920, 1080),
+        new Vector2Int(2560, 1440)
+    };
+    private int selectedFpsIndex = 1; // Mặc định 60 FPS
+    private int[] fpsOptions = new int[] { 30, 60, 120, -1 };
+    private string[] fpsLabels = new string[] { "30 FPS", "60 FPS", "120 FPS", "UNLIMITED" };
+    private TextMeshProUGUI resValText;
+    private TextMeshProUGUI fpsValText;
+    private TextMeshProUGUI sensValText;
+    private TextMeshProUGUI brightValText;
+    private TextMeshProUGUI volValText;
+    
     // Biến cho danh sách người chơi trong Waiting Room
     private RectTransform waitingRoomPlayerListContent;
 
@@ -128,6 +147,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
         Instance = this;
         DontDestroyOnLoad(gameObject.transform.root.gameObject);
+
+        // Khởi tạo GlobalSettingsManager nếu chưa có để áp dụng cấu hình âm thanh, ánh sáng, độ nhạy
+        if (GlobalSettingsManager.Instance == null)
+        {
+            new GameObject("GlobalSettingsManager", typeof(GlobalSettingsManager));
+        }
 
         GenerateEntireMenu();
 
@@ -1307,7 +1332,215 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void CreateMenuButton(GameObject parent, string text, UnityEngine.Events.UnityAction action, Vector2? customAnchor = null, bool isCenter = false, Vector2? customSize = null, float customFontSize = 35f) { GameObject btnObj = new GameObject("Btn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); if (customAnchor.HasValue) { rect.anchorMin = customAnchor.Value; rect.anchorMax = customAnchor.Value; rect.pivot = isCenter ? new Vector2(0.5f, 0.5f) : new Vector2(0, 0.5f); } rect.sizeDelta = customSize.HasValue ? customSize.Value : new Vector2(300, 50); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = text; tmpText.alignment = isCenter ? TextAlignmentOptions.Center : TextAlignmentOptions.Left; tmpText.color = new Color(0.7f, 0.7f, 0.7f, 1f); tmpText.textWrappingMode = TextWrappingModes.NoWrap; tmpText.enableAutoSizing = false; tmpText.fontSize = customFontSize; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, isCenter); }
     private TextMeshProUGUI CreateTextBtn(GameObject parent, string text, Vector2 anchorValue, UnityEngine.Events.UnityAction action) { GameObject btnObj = new GameObject("TextBtn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); rect.anchorMin = anchorValue; rect.anchorMax = anchorValue; rect.pivot = new Vector2(0.5f, 0.5f); rect.sizeDelta = new Vector2(150, 40); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = text; tmpText.alignment = TextAlignmentOptions.Center; tmpText.color = Color.gray; tmpText.enableAutoSizing = true; tmpText.fontSizeMin = 14; tmpText.fontSizeMax = 20; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, true); return tmpText; }
 
-    private void GenerateOptionsPanel(GameObject canvasGO) { optionsPanel = CreateBasePanel("OptionsPanel", canvasGO); CanvasGroup cg = optionsPanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false; CreateTitleText(optionsPanel, "OPTIONS"); CreateMenuButton(optionsPanel, "BACK", () => { OpenPanel(mainPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.1f, 0.1f)); }
+    private void GenerateOptionsPanel(GameObject canvasGO)
+    {
+        optionsPanel = CreateBasePanel("OptionsPanel", canvasGO);
+        CanvasGroup cg = optionsPanel.AddComponent<CanvasGroup>();
+        cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false;
+        
+        CreateTitleText(optionsPanel, "OPTIONS");
+
+        GameObject settingsArea = new GameObject("Settings_Container");
+        settingsArea.transform.SetParent(optionsPanel.transform, false);
+        RectTransform rect = settingsArea.AddComponent<RectTransform>();
+        rect.anchorMin = new Vector2(0.2f, 0.2f);
+        rect.anchorMax = new Vector2(0.8f, 0.8f);
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        settingsArea.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.08f, 0.95f);
+
+        // Khởi tạo các giá trị từ PlayerPrefs
+        selectedResIndex = PlayerPrefs.GetInt("SelectedResIndex", 3);
+        
+        int savedFps = PlayerPrefs.GetInt("GameFPSLimit", 60);
+        selectedFpsIndex = 1;
+        for (int i = 0; i < fpsOptions.Length; i++)
+        {
+            if (fpsOptions[i] == savedFps) { selectedFpsIndex = i; break; }
+        }
+
+        // Vị trí trục Y của các dòng
+        float startY = 0.8f;
+        float spacingY = 0.13f;
+
+        // 1. Độ phân giải (Resolution)
+        CreateLabel(settingsArea, "RESOLUTION:", new Vector2(0.1f, startY - 0.05f), new Vector2(0.4f, startY));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - 0.07f), new Vector2(0.9f, startY + 0.02f),
+            () => AdjustResolution(-1), () => AdjustResolution(1), out resValText);
+        UpdateResText();
+
+        // 2. Độ sáng (Brightness)
+        CreateLabel(settingsArea, "BRIGHTNESS:", new Vector2(0.1f, startY - spacingY - 0.05f), new Vector2(0.4f, startY - spacingY));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY - 0.07f), new Vector2(0.9f, startY - spacingY + 0.02f),
+            () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out brightValText);
+        UpdateBrightText();
+
+        // 3. Khung hình (FPS Limit)
+        CreateLabel(settingsArea, "FPS LIMIT:", new Vector2(0.1f, startY - spacingY*2 - 0.05f), new Vector2(0.4f, startY - spacingY*2));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*2 - 0.07f), new Vector2(0.9f, startY - spacingY*2 + 0.02f),
+            () => AdjustFPS(-1), () => AdjustFPS(1), out fpsValText);
+        UpdateFPSText();
+
+        // 4. Tốc độ chuột / Độ nhạy camera nhắm bắn (Mouse Sensitivity)
+        CreateLabel(settingsArea, "AIM SENSITIVITY:", new Vector2(0.1f, startY - spacingY*3 - 0.05f), new Vector2(0.4f, startY - spacingY*3));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*3 - 0.07f), new Vector2(0.9f, startY - spacingY*3 + 0.02f),
+            () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), out sensValText);
+        UpdateSensText();
+
+        // 5. Âm lượng Master (Master Volume)
+        CreateLabel(settingsArea, "MASTER VOLUME:", new Vector2(0.1f, startY - spacingY*4 - 0.05f), new Vector2(0.4f, startY - spacingY*4));
+        CreateHorizontalSelector(settingsArea, new Vector2(0.45f, startY - spacingY*4 - 0.07f), new Vector2(0.9f, startY - spacingY*4 + 0.02f),
+            () => AdjustVolume(-0.1f), () => AdjustVolume(0.1f), out volValText);
+        UpdateVolumeText();
+
+        CreateMenuButton(optionsPanel, "BACK", () => {
+            OpenPanel(mainPanel.GetComponent<CanvasGroup>());
+        }, new Vector2(0.1f, 0.1f));
+    }
+
+    private GameObject CreateHorizontalSelector(GameObject parent, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onLeft, UnityEngine.Events.UnityAction onRight, out TextMeshProUGUI valueTextObj)
+    {
+        GameObject container = new GameObject("SelectorContainer");
+        container.transform.SetParent(parent.transform, false);
+        RectTransform rect = container.AddComponent<RectTransform>();
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        // Nút trái [-]
+        CreateMenuButton(container, " - ", onLeft, new Vector2(0f, 0.5f), true, new Vector2(50, 40), 25f);
+
+        // Ô hiển thị giá trị
+        GameObject valObj = new GameObject("ValueText");
+        valObj.transform.SetParent(container.transform, false);
+        valueTextObj = valObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) valueTextObj.font = gameFont;
+        valueTextObj.alignment = TextAlignmentOptions.Center;
+        valueTextObj.fontSize = 22;
+        valueTextObj.color = Color.yellow;
+        RectTransform valRect = valObj.GetComponent<RectTransform>();
+        valRect.anchorMin = new Vector2(0.2f, 0);
+        valRect.anchorMax = new Vector2(0.8f, 1);
+        valRect.offsetMin = Vector2.zero;
+        valRect.offsetMax = Vector2.zero;
+
+        // Nút phải [+]
+        CreateMenuButton(container, " + ", onRight, new Vector2(0.95f, 0.5f), true, new Vector2(50, 40), 25f);
+
+        return container;
+    }
+
+    private void AdjustResolution(int delta)
+    {
+        selectedResIndex = Mathf.Clamp(selectedResIndex + delta, 0, commonResolutions.Length - 1);
+        PlayerPrefs.SetInt("SelectedResIndex", selectedResIndex);
+        PlayerPrefs.Save();
+        
+        Vector2Int res = commonResolutions[selectedResIndex];
+        Screen.SetResolution(res.x, res.y, Screen.fullScreen);
+        
+        UpdateResText();
+    }
+
+    private void UpdateResText()
+    {
+        if (resValText != null)
+        {
+            Vector2Int res = commonResolutions[selectedResIndex];
+            resValText.text = $"{res.x} x {res.y}";
+        }
+    }
+
+    private void AdjustBrightness(float delta)
+    {
+        float val = PlayerPrefs.GetFloat("GameBrightness", 1.0f);
+        val = Mathf.Clamp(val + delta, 0.5f, 1.5f);
+        PlayerPrefs.SetFloat("GameBrightness", val);
+        PlayerPrefs.Save();
+
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyAllSettings();
+        }
+        UpdateBrightText();
+    }
+
+    private void UpdateBrightText()
+    {
+        if (brightValText != null)
+        {
+            float val = PlayerPrefs.GetFloat("GameBrightness", 1.0f);
+            brightValText.text = Mathf.RoundToInt(val * 100f) + "%";
+        }
+    }
+
+    private void AdjustFPS(int delta)
+    {
+        selectedFpsIndex = Mathf.Clamp(selectedFpsIndex + delta, 0, fpsOptions.Length - 1);
+        PlayerPrefs.SetInt("GameFPSLimit", fpsOptions[selectedFpsIndex]);
+        PlayerPrefs.Save();
+
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyAllSettings();
+        }
+        UpdateFPSText();
+    }
+
+    private void UpdateFPSText()
+    {
+        if (fpsValText != null)
+        {
+            fpsValText.text = fpsLabels[selectedFpsIndex];
+        }
+    }
+
+    private void AdjustSensitivity(float delta)
+    {
+        float val = PlayerPrefs.GetFloat("MouseSensitivity", 1.0f);
+        val = Mathf.Clamp(val + delta, 0.5f, 2.0f);
+        PlayerPrefs.SetFloat("MouseSensitivity", val);
+        PlayerPrefs.Save();
+
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyAllSettings();
+        }
+        UpdateSensText();
+    }
+
+    private void UpdateSensText()
+    {
+        if (sensValText != null)
+        {
+            float val = PlayerPrefs.GetFloat("MouseSensitivity", 1.0f);
+            sensValText.text = val.ToString("F1") + "x";
+        }
+    }
+
+    private void AdjustVolume(float delta)
+    {
+        float val = PlayerPrefs.GetFloat("GameMasterVolume", 1.0f);
+        val = Mathf.Clamp(val + delta, 0f, 1.0f);
+        PlayerPrefs.SetFloat("GameMasterVolume", val);
+        PlayerPrefs.Save();
+
+        if (GlobalSettingsManager.Instance != null)
+        {
+            GlobalSettingsManager.Instance.ApplyAllSettings();
+        }
+        UpdateVolumeText();
+    }
+
+    private void UpdateVolumeText()
+    {
+        if (volValText != null)
+        {
+            float val = PlayerPrefs.GetFloat("GameMasterVolume", 1.0f);
+            volValText.text = Mathf.RoundToInt(val * 100f) + "%";
+        }
+    }
     private void GenerateCreditsPanel(GameObject canvasGO) { creditsPanel = CreateBasePanel("CreditsPanel", canvasGO); CanvasGroup cg = creditsPanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false; CreateTitleText(creditsPanel, "SURVIVAL TEAM", 0.9f); GameObject scrollObj = new GameObject("Credits_Scroll"); scrollObj.transform.SetParent(creditsPanel.transform, false); RectTransform scrollRectT = scrollObj.AddComponent<RectTransform>(); scrollRectT.anchorMin = new Vector2(0.15f, 0.2f); scrollRectT.anchorMax = new Vector2(0.85f, 0.8f); scrollRectT.offsetMin = Vector2.zero; scrollRectT.offsetMax = Vector2.zero; ScrollRect sr = scrollObj.AddComponent<ScrollRect>(); sr.horizontal = false; sr.vertical = true; sr.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide; GameObject vp = new GameObject("Viewport"); vp.transform.SetParent(scrollObj.transform, false); RectTransform vpRT = vp.AddComponent<RectTransform>(); vpRT.anchorMin = Vector2.zero; vpRT.anchorMax = Vector2.one; vpRT.offsetMin = Vector2.zero; vpRT.offsetMax = Vector2.zero; vp.AddComponent<RectMask2D>(); GameObject content = new GameObject("Content"); content.transform.SetParent(vp.transform, false); RectTransform contentRT = content.AddComponent<RectTransform>(); contentRT.anchorMin = new Vector2(0, 1); contentRT.anchorMax = new Vector2(1, 1); contentRT.pivot = new Vector2(0.5f, 1); contentRT.offsetMin = Vector2.zero; contentRT.offsetMax = Vector2.zero; VerticalLayoutGroup vlg = content.AddComponent<VerticalLayoutGroup>(); vlg.childAlignment = TextAnchor.UpperCenter; vlg.spacing = 40; vlg.padding = new RectOffset(0, 0, 400, 400); ContentSizeFitter csf = content.AddComponent<ContentSizeFitter>(); csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize; sr.content = contentRT; creditsContent = contentRT; CreateCreditLine(content, "LEAD PROGRAMMER", "TRẦN NGỌC ĐĂNG KHOA", Color.cyan); CreateCreditLine(content, "SYSTEM & PLAYER UI", "NGUYỄN TRÍ TÍN", Color.yellow); CreateCreditLine(content, "WORLD ARCHITECT (MAP)", "YÊN NHI", Color.white); CreateCreditLine(content, "LEAD AI & ZOMBIE BOSS", "HOÀNG THÁI", Color.red); CreateCreditLine(content, "VEHICLE MECHANICS", "VĂN HẬU", Color.green); CreateCreditLine(content, "TECHNICAL ARTIST (LOS FOW)", "ĐĂNG KHOA", Color.white); CreateCreditLine(content, "POWERED BY", "UNITY 6.0 / PHOTON FUSION", new Color(0.7f, 0.7f, 0.7f)); CreateCreditLine(content, "AUDIO DESIGN", "BGM: PROJECT ZOMBOID\nSFX: KENNEY / FREESOUND", new Color(0.7f, 0.7f, 0.7f)); CreateCreditLine(content, "SPECIAL THANKS", "TO ALL SURVIVORS WHO TESTED THIS GAME", Color.white); CreateMenuButton(creditsPanel, "BACK", () => { isCreditsOpen = false; OpenPanel(mainPanel.GetComponent<CanvasGroup>()); }, new Vector2(0.1f, 0.1f)); }
     private void CreateCreditLine(GameObject parent, string role, string name, Color nameColor) { GameObject lineObj = new GameObject("CreditLine"); lineObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = lineObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = $"<size=20><color=#aaaaaa>{role}</color></size>\n<size=32><color=#{ColorUtility.ToHtmlStringRGB(nameColor)}>{name}</color></size>"; txt.alignment = TextAlignmentOptions.Center; }
     private void OpenPanel(CanvasGroup targetPanel)
