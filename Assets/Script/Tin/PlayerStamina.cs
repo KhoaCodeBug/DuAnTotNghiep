@@ -1,4 +1,4 @@
-﻿using Fusion;
+using Fusion;
 using UnityEngine;
 
 public class PlayerStamina : NetworkBehaviour
@@ -143,11 +143,11 @@ public class PlayerStamina : NetworkBehaviour
         GUIStyle style = new GUIStyle(GUI.skin.label);
         style.fontSize = 22; // To rõ
         style.fontStyle = FontStyle.Bold;
-        style.alignment = TextAnchor.MiddleLeft; // Căn trái chữ để nó nối đuôi Icon
+        style.alignment = TextAnchor.MiddleRight; // Căn phải chữ để nó nằm bên trái Icon
 
         // --- TỌA ĐỘ GÓC TRÊN BÊN PHẢI (Giống sếp) ---
         float iconSize = 40f;
-        float xPosRoot = Screen.width - 280f; // Điểm bắt đầu vẽ (cách lề phải 280px)
+        float xPosRoot = Screen.width - 60f; // Cách lề phải 60px để căn lề phải icon
         float yPos = 80f; // Bắt đầu từ độ cao 80px (để chừa chỗ cho Máu/Chảy máu nếu có)
 
         string statusText = "";
@@ -174,14 +174,18 @@ public class PlayerStamina : NetworkBehaviour
             statusText = "Exhausted";
         }
 
-        // --- VẼ THỨ TỰ: ICON ĐỨNG TRƯỚC, CHỮ ĐỨNG SAU ---
-        // 1. Vẽ Icon trước (Nằm bên trái)
+        // --- VẼ: CHỈ ICON, HOVER MỚI HIỆN CHỮ ---
+        Rect iconRect = new Rect(xPosRoot, yPos, iconSize, iconSize);
         if (iconStamina != null)
         {
-            GUI.DrawTexture(new Rect(xPosRoot, yPos, iconSize, iconSize), iconStamina);
+            GUI.DrawTexture(iconRect, iconStamina);
         }
 
-        // 2. Vẽ chữ sau (Nằm bên phải Icon, cách 10px)
-        GUI.Label(new Rect(xPosRoot + iconSize + 10f, yPos, 230, iconSize), statusText, style);
+        // Kiểm tra di chuột (hover)
+        Vector2 mousePos = Event.current.mousePosition;
+        if (iconRect.Contains(mousePos))
+        {
+            GUI.Label(new Rect(xPosRoot - 240f, yPos, 230f, iconSize), statusText, style);
+        }
     }
 }

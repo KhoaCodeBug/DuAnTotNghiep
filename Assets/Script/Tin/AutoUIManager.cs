@@ -15,6 +15,7 @@ public class AutoUIManager : MonoBehaviour
     private int containerSlots = 9; // Tủ đồ 3x3
     public TMP_FontAsset gameFont;
     public Sprite iconAmmo;
+    private Sprite generatedBorderSprite;
     public TextMeshProUGUI clockText { get; private set; }
     private Canvas mainCanvas;
     #endregion
@@ -77,8 +78,40 @@ public class AutoUIManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
+        generatedBorderSprite = GenerateGreenBorderSprite();
+
         GenerateEntireUI();
         CreateAmmoUI();
+    }
+
+    private Sprite GenerateGreenBorderSprite()
+    {
+        int size = 32;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        texture.filterMode = FilterMode.Point;
+        
+        Color borderColor = new Color(0.2f, 0.6f, 0.2f, 1f); // Màu xanh lục sinh tồn (Tactical Green)
+        Color bgColor = new Color(0.08f, 0.08f, 0.08f, 0.95f); // Nền tối bán trong suốt
+        
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                // Vẽ viền dày 2 pixel
+                if (x < 2 || x >= size - 2 || y < 2 || y >= size - 2)
+                {
+                    texture.SetPixel(x, y, borderColor);
+                }
+                else
+                {
+                    texture.SetPixel(x, y, bgColor);
+                }
+            }
+        }
+        texture.Apply();
+        
+        // 9-slice border: left=4, bottom=4, right=4, top=4 để khi kéo giãn không bị vỡ viền
+        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, new Vector4(4, 4, 4, 4));
     }
 
     private void OnDestroy()
@@ -115,10 +148,30 @@ public class AutoUIManager : MonoBehaviour
 
     private void UpdateSpectatorUI()
     {
-        if (localPlayer != null)
+        // Kiểm tra xem có đang trong trận đấu không
+        NetworkRunner runner = FindAnyObjectByType<NetworkRunner>();
+        bool isInGameplay = runner != null && runner.IsRunning;
+
+        if (isInGameplay)
         {
-            PlayerHealth health = localPlayer.GetComponent<PlayerHealth>();
-            if (health != null && health.isDead)
+            EnsureLocalPlayer();
+
+            bool shouldShowSpectator = false;
+            if (localPlayer != null)
+            {
+                PlayerHealth health = localPlayer.GetComponent<PlayerHealth>();
+                if (health != null && health.isDead)
+                {
+                    shouldShowSpectator = true;
+                }
+            }
+            else
+            {
+                // Không có nhân vật cục bộ trong gameplay -> đã bị despawn (chuyển thành zombie hoặc đang chờ đẻ)
+                shouldShowSpectator = true;
+            }
+
+            if (shouldShowSpectator)
             {
                 if (spectatorPanel != null && !spectatorPanel.activeSelf)
                 {
@@ -137,6 +190,7 @@ public class AutoUIManager : MonoBehaviour
         }
         else
         {
+            // Ngoài gameplay (ở menu chính) -> ẩn spectator panel
             if (spectatorPanel != null && spectatorPanel.activeSelf)
             {
                 spectatorPanel.SetActive(false);
@@ -333,7 +387,16 @@ public class AutoUIManager : MonoBehaviour
         panelRect.anchoredPosition = Vector2.zero;
 
         Image panelBg = inventoryPanel.AddComponent<Image>();
-        panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
+        if (generatedBorderSprite != null)
+        {
+            panelBg.sprite = generatedBorderSprite;
+            panelBg.type = Image.Type.Sliced;
+            panelBg.color = Color.white; // Để nguyên màu của Sprite tự sinh
+        }
+        else
+        {
+            panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
+        }
         inventoryPanel.SetActive(false);
 
         GameObject titleObj = new GameObject("TitleText");
@@ -534,8 +597,16 @@ public class AutoUIManager : MonoBehaviour
         panelRect.anchoredPosition = new Vector2(250, 0);
 
         Image panelBg = containerPanel.AddComponent<Image>();
-        panelBg.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
-        containerPanel.AddComponent<Outline>().effectColor = new Color(0.3f, 0.6f, 0.8f);
+        if (generatedBorderSprite != null)
+        {
+            panelBg.sprite = generatedBorderSprite;
+            panelBg.type = Image.Type.Sliced;
+            panelBg.color = Color.white;
+        }
+        else
+        {
+            panelBg.color = new Color(0.15f, 0.15f, 0.2f, 0.95f);
+        }
         containerPanel.SetActive(false);
 
         GameObject titleObj = new GameObject("TitleText");
@@ -800,8 +871,17 @@ public class AutoUIManager : MonoBehaviour
         panelRect.anchoredPosition = Vector2.zero;
 
         Image panelBg = tradeWindowPanel.AddComponent<Image>();
-        panelBg.color = new Color(0.12f, 0.12f, 0.15f, 0.98f);
-        tradeWindowPanel.AddComponent<Outline>().effectColor = new Color(0.8f, 0.6f, 0.1f);
+        if (generatedBorderSprite != null)
+        {
+            panelBg.sprite = generatedBorderSprite;
+            panelBg.type = Image.Type.Sliced;
+            panelBg.color = Color.white;
+        }
+        else
+        {
+            panelBg.color = new Color(0.12f, 0.12f, 0.15f, 0.98f);
+        }
+
 
         TMP_FontAsset activeFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (activeFont == null) activeFont = gameFont;
@@ -1210,8 +1290,16 @@ public class AutoUIManager : MonoBehaviour
         panelRect.anchoredPosition = Vector2.zero;
 
         Image panelBg = tradeRequestPanel.AddComponent<Image>();
-        panelBg.color = new Color(0.12f, 0.12f, 0.12f, 0.98f);
-        tradeRequestPanel.AddComponent<Outline>().effectColor = new Color(0.9f, 0.7f, 0.1f);
+        if (generatedBorderSprite != null)
+        {
+            panelBg.sprite = generatedBorderSprite;
+            panelBg.type = Image.Type.Sliced;
+            panelBg.color = Color.white;
+        }
+        else
+        {
+            panelBg.color = new Color(0.12f, 0.12f, 0.12f, 0.98f);
+        }
 
         TMP_FontAsset activeFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (activeFont == null) activeFont = gameFont;
@@ -1621,11 +1709,17 @@ public class AutoUIManager : MonoBehaviour
 
     private void OnRespawnClicked()
     {
-        EnsureLocalPlayer();
-        if (localPlayer == null) return;
+        var runner = FindAnyObjectByType<NetworkRunner>();
+        if (runner == null || !runner.IsRunning) return;
 
-        var health = localPlayer.GetComponent<PlayerHealth>();
-        if (health == null || !health.isDead) return;
+        // Cho phép Respawn ngay cả khi localPlayer đã bị Despawn (hóa zombie)
+        // Nếu nhân vật vẫn còn sống thì không cho phép Respawn
+        EnsureLocalPlayer();
+        if (localPlayer != null)
+        {
+            var health = localPlayer.GetComponent<PlayerHealth>();
+            if (health != null && !health.isDead) return;
+        }
 
         var spawner = FindAnyObjectByType<HostModeSpawner>();
         if (spawner != null)
@@ -1635,7 +1729,7 @@ public class AutoUIManager : MonoBehaviour
             
             if (spectatorPanel != null) spectatorPanel.SetActive(false);
 
-            spawner.RPC_RequestRespawn(localPlayer.GetComponent<NetworkObject>().InputAuthority, characterID, playerName);
+            spawner.RPC_RequestRespawn(runner.LocalPlayer, characterID, playerName);
         }
     }
     #endregion

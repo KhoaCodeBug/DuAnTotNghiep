@@ -1,4 +1,4 @@
-﻿using Fusion;
+using Fusion;
 using TMPro;
 using UnityEngine;
 
@@ -14,8 +14,8 @@ public class PlayerNameTag : NetworkBehaviour
         // Chỉ máy của mình mới đi lấy tên và tự kéo màn đen của máy mình lên
         if (HasInputAuthority)
         {
-            // 1. Lấy tên từ Menu
-            string myName = CharacterSelectionMenu.FinalSelectedName;
+            // 1. Lấy tên từ PlayerPrefs thay vì biến tĩnh
+            string myName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
             if (string.IsNullOrEmpty(myName)) myName = "Survivor";
 
             // 2. Báo lên Server

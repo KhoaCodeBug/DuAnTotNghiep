@@ -194,7 +194,18 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     private IEnumerator LateJoinProtection(GameObject playerObj)
     {
-        Renderer[] meshes = playerObj.GetComponentsInChildren<Renderer>();
+        if (playerObj == null) yield break;
+
+        // Chỉ nhấp nháy những Renderer vốn đang hiển thị (tránh hiện các renderer ẩn như Muzzle Flash)
+        System.Collections.Generic.List<Renderer> meshesToBlink = new System.Collections.Generic.List<Renderer>();
+        foreach (var r in playerObj.GetComponentsInChildren<Renderer>(true))
+        {
+            if (r != null && r.enabled && r.gameObject.name != "MuzzleFlash" && !r.gameObject.name.Contains("Muzzle"))
+            {
+                meshesToBlink.Add(r);
+            }
+        }
+
         float timer = 3f; // 3 Giây bất tử
         bool isVisible = true;
 
@@ -205,14 +216,20 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
             timer -= 0.2f;
             isVisible = !isVisible;
-            foreach (var mesh in meshes) mesh.enabled = isVisible;
+            foreach (var mesh in meshesToBlink)
+            {
+                if (mesh != null) mesh.enabled = isVisible;
+            }
             yield return new WaitForSeconds(0.2f);
         }
 
         // Bật lại lưới hiển thị bình thường nếu player vẫn còn tồn tại
         if (playerObj != null)
         {
-            foreach (var mesh in meshes) mesh.enabled = true;
+            foreach (var mesh in meshesToBlink)
+            {
+                if (mesh != null) mesh.enabled = true;
+            }
         }
     }
 
