@@ -1,4 +1,4 @@
-﻿using Fusion;
+using Fusion;
 using UnityEngine;
 
 public class PlayerTrade : NetworkBehaviour
@@ -16,7 +16,15 @@ public class PlayerTrade : NetworkBehaviour
     private void Update()
     {
         if (!HasInputAuthority) return;
-        if (Input.GetKeyDown(KeyCode.T) && !IsTrading) SendTradeRequest();
+        if (Input.GetKeyDown(KeyCode.T) && !IsTrading)
+        {
+            // Block initiating trade if Inventory, Loot, or Health is open
+            bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen();
+            bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
+            if (isInvOpen || isHealthOpen) return;
+
+            SendTradeRequest();
+        }
     }
 
     private void SendTradeRequest()

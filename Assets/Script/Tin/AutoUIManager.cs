@@ -134,6 +134,26 @@ public class AutoUIManager : MonoBehaviour
 
     private void Update()
     {
+        // Dynamically update ammo HUD visibility
+        if (ammoContainer != null)
+        {
+            bool isSpectator = spectatorPanel != null && spectatorPanel.activeSelf;
+            bool isMainOptionsOpen = AutoMainMenuManager.Instance != null && AutoMainMenuManager.Instance.IsOptionsOpen;
+            bool isPauseOpen = AutoMainMenuManager.Instance != null && (AutoMainMenuManager.Instance.IsPauseMenuOpen || AutoMainMenuManager.Instance.IsPauseOptionsOpen);
+            bool isInvOpen = inventoryPanel != null && inventoryPanel.activeSelf;
+            bool isLootOpen = containerPanel != null && containerPanel.activeSelf;
+            bool isTradeOpen = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
+            bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
+
+            // Set active if none of these overlays are open and we are not a spectator
+            bool shouldShowAmmo = !isSpectator && !isMainOptionsOpen && !isPauseOpen && !isInvOpen && !isLootOpen && !isTradeOpen && !isHealthOpen;
+            
+            if (ammoContainer.activeSelf != shouldShowAmmo)
+            {
+                ammoContainer.SetActive(shouldShowAmmo);
+            }
+        }
+
         if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
 
         if (localPlayer == null)
@@ -243,7 +263,8 @@ public class AutoUIManager : MonoBehaviour
             if (isDoingAction || isHealthHealing) return;
 
             bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
-            if (!inventoryPanel.activeSelf && isHealthOpen) return;
+            bool isTradeOpen = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
+            if (!inventoryPanel.activeSelf && (isHealthOpen || isTradeOpen)) return;
 
             invToggleCooldown = Time.time + 0.2f;
 
@@ -341,6 +362,9 @@ public class AutoUIManager : MonoBehaviour
 
         CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
 
         canvasGO.AddComponent<GraphicRaycaster>();
         DontDestroyOnLoad(canvasGO);

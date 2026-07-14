@@ -96,6 +96,8 @@ public class AutoHealthPanel : MonoBehaviour
         CanvasScaler scaler = healthCanvas.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
         healthCanvas.AddComponent<GraphicRaycaster>();
         DontDestroyOnLoad(healthCanvas);
 
@@ -629,8 +631,8 @@ public class AutoHealthPanel : MonoBehaviour
                 }
             }
 
-            bool isInvOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen();
-            if (!isOpen && isInvOpen) return;
+            bool isAnyMenuOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen();
+            if (!isOpen && isAnyMenuOpen) return;
 
             toggleCooldown = Time.time + 0.2f;
             TogglePanel();
