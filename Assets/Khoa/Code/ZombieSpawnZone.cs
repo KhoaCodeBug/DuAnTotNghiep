@@ -233,6 +233,8 @@ public class ZombieSpawnZone : NetworkBehaviour
 #if UNITY_EDITOR
     private void OnValidate()
     {
+        gameObject.name = "Zone_" + level.ToString();
+
         if (useAutoConfig)
         {
             ApplyLevelConfig(level);
