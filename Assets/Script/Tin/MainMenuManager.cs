@@ -1597,6 +1597,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         tempFpsIndex = Mathf.Clamp(tempFpsIndex + delta, 0, fpsOptions.Length - 1);
         UpdateFPSText();
+        QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = fpsOptions[tempFpsIndex];
     }
 
@@ -1733,6 +1734,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         UpdateDropdownTexts();
 
         // Áp dụng lập tức vào thực tế game
+        QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = fpsOptions[tempFpsIndex];
         AudioListener.volume = tempMasterVolume;
         bgmVolume = tempMusicVolume;
