@@ -3171,11 +3171,16 @@ public class MainMenuAtmosphere : MonoBehaviour
             dustObj.transform.SetParent(transform, false);
             RectTransform rt = dustObj.AddComponent<RectTransform>();
             
-            // Đặt ngẫu nhiên trong vùng chiếu sáng
-            rt.anchorMin = new Vector2(0.30f, 0.05f);
-            rt.anchorMax = new Vector2(0.75f, 0.65f);
+            // Đặt anchor cố định ở góc dưới bên trái để tránh co giãn stretch theo khung màn hình
+            rt.anchorMin = new Vector2(0f, 0f);
+            rt.anchorMax = new Vector2(0f, 0f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.anchoredPosition = Vector2.zero;
+            
+            // Khởi tạo tọa độ ngẫu nhiên tuyệt đối trong luồng sáng đèn (Canvas chuẩn 1920x1080)
+            rt.anchoredPosition = new Vector2(
+                Random.Range(1920f * 0.30f, 1920f * 0.80f), 
+                Random.Range(1080f * 0.05f, 1080f * 0.65f)
+            );
             
             float size = Random.Range(3f, 7f);
             rt.sizeDelta = new Vector2(size, size);
@@ -3266,11 +3271,11 @@ public class MainMenuAtmosphere : MonoBehaviour
                 dustDirs[i] = new Vector2(dustDirs[i].x + Random.Range(-0.25f, 0.25f), dustDirs[i].y).normalized;
             }
 
-            // Nếu bay ra ngoài vùng chiếu sáng thì tái lập lại ở góc chiếc đèn dưới đất
-            if (pos.y > 600f || pos.x > 700f || pos.x < -700f)
+            // Nếu bay quá cao hoặc quá rộng thì reset lại tại khu vực chiếc đèn (X: 30%-48% Canvas, Y: 2%-12% Canvas)
+            if (pos.y > 1080f * 0.70f || pos.x > 1920f * 0.85f || pos.x < 1920f * 0.20f)
             {
-                pos.y = Random.Range(-50f, 50f);
-                pos.x = Random.Range(-250f, 250f);
+                pos.y = Random.Range(1080f * 0.02f, 1080f * 0.12f);
+                pos.x = Random.Range(1920f * 0.30f, 1920f * 0.48f);
             }
             rt.anchoredPosition = pos;
 
