@@ -1,8 +1,8 @@
 {
     "Port": 8090,
     "RequestTimeoutSeconds": 10,
-    "AutoStartServer": true,
-    "EnableInfoLogs": false,
-    "NpmExecutablePath": "",
+    "AutoStartServer": false,
+    "EnableInfoLogs": true,
+    "NpmExecutablePath": "C:/Users/lehoa/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm.cmd",
     "AllowRemoteConnections": false
 }
