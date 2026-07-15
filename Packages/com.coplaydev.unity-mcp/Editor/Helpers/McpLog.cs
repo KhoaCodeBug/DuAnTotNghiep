@@ -47,7 +47,8 @@ namespace MCPForUnity.Editor.Helpers
 
         public static void Error(string message)
         {
-            UnityEngine.Debug.LogError($"{ErrorPrefix} {message}");
+            // 🔥 ĐỔI THÀNH WARNING ĐỂ TRÁNH CHẶN QUÁ TRÌNH BUILD GAME (Error Building Player)
+            UnityEngine.Debug.LogWarning($"{ErrorPrefix} {message}");
         }
     }
 }
