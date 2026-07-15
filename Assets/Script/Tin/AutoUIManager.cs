@@ -386,7 +386,7 @@ public class AutoUIManager : MonoBehaviour
 
             if (containerPanel != null && containerPanel.activeSelf)
             {
-                rect.anchoredPosition = new Vector2(-220, 0); // Spaced side-by-side with container panel
+                rect.anchoredPosition = new Vector2(-260, 0); // Spaced side-by-side with container panel
             }
             else
             {
@@ -618,7 +618,7 @@ public class AutoUIManager : MonoBehaviour
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
-        panelRect.anchoredPosition = new Vector2(220, 0);
+        panelRect.anchoredPosition = new Vector2(260, 0);
 
         Image panelBg = containerPanel.AddComponent<Image>();
         if (generatedBorderSprite != null)

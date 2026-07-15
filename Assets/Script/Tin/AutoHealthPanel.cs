@@ -126,8 +126,8 @@ public class AutoHealthPanel : MonoBehaviour
         mannequinObj.transform.SetParent(panelObj.transform, false);
         RectTransform manRect = mannequinObj.AddComponent<RectTransform>();
         manRect.anchorMin = new Vector2(0.5f, 0.5f); manRect.anchorMax = new Vector2(0.5f, 0.5f);
-        manRect.anchoredPosition = new Vector2(-225, 20);
-        manRect.localScale = new Vector3(1.1f, 1.1f, 1f);
+        manRect.anchoredPosition = new Vector2(-180, 0);
+        manRect.localScale = new Vector3(1f, 1f, 1f);
 
         CreateBodyPart("Head", mannequinObj.transform, new Vector2(0, 160), new Vector2(50, 50), new Vector2(0.5f, 0.5f), 0);
         CreateBodyPart("Neck", mannequinObj.transform, new Vector2(0, 120), new Vector2(20, 25), new Vector2(0.5f, 0.5f), 0);
@@ -150,14 +150,14 @@ public class AutoHealthPanel : MonoBehaviour
         rightContainer.transform.SetParent(panelObj.transform, false);
         RectTransform rightRect = rightContainer.AddComponent<RectTransform>();
         rightRect.anchorMin = new Vector2(0.5f, 0.5f); rightRect.anchorMax = new Vector2(0.5f, 0.5f);
-        rightRect.anchoredPosition = new Vector2(200, 0);
-        rightRect.sizeDelta = new Vector2(400, 500);
+        rightRect.anchoredPosition = new Vector2(140, 0);
+        rightRect.sizeDelta = new Vector2(320, 380);
 
-        fixedHeaderText = CreateText("FixedHeader", rightContainer.transform, Vector2.zero, new Vector2(400, 100), "", 22, FontStyle.Bold, Color.white, TextAnchor.UpperLeft);
+        fixedHeaderText = CreateText("FixedHeader", rightContainer.transform, Vector2.zero, new Vector2(320, 100), "", 22, FontStyle.Bold, Color.white, TextAnchor.UpperLeft);
         RectTransform headerRect = fixedHeaderText.GetComponent<RectTransform>();
         headerRect.anchorMin = new Vector2(0, 1); headerRect.anchorMax = new Vector2(0, 1);
         headerRect.pivot = new Vector2(0.5f, 1);
-        headerRect.anchoredPosition = new Vector2(200, 0);
+        headerRect.anchoredPosition = new Vector2(160, -20); // Shifted down slightly to avoid border clipping
         fixedHeaderText.lineSpacing = 1.3f;
 
         // Create Overall Health Bar (Dọc theo yêu cầu Hình 2)
@@ -166,8 +166,8 @@ public class AutoHealthPanel : MonoBehaviour
         RectTransform hbBgRect = hbBgObj.AddComponent<RectTransform>();
         hbBgRect.anchorMin = new Vector2(0.5f, 0.5f); hbBgRect.anchorMax = new Vector2(0.5f, 0.5f);
         hbBgRect.pivot = new Vector2(0.5f, 0.5f);
-        hbBgRect.sizeDelta = new Vector2(25, 300); // Rộng 25, Cao 300
-        hbBgRect.anchoredPosition = new Vector2(-50, 20); // Đặt cạnh Mannequin (-225)
+        hbBgRect.sizeDelta = new Vector2(25, 280); // Rộng 25, Cao 280 (scaled down to fit 480 panel)
+        hbBgRect.anchoredPosition = new Vector2(-40, 0); // Đặt cạnh Mannequin
 
         
         Image hbBgImg = hbBgObj.AddComponent<Image>();
@@ -208,8 +208,8 @@ public class AutoHealthPanel : MonoBehaviour
         RectTransform scrollRectTransform = scrollViewObj.AddComponent<RectTransform>();
         scrollRectTransform.anchorMin = new Vector2(0, 0); scrollRectTransform.anchorMax = new Vector2(0, 0);
         scrollRectTransform.pivot = new Vector2(0.5f, 1);
-        scrollRectTransform.sizeDelta = new Vector2(400, 360);
-        scrollRectTransform.anchoredPosition = new Vector2(200, 370);
+        scrollRectTransform.sizeDelta = new Vector2(320, 260); // Width 320, Height 260
+        scrollRectTransform.anchoredPosition = new Vector2(160, 260); // Aligns properly below headers
 
         ScrollRect scrollRect = scrollViewObj.AddComponent<ScrollRect>();
         scrollRect.horizontal = false;
@@ -233,7 +233,7 @@ public class AutoHealthPanel : MonoBehaviour
         textContentRect.anchorMin = new Vector2(0, 1); textContentRect.anchorMax = new Vector2(0, 1);
         textContentRect.pivot = new Vector2(0, 1);
         textContentRect.anchoredPosition = Vector2.zero;
-        textContentRect.sizeDelta = new Vector2(400, 0);
+        textContentRect.sizeDelta = new Vector2(320, 0);
 
         VerticalLayoutGroup contentLayout = contentObj.AddComponent<VerticalLayoutGroup>();
         contentLayout.childControlHeight = true;
