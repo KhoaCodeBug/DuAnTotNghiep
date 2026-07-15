@@ -432,16 +432,40 @@ public class ZombieAI : NetworkBehaviour
         if (hasDealtDamageThisAttack) return;
         if (!HasStateAuthority || player == null) return;
 
-        if (Vector2.Distance(transform.position, player.position) <= damageRadius)
+        if (TryGetPlayerInDamageRange(out PlayerHealth pHealth))
         {
-            PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-            if (pHealth != null && !pHealth.isDead)
+            if (!pHealth.isDead)
             {
                 pHealth.TakeDamage(damageAmount, false, true);
                 hasDealtDamageThisAttack = true;
                 if (attackIndex == 2) pHealth.SetBitten();
             }
         }
+    }
+
+    private bool TryGetPlayerInDamageRange(out PlayerHealth pHealth)
+    {
+        pHealth = null;
+        if (player == null) return false;
+
+        pHealth = player.GetComponent<PlayerHealth>();
+        if (pHealth == null) return false;
+
+        Vector2 attackCenter = rb != null ? rb.position : (Vector2)transform.position;
+        Collider2D[] playerColliders = pHealth.GetComponentsInChildren<Collider2D>();
+
+        foreach (Collider2D playerCollider in playerColliders)
+        {
+            if (playerCollider == null || !playerCollider.enabled || playerCollider.isTrigger) continue;
+
+            Vector2 closestPoint = playerCollider.ClosestPoint(attackCenter);
+            if (Vector2.Distance(attackCenter, closestPoint) <= damageRadius)
+            {
+                return true;
+            }
+        }
+
+        return Vector2.Distance(attackCenter, player.position) <= damageRadius;
     }
 
     public void ApplyStun(float duration)
