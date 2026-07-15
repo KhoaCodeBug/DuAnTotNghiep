@@ -31,7 +31,7 @@ public class GlobalSettingsManager : MonoBehaviour
         canvasGo.transform.SetParent(transform);
         brightnessCanvas = canvasGo.AddComponent<Canvas>();
         brightnessCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        brightnessCanvas.sortingOrder = 9999; // Luôn nằm trên cùng mọi UI và game object
+        brightnessCanvas.sortingOrder = 90; // Renders behind HUD & UI but overlaying 3D scene
         canvasGo.AddComponent<CanvasScaler>();
 
         GameObject imgGo = new GameObject("OverlayImage");
@@ -143,16 +143,22 @@ public class GlobalSettingsManager : MonoBehaviour
         {
             if (brightness >= 1.0f)
             {
-                // Sáng hơn: Phủ màu trắng với Alpha tương ứng
-                float alpha = Mathf.Lerp(0f, 0.4f, (brightness - 1.0f) / 0.5f);
+                // Sáng hơn: Phủ màu trắng với Alpha tối đa 0.25f để tránh bị bết trắng dã
+                float alpha = Mathf.Lerp(0f, 0.25f, (brightness - 1.0f) / 0.5f);
                 brightnessImage.color = new Color(1f, 1f, 1f, alpha);
             }
             else
             {
-                // Tối hơn: Phủ màu đen với Alpha tương ứng
-                float alpha = Mathf.Lerp(0f, 0.7f, (1.0f - brightness) / 0.5f);
+                // Tối hơn: Phủ màu đen với Alpha tối đa 0.65f để giữ độ sâu hiển thị
+                float alpha = Mathf.Lerp(0f, 0.65f, (1.0f - brightness) / 0.5f);
                 brightnessImage.color = new Color(0f, 0f, 0f, alpha);
             }
+        }
+
+        // Đồng bộ hóa độ sáng cho hình nền của Main Menu trực tiếp để không bị đè bởi UI Canvas
+        if (AutoMainMenuManager.Instance != null)
+        {
+            AutoMainMenuManager.Instance.UpdateBackgroundBrightness(brightness);
         }
     }
 
