@@ -2298,8 +2298,81 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             }
         });
     }
+    private Sprite cachedCapsuleSprite;
+    private Sprite cachedKnobSprite;
 
+    private Sprite GetOrCreateCapsuleSprite()
+    {
+        if (cachedCapsuleSprite != null) return cachedCapsuleSprite;
 
+        int width = 64;
+        int height = 16;
+        float cornerRadius = 8f;
+        Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                bool inCapsule = false;
+                if (x < cornerRadius)
+                {
+                    if (y < cornerRadius)
+                        inCapsule = Vector2.Distance(new Vector2(x, y), new Vector2(cornerRadius, cornerRadius)) <= cornerRadius;
+                    else if (y >= height - cornerRadius)
+                        inCapsule = Vector2.Distance(new Vector2(x, y), new Vector2(cornerRadius, height - cornerRadius)) <= cornerRadius;
+                    else
+                        inCapsule = true;
+                }
+                else if (x >= width - cornerRadius)
+                {
+                    if (y < cornerRadius)
+                        inCapsule = Vector2.Distance(new Vector2(x, y), new Vector2(width - cornerRadius, cornerRadius)) <= cornerRadius;
+                    else if (y >= height - cornerRadius)
+                        inCapsule = Vector2.Distance(new Vector2(x, y), new Vector2(width - cornerRadius, height - cornerRadius)) <= cornerRadius;
+                    else
+                        inCapsule = true;
+                }
+                else
+                {
+                    inCapsule = true;
+                }
+
+                texture.SetPixel(x, y, inCapsule ? Color.white : new Color(1f, 1f, 1f, 0f));
+            }
+        }
+        texture.Apply();
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+        
+        cachedCapsuleSprite = Sprite.Create(texture, new Rect(0, 0, width, height), new Vector2(0.5f, 0.5f));
+        return cachedCapsuleSprite;
+    }
+
+    private Sprite GetOrCreateKnobSprite()
+    {
+        if (cachedKnobSprite != null) return cachedKnobSprite;
+
+        int size = 32;
+        float radius = 16f;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        float center = size / 2f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                bool inCircle = Vector2.Distance(new Vector2(x, y), new Vector2(center, center)) <= radius;
+                texture.SetPixel(x, y, inCircle ? Color.white : new Color(1f, 1f, 1f, 0f));
+            }
+        }
+        texture.Apply();
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+
+        cachedKnobSprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
+        return cachedKnobSprite;
+    }
 
     private GameObject CreateSlider(GameObject parent, string title, Vector2 anchorMin, Vector2 anchorMax, float minValue, float maxValue, System.Func<float> getCurrentValue, System.Action<float> onValueChanged, out TextMeshProUGUI valueTextObj, string valueFormat = "0.0")
     {
@@ -2311,8 +2384,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
 
-        Sprite bgSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
-        Sprite knobSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+        Sprite bgSprite = GetOrCreateCapsuleSprite();
+        Sprite knobSprite = GetOrCreateKnobSprite();
 
         // Determine slider color based on setting title
         Color themeColor = new Color(0.85f, 0.24f, 0.2f, 1f); // Red for brightness/other
