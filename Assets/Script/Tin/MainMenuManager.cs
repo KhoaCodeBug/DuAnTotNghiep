@@ -664,6 +664,19 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         RectTransform bgRect = backgroundImageObj.GetComponent<RectTransform>();
         bgRect.anchorMin = Vector2.zero; bgRect.anchorMax = Vector2.one;
         bgRect.offsetMin = Vector2.zero; bgRect.offsetMax = Vector2.zero;
+        // Create Atmosphere layer (Rain & Fog)
+        GameObject atmosphereObj = new GameObject("MainMenuAtmosphere");
+        atmosphereObj.transform.SetParent(canvasGO.transform, false);
+        atmosphereObj.transform.SetAsLastSibling(); // Place above background, below panels
+        RectTransform atmosRt = atmosphereObj.AddComponent<RectTransform>();
+        atmosRt.anchorMin = Vector2.zero;
+        atmosRt.anchorMax = Vector2.one;
+        atmosRt.offsetMin = Vector2.zero;
+        atmosRt.offsetMax = Vector2.zero;
+        
+        MainMenuAtmosphere atmos = atmosphereObj.AddComponent<MainMenuAtmosphere>();
+        atmos.Initialize();
+
         GenerateMainPanel(canvasGO); GenerateNewGamePanel(canvasGO); GenerateMultiplayerPanel_NEW(canvasGO);
         GenerateCharacterSelectPanel(canvasGO); GenerateOptionsPanel(canvasGO); GenerateCreditsPanel(canvasGO);
 
@@ -3014,6 +3027,98 @@ public class DifficultyHoverTrigger : MonoBehaviour, IPointerEnterHandler
         if (menuManager != null)
         {
             menuManager.ShowDifficultyInfo(difficultyIndex);
+        }
+    }
+}
+
+public class MainMenuAtmosphere : MonoBehaviour
+{
+    private struct RainDrop
+    {
+        public RectTransform rect;
+        public float speed;
+    }
+
+    private List<RainDrop> rainDrops = new List<RainDrop>();
+    private List<RectTransform> fogLayers = new List<RectTransform>();
+    private Sprite bgSprite;
+
+    public void Initialize()
+    {
+        bgSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Background.psd");
+
+        // 1. Create Fog Layers
+        for (int i = 0; i < 3; i++)
+        {
+            GameObject fogObj = new GameObject("FogLayer_" + i);
+            fogObj.transform.SetParent(transform, false);
+            RectTransform rt = fogObj.AddComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(2500, 2500);
+            
+            // Random initial rotation
+            rt.localRotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
+
+            Image img = fogObj.AddComponent<Image>();
+            img.sprite = bgSprite; // Use default rounded background to blend edges
+            img.color = new Color(0.04f, 0.05f, 0.07f, 0.05f); // Very low alpha, dark foggy tone
+            
+            fogLayers.Add(rt);
+        }
+
+        // 2. Create Rain Drops
+        for (int i = 0; i < 50; i++)
+        {
+            GameObject rainObj = new GameObject("RainDrop_" + i);
+            rainObj.transform.SetParent(transform, false);
+            RectTransform rt = rainObj.AddComponent<RectTransform>();
+            
+            // Random position across screen
+            rt.anchorMin = new Vector2(0f, 1f);
+            rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = new Vector2(Random.Range(0f, 1920f), Random.Range(-1080f, 0f));
+            rt.sizeDelta = new Vector2(2, Random.Range(20f, 40f));
+            rt.localRotation = Quaternion.Euler(0, 0, 15f); // Angled rain
+
+            Image img = rainObj.AddComponent<Image>();
+            img.color = new Color(0.8f, 0.85f, 0.9f, Random.Range(0.08f, 0.18f));
+
+            RainDrop drop = new RainDrop();
+            drop.rect = rt;
+            drop.speed = Random.Range(700f, 1100f);
+            rainDrops.Add(drop);
+        }
+    }
+
+    private void Update()
+    {
+        // 1. Rotate & Pan Fog Layers slowly
+        for (int i = 0; i < fogLayers.Count; i++)
+        {
+            float rotSpeed = (i % 2 == 0 ? 0.5f : -0.3f) * (i + 1);
+            fogLayers[i].Rotate(0, 0, rotSpeed * Time.unscaledDeltaTime);
+        }
+
+        // 2. Move Rain Drops
+        float dt = Time.unscaledDeltaTime;
+        for (int i = 0; i < rainDrops.Count; i++)
+        {
+            RainDrop drop = rainDrops[i];
+            Vector2 pos = drop.rect.anchoredPosition;
+            
+            // Move down and left (angled rain)
+            pos.y -= drop.speed * dt;
+            pos.x -= drop.speed * 0.25f * dt; // Match rotation angle offset
+
+            // If it goes off the bottom of the screen, reset to top
+            if (pos.y < -1100f || pos.x < -100f)
+            {
+                pos.y = 50f;
+                pos.x = Random.Range(0f, 2100f);
+                drop.speed = Random.Range(700f, 1100f);
+            }
+            
+            drop.rect.anchoredPosition = pos;
         }
     }
 }
