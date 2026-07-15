@@ -123,6 +123,22 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private TextMeshProUGUI pMusText;
     private TextMeshProUGUI pSfxText;
 
+    // 🔥 SLIDER REFERENCES - Dùng để đồng bộ giá trị slider giữa Main Menu và Pause Menu
+    // Main Menu sliders
+    private Slider sliderBrightness;
+    private Slider sliderSensitivity;
+    private Slider sliderZoomSensitivity;
+    private Slider sliderMasterVolume;
+    private Slider sliderMusicVolume;
+    private Slider sliderSFXVolume;
+    // Pause Menu sliders
+    private Slider pSliderBrightness;
+    private Slider pSliderSensitivity;
+    private Slider pSliderZoomSensitivity;
+    private Slider pSliderMasterVolume;
+    private Slider pSliderMusicVolume;
+    private Slider pSliderSFXVolume;
+
     private Vector2Int[] commonResolutions = new Vector2Int[]
     {
         new Vector2Int(1280, 720),
@@ -475,7 +491,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 4. Brightness (using custom slider)
         CreateLabel(pDisplayTab, "BRIGHTNESS:", new Vector2(0.05f, pStartY - pSpacing*3 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*3 + 0.02f));
-        CreateSlider(pDisplayTab, "BRIGHTNESS", new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
+        GameObject pBrightSliderObj = CreateSlider(pDisplayTab, "BRIGHTNESS", new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
             0.5f, 1.5f, () => tempBrightness, (val) => {
                 tempBrightness = val;
                 if (GlobalSettingsManager.Instance != null)
@@ -483,6 +499,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                     GlobalSettingsManager.Instance.ApplyBrightness(val);
                 }
             }, out pBrightText, "%");
+        pSliderBrightness = pBrightSliderObj.GetComponent<Slider>();
 
         // 5. FPS Limit
         CreateDropdown(pDisplayTab, "FPS LIMIT:",
@@ -521,14 +538,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 1. Aim Sensitivity (Slider)
         CreateLabel(pControlsTab, "AIM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl + 0.02f));
-        CreateSlider(pControlsTab, "AIM SENSITIVITY", new Vector2(0.45f, pStartYCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl + 0.03f),
+        GameObject pSensSliderObj = CreateSlider(pControlsTab, "AIM SENSITIVITY", new Vector2(0.45f, pStartYCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl + 0.03f),
             0.5f, 2.0f, () => tempSensitivity, (val) => {
                 tempSensitivity = val;
             }, out pSensText, "x");
+        pSliderSensitivity = pSensSliderObj.GetComponent<Slider>();
 
         // 2. Zoom Sensitivity (Slider)
         CreateLabel(pControlsTab, "ZOOM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - pSpacingCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl - pSpacingCtrl + 0.02f));
-        CreateSlider(pControlsTab, "ZOOM SENSITIVITY", new Vector2(0.45f, pStartYCtrl - pSpacingCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl - pSpacingCtrl + 0.03f),
+        GameObject pZoomSliderObj = CreateSlider(pControlsTab, "ZOOM SENSITIVITY", new Vector2(0.45f, pStartYCtrl - pSpacingCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl - pSpacingCtrl + 0.03f),
             0.5f, 2.0f, () => tempZoomSensitivity, (val) => {
                 tempZoomSensitivity = val;
                 if (PZ_CameraController.Instance != null)
@@ -536,6 +554,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                     PZ_CameraController.Instance.UpdateSensitivity();
                 }
             }, out pZoomText, "x");
+        pSliderZoomSensitivity = pZoomSliderObj.GetComponent<Slider>();
 
         // === AUDIO TAB ===
         float pStartYAud = 0.70f;
@@ -543,28 +562,31 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 1. Master Volume (Slider)
         CreateLabel(pAudioTab, "MASTER VOLUME:", new Vector2(0.05f, pStartYAud - 0.04f), new Vector2(0.4f, pStartYAud + 0.02f));
-        CreateSlider(pAudioTab, "MASTER VOLUME", new Vector2(0.45f, pStartYAud - 0.05f), new Vector2(0.95f, pStartYAud + 0.03f),
+        GameObject pVolSliderObj = CreateSlider(pAudioTab, "MASTER VOLUME", new Vector2(0.45f, pStartYAud - 0.05f), new Vector2(0.95f, pStartYAud + 0.03f),
             0f, 1.0f, () => tempMasterVolume, (val) => {
                 tempMasterVolume = val;
                 AudioListener.volume = val;
             }, out pVolText, "%");
+        pSliderMasterVolume = pVolSliderObj.GetComponent<Slider>();
 
         // 2. Music Volume (Slider)
         CreateLabel(pAudioTab, "MUSIC VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud + 0.02f));
-        CreateSlider(pAudioTab, "MUSIC VOLUME", new Vector2(0.45f, pStartYAud - pSpacingAud - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud + 0.03f),
+        GameObject pMusSliderObj = CreateSlider(pAudioTab, "MUSIC VOLUME", new Vector2(0.45f, pStartYAud - pSpacingAud - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud + 0.03f),
             0f, 1.0f, () => tempMusicVolume, (val) => {
                 tempMusicVolume = val;
                 bgmVolume = val;
                 if (bgmSource != null) bgmSource.volume = bgmVolume;
             }, out pMusText, "%");
+        pSliderMusicVolume = pMusSliderObj.GetComponent<Slider>();
 
         // 3. SFX Volume (Slider)
         CreateLabel(pAudioTab, "SFX VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud*2 - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud*2 + 0.02f));
-        CreateSlider(pAudioTab, "SFX VOLUME", new Vector2(0.45f, pStartYAud - pSpacingAud*2 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*2 + 0.03f),
+        GameObject pSfxSliderObj = CreateSlider(pAudioTab, "SFX VOLUME", new Vector2(0.45f, pStartYAud - pSpacingAud*2 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*2 + 0.03f),
             0f, 1.0f, () => tempSFXVolume, (val) => {
                 tempSFXVolume = val;
                 sfxVolume = val;
             }, out pSfxText, "%");
+        pSliderSFXVolume = pSfxSliderObj.GetComponent<Slider>();
 
         // Nút BACK + SAVE
         CreateMenuButton(pauseOptionsPanel, "BACK", () => ClosePauseOptions(false), new Vector2(0.1f, 0.08f));
@@ -2002,7 +2024,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 6. Brightness (using custom slider)
         CreateLabel(displayTabArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
-        CreateSlider(displayTabArea, "BRIGHTNESS", new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
+        GameObject brightSliderObj = CreateSlider(displayTabArea, "BRIGHTNESS", new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
             0.5f, 1.5f, () => tempBrightness, (val) => {
                 tempBrightness = val;
                 if (GlobalSettingsManager.Instance != null)
@@ -2010,6 +2032,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                     GlobalSettingsManager.Instance.ApplyBrightness(val);
                 }
             }, out brightValText, "%");
+        sliderBrightness = brightSliderObj.GetComponent<Slider>();
 
         // 7. FPS Limit
         CreateDropdown(displayTabArea, "FPS LIMIT:",
@@ -2049,14 +2072,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 1. Aim Sensitivity (Slider)
         CreateLabel(controlsTabArea, "AIM SENSITIVITY:", new Vector2(0.05f, startYCtrl - 0.04f), new Vector2(0.4f, startYCtrl + 0.02f));
-        CreateSlider(controlsTabArea, "AIM SENSITIVITY", new Vector2(0.45f, startYCtrl - 0.05f), new Vector2(0.95f, startYCtrl + 0.03f),
+        GameObject sensSliderObj = CreateSlider(controlsTabArea, "AIM SENSITIVITY", new Vector2(0.45f, startYCtrl - 0.05f), new Vector2(0.95f, startYCtrl + 0.03f),
             0.5f, 2.0f, () => tempSensitivity, (val) => {
                 tempSensitivity = val;
             }, out sensValText, "x");
+        sliderSensitivity = sensSliderObj.GetComponent<Slider>();
 
         // 2. Zoom Sensitivity (Slider)
         CreateLabel(controlsTabArea, "ZOOM SENSITIVITY:", new Vector2(0.05f, startYCtrl - spacingYCtrl - 0.04f), new Vector2(0.4f, startYCtrl - spacingYCtrl + 0.02f));
-        CreateSlider(controlsTabArea, "ZOOM SENSITIVITY", new Vector2(0.45f, startYCtrl - spacingYCtrl - 0.05f), new Vector2(0.95f, startYCtrl - spacingYCtrl + 0.03f),
+        GameObject zoomSliderObj = CreateSlider(controlsTabArea, "ZOOM SENSITIVITY", new Vector2(0.45f, startYCtrl - spacingYCtrl - 0.05f), new Vector2(0.95f, startYCtrl - spacingYCtrl + 0.03f),
             0.5f, 2.0f, () => tempZoomSensitivity, (val) => {
                 tempZoomSensitivity = val;
                 if (PZ_CameraController.Instance != null)
@@ -2064,6 +2088,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                     PZ_CameraController.Instance.UpdateSensitivity();
                 }
             }, out zoomSensValText, "x");
+        sliderZoomSensitivity = zoomSliderObj.GetComponent<Slider>();
 
 
         // POPULATE TAB 3: AUDIO
@@ -2072,28 +2097,31 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 1. Master Volume (Slider)
         CreateLabel(audioTabArea, "MASTER VOLUME:", new Vector2(0.05f, startYAud - 0.04f), new Vector2(0.4f, startYAud + 0.02f));
-        CreateSlider(audioTabArea, "MASTER VOLUME", new Vector2(0.45f, startYAud - 0.05f), new Vector2(0.95f, startYAud + 0.03f),
+        GameObject volSliderObj = CreateSlider(audioTabArea, "MASTER VOLUME", new Vector2(0.45f, startYAud - 0.05f), new Vector2(0.95f, startYAud + 0.03f),
             0f, 1.0f, () => tempMasterVolume, (val) => {
                 tempMasterVolume = val;
                 AudioListener.volume = val;
             }, out volValText, "%");
+        sliderMasterVolume = volSliderObj.GetComponent<Slider>();
 
         // 2. Music Volume (Slider)
         CreateLabel(audioTabArea, "MUSIC VOLUME:", new Vector2(0.05f, startYAud - spacingYAud - 0.04f), new Vector2(0.4f, startYAud - spacingYAud + 0.02f));
-        CreateSlider(audioTabArea, "MUSIC VOLUME", new Vector2(0.45f, startYAud - spacingYAud - 0.05f), new Vector2(0.95f, startYAud - spacingYAud + 0.03f),
+        GameObject musSliderObj = CreateSlider(audioTabArea, "MUSIC VOLUME", new Vector2(0.45f, startYAud - spacingYAud - 0.05f), new Vector2(0.95f, startYAud - spacingYAud + 0.03f),
             0f, 1.0f, () => tempMusicVolume, (val) => {
                 tempMusicVolume = val;
                 bgmVolume = val;
                 if (bgmSource != null) bgmSource.volume = bgmVolume;
             }, out musicValText, "%");
+        sliderMusicVolume = musSliderObj.GetComponent<Slider>();
 
         // 3. SFX Volume (Slider)
         CreateLabel(audioTabArea, "SFX VOLUME:", new Vector2(0.05f, startYAud - spacingYAud*2 - 0.04f), new Vector2(0.4f, startYAud - spacingYAud*2 + 0.02f));
-        CreateSlider(audioTabArea, "SFX VOLUME", new Vector2(0.45f, startYAud - spacingYAud*2 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*2 + 0.03f),
+        GameObject sfxSliderObj = CreateSlider(audioTabArea, "SFX VOLUME", new Vector2(0.45f, startYAud - spacingYAud*2 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*2 + 0.03f),
             0f, 1.0f, () => tempSFXVolume, (val) => {
                 tempSFXVolume = val;
                 sfxVolume = val;
             }, out sfxValText, "%");
+        sliderSFXVolume = sfxSliderObj.GetComponent<Slider>();
 
 
         // Nút BACK (Bên trái)
@@ -2693,7 +2721,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         tempShadowQuality = Mathf.Clamp(PlayerPrefs.GetInt("GameShadowQuality", 2), 0, 2);
         tempAntiAliasing = Mathf.Clamp(PlayerPrefs.GetInt("GameAntiAliasing", 2), 0, 3);
         tempShowFPS = Mathf.Clamp(PlayerPrefs.GetInt("GameShowFPS", 1), 0, 1);
-        tempFPSPosition = Mathf.Clamp(PlayerPrefs.GetInt("GameFPSPosition", 0), 0, 4);
+        tempFPSPosition = Mathf.Clamp(PlayerPrefs.GetInt("GameFPSPosition", 0), 0, 5);
         tempZoomSensitivity = PlayerPrefs.GetFloat("ZoomSensitivity", 1.0f);
 
         UpdateFPSText();
@@ -2710,6 +2738,21 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         UpdateAAText();
         UpdateShowFPSText();
         UpdateZoomSensText();
+
+        // 🔥 ĐỒNG BỘ GIÁ TRỊ SLIDER LÊN UI THỰC TẾ
+        if (sliderBrightness != null) sliderBrightness.value = tempBrightness;
+        if (sliderSensitivity != null) sliderSensitivity.value = tempSensitivity;
+        if (sliderZoomSensitivity != null) sliderZoomSensitivity.value = tempZoomSensitivity;
+        if (sliderMasterVolume != null) sliderMasterVolume.value = tempMasterVolume;
+        if (sliderMusicVolume != null) sliderMusicVolume.value = tempMusicVolume;
+        if (sliderSFXVolume != null) sliderSFXVolume.value = tempSFXVolume;
+
+        if (pSliderBrightness != null) pSliderBrightness.value = tempBrightness;
+        if (pSliderSensitivity != null) pSliderSensitivity.value = tempSensitivity;
+        if (pSliderZoomSensitivity != null) pSliderZoomSensitivity.value = tempZoomSensitivity;
+        if (pSliderMasterVolume != null) pSliderMasterVolume.value = tempMasterVolume;
+        if (pSliderMusicVolume != null) pSliderMusicVolume.value = tempMusicVolume;
+        if (pSliderSFXVolume != null) pSliderSFXVolume.value = tempSFXVolume;
 
         // Áp dụng lập tức vào thực tế game
         QualitySettings.vSyncCount = 0;

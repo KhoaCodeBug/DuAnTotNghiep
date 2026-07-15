@@ -60,6 +60,16 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
     {
         if (globalRecorder != null) return;
 
+        // 1. Ưu tiên tìm qua VoiceNetworkObject gắn trên chính player
+        var voiceNetObj = GetComponent<VoiceNetworkObject>();
+        if (voiceNetObj != null && voiceNetObj.RecorderInUse != null)
+        {
+            globalRecorder = voiceNetObj.RecorderInUse;
+            Debug.Log($"[VOICE] ✅ Tìm thấy Recorder từ VoiceNetworkObject gắn trên nhân vật");
+            return;
+        }
+
+        // 2. Fallback: tìm trong các object con
         globalRecorder = GetComponentInChildren<Recorder>();
 
         if (globalRecorder == null && Runner != null)
