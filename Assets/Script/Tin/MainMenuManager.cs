@@ -2305,40 +2305,48 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (cachedCapsuleSprite != null) return cachedCapsuleSprite;
 
-        int width = 64;
-        int height = 16;
-        float cornerRadius = 8f;
+        int width = 256;
+        int height = 64;
+        float cornerRadius = 32f;
         Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
 
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
-                bool inCapsule = false;
+                float dist = 0f;
                 if (x < cornerRadius)
                 {
                     if (y < cornerRadius)
-                        inCapsule = Vector2.Distance(new Vector2(x, y), new Vector2(cornerRadius, cornerRadius)) <= cornerRadius;
+                        dist = Vector2.Distance(new Vector2(x, y), new Vector2(cornerRadius, cornerRadius));
                     else if (y >= height - cornerRadius)
-                        inCapsule = Vector2.Distance(new Vector2(x, y), new Vector2(cornerRadius, height - cornerRadius)) <= cornerRadius;
+                        dist = Vector2.Distance(new Vector2(x, y), new Vector2(cornerRadius, height - cornerRadius));
                     else
-                        inCapsule = true;
+                        dist = cornerRadius - x;
                 }
                 else if (x >= width - cornerRadius)
                 {
                     if (y < cornerRadius)
-                        inCapsule = Vector2.Distance(new Vector2(x, y), new Vector2(width - cornerRadius, cornerRadius)) <= cornerRadius;
+                        dist = Vector2.Distance(new Vector2(x, y), new Vector2(width - cornerRadius, cornerRadius));
                     else if (y >= height - cornerRadius)
-                        inCapsule = Vector2.Distance(new Vector2(x, y), new Vector2(width - cornerRadius, height - cornerRadius)) <= cornerRadius;
+                        dist = Vector2.Distance(new Vector2(x, y), new Vector2(width - cornerRadius, height - cornerRadius));
                     else
-                        inCapsule = true;
+                        dist = x - (width - cornerRadius - 1);
                 }
                 else
                 {
-                    inCapsule = true;
+                    float yDist = Mathf.Min(y, height - 1 - y);
+                    dist = cornerRadius - yDist;
                 }
 
-                texture.SetPixel(x, y, inCapsule ? Color.white : new Color(1f, 1f, 1f, 0f));
+                // Áp dụng Smooth Anti-Aliasing ở rìa ngoài của Capsule
+                float alpha = 1f;
+                if (dist > cornerRadius - 1.5f)
+                {
+                    alpha = Mathf.Clamp01((cornerRadius - dist) / 1.5f);
+                }
+
+                texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
             }
         }
         texture.Apply();
@@ -2353,8 +2361,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (cachedKnobSprite != null) return cachedKnobSprite;
 
-        int size = 32;
-        float radius = 16f;
+        int size = 64;
+        float radius = 32f;
         Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
         float center = size / 2f;
 
@@ -2362,8 +2370,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             for (int x = 0; x < size; x++)
             {
-                bool inCircle = Vector2.Distance(new Vector2(x, y), new Vector2(center, center)) <= radius;
-                texture.SetPixel(x, y, inCircle ? Color.white : new Color(1f, 1f, 1f, 0f));
+                float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                
+                // Áp dụng Smooth Anti-Aliasing ở rìa ngoài của hình tròn Knob
+                float alpha = 1f;
+                if (dist > radius - 1.5f)
+                {
+                    alpha = Mathf.Clamp01((radius - dist) / 1.5f);
+                }
+                
+                texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
             }
         }
         texture.Apply();
