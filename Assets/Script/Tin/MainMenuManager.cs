@@ -92,6 +92,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private float tempZoomSensitivity = 1.0f; // 0.5f đến 2.0f
 
     private TextMeshProUGUI mainTitleText;
+    private TextMeshProUGUI mainTitleShadowText;
     private Coroutine titleFlickerCoroutine;
 
     // Đối tượng Tab area và Text hiển thị
@@ -746,9 +747,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         mainPanel = CreateBasePanel("MainPanel", canvasGO); CanvasGroup cg = mainPanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false;
         
-        // 3D Drop Shadow Text
-        TextMeshProUGUI shadow = CreateTitleText(mainPanel, "FRAGMENTS\nOF SURVIVAL", 0.95f, 80, TextAlignmentOptions.TopLeft, new Vector2(0.103f, 0.697f), new Vector2(0.503f, 0.947f));
-        shadow.color = new Color(0f, 0f, 0f, 0.8f);
+        // 3D Drop Shadow Text (Đồng bộ cấu trúc kích thước chữ để tránh lệch vị trí)
+        mainTitleShadowText = CreateTitleText(mainPanel, "FRAGMENTS\n<size=50%>OF</size> SURVIVAL", 0.95f, 80, TextAlignmentOptions.TopLeft, new Vector2(0.103f, 0.697f), new Vector2(0.503f, 0.947f));
+        mainTitleShadowText.color = new Color(0f, 0f, 0f, 0.8f);
 
         // Styled Main Title Logo
         mainTitleText = CreateTitleText(mainPanel, "<color=#7F8C8D>FRAGMENTS</color>\n<size=50%><color=#BDC3C7>OF</color></size> <color=#990000>SURVIVAL</color>", 0.95f, 80, TextAlignmentOptions.TopLeft, new Vector2(0.1f, 0.7f), new Vector2(0.5f, 0.95f));
@@ -3025,16 +3026,29 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             if (mainTitleText != null)
             {
                 // Rapid double flicker
-                mainTitleText.alpha = 0.3f;
+                float a1 = 0.3f;
+                mainTitleText.alpha = a1;
+                if (mainTitleShadowText != null) mainTitleShadowText.alpha = a1;
+                
                 yield return new WaitForSecondsRealtime(Random.Range(0.05f, 0.12f));
-                mainTitleText.alpha = 1.0f;
+                
+                float a2 = 1.0f;
+                mainTitleText.alpha = a2;
+                if (mainTitleShadowText != null) mainTitleShadowText.alpha = a2;
+                
                 yield return new WaitForSecondsRealtime(Random.Range(0.05f, 0.12f));
                 
                 if (Random.value > 0.5f)
                 {
-                    mainTitleText.alpha = 0.2f;
+                    float a3 = 0.2f;
+                    mainTitleText.alpha = a3;
+                    if (mainTitleShadowText != null) mainTitleShadowText.alpha = a3;
+                    
                     yield return new WaitForSecondsRealtime(Random.Range(0.04f, 0.08f));
-                    mainTitleText.alpha = 1.0f;
+                    
+                    float a4 = 1.0f;
+                    mainTitleText.alpha = a4;
+                    if (mainTitleShadowText != null) mainTitleShadowText.alpha = a4;
                 }
             }
         }
@@ -3159,8 +3173,8 @@ public class MainMenuAtmosphere : MonoBehaviour
         glowRt.offsetMax = Vector2.zero;
         
         lampGlowImg = glowObj.AddComponent<UnityEngine.UI.Image>();
-        // Dùng Knob.psd tròn mờ để ánh sáng lan tỏa nhẹ nhàng tự nhiên
-        lampGlowImg.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+        // Tự tạo Radial Gradient Sprite tròn mờ thay vì dùng Sprite Knob.psd bị lỗi ô vuông cam đục
+        lampGlowImg.sprite = CreateRadialGradientSprite();
         lampGlowImg.color = new Color(1.0f, 0.52f, 0.12f, 0.12f); // Ánh sáng đèn vàng ấm áp
         lampGlowImg.raycastTarget = false;
 
@@ -3358,5 +3372,31 @@ public class MainMenuAtmosphere : MonoBehaviour
             if (lightningImg != null) lightningImg.color = new Color(0.95f, 0.96f, 1.0f, a);
             yield return null;
         }
+    }
+
+    private Sprite CreateRadialGradientSprite()
+    {
+        int size = 128;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        float center = size / 2f;
+        float maxDist = size / 2f;
+
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float dist = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                float alpha = Mathf.Clamp01(1f - (dist / maxDist));
+                // Tạo falloff mượt mà dạng hàm mũ để quầng sáng mềm mại từ trong ra rìa ngoài
+                alpha = alpha * alpha; 
+                texture.SetPixel(x, y, new Color(1f, 1f, 1f, alpha));
+            }
+        }
+        texture.Apply();
+        
+        texture.wrapMode = TextureWrapMode.Clamp;
+        texture.filterMode = FilterMode.Bilinear;
+        
+        return Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
     }
 }
