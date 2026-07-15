@@ -489,7 +489,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // 4. Brightness (using custom slider)
         CreateLabel(pDisplayTab, "BRIGHTNESS:", new Vector2(0.05f, pStartY - pSpacing*3 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*3 + 0.02f));
         GameObject pBrightSliderObj = CreateSlider(pDisplayTab, "BRIGHTNESS", new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
-            0.5f, 1.5f, () => tempBrightness, (val) => {
+            0.5f, 1.0f, () => tempBrightness, (val) => {
                 tempBrightness = val;
                 if (GlobalSettingsManager.Instance != null)
                 {
@@ -536,7 +536,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // 1. Aim Sensitivity (Slider)
         CreateLabel(pControlsTab, "AIM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl + 0.02f));
         GameObject pSensSliderObj = CreateSlider(pControlsTab, "AIM SENSITIVITY", new Vector2(0.45f, pStartYCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl + 0.03f),
-            0.5f, 2.0f, () => tempSensitivity, (val) => {
+            0.1f, 1.0f, () => tempSensitivity, (val) => {
                 tempSensitivity = val;
             }, out pSensText, "x");
         pSliderSensitivity = pSensSliderObj.GetComponent<Slider>();
@@ -2001,7 +2001,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // 6. Brightness (using custom slider)
         CreateLabel(displayTabArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
         GameObject brightSliderObj = CreateSlider(displayTabArea, "BRIGHTNESS", new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
-            0.5f, 1.5f, () => tempBrightness, (val) => {
+            0.5f, 1.0f, () => tempBrightness, (val) => {
                 tempBrightness = val;
                 if (GlobalSettingsManager.Instance != null)
                 {
@@ -2049,7 +2049,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // 1. Aim Sensitivity (Slider)
         CreateLabel(controlsTabArea, "AIM SENSITIVITY:", new Vector2(0.05f, startYCtrl - 0.04f), new Vector2(0.4f, startYCtrl + 0.02f));
         GameObject sensSliderObj = CreateSlider(controlsTabArea, "AIM SENSITIVITY", new Vector2(0.45f, startYCtrl - 0.05f), new Vector2(0.95f, startYCtrl + 0.03f),
-            0.5f, 2.0f, () => tempSensitivity, (val) => {
+            0.1f, 1.0f, () => tempSensitivity, (val) => {
                 tempSensitivity = val;
             }, out sensValText, "x");
         sliderSensitivity = sensSliderObj.GetComponent<Slider>();
@@ -2421,7 +2421,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         bgRect.anchorMin = new Vector2(0f, 0.5f);
         bgRect.anchorMax = new Vector2(0.75f, 0.5f);
         bgRect.anchoredPosition = Vector2.zero;
-        bgRect.sizeDelta = new Vector2(0, 24); // Thick 24px track height
+        bgRect.sizeDelta = new Vector2(0, 16); // Giảm độ dày thanh trượt xuống 16px để thanh thoát hơn
         Image bgImg = bgObj.AddComponent<Image>();
         bgImg.sprite = bgSprite;
         bgImg.type = Image.Type.Sliced;
@@ -2438,7 +2438,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         fillAreaRect.anchorMin = new Vector2(0f, 0.5f);
         fillAreaRect.anchorMax = new Vector2(0.75f, 0.5f);
         fillAreaRect.anchoredPosition = Vector2.zero;
-        fillAreaRect.sizeDelta = new Vector2(0, 24);
+        fillAreaRect.sizeDelta = new Vector2(0, 16);
         fillAreaRect.offsetMin = new Vector2(4, 0);
         fillAreaRect.offsetMax = new Vector2(-4, 0);
 
@@ -2459,14 +2459,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         handleAreaRect.anchorMin = new Vector2(0f, 0.5f);
         handleAreaRect.anchorMax = new Vector2(0.75f, 0.5f);
         handleAreaRect.anchoredPosition = Vector2.zero;
-        handleAreaRect.sizeDelta = new Vector2(0, 24);
+        handleAreaRect.sizeDelta = new Vector2(0, 16);
         handleAreaRect.offsetMin = new Vector2(10, 0);
         handleAreaRect.offsetMax = new Vector2(-10, 0);
 
         GameObject handleObj = new GameObject("Handle");
         handleObj.transform.SetParent(handleAreaObj.transform, false);
         RectTransform handleRect = handleObj.AddComponent<RectTransform>();
-        handleRect.sizeDelta = new Vector2(28, 28); // Circular knob sticks out slightly (28px knob vs 24px track)
+        handleRect.sizeDelta = new Vector2(20, 20); // Giảm nút trượt (Knob) xuống 20px ôm khít thanh trượt hơn
         Image handleImg = handleObj.AddComponent<Image>();
         handleImg.sprite = knobSprite;
         handleImg.color = themeColor; // Knob matches the fill track theme color
@@ -2564,7 +2564,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void AdjustBrightness(float delta)
     {
-        tempBrightness = Mathf.Clamp(tempBrightness + delta, 0.5f, 1.5f);
+        tempBrightness = Mathf.Clamp(tempBrightness + delta, 0.5f, 1.0f);
         UpdateBrightText();
         if (GlobalSettingsManager.Instance != null)
         {
@@ -2671,7 +2671,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void AdjustSensitivity(float delta)
     {
-        tempSensitivity = Mathf.Clamp(tempSensitivity + delta, 0.5f, 2.0f);
+        tempSensitivity = Mathf.Clamp(tempSensitivity + delta, 0.1f, 1.0f);
         UpdateSensText();
     }
 
