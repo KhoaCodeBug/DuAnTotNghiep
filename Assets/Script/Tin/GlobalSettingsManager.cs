@@ -204,35 +204,42 @@ public class GlobalSettingsManager : MonoBehaviour
                 fpsRt.anchorMin = new Vector2(1f, 1f);
                 fpsRt.anchorMax = new Vector2(1f, 1f);
                 fpsRt.pivot = new Vector2(1f, 1f);
-                fpsRt.anchoredPosition = new Vector2(-155f, -15f); // Placed to the left of our enlarged clock
+                fpsRt.anchoredPosition = new Vector2(-15f, -15f); // Symmetrical to TOP LEFT
                 fpsCounterText.alignment = TextAlignmentOptions.Right;
                 break;
             case 1: // TOP LEFT
                 fpsRt.anchorMin = new Vector2(0f, 1f);
                 fpsRt.anchorMax = new Vector2(0f, 1f);
                 fpsRt.pivot = new Vector2(0f, 1f);
-                fpsRt.anchoredPosition = new Vector2(15f, -15f); // High-precision top-left corner
+                fpsRt.anchoredPosition = new Vector2(15f, -15f); // Symmetrical to TOP RIGHT
                 fpsCounterText.alignment = TextAlignmentOptions.Left;
                 break;
             case 2: // BOTTOM RIGHT
                 fpsRt.anchorMin = new Vector2(1f, 0f);
                 fpsRt.anchorMax = new Vector2(1f, 0f);
                 fpsRt.pivot = new Vector2(1f, 0f);
-                fpsRt.anchoredPosition = new Vector2(-15f, 15f); // High-precision bottom-right corner
+                fpsRt.anchoredPosition = new Vector2(-15f, 15f); // Symmetrical to BOTTOM LEFT
                 fpsCounterText.alignment = TextAlignmentOptions.Right;
                 break;
             case 3: // BOTTOM LEFT
                 fpsRt.anchorMin = new Vector2(0f, 0f);
                 fpsRt.anchorMax = new Vector2(0f, 0f);
                 fpsRt.pivot = new Vector2(0f, 0f);
-                fpsRt.anchoredPosition = new Vector2(15f, 15f); // High-precision bottom-left corner
+                fpsRt.anchoredPosition = new Vector2(15f, 15f); // Symmetrical to BOTTOM RIGHT
                 fpsCounterText.alignment = TextAlignmentOptions.Left;
                 break;
-            case 4: // CENTER
-                fpsRt.anchorMin = new Vector2(0.5f, 0.5f);
-                fpsRt.anchorMax = new Vector2(0.5f, 0.5f);
-                fpsRt.pivot = new Vector2(0.5f, 0.5f);
-                fpsRt.anchoredPosition = Vector2.zero; // Direct screen center
+            case 4: // TOP CENTER
+                fpsRt.anchorMin = new Vector2(0.5f, 1f);
+                fpsRt.anchorMax = new Vector2(0.5f, 1f);
+                fpsRt.pivot = new Vector2(0.5f, 1f);
+                fpsRt.anchoredPosition = new Vector2(0f, -15f);
+                fpsCounterText.alignment = TextAlignmentOptions.Center;
+                break;
+            case 5: // BOTTOM CENTER
+                fpsRt.anchorMin = new Vector2(0.5f, 0f);
+                fpsRt.anchorMax = new Vector2(0.5f, 0f);
+                fpsRt.pivot = new Vector2(0.5f, 0f);
+                fpsRt.anchoredPosition = new Vector2(0f, 15f);
                 fpsCounterText.alignment = TextAlignmentOptions.Center;
                 break;
         }

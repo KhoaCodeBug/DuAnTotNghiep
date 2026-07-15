@@ -421,7 +421,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         string[] pShadowLabels = new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" };
         string[] pAaLabels = new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" };
         string[] pFpsShowLabels = new string[] { "OFF", "ON" };
-        string[] pFpsPosLabels = new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" };
+        string[] pFpsPosLabels = new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "TOP CENTER", "BOTTOM CENTER" };
 
         // 1. Graphics Quality
         CreateDropdown(pDisplayTab, "GRAPHICS QUALITY:",
@@ -452,7 +452,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 4. Brightness (using custom slider)
         CreateLabel(pDisplayTab, "BRIGHTNESS:", new Vector2(0.05f, pStartY - pSpacing*3 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*3 + 0.02f));
-        CreateSlider(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
+        CreateSlider(pDisplayTab, "BRIGHTNESS", new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
             0.5f, 1.5f, () => tempBrightness, (val) => {
                 tempBrightness = val;
                 if (GlobalSettingsManager.Instance != null)
@@ -498,14 +498,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 1. Aim Sensitivity (Slider)
         CreateLabel(pControlsTab, "AIM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl + 0.02f));
-        CreateSlider(pControlsTab, new Vector2(0.45f, pStartYCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl + 0.03f),
+        CreateSlider(pControlsTab, "AIM SENSITIVITY", new Vector2(0.45f, pStartYCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl + 0.03f),
             0.5f, 2.0f, () => tempSensitivity, (val) => {
                 tempSensitivity = val;
             }, out pSensText, "x");
 
         // 2. Zoom Sensitivity (Slider)
         CreateLabel(pControlsTab, "ZOOM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - pSpacingCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl - pSpacingCtrl + 0.02f));
-        CreateSlider(pControlsTab, new Vector2(0.45f, pStartYCtrl - pSpacingCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl - pSpacingCtrl + 0.03f),
+        CreateSlider(pControlsTab, "ZOOM SENSITIVITY", new Vector2(0.45f, pStartYCtrl - pSpacingCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl - pSpacingCtrl + 0.03f),
             0.5f, 2.0f, () => tempZoomSensitivity, (val) => {
                 tempZoomSensitivity = val;
                 if (PZ_CameraController.Instance != null)
@@ -520,7 +520,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 1. Master Volume (Slider)
         CreateLabel(pAudioTab, "MASTER VOLUME:", new Vector2(0.05f, pStartYAud - 0.04f), new Vector2(0.4f, pStartYAud + 0.02f));
-        CreateSlider(pAudioTab, new Vector2(0.45f, pStartYAud - 0.05f), new Vector2(0.95f, pStartYAud + 0.03f),
+        CreateSlider(pAudioTab, "MASTER VOLUME", new Vector2(0.45f, pStartYAud - 0.05f), new Vector2(0.95f, pStartYAud + 0.03f),
             0f, 1.0f, () => tempMasterVolume, (val) => {
                 tempMasterVolume = val;
                 AudioListener.volume = val;
@@ -528,7 +528,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 2. Music Volume (Slider)
         CreateLabel(pAudioTab, "MUSIC VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud + 0.02f));
-        CreateSlider(pAudioTab, new Vector2(0.45f, pStartYAud - pSpacingAud - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud + 0.03f),
+        CreateSlider(pAudioTab, "MUSIC VOLUME", new Vector2(0.45f, pStartYAud - pSpacingAud - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud + 0.03f),
             0f, 1.0f, () => tempMusicVolume, (val) => {
                 tempMusicVolume = val;
                 bgmVolume = val;
@@ -537,7 +537,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 3. SFX Volume (Slider)
         CreateLabel(pAudioTab, "SFX VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud*2 - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud*2 + 0.02f));
-        CreateSlider(pAudioTab, new Vector2(0.45f, pStartYAud - pSpacingAud*2 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*2 + 0.03f),
+        CreateSlider(pAudioTab, "SFX VOLUME", new Vector2(0.45f, pStartYAud - pSpacingAud*2 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*2 + 0.03f),
             0f, 1.0f, () => tempSFXVolume, (val) => {
                 tempSFXVolume = val;
                 sfxVolume = val;
@@ -1875,7 +1875,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         string[] shadowLabels = new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" };
         string[] aaLabels = new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" };
         string[] fpsShowLabels = new string[] { "OFF", "ON" };
-        string[] fpsPosLabels = new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" };
+        string[] fpsPosLabels = new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "TOP CENTER", "BOTTOM CENTER" };
 
         // 1. Resolution
         string[] resStrings = new string[commonResolutions.Length];
@@ -1929,7 +1929,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 6. Brightness (using custom slider)
         CreateLabel(displayTabArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
-        CreateSlider(displayTabArea, new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
+        CreateSlider(displayTabArea, "BRIGHTNESS", new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
             0.5f, 1.5f, () => tempBrightness, (val) => {
                 tempBrightness = val;
                 if (GlobalSettingsManager.Instance != null)
@@ -1976,14 +1976,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 1. Aim Sensitivity (Slider)
         CreateLabel(controlsTabArea, "AIM SENSITIVITY:", new Vector2(0.05f, startYCtrl - 0.04f), new Vector2(0.4f, startYCtrl + 0.02f));
-        CreateSlider(controlsTabArea, new Vector2(0.45f, startYCtrl - 0.05f), new Vector2(0.95f, startYCtrl + 0.03f),
+        CreateSlider(controlsTabArea, "AIM SENSITIVITY", new Vector2(0.45f, startYCtrl - 0.05f), new Vector2(0.95f, startYCtrl + 0.03f),
             0.5f, 2.0f, () => tempSensitivity, (val) => {
                 tempSensitivity = val;
             }, out sensValText, "x");
 
         // 2. Zoom Sensitivity (Slider)
         CreateLabel(controlsTabArea, "ZOOM SENSITIVITY:", new Vector2(0.05f, startYCtrl - spacingYCtrl - 0.04f), new Vector2(0.4f, startYCtrl - spacingYCtrl + 0.02f));
-        CreateSlider(controlsTabArea, new Vector2(0.45f, startYCtrl - spacingYCtrl - 0.05f), new Vector2(0.95f, startYCtrl - spacingYCtrl + 0.03f),
+        CreateSlider(controlsTabArea, "ZOOM SENSITIVITY", new Vector2(0.45f, startYCtrl - spacingYCtrl - 0.05f), new Vector2(0.95f, startYCtrl - spacingYCtrl + 0.03f),
             0.5f, 2.0f, () => tempZoomSensitivity, (val) => {
                 tempZoomSensitivity = val;
                 if (PZ_CameraController.Instance != null)
@@ -1999,7 +1999,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 1. Master Volume (Slider)
         CreateLabel(audioTabArea, "MASTER VOLUME:", new Vector2(0.05f, startYAud - 0.04f), new Vector2(0.4f, startYAud + 0.02f));
-        CreateSlider(audioTabArea, new Vector2(0.45f, startYAud - 0.05f), new Vector2(0.95f, startYAud + 0.03f),
+        CreateSlider(audioTabArea, "MASTER VOLUME", new Vector2(0.45f, startYAud - 0.05f), new Vector2(0.95f, startYAud + 0.03f),
             0f, 1.0f, () => tempMasterVolume, (val) => {
                 tempMasterVolume = val;
                 AudioListener.volume = val;
@@ -2007,7 +2007,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 2. Music Volume (Slider)
         CreateLabel(audioTabArea, "MUSIC VOLUME:", new Vector2(0.05f, startYAud - spacingYAud - 0.04f), new Vector2(0.4f, startYAud - spacingYAud + 0.02f));
-        CreateSlider(audioTabArea, new Vector2(0.45f, startYAud - spacingYAud - 0.05f), new Vector2(0.95f, startYAud - spacingYAud + 0.03f),
+        CreateSlider(audioTabArea, "MUSIC VOLUME", new Vector2(0.45f, startYAud - spacingYAud - 0.05f), new Vector2(0.95f, startYAud - spacingYAud + 0.03f),
             0f, 1.0f, () => tempMusicVolume, (val) => {
                 tempMusicVolume = val;
                 bgmVolume = val;
@@ -2016,7 +2016,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // 3. SFX Volume (Slider)
         CreateLabel(audioTabArea, "SFX VOLUME:", new Vector2(0.05f, startYAud - spacingYAud*2 - 0.04f), new Vector2(0.4f, startYAud - spacingYAud*2 + 0.02f));
-        CreateSlider(audioTabArea, new Vector2(0.45f, startYAud - spacingYAud*2 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*2 + 0.03f),
+        CreateSlider(audioTabArea, "SFX VOLUME", new Vector2(0.45f, startYAud - spacingYAud*2 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*2 + 0.03f),
             0f, 1.0f, () => tempSFXVolume, (val) => {
                 tempSFXVolume = val;
                 sfxVolume = val;
@@ -2212,7 +2212,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
 
 
-    private GameObject CreateSlider(GameObject parent, Vector2 anchorMin, Vector2 anchorMax, float minValue, float maxValue, System.Func<float> getCurrentValue, System.Action<float> onValueChanged, out TextMeshProUGUI valueTextObj, string valueFormat = "0.0")
+    private GameObject CreateSlider(GameObject parent, string title, Vector2 anchorMin, Vector2 anchorMax, float minValue, float maxValue, System.Func<float> getCurrentValue, System.Action<float> onValueChanged, out TextMeshProUGUI valueTextObj, string valueFormat = "0.0")
     {
         GameObject container = new GameObject("SliderContainer");
         container.transform.SetParent(parent.transform, false);
@@ -2222,25 +2222,47 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
 
-        // Background Track
+        Sprite bgSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+        Sprite knobSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+
+        // Determine slider color based on setting title
+        Color themeColor = new Color(0.85f, 0.24f, 0.2f, 1f); // Red for brightness/other
+        if (title.Contains("VOLUME"))
+        {
+            themeColor = new Color(0.12f, 0.58f, 0.89f, 1f); // Blue for volume
+        }
+        else if (title.Contains("SENSITIVITY"))
+        {
+            themeColor = new Color(0.95f, 0.6f, 0.1f, 1f); // Yellow/Orange for sensitivity
+        }
+
+        // Background Track (Capsule track)
         GameObject bgObj = new GameObject("Background");
         bgObj.transform.SetParent(container.transform, false);
         RectTransform bgRect = bgObj.AddComponent<RectTransform>();
-        bgRect.anchorMin = new Vector2(0f, 0.45f);
-        bgRect.anchorMax = new Vector2(0.75f, 0.55f);
-        bgRect.offsetMin = Vector2.zero;
-        bgRect.offsetMax = Vector2.zero;
+        bgRect.anchorMin = new Vector2(0f, 0.5f);
+        bgRect.anchorMax = new Vector2(0.75f, 0.5f);
+        bgRect.anchoredPosition = Vector2.zero;
+        bgRect.sizeDelta = new Vector2(0, 24); // Thick 24px track height
         Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+        bgImg.sprite = bgSprite;
+        bgImg.type = Image.Type.Sliced;
+        bgImg.color = new Color(0.06f, 0.07f, 0.1f, 1f); // Very dark navy-gray track background
+
+        Outline trackOutline = bgObj.AddComponent<Outline>();
+        trackOutline.effectColor = new Color(themeColor.r, themeColor.g, themeColor.b, 0.25f); // Subtle tinted track outline
+        trackOutline.effectDistance = new Vector2(1f, 1f);
 
         // Fill Area
         GameObject fillAreaObj = new GameObject("FillArea");
         fillAreaObj.transform.SetParent(container.transform, false);
         RectTransform fillAreaRect = fillAreaObj.AddComponent<RectTransform>();
-        fillAreaRect.anchorMin = new Vector2(0f, 0.45f);
-        fillAreaRect.anchorMax = new Vector2(0.75f, 0.55f);
-        fillAreaRect.offsetMin = new Vector2(5, 0);
-        fillAreaRect.offsetMax = new Vector2(-5, 0);
+        fillAreaRect.anchorMin = new Vector2(0f, 0.5f);
+        fillAreaRect.anchorMax = new Vector2(0.75f, 0.5f);
+        fillAreaRect.anchoredPosition = Vector2.zero;
+        fillAreaRect.sizeDelta = new Vector2(0, 24);
+        fillAreaRect.offsetMin = new Vector2(4, 0);
+        fillAreaRect.offsetMax = new Vector2(-4, 0);
 
         GameObject fillObj = new GameObject("Fill");
         fillObj.transform.SetParent(fillAreaObj.transform, false);
@@ -2248,24 +2270,32 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         fillRect.offsetMin = Vector2.zero;
         fillRect.offsetMax = Vector2.zero;
         Image fillImg = fillObj.AddComponent<Image>();
-        fillImg.color = new Color(0.7f, 0.15f, 0.15f, 1f); // Dark red fill
+        fillImg.sprite = bgSprite;
+        fillImg.type = Image.Type.Sliced;
+        fillImg.color = themeColor;
 
         // Handle Area
         GameObject handleAreaObj = new GameObject("HandleArea");
         handleAreaObj.transform.SetParent(container.transform, false);
         RectTransform handleAreaRect = handleAreaObj.AddComponent<RectTransform>();
-        handleAreaRect.anchorMin = new Vector2(0f, 0f);
-        handleAreaRect.anchorMax = new Vector2(0.75f, 1f);
+        handleAreaRect.anchorMin = new Vector2(0f, 0.5f);
+        handleAreaRect.anchorMax = new Vector2(0.75f, 0.5f);
+        handleAreaRect.anchoredPosition = Vector2.zero;
+        handleAreaRect.sizeDelta = new Vector2(0, 24);
         handleAreaRect.offsetMin = new Vector2(10, 0);
         handleAreaRect.offsetMax = new Vector2(-10, 0);
 
         GameObject handleObj = new GameObject("Handle");
         handleObj.transform.SetParent(handleAreaObj.transform, false);
         RectTransform handleRect = handleObj.AddComponent<RectTransform>();
-        handleRect.sizeDelta = new Vector2(20, 20); // Square block handle
+        handleRect.sizeDelta = new Vector2(28, 28); // Circular knob sticks out slightly (28px knob vs 24px track)
         Image handleImg = handleObj.AddComponent<Image>();
-        handleImg.color = Color.white;
-        handleObj.AddComponent<Outline>().effectColor = Color.black;
+        handleImg.sprite = knobSprite;
+        handleImg.color = themeColor; // Knob matches the fill track theme color
+
+        Outline handleOutline = handleObj.AddComponent<Outline>();
+        handleOutline.effectColor = new Color(0f, 0f, 0f, 0.7f); // Subtle outline to make knob pop
+        handleOutline.effectDistance = new Vector2(1f, -1f);
 
         // Text Value (on the right side)
         GameObject valObj = new GameObject("ValueText");
@@ -2716,7 +2746,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
         if (fpsPosDropdownText != null)
         {
-            fpsPosDropdownText.text = $"{new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" }[tempFPSPosition]}  ▼";
+            fpsPosDropdownText.text = $"{new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "TOP CENTER", "BOTTOM CENTER" }[tempFPSPosition]}  ▼";
         }
 
         // --- PAUSE MENU DROPDOWNS ---
@@ -2742,7 +2772,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
         if (pFpsPosDropdownText != null)
         {
-            pFpsPosDropdownText.text = $"{new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" }[tempFPSPosition]}  ▼";
+            pFpsPosDropdownText.text = $"{new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "TOP CENTER", "BOTTOM CENTER" }[tempFPSPosition]}  ▼";
         }
     }
 
