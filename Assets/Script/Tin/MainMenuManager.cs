@@ -91,6 +91,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private int tempFPSPosition = 0;        // 0=TopRight, 1=TopLeft, 2=BottomRight, 3=BottomLeft, 4=Center
     private float tempZoomSensitivity = 1.0f; // 0.5f đến 2.0f
 
+    private TextMeshProUGUI mainTitleText;
+    private Coroutine titleFlickerCoroutine;
+
     // Đối tượng Tab area và Text hiển thị
     private int activeTab = 0; // 0 = Display, 1 = Controls, 2 = Audio
     private GameObject displayTabArea;
@@ -677,7 +680,18 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void GenerateMainPanel(GameObject canvasGO)
     {
         mainPanel = CreateBasePanel("MainPanel", canvasGO); CanvasGroup cg = mainPanel.AddComponent<CanvasGroup>(); cg.alpha = 0f; cg.interactable = false; cg.blocksRaycasts = false;
-        CreateTitleText(mainPanel, "FRAGMENTS\nOF SURVIVAL", 0.95f, 80, TextAlignmentOptions.TopLeft, new Vector2(0.1f, 0.7f), new Vector2(0.5f, 0.95f));
+        
+        // 3D Drop Shadow Text
+        TextMeshProUGUI shadow = CreateTitleText(mainPanel, "FRAGMENTS\nOF SURVIVAL", 0.95f, 80, TextAlignmentOptions.TopLeft, new Vector2(0.103f, 0.697f), new Vector2(0.503f, 0.947f));
+        shadow.color = new Color(0f, 0f, 0f, 0.8f);
+
+        // Styled Main Title Logo
+        mainTitleText = CreateTitleText(mainPanel, "<color=#7F8C8D>FRAGMENTS</color>\n<size=50%><color=#BDC3C7>OF</color></size> <color=#990000>SURVIVAL</color>", 0.95f, 80, TextAlignmentOptions.TopLeft, new Vector2(0.1f, 0.7f), new Vector2(0.5f, 0.95f));
+
+        // Start neon flicker effect
+        if (titleFlickerCoroutine != null) StopCoroutine(titleFlickerCoroutine);
+        titleFlickerCoroutine = StartCoroutine(TitleFlickerRoutine());
+
         GameObject btnContainer = new GameObject("ButtonContainer"); btnContainer.transform.SetParent(mainPanel.transform, false);
         RectTransform btnRect = btnContainer.AddComponent<RectTransform>(); btnRect.anchorMin = new Vector2(0.1f, 0.1f); btnRect.anchorMax = new Vector2(0.3f, 0.6f); btnRect.offsetMin = Vector2.zero; btnRect.offsetMax = Vector2.zero;
         VerticalLayoutGroup vlg = btnContainer.AddComponent<VerticalLayoutGroup>(); vlg.spacing = 15; vlg.childAlignment = TextAnchor.MiddleLeft; vlg.childControlHeight = false; vlg.childControlWidth = true;
@@ -797,28 +811,37 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         switch (id)
         {
             case 0:
-                title = "EASY MODE";
+                title = "★ EASY MODE ★";
                 themeColor = new Color(0.2f, 0.8f, 0.2f);
-                stats = "<color=#99FF99>ZOMBIE DENSITY:</color> Low\n" +
-                        "<color=#99FF99>SURVIVAL RATE:</color> High (90%)\n" +
-                        "<color=#99FF99>RECOMMENDED FOR:</color> Beginners";
-                desc = "Zombie spawn count is reduced. Ideal for exploring, gathering resources, and learning basic survival mechanics without heavy pressure.";
+                stats = "<color=#99FF99>ZOMBIE DENSITY:</color> Low (-50% Spawn Rate)\n" +
+                        "<color=#99FF99>RESOURCES:</color> Abundant (Loot rate 150%)\n" +
+                        "<color=#99FF99>DAMAGE TAKEN:</color> Reduced (-30% Damage)\n" +
+                        "<color=#99FF99>STARTING GEAR:</color> Pistol + Ammo & Canned Food\n" +
+                        "<color=#99FF99>SURVIVAL RATE:</color> Very High (90%)";
+                desc = "<b>OVERVIEW:</b>\n" +
+                       "Zombie spawn count is reduced. Ideal for exploring, gathering resources, and learning basic survival mechanics without heavy pressure.";
                 break;
             case 1:
-                title = "MEDIUM MODE";
+                title = "✦ SURVIVAL MODE ✦";
                 themeColor = new Color(1f, 0.8f, 0.2f);
-                stats = "<color=#FFFF99>ZOMBIE DENSITY:</color> Standard\n" +
-                        "<color=#FFFF99>SURVIVAL RATE:</color> Balanced (50%)\n" +
-                        "<color=#FFFF99>RECOMMENDED FOR:</color> Normal Players";
-                desc = "The standard zombie survival experience. Spawn rates and cooldown values are set to their default balanced values.";
+                stats = "<color=#FFFF99>ZOMBIE DENSITY:</color> Standard (100% Spawn Rate)\n" +
+                        "<color=#FFFF99>RESOURCES:</color> Balanced distribution\n" +
+                        "<color=#FFFF99>DAMAGE TAKEN:</color> Normal (100% Damage)\n" +
+                        "<color=#FFFF99>STARTING GEAR:</color> Flashlight & Bandage\n" +
+                        "<color=#FFFF99>SURVIVAL RATE:</color> Balanced (50%)";
+                desc = "<b>OVERVIEW:</b>\n" +
+                       "The standard zombie survival experience. Spawn rates and cooldown values are set to their default balanced values. Requires strategic thinking.";
                 break;
             case 2:
-                title = "HARDCORE MODE";
+                title = "☠ HARDCORE MODE ☠";
                 themeColor = new Color(0.9f, 0.15f, 0.15f);
-                stats = "<color=#FF9999>ZOMBIE DENSITY:</color> High\n" +
-                        "<color=#FF9999>SURVIVAL RATE:</color> Extreme (<10%)\n" +
-                        "<color=#FF9999>RECOMMENDED FOR:</color> Hardcore Veterans";
-                desc = "A true nightmare. Zombies are extremely numerous and spawn very quickly. Demands maximum skill and tactical planning.";
+                stats = "<color=#FF9999>ZOMBIE DENSITY:</color> Extreme (+150% Spawn Rate)\n" +
+                        "<color=#FF9999>RESOURCES:</color> Scarce & Depleted (Loot rate 40%)\n" +
+                        "<color=#FF9999>DAMAGE TAKEN:</color> Increased (+50% Damage)\n" +
+                        "<color=#FF9999>STARTING GEAR:</color> None (Empty hands)\n" +
+                        "<color=#FF9999>SURVIVAL RATE:</color> Near Zero (<10%)";
+                desc = "<b>OVERVIEW:</b>\n" +
+                       "A relentless nightmare. Zombies are extremely numerous and spawn very quickly. Demands maximum skill and tactical planning.";
                 break;
         }
 
@@ -826,6 +849,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         diffTitleText.color = themeColor;
         diffStatsText.text = stats;
         diffDescText.text = desc;
+
+        // Dynamic outline color based on difficulty theme
+        Outline outline = diffInfoPanel.GetComponent<Outline>();
+        if (outline != null)
+        {
+            outline.effectColor = new Color(themeColor.r, themeColor.g, themeColor.b, 0.5f);
+        }
     }
 
     private void GenerateMultiplayerPanel_NEW(GameObject canvasGO)
@@ -1748,7 +1778,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     #endregion
 
     // Các hàm tạo UI rút gọn
-    private void CreateTitleText(GameObject parent, string text, float height = 0.9f, int fontSize = 40, TextAlignmentOptions align = TextAlignmentOptions.Center, Vector2? aMin = null, Vector2? aMax = null) { GameObject txtObj = new GameObject("Title"); txtObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = text; txt.fontSize = fontSize; txt.fontStyle = FontStyles.Bold; txt.alignment = align; txt.color = new Color(0.8f, 0.8f, 0.8f, 1f); RectTransform rect = txtObj.GetComponent<RectTransform>(); rect.anchorMin = aMin ?? new Vector2(0, height); rect.anchorMax = aMax ?? new Vector2(1, height); rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; }
+    private TextMeshProUGUI CreateTitleText(GameObject parent, string text, float height = 0.9f, int fontSize = 40, TextAlignmentOptions align = TextAlignmentOptions.Center, Vector2? aMin = null, Vector2? aMax = null) { GameObject txtObj = new GameObject("Title"); txtObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = text; txt.fontSize = fontSize; txt.fontStyle = FontStyles.Bold; txt.alignment = align; txt.color = new Color(0.8f, 0.8f, 0.8f, 1f); RectTransform rect = txtObj.GetComponent<RectTransform>(); rect.anchorMin = aMin ?? new Vector2(0, height); rect.anchorMax = aMax ?? new Vector2(1, height); rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; return txt; }
     private void SetDifficulty(int id) { hostDifficulty = id; PlayerPrefs.SetInt("GameDifficulty", id); PlayerPrefs.Save(); for (int i = 0; i < diffTexts.Length; i++) { if (i == id) { diffTexts[i].color = Color.yellow; diffTexts[i].fontStyle = FontStyles.Bold; } else { diffTexts[i].color = Color.gray; diffTexts[i].fontStyle = FontStyles.Normal; } } }
     private void TogglePassword() { hostHasPassword = !hostHasPassword; if (hostHasPassword) { toggleText.text = "[ YES ]"; toggleText.color = Color.red; passwordInputObj.SetActive(true); } else { toggleText.text = "[ NO ]"; toggleText.color = Color.gray; passwordInputObj.SetActive(false); } }
     private void ChangeCharacter(int direction) { previewID = (previewID + direction + characterNames.Length) % characterNames.Length; charNameText.text = characterNames[previewID]; charStatsText.text = characterStats[previewID]; UpdatePreview(); }
@@ -2133,12 +2163,24 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             activeDropdownOverlay.transform.SetParent(parent.transform, false);
             activeDropdownOverlay.transform.SetAsLastSibling();
 
+            bool growUpwards = (btnMin.y < 0.35f);
             RectTransform overlayRect = activeDropdownOverlay.AddComponent<RectTransform>();
-            overlayRect.anchorMin = new Vector2(btnMin.x, btnMin.y);
-            overlayRect.anchorMax = new Vector2(btnMax.x, btnMin.y);
-            overlayRect.pivot = new Vector2(0.5f, 1f);
-            overlayRect.offsetMin = new Vector2(0, 0);
-            overlayRect.offsetMax = new Vector2(0, -5);
+            if (growUpwards)
+            {
+                overlayRect.anchorMin = new Vector2(btnMin.x, btnMax.y);
+                overlayRect.anchorMax = new Vector2(btnMax.x, btnMax.y);
+                overlayRect.pivot = new Vector2(0.5f, 0f); // Grow upwards
+                overlayRect.offsetMin = new Vector2(0, 5);
+                overlayRect.offsetMax = new Vector2(0, 5);
+            }
+            else
+            {
+                overlayRect.anchorMin = new Vector2(btnMin.x, btnMin.y);
+                overlayRect.anchorMax = new Vector2(btnMax.x, btnMin.y);
+                overlayRect.pivot = new Vector2(0.5f, 1f); // Grow downwards
+                overlayRect.offsetMin = new Vector2(0, -5);
+                overlayRect.offsetMax = new Vector2(0, -5);
+            }
 
             ContentSizeFitter csf = activeDropdownOverlay.AddComponent<ContentSizeFitter>();
             csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -2888,6 +2930,29 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     }
 
     private IEnumerator FadePanel(CanvasGroup panel, float targetAlpha, bool show) { if (show) { panel.gameObject.SetActive(true); panel.blocksRaycasts = true; panel.interactable = true; } else { panel.blocksRaycasts = false; panel.interactable = false; } float startAlpha = panel.alpha; float time = 0f; while (time < 0.25f) { time += Time.unscaledDeltaTime; panel.alpha = Mathf.Lerp(startAlpha, targetAlpha, time / 0.25f); yield return null; } panel.alpha = targetAlpha; if (!show) panel.gameObject.SetActive(false); }
+
+    private IEnumerator TitleFlickerRoutine()
+    {
+        while (true)
+        {
+            yield return new WaitForSecondsRealtime(Random.Range(3f, 6f));
+            if (mainTitleText != null)
+            {
+                // Rapid double flicker
+                mainTitleText.alpha = 0.3f;
+                yield return new WaitForSecondsRealtime(Random.Range(0.05f, 0.12f));
+                mainTitleText.alpha = 1.0f;
+                yield return new WaitForSecondsRealtime(Random.Range(0.05f, 0.12f));
+                
+                if (Random.value > 0.5f)
+                {
+                    mainTitleText.alpha = 0.2f;
+                    yield return new WaitForSecondsRealtime(Random.Range(0.04f, 0.08f));
+                    mainTitleText.alpha = 1.0f;
+                }
+            }
+        }
+    }
 }
 
 public class AutoMenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler, IPointerUpHandler
