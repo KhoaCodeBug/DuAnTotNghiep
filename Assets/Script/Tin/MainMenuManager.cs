@@ -88,6 +88,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private int tempShadowQuality = 2;      // 0=Disabled, 1=Hard, 2=Soft
     private int tempAntiAliasing = 2;       // 0=Off, 1=2x, 2=4x, 3=8x
     private int tempShowFPS = 1;            // 0=Off, 1=On
+    private int tempFPSPosition = 0;        // 0=TopRight, 1=TopLeft, 2=BottomRight, 3=BottomLeft, 4=Center
     private float tempZoomSensitivity = 1.0f; // 0.5f đến 2.0f
 
     // Đối tượng Tab area và Text hiển thị
@@ -136,6 +137,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private TextMeshProUGUI sfxValText;
     private TextMeshProUGUI resDropdownText;
     private TextMeshProUGUI modeDropdownText;
+    private TextMeshProUGUI fpsPosDropdownText;
+    private TextMeshProUGUI pFpsPosDropdownText;
 
     private string[] windowModeLabels = new string[] { "FULLSCREEN", "BORDERLESS", "WINDOWED" };
     private GameObject activeDropdownOverlay = null;
@@ -411,38 +414,73 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateTabButton(pTabBar, "AUDIO", () => showPauseTab(2), new Vector2(0.62f, 0.1f), new Vector2(0.78f, 0.9f), out pAudBtnTxt);
 
         // === DISPLAY TAB (không có Resolution và Display Mode) ===
-        float pStartY = 0.82f;
-        float pSpacing = 0.13f;
+        float pStartY = 0.85f;
+        float pSpacing = 0.105f;
+
+        string[] pQualityLabels = new string[] { "LOW", "MEDIUM", "HIGH" };
+        string[] pShadowLabels = new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" };
+        string[] pAaLabels = new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" };
+        string[] pFpsShowLabels = new string[] { "OFF", "ON" };
+        string[] pFpsPosLabels = new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" };
 
         // 1. Graphics Quality
-        CreateLabel(pDisplayTab, "GRAPHICS QUALITY:", new Vector2(0.05f, pStartY - 0.04f), new Vector2(0.4f, pStartY + 0.02f));
-        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - 0.05f), new Vector2(0.95f, pStartY + 0.03f),
-            () => AdjustQuality(-1), () => AdjustQuality(1), out pQualText);
+        CreateDropdown(pDisplayTab, "GRAPHICS QUALITY:",
+            new Vector2(0.05f, pStartY - 0.04f), new Vector2(0.4f, pStartY + 0.02f),
+            new Vector2(0.45f, pStartY - 0.05f), new Vector2(0.95f, pStartY + 0.03f),
+            pQualityLabels, () => tempQualityLevel, (idx) => {
+                tempQualityLevel = idx;
+                UpdateDropdownTexts();
+            }, out pQualText);
 
         // 2. Shadow Quality
-        CreateLabel(pDisplayTab, "SHADOW QUALITY:", new Vector2(0.05f, pStartY - pSpacing - 0.04f), new Vector2(0.4f, pStartY - pSpacing + 0.02f));
-        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing - 0.05f), new Vector2(0.95f, pStartY - pSpacing + 0.03f),
-            () => AdjustShadows(-1), () => AdjustShadows(1), out pShadText);
+        CreateDropdown(pDisplayTab, "SHADOW QUALITY:",
+            new Vector2(0.05f, pStartY - pSpacing - 0.04f), new Vector2(0.4f, pStartY - pSpacing + 0.02f),
+            new Vector2(0.45f, pStartY - pSpacing - 0.05f), new Vector2(0.95f, pStartY - pSpacing + 0.03f),
+            pShadowLabels, () => tempShadowQuality, (idx) => {
+                tempShadowQuality = idx;
+                UpdateDropdownTexts();
+            }, out pShadText);
 
         // 3. Anti-Aliasing
-        CreateLabel(pDisplayTab, "ANTI-ALIASING:", new Vector2(0.05f, pStartY - pSpacing*2 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*2 + 0.02f));
-        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*2 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*2 + 0.03f),
-            () => AdjustAntiAliasing(-1), () => AdjustAntiAliasing(1), out pAAText);
+        CreateDropdown(pDisplayTab, "ANTI-ALIASING:",
+            new Vector2(0.05f, pStartY - pSpacing*2 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*2 + 0.02f),
+            new Vector2(0.45f, pStartY - pSpacing*2 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*2 + 0.03f),
+            pAaLabels, () => tempAntiAliasing, (idx) => {
+                tempAntiAliasing = idx;
+                UpdateDropdownTexts();
+            }, out pAAText);
 
         // 4. FPS Limit
-        CreateLabel(pDisplayTab, "FPS LIMIT:", new Vector2(0.05f, pStartY - pSpacing*3 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*3 + 0.02f));
-        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
-            () => AdjustFPS(-1), () => AdjustFPS(1), out pFpsText);
+        CreateDropdown(pDisplayTab, "FPS LIMIT:",
+            new Vector2(0.05f, pStartY - pSpacing*3 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*3 + 0.02f),
+            new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
+            fpsLabels, () => tempFpsIndex, (idx) => {
+                tempFpsIndex = idx;
+                UpdateDropdownTexts();
+            }, out pFpsText);
 
-        // 5. Brightness
+        // 5. Brightness (remains horizontal selector as it is adjustment)
         CreateLabel(pDisplayTab, "BRIGHTNESS:", new Vector2(0.05f, pStartY - pSpacing*4 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*4 + 0.02f));
         CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*4 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*4 + 0.03f),
             () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out pBrightText);
 
         // 6. Show FPS
-        CreateLabel(pDisplayTab, "SHOW FPS:", new Vector2(0.05f, pStartY - pSpacing*5 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*5 + 0.02f));
-        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*5 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*5 + 0.03f),
-            () => AdjustShowFPS(-1), () => AdjustShowFPS(1), out pFpsShowText);
+        CreateDropdown(pDisplayTab, "SHOW FPS:",
+            new Vector2(0.05f, pStartY - pSpacing*5 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*5 + 0.02f),
+            new Vector2(0.45f, pStartY - pSpacing*5 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*5 + 0.03f),
+            pFpsShowLabels, () => tempShowFPS, (idx) => {
+                tempShowFPS = idx;
+                UpdateDropdownTexts();
+            }, out pFpsShowText);
+
+        // 7. FPS Position
+        CreateDropdown(pDisplayTab, "FPS POSITION:",
+            new Vector2(0.05f, pStartY - pSpacing*6 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*6 + 0.02f),
+            new Vector2(0.45f, pStartY - pSpacing*6 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*6 + 0.03f),
+            pFpsPosLabels, () => tempFPSPosition, (idx) => {
+                tempFPSPosition = idx;
+                UpdateDropdownTexts();
+            }, out pFpsPosDropdownText);
 
         // === CONTROLS TAB ===
         float pStartYCtrl = 0.70f;
@@ -1796,9 +1834,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateTabButton(tabBar, "CONTROLS", () => ShowTab(1), new Vector2(0.42f, 0.1f), new Vector2(0.58f, 0.9f), out controlsTabBtnText);
         CreateTabButton(tabBar, "AUDIO", () => ShowTab(2), new Vector2(0.62f, 0.1f), new Vector2(0.78f, 0.9f), out audioTabBtnText);
 
-        // POPULATE TAB 1: DISPLAY (startY = 0.88f, spacingY = 0.11f)
+        // POPULATE TAB 1: DISPLAY (startY = 0.88f, spacingY = 0.095f)
         float startY = 0.88f;
-        float spacingY = 0.11f;
+        float spacingY = 0.095f;
+
+        string[] qualityLabels = new string[] { "LOW", "MEDIUM", "HIGH" };
+        string[] shadowLabels = new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" };
+        string[] aaLabels = new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" };
+        string[] fpsShowLabels = new string[] { "OFF", "ON" };
+        string[] fpsPosLabels = new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" };
 
         // 1. Display Mode
         CreateDropdown(displayTabArea, "DISPLAY MODE:", 
@@ -1824,34 +1868,63 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             }, out resDropdownText);
 
         // 3. Graphics Quality
-        CreateLabel(displayTabArea, "GRAPHICS QUALITY:", new Vector2(0.05f, startY - spacingY*2 - 0.04f), new Vector2(0.4f, startY - spacingY*2 + 0.02f));
-        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*2 - 0.05f), new Vector2(0.95f, startY - spacingY*2 + 0.03f),
-            () => AdjustQuality(-1), () => AdjustQuality(1), out qualityValText);
+        CreateDropdown(displayTabArea, "GRAPHICS QUALITY:",
+            new Vector2(0.05f, startY - spacingY*2 - 0.04f), new Vector2(0.4f, startY - spacingY*2 + 0.02f),
+            new Vector2(0.45f, startY - spacingY*2 - 0.05f), new Vector2(0.95f, startY - spacingY*2 + 0.03f),
+            qualityLabels, () => tempQualityLevel, (idx) => {
+                tempQualityLevel = idx;
+                UpdateDropdownTexts();
+            }, out qualityValText);
 
         // 4. Shadow Quality
-        CreateLabel(displayTabArea, "SHADOW QUALITY:", new Vector2(0.05f, startY - spacingY*3 - 0.04f), new Vector2(0.4f, startY - spacingY*3 + 0.02f));
-        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*3 - 0.05f), new Vector2(0.95f, startY - spacingY*3 + 0.03f),
-            () => AdjustShadows(-1), () => AdjustShadows(1), out shadowValText);
+        CreateDropdown(displayTabArea, "SHADOW QUALITY:",
+            new Vector2(0.05f, startY - spacingY*3 - 0.04f), new Vector2(0.4f, startY - spacingY*3 + 0.02f),
+            new Vector2(0.45f, startY - spacingY*3 - 0.05f), new Vector2(0.95f, startY - spacingY*3 + 0.03f),
+            shadowLabels, () => tempShadowQuality, (idx) => {
+                tempShadowQuality = idx;
+                UpdateDropdownTexts();
+            }, out shadowValText);
 
         // 5. Anti Aliasing
-        CreateLabel(displayTabArea, "ANTI-ALIASING:", new Vector2(0.05f, startY - spacingY*4 - 0.04f), new Vector2(0.4f, startY - spacingY*4 + 0.02f));
-        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*4 - 0.05f), new Vector2(0.95f, startY - spacingY*4 + 0.03f),
-            () => AdjustAntiAliasing(-1), () => AdjustAntiAliasing(1), out aaValText);
+        CreateDropdown(displayTabArea, "ANTI-ALIASING:",
+            new Vector2(0.05f, startY - spacingY*4 - 0.04f), new Vector2(0.4f, startY - spacingY*4 + 0.02f),
+            new Vector2(0.45f, startY - spacingY*4 - 0.05f), new Vector2(0.95f, startY - spacingY*4 + 0.03f),
+            aaLabels, () => tempAntiAliasing, (idx) => {
+                tempAntiAliasing = idx;
+                UpdateDropdownTexts();
+            }, out aaValText);
 
         // 6. FPS Limit
-        CreateLabel(displayTabArea, "FPS LIMIT:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
-        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
-            () => AdjustFPS(-1), () => AdjustFPS(1), out fpsValText);
+        CreateDropdown(displayTabArea, "FPS LIMIT:",
+            new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f),
+            new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
+            fpsLabels, () => tempFpsIndex, (idx) => {
+                tempFpsIndex = idx;
+                UpdateDropdownTexts();
+            }, out fpsValText);
 
-        // 7. Brightness
+        // 7. Brightness (remains horizontal selector as it is adjustment)
         CreateLabel(displayTabArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*6 - 0.04f), new Vector2(0.4f, startY - spacingY*6 + 0.02f));
         CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*6 - 0.05f), new Vector2(0.95f, startY - spacingY*6 + 0.03f),
             () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out brightValText);
 
         // 8. Show FPS
-        CreateLabel(displayTabArea, "SHOW FPS:", new Vector2(0.05f, startY - spacingY*7 - 0.04f), new Vector2(0.4f, startY - spacingY*7 + 0.02f));
-        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*7 - 0.05f), new Vector2(0.95f, startY - spacingY*7 + 0.03f),
-            () => AdjustShowFPS(-1), () => AdjustShowFPS(1), out fpsShowValText);
+        CreateDropdown(displayTabArea, "SHOW FPS:",
+            new Vector2(0.05f, startY - spacingY*7 - 0.04f), new Vector2(0.4f, startY - spacingY*7 + 0.02f),
+            new Vector2(0.45f, startY - spacingY*7 - 0.05f), new Vector2(0.95f, startY - spacingY*7 + 0.03f),
+            fpsShowLabels, () => tempShowFPS, (idx) => {
+                tempShowFPS = idx;
+                UpdateDropdownTexts();
+            }, out fpsShowValText);
+
+        // 9. FPS Position
+        CreateDropdown(displayTabArea, "FPS POSITION:",
+            new Vector2(0.05f, startY - spacingY*8 - 0.04f), new Vector2(0.4f, startY - spacingY*8 + 0.02f),
+            new Vector2(0.45f, startY - spacingY*8 - 0.05f), new Vector2(0.95f, startY - spacingY*8 + 0.03f),
+            fpsPosLabels, () => tempFPSPosition, (idx) => {
+                tempFPSPosition = idx;
+                UpdateDropdownTexts();
+            }, out fpsPosDropdownText);
 
 
         // POPULATE TAB 2: CONTROLS
@@ -2140,9 +2213,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateQualityText()
     {
-        string[] labels = new string[] { "LOW", "MEDIUM", "HIGH" };
-        if (qualityValText != null) qualityValText.text = labels[tempQualityLevel];
-        if (pQualText != null) pQualText.text = labels[tempQualityLevel];
+        UpdateDropdownTexts();
     }
 
     private void AdjustShadows(int delta)
@@ -2157,9 +2228,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateShadowText()
     {
-        string[] labels = new string[] { "DISABLED", "HARD ONLY", "SOFT SHADOWS" };
-        if (shadowValText != null) shadowValText.text = labels[tempShadowQuality];
-        if (pShadText != null) pShadText.text = labels[tempShadowQuality];
+        UpdateDropdownTexts();
     }
 
     private void AdjustAntiAliasing(int delta)
@@ -2174,9 +2243,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateAAText()
     {
-        string[] labels = new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" };
-        if (aaValText != null) aaValText.text = labels[tempAntiAliasing];
-        if (pAAText != null) pAAText.text = labels[tempAntiAliasing];
+        UpdateDropdownTexts();
     }
 
     private void AdjustShowFPS(int delta)
@@ -2191,9 +2258,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateShowFPSText()
     {
-        string val = (tempShowFPS == 1) ? "ON" : "OFF";
-        if (fpsShowValText != null) fpsShowValText.text = val;
-        if (pFpsShowText != null) pFpsShowText.text = val;
+        UpdateDropdownTexts();
     }
 
     private void AdjustZoomSensitivity(float delta)
@@ -2223,9 +2288,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void UpdateFPSText()
     {
-        string val = fpsLabels[tempFpsIndex];
-        if (fpsValText != null) fpsValText.text = val;
-        if (pFpsText != null) pFpsText.text = val;
+        UpdateDropdownTexts();
     }
 
     private void AdjustSensitivity(float delta)
@@ -2345,6 +2408,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         tempShadowQuality = Mathf.Clamp(PlayerPrefs.GetInt("GameShadowQuality", 2), 0, 2);
         tempAntiAliasing = Mathf.Clamp(PlayerPrefs.GetInt("GameAntiAliasing", 2), 0, 3);
         tempShowFPS = Mathf.Clamp(PlayerPrefs.GetInt("GameShowFPS", 1), 0, 1);
+        tempFPSPosition = Mathf.Clamp(PlayerPrefs.GetInt("GameFPSPosition", 0), 0, 4);
         tempZoomSensitivity = PlayerPrefs.GetFloat("ZoomSensitivity", 1.0f);
 
         UpdateFPSText();
@@ -2377,6 +2441,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             GlobalSettingsManager.Instance.ApplyShadowQuality(tempShadowQuality);
             GlobalSettingsManager.Instance.ApplyAntiAliasing(tempAntiAliasing);
             GlobalSettingsManager.Instance.ApplyShowFPS(tempShowFPS == 1);
+            GlobalSettingsManager.Instance.ApplyFPSPosition(tempFPSPosition);
         }
 
         if (PZ_CameraController.Instance != null)
@@ -2403,6 +2468,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         PlayerPrefs.SetInt("GameShadowQuality", tempShadowQuality);
         PlayerPrefs.SetInt("GameAntiAliasing", tempAntiAliasing);
         PlayerPrefs.SetInt("GameShowFPS", tempShowFPS);
+        PlayerPrefs.SetInt("GameFPSPosition", tempFPSPosition);
         PlayerPrefs.SetFloat("ZoomSensitivity", tempZoomSensitivity);
         PlayerPrefs.Save();
 
@@ -2442,9 +2508,72 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         if (tempShadowQuality != PlayerPrefs.GetInt("GameShadowQuality", 2)) return true;
         if (tempAntiAliasing != PlayerPrefs.GetInt("GameAntiAliasing", 2)) return true;
         if (tempShowFPS != PlayerPrefs.GetInt("GameShowFPS", 1)) return true;
+        if (tempFPSPosition != PlayerPrefs.GetInt("GameFPSPosition", 0)) return true;
         if (Mathf.Abs(tempZoomSensitivity - PlayerPrefs.GetFloat("ZoomSensitivity", 1.0f)) > 0.01f) return true;
 
         return false;
+    }
+
+    private void UpdateDropdownTexts()
+    {
+        if (resDropdownText != null)
+        {
+            resDropdownText.text = $"{commonResolutions[tempResIndex].x} x {commonResolutions[tempResIndex].y}  ▼";
+        }
+        if (modeDropdownText != null)
+        {
+            modeDropdownText.text = $"{windowModeLabels[tempWindowMode]}  ▼";
+        }
+        if (qualityValText != null)
+        {
+            qualityValText.text = $"{new string[] { "LOW", "MEDIUM", "HIGH" }[tempQualityLevel]}  ▼";
+        }
+        if (shadowValText != null)
+        {
+            shadowValText.text = $"{new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" }[tempShadowQuality]}  ▼";
+        }
+        if (aaValText != null)
+        {
+            aaValText.text = $"{new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" }[tempAntiAliasing]}  ▼";
+        }
+        if (fpsValText != null)
+        {
+            fpsValText.text = $"{fpsLabels[tempFpsIndex]}  ▼";
+        }
+        if (fpsShowValText != null)
+        {
+            fpsShowValText.text = $"{new string[] { "OFF", "ON" }[tempShowFPS]}  ▼";
+        }
+        if (fpsPosDropdownText != null)
+        {
+            fpsPosDropdownText.text = $"{new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" }[tempFPSPosition]}  ▼";
+        }
+
+        // --- PAUSE MENU DROPDOWNS ---
+        if (pQualText != null)
+        {
+            pQualText.text = $"{new string[] { "LOW", "MEDIUM", "HIGH" }[tempQualityLevel]}  ▼";
+        }
+        if (pShadText != null)
+        {
+            pShadText.text = $"{new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" }[tempShadowQuality]}  ▼";
+        }
+        if (pAAText != null)
+        {
+            pAAText.text = $"{new string[] { "DISABLED", "2x MSAA", "4x MSAA", "8x MSAA" }[tempAntiAliasing]}  ▼";
+        }
+        if (pFpsText != null)
+        {
+            pFpsText.text = $"{fpsLabels[tempFpsIndex]}  ▼";
+        }
+        if (pFpsShowText != null)
+        {
+            pFpsShowText.text = $"{new string[] { "OFF", "ON" }[tempShowFPS]}  ▼";
+        }
+        if (pFpsPosDropdownText != null)
+        {
+            pFpsPosDropdownText.text = $"{new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" }[tempFPSPosition]}  ▼";
+        }
     }
 
     private void ShowTab(int tabIndex)
@@ -2466,17 +2595,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    private void UpdateDropdownTexts()
-    {
-        if (resDropdownText != null)
-        {
-            resDropdownText.text = $"{commonResolutions[tempResIndex].x} x {commonResolutions[tempResIndex].y}  ▼";
-        }
-        if (modeDropdownText != null)
-        {
-            modeDropdownText.text = $"{windowModeLabels[tempWindowMode]}  ▼";
-        }
-    }
 
     public bool IsOptionsOpen => optionsPanel != null && optionsPanel.activeSelf;
     public bool IsPauseMenuOpen => isPauseMenuOpen || (pauseMenuPanel != null && pauseMenuPanel.activeSelf);
@@ -2577,12 +2695,41 @@ public class AutoMenuButtonEffect : MonoBehaviour, IPointerEnterHandler, IPointe
     private Color normalColor = new Color(0.7f, 0.7f, 0.7f, 1f);
     private Color hoverColor = new Color(0.7f, 0.15f, 0.15f, 1f);
     private Vector3 originalPos;
+    private bool originalPosCaptured = false;
     private bool isCentered;
     private Coroutine colorRoutine, moveRoutine;
 
-    public void Setup(TextMeshProUGUI textComponent, bool center) { btnText = textComponent; btnText.color = normalColor; originalPos = btnText.transform.localPosition; isCentered = center; }
-    public void OnPointerEnter(PointerEventData eventData) { AnimateColor(hoverColor); if (!isCentered) AnimateMove(originalPos + new Vector3(15f, 0, 0)); if (AutoMainMenuManager.Instance != null) AutoMainMenuManager.Instance.PlayHoverSFX(); }
-    public void OnPointerExit(PointerEventData eventData) { AnimateColor(normalColor); if (!isCentered) AnimateMove(originalPos); }
+    public void Setup(TextMeshProUGUI textComponent, bool center) 
+    { 
+        btnText = textComponent; 
+        btnText.color = normalColor; 
+        originalPos = btnText.transform.localPosition; 
+        originalPosCaptured = true;
+        isCentered = center; 
+    }
+
+    private void OnEnable()
+    {
+        ResetVisuals();
+    }
+
+    public void ResetVisuals()
+    {
+        if (btnText != null)
+        {
+            if (colorRoutine != null) StopCoroutine(colorRoutine);
+            if (moveRoutine != null) StopCoroutine(moveRoutine);
+            btnText.color = normalColor;
+            btnText.transform.localScale = Vector3.one;
+            if (originalPosCaptured)
+            {
+                btnText.transform.localPosition = originalPos;
+            }
+        }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData) { AnimateColor(hoverColor); if (!isCentered && originalPosCaptured) AnimateMove(originalPos + new Vector3(15f, 0, 0)); if (AutoMainMenuManager.Instance != null) AutoMainMenuManager.Instance.PlayHoverSFX(); }
+    public void OnPointerExit(PointerEventData eventData) { AnimateColor(normalColor); if (!isCentered && originalPosCaptured) AnimateMove(originalPos); }
     public void OnPointerDown(PointerEventData eventData) { if (btnText != null) btnText.transform.localScale = Vector3.one * 0.9f; if (AutoMainMenuManager.Instance != null) AutoMainMenuManager.Instance.PlayClickSFX(); }
     public void OnPointerUp(PointerEventData eventData) { if (btnText != null) btnText.transform.localScale = Vector3.one; }
     private void AnimateColor(Color target) { if (btnText == null) return; if (colorRoutine != null) StopCoroutine(colorRoutine); colorRoutine = StartCoroutine(DoColor(target, 0.15f)); }

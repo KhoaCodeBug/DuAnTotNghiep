@@ -117,6 +117,10 @@ public class GlobalSettingsManager : MonoBehaviour
         int showFps = PlayerPrefs.GetInt("GameShowFPS", 1); // 0 = Off, 1 = On
         ApplyShowFPS(showFps == 1);
 
+        // 10. Vị trí hiển thị FPS
+        int fpsPos = PlayerPrefs.GetInt("GameFPSPosition", 0);
+        ApplyFPSPosition(fpsPos);
+
         // 3. Giới hạn khung hình (FPS Limit)
         int fps = PlayerPrefs.GetInt("GameFPSLimit", 60); // 30, 60, 120, -1 (unlimited)
         QualitySettings.vSyncCount = 0; // Bắt buộc tắt VSync để giới hạn FPS hoạt động thực tế chính xác
@@ -185,6 +189,52 @@ public class GlobalSettingsManager : MonoBehaviour
         if (fpsCounterText != null)
         {
             fpsCounterText.gameObject.SetActive(show);
+        }
+    }
+
+    public void ApplyFPSPosition(int posIndex)
+    {
+        if (fpsCounterText == null) return;
+        RectTransform fpsRt = fpsCounterText.GetComponent<RectTransform>();
+        if (fpsRt == null) return;
+
+        switch (posIndex)
+        {
+            case 0: // TOP RIGHT
+                fpsRt.anchorMin = new Vector2(1f, 1f);
+                fpsRt.anchorMax = new Vector2(1f, 1f);
+                fpsRt.pivot = new Vector2(1f, 1f);
+                fpsRt.anchoredPosition = new Vector2(-155f, -15f); // Placed to the left of our enlarged clock
+                fpsCounterText.alignment = TextAlignmentOptions.Right;
+                break;
+            case 1: // TOP LEFT
+                fpsRt.anchorMin = new Vector2(0f, 1f);
+                fpsRt.anchorMax = new Vector2(0f, 1f);
+                fpsRt.pivot = new Vector2(0f, 1f);
+                fpsRt.anchoredPosition = new Vector2(15f, -15f); // High-precision top-left corner
+                fpsCounterText.alignment = TextAlignmentOptions.Left;
+                break;
+            case 2: // BOTTOM RIGHT
+                fpsRt.anchorMin = new Vector2(1f, 0f);
+                fpsRt.anchorMax = new Vector2(1f, 0f);
+                fpsRt.pivot = new Vector2(1f, 0f);
+                fpsRt.anchoredPosition = new Vector2(-15f, 15f); // High-precision bottom-right corner
+                fpsCounterText.alignment = TextAlignmentOptions.Right;
+                break;
+            case 3: // BOTTOM LEFT
+                fpsRt.anchorMin = new Vector2(0f, 0f);
+                fpsRt.anchorMax = new Vector2(0f, 0f);
+                fpsRt.pivot = new Vector2(0f, 0f);
+                fpsRt.anchoredPosition = new Vector2(15f, 15f); // High-precision bottom-left corner
+                fpsCounterText.alignment = TextAlignmentOptions.Left;
+                break;
+            case 4: // CENTER
+                fpsRt.anchorMin = new Vector2(0.5f, 0.5f);
+                fpsRt.anchorMax = new Vector2(0.5f, 0.5f);
+                fpsRt.pivot = new Vector2(0.5f, 0.5f);
+                fpsRt.anchoredPosition = Vector2.zero; // Direct screen center
+                fpsCounterText.alignment = TextAlignmentOptions.Center;
+                break;
         }
     }
 

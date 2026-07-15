@@ -33,12 +33,13 @@ public class AutoChatManager : MonoBehaviour
         }
     }
 
-    // ========================= THAM CHIẾU UI =========================
     private CanvasGroup chatGroup;
     private Text chatHistory;
     private InputField chatInput;
     private GameObject inputContainer;
     private ScrollRect scrollRect;
+    private RectTransform chatPanelRt;
+    private Image vpBg;
 
     // ========================= CẤU HÌNH =========================
     private const float SHOW_DURATION = 6f;
@@ -106,6 +107,7 @@ public class AutoChatManager : MonoBehaviour
             new Vector2(0, 0), new Vector2(0, 0),
             new Vector2(20, 95), new Vector2(400, 230));
         panel.pivot = new Vector2(0, 0);
+        chatPanelRt = panel;
 
         chatGroup = panel.gameObject.AddComponent<CanvasGroup>();
         chatGroup.alpha           = 0f;
@@ -128,7 +130,7 @@ public class AutoChatManager : MonoBehaviour
 
         // Viewport
         var viewport = MakeRectStretch("Viewport", scrollGo.transform);
-        var vpBg     = viewport.gameObject.AddComponent<Image>();
+        vpBg         = viewport.gameObject.AddComponent<Image>();
         vpBg.color   = new Color(0f, 0f, 0f, 0.45f);
         var mask     = viewport.gameObject.AddComponent<Mask>();
         mask.showMaskGraphic = true;
@@ -243,19 +245,57 @@ public class AutoChatManager : MonoBehaviour
             CloseChat();
         }
 
-        // --- Logic làm mờ dần ---
-        if (isTyping)
+        // --- Logic phát sáng, kéo thả & tự động làm mờ khi di chuột ---
+        bool isHovered = false;
+        bool isDragging = false;
+
+        if (chatPanelRt != null)
+        {
+            Vector2 localMousePos;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                chatPanelRt,
+                Input.mousePosition,
+                null,
+                out localMousePos);
+
+            isHovered = chatPanelRt.rect.Contains(localMousePos);
+
+            var draggable = chatPanelRt.GetComponentInChildren<UIDraggable>();
+            if (draggable != null && draggable.IsDragging)
+            {
+                isDragging = true;
+                isHovered = true;
+            }
+        }
+
+        if (isTyping || isHovered || isDragging)
         {
             chatGroup.alpha = 1f;
-        }
-        else if (fadeTimer > 0f)
-        {
-            fadeTimer        -= Time.deltaTime;
-            chatGroup.alpha   = 1f;
+            chatGroup.blocksRaycasts = true;
+            if (vpBg != null)
+            {
+                vpBg.color = new Color(0.08f, 0.08f, 0.08f, 0.9f); // Phát sáng đậm đà hơn khi rê chuột vào
+            }
+            fadeTimer = SHOW_DURATION; // Reset thời gian chờ mờ dần
         }
         else
         {
-            chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
+            if (vpBg != null)
+            {
+                vpBg.color = new Color(0f, 0f, 0f, 0.45f);
+            }
+
+            if (fadeTimer > 0f)
+            {
+                fadeTimer        -= Time.deltaTime;
+                chatGroup.alpha   = 1f;
+                chatGroup.blocksRaycasts = false; // Cho phép click xuyên qua để bắn zombie khi chơi bình thường
+            }
+            else
+            {
+                chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
+                chatGroup.blocksRaycasts = false;
+            }
         }
 
         // Reset cờ ở cuối frame Update
@@ -385,10 +425,11 @@ public class AutoChatManager : MonoBehaviour
     }
 }
 
-public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
+public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public RectTransform targetToDrag;
     private Vector2 dragOffset;
+    public bool IsDragging { get; private set; }
 
     void Start()
     {
@@ -399,6 +440,7 @@ public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (targetToDrag == null) return;
+        IsDragging = true;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             targetToDrag.parent as RectTransform,
             eventData.position,
@@ -419,6 +461,11 @@ public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler
             
         targetToDrag.anchoredPosition = localMousePos + dragOffset;
         ClampToParent();
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        IsDragging = false;
     }
 
     private void ClampToParent()

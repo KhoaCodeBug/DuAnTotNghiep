@@ -1558,7 +1558,7 @@ public class AutoUIManager : MonoBehaviour
 
         RectTransform containerRt = ammoContainer.AddComponent<RectTransform>();
         containerRt.anchorMin = new Vector2(0, 0); containerRt.anchorMax = new Vector2(0, 0);
-        containerRt.pivot = new Vector2(0, 0); containerRt.anchoredPosition = new Vector2(10, 15); containerRt.sizeDelta = new Vector2(250, 25);
+        containerRt.pivot = new Vector2(0, 0); containerRt.anchoredPosition = new Vector2(10, 15); containerRt.sizeDelta = new Vector2(300, 40);
 
         GameObject iconObj = new GameObject("AmmoIcon");
         iconObj.transform.SetParent(ammoContainer.transform, false);
@@ -1568,7 +1568,7 @@ public class AutoUIManager : MonoBehaviour
 
         RectTransform iconRt = iconObj.GetComponent<RectTransform>();
         iconRt.anchorMin = new Vector2(0, 0.5f); iconRt.anchorMax = new Vector2(0, 0.5f);
-        iconRt.pivot = new Vector2(0, 0.5f); iconRt.anchoredPosition = new Vector2(15, 0); iconRt.sizeDelta = new Vector2(15, 30);
+        iconRt.pivot = new Vector2(0, 0.5f); iconRt.anchoredPosition = new Vector2(15, 0); iconRt.sizeDelta = new Vector2(22, 44);
 
         GameObject textObj = new GameObject("AmmoText");
         textObj.transform.SetParent(ammoContainer.transform, false);
@@ -1577,11 +1577,11 @@ public class AutoUIManager : MonoBehaviour
         TMP_FontAsset defaultFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
         if (defaultFont != null) ammoText.font = defaultFont; else if (gameFont != null) ammoText.font = gameFont;
 
-        ammoText.fontSize = 20; ammoText.color = Color.white; ammoText.alignment = TextAlignmentOptions.MidlineLeft;
+        ammoText.fontSize = 28; ammoText.color = Color.white; ammoText.alignment = TextAlignmentOptions.MidlineLeft;
 
         RectTransform textRt = textObj.GetComponent<RectTransform>();
         textRt.anchorMin = new Vector2(0, 0.5f); textRt.anchorMax = new Vector2(0, 0.5f);
-        textRt.pivot = new Vector2(0, 0.5f); textRt.anchoredPosition = new Vector2(50, 0); textRt.sizeDelta = new Vector2(200, 25);
+        textRt.pivot = new Vector2(0, 0.5f); textRt.anchoredPosition = new Vector2(60, 0); textRt.sizeDelta = new Vector2(200, 40);
         ammoText.text = "-- / --";
     }
 
@@ -1624,7 +1624,7 @@ public class AutoUIManager : MonoBehaviour
         panelRect.anchorMax = new Vector2(1, 1);
         panelRect.pivot = new Vector2(1, 1);
         panelRect.anchoredPosition = new Vector2(-15, -15);
-        panelRect.sizeDelta = new Vector2(90, 30);
+        panelRect.sizeDelta = new Vector2(130, 40);
 
         Image bg = clockPanel.AddComponent<Image>();
         bg.color = new Color(0.1f, 0.1f, 0.15f, 0.9f);
@@ -1641,7 +1641,7 @@ public class AutoUIManager : MonoBehaviour
         }
 
         clockText.text = "12:00";
-        clockText.fontSize = 20;
+        clockText.fontSize = 28;
         clockText.fontStyle = FontStyles.Bold;
         clockText.alignment = TextAlignmentOptions.Center;
         clockText.color = new Color(0.9f, 0.9f, 0.9f, 1f);
