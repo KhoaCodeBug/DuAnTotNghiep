@@ -450,19 +450,25 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 UpdateDropdownTexts();
             }, out pAAText);
 
-        // 4. FPS Limit
+        // 4. Brightness (using custom slider)
+        CreateLabel(pDisplayTab, "BRIGHTNESS:", new Vector2(0.05f, pStartY - pSpacing*3 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*3 + 0.02f));
+        CreateSlider(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
+            0.5f, 1.5f, () => tempBrightness, (val) => {
+                tempBrightness = val;
+                if (GlobalSettingsManager.Instance != null)
+                {
+                    GlobalSettingsManager.Instance.ApplyBrightness(val);
+                }
+            }, out pBrightText, "%");
+
+        // 5. FPS Limit
         CreateDropdown(pDisplayTab, "FPS LIMIT:",
-            new Vector2(0.05f, pStartY - pSpacing*3 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*3 + 0.02f),
-            new Vector2(0.45f, pStartY - pSpacing*3 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*3 + 0.03f),
+            new Vector2(0.05f, pStartY - pSpacing*4 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*4 + 0.02f),
+            new Vector2(0.45f, pStartY - pSpacing*4 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*4 + 0.03f),
             fpsLabels, () => tempFpsIndex, (idx) => {
                 tempFpsIndex = idx;
                 UpdateDropdownTexts();
             }, out pFpsText);
-
-        // 5. Brightness (remains horizontal selector as it is adjustment)
-        CreateLabel(pDisplayTab, "BRIGHTNESS:", new Vector2(0.05f, pStartY - pSpacing*4 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*4 + 0.02f));
-        CreateHorizontalSelector(pDisplayTab, new Vector2(0.45f, pStartY - pSpacing*4 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*4 + 0.03f),
-            () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out pBrightText);
 
         // 6. Show FPS
         CreateDropdown(pDisplayTab, "SHOW FPS:",
@@ -473,42 +479,69 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 UpdateDropdownTexts();
             }, out pFpsShowText);
 
-        // 7. FPS Position
+        // 7. FPS Position (immediate effect on selection)
         CreateDropdown(pDisplayTab, "FPS POSITION:",
             new Vector2(0.05f, pStartY - pSpacing*6 - 0.04f), new Vector2(0.4f, pStartY - pSpacing*6 + 0.02f),
             new Vector2(0.45f, pStartY - pSpacing*6 - 0.05f), new Vector2(0.95f, pStartY - pSpacing*6 + 0.03f),
             pFpsPosLabels, () => tempFPSPosition, (idx) => {
                 tempFPSPosition = idx;
                 UpdateDropdownTexts();
+                if (GlobalSettingsManager.Instance != null)
+                {
+                    GlobalSettingsManager.Instance.ApplyFPSPosition(idx);
+                }
             }, out pFpsPosDropdownText);
 
         // === CONTROLS TAB ===
         float pStartYCtrl = 0.70f;
         float pSpacingCtrl = 0.15f;
 
+        // 1. Aim Sensitivity (Slider)
         CreateLabel(pControlsTab, "AIM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl + 0.02f));
-        CreateHorizontalSelector(pControlsTab, new Vector2(0.45f, pStartYCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl + 0.03f),
-            () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), out pSensText);
+        CreateSlider(pControlsTab, new Vector2(0.45f, pStartYCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl + 0.03f),
+            0.5f, 2.0f, () => tempSensitivity, (val) => {
+                tempSensitivity = val;
+            }, out pSensText, "x");
 
+        // 2. Zoom Sensitivity (Slider)
         CreateLabel(pControlsTab, "ZOOM SENSITIVITY:", new Vector2(0.05f, pStartYCtrl - pSpacingCtrl - 0.04f), new Vector2(0.4f, pStartYCtrl - pSpacingCtrl + 0.02f));
-        CreateHorizontalSelector(pControlsTab, new Vector2(0.45f, pStartYCtrl - pSpacingCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl - pSpacingCtrl + 0.03f),
-            () => AdjustZoomSensitivity(-0.1f), () => AdjustZoomSensitivity(0.1f), out pZoomText);
+        CreateSlider(pControlsTab, new Vector2(0.45f, pStartYCtrl - pSpacingCtrl - 0.05f), new Vector2(0.95f, pStartYCtrl - pSpacingCtrl + 0.03f),
+            0.5f, 2.0f, () => tempZoomSensitivity, (val) => {
+                tempZoomSensitivity = val;
+                if (PZ_CameraController.Instance != null)
+                {
+                    PZ_CameraController.Instance.UpdateSensitivity();
+                }
+            }, out pZoomText, "x");
 
         // === AUDIO TAB ===
         float pStartYAud = 0.70f;
         float pSpacingAud = 0.15f;
 
+        // 1. Master Volume (Slider)
         CreateLabel(pAudioTab, "MASTER VOLUME:", new Vector2(0.05f, pStartYAud - 0.04f), new Vector2(0.4f, pStartYAud + 0.02f));
-        CreateHorizontalSelector(pAudioTab, new Vector2(0.45f, pStartYAud - 0.05f), new Vector2(0.95f, pStartYAud + 0.03f),
-            () => AdjustVolume(-0.1f), () => AdjustVolume(0.1f), out pVolText);
+        CreateSlider(pAudioTab, new Vector2(0.45f, pStartYAud - 0.05f), new Vector2(0.95f, pStartYAud + 0.03f),
+            0f, 1.0f, () => tempMasterVolume, (val) => {
+                tempMasterVolume = val;
+                AudioListener.volume = val;
+            }, out pVolText, "%");
 
+        // 2. Music Volume (Slider)
         CreateLabel(pAudioTab, "MUSIC VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud + 0.02f));
-        CreateHorizontalSelector(pAudioTab, new Vector2(0.45f, pStartYAud - pSpacingAud - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud + 0.03f),
-            () => AdjustMusicVolume(-0.1f), () => AdjustMusicVolume(0.1f), out pMusText);
+        CreateSlider(pAudioTab, new Vector2(0.45f, pStartYAud - pSpacingAud - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud + 0.03f),
+            0f, 1.0f, () => tempMusicVolume, (val) => {
+                tempMusicVolume = val;
+                bgmVolume = val;
+                if (bgmSource != null) bgmSource.volume = bgmVolume;
+            }, out pMusText, "%");
 
+        // 3. SFX Volume (Slider)
         CreateLabel(pAudioTab, "SFX VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud*2 - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud*2 + 0.02f));
-        CreateHorizontalSelector(pAudioTab, new Vector2(0.45f, pStartYAud - pSpacingAud*2 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*2 + 0.03f),
-            () => AdjustSFXVolume(-0.1f), () => AdjustSFXVolume(0.1f), out pSfxText);
+        CreateSlider(pAudioTab, new Vector2(0.45f, pStartYAud - pSpacingAud*2 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*2 + 0.03f),
+            0f, 1.0f, () => tempSFXVolume, (val) => {
+                tempSFXVolume = val;
+                sfxVolume = val;
+            }, out pSfxText, "%");
 
         // Nút BACK + SAVE
         CreateMenuButton(pauseOptionsPanel, "BACK", () => ClosePauseOptions(false), new Vector2(0.1f, 0.08f));
@@ -1844,28 +1877,28 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         string[] fpsShowLabels = new string[] { "OFF", "ON" };
         string[] fpsPosLabels = new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "CENTER" };
 
-        // 1. Display Mode
-        CreateDropdown(displayTabArea, "DISPLAY MODE:", 
-            new Vector2(0.05f, startY - 0.04f), new Vector2(0.4f, startY + 0.02f),
-            new Vector2(0.45f, startY - 0.05f), new Vector2(0.95f, startY + 0.03f),
-            windowModeLabels, () => tempWindowMode, (idx) => {
-                tempWindowMode = idx;
-                UpdateDropdownTexts();
-            }, out modeDropdownText);
-
-        // 2. Resolution
+        // 1. Resolution
         string[] resStrings = new string[commonResolutions.Length];
         for (int i = 0; i < commonResolutions.Length; i++)
         {
             resStrings[i] = $"{commonResolutions[i].x} x {commonResolutions[i].y}";
         }
         CreateDropdown(displayTabArea, "RESOLUTION:", 
-            new Vector2(0.05f, startY - spacingY - 0.04f), new Vector2(0.4f, startY - spacingY + 0.02f),
-            new Vector2(0.45f, startY - spacingY - 0.05f), new Vector2(0.95f, startY - spacingY + 0.03f),
+            new Vector2(0.05f, startY - 0.04f), new Vector2(0.4f, startY + 0.02f),
+            new Vector2(0.45f, startY - 0.05f), new Vector2(0.95f, startY + 0.03f),
             resStrings, () => tempResIndex, (idx) => {
                 tempResIndex = idx;
                 UpdateDropdownTexts();
             }, out resDropdownText);
+
+        // 2. Display Mode
+        CreateDropdown(displayTabArea, "DISPLAY MODE:", 
+            new Vector2(0.05f, startY - spacingY - 0.04f), new Vector2(0.4f, startY - spacingY + 0.02f),
+            new Vector2(0.45f, startY - spacingY - 0.05f), new Vector2(0.95f, startY - spacingY + 0.03f),
+            windowModeLabels, () => tempWindowMode, (idx) => {
+                tempWindowMode = idx;
+                UpdateDropdownTexts();
+            }, out modeDropdownText);
 
         // 3. Graphics Quality
         CreateDropdown(displayTabArea, "GRAPHICS QUALITY:",
@@ -1894,19 +1927,25 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 UpdateDropdownTexts();
             }, out aaValText);
 
-        // 6. FPS Limit
+        // 6. Brightness (using custom slider)
+        CreateLabel(displayTabArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f));
+        CreateSlider(displayTabArea, new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
+            0.5f, 1.5f, () => tempBrightness, (val) => {
+                tempBrightness = val;
+                if (GlobalSettingsManager.Instance != null)
+                {
+                    GlobalSettingsManager.Instance.ApplyBrightness(val);
+                }
+            }, out brightValText, "%");
+
+        // 7. FPS Limit
         CreateDropdown(displayTabArea, "FPS LIMIT:",
-            new Vector2(0.05f, startY - spacingY*5 - 0.04f), new Vector2(0.4f, startY - spacingY*5 + 0.02f),
-            new Vector2(0.45f, startY - spacingY*5 - 0.05f), new Vector2(0.95f, startY - spacingY*5 + 0.03f),
+            new Vector2(0.05f, startY - spacingY*6 - 0.04f), new Vector2(0.4f, startY - spacingY*6 + 0.02f),
+            new Vector2(0.45f, startY - spacingY*6 - 0.05f), new Vector2(0.95f, startY - spacingY*6 + 0.03f),
             fpsLabels, () => tempFpsIndex, (idx) => {
                 tempFpsIndex = idx;
                 UpdateDropdownTexts();
             }, out fpsValText);
-
-        // 7. Brightness (remains horizontal selector as it is adjustment)
-        CreateLabel(displayTabArea, "BRIGHTNESS:", new Vector2(0.05f, startY - spacingY*6 - 0.04f), new Vector2(0.4f, startY - spacingY*6 + 0.02f));
-        CreateHorizontalSelector(displayTabArea, new Vector2(0.45f, startY - spacingY*6 - 0.05f), new Vector2(0.95f, startY - spacingY*6 + 0.03f),
-            () => AdjustBrightness(-0.1f), () => AdjustBrightness(0.1f), out brightValText);
 
         // 8. Show FPS
         CreateDropdown(displayTabArea, "SHOW FPS:",
@@ -1917,13 +1956,17 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 UpdateDropdownTexts();
             }, out fpsShowValText);
 
-        // 9. FPS Position
+        // 9. FPS Position (immediate effect on selection)
         CreateDropdown(displayTabArea, "FPS POSITION:",
             new Vector2(0.05f, startY - spacingY*8 - 0.04f), new Vector2(0.4f, startY - spacingY*8 + 0.02f),
             new Vector2(0.45f, startY - spacingY*8 - 0.05f), new Vector2(0.95f, startY - spacingY*8 + 0.03f),
             fpsPosLabels, () => tempFPSPosition, (idx) => {
                 tempFPSPosition = idx;
                 UpdateDropdownTexts();
+                if (GlobalSettingsManager.Instance != null)
+                {
+                    GlobalSettingsManager.Instance.ApplyFPSPosition(idx);
+                }
             }, out fpsPosDropdownText);
 
 
@@ -1931,35 +1974,53 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         float startYCtrl = 0.70f;
         float spacingYCtrl = 0.15f;
 
-        // 1. Aim Sensitivity
+        // 1. Aim Sensitivity (Slider)
         CreateLabel(controlsTabArea, "AIM SENSITIVITY:", new Vector2(0.05f, startYCtrl - 0.04f), new Vector2(0.4f, startYCtrl + 0.02f));
-        CreateHorizontalSelector(controlsTabArea, new Vector2(0.45f, startYCtrl - 0.05f), new Vector2(0.95f, startYCtrl + 0.03f),
-            () => AdjustSensitivity(-0.1f), () => AdjustSensitivity(0.1f), out sensValText);
+        CreateSlider(controlsTabArea, new Vector2(0.45f, startYCtrl - 0.05f), new Vector2(0.95f, startYCtrl + 0.03f),
+            0.5f, 2.0f, () => tempSensitivity, (val) => {
+                tempSensitivity = val;
+            }, out sensValText, "x");
 
-        // 2. Zoom Sensitivity
+        // 2. Zoom Sensitivity (Slider)
         CreateLabel(controlsTabArea, "ZOOM SENSITIVITY:", new Vector2(0.05f, startYCtrl - spacingYCtrl - 0.04f), new Vector2(0.4f, startYCtrl - spacingYCtrl + 0.02f));
-        CreateHorizontalSelector(controlsTabArea, new Vector2(0.45f, startYCtrl - spacingYCtrl - 0.05f), new Vector2(0.95f, startYCtrl - spacingYCtrl + 0.03f),
-            () => AdjustZoomSensitivity(-0.1f), () => AdjustZoomSensitivity(0.1f), out zoomSensValText);
+        CreateSlider(controlsTabArea, new Vector2(0.45f, startYCtrl - spacingYCtrl - 0.05f), new Vector2(0.95f, startYCtrl - spacingYCtrl + 0.03f),
+            0.5f, 2.0f, () => tempZoomSensitivity, (val) => {
+                tempZoomSensitivity = val;
+                if (PZ_CameraController.Instance != null)
+                {
+                    PZ_CameraController.Instance.UpdateSensitivity();
+                }
+            }, out zoomSensValText, "x");
 
 
         // POPULATE TAB 3: AUDIO
         float startYAud = 0.70f;
         float spacingYAud = 0.15f;
 
-        // 1. Master Volume
+        // 1. Master Volume (Slider)
         CreateLabel(audioTabArea, "MASTER VOLUME:", new Vector2(0.05f, startYAud - 0.04f), new Vector2(0.4f, startYAud + 0.02f));
-        CreateHorizontalSelector(audioTabArea, new Vector2(0.45f, startYAud - 0.05f), new Vector2(0.95f, startYAud + 0.03f),
-            () => AdjustVolume(-0.1f), () => AdjustVolume(0.1f), out volValText);
+        CreateSlider(audioTabArea, new Vector2(0.45f, startYAud - 0.05f), new Vector2(0.95f, startYAud + 0.03f),
+            0f, 1.0f, () => tempMasterVolume, (val) => {
+                tempMasterVolume = val;
+                AudioListener.volume = val;
+            }, out volValText, "%");
 
-        // 2. Music Volume
+        // 2. Music Volume (Slider)
         CreateLabel(audioTabArea, "MUSIC VOLUME:", new Vector2(0.05f, startYAud - spacingYAud - 0.04f), new Vector2(0.4f, startYAud - spacingYAud + 0.02f));
-        CreateHorizontalSelector(audioTabArea, new Vector2(0.45f, startYAud - spacingYAud - 0.05f), new Vector2(0.95f, startYAud - spacingYAud + 0.03f),
-            () => AdjustMusicVolume(-0.1f), () => AdjustMusicVolume(0.1f), out musicValText);
+        CreateSlider(audioTabArea, new Vector2(0.45f, startYAud - spacingYAud - 0.05f), new Vector2(0.95f, startYAud - spacingYAud + 0.03f),
+            0f, 1.0f, () => tempMusicVolume, (val) => {
+                tempMusicVolume = val;
+                bgmVolume = val;
+                if (bgmSource != null) bgmSource.volume = bgmVolume;
+            }, out musicValText, "%");
 
-        // 3. SFX Volume
+        // 3. SFX Volume (Slider)
         CreateLabel(audioTabArea, "SFX VOLUME:", new Vector2(0.05f, startYAud - spacingYAud*2 - 0.04f), new Vector2(0.4f, startYAud - spacingYAud*2 + 0.02f));
-        CreateHorizontalSelector(audioTabArea, new Vector2(0.45f, startYAud - spacingYAud*2 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*2 + 0.03f),
-            () => AdjustSFXVolume(-0.1f), () => AdjustSFXVolume(0.1f), out sfxValText);
+        CreateSlider(audioTabArea, new Vector2(0.45f, startYAud - spacingYAud*2 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*2 + 0.03f),
+            0f, 1.0f, () => tempSFXVolume, (val) => {
+                tempSFXVolume = val;
+                sfxVolume = val;
+            }, out sfxValText, "%");
 
 
         // Nút BACK (Bên trái)
@@ -2150,6 +2211,115 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     }
 
 
+
+    private GameObject CreateSlider(GameObject parent, Vector2 anchorMin, Vector2 anchorMax, float minValue, float maxValue, System.Func<float> getCurrentValue, System.Action<float> onValueChanged, out TextMeshProUGUI valueTextObj, string valueFormat = "0.0")
+    {
+        GameObject container = new GameObject("SliderContainer");
+        container.transform.SetParent(parent.transform, false);
+        RectTransform rect = container.AddComponent<RectTransform>();
+        rect.anchorMin = anchorMin;
+        rect.anchorMax = anchorMax;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+
+        // Background Track
+        GameObject bgObj = new GameObject("Background");
+        bgObj.transform.SetParent(container.transform, false);
+        RectTransform bgRect = bgObj.AddComponent<RectTransform>();
+        bgRect.anchorMin = new Vector2(0f, 0.45f);
+        bgRect.anchorMax = new Vector2(0.75f, 0.55f);
+        bgRect.offsetMin = Vector2.zero;
+        bgRect.offsetMax = Vector2.zero;
+        Image bgImg = bgObj.AddComponent<Image>();
+        bgImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
+
+        // Fill Area
+        GameObject fillAreaObj = new GameObject("FillArea");
+        fillAreaObj.transform.SetParent(container.transform, false);
+        RectTransform fillAreaRect = fillAreaObj.AddComponent<RectTransform>();
+        fillAreaRect.anchorMin = new Vector2(0f, 0.45f);
+        fillAreaRect.anchorMax = new Vector2(0.75f, 0.55f);
+        fillAreaRect.offsetMin = new Vector2(5, 0);
+        fillAreaRect.offsetMax = new Vector2(-5, 0);
+
+        GameObject fillObj = new GameObject("Fill");
+        fillObj.transform.SetParent(fillAreaObj.transform, false);
+        RectTransform fillRect = fillObj.AddComponent<RectTransform>();
+        fillRect.offsetMin = Vector2.zero;
+        fillRect.offsetMax = Vector2.zero;
+        Image fillImg = fillObj.AddComponent<Image>();
+        fillImg.color = new Color(0.7f, 0.15f, 0.15f, 1f); // Dark red fill
+
+        // Handle Area
+        GameObject handleAreaObj = new GameObject("HandleArea");
+        handleAreaObj.transform.SetParent(container.transform, false);
+        RectTransform handleAreaRect = handleAreaObj.AddComponent<RectTransform>();
+        handleAreaRect.anchorMin = new Vector2(0f, 0f);
+        handleAreaRect.anchorMax = new Vector2(0.75f, 1f);
+        handleAreaRect.offsetMin = new Vector2(10, 0);
+        handleAreaRect.offsetMax = new Vector2(-10, 0);
+
+        GameObject handleObj = new GameObject("Handle");
+        handleObj.transform.SetParent(handleAreaObj.transform, false);
+        RectTransform handleRect = handleObj.AddComponent<RectTransform>();
+        handleRect.sizeDelta = new Vector2(20, 20); // Square block handle
+        Image handleImg = handleObj.AddComponent<Image>();
+        handleImg.color = Color.white;
+        handleObj.AddComponent<Outline>().effectColor = Color.black;
+
+        // Text Value (on the right side)
+        GameObject valObj = new GameObject("ValueText");
+        valObj.transform.SetParent(container.transform, false);
+        TextMeshProUGUI tmpValText = valObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) tmpValText.font = gameFont;
+        tmpValText.alignment = TextAlignmentOptions.Right;
+        tmpValText.fontSize = 20;
+        tmpValText.color = Color.yellow;
+        RectTransform valRect = valObj.GetComponent<RectTransform>();
+        valRect.anchorMin = new Vector2(0.80f, 0f);
+        valRect.anchorMax = new Vector2(1f, 1f);
+        valRect.offsetMin = Vector2.zero;
+        valRect.offsetMax = Vector2.zero;
+
+        // Slider Component
+        Slider slider = container.AddComponent<Slider>();
+        slider.minValue = minValue;
+        slider.maxValue = maxValue;
+        slider.fillRect = fillRect;
+        slider.handleRect = handleRect;
+        slider.targetGraphic = handleImg;
+        slider.direction = Slider.Direction.LeftToRight;
+        
+        Navigation nav = new Navigation();
+        nav.mode = Navigation.Mode.None;
+        slider.navigation = nav;
+
+        // Set initial value
+        float currentVal = getCurrentValue();
+        slider.value = currentVal;
+        if (valueFormat == "%")
+            tmpValText.text = Mathf.RoundToInt(currentVal * 100f) + "%";
+        else if (valueFormat == "x")
+            tmpValText.text = currentVal.ToString("F1") + "x";
+        else
+            tmpValText.text = currentVal.ToString(valueFormat);
+
+        slider.onValueChanged.AddListener((val) => {
+            onValueChanged(val);
+            if (tmpValText != null)
+            {
+                if (valueFormat == "%")
+                    tmpValText.text = Mathf.RoundToInt(val * 100f) + "%";
+                else if (valueFormat == "x")
+                    tmpValText.text = val.ToString("F1") + "x";
+                else
+                    tmpValText.text = val.ToString(valueFormat);
+            }
+        });
+
+        valueTextObj = tmpValText;
+        return container;
+    }
 
     private GameObject CreateHorizontalSelector(GameObject parent, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onLeft, UnityEngine.Events.UnityAction onRight, out TextMeshProUGUI valueTextObj)
     {
@@ -2676,6 +2846,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         CreateMenuButton(innerBox, "DON'T SAVE", () =>
         {
+            LoadSavedSettingsToTemp(); // Immediately revert changes and restore original settings
             Destroy(unsavedPopup);
             OpenPanel(mainPanel.GetComponent<CanvasGroup>());
         }, new Vector2(0.5f, 0.2f), true, new Vector2(180, 45), 20f);
