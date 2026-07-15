@@ -258,7 +258,7 @@ public class AutoChatManager : MonoBehaviour
                 null,
                 out localMousePos);
 
-            isHovered = chatPanelRt.rect.Contains(localMousePos);
+            isHovered = Cursor.visible && Cursor.lockState != CursorLockMode.Locked && chatPanelRt.rect.Contains(localMousePos);
 
             var draggable = chatPanelRt.GetComponentInChildren<UIDraggable>();
             if (draggable != null && draggable.IsDragging)
