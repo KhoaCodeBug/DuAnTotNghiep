@@ -47,9 +47,17 @@ public class GlobalSettingsManager : MonoBehaviour
         // Bỏ Raycast Target để tấm che không chặn click chuột vào game
         brightnessImage.raycastTarget = false;
 
-        // Khởi tạo FPS Counter Text ở góc trên bên phải
+        // Tạo Canvas riêng cho FPS để luôn hiển thị trên cùng, không bị đè bởi Main Menu Canvas (sortingOrder 999)
+        GameObject fpsCanvasGo = new GameObject("FPSCounterCanvas");
+        fpsCanvasGo.transform.SetParent(transform);
+        Canvas fpsCanvas = fpsCanvasGo.AddComponent<Canvas>();
+        fpsCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        fpsCanvas.sortingOrder = 1001; // Luôn nằm trên cùng mọi UI khác
+        fpsCanvasGo.AddComponent<CanvasScaler>();
+
+        // Khởi tạo FPS Counter Text
         GameObject fpsGo = new GameObject("FPS_Counter");
-        fpsGo.transform.SetParent(canvasGo.transform, false);
+        fpsGo.transform.SetParent(fpsCanvasGo.transform, false);
         RectTransform fpsRt = fpsGo.AddComponent<RectTransform>();
         fpsRt.anchorMin = new Vector2(1f, 1f);
         fpsRt.anchorMax = new Vector2(1f, 1f);
