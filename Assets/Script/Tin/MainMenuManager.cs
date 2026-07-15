@@ -3116,11 +3116,20 @@ public class MainMenuAtmosphere : MonoBehaviour
     private List<RectTransform> fogLayers = new List<RectTransform>();
     private Sprite bgSprite;
 
+    // Các thành phần động mới cho ảnh nền
+    private UnityEngine.UI.Image lampGlowImg;
+    private UnityEngine.UI.Image lightningImg;
+    private float nextLightningTime;
+    private float lampTimer = 0f;
+    private List<RectTransform> dustParticles = new List<RectTransform>();
+    private List<float> dustSpeeds = new List<float>();
+    private List<Vector2> dustDirs = new List<Vector2>();
+
     public void Initialize()
     {
         bgSprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Background.psd");
 
-        // 1. Create Fog Layers
+        // 1. Create Fog Layers (Sương mù xoay nhẹ phía sau)
         for (int i = 0; i < 3; i++)
         {
             GameObject fogObj = new GameObject("FogLayer_" + i);
@@ -3128,62 +3137,162 @@ public class MainMenuAtmosphere : MonoBehaviour
             RectTransform rt = fogObj.AddComponent<RectTransform>();
             rt.sizeDelta = new Vector2(2500, 2500);
             
-            // Random initial rotation
+            // Random rotation
             rt.localRotation = Quaternion.Euler(0, 0, Random.Range(0f, 360f));
 
-            Image img = fogObj.AddComponent<Image>();
-            img.sprite = bgSprite; // Use default rounded background to blend edges
-            img.color = new Color(0.04f, 0.05f, 0.07f, 0.05f); // Very low alpha, dark foggy tone
+            UnityEngine.UI.Image img = fogObj.AddComponent<Image>();
+            img.sprite = bgSprite;
+            img.color = new Color(0.03f, 0.03f, 0.04f, 0.06f); // Sương mù tối mờ ảo
+            img.raycastTarget = false;
             
             fogLayers.Add(rt);
         }
 
-        // 2. Create Rain Drops
+        // 2. Create Lamp Glow (Luồng sáng vàng cam tỏa ra từ chiếc đèn chập chờn)
+        GameObject glowObj = new GameObject("LampGlowOverlay");
+        glowObj.transform.SetParent(transform, false);
+        RectTransform glowRt = glowObj.AddComponent<RectTransform>();
+        // Căn chỉnh ở khu vực từ chiếc đèn ngã lan sang góc phải của hai nhân vật
+        glowRt.anchorMin = new Vector2(0.25f, 0f);
+        glowRt.anchorMax = new Vector2(0.85f, 0.70f);
+        glowRt.offsetMin = Vector2.zero;
+        glowRt.offsetMax = Vector2.zero;
+        
+        lampGlowImg = glowObj.AddComponent<UnityEngine.UI.Image>();
+        // Dùng Knob.psd tròn mờ để ánh sáng lan tỏa nhẹ nhàng tự nhiên
+        lampGlowImg.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+        lampGlowImg.color = new Color(1.0f, 0.52f, 0.12f, 0.12f); // Ánh sáng đèn vàng ấm áp
+        lampGlowImg.raycastTarget = false;
+
+        // 3. Create Floating Dust Particles (Hạt bụi vàng cam lơ lửng trong luồng sáng đèn)
+        for (int i = 0; i < 20; i++)
+        {
+            GameObject dustObj = new GameObject("DustParticle_" + i);
+            dustObj.transform.SetParent(transform, false);
+            RectTransform rt = dustObj.AddComponent<RectTransform>();
+            
+            // Đặt ngẫu nhiên trong vùng chiếu sáng
+            rt.anchorMin = new Vector2(0.30f, 0.05f);
+            rt.anchorMax = new Vector2(0.75f, 0.65f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.anchoredPosition = Vector2.zero;
+            
+            float size = Random.Range(3f, 7f);
+            rt.sizeDelta = new Vector2(size, size);
+
+            UnityEngine.UI.Image img = dustObj.AddComponent<UnityEngine.UI.Image>();
+            img.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+            img.color = new Color(1.0f, 0.75f, 0.4f, Random.Range(0.15f, 0.45f));
+            img.raycastTarget = false;
+
+            dustParticles.Add(rt);
+            dustSpeeds.Add(Random.Range(15f, 35f));
+            // Hạt bụi bay lơ lửng chậm rãi hướng lên trên và hơi nghiêng nhẹ
+            dustDirs.Add(new Vector2(Random.Range(-0.4f, 0.4f), Random.Range(0.4f, 1.0f)).normalized);
+        }
+
+        // 4. Create Rain Drops (Mưa rơi xéo nhẹ)
         for (int i = 0; i < 50; i++)
         {
             GameObject rainObj = new GameObject("RainDrop_" + i);
             rainObj.transform.SetParent(transform, false);
             RectTransform rt = rainObj.AddComponent<RectTransform>();
             
-            // Random position across screen
             rt.anchorMin = new Vector2(0f, 1f);
             rt.anchorMax = new Vector2(0f, 1f);
             rt.pivot = new Vector2(0.5f, 0.5f);
             rt.anchoredPosition = new Vector2(Random.Range(0f, 1920f), Random.Range(-1080f, 0f));
             rt.sizeDelta = new Vector2(2, Random.Range(20f, 40f));
-            rt.localRotation = Quaternion.Euler(0, 0, 15f); // Angled rain
+            rt.localRotation = Quaternion.Euler(0, 0, 15f);
 
-            Image img = rainObj.AddComponent<Image>();
+            UnityEngine.UI.Image img = rainObj.AddComponent<UnityEngine.UI.Image>();
             img.color = new Color(0.8f, 0.85f, 0.9f, Random.Range(0.08f, 0.18f));
+            img.raycastTarget = false;
 
             RainDrop drop = new RainDrop();
             drop.rect = rt;
             drop.speed = Random.Range(700f, 1100f);
             rainDrops.Add(drop);
         }
+
+        // 5. Create Lightning Overlay (Tấm phủ sấm sét toàn màn hình)
+        GameObject lightObj = new GameObject("LightningOverlay");
+        lightObj.transform.SetParent(transform, false);
+        RectTransform lightRt = lightObj.AddComponent<RectTransform>();
+        lightRt.anchorMin = Vector2.zero;
+        lightRt.anchorMax = Vector2.one;
+        lightRt.offsetMin = Vector2.zero;
+        lightRt.offsetMax = Vector2.zero;
+        
+        lightningImg = lightObj.AddComponent<UnityEngine.UI.Image>();
+        lightningImg.color = new Color(1f, 1f, 1f, 0f); // Mặc định trong suốt hoàn toàn
+        lightningImg.raycastTarget = false;
+
+        nextLightningTime = Time.time + Random.Range(5f, 12f); // Chớp giật sau 5-12 giây đầu tiên
     }
 
     private void Update()
     {
-        // 1. Rotate & Pan Fog Layers slowly
+        float dt = Time.unscaledDeltaTime;
+
+        // 1. Rotate Fog Layers
         for (int i = 0; i < fogLayers.Count; i++)
         {
-            float rotSpeed = (i % 2 == 0 ? 0.5f : -0.3f) * (i + 1);
-            fogLayers[i].Rotate(0, 0, rotSpeed * Time.unscaledDeltaTime);
+            float rotSpeed = (i % 2 == 0 ? 0.4f : -0.2f) * (i + 1);
+            fogLayers[i].Rotate(0, 0, rotSpeed * dt);
         }
 
-        // 2. Move Rain Drops
-        float dt = Time.unscaledDeltaTime;
+        // 2. Lamp Glow Flickering Effect (Hiệu ứng ngọn đèn chập chờn cơ học)
+        lampTimer += dt * 14f;
+        float flicker = Mathf.Sin(lampTimer) * Mathf.Cos(lampTimer * 0.8f) * 0.025f;
+        if (Random.value < 0.04f) flicker += Random.Range(-0.05f, 0.03f); // Xung điện nhẹ đột ngột
+        
+        float finalGlowAlpha = Mathf.Clamp(0.12f + flicker, 0.05f, 0.20f);
+        if (lampGlowImg != null)
+        {
+            lampGlowImg.color = new Color(1.0f, 0.52f, 0.12f, finalGlowAlpha);
+        }
+
+        // 3. Move Floating Dust Particles
+        for (int i = 0; i < dustParticles.Count; i++)
+        {
+            RectTransform rt = dustParticles[i];
+            Vector2 pos = rt.anchoredPosition;
+            pos += dustDirs[i] * dustSpeeds[i] * dt;
+
+            // Đổi hướng gió nhẹ để bụi lượn sóng tự nhiên
+            if (Random.value < 0.015f)
+            {
+                dustDirs[i] = new Vector2(dustDirs[i].x + Random.Range(-0.25f, 0.25f), dustDirs[i].y).normalized;
+            }
+
+            // Nếu bay ra ngoài vùng chiếu sáng thì tái lập lại ở góc chiếc đèn dưới đất
+            if (pos.y > 600f || pos.x > 700f || pos.x < -700f)
+            {
+                pos.y = Random.Range(-50f, 50f);
+                pos.x = Random.Range(-250f, 250f);
+            }
+            rt.anchoredPosition = pos;
+
+            // Nhấp nháy nhẹ độ sáng hạt bụi
+            UnityEngine.UI.Image img = rt.GetComponent<UnityEngine.UI.Image>();
+            if (img != null)
+            {
+                float a = img.color.a + Random.Range(-0.03f, 0.03f);
+                a = Mathf.Clamp(a, 0.1f, 0.5f);
+                img.color = new Color(1.0f, 0.75f, 0.4f, a);
+            }
+        }
+
+        // 4. Move Rain Drops
         for (int i = 0; i < rainDrops.Count; i++)
         {
             RainDrop drop = rainDrops[i];
             Vector2 pos = drop.rect.anchoredPosition;
             
-            // Move down and left (angled rain)
             pos.y -= drop.speed * dt;
-            pos.x -= drop.speed * 0.25f * dt; // Match rotation angle offset
+            pos.x -= drop.speed * 0.25f * dt;
 
-            // If it goes off the bottom of the screen, reset to top
             if (pos.y < -1100f || pos.x < -100f)
             {
                 pos.y = 50f;
@@ -3192,6 +3301,57 @@ public class MainMenuAtmosphere : MonoBehaviour
             }
             
             drop.rect.anchoredPosition = pos;
+        }
+
+        // 5. Lightning Trigger Timer
+        if (Time.time >= nextLightningTime)
+        {
+            StartCoroutine(TriggerLightning());
+            nextLightningTime = Time.time + Random.Range(8f, 18f); // Sét đánh cách nhau 8-18s
+        }
+    }
+
+    private System.Collections.IEnumerator TriggerLightning()
+    {
+        float duration = 0.12f;
+        float elapsed = 0f;
+
+        // Chớp phát thứ nhất (Chớp nền mờ nhẹ)
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float a = Mathf.Lerp(0f, 0.35f, elapsed / duration);
+            if (lightningImg != null) lightningImg.color = new Color(0.9f, 0.93f, 1.0f, a);
+            yield return null;
+        }
+        elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float a = Mathf.Lerp(0.35f, 0f, elapsed / duration);
+            if (lightningImg != null) lightningImg.color = new Color(0.9f, 0.93f, 1.0f, a);
+            yield return null;
+        }
+
+        yield return new WaitForSecondsRealtime(0.06f); // Khoảng ngừng cực ngắn giữa chớp kép
+
+        // Chớp phát thứ hai (Chớp rực rỡ và tan dần)
+        duration = 0.20f;
+        elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float a = Mathf.Lerp(0f, 0.70f, elapsed / duration);
+            if (lightningImg != null) lightningImg.color = new Color(0.95f, 0.96f, 1.0f, a);
+            yield return null;
+        }
+        elapsed = 0f;
+        while (elapsed < duration * 3f)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float a = Mathf.Lerp(0.70f, 0f, elapsed / (duration * 3f));
+            if (lightningImg != null) lightningImg.color = new Color(0.95f, 0.96f, 1.0f, a);
+            yield return null;
         }
     }
 }
