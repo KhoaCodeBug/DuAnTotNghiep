@@ -205,6 +205,26 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     };
     private GameObject backgroundImageObj;
 
+    public void UpdateBackgroundBrightness(float brightness)
+    {
+        if (backgroundImageObj != null)
+        {
+            Image bgImg = backgroundImageObj.GetComponent<Image>();
+            if (bgImg != null)
+            {
+                float factor = Mathf.Clamp(brightness, 0.2f, 1.8f);
+                if (backgroundImage != null)
+                {
+                    bgImg.color = new Color(factor, factor, factor, 1f);
+                }
+                else
+                {
+                    bgImg.color = new Color(0.08f * factor, 0.08f * factor, 0.08f * factor, 1f);
+                }
+            }
+        }
+    }
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -660,7 +680,17 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         backgroundImageObj = new GameObject("Background");
         backgroundImageObj.transform.SetParent(canvasGO.transform, false);
         Image bgImg = backgroundImageObj.AddComponent<Image>();
-        if (backgroundImage != null) { bgImg.sprite = backgroundImage; bgImg.color = Color.white; } else { bgImg.color = new Color(0.08f, 0.08f, 0.08f, 1f); }
+        float initialBrightness = PlayerPrefs.GetFloat("Brightness", 1.0f);
+        float initFactor = Mathf.Clamp(initialBrightness, 0.2f, 1.8f);
+        if (backgroundImage != null) 
+        { 
+            bgImg.sprite = backgroundImage; 
+            bgImg.color = new Color(initFactor, initFactor, initFactor, 1f); 
+        } 
+        else 
+        { 
+            bgImg.color = new Color(0.08f * initFactor, 0.08f * initFactor, 0.08f * initFactor, 1f); 
+        }
         RectTransform bgRect = backgroundImageObj.GetComponent<RectTransform>();
         bgRect.anchorMin = Vector2.zero; bgRect.anchorMax = Vector2.one;
         bgRect.offsetMin = Vector2.zero; bgRect.offsetMax = Vector2.zero;
