@@ -129,6 +129,13 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         // BẬT / TẮT MIC
         if (Input.GetKeyDown(KeyCode.V))
         {
+            var voiceClient = Runner.GetComponent<FusionVoiceClient>();
+            if (voiceClient != null && !voiceClient.Client.IsConnected)
+            {
+                Debug.LogWarning("🎙️ [VOICE] Phát hiện Voice Client chưa kết nối (State: PeerCreated/Disconnected). Đang tự động kết nối lại nóng...");
+                voiceClient.ConnectAndJoinRoom();
+            }
+
             globalRecorder.TransmitEnabled = true;
             IsSpeaking = true;
             Debug.Log("🎙️ [Fragments of Survival] Đang phát sóng...");

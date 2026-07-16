@@ -392,6 +392,11 @@ namespace Photon.Voice.Fusion
 
         void INetworkRunnerCallbacks.OnSceneLoadDone(NetworkRunner runner)
         {
+            if (this.AutoConnectAndJoin && !this.Client.IsConnected)
+            {
+                this.Logger.Log(LogLevel.Info, "[VOICE] Scene load completed. Re-triggering connect and join voice room to fix transition freeze.");
+                this.ConnectAndJoinRoom();
+            }
         }
 
         void INetworkRunnerCallbacks.OnSceneLoadStart(NetworkRunner runner)
