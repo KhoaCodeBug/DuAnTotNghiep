@@ -20,6 +20,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
     private float nextVoiceNoiseTime = 0f;
     private float currentVoiceRadius = 0f;
+    private float nextVoiceDiagTime = 0f;
 
     public override void Spawned()
     {
@@ -131,6 +132,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             globalRecorder.TransmitEnabled = true;
             IsSpeaking = true;
             Debug.Log("🎙️ [Fragments of Survival] Đang phát sóng...");
+            nextVoiceDiagTime = Time.time; // In log ngay lập tức
         }
         else if (Input.GetKeyUp(KeyCode.V))
         {
@@ -139,22 +141,43 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
         }
 
-        if (IsSpeaking && globalRecorder.LevelMeter != null)
+        if (IsSpeaking)
         {
-            float voiceVolume = globalRecorder.LevelMeter.CurrentPeakAmp;
-
-            if (voiceVolume > 0.01f)
+            // 🔥 LOG CHẨN ĐOÁN HỆ THỐNG VOICE CHAT (1.5 giây một lần khi đang đè V)
+            if (Time.time >= nextVoiceDiagTime)
             {
-                float noiseRadius = voiceVolume * 80f;
-                noiseRadius = Mathf.Clamp(noiseRadius, 0f, 10f);
+                var voiceClient = Runner.GetComponent<FusionVoiceClient>();
+                string clientState = voiceClient != null ? voiceClient.ClientState.ToString() : "Not Found";
+                float currentAmp = globalRecorder.LevelMeter != null ? globalRecorder.LevelMeter.CurrentPeakAmp : -1f;
+                bool isTransmitting = globalRecorder.IsCurrentlyTransmitting;
+                int micCount = Microphone.devices != null ? Microphone.devices.Length : 0;
+                string micName = globalRecorder.MicrophoneDevice != null ? globalRecorder.MicrophoneDevice.ToString() : "Default/None";
 
-                currentVoiceRadius = noiseRadius;
+                Debug.Log($"<color=#55ff55>[VOICE DIAGNOSTIC]</color> State: <b>{clientState}</b> | PeakAmp: <b>{currentAmp:F4}</b> | Transmitting: <b>{isTransmitting}</b> | MicCount: <b>{micCount}</b> | ActiveMic: <b>{micName}</b>");
+                nextVoiceDiagTime = Time.time + 1.5f;
+            }
 
-                if (Time.time >= nextVoiceNoiseTime)
+            if (globalRecorder.LevelMeter != null)
+            {
+                float voiceVolume = globalRecorder.LevelMeter.CurrentPeakAmp;
+
+                if (voiceVolume > 0.01f)
                 {
-                    // 🔥 GIẢM TẦN SUẤT RPC: Từ 20/giây → 2/giây để giảm lag mạng
-                    RPC_MakeVoiceNoise(noiseRadius);
-                    nextVoiceNoiseTime = Time.time + 0.5f;
+                    float noiseRadius = voiceVolume * 80f;
+                    noiseRadius = Mathf.Clamp(noiseRadius, 0f, 10f);
+
+                    currentVoiceRadius = noiseRadius;
+
+                    if (Time.time >= nextVoiceNoiseTime)
+                    {
+                        // 🔥 GIẢM TẦN SUẤT RPC: Từ 20/giây → 2/giây để giảm lag mạng
+                        RPC_MakeVoiceNoise(noiseRadius);
+                        nextVoiceNoiseTime = Time.time + 0.5f;
+                    }
+                }
+                else
+                {
+                    currentVoiceRadius = 0f;
                 }
             }
             else
