@@ -134,8 +134,12 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
             if (globalRecorder != null)
             {
+                // 🔥 BIỆN PHÁP MẠNH MẼ: Ép dùng driver Photon Mic native, kích hoạt và khởi động lại micro
+                globalRecorder.MicrophoneType = Recorder.MicType.Photon;
+                globalRecorder.RecordingEnabled = true;
                 globalRecorder.TransmitEnabled = true;
                 globalRecorder.UserData = this.Object.Id; // Đảm bảo UserData luôn được gán đúng ID nhân vật
+                globalRecorder.RestartRecording();
 
                 var voiceClient = Runner.GetComponent<FusionVoiceClient>();
                 if (voiceClient != null && !voiceClient.Client.IsConnected)

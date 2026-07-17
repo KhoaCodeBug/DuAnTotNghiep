@@ -72,7 +72,12 @@ namespace Photon.Voice.Fusion
             }
             else
             {
+                // 🔥 BIỆN PHÁP MẠNH MẼ: Ép dùng driver Photon Mic native và bắt đầu thu âm
+                recorder.MicrophoneType = Recorder.MicType.Photon;
+                recorder.RecordingEnabled = true;
                 recorder.UserData = this.GetUserData();
+                recorder.RestartRecording(); // Áp dụng và khởi động lại micro ngay tức khắc
+
                 this.voiceConnection.AddRecorder(recorder);
             }
             this.RecorderInUse = recorder;
