@@ -1,5 +1,7 @@
 using Fusion;
 using Fusion.Sockets;
+using Photon.Voice.Fusion;
+using Photon.Voice.Unity;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -1244,6 +1246,38 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     #endregion
 
     #region HỆ THỐNG MẠNG
+    /// <summary>
+    /// Voice phải được tạo trên đúng NetworkRunner trước khi map spawn người chơi.
+    /// Mỗi máy chỉ có một client Voice và một Recorder cục bộ; VoiceNetworkObject
+    /// trên prefab người chơi sẽ liên kết luồng âm thanh với đúng nhân vật đó.
+    /// </summary>
+    private static void ConfigureVoiceForRunner(NetworkRunner runner)
+    {
+        var voiceClient = runner.GetComponent<FusionVoiceClient>();
+        if (voiceClient == null)
+        {
+            voiceClient = runner.gameObject.AddComponent<FusionVoiceClient>();
+        }
+
+        voiceClient.UseFusionAppSettings = true;
+        voiceClient.UseFusionAuthValues = true;
+
+        var recorder = runner.GetComponent<Recorder>();
+        if (recorder == null)
+        {
+            recorder = runner.gameObject.AddComponent<Recorder>();
+        }
+
+        // Unity microphone là mặc định ổn định trên Windows. Photon Voice tự
+        // chuyển sang driver còn lại nếu thiết bị này không khởi tạo được.
+        recorder.MicrophoneType = Recorder.MicType.Unity;
+        recorder.UseMicrophoneTypeFallback = true;
+        recorder.RecordWhenJoined = true;
+        recorder.RecordingEnabled = true;
+        recorder.TransmitEnabled = false; // Push-to-talk chỉ mở khi người chơi giữ V.
+        voiceClient.PrimaryRecorder = recorder;
+    }
+
     private async void StartGameInternal(GameMode mode, string roomName)
     {
         string popupMsg = mode == GameMode.Single
@@ -1256,6 +1290,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         await CleanupOldRunnersAsync();
 
         activeRunner = Instantiate(runnerPrefab);
+        ConfigureVoiceForRunner(activeRunner);
         activeRunner.AddCallbacks(this);
 
         var sceneManager = activeRunner.GetComponent<NetworkSceneManagerDefault>()

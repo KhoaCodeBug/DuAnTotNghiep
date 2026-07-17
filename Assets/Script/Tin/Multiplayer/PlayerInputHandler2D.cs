@@ -22,6 +22,20 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
     private float currentVoiceRadius = 0f;
     private float nextVoiceDiagTime = 0f;
 
+    private void SetPushToTalk(bool enabled)
+    {
+        if (!HasInputAuthority) return;
+
+        IsSpeaking = enabled;
+        RPC_SetSpeaking(enabled);
+
+        if (globalRecorder != null)
+        {
+            globalRecorder.RecordingEnabled = true;
+            globalRecorder.TransmitEnabled = enabled;
+        }
+    }
+
     public override void Spawned()
     {
         if (HasInputAuthority)
@@ -95,6 +109,9 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
         if (globalRecorder != null)
         {
+            globalRecorder.MicrophoneType = Recorder.MicType.Unity;
+            globalRecorder.UseMicrophoneTypeFallback = true;
+            globalRecorder.RecordingEnabled = true;
             globalRecorder.TransmitEnabled = false;
             Debug.Log($"[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)");
         }
@@ -127,26 +144,18 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         // BẬT / TẮT MIC (Bỏ qua check null ở đầu để Client bấm V vẫn hiện icon loa và in log chẩn đoán)
         if (Input.GetKeyDown(KeyCode.V))
         {
-            IsSpeaking = true;
-            RPC_SetSpeaking(true); // 🔥 Gọi RPC lên Server để gán IsSpeaking đồng bộ mạng chuẩn xác
+            SetPushToTalk(true);
             Debug.Log("🎙️ [Fragments of Survival] Bắt đầu phát sóng (Client nhấn giữ V)...");
             nextVoiceDiagTime = Time.time; // In log ngay lập tức
 
             if (globalRecorder != null)
             {
-                // 🔥 BIỆN PHÁP MẠNH MẼ: Ép dùng driver Photon Mic native, kích hoạt và khởi động lại micro
-                globalRecorder.MicrophoneType = Recorder.MicType.Photon;
-                globalRecorder.RecordingEnabled = true;
-                globalRecorder.TransmitEnabled = true;
+                // Không ép native Photon mic: driver Unity có độ tương thích tốt
+                // hơn trên Windows, và Recorder sẽ tự fallback nếu cần.
+                globalRecorder.MicrophoneType = Recorder.MicType.Unity;
+                globalRecorder.UseMicrophoneTypeFallback = true;
                 globalRecorder.UserData = this.Object.Id; // Đảm bảo UserData luôn được gán đúng ID nhân vật
                 globalRecorder.RestartRecording();
-
-                var voiceClient = Runner.GetComponent<FusionVoiceClient>();
-                if (voiceClient != null && !voiceClient.Client.IsConnected)
-                {
-                    Debug.LogWarning("🎙️ [VOICE] Phát hiện Voice Client chưa kết nối (State: PeerCreated/Disconnected). Đang tự động kết nối lại nóng...");
-                    voiceClient.ConnectAndJoinRoom();
-                }
             }
             else
             {
@@ -155,14 +164,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         }
         else if (Input.GetKeyUp(KeyCode.V))
         {
-            IsSpeaking = false;
-            RPC_SetSpeaking(false); // 🔥 Gọi RPC lên Server để gán IsSpeaking đồng bộ mạng chuẩn xác
+            SetPushToTalk(false);
             Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
-
-            if (globalRecorder != null)
-            {
-                globalRecorder.TransmitEnabled = false;
-            }
         }
 
         if (IsSpeaking)
@@ -351,6 +354,16 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             Gizmos.color = Color.cyan;
             Gizmos.DrawWireSphere(transform.position, currentVoiceRadius);
         }
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus) SetPushToTalk(false);
+    }
+
+    private void OnDisable()
+    {
+        SetPushToTalk(false);
     }
 
     #region Ẩn các hàm bắt buộc của INetworkRunnerCallbacks
