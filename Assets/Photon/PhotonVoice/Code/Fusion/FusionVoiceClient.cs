@@ -392,17 +392,15 @@ namespace Photon.Voice.Fusion
 
         void INetworkRunnerCallbacks.OnSceneLoadDone(NetworkRunner runner)
         {
-            this.Logger.Log(LogLevel.Info, "[VOICE] Scene load completed. Re-triggering connect and join voice room to fix transition freeze.");
-            this.ConnectAndJoinRoom();
+            // VoiceFollowClient đã theo dõi trạng thái của NetworkRunner và tự
+            // kết nối vào đúng Voice room. Không reconnect ở đây: gọi lặp trong
+            // lúc player/Recorder vừa spawn sẽ hủy stream đang tạo và khiến
+            // Recorder không gửi được frame dù ClientState đã là Joined.
         }
 
         void INetworkRunnerCallbacks.OnSceneLoadStart(NetworkRunner runner)
         {
-            this.Logger.Log(LogLevel.Info, "[VOICE] Scene load started. Disconnecting voice to clean up old session stream connections.");
-            if (this.Client.IsConnected)
-            {
-                this.Disconnect();
-            }
+            // Giữ kết nối Voice qua quá trình tải map của cùng NetworkRunner.
         }
 
  #if FUSION2
