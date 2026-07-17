@@ -21,10 +21,20 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
     private float nextVoiceNoiseTime = 0f;
     private float currentVoiceRadius = 0f;
     private float nextVoiceDiagTime = 0f;
+    private bool pushToTalkHeld = false;
+    private float pushToTalkStartedAt = -1f;
+    private bool recoveryAttempted = false;
 
     private void SetPushToTalk(bool enabled)
     {
         if (!HasInputAuthority) return;
+
+        pushToTalkHeld = enabled;
+        if (enabled)
+        {
+            pushToTalkStartedAt = Time.time;
+            recoveryAttempted = false;
+        }
 
         IsSpeaking = enabled;
         RPC_SetSpeaking(enabled);
@@ -33,6 +43,38 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         {
             globalRecorder.RecordingEnabled = true;
             globalRecorder.TransmitEnabled = enabled;
+        }
+    }
+
+    private void UpdatePushToTalk()
+    {
+        bool shouldTransmit = Input.GetKey(KeyCode.V);
+
+        if (shouldTransmit != pushToTalkHeld)
+        {
+            SetPushToTalk(shouldTransmit);
+            Debug.Log(shouldTransmit
+                ? "🎙️ [VOICE] Push-to-talk enabled."
+                : "🔇 [VOICE] Push-to-talk disabled.");
+        }
+
+        // Photon Voice có thể tắt TransmitEnabled trong lúc reconnect hoặc đổi
+        // scene. Khi V vẫn được giữ, luôn khôi phục lại cờ này trên chính stream
+        // cục bộ thay vì để biểu tượng loa và trạng thái gửi bị lệch nhau.
+        if (pushToTalkHeld && globalRecorder != null)
+        {
+            globalRecorder.RecordingEnabled = true;
+            globalRecorder.TransmitEnabled = true;
+
+            // Chỉ thử khởi tạo lại đúng một lần nếu đã vào room nhưng sau 2 giây
+            // vẫn chưa có frame nào được gửi. Không restart ngay lúc nhấn V.
+            if (!recoveryAttempted && Time.time - pushToTalkStartedAt >= 2f &&
+                !globalRecorder.IsCurrentlyTransmitting)
+            {
+                recoveryAttempted = true;
+                globalRecorder.RestartRecording();
+                Debug.LogWarning("[VOICE] Recorder chưa gửi frame sau 2 giây; đang khởi tạo lại microphone một lần.");
+            }
         }
     }
 
@@ -113,6 +155,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             globalRecorder.UseMicrophoneTypeFallback = true;
             globalRecorder.RecordingEnabled = true;
             globalRecorder.TransmitEnabled = false;
+            globalRecorder.UserData = Object.Id;
             Debug.Log($"[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)");
         }
     }
@@ -141,32 +184,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             FindVoiceRecorder();
         }
 
-        // BẬT / TẮT MIC (Bỏ qua check null ở đầu để Client bấm V vẫn hiện icon loa và in log chẩn đoán)
-        if (Input.GetKeyDown(KeyCode.V))
-        {
-            SetPushToTalk(true);
-            Debug.Log("🎙️ [Fragments of Survival] Bắt đầu phát sóng (Client nhấn giữ V)...");
-            nextVoiceDiagTime = Time.time; // In log ngay lập tức
-
-            if (globalRecorder != null)
-            {
-                // Không ép native Photon mic: driver Unity có độ tương thích tốt
-                // hơn trên Windows, và Recorder sẽ tự fallback nếu cần.
-                globalRecorder.MicrophoneType = Recorder.MicType.Unity;
-                globalRecorder.UseMicrophoneTypeFallback = true;
-                globalRecorder.UserData = this.Object.Id; // Đảm bảo UserData luôn được gán đúng ID nhân vật
-                globalRecorder.RestartRecording();
-            }
-            else
-            {
-                Debug.LogWarning("🎙️ [VOICE] ⚠️ Cảnh báo: Client đè V nhưng globalRecorder bị NULL! Không thể truyền giọng nói.");
-            }
-        }
-        else if (Input.GetKeyUp(KeyCode.V))
-        {
-            SetPushToTalk(false);
-            Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
-        }
+        UpdatePushToTalk();
 
         if (IsSpeaking)
         {
@@ -182,8 +200,9 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
                     float currentAmp = globalRecorder.LevelMeter != null ? globalRecorder.LevelMeter.CurrentPeakAmp : -1f;
                     bool isTransmitting = globalRecorder.IsCurrentlyTransmitting;
                     string micName = globalRecorder.MicrophoneDevice != null ? globalRecorder.MicrophoneDevice.ToString() : "Default/None";
+                    string recorderState = $"RecordingEnabled: {globalRecorder.RecordingEnabled} | TransmitEnabled: {globalRecorder.TransmitEnabled}";
 
-                    Debug.Log($"<color=#55ff55>[VOICE DIAGNOSTIC]</color> State: <b>{clientState}</b> | PeakAmp: <b>{currentAmp:F4}</b> | Transmitting: <b>{isTransmitting}</b> | MicCount: <b>{micCount}</b> | ActiveMic: <b>{micName}</b>");
+                    Debug.Log($"<color=#55ff55>[VOICE DIAGNOSTIC]</color> State: <b>{clientState}</b> | PeakAmp: <b>{currentAmp:F4}</b> | Transmitting: <b>{isTransmitting}</b> | {recorderState} | MicCount: <b>{micCount}</b> | ActiveMic: <b>{micName}</b>");
                 }
                 else
                 {
