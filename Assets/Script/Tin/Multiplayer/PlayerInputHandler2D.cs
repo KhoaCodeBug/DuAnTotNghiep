@@ -135,21 +135,13 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             if (globalRecorder != null)
             {
                 globalRecorder.TransmitEnabled = true;
-                var voiceClient = Runner.GetComponent<FusionVoiceClient>();
-                if (voiceClient != null)
-                {
-                    // 🔥 SỬA LỖI TRANSMITTING FALSE Ở CLIENT:
-                    // Khi Client spawn nhân vật, do có độ trễ nhận InputAuthority từ server làm cho VoiceNetworkObject
-                    // bỏ qua việc đăng ký Recorder. Chúng ta sẽ "AddRecorder" nóng ở đây để kích hoạt truyền tải.
-                    // Đảm bảo UserData được gán đúng ID của NetworkObject này để Photon Voice liên kết luồng stream!
-                    globalRecorder.UserData = this.Object.Id;
-                    voiceClient.AddRecorder(globalRecorder);
+                globalRecorder.UserData = this.Object.Id; // Đảm bảo UserData luôn được gán đúng ID nhân vật
 
-                    if (!voiceClient.Client.IsConnected)
-                    {
-                        Debug.LogWarning("🎙️ [VOICE] Phát hiện Voice Client chưa kết nối (State: PeerCreated/Disconnected). Đang tự động kết nối lại nóng...");
-                        voiceClient.ConnectAndJoinRoom();
-                    }
+                var voiceClient = Runner.GetComponent<FusionVoiceClient>();
+                if (voiceClient != null && !voiceClient.Client.IsConnected)
+                {
+                    Debug.LogWarning("🎙️ [VOICE] Phát hiện Voice Client chưa kết nối (State: PeerCreated/Disconnected). Đang tự động kết nối lại nóng...");
+                    voiceClient.ConnectAndJoinRoom();
                 }
             }
             else
