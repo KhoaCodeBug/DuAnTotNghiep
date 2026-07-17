@@ -15,6 +15,7 @@ namespace Photon.Voice.Fusion
         private VoiceComponentImpl voiceComponentImpl = new VoiceComponentImpl();
 
         private VoiceConnection voiceConnection;
+        private bool isRecorderSetupDone = false;
 
 #endregion
 #region Properties
@@ -112,6 +113,20 @@ namespace Photon.Voice.Fusion
             return this.Object.Id;
         }
 
+        private void Update()
+        {
+            // Tự động setup lại Recorder khi Client đã thực sự nhận được quyền kiểm soát nhân vật (Input Authority)
+            if (!isRecorderSetupDone && this.voiceConnection != null)
+            {
+                if (this.IsLocal)
+                {
+                    this.Logger.Log(LogLevel.Info, "[VOICE] Late setup Recorder for Local Player after getting Input Authority.");
+                    this.SetupRecorder();
+                    isRecorderSetupDone = true;
+                }
+            }
+        }
+
         public override void Spawned()
         {
             voiceComponentImpl.Awake(this);
@@ -121,6 +136,7 @@ namespace Photon.Voice.Fusion
             if (this.IsLocal)
             {
                 this.SetupRecorder();
+                isRecorderSetupDone = true;
                 if (this.RecorderInUse == null)
                 {
                     this.Logger.Log(LogLevel.Warning, "Recorder not setup for VoiceNetworkObject: playback may not work properly.");
@@ -132,6 +148,11 @@ namespace Photon.Voice.Fusion
                         this.Logger.Log(LogLevel.Warning, "VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.");
                     }
                 }
+            }
+            else
+            {
+                // Nếu chưa có quyền, cho phép hàm Update() quét và đăng ký muộn sau đó
+                isRecorderSetupDone = false;
             }
 
             this.SetupSpeaker();
