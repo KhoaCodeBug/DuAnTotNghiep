@@ -124,47 +124,64 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             FindVoiceRecorder();
         }
 
-        if (globalRecorder == null) return;
-
-        // BẬT / TẮT MIC
+        // BẬT / TẮT MIC (Bỏ qua check null ở đầu để Client bấm V vẫn hiện icon loa và in log chẩn đoán)
         if (Input.GetKeyDown(KeyCode.V))
         {
-            var voiceClient = Runner.GetComponent<FusionVoiceClient>();
-            if (voiceClient != null && !voiceClient.Client.IsConnected)
-            {
-                Debug.LogWarning("🎙️ [VOICE] Phát hiện Voice Client chưa kết nối (State: PeerCreated/Disconnected). Đang tự động kết nối lại nóng...");
-                voiceClient.ConnectAndJoinRoom();
-            }
-
-            globalRecorder.TransmitEnabled = true;
             IsSpeaking = true;
-            Debug.Log("🎙️ [Fragments of Survival] Đang phát sóng...");
+            Debug.Log("🎙️ [Fragments of Survival] Bắt đầu phát sóng (Client nhấn giữ V)...");
             nextVoiceDiagTime = Time.time; // In log ngay lập tức
+
+            if (globalRecorder != null)
+            {
+                globalRecorder.TransmitEnabled = true;
+                var voiceClient = Runner.GetComponent<FusionVoiceClient>();
+                if (voiceClient != null && !voiceClient.Client.IsConnected)
+                {
+                    Debug.LogWarning("🎙️ [VOICE] Phát hiện Voice Client chưa kết nối (State: PeerCreated/Disconnected). Đang tự động kết nối lại nóng...");
+                    voiceClient.ConnectAndJoinRoom();
+                }
+            }
+            else
+            {
+                Debug.LogWarning("🎙️ [VOICE] ⚠️ Cảnh báo: Client đè V nhưng globalRecorder bị NULL! Không thể truyền giọng nói.");
+            }
         }
         else if (Input.GetKeyUp(KeyCode.V))
         {
-            globalRecorder.TransmitEnabled = false;
             IsSpeaking = false;
             Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
+
+            if (globalRecorder != null)
+            {
+                globalRecorder.TransmitEnabled = false;
+            }
         }
 
         if (IsSpeaking)
         {
-            // 🔥 LOG CHẨN ĐOÁN HỆ THỐNG VOICE CHAT (1.5 giây một lần khi đang đè V)
+            // 🔥 LOG CHẨN ĐOÁN HỆ THỐNG VOICE CHAT (1.5 giây một lần khi đang đè V - Chạy độc lập kể cả khi globalRecorder bị null)
             if (Time.time >= nextVoiceDiagTime)
             {
                 var voiceClient = Runner.GetComponent<FusionVoiceClient>();
                 string clientState = voiceClient != null ? voiceClient.ClientState.ToString() : "Not Found";
-                float currentAmp = globalRecorder.LevelMeter != null ? globalRecorder.LevelMeter.CurrentPeakAmp : -1f;
-                bool isTransmitting = globalRecorder.IsCurrentlyTransmitting;
                 int micCount = Microphone.devices != null ? Microphone.devices.Length : 0;
-                string micName = globalRecorder.MicrophoneDevice != null ? globalRecorder.MicrophoneDevice.ToString() : "Default/None";
 
-                Debug.Log($"<color=#55ff55>[VOICE DIAGNOSTIC]</color> State: <b>{clientState}</b> | PeakAmp: <b>{currentAmp:F4}</b> | Transmitting: <b>{isTransmitting}</b> | MicCount: <b>{micCount}</b> | ActiveMic: <b>{micName}</b>");
+                if (globalRecorder != null)
+                {
+                    float currentAmp = globalRecorder.LevelMeter != null ? globalRecorder.LevelMeter.CurrentPeakAmp : -1f;
+                    bool isTransmitting = globalRecorder.IsCurrentlyTransmitting;
+                    string micName = globalRecorder.MicrophoneDevice != null ? globalRecorder.MicrophoneDevice.ToString() : "Default/None";
+
+                    Debug.Log($"<color=#55ff55>[VOICE DIAGNOSTIC]</color> State: <b>{clientState}</b> | PeakAmp: <b>{currentAmp:F4}</b> | Transmitting: <b>{isTransmitting}</b> | MicCount: <b>{micCount}</b> | ActiveMic: <b>{micName}</b>");
+                }
+                else
+                {
+                    Debug.LogError($"<color=#ff5555>[VOICE DIAGNOSTIC]</color> State: <b>{clientState}</b> | <b>❌ ERROR: globalRecorder is NULL!</b> | MicCount: <b>{micCount}</b>");
+                }
                 nextVoiceDiagTime = Time.time + 1.5f;
             }
 
-            if (globalRecorder.LevelMeter != null)
+            if (globalRecorder != null && globalRecorder.LevelMeter != null)
             {
                 float voiceVolume = globalRecorder.LevelMeter.CurrentPeakAmp;
 
