@@ -1295,6 +1295,18 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         recorder.RecordWhenJoined = true;
         recorder.RecordingEnabled = true;
         recorder.TransmitEnabled = false; // Push-to-talk chỉ mở khi người chơi giữ V.
+
+        // Tăng gain ở đầu vào trước khi mã hóa Opus. Cách này tăng giọng nói
+        // cho mọi máy nhận, không phụ thuộc vào volume hệ điều hành của họ.
+        var audioDsp = recorder.GetComponent<WebRtcAudioDsp>();
+        if (audioDsp == null)
+        {
+            audioDsp = recorder.gameObject.AddComponent<WebRtcAudioDsp>();
+        }
+        audioDsp.AGC = true;
+        audioDsp.AgcCompressionGain = 18;
+        audioDsp.NoiseSuppression = true;
+
         voiceClient.PrimaryRecorder = recorder;
     }
 
