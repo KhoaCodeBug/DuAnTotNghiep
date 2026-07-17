@@ -72,8 +72,10 @@ namespace Photon.Voice.Fusion
             }
             else
             {
-                // 🔥 BIỆN PHÁP MẠNH MẼ: Ép dùng driver Photon Mic native và bắt đầu thu âm
-                recorder.MicrophoneType = Recorder.MicType.Photon;
+                // Giữ driver đã cấu hình trên Recorder. Ép Photon native mic ở đây
+                // khiến nhiều máy Windows không mở được thiết bị thu âm.
+                recorder.MicrophoneType = Recorder.MicType.Unity;
+                recorder.UseMicrophoneTypeFallback = true;
                 recorder.RecordingEnabled = true;
                 recorder.UserData = this.GetUserData();
                 recorder.RestartRecording(); // Áp dụng và khởi động lại micro ngay tức khắc
