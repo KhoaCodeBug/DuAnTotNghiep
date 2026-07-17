@@ -1262,6 +1262,26 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         voiceClient.UseFusionAppSettings = true;
         voiceClient.UseFusionAuthValues = true;
 
+        // Nếu voice info đến trước NetworkObject của player ở máy nhận, Photon
+        // Voice không thể gắn nó với Speaker trên player. Fallback này vẫn phát
+        // stream ở dạng âm thanh toàn cục thay vì làm mất hoàn toàn tiếng nói.
+        if (voiceClient.SpeakerPrefab == null)
+        {
+            var fallbackSpeaker = new GameObject("[Voice] Fallback Speaker");
+            fallbackSpeaker.transform.SetParent(runner.transform, false);
+            var audioSource = fallbackSpeaker.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0f;
+            audioSource.volume = 1f;
+            fallbackSpeaker.AddComponent<Speaker>();
+            voiceClient.SpeakerPrefab = fallbackSpeaker;
+        }
+
+        voiceClient.RemoteVoiceAdded += remoteVoice =>
+            Debug.Log($"[VOICE RECEIVE] Remote stream received: {remoteVoice}");
+        voiceClient.SpeakerLinked += speaker =>
+            Debug.Log($"[VOICE RECEIVE] Speaker linked: {speaker.name} | SpeakerVolume: {speaker.GetComponent<AudioSource>()?.volume} | MasterVolume: {AudioListener.volume} | ListenerPaused: {AudioListener.pause}");
+
         var recorder = runner.GetComponent<Recorder>();
         if (recorder == null)
         {

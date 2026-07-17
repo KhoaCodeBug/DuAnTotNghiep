@@ -193,6 +193,9 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             {
                 var voiceClient = Runner.GetComponent<FusionVoiceClient>();
                 string clientState = voiceClient != null ? voiceClient.ClientState.ToString() : "Not Found";
+                string receiveState = voiceClient != null
+                    ? $"Rx: {voiceClient.FramesReceivedPerSecond:F1} fps | Lost: {voiceClient.FramesLostPercent:F1}%"
+                    : "Rx: unavailable";
                 int micCount = Microphone.devices != null ? Microphone.devices.Length : 0;
 
                 if (globalRecorder != null)
@@ -202,7 +205,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
                     string micName = globalRecorder.MicrophoneDevice != null ? globalRecorder.MicrophoneDevice.ToString() : "Default/None";
                     string recorderState = $"RecordingEnabled: {globalRecorder.RecordingEnabled} | TransmitEnabled: {globalRecorder.TransmitEnabled}";
 
-                    Debug.Log($"<color=#55ff55>[VOICE DIAGNOSTIC]</color> State: <b>{clientState}</b> | PeakAmp: <b>{currentAmp:F4}</b> | Transmitting: <b>{isTransmitting}</b> | {recorderState} | MicCount: <b>{micCount}</b> | ActiveMic: <b>{micName}</b>");
+                    Debug.Log($"<color=#55ff55>[VOICE DIAGNOSTIC]</color> State: <b>{clientState}</b> | PeakAmp: <b>{currentAmp:F4}</b> | Transmitting: <b>{isTransmitting}</b> | {recorderState} | {receiveState} | MicCount: <b>{micCount}</b> | ActiveMic: <b>{micName}</b>");
                 }
                 else
                 {
