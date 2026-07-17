@@ -128,6 +128,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (Input.GetKeyDown(KeyCode.V))
         {
             IsSpeaking = true;
+            RPC_SetSpeaking(true); // 🔥 Gọi RPC lên Server để gán IsSpeaking đồng bộ mạng chuẩn xác
             Debug.Log("🎙️ [Fragments of Survival] Bắt đầu phát sóng (Client nhấn giữ V)...");
             nextVoiceDiagTime = Time.time; // In log ngay lập tức
 
@@ -157,6 +158,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         else if (Input.GetKeyUp(KeyCode.V))
         {
             IsSpeaking = false;
+            RPC_SetSpeaking(false); // 🔥 Gọi RPC lên Server để gán IsSpeaking đồng bộ mạng chuẩn xác
             Debug.Log("🔇 [Fragments of Survival] Đã ngắt liên lạc.");
 
             if (globalRecorder != null)
@@ -326,6 +328,12 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         {
             AutoChatManager.Instance.AddMessage(playerName, message);
         }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_SetSpeaking(NetworkBool speaking)
+    {
+        IsSpeaking = speaking;
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
