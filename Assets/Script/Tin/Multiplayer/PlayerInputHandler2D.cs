@@ -141,6 +141,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
                     // 🔥 SỬA LỖI TRANSMITTING FALSE Ở CLIENT:
                     // Khi Client spawn nhân vật, do có độ trễ nhận InputAuthority từ server làm cho VoiceNetworkObject
                     // bỏ qua việc đăng ký Recorder. Chúng ta sẽ "AddRecorder" nóng ở đây để kích hoạt truyền tải.
+                    // Đảm bảo UserData được gán đúng ID của NetworkObject này để Photon Voice liên kết luồng stream!
+                    globalRecorder.UserData = this.Object.Id;
                     voiceClient.AddRecorder(globalRecorder);
 
                     if (!voiceClient.Client.IsConnected)
