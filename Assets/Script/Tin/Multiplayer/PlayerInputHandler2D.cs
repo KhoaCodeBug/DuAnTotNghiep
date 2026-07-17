@@ -135,10 +135,18 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             {
                 globalRecorder.TransmitEnabled = true;
                 var voiceClient = Runner.GetComponent<FusionVoiceClient>();
-                if (voiceClient != null && !voiceClient.Client.IsConnected)
+                if (voiceClient != null)
                 {
-                    Debug.LogWarning("🎙️ [VOICE] Phát hiện Voice Client chưa kết nối (State: PeerCreated/Disconnected). Đang tự động kết nối lại nóng...");
-                    voiceClient.ConnectAndJoinRoom();
+                    // 🔥 SỬA LỖI TRANSMITTING FALSE Ở CLIENT:
+                    // Khi Client spawn nhân vật, do có độ trễ nhận InputAuthority từ server làm cho VoiceNetworkObject
+                    // bỏ qua việc đăng ký Recorder. Chúng ta sẽ "AddRecorder" nóng ở đây để kích hoạt truyền tải.
+                    voiceClient.AddRecorder(globalRecorder);
+
+                    if (!voiceClient.Client.IsConnected)
+                    {
+                        Debug.LogWarning("🎙️ [VOICE] Phát hiện Voice Client chưa kết nối (State: PeerCreated/Disconnected). Đang tự động kết nối lại nóng...");
+                        voiceClient.ConnectAndJoinRoom();
+                    }
                 }
             }
             else
