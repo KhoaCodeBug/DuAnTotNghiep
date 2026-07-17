@@ -99,34 +99,11 @@ namespace Photon.Voice.Fusion
 
         protected override Speaker InstantiateSpeakerForRemoteVoice(int playerId, byte voiceId, object userData)
         {
-            if (userData == null) // Recorder w/o VoiceNetworkObject: probably created due to this.UsePrimaryRecorder = true
-            {
-                this.Logger.Log(LogLevel.Info, "Creating Speaker for remote voice {0}/{1} FusionVoiceClient Primary Recorder (userData == null).", playerId, voiceId);
-                return this.InstantiateSpeakerPrefab(this.gameObject, true);
-            }
-
-            if (!(userData is NetworkId))
-            {
-                this.Logger.Log(LogLevel.Warning, "UserData ({0}) is not of type NetworkId. Remote voice {1}/{2} not linked. Do you have a Recorder not used with a VoiceNetworkObject? is this expected?",
-                    userData == null ? "null" : userData.ToString(), playerId, voiceId);
-                return this.InstantiateSpeakerPrefab(this.gameObject, true);
-            }
-            NetworkId networkId = (NetworkId)userData;
-            if (!networkId.IsValid)
-            {
-                this.Logger.Log(LogLevel.Warning, "NetworkId is not valid ({0}). Remote voice {1}/{2} not linked.", networkId, playerId, voiceId);
-                return this.InstantiateSpeakerPrefab(this.gameObject, true);
-            }
-            VoiceNetworkObject voiceNetworkObject = this.networkRunner.TryGetNetworkedBehaviourFromNetworkedObjectRef<VoiceNetworkObject>(networkId);
-            if (ReferenceEquals(null, voiceNetworkObject) || !voiceNetworkObject)
-            {
-                this.Logger.Log(LogLevel.Warning, "No voiceNetworkObject found with ID {0}. Remote voice {1}/{2} not linked.", networkId, playerId, voiceId);
-                // Voice có thể đến sớm hơn NetworkObject trong lúc chuyển scene.
-                // Dùng Speaker dự phòng để không bỏ mất stream và vẫn phát tiếng.
-                return this.InstantiateSpeakerPrefab(this.gameObject, true);
-            }
-            this.Logger.Log(LogLevel.Info, "Using VoiceNetworkObject {0} Speaker for remote voice  p#{1} v#{2}.", userData, playerId, voiceId);
-            return voiceNetworkObject.SpeakerInUse ?? this.InstantiateSpeakerPrefab(this.gameObject, true);
+            // Game dùng voice chat toàn cục. Luôn dùng Speaker độc lập trên
+            // NetworkRunner để tránh race giữa Voice stream và NetworkObject
+            // của player (race này làm Host nhận frame nhưng không có âm thanh).
+            this.Logger.Log(LogLevel.Info, "Creating global speaker for remote voice p#{0} v#{1}.", playerId, voiceId);
+            return this.InstantiateSpeakerPrefab(this.gameObject, true);
         }
 
         private string fusionOfflineVoiceRoomName;
