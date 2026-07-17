@@ -97,7 +97,8 @@ namespace Photon.Voice.Fusion
                 }
             }
 
-            if (null == speaker && null != this.voiceConnection.SpeakerPrefab)
+            // Chỉ dùng voiceConnection làm fallback khi không có speaker có sẵn
+            if (null == speaker && this.voiceConnection != null && null != this.voiceConnection.SpeakerPrefab)
             {
                 speaker = this.voiceConnection.InstantiateSpeakerPrefab(this.gameObject, false);
             }
@@ -108,7 +109,7 @@ namespace Photon.Voice.Fusion
             }
             else
             {
-                this.Logger.Log(LogLevel.Info, "Speaker instantiated.");
+                this.Logger.Log(LogLevel.Info, "Speaker setup completed.");
             }
             this.SpeakerInUse = speaker;
         }
@@ -116,6 +117,12 @@ namespace Photon.Voice.Fusion
         private object GetUserData()
         {
             return this.Object.Id;
+        }
+
+        private void Awake()
+        {
+            // Thiết lập Speaker sớm nhất có thể ngay khi đối tượng được load vào bộ nhớ
+            this.SetupSpeaker();
         }
 
         private void Update()
@@ -160,7 +167,12 @@ namespace Photon.Voice.Fusion
                 isRecorderSetupDone = false;
             }
 
-            this.SetupSpeaker();
+            // Setup lại lần nữa phòng hờ fallback prefab
+            if (this.SpeakerInUse == null)
+            {
+                this.SetupSpeaker();
+            }
+
             if (this.SpeakerInUse == null)
             {
                 this.Logger.Log(LogLevel.Warning, "Speaker not setup for VoiceNetworkObject: voice chat will not work.");
