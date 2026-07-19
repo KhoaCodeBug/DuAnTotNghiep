@@ -24,6 +24,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
     private bool pushToTalkHeld = false;
     private float pushToTalkStartedAt = -1f;
     private bool recoveryAttempted = false;
+    [Header("--- NOISE METER ---")]
+    [SerializeField] private float uiVoiceHearDistance = 12f;
 
     private void SetPushToTalk(bool enabled)
     {
@@ -167,7 +169,18 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             voiceIcon.SetActive(IsSpeaking);
         }
 
-        if (HasInputAuthority == false) return;
+        if (HasInputAuthority == false)
+        {
+            // Voice từ người khác không làm người chơi tự phát tiếng, chỉ nháy viền cyan để báo đang nghe thấy.
+            PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+            if (IsSpeaking && localPlayer != null)
+            {
+                float distance = Vector2.Distance(transform.position, localPlayer.transform.position);
+                if (distance <= uiVoiceHearDistance)
+                    AutoNoiseMeter.ReportHeardVoice(1f - distance / uiVoiceHearDistance);
+            }
+            return;
+        }
 
         // 🔥 ĐĂNG KÝ CHAT ĐỘNG NẾU TRƯỚC ĐÓ CHƯA ĐĂNG KÝ ĐƯỢC
         if (!isChatSubscribed && AutoChatManager.Instance != null)
@@ -186,7 +199,9 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
         UpdatePushToTalk();
 
-        if (IsSpeaking)
+        // Dùng cờ local thay vì NetworkBool IsSpeaking: client có InputAuthority nhận mic ngay,
+        // không phải chờ StateAuthority gửi trạng thái về rồi meter mới phản hồi.
+        if (pushToTalkHeld)
         {
             // 🔥 LOG CHẨN ĐOÁN HỆ THỐNG VOICE CHAT (1.5 giây một lần khi đang đè V - Chạy độc lập kể cả khi globalRecorder bị null)
             if (Time.time >= nextVoiceDiagTime)
@@ -218,12 +233,14 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             {
                 float voiceVolume = globalRecorder.LevelMeter.CurrentPeakAmp;
 
-                if (voiceVolume > 0.01f)
+                // Nhiều mic có peak nhỏ hơn 0.01; ngưỡng cũ làm voice hợp lệ bị coi là im lặng.
+                if (voiceVolume > 0.001f)
                 {
                     float noiseRadius = voiceVolume * 80f;
                     noiseRadius = Mathf.Clamp(noiseRadius, 0f, 10f);
 
                     currentVoiceRadius = noiseRadius;
+                    AutoNoiseMeter.ReportTransientNoise(Mathf.Lerp(0.3f, 0.85f, noiseRadius / 10f), "VOICE");
 
                     if (Time.time >= nextVoiceNoiseTime)
                     {
@@ -235,11 +252,14 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
                 else
                 {
                     currentVoiceRadius = 0f;
+                    // Mic đang mở nhưng peak chưa tới ngưỡng đo: vẫn báo trạng thái nhẹ, không báo zombie nghe thấy.
+                    AutoNoiseMeter.ReportTransientNoise(0.12f, "MIC ĐANG MỞ");
                 }
             }
             else
             {
                 currentVoiceRadius = 0f;
+                AutoNoiseMeter.ReportTransientNoise(0.12f, "MIC ĐANG MỞ");
             }
         }
         else

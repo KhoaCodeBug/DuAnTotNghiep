@@ -354,6 +354,8 @@ public class PlayerCombat : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
     public void RPC_PlayBashAnimation(int randomAttack)
     {
+        if (HasInputAuthority) AutoNoiseMeter.ReportTransientNoise(0.48f, "CẬN CHIẾN");
+
         if (anim != null)
         {
             anim.SetInteger("RandomBash", randomAttack);
@@ -365,6 +367,8 @@ public class PlayerCombat : NetworkBehaviour
     public void RPC_ShowMuzzleFlash(Vector2 direction)
     {
         if (!gameObject.activeInHierarchy) return;
+
+        if (HasInputAuthority) AutoNoiseMeter.ReportTransientNoise(0.92f, "SÚNG NỔ");
 
         if (muzzleAnimator != null && muzzleFlashRenderer != null)
         {

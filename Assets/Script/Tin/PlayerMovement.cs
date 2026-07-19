@@ -221,6 +221,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming))
         {
+            if (HasInputAuthority) AutoNoiseMeter.SetMovementNoise(false, false, false);
             if (flashlightTransform != null)
             {
                 flashlightTransform.gameObject.SetActive(false);
@@ -243,6 +244,8 @@ public class PlayerMovement : NetworkBehaviour
 
         if (HasInputAuthority)
         {
+            AutoNoiseMeter.SetMovementNoise(NetIsMoving, NetIsRunning, NetIsCrouching);
+
             if (NetIsAiming && !isCurrentlyAimingCursor)
             {
                 Cursor.SetCursor(crosshairTexture, crosshairHotSpot, CursorMode.Auto);
