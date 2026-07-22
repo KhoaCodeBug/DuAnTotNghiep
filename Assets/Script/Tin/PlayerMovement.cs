@@ -32,6 +32,20 @@ public class PlayerMovement : NetworkBehaviour
     [Header("--- Animations ---")]
     public Animator anim;
 
+    [Header("--- Footstep Audio Settings ---")]
+    public AudioSource footstepAudioSource;
+    public AudioClip walkGrassSFX;
+    public AudioClip walkDirtSFX;
+    public AudioClip runGrassSFX;
+    public AudioClip runDirtSFX;
+    public AudioClip stealthSFX;
+    public float walkStepInterval = 0.45f;
+    public float runStepInterval = 0.28f;
+    public float stealthStepInterval = 0.55f;
+
+    private float footstepTimer = 0f;
+    private bool stepToggle = false;
+
     private Rigidbody2D rb;
     private PlayerStamina staminaSystem;
     private PlayerHealth healthSystem;
@@ -75,11 +89,66 @@ public class PlayerMovement : NetworkBehaviour
         set => NetIsUsingItem = value;
     }
 
+    private void Awake()
+    {
+#if UNITY_EDITOR
+        AutoAssignFootstepClips();
+#endif
+    }
+
+    private void OnValidate()
+    {
+#if UNITY_EDITOR
+        AutoAssignFootstepClips();
+#endif
+    }
+
+    private void AutoAssignFootstepClips()
+    {
+#if UNITY_EDITOR
+        if (walkGrassSFX == null)
+            walkGrassSFX = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Sound/Footsteps/footstep_walk(grass).mp3");
+        if (walkDirtSFX == null)
+            walkDirtSFX = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Sound/Footsteps/footstep_walk(dirt).mp3");
+        if (runGrassSFX == null)
+            runGrassSFX = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Sound/Footsteps/footstep_run(gass).mp3");
+        if (runDirtSFX == null)
+            runDirtSFX = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Sound/Footsteps/footstep_run(dirt).mp3");
+        if (stealthSFX == null)
+            stealthSFX = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Sound/Footsteps/footstep_steath.mp3");
+
+        if (footstepAudioSource == null)
+            footstepAudioSource = GetComponent<AudioSource>();
+#endif
+    }
+
     public override void Spawned()
     {
         rb = GetComponent<Rigidbody2D>();
         staminaSystem = GetComponent<PlayerStamina>();
+        healthSystem = GetComponent<PlayerHealth>();
         rb.freezeRotation = true;
+
+        if (footstepAudioSource == null)
+        {
+            footstepAudioSource = GetComponent<AudioSource>();
+            if (footstepAudioSource == null)
+            {
+                footstepAudioSource = gameObject.AddComponent<AudioSource>();
+            }
+        }
+
+        if (footstepAudioSource != null)
+        {
+            footstepAudioSource.spatialBlend = 1f; // 3D Spatial Sound
+            footstepAudioSource.minDistance = 1f;
+            footstepAudioSource.maxDistance = 15f;
+            footstepAudioSource.playOnAwake = false;
+        }
+
+#if UNITY_EDITOR
+        AutoAssignFootstepClips();
+#endif
 
         if (HasStateAuthority)
         {
@@ -229,10 +298,11 @@ public class PlayerMovement : NetworkBehaviour
             return;
         }
 
-        // 🔥 CHỈ CẬP NHẬT ANIMATION NẾU KHÔNG BỊ TRÁO THÀNH ZOMBIE
+        // 🔥 CHỈ CẬP NHẬT ANIMATION VÀ SFX BƯỚC CHÂN NẾU KHÔNG BỊ TRÁO THÀNH ZOMBIE
         if (!isParanoiaZombie)
         {
             UpdateAnimation();
+            UpdateFootstepAudio();
         }
 
         if (flashlightTransform != null && NetLastLookDir != Vector2.zero)
@@ -306,6 +376,116 @@ public class PlayerMovement : NetworkBehaviour
         else
         {
             anim.speed = 1f;
+        }
+    }
+
+    private float GetClipStartOffset(AudioClip clip)
+    {
+        if (clip == null) return 0f;
+        string name = clip.name.ToLower();
+        if (name.Contains("walk(dirt)")) return 1.21f;
+        if (name.Contains("walk(grass)")) return 0.80f;
+        if (name.Contains("steath") || name.Contains("stealth")) return 0.45f;
+        if (name.Contains("run(gass)") || name.Contains("run(grass)")) return 0.12f;
+        if (name.Contains("run(dirt)")) return 0.06f;
+        return 0f;
+    }
+
+    private float GetClipEndOffset(AudioClip clip)
+    {
+        if (clip == null) return 0f;
+        string name = clip.name.ToLower();
+        if (name.Contains("walk(dirt)")) return 8.00f;
+        if (name.Contains("walk(grass)")) return 4.95f;
+        if (name.Contains("steath") || name.Contains("stealth")) return 4.75f;
+        if (name.Contains("run(gass)") || name.Contains("run(grass)")) return 4.05f;
+        if (name.Contains("run(dirt)")) return 6.00f;
+        return clip.length - 0.1f;
+    }
+
+    private void UpdateFootstepAudio()
+    {
+        if (footstepAudioSource == null) return;
+
+        bool isDeadOrStunned = (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming)) || NetStunTimer > 0;
+        bool isMovingNow = NetIsMoving && !isDeadOrStunned;
+
+        // 🔥 KHI NGỪNG ĐI HOẶC BỊ CHẾT/STUN: Ngắt ngay âm thanh lập tức, không phát dư tiếng!
+        if (!isMovingNow)
+        {
+            if (footstepAudioSource.isPlaying)
+            {
+                footstepAudioSource.Stop();
+            }
+            return;
+        }
+
+        // 🔥 LIÊN KẾT VỚI AUDIO SETTING: Lấy giá trị âm lượng SFX từ PlayerPrefs
+        float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+
+        // 🔥 CỐ ĐỊNH 1 SOUND DUY NHẤT CHO MỖI TRẠNG THÁI (WALK, RUN, STEALTH)
+        AudioClip targetClip = null;
+        float baseVolume = 0.7f;
+        float targetPitch = 1.0f;
+
+        if (NetIsCrouching)
+        {
+            targetClip = stealthSFX;
+            baseVolume = 0.65f; // Đi rón rén âm thanh vừa đủ nghe
+            targetPitch = 0.9f;
+        }
+        else if (NetIsRunning)
+        {
+            targetClip = runGrassSFX ?? runDirtSFX; // Cố định 1 sound chạy
+            baseVolume = 0.95f; // Chạy nhanh âm thanh to
+            targetPitch = 0.98f;
+        }
+        else
+        {
+            targetClip = walkGrassSFX ?? walkDirtSFX; // Cố định 1 sound đi bộ
+            baseVolume = 0.75f; // Đi bộ âm thanh vừa phải
+            targetPitch = 1.0f;
+        }
+
+        if (targetClip == null)
+        {
+            if (footstepAudioSource.isPlaying) footstepAudioSource.Stop();
+            return;
+        }
+
+        // Âm lượng cuối cùng = Âm lượng gốc * Âm lượng SFX trong Audio Settings
+        float targetVolume = baseVolume * sfxVol;
+
+        float startOffset = GetClipStartOffset(targetClip);
+        float endOffset = GetClipEndOffset(targetClip);
+
+        // 🔥 KHI CHUYỂN TRẠNG THÁI (Walk -> Run / Stealth): Đổi clip và phát mới ngay lập tức
+        if (footstepAudioSource.clip != targetClip || !footstepAudioSource.isPlaying)
+        {
+            footstepAudioSource.clip = targetClip;
+            footstepAudioSource.loop = true;
+            footstepAudioSource.volume = targetVolume;
+            footstepAudioSource.pitch = targetPitch;
+            footstepAudioSource.Play();
+            
+            // Bắt đầu ngay từ âm thanh bước chân đầu tiên (bỏ qua khoảng im lặng đầu file)
+            if (startOffset < targetClip.length)
+            {
+                footstepAudioSource.time = startOffset;
+            }
+        }
+        else
+        {
+            // 🔥 VÒNG LẶP LIÊN TỤC VÔ TẬN KHÔNG KHOẢNG LẶNG (SEAMLESS LOOP):
+            if (footstepAudioSource.time >= endOffset)
+            {
+                footstepAudioSource.time = startOffset;
+            }
+
+            // Điều chỉnh mượt mà pitch và volume khớp với Cài đặt Audio Setting
+            float dt = Time.deltaTime;
+            footstepAudioSource.volume = Mathf.Lerp(footstepAudioSource.volume, targetVolume, 10f * dt);
+            footstepAudioSource.pitch = Mathf.Lerp(footstepAudioSource.pitch, targetPitch, 10f * dt);
         }
     }
 

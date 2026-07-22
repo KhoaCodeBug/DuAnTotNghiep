@@ -1,9 +1,9 @@
 {
   "dependencies": {
     "com.coplaydev.unity-mcp": {
-      "version": "file:E:/Lap_trinh/HocTap/RhythmGame/RhythmGame/Packages/com.coplaydev.unity-mcp",
+      "version": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.1.0",
       "depth": 0,
-      "source": "local",
+      "source": "git",
       "dependencies": {
         "com.unity.modules.animation": "1.0.0",
         "com.unity.modules.imageconversion": "1.0.0",
@@ -14,7 +14,8 @@
         "com.unity.modules.unitywebrequest": "1.0.0",
         "com.unity.nuget.newtonsoft-json": "3.0.2",
         "com.unity.test-framework": "1.1.31"
-      }
+      },
+      "hash": "c14de1e6dc01ab42d2bb358730cff954bce0ce6b"
     },
     "com.unity.2d.animation": {
       "version": "10.2.2",

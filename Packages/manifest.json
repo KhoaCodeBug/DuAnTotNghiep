@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.coplaydev.unity-mcp": "file:E:/Lap_trinh/HocTap/RhythmGame/RhythmGame/Packages/com.coplaydev.unity-mcp",
+    "com.coplaydev.unity-mcp": "https://github.com/CoplayDev/unity-mcp.git?path=/MCPForUnity#v10.1.0",
     "com.unity.ai.navigation": "2.0.12",
     "com.unity.collab-proxy": "2.11.3",
     "com.unity.feature.2d": "2.0.1",
