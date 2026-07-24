@@ -13,7 +13,12 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     [Header("--- Điểm Hồi Sinh (Spawn Points) ---")]
     public Transform[] spawnPoints;
 
+    [Header("--- Intro / Tutorial ---")]
+    [Tooltip("Only enable this in the solo Intro scene. The tutorial director will explicitly start spawning after the cinematic.")]
+    [SerializeField] private bool deferInitialSpawn;
+
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
+    private bool spawnRoutineStarted;
 
     // 🔥 CÁC BIẾN ĐỒNG BỘ MẠNG
     [Networked] public bool IsMatchStarted { get; set; } // Đánh dấu game đã bắt đầu chưa
@@ -22,6 +27,14 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     public override void Spawned()
     {
         Instance = this;
+        if (!deferInitialSpawn)
+            BeginInitialSpawn();
+    }
+
+    public void BeginInitialSpawn()
+    {
+        if (spawnRoutineStarted) return;
+        spawnRoutineStarted = true;
         StartCoroutine(SpawnRoutine());
     }
 
