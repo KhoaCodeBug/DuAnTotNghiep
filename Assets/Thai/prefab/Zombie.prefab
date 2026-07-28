@@ -362,12 +362,30 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   zombieRadius: 0.5
-  detectionRange: 1
-  directChaseRange: 3
+  zombieMask:
+    serializedVersion: 2
+    m_Bits: 8
+  separationRadius: 0.45
+  separationWeight: 1.5
+  detectionRange: 1.35
+  directChaseRange: 2
+  trackingDuration: 4
+  viewAngle: 90
+  alertViewAngle: 140
+  closeAwarenessRange: 1.1
+  searchPointCount: 5
+  searchRadius: 3
+  searchWaitDuration: 1.2
+  hearingInvestigateSpeedMultiplier: 1.8
   moveSpeed: 1
-  attackRange: 0.2
+  attackRange: 0.31
   damageRadius: 0.31
   attackCooldown: 1.5
+  attackCommitDuration: 1.25
+  attackRangeBuffer: 0.05
+  attackHitAngle: 120
+  attackWindupDelay: 1.5
+  attackPrepareHoldBuffer: 0.25
   damageAtk1: 5
   damageAtk2: 5
   damageAtk3: 5
@@ -376,7 +394,7 @@ MonoBehaviour:
   wanderWaitTimeMin: 2
   wanderWaitTimeMax: 5
   wanderSpeedMultiplier: 0.8
-  hearMemoryDuration: 3
+  hearMemoryDuration: 6
   _NetMoveDir: {x: 0, y: 0}
   _NetIsRunning:
     _value: 0
