@@ -35,8 +35,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     [Header("Cài đặt Fusion Network")]
     public NetworkRunner runnerPrefab;
     public int mainSceneIndex = 1;
-    [Tooltip("Solo-only opening scene. Multiplayer always continues to mainSceneIndex.")]
-    public int introSceneIndex = 5;
 
     [Header("Hình ảnh Nhân vật")]
     public GameObject[] previewImages;
@@ -1382,7 +1380,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 ShowLoadingScreen();
                 await Task.Delay(800);
                 playersLoaded = 0;
-                await activeRunner.LoadScene(SceneRef.FromIndex(introSceneIndex));
+                await activeRunner.LoadScene(SceneRef.FromIndex(mainSceneIndex));
             }
             else if (mode == GameMode.Host)
             {
