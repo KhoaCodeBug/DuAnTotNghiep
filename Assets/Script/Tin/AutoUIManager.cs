@@ -30,6 +30,11 @@ public class AutoUIManager : MonoBehaviour
     private int selectedSlotIndex = -1;
     private float invToggleCooldown = 0f;
     public bool isDoingAction;
+
+    [Header("--- SFX Ăn & Uống ---")]
+    public AudioClip playerEatSFX;
+    public AudioClip playerDrinkSFX;
+    private AudioSource itemSFXAudioSource;
     #endregion
 
     #region Biến UI - Spectator
@@ -164,6 +169,12 @@ public class AutoUIManager : MonoBehaviour
         HandleInput();
         UpdateTradeWindowRealtime();
         UpdateSpectatorUI();
+
+        // Đồng bộ âm lượng SFX thời gian thực từ Option/Pause menu trong khi nhân vật đang thực hiện hành động
+        if (isDoingAction && itemSFXAudioSource != null && itemSFXAudioSource.isPlaying)
+        {
+            itemSFXAudioSource.volume = GetCurrentSFXVolume();
+        }
     }
 
     private void UpdateSpectatorUI()
@@ -1423,7 +1434,72 @@ public class AutoUIManager : MonoBehaviour
     }
     #endregion
 
-    #region Action Routine
+    #region Action Routine & SFX Management
+    public float GetCurrentSFXVolume()
+    {
+        float volume = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        if (AutoMainMenuManager.Instance != null)
+        {
+            volume = AutoMainMenuManager.Instance.sfxVolume;
+        }
+        return Mathf.Clamp01(volume);
+    }
+
+    private void PlayItemUseSFX(ItemData itemToUse)
+    {
+        if (itemToUse == null) return;
+
+        if (itemSFXAudioSource == null)
+        {
+            itemSFXAudioSource = gameObject.AddComponent<AudioSource>();
+            itemSFXAudioSource.playOnAwake = false;
+            itemSFXAudioSource.loop = false;
+        }
+
+        AudioClip clipToPlay = null;
+        string itemNameLower = itemToUse.itemName.ToLower();
+
+        bool isDrink = itemToUse.thirstRestore > 0 ||
+                       itemNameLower.Contains("drink") || itemNameLower.Contains("water") ||
+                       itemNameLower.Contains("nước") || itemNameLower.Contains("soda") ||
+                       itemNameLower.Contains("coke") || itemNameLower.Contains("juice") ||
+                       itemNameLower.Contains("bottle") || itemNameLower.Contains("can");
+
+        bool isEat = itemToUse.hungerRestore > 0 || itemToUse.category == ItemCategory.Consumable ||
+                    itemNameLower.Contains("eat") || itemNameLower.Contains("food") ||
+                    itemNameLower.Contains("ăn") || itemNameLower.Contains("bread") ||
+                    itemNameLower.Contains("bánh") || itemNameLower.Contains("canned") ||
+                    itemNameLower.Contains("meat") || itemNameLower.Contains("thịt");
+
+        if (isDrink)
+        {
+            if (playerDrinkSFX == null) playerDrinkSFX = Resources.Load<AudioClip>("Sound/player_drink");
+            clipToPlay = playerDrinkSFX;
+        }
+        else if (isEat)
+        {
+            if (playerEatSFX == null) playerEatSFX = Resources.Load<AudioClip>("Sound/player_eat");
+            clipToPlay = playerEatSFX;
+        }
+
+        if (clipToPlay != null)
+        {
+            itemSFXAudioSource.Stop();
+            itemSFXAudioSource.clip = clipToPlay;
+            itemSFXAudioSource.volume = GetCurrentSFXVolume();
+            itemSFXAudioSource.time = 0f; // Bắt đầu phát lập tức ngay từ millisecond đầu tiên (0.000s)
+            itemSFXAudioSource.Play();
+        }
+    }
+
+    private void StopItemUseSFX()
+    {
+        if (itemSFXAudioSource != null && itemSFXAudioSource.isPlaying)
+        {
+            itemSFXAudioSource.Stop();
+        }
+    }
+
     private IEnumerator ActionTimerRoutine(int slotIndex, ItemData itemToUse)
     {
         isDoingAction = true;
@@ -1432,6 +1508,10 @@ public class AutoUIManager : MonoBehaviour
 
         if (inventoryPanel != null) inventoryPanel.SetActive(false);
         CloseContainerUI();
+
+        // 🔥 PHÁT ÂM THANH NGAY LẬP TỨC KHI BẤM DÙNG MON ĂN / NƯỚC UỐNG
+        PlayItemUseSFX(itemToUse);
+
         yield return new WaitForSeconds(0.1f);
 
         float timer = 0f;
@@ -1452,12 +1532,16 @@ public class AutoUIManager : MonoBehaviour
 
             if (Input.GetKey(KeyCode.LeftShift) || Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.1f)
             {
+                StopItemUseSFX(); // 🔥 HỦY HÀNH ĐỘNG -> DỪNG ÂM THANH HOÀN TOÀN TỨC THÌ
                 actionBarPanel.SetActive(false);
                 isDoingAction = false;
                 yield break;
             }
             yield return null;
         }
+
+        // 🔥 HẾT THỜI GIAN -> DỪNG ÂM THANH HOÀN TOÀN
+        StopItemUseSFX();
 
         actionBarPanel.SetActive(false);
         isDoingAction = false;
