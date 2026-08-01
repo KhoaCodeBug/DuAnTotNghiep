@@ -18,6 +18,17 @@ public class PlayerCombat : NetworkBehaviour
     public LayerMask enemyLayer;
     public float shootNoiseRadius = 20f;
 
+    [Header("--- AK47 & Melee Weapon Audio Settings ---")]
+    public AudioSource weaponAudioSource;
+    public AudioClip singleShotSFX;
+    public AudioClip autoShotSFX;
+    public AudioClip reloadSFX;
+    public AudioClip dryFireSFX;
+    public AudioClip swingSFX;
+    public AudioClip hitFleshSFX;
+
+    private float lastDryFireTime = 0f;
+
     [Header("--- Quản Lý Đạn (Ammunition) ---")]
     public ItemData ammoType;
     public int magazineSize = 30;
@@ -53,6 +64,7 @@ public class PlayerCombat : NetworkBehaviour
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
         if (HasStateAuthority) currentAmmo = magazineSize;
+        AutoAssignAK47AudioClips();
     }
 
     void Update()
@@ -127,7 +139,11 @@ public class PlayerCombat : NetworkBehaviour
                     if (HasInputAuthority)
                     {
                         nextFireTimer = TickTimer.CreateFromSeconds(Runner, fireRate);
-                        Debug.Log("Súng rỗng! Bấm R để nạp đạn.");
+                        if (Time.time - lastDryFireTime > 0.4f)
+                        {
+                            lastDryFireTime = Time.time;
+                            RPC_PlayDryFireSFX();
+                        }
                     }
                 }
             }
@@ -155,6 +171,7 @@ public class PlayerCombat : NetworkBehaviour
         }
 
         isReloading = true;
+        RPC_PlayReloadSFX();
         float duration = ammoType.useTime;
         float timer = 0f;
 
@@ -168,6 +185,7 @@ public class PlayerCombat : NetworkBehaviour
             if (Input.GetKey(KeyCode.LeftShift))
             {
                 isReloading = false;
+                RPC_StopReloadSFX();
                 if (AutoUIManager.Instance != null) AutoUIManager.Instance.HideReloadUI();
                 Debug.Log("Đã hủy nạp đạn để bỏ chạy!");
                 yield break;
@@ -337,15 +355,16 @@ public class PlayerCombat : NetworkBehaviour
                 {
                     enemyStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority);
                     alreadyHitIDs.Add(enemyStats.GetInstanceID());
+                    RPC_PlayMeleeHitFleshSFX();
                 }
 
                 //Thai 
                 ZombieHealth newZombieStats = enemy.GetComponentInParent<ZombieHealth>();
                 if (newZombieStats != null && !alreadyHitIDs.Contains(newZombieStats.gameObject.GetInstanceID()))
                 {
-                    
                     newZombieStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority, true);
                     alreadyHitIDs.Add(newZombieStats.gameObject.GetInstanceID());
+                    RPC_PlayMeleeHitFleshSFX();
                 }
             }
         }
@@ -368,10 +387,21 @@ public class PlayerCombat : NetworkBehaviour
     {
         if (!gameObject.activeInHierarchy) return;
 
+        // 🔥 PHÁT ÂM THANH BẮN SÚNG AK47
+        PlayAK47ShootSFX();
+
         if (HasInputAuthority) AutoNoiseMeter.ReportTransientNoise(0.92f, "SÚNG NỔ");
 
         if (muzzleAnimator != null && muzzleFlashRenderer != null)
         {
+            // 🔥 THIẾT LẬP SORTING ORDER NỔI LÊN PHÍA TRƯỚC PLAYER Ở BẤT KỲ HƯỚNG NÀO (KỂ CẢ HƯỚNG NAM / SOUTH)
+            SpriteRenderer playerSr = GetComponent<SpriteRenderer>();
+            if (playerSr != null)
+            {
+                muzzleFlashRenderer.sortingLayerID = playerSr.sortingLayerID;
+                muzzleFlashRenderer.sortingOrder = playerSr.sortingOrder + 10;
+            }
+
             float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
             string directionString = DetermineDirectionFromAngle(angle);
             string animName = "Gunfire" + directionString;
@@ -398,15 +428,140 @@ public class PlayerCombat : NetworkBehaviour
     private string DetermineDirectionFromAngle(float angle)
     {
         angle = (angle + 360) % 360;
-        if (angle < 15f || angle >= 345f) return "East";
-        else if (angle >= 15f && angle < 75f) return "NorthEast";
-        else if (angle >= 75f && angle < 105f) return "North";
-        else if (angle >= 105f && angle < 165f) return "NorthWest";
-        else if (angle >= 165f && angle < 195f) return "West";
-        else if (angle >= 195f && angle < 255f) return "SouthWest";
-        else if (angle >= 255f && angle < 285f) return "South";
-        else if (angle >= 285f && angle < 345f) return "SouthEast";
+        if (angle < 22.5f || angle >= 337.5f) return "East";
+        else if (angle >= 22.5f && angle < 67.5f) return "NorthEast";
+        else if (angle >= 67.5f && angle < 112.5f) return "North";
+        else if (angle >= 112.5f && angle < 157.5f) return "NorthWest";
+        else if (angle >= 157.5f && angle < 202.5f) return "West";
+        else if (angle >= 202.5f && angle < 247.5f) return "SouthWest";
+        else if (angle >= 247.5f && angle < 292.5f) return "South";
+        else if (angle >= 292.5f && angle < 337.5f) return "SouthEast";
         return "East";
+    }
+
+    // =========================================================
+    // 🔥 QUẢN LÝ ÂM THANH SÚNG AK47
+    // =========================================================
+
+    private void AutoAssignAK47AudioClips()
+    {
+        if (weaponAudioSource == null)
+        {
+            // 🔥 TẠO GAMEOBJECT CON "WeaponAudio" CHUYÊN TRÁCH ÂM THANH VŨ KHÍ
+            // Giải quyết triệt để lỗi dùng chung AudioSource với PlayerMovement (bị Stop() nhầm)
+            Transform audioChild = transform.Find("WeaponAudio");
+            if (audioChild == null)
+            {
+                GameObject go = new GameObject("WeaponAudio");
+                go.transform.SetParent(transform, false);
+                go.transform.localPosition = Vector3.zero;
+                weaponAudioSource = go.AddComponent<AudioSource>();
+            }
+            else
+            {
+                weaponAudioSource = audioChild.GetComponent<AudioSource>();
+                if (weaponAudioSource == null) weaponAudioSource = audioChild.gameObject.AddComponent<AudioSource>();
+            }
+        }
+
+        if (weaponAudioSource != null)
+        {
+            weaponAudioSource.spatialBlend = 0f; // 2D Sound (Phát 100% âm lượng Max, không bị suy hao)
+            weaponAudioSource.playOnAwake = false;
+        }
+
+        if (singleShotSFX == null) singleShotSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_single");
+        if (autoShotSFX == null) autoShotSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_auto");
+        if (reloadSFX == null) reloadSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_reload");
+        if (dryFireSFX == null) dryFireSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_dry_fire");
+
+        if (swingSFX == null) swingSFX = Resources.Load<AudioClip>("Sound/Melee/melee_swing");
+        if (hitFleshSFX == null) hitFleshSFX = Resources.Load<AudioClip>("Sound/Melee/melee_hit_flesh");
+    }
+
+    private void PlayAK47ShootSFX()
+    {
+        AutoAssignAK47AudioClips();
+        if (singleShotSFX == null) singleShotSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_single");
+        if (singleShotSFX == null || weaponAudioSource == null)
+        {
+            Debug.LogError("[PlayerCombat] Không tìm thấy file âm thanh súng ak47_single!");
+            return;
+        }
+
+        float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+
+        // 🔥 PHÁT ÂM THANH BẮN SÚNG VANG TO, UY LỰC TRÊN WEAPON AUDIO SOURCE ĐỘC LẬP
+        weaponAudioSource.pitch = Random.Range(0.98f, 1.02f);
+        weaponAudioSource.PlayOneShot(singleShotSFX, 1.0f * sfxVol);
+    }
+
+    [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
+    public void RPC_PlayDryFireSFX()
+    {
+        if (!gameObject.activeInHierarchy) return;
+        AutoAssignAK47AudioClips();
+        if (dryFireSFX == null) dryFireSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_dry_fire");
+        if (dryFireSFX == null || weaponAudioSource == null) return;
+
+        float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        weaponAudioSource.pitch = 1.0f;
+
+        // 🔥 PHÁT TIẾNG CLICK TẠCH NỔI BẬT ĐANH RÕ (ÂM LƯỢNG 1.20f)
+        weaponAudioSource.PlayOneShot(dryFireSFX, 1.20f * sfxVol);
+    }
+
+    [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
+    public void RPC_PlayReloadSFX()
+    {
+        if (!gameObject.activeInHierarchy) return;
+        AutoAssignAK47AudioClips();
+        if (reloadSFX == null) reloadSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_reload");
+        if (reloadSFX == null || weaponAudioSource == null) return;
+
+        float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        weaponAudioSource.pitch = 1.0f;
+        weaponAudioSource.PlayOneShot(reloadSFX, 0.90f * sfxVol);
+    }
+
+    [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
+    public void RPC_StopReloadSFX()
+    {
+        if (weaponAudioSource != null && weaponAudioSource.isPlaying)
+        {
+            weaponAudioSource.Stop();
+        }
+    }
+
+    public void OnMeleeSwing()
+    {
+        RPC_PlayMeleeSwingSFX();
+    }
+
+    [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
+    public void RPC_PlayMeleeSwingSFX()
+    {
+        if (!gameObject.activeInHierarchy) return;
+        AutoAssignAK47AudioClips();
+        if (swingSFX == null) swingSFX = Resources.Load<AudioClip>("Sound/Melee/melee_swing");
+        if (swingSFX == null || weaponAudioSource == null) return;
+
+        float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        weaponAudioSource.pitch = Random.Range(0.97f, 1.03f);
+        weaponAudioSource.PlayOneShot(swingSFX, 0.90f * sfxVol);
+    }
+
+    [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
+    public void RPC_PlayMeleeHitFleshSFX()
+    {
+        if (!gameObject.activeInHierarchy) return;
+        AutoAssignAK47AudioClips();
+        if (hitFleshSFX == null) hitFleshSFX = Resources.Load<AudioClip>("Sound/Melee/melee_hit_flesh");
+        if (hitFleshSFX == null || weaponAudioSource == null) return;
+
+        float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        weaponAudioSource.pitch = Random.Range(0.97f, 1.03f);
+        weaponAudioSource.PlayOneShot(hitFleshSFX, 1.00f * sfxVol);
     }
 
     private void OnDrawGizmos()

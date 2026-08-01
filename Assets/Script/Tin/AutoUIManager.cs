@@ -295,6 +295,9 @@ public class AutoUIManager : MonoBehaviour
                 bool newState = !inventoryPanel.activeSelf;
                 inventoryPanel.SetActive(newState);
 
+                if (newState) PlayInventoryOpenSound();
+                else PlayInventoryCloseSound();
+
                 if (ammoContainer != null) ammoContainer.SetActive(!newState);
 
                 if (!newState)
@@ -326,7 +329,11 @@ public class AutoUIManager : MonoBehaviour
             if ((inventoryPanel != null && inventoryPanel.activeSelf) || (containerPanel != null && containerPanel.activeSelf))
             {
                 invToggleCooldown = Time.time + 0.2f;
-                if (inventoryPanel != null) inventoryPanel.SetActive(false);
+                if (inventoryPanel != null && inventoryPanel.activeSelf)
+                {
+                    inventoryPanel.SetActive(false);
+                    PlayInventoryCloseSound();
+                }
 
                 if (ammoContainer != null) ammoContainer.SetActive(true);
 
@@ -355,6 +362,27 @@ public class AutoUIManager : MonoBehaviour
                 mainCanvas.transform as RectTransform, Input.mousePosition, mainCanvas.worldCamera, out Vector2 mousePos);
             tooltipPanel.transform.localPosition = mousePos + new Vector2(15, -15);
         }
+    }
+
+    public void PlayInventoryOpenSound()
+    {
+        AudioClip clip = Resources.Load<AudioClip>("Sound/Actions/inventory_open");
+        Vector3 pos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+        if (clip != null) AudioSource.PlayClipAtPoint(clip, pos, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
+    }
+
+    public void PlayInventoryCloseSound()
+    {
+        AudioClip clip = Resources.Load<AudioClip>("Sound/Actions/inventory_close");
+        Vector3 pos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+        if (clip != null) AudioSource.PlayClipAtPoint(clip, pos, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
+    }
+
+    public void PlayItemPickupSound()
+    {
+        AudioClip clip = Resources.Load<AudioClip>("Sound/Actions/item_pickup");
+        Vector3 pos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+        if (clip != null) AudioSource.PlayClipAtPoint(clip, pos, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
     }
 
     private void GenerateEntireUI()
@@ -788,6 +816,9 @@ public class AutoUIManager : MonoBehaviour
         string itemName = currentOpenContainer.itemsInContainer[index].item.itemName;
 
         currentOpenContainer.RPC_RequestTakeItem(index, itemName, myNetworkID);
+
+        // 🔥 PHÁT ÂM THANH LỤM VẬT PHẨM KHI SHIFT+CLICK LOOT NHANH
+        PlayItemPickupSound();
     }
 
     // 🔥 HÀM KÉO THẢ ĐÃ CÓ BẢO VỆ MULTIPLAYER
@@ -823,6 +854,9 @@ public class AutoUIManager : MonoBehaviour
 
         string name = slot.item.itemName;
         currentOpenContainer.RPC_RequestTakeItem(contIdx, name, localPlayer.GetComponent<NetworkObject>().InputAuthority);
+
+        // 🔥 PHÁT ÂM THANH LỤM VẬT PHẨM KHI KÉO ĐỒ TỪ TỦ/LOOT VÀO BALO
+        PlayItemPickupSound();
     }
     #endregion
 
