@@ -126,8 +126,9 @@ public class PlayerMovement : NetworkBehaviour
         if (footstepAudioSource != null)
         {
             footstepAudioSource.spatialBlend = 1f; // 3D Spatial Sound
-            footstepAudioSource.minDistance = 1f;
-            footstepAudioSource.maxDistance = 15f;
+            footstepAudioSource.minDistance = 10f; // Khớp khoảng cách Camera Z = -10 để giữ 100% âm lượng bản thân
+            footstepAudioSource.maxDistance = 25f;
+            footstepAudioSource.rolloffMode = AudioRolloffMode.Logarithmic;
             footstepAudioSource.playOnAwake = false;
         }
 
@@ -380,6 +381,9 @@ public class PlayerMovement : NetworkBehaviour
     // 🔥 HÀM KÍCH HOẠT TỪ ANIMATION EVENT (ANIMATION WINDOW)
     // =========================================================
     
+    private float lastFootstepAudioTime = 0f;
+    private int lastFootstepFrame = -1;
+
     /// <summary>
     /// Gọi hàm này từ Animation Event tại đúng frame chân chạm đất (tự chọn sound Walk/Run)
     /// </summary>
@@ -404,6 +408,17 @@ public class PlayerMovement : NetworkBehaviour
         PlaySpecificFootstep(runSFX, 0.95f);
     }
 
+    /// <summary>
+    /// Gọi hàm này từ Animation Event khi vung vũ khí chém cận chiến (Attack2, Attack3, Attack4)
+    /// </summary>
+    public void OnMeleeSwing()
+    {
+        if (TryGetComponent(out PlayerCombat combat))
+        {
+            combat.OnMeleeSwing();
+        }
+    }
+
     public void PlaySingleFootstepBeat()
     {
         AudioClip clip = NetIsRunning ? runSFX : walkSFX;
@@ -413,11 +428,24 @@ public class PlayerMovement : NetworkBehaviour
 
     private void PlaySpecificFootstep(AudioClip clip, float baseVol)
     {
+        // 🔥 CHỈ PHÁT ÂM THANH CHO PLAYER BẢN THÂN (Tránh máy khách/proxy phát đúp 2 lần)
+        if (!HasInputAuthority) return;
+
+        if (footstepAudioSource == null) footstepAudioSource = GetComponent<AudioSource>();
         if (footstepAudioSource == null) return;
 
         bool isDeadOrStunned = (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming)) || NetStunTimer > 0;
         // 🔥 KHI AIMING (NHẮM), RÓN RÉN (CROUCH), CHẾT, HOẶC ĐỨNG YÊN => TẮT HOÀN TOÀN ÂM THANH (0 SOUND)
         if (!NetIsMoving || isDeadOrStunned || NetIsCrouching || NetIsAiming) return;
+
+        // 🔥 TRIỆT TIÊU LỖI TRỒNG 3-4 TẦNG SOUND:
+        // 1. Kiểm tra không cho phát trùng Frame trong 2D Blend Tree
+        if (Time.frameCount == lastFootstepFrame) return;
+        // 2. Khoảng cách tối thiểu giữa 2 bước chân >= 0.20s
+        if (Time.time - lastFootstepAudioTime < 0.20f) return;
+
+        lastFootstepFrame = Time.frameCount;
+        lastFootstepAudioTime = Time.time;
 
         if (clip == null)
         {
@@ -429,8 +457,13 @@ public class PlayerMovement : NetworkBehaviour
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
         float finalVol = baseVol * sfxVol;
 
-        footstepAudioSource.pitch = Random.Range(0.97f, 1.03f);
-        footstepAudioSource.PlayOneShot(clip, finalVol);
+        // 🔥 TRIỆT TIÊU 100% LỖI TRỒNG TẦNG SOUND: Dừng ngay âm đuôi bước cũ trước khi phát bước mới!
+        // Không dùng PlayOneShot vì PlayOneShot làm các âm đuôi chồng lên nhau thành 3-4 tầng sound.
+        footstepAudioSource.Stop();
+        footstepAudioSource.clip = clip;
+        footstepAudioSource.volume = finalVol;
+        footstepAudioSource.pitch = 1.0f;
+        footstepAudioSource.Play();
     }
 
     public void LockMovement(float duration)

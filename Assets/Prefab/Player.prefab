@@ -670,10 +670,7 @@ MonoBehaviour:
   anim: {fileID: 8571460307203640203}
   footstepAudioSource: {fileID: -9026701793527687343}
   walkSFX: {fileID: 8300000, guid: 77444b185fd16b846916bc5ced9a7455, type: 3}
-  runSFX: {fileID: 8300000, guid: 8bf2b8b2b4297124fb91362e5d8daadd, type: 3}
-  runStepInterval: 0.3
-  walkStepInterval: 0.45
-  useCadenceTimer: 1
+  runSFX: {fileID: 8300000, guid: 77444b185fd16b846916bc5ced9a7455, type: 3}
   isParanoiaZombie: 0
   _NetMoveInput: {x: 0, y: 0}
   _NetLastLookDir: {x: 0, y: 0}
@@ -712,6 +709,11 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 520
   shootNoiseRadius: 5
+  weaponAudioSource: {fileID: 0}
+  singleShotSFX: {fileID: 0}
+  autoShotSFX: {fileID: 0}
+  reloadSFX: {fileID: 0}
+  dryFireSFX: {fileID: 0}
   ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
   magazineSize: 30
   _currentAmmo: 30

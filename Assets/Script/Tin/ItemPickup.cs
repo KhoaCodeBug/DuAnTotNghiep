@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion; // Vẫn cần Fusion để kiểm tra NetworkObject
 
 [RequireComponent(typeof(Collider2D))]
@@ -21,6 +21,13 @@ public class ItemPickup : MonoBehaviour // 🔥 ĐÃ ĐỔI: Trở lại làm Mo
                 if (pickedUp)
                 {
                     Debug.Log("Đã lụm: " + item.itemName);
+
+                    // 🔥 PHÁT ÂM THANH LỤM VẬT PHẨM (item_pickup.wav)
+                    AudioClip pickupSFX = Resources.Load<AudioClip>("Sound/Actions/item_pickup");
+                    if (pickupSFX != null)
+                    {
+                        AudioSource.PlayClipAtPoint(pickupSFX, transform.position, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
+                    }
 
                     // 1. Tắt hình ảnh và va chạm ngay lập tức trên máy mình để tạo cảm giác mượt mà (Không bị lag delay)
                     Collider2D col = GetComponent<Collider2D>();
