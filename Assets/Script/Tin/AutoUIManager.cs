@@ -1473,11 +1473,13 @@ public class AutoUIManager : MonoBehaviour
 
         if (isDrink)
         {
+            if (playerDrinkSFX == null) playerDrinkSFX = Resources.Load<AudioClip>("Sound/Actions/player_drink");
             if (playerDrinkSFX == null) playerDrinkSFX = Resources.Load<AudioClip>("Sound/player_drink");
             clipToPlay = playerDrinkSFX;
         }
         else if (isEat)
         {
+            if (playerEatSFX == null) playerEatSFX = Resources.Load<AudioClip>("Sound/Actions/player_eat");
             if (playerEatSFX == null) playerEatSFX = Resources.Load<AudioClip>("Sound/player_eat");
             clipToPlay = playerEatSFX;
         }

@@ -25,6 +25,10 @@ public class PlayerStamina : NetworkBehaviour
     [Networked] private TickTimer buffTimer { get; set; }
     [Networked] private float activeStaminaBoost { get; set; }
 
+    [Header("--- Heavy Breathing SFX ---")]
+    public AudioClip heavyBreathingSFX;
+    private AudioSource breathingAudioSource;
+
     // Màu chuẩn Zomboid (Chỉ có Debuff Đỏ cho Stamina)
     private Color red1 = new Color(0.9f, 0.6f, 0.6f, 1f);
     private Color red2 = new Color(0.8f, 0.4f, 0.4f, 1f);
@@ -56,6 +60,8 @@ public class PlayerStamina : NetworkBehaviour
             if (currentStamina > maxStamina) currentStamina = maxStamina;
             activeStaminaBoost = 0f;
         }
+
+        UpdateBreathingAudio();
     }
 
     public void UpdateStamina(bool isRunning, bool isMovingNow)
@@ -125,6 +131,78 @@ public class PlayerStamina : NetworkBehaviour
         maxStamina += staminaBoost;
         currentStamina += staminaBoost;
         buffTimer = TickTimer.CreateFromSeconds(Runner, duration);
+    }
+
+    public float GetSFXVolume()
+    {
+        float vol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        if (AutoMainMenuManager.Instance != null)
+        {
+            vol = AutoMainMenuManager.Instance.sfxVolume;
+        }
+        return Mathf.Clamp01(vol);
+    }
+
+    private void UpdateBreathingAudio()
+    {
+        if (!HasInputAuthority) return;
+
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        bool isDead = health != null && health.isDead;
+
+        float staminaRatio = maxStamina > 0 ? (currentStamina / maxStamina) : 1f;
+
+        if (breathingAudioSource == null)
+        {
+            breathingAudioSource = gameObject.AddComponent<AudioSource>();
+            breathingAudioSource.playOnAwake = false;
+            breathingAudioSource.loop = true;
+        }
+
+        if (heavyBreathingSFX == null)
+        {
+            heavyBreathingSFX = Resources.Load<AudioClip>("Sound/BodyState/heavy_breathing");
+        }
+
+        if (isDead || staminaRatio >= 0.45f)
+        {
+            if (breathingAudioSource.isPlaying)
+            {
+                breathingAudioSource.volume = Mathf.MoveTowards(breathingAudioSource.volume, 0f, 2f * Time.deltaTime);
+                if (breathingAudioSource.volume <= 0.01f)
+                {
+                    breathingAudioSource.Stop();
+                }
+            }
+        }
+        else if (staminaRatio <= 0.40f && heavyBreathingSFX != null)
+        {
+            // 🔥 TIẾNG THỞ DỐC TĂNG DẦN THEO ĐỘ TỤT THỂ LỰC (staminaRatio: 0.40 -> 0.00)
+            float factor = Mathf.Clamp01((0.40f - staminaRatio) / 0.40f); // 0.0 (bắt đầu mệt) -> 1.0 (kiệt sức)
+            float masterSFX = GetSFXVolume();
+
+            float targetVolume = Mathf.Lerp(0.20f, 0.95f, factor) * masterSFX;
+            float targetPitch = Mathf.Lerp(0.92f, 1.10f, factor);
+
+            if (!breathingAudioSource.isPlaying)
+            {
+                breathingAudioSource.clip = heavyBreathingSFX;
+                breathingAudioSource.volume = targetVolume;
+                breathingAudioSource.pitch = targetPitch;
+                breathingAudioSource.Play();
+            }
+            else
+            {
+                float dt = Time.deltaTime;
+                breathingAudioSource.volume = Mathf.MoveTowards(breathingAudioSource.volume, targetVolume, 3f * dt);
+                breathingAudioSource.pitch = Mathf.MoveTowards(breathingAudioSource.pitch, targetPitch, 1f * dt);
+            }
+        }
+    }
+
+    private void Update()
+    {
+        UpdateBreathingAudio();
     }
 
     // =========================================================

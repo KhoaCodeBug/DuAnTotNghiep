@@ -271,8 +271,18 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         sfxSource.playOnAwake = false;
     }
 
-    public void PlayHoverSFX() { if (hoverSound != null && sfxSource != null) sfxSource.PlayOneShot(hoverSound, sfxVolume); }
-    public void PlayClickSFX() { if (clickSound != null && sfxSource != null) sfxSource.PlayOneShot(clickSound, sfxVolume); }
+    public void PlayHoverSFX() 
+    { 
+        if (hoverSound == null) hoverSound = Resources.Load<AudioClip>("Sound/UI/hover");
+        if (hoverSound == null) hoverSound = Resources.Load<AudioClip>("Sound/hover");
+        if (hoverSound != null && sfxSource != null) sfxSource.PlayOneShot(hoverSound, sfxVolume); 
+    }
+    public void PlayClickSFX() 
+    { 
+        if (clickSound == null) clickSound = Resources.Load<AudioClip>("Sound/UI/click");
+        if (clickSound == null) clickSound = Resources.Load<AudioClip>("Sound/click");
+        if (clickSound != null && sfxSource != null) sfxSource.PlayOneShot(clickSound, sfxVolume); 
+    }
 
     private IEnumerator Start()
     {

@@ -64,6 +64,13 @@ public class PlayerHealth : NetworkBehaviour
 
     [Networked] public NetworkBool isDead { get; set; }
 
+    [Header("--- Body State SFX ---")]
+    public AudioClip deathSFX;
+    public AudioClip[] hurtGruntSFXs = new AudioClip[5];
+    private AudioSource bodyStateAudioSource;
+    private float lastHurtSoundTime = 0f;
+    private int lastHurtIndex = -1;
+
     private Canvas paranoiaCanvas;
     private Image paranoiaImage;
     private bool isBlinking = false;
@@ -378,11 +385,88 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_StopPain() { isInPain = false; }
 
+    public float GetSFXVolume()
+    {
+        float vol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        if (AutoMainMenuManager.Instance != null)
+        {
+            vol = AutoMainMenuManager.Instance.sfxVolume;
+        }
+        return Mathf.Clamp01(vol);
+    }
+
+    private void EnsureAudioSource()
+    {
+        if (bodyStateAudioSource == null)
+        {
+            bodyStateAudioSource = gameObject.AddComponent<AudioSource>();
+            bodyStateAudioSource.playOnAwake = false;
+            bodyStateAudioSource.loop = false;
+        }
+    }
+
+    private void PlayHurtGruntSFX()
+    {
+        EnsureAudioSource();
+
+        // Nạp tự động từ Resources nếu chưa gán Inspector
+        for (int i = 0; i < 5; i++)
+        {
+            if (hurtGruntSFXs[i] == null)
+            {
+                hurtGruntSFXs[i] = Resources.Load<AudioClip>($"Sound/BodyState/player_hurt_grunt_{i + 1}");
+            }
+        }
+
+        // Chống spam tiếng kêu đau liên tục dồn dập
+        if (Time.time - lastHurtSoundTime < 0.25f) return;
+
+        // Chọn ngẫu nhiên 1 trong 5 biến thể (tránh lặp lại biến thể ngay trước đó)
+        List<int> validIndices = new List<int>();
+        for (int i = 0; i < 5; i++)
+        {
+            if (hurtGruntSFXs[i] != null && i != lastHurtIndex)
+            {
+                validIndices.Add(i);
+            }
+        }
+
+        if (validIndices.Count == 0 && hurtGruntSFXs[0] != null) validIndices.Add(0);
+
+        if (validIndices.Count > 0)
+        {
+            int pick = validIndices[Random.Range(0, validIndices.Count)];
+            lastHurtIndex = pick;
+            lastHurtSoundTime = Time.time;
+            bodyStateAudioSource.PlayOneShot(hurtGruntSFXs[pick], GetSFXVolume());
+        }
+    }
+
+    private void PlayDeathSFX()
+    {
+        if (deathSFX == null) deathSFX = Resources.Load<AudioClip>("Sound/BodyState/player_death");
+
+        if (deathSFX != null)
+        {
+            float sfxVol = GetSFXVolume();
+            GameObject soundObj = new GameObject("Temp_PlayerDeathSFX");
+            soundObj.transform.position = transform.position;
+            AudioSource aSrc = soundObj.AddComponent<AudioSource>();
+            aSrc.clip = deathSFX;
+            aSrc.volume = sfxVol;
+            aSrc.spatialBlend = 0f;
+            aSrc.playOnAwake = false;
+            aSrc.Play();
+            Destroy(soundObj, deathSFX.length + 0.2f);
+        }
+    }
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayHitEffect()
     {
         if (anim != null) anim.SetTrigger("TakeDamage");
         if (spriteRend != null && !isFlashing) StartCoroutine(FlashHurtRoutine());
+        PlayHurtGruntSFX();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -412,6 +496,7 @@ public class PlayerHealth : NetworkBehaviour
         StopAllCoroutines();
         if (spriteRend != null) spriteRend.color = originalColor;
 
+        PlayDeathSFX();
         StartCoroutine(BlinkAndVanishRoutine());
     }
 

@@ -379,8 +379,8 @@ MonoBehaviour:
   backgroundImage: {fileID: -6695950386315148514, guid: df9491d9cbcc0e341a50647fc4639d3c, type: 3}
   menuBGM: {fileID: 8300000, guid: 3a68629dd3eb1e24eaefc72bffefe934, type: 3}
   bgmVolume: 1
-  hoverSound: {fileID: 8300000, guid: d7d7a8ee0afaadd4bbfcfa667bd728ef, type: 3}
-  clickSound: {fileID: 8300000, guid: 61b71dd6930846b4fa3aec75247cb4bb, type: 3}
+  hoverSound: {fileID: 8300000, guid: 7c49100bb0d9000468dde198946928e6, type: 3}
+  clickSound: {fileID: 8300000, guid: 0f4d95fd227fe7143a4aa1e2735a64fa, type: 3}
   sfxVolume: 0.8
   runnerPrefab: {fileID: 2785446370948596699, guid: eac02c0e935318d4a80a35e05b874318, type: 3}
   mainSceneIndex: 1

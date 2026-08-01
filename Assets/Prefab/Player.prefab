@@ -668,6 +668,12 @@ MonoBehaviour:
   walkNoiseRadius: 1
   runNoiseRadius: 2
   anim: {fileID: 8571460307203640203}
+  footstepAudioSource: {fileID: -9026701793527687343}
+  walkSFX: {fileID: 8300000, guid: 77444b185fd16b846916bc5ced9a7455, type: 3}
+  runSFX: {fileID: 8300000, guid: 8bf2b8b2b4297124fb91362e5d8daadd, type: 3}
+  runStepInterval: 0.3
+  walkStepInterval: 0.45
+  useCadenceTimer: 1
   isParanoiaZombie: 0
   _NetMoveInput: {x: 0, y: 0}
   _NetLastLookDir: {x: 0, y: 0}
@@ -681,6 +687,7 @@ MonoBehaviour:
     _value: 0
   _NetIsUsingItem:
     _value: 0
+  _NetCameraZoom: 0
   _NetStunTimer: 0
   _NetAttackLockTimer: 0
 --- !u!114 &1505858520728203951
@@ -738,6 +745,7 @@ MonoBehaviour:
   _HasEnergyBuff:
     _value: 0
   _CurrentSpeedMultiplier: 0
+  heavyBreathingSFX: {fileID: 0}
 --- !u!114 &7126942027890368006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -764,7 +772,7 @@ MonoBehaviour:
   _infectionTimer: 600
   _isBitten:
     _value: 0
-  traitorBossPrefab:
+  zombieTurnPrefab:
     RawGuidValue: cbd4c523a4a6ca740b518d37b43be7b1
   _isTransforming:
     _value: 0
@@ -775,6 +783,13 @@ MonoBehaviour:
   paramSpeed: Speed
   _isDead:
     _value: 0
+  deathSFX: {fileID: 0}
+  hurtGruntSFXs:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
 --- !u!114 &5426569587065415619
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -852,6 +867,7 @@ MonoBehaviour:
   voiceIcon: {fileID: 2613166010062844204}
   _IsSpeaking:
     _value: 0
+  uiVoiceHearDistance: 12
 --- !u!114 &1644029633153542868
 MonoBehaviour:
   m_ObjectHideFlags: 0
