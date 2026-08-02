@@ -251,51 +251,40 @@ public class AutoChatManager : MonoBehaviour
 
         if (chatPanelRt != null)
         {
-            Vector2 localMousePos;
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                chatPanelRt,
-                Input.mousePosition,
-                null,
-                out localMousePos);
-
-            isHovered = Cursor.visible && Cursor.lockState != CursorLockMode.Locked && chatPanelRt.rect.Contains(localMousePos);
-
             var draggable = chatPanelRt.GetComponentInChildren<UIDraggable>();
             if (draggable != null && draggable.IsDragging)
             {
                 isDragging = true;
-                isHovered = true;
             }
         }
 
-        if (isTyping || isHovered || isDragging)
+        // NẾU ĐANG GÕ CHỮ HOẶC ĐANG KÉO: Reset thời gian mờ và sáng hẳn lên
+        if (isTyping || isDragging)
         {
             chatGroup.alpha = 1f;
-            chatGroup.blocksRaycasts = true;
-            if (vpBg != null)
-            {
-                vpBg.color = new Color(0.08f, 0.08f, 0.08f, 0.9f); // Phát sáng đậm đà hơn khi rê chuột vào
-            }
-            fadeTimer = SHOW_DURATION; // Reset thời gian chờ mờ dần
+            fadeTimer = SHOW_DURATION;
+            if (vpBg != null) vpBg.color = new Color(0.08f, 0.08f, 0.08f, 0.9f);
         }
         else
         {
-            if (vpBg != null)
-            {
-                vpBg.color = new Color(0f, 0f, 0f, 0.45f);
-            }
+            if (vpBg != null) vpBg.color = new Color(0f, 0f, 0f, 0.45f);
+            if (fadeTimer > 0f) fadeTimer -= Time.deltaTime;
+        }
 
-            if (fadeTimer > 0f)
-            {
-                fadeTimer        -= Time.deltaTime;
-                chatGroup.alpha   = 1f;
-                chatGroup.blocksRaycasts = false; // Cho phép click xuyên qua để bắn zombie khi chơi bình thường
-            }
-            else
-            {
-                chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
-                chatGroup.blocksRaycasts = false;
-            }
+        // QUAN TRỌNG: Miễn là box chat đang hiện (alpha > 0), thì BẬT blocksRaycasts để có thể kéo thả!
+        if (chatGroup.alpha > 0f)
+        {
+            chatGroup.blocksRaycasts = true;
+        }
+        else
+        {
+            chatGroup.blocksRaycasts = false;
+        }
+
+        // Mờ dần khi hết thời gian chờ
+        if (fadeTimer <= 0f && !isTyping && !isDragging)
+        {
+            chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
         }
 
         // Reset cờ ở cuối frame Update

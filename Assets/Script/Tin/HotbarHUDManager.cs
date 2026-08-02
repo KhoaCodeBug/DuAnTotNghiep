@@ -1,0 +1,365 @@
+using UnityEngine;
+using UnityEngine.UI;
+using System.Collections.Generic;
+using Fusion;
+using TMPro;
+using UnityEngine.EventSystems;
+
+public class HotbarHUDManager : MonoBehaviour
+{
+    private static HotbarHUDManager instance;
+    public static HotbarHUDManager Instance
+    {
+        get
+        {
+            if (instance == null)
+            {
+                instance = FindFirstObjectByType<HotbarHUDManager>();
+                if (instance == null)
+                {
+                    GameObject go = new GameObject("--- AUTO HOTBAR HUD ---");
+                    instance = go.AddComponent<HotbarHUDManager>();
+                    DontDestroyOnLoad(go);
+                }
+            }
+            return instance;
+        }
+    }
+
+    private GameObject hudCanvas;
+    private GameObject hotbarPanel;
+    
+    // UI Elements
+    private List<Image> slotBackgrounds = new List<Image>();
+    private List<Image> slotIcons = new List<Image>();
+    private List<TextMeshProUGUI> slotAmounts = new List<TextMeshProUGUI>();
+    private RectTransform selectionHighlight;
+    private TextMeshProUGUI itemNameText;
+
+    // State
+    public int selectedSlotIndex = 0; // 0 to 8
+    private int lastSelectedSlotIndex = -1;
+    private float itemNameTimer = 0f;
+    private InventorySystem localInventory;
+    private PlayerHealth localPlayerHealth;
+    private PlayerSurvival localSurvival;
+    
+    // Config
+    private int hotbarSize = 5;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    static void AutoSpawn()
+    {
+        var trigger = Instance;
+    }
+
+    void Awake()
+    {
+        if (instance == null) instance = this;
+        else { Destroy(gameObject); return; }
+
+        GenerateHUD();
+    }
+
+    private void GenerateHUD()
+    {
+        hudCanvas = new GameObject("HotbarCanvas");
+        Canvas canvas = hudCanvas.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 120; // Cao hơn Canvas kho đồ (100) để kéo thả Hotbar mượt mà ngay cả khi mở Inventory!
+        CanvasScaler scaler = hudCanvas.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+        hudCanvas.AddComponent<GraphicRaycaster>();
+        DontDestroyOnLoad(hudCanvas);
+
+        // --- HOTBAR PANEL ---
+        hotbarPanel = new GameObject("HotbarPanel");
+        hotbarPanel.transform.SetParent(hudCanvas.transform, false);
+        RectTransform hbRt = hotbarPanel.AddComponent<RectTransform>();
+        hbRt.anchorMin = new Vector2(0.5f, 0f); hbRt.anchorMax = new Vector2(0.5f, 0f);
+        hbRt.pivot = new Vector2(0.5f, 0f);
+        hbRt.anchoredPosition = new Vector2(0, 15);
+        hbRt.sizeDelta = new Vector2(320, 60);
+
+        Image hbBg = hotbarPanel.AddComponent<Image>();
+        hbBg.color = new Color(0, 0, 0, 0.6f);
+
+        // --- ITEM NAME TEXT (Minecraft style) ---
+        GameObject nameObj = new GameObject("ItemNameText");
+        nameObj.transform.SetParent(hudCanvas.transform, false);
+        itemNameText = nameObj.AddComponent<TextMeshProUGUI>();
+        
+        TMP_FontAsset defaultFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        if (defaultFont == null)
+        {
+            TMP_FontAsset[] allFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+            if (allFonts.Length > 0) defaultFont = allFonts[0];
+        }
+        if (defaultFont != null) itemNameText.font = defaultFont;
+        
+        itemNameText.fontSize = 16;
+        itemNameText.fontStyle = FontStyles.Normal;
+        itemNameText.color = Color.white;
+        itemNameText.alignment = TextAlignmentOptions.Center;
+        itemNameText.enableWordWrapping = false;
+        
+        // Removed Shadow component as it can break TextMeshPro rendering in some cases
+
+        RectTransform nameRt = nameObj.GetComponent<RectTransform>();
+        nameRt.anchorMin = new Vector2(0.5f, 0f); nameRt.anchorMax = new Vector2(0.5f, 0f);
+        nameRt.pivot = new Vector2(0.5f, 0f);
+        nameRt.anchoredPosition = new Vector2(0, 80); // Nằm ở độ cao 80
+        nameRt.sizeDelta = new Vector2(320, 30);
+        itemNameText.gameObject.SetActive(false); // Ẩn mặc định
+
+        // --- HOTBAR LAYOUT ---
+        HorizontalLayoutGroup layout = hotbarPanel.AddComponent<HorizontalLayoutGroup>();
+        layout.padding = new RectOffset(5, 5, 5, 5);
+        layout.spacing = 5;
+        layout.childControlHeight = true; layout.childControlWidth = true;
+
+        for (int i = 0; i < hotbarSize; i++)
+        {
+            int slotIndex = i; // Local copy for closure
+            GameObject slotObj = new GameObject($"HotbarSlot_{i}");
+            slotObj.transform.SetParent(hotbarPanel.transform, false);
+
+            UISlotDragHandler drag = slotObj.AddComponent<UISlotDragHandler>();
+            drag.slotIndex = i;
+            drag.slotLocation = UISlotDragHandler.Location.Hotbar;
+
+            Image bg = slotObj.AddComponent<Image>();
+            bg.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+            slotBackgrounds.Add(bg);
+            
+            // Add click listener
+            Button btn = slotObj.AddComponent<Button>();
+            btn.onClick.AddListener(() => { selectedSlotIndex = slotIndex; });
+
+            GameObject iconObj = new GameObject("Icon");
+            iconObj.transform.SetParent(slotObj.transform, false);
+            RectTransform iconRt = iconObj.AddComponent<RectTransform>();
+            iconRt.anchorMin = Vector2.zero; iconRt.anchorMax = Vector2.one;
+            iconRt.offsetMin = new Vector2(4, 4); iconRt.offsetMax = new Vector2(-4, -4);
+            Image icon = iconObj.AddComponent<Image>();
+            icon.preserveAspect = true;
+            iconObj.SetActive(false);
+            slotIcons.Add(icon);
+
+            GameObject txtObj = new GameObject("Amount");
+            txtObj.transform.SetParent(slotObj.transform, false);
+            RectTransform txtRt = txtObj.AddComponent<RectTransform>();
+            txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
+            txtRt.offsetMin = Vector2.zero; txtRt.offsetMax = new Vector2(-2, -2);
+            TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
+            txt.alignment = TextAlignmentOptions.BottomRight;
+            txt.fontSize = 14;
+            txt.fontStyle = FontStyles.Bold;
+            txt.color = Color.white;
+            txt.enableWordWrapping = false;
+            txtObj.SetActive(false);
+            slotAmounts.Add(txt);
+        }
+
+        // --- SELECTION HIGHLIGHT (Khung viền 4 cạnh thuần túy 100% trong suốt bên trong) ---
+        GameObject hlObj = new GameObject("HighlightFrame");
+        hlObj.transform.SetParent(hotbarPanel.transform, false);
+        selectionHighlight = hlObj.AddComponent<RectTransform>();
+        
+        CreateBorderLine(selectionHighlight, "TopBorder", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1f), new Vector2(0, 3f));
+        CreateBorderLine(selectionHighlight, "BottomBorder", new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0f), new Vector2(0, 3f));
+        CreateBorderLine(selectionHighlight, "LeftBorder", new Vector2(0, 0), new Vector2(0, 1), new Vector2(0f, 0.5f), new Vector2(3f, 0));
+        CreateBorderLine(selectionHighlight, "RightBorder", new Vector2(1, 0), new Vector2(1, 1), new Vector2(1f, 0.5f), new Vector2(3f, 0));
+    }
+
+    private void CreateBorderLine(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 size)
+    {
+        GameObject line = new GameObject(name);
+        line.transform.SetParent(parent, false);
+        RectTransform rt = line.AddComponent<RectTransform>();
+        rt.anchorMin = anchorMin; rt.anchorMax = anchorMax;
+        rt.pivot = pivot; rt.sizeDelta = size;
+        rt.anchoredPosition = Vector2.zero;
+        Image img = line.AddComponent<Image>();
+        img.color = Color.white;
+        img.raycastTarget = false;
+    }
+
+    private void FindLocalPlayerCache()
+    {
+        if (localInventory == null || localSurvival == null)
+        {
+            foreach (var ph in FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None))
+            {
+                if (ph.HasInputAuthority)
+                {
+                    localSurvival = ph.GetComponent<PlayerSurvival>();
+                    localInventory = ph.GetComponent<InventorySystem>();
+                    return;
+                }
+            }
+        }
+    }
+
+    private void Update()
+    {
+        FindLocalPlayerCache();
+        HandleInput();
+        UpdateUI();
+    }
+
+    private void HandleInput()
+    {
+        bool isTyping = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
+        bool isMenuOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen();
+
+        if (isTyping || isMenuOpen) return;
+
+        // Phím số 1 đến 5
+        for (int i = 0; i < hotbarSize; i++)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1 + i)) selectedSlotIndex = i;
+        }
+
+        // Phím Q: Chuyển ô sang trái (Giảm slot)
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            selectedSlotIndex = (selectedSlotIndex - 1 + hotbarSize) % hotbarSize;
+        }
+
+        // Phím E: Chuyển ô sang phải (Tăng slot)
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            selectedSlotIndex = (selectedSlotIndex + 1) % hotbarSize;
+        }
+
+        // Lăn chuột: Đã tắt theo yêu cầu vì trùng lặp với Zoom Camera
+        /*
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scroll > 0f)
+        {
+            selectedSlotIndex = (selectedSlotIndex - 1 + hotbarSize) % hotbarSize;
+        }
+        else if (scroll < 0f)
+        {
+            selectedSlotIndex = (selectedSlotIndex + 1) % hotbarSize;
+        }
+        */
+
+        // Chuột trái: CHỈ dùng nhanh Nhu yếu phẩm ĐỒ ĂN / NƯỚC UỐNG (Không dùng Bandage, Y tế hay Đạn!)
+        if (Input.GetMouseButtonDown(0) && EventSystem.current != null && !EventSystem.current.IsPointerOverGameObject())
+        {
+            if (localInventory != null && selectedSlotIndex < localInventory.slots.Count)
+            {
+                var slot = localInventory.slots[selectedSlotIndex];
+                if (slot != null && slot.item != null && slot.amount > 0)
+                {
+                    ItemData item = slot.item;
+                    // CHỈ Cho phép sử dụng Đồ Ăn & Nước Uống
+                    bool isFoodOrWater = (item.hungerRestore > 0 || item.thirstRestore > 0) &&
+                                         item.category != ItemCategory.Medical &&
+                                         item.category != ItemCategory.Ammunition;
+
+                    if (isFoodOrWater && AutoUIManager.Instance != null && !AutoUIManager.Instance.isDoingAction)
+                    {
+                        AutoUIManager.Instance.StartItemUseFromHotbar(selectedSlotIndex, item);
+                    }
+                }
+            }
+        }
+    }
+
+    private void UpdateUI()
+    {
+        // Update Slots
+        if (localInventory != null)
+        {
+            for (int i = 0; i < hotbarSize; i++)
+            {
+                if (i < localInventory.slots.Count && localInventory.slots[i].item != null && localInventory.slots[i].amount > 0)
+                {
+                    slotIcons[i].gameObject.SetActive(true);
+                    slotIcons[i].sprite = localInventory.slots[i].item.icon;
+                    if (localInventory.slots[i].amount > 1)
+                    {
+                        slotAmounts[i].gameObject.SetActive(true);
+                        slotAmounts[i].text = localInventory.slots[i].amount.ToString();
+                    }
+                    else slotAmounts[i].gameObject.SetActive(false);
+                }
+                else
+                {
+                    slotIcons[i].gameObject.SetActive(false);
+                    slotAmounts[i].gameObject.SetActive(false);
+                }
+            }
+        }
+
+        // Move Highlight
+        if (slotBackgrounds.Count > selectedSlotIndex)
+        {
+            selectionHighlight.SetParent(slotBackgrounds[selectedSlotIndex].transform, false);
+            selectionHighlight.anchorMin = Vector2.zero; selectionHighlight.anchorMax = Vector2.one;
+            selectionHighlight.offsetMin = Vector2.zero; selectionHighlight.offsetMax = Vector2.zero;
+            selectionHighlight.transform.SetAsFirstSibling(); // Đưa Highlight xuống dưới Icon để Icon đè lên trên nổi bật!
+        }
+
+        // Cập nhật tên Item hiển thị như Minecraft (hiện 2s rồi biến mất)
+        if (selectedSlotIndex != lastSelectedSlotIndex)
+        {
+            lastSelectedSlotIndex = selectedSlotIndex;
+            itemNameTimer = 0.5f; // Hiện tên trong 0.5 giây khi chuyển slot
+        }
+
+        if (itemNameText != null)
+        {
+            if (itemNameTimer > 0f)
+            {
+                itemNameTimer -= Time.deltaTime;
+                if (localInventory != null && selectedSlotIndex >= 0 && selectedSlotIndex < localInventory.slots.Count)
+                {
+                    var slot = localInventory.slots[selectedSlotIndex];
+                    if (slot != null && slot.item != null && slot.amount > 0)
+                    {
+                        itemNameText.text = slot.item.itemName;
+                        itemNameText.gameObject.SetActive(true);
+                    }
+                    else
+                    {
+                        itemNameText.gameObject.SetActive(false);
+                    }
+                }
+                else
+                {
+                    itemNameText.gameObject.SetActive(false);
+                }
+            }
+            else
+            {
+                itemNameText.gameObject.SetActive(false);
+            }
+        }
+    }
+
+    public ItemData GetSelectedWeapon()
+    {
+        if (localInventory == null) return null;
+        if (selectedSlotIndex < localInventory.slots.Count)
+        {
+            ItemData item = localInventory.slots[selectedSlotIndex].item;
+            if (item != null && item.category == ItemCategory.Weapon)
+            {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    public bool HasGunEquipped()
+    {
+        return GetSelectedWeapon() != null;
+    }
+}

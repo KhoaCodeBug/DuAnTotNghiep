@@ -105,7 +105,8 @@ public class AutoHealthPanel : MonoBehaviour
         panelObj.transform.SetParent(healthCanvas.transform, false);
         RectTransform panelRect = panelObj.AddComponent<RectTransform>();
         panelRect.anchorMin = new Vector2(0.5f, 0.5f); panelRect.anchorMax = new Vector2(0.5f, 0.5f);
-        panelRect.sizeDelta = new Vector2(700, 480);
+        panelRect.sizeDelta = new Vector2(620, 530);
+        panelRect.anchoredPosition = Vector2.zero;
 
         Image panelBg = panelObj.AddComponent<Image>();
         panelBg.color = new Color(0.06f, 0.07f, 0.08f, 1f);
@@ -126,7 +127,7 @@ public class AutoHealthPanel : MonoBehaviour
         mannequinObj.transform.SetParent(panelObj.transform, false);
         RectTransform manRect = mannequinObj.AddComponent<RectTransform>();
         manRect.anchorMin = new Vector2(0.5f, 0.5f); manRect.anchorMax = new Vector2(0.5f, 0.5f);
-        manRect.anchoredPosition = new Vector2(-180, 0);
+        manRect.anchoredPosition = new Vector2(-170, 0);
         manRect.localScale = new Vector3(1f, 1f, 1f);
 
         CreateBodyPart("Head", mannequinObj.transform, new Vector2(0, 160), new Vector2(50, 50), new Vector2(0.5f, 0.5f), 0);
@@ -150,35 +151,39 @@ public class AutoHealthPanel : MonoBehaviour
         rightContainer.transform.SetParent(panelObj.transform, false);
         RectTransform rightRect = rightContainer.AddComponent<RectTransform>();
         rightRect.anchorMin = new Vector2(0.5f, 0.5f); rightRect.anchorMax = new Vector2(0.5f, 0.5f);
-        rightRect.anchoredPosition = new Vector2(140, 0);
-        rightRect.sizeDelta = new Vector2(320, 380);
+        rightRect.anchoredPosition = new Vector2(165, 30);
+        rightRect.sizeDelta = new Vector2(280, 380);
 
-        fixedHeaderText = CreateText("FixedHeader", rightContainer.transform, Vector2.zero, new Vector2(320, 100), "", 22, FontStyle.Bold, Color.white, TextAnchor.UpperLeft);
+        fixedHeaderText = CreateText("FixedHeader", rightContainer.transform, Vector2.zero, new Vector2(250, 60), "", 18, FontStyle.Normal, Color.white, TextAnchor.UpperLeft);
         RectTransform headerRect = fixedHeaderText.GetComponent<RectTransform>();
         headerRect.anchorMin = new Vector2(0, 1); headerRect.anchorMax = new Vector2(0, 1);
-        headerRect.pivot = new Vector2(0.5f, 1);
-        headerRect.anchoredPosition = new Vector2(160, -20); // Shifted down slightly to avoid border clipping
-        fixedHeaderText.lineSpacing = 1.3f;
+        headerRect.pivot = new Vector2(0, 1);
+        headerRect.anchoredPosition = new Vector2(10, -5); // Đặt đúng PosX = 10, PosY = -5 như ảnh Inspector
+        fixedHeaderText.lineSpacing = 1.1f;
 
-        // Create Overall Health Bar (Dọc theo yêu cầu Hình 2)
+        // Create Overall Health Bar (Dạng Slider có viền khung)
         GameObject hbBgObj = new GameObject("HealthBarBG");
-        hbBgObj.transform.SetParent(panelObj.transform, false); // Đưa ra ngoài panel gốc thay vì rightContainer
+        hbBgObj.transform.SetParent(panelObj.transform, false); 
         RectTransform hbBgRect = hbBgObj.AddComponent<RectTransform>();
         hbBgRect.anchorMin = new Vector2(0.5f, 0.5f); hbBgRect.anchorMax = new Vector2(0.5f, 0.5f);
         hbBgRect.pivot = new Vector2(0.5f, 0.5f);
-        hbBgRect.sizeDelta = new Vector2(25, 280); // Rộng 25, Cao 280 (scaled down to fit 480 panel)
-        hbBgRect.anchoredPosition = new Vector2(-40, 0); // Đặt cạnh Mannequin
-
+        hbBgRect.sizeDelta = new Vector2(30, 320); // Làm thanh máu dài ra một chút
+        hbBgRect.anchoredPosition = new Vector2(0, 0); // Đặt đúng chính giữa màn hình
         
         Image hbBgImg = hbBgObj.AddComponent<Image>();
-        hbBgImg.color = new Color(0.15f, 0.15f, 0.15f, 1f);
-        hbBgObj.AddComponent<Outline>().effectColor = Color.black;
+        hbBgImg.color = new Color(0.1f, 0.1f, 0.1f, 1f); // Nền xám đen
+        
+        // Thêm viền khung
+        Outline hbOutline = hbBgObj.AddComponent<Outline>();
+        hbOutline.effectColor = new Color(0.8f, 0.8f, 0.8f, 1f); // Viền xám sáng
+        hbOutline.effectDistance = new Vector2(2f, -2f);
 
         GameObject hbFillObj = new GameObject("HealthBarFill");
         hbFillObj.transform.SetParent(hbBgObj.transform, false);
         RectTransform hbFillRect = hbFillObj.AddComponent<RectTransform>();
         hbFillRect.anchorMin = Vector2.zero; hbFillRect.anchorMax = Vector2.one;
-        hbFillRect.offsetMin = new Vector2(2, 2); hbFillRect.offsetMax = new Vector2(-2, -2);
+        // Khoảng cách từ fill tới viền khung
+        hbFillRect.offsetMin = new Vector2(3, 3); hbFillRect.offsetMax = new Vector2(-3, -3);
         
         healthBarFill = hbFillObj.AddComponent<Image>();
         healthBarFill.type = Image.Type.Filled;
@@ -206,10 +211,10 @@ public class AutoHealthPanel : MonoBehaviour
         GameObject scrollViewObj = new GameObject("Scroll View");
         scrollViewObj.transform.SetParent(rightContainer.transform, false);
         RectTransform scrollRectTransform = scrollViewObj.AddComponent<RectTransform>();
-        scrollRectTransform.anchorMin = new Vector2(0, 0); scrollRectTransform.anchorMax = new Vector2(0, 0);
-        scrollRectTransform.pivot = new Vector2(0.5f, 1);
-        scrollRectTransform.sizeDelta = new Vector2(320, 260); // Width 320, Height 260
-        scrollRectTransform.anchoredPosition = new Vector2(160, 260); // Aligns properly below headers
+        scrollRectTransform.anchorMin = new Vector2(0, 1); scrollRectTransform.anchorMax = new Vector2(0, 1);
+        scrollRectTransform.pivot = new Vector2(0, 1);
+        scrollRectTransform.sizeDelta = new Vector2(250, 300); // Rộng 250, Cao 300
+        scrollRectTransform.anchoredPosition = new Vector2(10, -75); // Nằm ngay bên dưới tiêu đề Status (cao lên đúng vị trí hình 2)
 
         ScrollRect scrollRect = scrollViewObj.AddComponent<ScrollRect>();
         scrollRect.horizontal = false;
@@ -233,7 +238,7 @@ public class AutoHealthPanel : MonoBehaviour
         textContentRect.anchorMin = new Vector2(0, 1); textContentRect.anchorMax = new Vector2(0, 1);
         textContentRect.pivot = new Vector2(0, 1);
         textContentRect.anchoredPosition = Vector2.zero;
-        textContentRect.sizeDelta = new Vector2(320, 0);
+        textContentRect.sizeDelta = new Vector2(250, 0);
 
         VerticalLayoutGroup contentLayout = contentObj.AddComponent<VerticalLayoutGroup>();
         contentLayout.childControlHeight = true;
@@ -530,7 +535,7 @@ public class AutoHealthPanel : MonoBehaviour
         layout.minHeight = 45;
 
         Image bg = entryObj.AddComponent<Image>();
-        bg.color = new Color(1, 1, 1, 0.01f);
+        bg.color = Color.clear; // Xóa hoàn toàn khung màu nền (trong suốt 100%)
 
         EventTrigger trigger = entryObj.AddComponent<EventTrigger>();
         EventTrigger.Entry rightClickEntry = new EventTrigger.Entry();
@@ -574,8 +579,8 @@ public class AutoHealthPanel : MonoBehaviour
 
         string finalText = string.Join("\n", lines);
 
-        Text txt = CreateText("Text", entryObj.transform, Vector2.zero, new Vector2(400, 45), finalText, 20, FontStyle.Bold, Color.white, TextAnchor.UpperLeft);
-        txt.lineSpacing = 1.2f;
+        Text txt = CreateText("Text", entryObj.transform, Vector2.zero, new Vector2(250, 35), finalText, 18, FontStyle.Normal, Color.white, TextAnchor.UpperLeft);
+        txt.lineSpacing = 1.1f;
 
         RectTransform txtRect = txt.GetComponent<RectTransform>();
         txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one;
@@ -613,31 +618,6 @@ public class AutoHealthPanel : MonoBehaviour
                 healthBarFill.color = Color.Lerp(colInjured, Color.white, pct); // Theo Hình 2 thì máu từ Trắng ngả xuống Đỏ
             }
         }
-
-        if (Input.GetKeyDown(KeyCode.H) || (isOpen && Input.GetKeyDown(KeyCode.Escape)))
-        {
-            // 🔥 CHẶN: Không mở Health Panel khi đang gõ chat
-            if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
-            if (Time.time < toggleCooldown) return;
-
-            // Đã bỏ cái isInvDoingAction đi cho bớt lỗi ngầm. Chỉ check isHealing.
-            if (isHealing) return;
-
-            if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                if (AutoMainMenuManager.Instance != null)
-                {
-                    AutoMainMenuManager.EscapeConsumedThisFrame = true;
-                }
-            }
-
-            bool isAnyMenuOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen();
-            if (!isOpen && isAnyMenuOpen) return;
-
-            toggleCooldown = Time.time + 0.2f;
-            TogglePanel();
-        }
-
         if (Input.GetMouseButtonDown(0) && EventSystem.current != null && !EventSystem.current.IsPointerOverGameObject())
         {
             HideContextMenu();
@@ -646,6 +626,21 @@ public class AutoHealthPanel : MonoBehaviour
         if (isOpen && localPlayerHealth != null)
         {
             UpdateHeaderTextOnly();
+        }
+    }
+
+    public void SetOpenState(bool state)
+    {
+        if (isHealing) return;
+        if (isOpen == state) return;
+
+        isOpen = state;
+        if (panelObj != null) panelObj.SetActive(isOpen);
+        HideContextMenu();
+
+        if (isOpen)
+        {
+            UpdateAllUI();
         }
     }
 

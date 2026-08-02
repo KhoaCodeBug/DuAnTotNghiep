@@ -89,10 +89,12 @@ public class PlayerCombat : NetworkBehaviour
 
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()) return;
 
+        bool hasWeapon = HotbarHUDManager.Instance != null && HotbarHUDManager.Instance.HasGunEquipped();
+
         // 🔥 FIX NẠP ĐẠN: Bấm R trên phím HOẶC Bấm nút Reload trên điện thoại
         bool wantToReload = Input.GetKeyDown(KeyCode.R) || (MobileInputController.Instance != null && MobileInputController.Instance.CheckAndConsumeReload());
 
-        if (wantToReload && currentAmmo < magazineSize && !isReloading)
+        if (hasWeapon && wantToReload && currentAmmo < magazineSize && !isReloading)
         {
             StartCoroutine(ReloadRoutine());
         }
@@ -242,43 +244,67 @@ public class PlayerCombat : NetworkBehaviour
 
         if (HasStateAuthority)
         {
-            // 🔥 ĐỔI SANG RAYCAST ALL: Đạn bay xuyên thấu để lọc mục tiêu
-            RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, shootDirection, weaponRange, enemyLayer);
-
-            foreach (RaycastHit2D hit in hits)
+            // Kiểm tra vũ khí hiện tại qua Hotbar
+            bool isShotgun = false;
+            if (HotbarHUDManager.Instance != null)
             {
-                if (hit.collider == null) continue;
-
-                // 1. TRÁNH TỰ TỬ: Nếu đạn đụng phải chính cơ thể người bắn -> Bỏ qua, bay tiếp!
-                if (hit.collider.transform.root == this.transform.root || hit.collider.gameObject == this.gameObject)
-                    continue;
-
-                float finalGunDamage = gunDamage;
-                PlayerHealth myHealth = GetComponent<PlayerHealth>();
-
-                if (myHealth != null && myHealth.isInPain)
+                ItemData equipped = HotbarHUDManager.Instance.GetSelectedWeapon();
+                if (equipped != null && equipped.itemName.ToLower().Contains("shotgun"))
                 {
-                    finalGunDamage *= 0.7f;
+                    isShotgun = true;
+                }
+            }
+
+            int pellets = isShotgun ? 6 : 1;
+            float spreadAngle = isShotgun ? 15f : 2f;
+            float currentDamage = isShotgun ? gunDamage * 1.5f : gunDamage; // Shotgun mạnh hơn nhưng chia cho mỗi viên
+
+            for (int i = 0; i < pellets; i++)
+            {
+                Vector2 spreadDir = shootDirection;
+                if (pellets > 1)
+                {
+                    float angleOffset = Random.Range(-spreadAngle, spreadAngle);
+                    spreadDir = Quaternion.Euler(0, 0, angleOffset) * shootDirection;
                 }
 
-                // ========================================================
-                // 🔥 HỆ THỐNG FRIENDLY FIRE
-                // ========================================================
-                PlayerHealth targetPlayer = hit.collider.GetComponentInParent<PlayerHealth>();
-                if (targetPlayer != null)
+                // 🔥 ĐỔI SANG RAYCAST ALL: Đạn bay xuyên thấu để lọc mục tiêu
+                RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, spreadDir, weaponRange, enemyLayer);
+
+                foreach (RaycastHit2D hit in hits)
                 {
-                    if (targetPlayer.isBitten)
+                    if (hit.collider == null) continue;
+
+                    // 1. TRÁNH TỰ TỬ: Nếu đạn đụng phải chính cơ thể người bắn -> Bỏ qua, bay tiếp!
+                    if (hit.collider.transform.root == this.transform.root || hit.collider.gameObject == this.gameObject)
+                        continue;
+
+                    float finalGunDamage = currentDamage;
+                    PlayerHealth myHealth = GetComponent<PlayerHealth>();
+
+                    if (myHealth != null && myHealth.isInPain)
                     {
-                        Debug.Log("⚠️ Đã bắn trúng người chơi bị nhiễm bệnh!");
-                        targetPlayer.TakeDamage(finalGunDamage);
-                        break; // Bắn trúng cơ thể thịt -> Đạn ghim lại, không bay xuyên táo nữa
+                        finalGunDamage *= 0.7f;
                     }
-                    else
+
+                    // ========================================================
+                    // 🔥 HỆ THỐNG FRIENDLY FIRE
+                    // ========================================================
+                    PlayerHealth targetPlayer = hit.collider.GetComponentInParent<PlayerHealth>();
+                    if (targetPlayer != null)
                     {
-                        Debug.Log("❌ Đạn bay xuyên qua người chơi khỏe mạnh!");
-                        continue; // Người khỏe mạnh tàng hình với đạn -> Đạn bay tiếp tìm Zombie phía sau
+                        if (targetPlayer.isBitten)
+                        {
+                            Debug.Log("⚠️ Đã bắn trúng người chơi bị nhiễm bệnh!");
+                            targetPlayer.TakeDamage(finalGunDamage);
+                            break; // Bắn trúng cơ thể thịt -> Đạn ghim lại, không bay xuyên táo nữa
+                        }
+                        else
+                        {
+                            Debug.Log("❌ Đạn bay xuyên qua người chơi khỏe mạnh!");
+                            continue; // Người khỏe mạnh tàng hình với đạn -> Đạn bay tiếp tìm Zombie phía sau
+                        }
                     }
-                }
                 // ========================================================
 
                 // XỬ LÝ SÁT THƯƠNG ZOMBIE THƯỜNG
@@ -297,7 +323,8 @@ public class PlayerCombat : NetworkBehaviour
                 }    
 
                 // Nếu sếp có layer Tường chắn đạn nằm trong enemyLayer, thêm điều kiện break ở đây
-            }
+                } // Đóng foreach
+            } // Đóng for (pellets)
         }
     }
 
