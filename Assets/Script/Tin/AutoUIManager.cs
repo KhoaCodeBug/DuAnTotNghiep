@@ -143,15 +143,11 @@ public class AutoUIManager : MonoBehaviour
         if (ammoContainer != null)
         {
             bool isSpectator = spectatorPanel != null && spectatorPanel.activeSelf;
-            bool isMainOptionsOpen = AutoMainMenuManager.Instance != null && AutoMainMenuManager.Instance.IsOptionsOpen;
-            bool isPauseOpen = AutoMainMenuManager.Instance != null && (AutoMainMenuManager.Instance.IsPauseMenuOpen || AutoMainMenuManager.Instance.IsPauseOptionsOpen);
             bool isInvOpen = inventoryPanel != null && inventoryPanel.activeSelf;
-            bool isLootOpen = containerPanel != null && containerPanel.activeSelf;
-            bool isTradeOpen = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
-            bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
 
-            // Set active if none of these overlays are open and we are not a spectator
-            bool shouldShowAmmo = !isSpectator && !isMainOptionsOpen && !isPauseOpen && !isInvOpen && !isLootOpen && !isTradeOpen && !isHealthOpen;
+            bool hasWeapon = HotbarHUDManager.Instance != null && HotbarHUDManager.Instance.HasGunEquipped();
+
+            bool shouldShowAmmo = hasWeapon && !isSpectator && !isInvOpen;
             
             if (ammoContainer.activeSelf != shouldShowAmmo)
             {
@@ -275,7 +271,7 @@ public class AutoUIManager : MonoBehaviour
 
             bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
             bool isTradeOpen = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
-            if (!inventoryPanel.activeSelf && (isHealthOpen || isTradeOpen)) return;
+            if (!inventoryPanel.activeSelf && isTradeOpen) return;
 
             invToggleCooldown = Time.time + 0.2f;
 
@@ -289,21 +285,40 @@ public class AutoUIManager : MonoBehaviour
                 return; // Dừng tại đây, không chạy code đóng mở Balo thông thường ở dưới nữa
             }
 
-            // Code đóng/mở Balo bình thường
+            // Code đóng/mở UI chung qua TabManager
             if (inventoryPanel != null)
             {
-                bool newState = !inventoryPanel.activeSelf;
-                inventoryPanel.SetActive(newState);
+                bool isCurrentlyOpen = (inventoryPanel.activeSelf || (AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen));
+                bool newState = !isCurrentlyOpen;
 
-                if (newState) PlayInventoryOpenSound();
-                else PlayInventoryCloseSound();
+                if (AutoTabManager.Instance != null)
+                {
+                    AutoTabManager.Instance.ShowTabs(newState);
+                }
+                else
+                {
+                    // Fallback nếu chưa có TabManager
+                    inventoryPanel.SetActive(newState);
+                    if (newState) PlayInventoryOpenSound();
+                }
+
+                if (!newState && inventoryPanel != null && inventoryPanel.activeSelf)
+                {
+                    PlayInventoryCloseSound();
+                }
 
                 if (ammoContainer != null) ammoContainer.SetActive(!newState);
 
                 if (!newState)
+                {
+                    inventoryPanel.SetActive(false);
+                    if (AutoHealthPanel.Instance != null) AutoHealthPanel.Instance.SetOpenState(false);
                     CloseContainerUI();
+                }
                 else
+                {
                     UpdatePanelsLayout();
+                }
             }
             HideContextMenu();
             HideTooltip();
@@ -312,6 +327,22 @@ public class AutoUIManager : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (Time.time < invToggleCooldown) return;
+
+            // Đang mở Tooltip -> Bấm ESC -> Tắt tooltip trước
+            if (tooltipPanel != null && tooltipPanel.activeSelf)
+            {
+                HideTooltip();
+                if (AutoMainMenuManager.Instance != null) AutoMainMenuManager.EscapeConsumedThisFrame = true;
+                return; // Dừng tại đây
+            }
+
+            // Đang mở Context Menu -> Bấm ESC -> Tắt menu trước
+            if (contextMenuPanel != null && contextMenuPanel.activeSelf)
+            {
+                HideContextMenu();
+                if (AutoMainMenuManager.Instance != null) AutoMainMenuManager.EscapeConsumedThisFrame = true;
+                return; // Dừng tại đây
+            }
 
             // 🔥 FIX: Đang mở Balo để chọn đồ trade -> Bấm ESC -> Quay về bảng Trade
             if (isTrading && inventoryPanel != null && inventoryPanel.activeSelf)
@@ -325,17 +356,25 @@ public class AutoUIManager : MonoBehaviour
                 return; // Dừng tại đây
             }
 
-            // Nút ESC thông thường (Đóng Balo / Tủ đồ)
-            if ((inventoryPanel != null && inventoryPanel.activeSelf) || (containerPanel != null && containerPanel.activeSelf))
+            // Nút ESC thông thường (Đóng Balo / Tủ đồ / Health)
+            if ((inventoryPanel != null && inventoryPanel.activeSelf) || 
+                (containerPanel != null && containerPanel.activeSelf) ||
+                (AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen))
             {
                 invToggleCooldown = Time.time + 0.2f;
+                
+                if (AutoTabManager.Instance != null) AutoTabManager.Instance.ShowTabs(false);
+
                 if (inventoryPanel != null && inventoryPanel.activeSelf)
                 {
                     inventoryPanel.SetActive(false);
                     PlayInventoryCloseSound();
                 }
 
-                if (ammoContainer != null) ammoContainer.SetActive(true);
+                if (AutoHealthPanel.Instance != null)
+                {
+                    AutoHealthPanel.Instance.SetOpenState(false);
+                }
 
                 CloseContainerUI();
                 HideContextMenu();
@@ -467,8 +506,8 @@ public class AutoUIManager : MonoBehaviour
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) titleText.font = gameFont;
         titleText.text = "INVENTORY";
-        titleText.fontSize = 24;
-        titleText.fontStyle = FontStyles.Bold;
+        titleText.fontSize = 22;
+        titleText.fontStyle = FontStyles.Bold | FontStyles.Italic;
         titleText.alignment = TextAlignmentOptions.Center;
         titleText.color = new Color(0.9f, 0.9f, 0.9f, 1f);
 
@@ -488,15 +527,15 @@ public class AutoUIManager : MonoBehaviour
         gridLayout.cellSize = new Vector2(90, 90); gridLayout.spacing = new Vector2(10, 10);
         gridLayout.childAlignment = TextAnchor.UpperCenter;
 
-        for (int i = 0; i < maxSlots; i++)
+        for (int i = 5; i < maxSlots; i++)
         {
             int slotIndex = i;
-            GameObject slotObj = new GameObject("Slot_" + i);
+            GameObject slotObj = new GameObject("InvSlot_" + i);
             slotObj.transform.SetParent(gridObj.transform, false);
 
             UISlotDragHandler drag = slotObj.AddComponent<UISlotDragHandler>();
             drag.slotIndex = i;
-            drag.isFromInventory = true;
+            drag.slotLocation = UISlotDragHandler.Location.Inventory;
 
             Image slotBg = slotObj.AddComponent<Image>();
             slotBg.color = new Color(0.2f, 0.2f, 0.2f, 1f);
@@ -706,7 +745,7 @@ public class AutoUIManager : MonoBehaviour
 
             UISlotDragHandler drag = slotObj.AddComponent<UISlotDragHandler>();
             drag.slotIndex = i;
-            drag.isFromInventory = false;
+            drag.slotLocation = UISlotDragHandler.Location.Container;
 
             Image slotBg = slotObj.AddComponent<Image>();
             slotBg.color = new Color(0.2f, 0.25f, 0.3f, 1f);
@@ -762,9 +801,6 @@ public class AutoUIManager : MonoBehaviour
     {
         currentOpenContainer = null;
         if (containerPanel != null) containerPanel.SetActive(false);
-
-        if (ammoContainer != null && (inventoryPanel == null || !inventoryPanel.activeSelf))
-            ammoContainer.SetActive(true);
 
         UpdatePanelsLayout();
     }
@@ -1133,8 +1169,6 @@ public class AutoUIManager : MonoBehaviour
     {
         tradeWindowPanel.SetActive(false);
         if (inventoryPanel != null) inventoryPanel.SetActive(false);
-
-        if (ammoContainer != null) ammoContainer.SetActive(true);
     }
 
     private void UpdateTradeWindowRealtime()
@@ -1438,7 +1472,6 @@ public class AutoUIManager : MonoBehaviour
 
     private void RestoreHUD()
     {
-        if (ammoContainer != null) ammoContainer.SetActive(true);
     }
 
     private void OnAcceptTradeClicked()
@@ -1589,6 +1622,12 @@ public class AutoUIManager : MonoBehaviour
             ApplyMedicalCure(itemToUse.itemName);
         }
     }
+
+    public void StartItemUseFromHotbar(int slotIndex, ItemData itemToUse)
+    {
+        if (itemToUse == null || isDoingAction) return;
+        StartCoroutine(ActionTimerRoutine(slotIndex, itemToUse));
+    }
     #endregion
 
     #region Quản Lý Context Menu & Tooltip
@@ -1596,10 +1635,12 @@ public class AutoUIManager : MonoBehaviour
     {
         currentSlots = playerSlots;
 
-        for (int i = 0; i < maxSlots; i++)
+        for (int i = 5; i < maxSlots; i++)
         {
-            SlotUIElements ui = slotUIList[i];
-            if (i < playerSlots.Count && playerSlots[i] != null && playerSlots[i].amount > 0)
+            int uiIndex = i - 5;
+            if (uiIndex >= slotUIList.Count) break;
+            SlotUIElements ui = slotUIList[uiIndex];
+            if (i < playerSlots.Count && playerSlots[i] != null && playerSlots[i].item != null && playerSlots[i].amount > 0)
             {
                 ui.iconImage.gameObject.SetActive(true);
                 ui.iconImage.sprite = playerSlots[i].item.icon;
@@ -1677,8 +1718,8 @@ public class AutoUIManager : MonoBehaviour
         ammoContainer.transform.SetParent(mainCanvas.transform, false);
 
         RectTransform containerRt = ammoContainer.AddComponent<RectTransform>();
-        containerRt.anchorMin = new Vector2(0, 0); containerRt.anchorMax = new Vector2(0, 0);
-        containerRt.pivot = new Vector2(0, 0); containerRt.anchoredPosition = new Vector2(10, 15); containerRt.sizeDelta = new Vector2(300, 40);
+        containerRt.anchorMin = new Vector2(0.5f, 0f); containerRt.anchorMax = new Vector2(0.5f, 0f);
+        containerRt.pivot = new Vector2(0.5f, 0f); containerRt.anchoredPosition = new Vector2(0, 80); containerRt.sizeDelta = new Vector2(320, 40);
 
         GameObject iconObj = new GameObject("AmmoIcon");
         iconObj.transform.SetParent(ammoContainer.transform, false);
@@ -1687,21 +1728,26 @@ public class AutoUIManager : MonoBehaviour
         if (iconAmmo != null) ammoImage.sprite = iconAmmo;
 
         RectTransform iconRt = iconObj.GetComponent<RectTransform>();
-        iconRt.anchorMin = new Vector2(0, 0.5f); iconRt.anchorMax = new Vector2(0, 0.5f);
-        iconRt.pivot = new Vector2(0, 0.5f); iconRt.anchoredPosition = new Vector2(15, 0); iconRt.sizeDelta = new Vector2(22, 44);
+        iconRt.anchorMin = new Vector2(0, 0); iconRt.anchorMax = new Vector2(0, 0);
+        iconRt.pivot = new Vector2(0, 0.5f); iconRt.anchoredPosition = new Vector2(0, 7.5f); iconRt.sizeDelta = new Vector2(10, 15);
 
         GameObject textObj = new GameObject("AmmoText");
         textObj.transform.SetParent(ammoContainer.transform, false);
 
         ammoText = textObj.AddComponent<TextMeshProUGUI>();
         TMP_FontAsset defaultFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+        if (defaultFont == null)
+        {
+            TMP_FontAsset[] allFonts = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
+            if (allFonts.Length > 0) defaultFont = allFonts[0];
+        }
         if (defaultFont != null) ammoText.font = defaultFont; else if (gameFont != null) ammoText.font = gameFont;
 
-        ammoText.fontSize = 28; ammoText.color = Color.white; ammoText.alignment = TextAlignmentOptions.MidlineLeft;
+        ammoText.fontSize = 12; ammoText.color = Color.white; ammoText.alignment = TextAlignmentOptions.BottomLeft;
 
         RectTransform textRt = textObj.GetComponent<RectTransform>();
-        textRt.anchorMin = new Vector2(0, 0.5f); textRt.anchorMax = new Vector2(0, 0.5f);
-        textRt.pivot = new Vector2(0, 0.5f); textRt.anchoredPosition = new Vector2(60, 0); textRt.sizeDelta = new Vector2(200, 40);
+        textRt.anchorMin = new Vector2(0, 0); textRt.anchorMax = new Vector2(0, 0);
+        textRt.pivot = new Vector2(0, 0.5f); textRt.anchoredPosition = new Vector2(20, 12.5f); textRt.sizeDelta = new Vector2(200, 25);
         ammoText.text = "-- / --";
     }
 
@@ -1729,7 +1775,6 @@ public class AutoUIManager : MonoBehaviour
     public void HideReloadUI()
     {
         if (actionBarPanel != null) actionBarPanel.SetActive(false);
-        if (ammoContainer != null) ammoContainer.SetActive(true);
     }
     #endregion
 
@@ -1874,6 +1919,80 @@ public class AutoUIManager : MonoBehaviour
             if (spectatorPanel != null) spectatorPanel.SetActive(false);
 
             spawner.RPC_RequestRespawn(runner.LocalPlayer, characterID, playerName);
+        }
+    }
+    #endregion
+
+    #region Hỗ trợ Kéo Thả & Tab Manager
+    public bool HasItemAtRealIndex(int realIndex)
+    {
+        EnsureLocalPlayer();
+        if (localPlayer == null) return false;
+        var inv = localPlayer.GetComponent<InventorySystem>();
+        if (inv == null || realIndex < 0 || realIndex >= inv.slots.Count) return false;
+        return inv.slots[realIndex] != null && inv.slots[realIndex].item != null && inv.slots[realIndex].amount > 0;
+    }
+
+    public bool HasItemInContainerAt(int contIndex)
+    {
+        if (currentOpenContainer == null || contIndex < 0 || contIndex >= currentOpenContainer.itemsInContainer.Count) return false;
+        var slot = currentOpenContainer.itemsInContainer[contIndex];
+        return slot != null && slot.item != null && slot.amount > 0;
+    }
+
+    public void SwapPlayerSlots(int fromRealIndex, int toRealIndex)
+    {
+        EnsureLocalPlayer();
+        if (localPlayer == null) return;
+        var inv = localPlayer.GetComponent<InventorySystem>();
+        if (inv != null)
+        {
+            inv.SwapSlots(fromRealIndex, toRealIndex);
+            PlayItemPickupSound();
+        }
+    }
+
+    public void MoveToFirstAvailableSlot(int fromRealIndex, UISlotDragHandler.Location targetLoc)
+    {
+        EnsureLocalPlayer();
+        if (localPlayer == null) return;
+        var inv = localPlayer.GetComponent<InventorySystem>();
+        if (inv == null) return;
+
+        int startIdx = (targetLoc == UISlotDragHandler.Location.Hotbar) ? 0 : 5;
+        int endIdx = (targetLoc == UISlotDragHandler.Location.Hotbar) ? 5 : inv.slots.Count;
+
+        int emptyIdx = -1;
+        for (int i = startIdx; i < endIdx; i++)
+        {
+            if (i < inv.slots.Count && (inv.slots[i] == null || inv.slots[i].item == null || inv.slots[i].amount <= 0))
+            {
+                emptyIdx = i;
+                break;
+            }
+        }
+
+        int targetIdx = (emptyIdx != -1) ? emptyIdx : startIdx;
+        inv.SwapSlots(fromRealIndex, targetIdx);
+        PlayItemPickupSound();
+    }
+
+    public void ForceShowInventoryOnly()
+    {
+        if (inventoryPanel != null && !inventoryPanel.activeSelf)
+        {
+            inventoryPanel.SetActive(true);
+            PlayInventoryOpenSound();
+            UpdatePanelsLayout();
+        }
+    }
+
+    public void ForceHideInventoryOnly()
+    {
+        if (inventoryPanel != null && inventoryPanel.activeSelf)
+        {
+            inventoryPanel.SetActive(false);
+            CloseContainerUI();
         }
     }
     #endregion

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using Fusion;
 
@@ -33,6 +33,26 @@ public class InventorySystem : NetworkBehaviour
 
     // Cờ chống lặp vô hạn khi 2 máy gọi điện cho nhau
     private bool isSyncing = false;
+
+    private void Awake()
+    {
+        for (int i = 0; i < maxSlots; i++)
+        {
+            slots.Add(new InventorySlot(null, 0));
+        }
+    }
+
+    public override void Spawned()
+    {
+        if (HasInputAuthority)
+        {
+            ItemData startingWeapon = Resources.Load<ItemData>("Items/AK47");
+            if (startingWeapon != null)
+            {
+                AddItem(startingWeapon, 1);
+            }
+        }
+    }
 
     // ==========================================
     // MẮT THẦN QUÉT ĐỒ DƯỚI CHÂN
@@ -83,7 +103,7 @@ public class InventorySystem : NetworkBehaviour
         {
             foreach (InventorySlot slot in slots)
             {
-                if (slot.item.itemName == itemToAdd.itemName && slot.amount < itemToAdd.maxStack)
+                if (slot.item != null && slot.item.itemName == itemToAdd.itemName && slot.amount < itemToAdd.maxStack)
                 {
                     int spaceLeft = itemToAdd.maxStack - slot.amount;
                     if (amountToAdd <= spaceLeft)
@@ -101,11 +121,29 @@ public class InventorySystem : NetworkBehaviour
             }
         }
 
-        while (amountToAdd > 0 && slots.Count < maxSlots)
+        while (amountToAdd > 0)
         {
-            int amountToStore = Mathf.Min(amountToAdd, itemToAdd.maxStack);
-            slots.Add(new InventorySlot(itemToAdd, amountToStore));
-            amountToAdd -= amountToStore;
+            int emptyIndex = -1;
+            for (int i = 0; i < maxSlots; i++)
+            {
+                if (slots[i].item == null || slots[i].amount <= 0)
+                {
+                    emptyIndex = i;
+                    break;
+                }
+            }
+
+            if (emptyIndex != -1)
+            {
+                int amountToStore = Mathf.Min(amountToAdd, itemToAdd.maxStack);
+                slots[emptyIndex].item = itemToAdd;
+                slots[emptyIndex].amount = amountToStore;
+                amountToAdd -= amountToStore;
+            }
+            else
+            {
+                break; // Ba lô đầy
+            }
         }
 
         UpdateUI();
@@ -170,7 +208,11 @@ public class InventorySystem : NetworkBehaviour
         if (itemUsed)
         {
             slot.amount--;
-            if (slot.amount <= 0) slots.RemoveAt(index);
+            if (slot.amount <= 0)
+            {
+                slot.item = null;
+                slot.amount = 0;
+            }
             UpdateUI();
 
             // Client tự dùng đồ thì báo Server trừ đi
@@ -192,7 +234,11 @@ public class InventorySystem : NetworkBehaviour
         ItemData itemToDrop = slot.item;
 
         slot.amount--;
-        if (slot.amount <= 0) slots.RemoveAt(index);
+        if (slot.amount <= 0)
+        {
+            slot.item = null;
+            slot.amount = 0;
+        }
         UpdateUI();
 
         // Client tự vứt đồ thì báo Server trừ đi
@@ -219,6 +265,18 @@ public class InventorySystem : NetworkBehaviour
 
             Destroy(droppedGO, dropLifeTime);
         }
+    }
+
+    public void SwapSlots(int fromIndex, int toIndex)
+    {
+        if (fromIndex < 0 || fromIndex >= slots.Count || toIndex < 0 || toIndex >= slots.Count) return;
+        if (fromIndex == toIndex) return;
+
+        InventorySlot temp = slots[fromIndex];
+        slots[fromIndex] = slots[toIndex];
+        slots[toIndex] = temp;
+
+        UpdateUI();
     }
 
     private void UpdateUI()

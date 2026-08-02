@@ -297,6 +297,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         // ===============================================
         // 🔥 SONG KIẾM HỢP BÍCH: KIỂM TRA MÁY ĐANG CHẠY
         // ===============================================
+        bool hasWeapon = HotbarHUDManager.Instance != null && HotbarHUDManager.Instance.HasGunEquipped();
+
         if ((Application.isMobilePlatform || Application.isEditor) && MobileInputController.Instance != null && MobileInputController.Instance.gameObject.activeInHierarchy)
         {
             var mobileUI = MobileInputController.Instance;
@@ -308,8 +310,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             data.isRunning = data.moveInput.magnitude > 0.7f;
             data.isCrouching = false; // Điện thoại tạm thời chưa có nút ngồi
 
-            // 3. Ngắm & Bắn bằng Joystick phải (Twin-stick shooter)
-            if (mobileUI.aimJoystick.Direction.magnitude > 0.1f)
+            // 3. Ngắm & Bắn bằng Joystick phải (Twin-stick shooter) - CHỈ KHI CÓ SÚNG
+            if (hasWeapon && mobileUI.aimJoystick.Direction.magnitude > 0.1f)
             {
                 data.isAiming = true;
                 data.isShooting = true; // Cứ kéo cần phải là xả đạn
@@ -325,13 +327,13 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
                 data.mouseWorldPos = transform.position;
             }
 
-            // 4. Cận chiến: Nhận lệnh từ nút Bash trên màn hình
-            data.isBashing = mobileUI.isBashPressed;
+            // 4. Cận chiến: Nhận lệnh từ nút Bash trên màn hình - CHỈ KHI CÓ SÚNG
+            data.isBashing = hasWeapon ? mobileUI.isBashPressed : false;
         }
         else
         {
             // ===============================================
-            // 🔥 CHẾ ĐỘ PC: CHUỘT VÀ BÀN PHÍM (GIỮ NGUYÊN GỐC)
+            // 🔥 CHẾ ĐỘ PC: CHUỘT VÀ BÀN PHÍM
             // ===============================================
             data.moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized;
 
@@ -344,12 +346,12 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
             bool pointerOnUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
 
-            data.isAiming = pointerOnUI ? false : Input.GetMouseButton(1);
+            data.isAiming = (pointerOnUI || !hasWeapon) ? false : Input.GetMouseButton(1);
             data.isRunning = Input.GetKey(KeyCode.LeftShift);
             data.isCrouching = Input.GetKey(KeyCode.C);
 
-            data.isShooting = Input.GetMouseButton(0);
-            data.isBashing = Input.GetKey(KeyCode.Space);
+            data.isShooting = hasWeapon ? Input.GetMouseButton(0) : false;
+            data.isBashing = hasWeapon ? Input.GetKey(KeyCode.Space) : false;
         }
 
         input.Set(data);
