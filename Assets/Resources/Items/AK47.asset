@@ -15,7 +15,7 @@ MonoBehaviour:
   itemName: AK47
   icon: {fileID: 1585974835397443309, guid: 43666a3b528e8d344bc9cc1da0023aa9, type: 3}
   category: 3
-  useTime: 0.5
+  useTime: 0
   specificDropPrefab: {fileID: 0}
   isStackable: 0
   maxStack: 1
@@ -25,3 +25,16 @@ MonoBehaviour:
   buffDuration: 0
   speedMultiplier: 1.5
   maxStaminaBoost: 50
+  weaponDamage: 34
+  fireRate: 0.1
+  magazineCapacity: 30
+  pelletCount: 1
+  spreadAngle: 2
+  weaponRange: 15
+  shootNoiseRadius: 20
+  soundVolumeMultiplier: 1
+  ammoTypeRequired: {fileID: 11400000, guid: a7620000000000000000000000007620, type: 2}
+  customSingleShootSFX: {fileID: 8300000, guid: 99852ecf8e31c774fb6427b9250c437d, type: 3}
+  customAutoShootSFX: {fileID: 8300000, guid: 2c61468687560e044b9f143419e5af99, type: 3}
+  customReloadSFX: {fileID: 8300000, guid: d9522bc55f505c74395153ee1c87b48d, type: 3}
+  customDryFireSFX: {fileID: 8300000, guid: 423de7e87d02bcf498fb52d2f57cc647, type: 3}

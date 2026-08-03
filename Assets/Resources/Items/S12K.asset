@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 45658c3055c88304eb95446d7a980e81, type: 3}
+  m_Name: S12K
+  m_EditorClassIdentifier: 
+  itemName: S12K
+  icon: {fileID: 1365228841827441021, guid: 69ce52bc16b6947479c3efa513cd0b01, type: 3}
+  category: 3
+  useTime: 1
+  specificDropPrefab: {fileID: 0}
+  isStackable: 0
+  maxStack: 1
+  healAmount: 0
+  hungerRestore: 0
+  thirstRestore: 0
+  buffDuration: 0
+  speedMultiplier: 1.5
+  maxStaminaBoost: 50
+  weaponDamage: 15
+  fireRate: 0.25
+  magazineCapacity: 5
+  pelletCount: 9
+  spreadAngle: 12
+  weaponRange: 12
+  shootNoiseRadius: 35
+  soundVolumeMultiplier: 1.4
+  ammoTypeRequired: {fileID: 11400000, guid: 6de1eb1fa3b69d246a599b1370184fc9, type: 2}
+  customSingleShootSFX: {fileID: 8300000, guid: 52bda7e2177ffd54ab50d0d694b402d3, type: 3}
+  customAutoShootSFX: {fileID: 8300000, guid: 52bda7e2177ffd54ab50d0d694b402d3, type: 3}
+  customReloadSFX: {fileID: 8300000, guid: 71e58c6cfba84cf48a77df88f4191845, type: 3}
+  customDryFireSFX: {fileID: 8300000, guid: 182f13a7a9aefbb41a9155db7f1ac493, type: 3}

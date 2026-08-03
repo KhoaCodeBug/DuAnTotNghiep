@@ -11,27 +11,15 @@ public class PlayerCombat : NetworkBehaviour
     [Tooltip("Chỉnh số này khớp với thời gian chạy hết 15 frame của bạn (VD: 0.2 hoặc 0.25)")]
     public float muzzleFlashDuration = 0.2f;
 
-    [Header("--- Vũ khí Tầm Xa ---")]
-    public float gunDamage = 20f;
-    public float fireRate = 0.2f;
-    public float weaponRange = 15f;
+    [Header("--- Cài Đặt Tương Tác Bắn ---")]
     public LayerMask enemyLayer;
-    public float shootNoiseRadius = 20f;
 
-    [Header("--- AK47 & Melee Weapon Audio Settings ---")]
+    [Header("--- Audio Settings (Cận Chiến) ---")]
     public AudioSource weaponAudioSource;
-    public AudioClip singleShotSFX;
-    public AudioClip autoShotSFX;
-    public AudioClip reloadSFX;
-    public AudioClip dryFireSFX;
     public AudioClip swingSFX;
     public AudioClip hitFleshSFX;
 
     private float lastDryFireTime = 0f;
-
-    [Header("--- Quản Lý Đạn (Ammunition) ---")]
-    public ItemData ammoType;
-    public int magazineSize = 30;
 
     [Networked] public int currentAmmo { get; set; } = 30;
     private bool isReloading = false;
@@ -63,7 +51,9 @@ public class PlayerCombat : NetworkBehaviour
         invSys = FindAnyObjectByType<InventorySystem>();
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
-        if (HasStateAuthority) currentAmmo = magazineSize;
+        ItemData equipped = GetEquippedWeapon();
+        int initialMag = (equipped != null && equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
+        if (HasStateAuthority) currentAmmo = initialMag;
         AutoAssignAK47AudioClips();
     }
 
@@ -94,7 +84,10 @@ public class PlayerCombat : NetworkBehaviour
         // 🔥 FIX NẠP ĐẠN: Bấm R trên phím HOẶC Bấm nút Reload trên điện thoại
         bool wantToReload = Input.GetKeyDown(KeyCode.R) || (MobileInputController.Instance != null && MobileInputController.Instance.CheckAndConsumeReload());
 
-        if (hasWeapon && wantToReload && currentAmmo < magazineSize && !isReloading)
+        ItemData equipped = GetEquippedWeapon();
+        int currentMagCapacity = (equipped != null && equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
+
+        if (hasWeapon && wantToReload && currentAmmo < currentMagCapacity && !isReloading)
         {
             StartCoroutine(ReloadRoutine());
         }
@@ -129,18 +122,21 @@ public class PlayerCombat : NetworkBehaviour
             }
 
             // 1. XỬ LÝ BẮN SÚNG
+            ItemData equippedWeapon = GetEquippedWeapon();
+            float currentFireRate = (equippedWeapon != null && equippedWeapon.fireRate > 0) ? equippedWeapon.fireRate : 0.1f;
+
             if (input.isShooting && nextFireTimer.ExpiredOrNotRunning(Runner) && !isMeleeAttacking)
             {
                 if (currentAmmo > 0 || isWeaponMasterActive)
                 {
-                    nextFireTimer = TickTimer.CreateFromSeconds(Runner, fireRate);
+                    nextFireTimer = TickTimer.CreateFromSeconds(Runner, currentFireRate);
                     Shoot(input.mouseWorldPos);
                 }
                 else
                 {
                     if (HasInputAuthority)
                     {
-                        nextFireTimer = TickTimer.CreateFromSeconds(Runner, fireRate);
+                        nextFireTimer = TickTimer.CreateFromSeconds(Runner, currentFireRate);
                         if (Time.time - lastDryFireTime > 0.4f)
                         {
                             lastDryFireTime = Time.time;
@@ -163,9 +159,12 @@ public class PlayerCombat : NetworkBehaviour
 
     private IEnumerator ReloadRoutine()
     {
-        if (invSys == null || ammoType == null) yield break;
+        ItemData equipped = GetEquippedWeapon();
+        ItemData requiredAmmo = (equipped != null) ? equipped.ammoTypeRequired : null;
 
-        int reserveAmmo = invSys.GetItemCount(ammoType);
+        if (invSys == null || requiredAmmo == null) yield break;
+
+        int reserveAmmo = invSys.GetItemCount(requiredAmmo);
         if (reserveAmmo <= 0)
         {
             Debug.Log("Không có đạn dự trữ trong túi!");
@@ -174,7 +173,8 @@ public class PlayerCombat : NetworkBehaviour
 
         isReloading = true;
         RPC_PlayReloadSFX();
-        float duration = ammoType.useTime;
+
+        float duration = (requiredAmmo != null && requiredAmmo.useTime > 0) ? requiredAmmo.useTime : 4.0f;
         float timer = 0f;
 
         while (timer < duration)
@@ -198,8 +198,9 @@ public class PlayerCombat : NetworkBehaviour
 
         if (AutoUIManager.Instance != null) AutoUIManager.Instance.HideReloadUI();
 
-        int ammoNeeded = magazineSize - currentAmmo;
-        int ammoExtracted = invSys.ConsumeItem(ammoType, ammoNeeded);
+        int maxMag = (equipped != null && equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
+        int ammoNeeded = maxMag - currentAmmo;
+        int ammoExtracted = invSys.ConsumeItem(requiredAmmo, ammoNeeded);
 
         if (HasStateAuthority)
         {
@@ -223,6 +224,8 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Shoot(Vector2 mouseWorldPos)
     {
+        ItemData equipped = GetEquippedWeapon();
+
         if (HasStateAuthority)
         {
             bool consumeAmmo = true;
@@ -236,7 +239,8 @@ public class PlayerCombat : NetworkBehaviour
                 currentAmmo--;
             }
 
-            if (playerMove != null) playerMove.MakeNoise(shootNoiseRadius);
+            float currentNoiseRadius = (equipped != null && equipped.shootNoiseRadius > 0) ? equipped.shootNoiseRadius : 20f;
+            if (playerMove != null) playerMove.MakeNoise(currentNoiseRadius);
         }
 
         Vector2 shootDirection = (mouseWorldPos - (Vector2)transform.position).normalized;
@@ -244,20 +248,10 @@ public class PlayerCombat : NetworkBehaviour
 
         if (HasStateAuthority)
         {
-            // Kiểm tra vũ khí hiện tại qua Hotbar
-            bool isShotgun = false;
-            if (HotbarHUDManager.Instance != null)
-            {
-                ItemData equipped = HotbarHUDManager.Instance.GetSelectedWeapon();
-                if (equipped != null && equipped.itemName.ToLower().Contains("shotgun"))
-                {
-                    isShotgun = true;
-                }
-            }
-
-            int pellets = isShotgun ? 6 : 1;
-            float spreadAngle = isShotgun ? 15f : 2f;
-            float currentDamage = isShotgun ? gunDamage * 1.5f : gunDamage; // Shotgun mạnh hơn nhưng chia cho mỗi viên
+            int pellets = (equipped != null && equipped.pelletCount > 0) ? equipped.pelletCount : 1;
+            float spreadAngle = (equipped != null) ? equipped.spreadAngle : 2f;
+            float currentDamage = (equipped != null && equipped.weaponDamage > 0) ? equipped.weaponDamage : 34f;
+            float currentRange = (equipped != null && equipped.weaponRange > 0) ? equipped.weaponRange : 15f;
 
             for (int i = 0; i < pellets; i++)
             {
@@ -269,7 +263,7 @@ public class PlayerCombat : NetworkBehaviour
                 }
 
                 // 🔥 ĐỔI SANG RAYCAST ALL: Đạn bay xuyên thấu để lọc mục tiêu
-                RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, spreadDir, weaponRange, enemyLayer);
+                RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, spreadDir, currentRange, enemyLayer);
 
                 foreach (RaycastHit2D hit in hits)
                 {
@@ -441,14 +435,31 @@ public class PlayerCombat : NetworkBehaviour
                 muzzleAnimator.Play(animName, -1, 0f);
             }
 
+            // Dynamic Flash Duration: Súng bắn càng nhanh (fireRate nhỏ) thì flash nháy càng nhanh tương thích
+            ItemData equipped = GetEquippedWeapon();
+            float currentFireRate = (equipped != null && equipped.fireRate > 0) ? equipped.fireRate : 0.1f;
+            float dynamicFlashDuration = Mathf.Min(muzzleFlashDuration, currentFireRate * 0.75f);
+
             // Gán lại timer đếm ngược
-            muzzleFlashTimer = muzzleFlashDuration;
+            muzzleFlashTimer = dynamicFlashDuration;
         }
+    }
+
+    public ItemData GetEquippedWeapon()
+    {
+        if (!Application.isPlaying) return null;
+        if (HotbarHUDManager.Instance != null)
+        {
+            return HotbarHUDManager.Instance.GetSelectedWeapon();
+        }
+        return null;
     }
 
     public void UpdateAmmoHUD()
     {
-        int reserve = (invSys != null && ammoType != null) ? invSys.GetItemCount(ammoType) : 0;
+        ItemData equipped = GetEquippedWeapon();
+        ItemData requiredAmmo = (equipped != null) ? equipped.ammoTypeRequired : null;
+        int reserve = (invSys != null && requiredAmmo != null) ? invSys.GetItemCount(requiredAmmo) : 0;
         if (AutoUIManager.Instance != null) AutoUIManager.Instance.UpdateAmmoUI(currentAmmo, reserve);
     }
 
@@ -497,11 +508,6 @@ public class PlayerCombat : NetworkBehaviour
             weaponAudioSource.playOnAwake = false;
         }
 
-        if (singleShotSFX == null) singleShotSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_single");
-        if (autoShotSFX == null) autoShotSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_auto");
-        if (reloadSFX == null) reloadSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_reload");
-        if (dryFireSFX == null) dryFireSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_dry_fire");
-
         if (swingSFX == null) swingSFX = Resources.Load<AudioClip>("Sound/Melee/melee_swing");
         if (hitFleshSFX == null) hitFleshSFX = Resources.Load<AudioClip>("Sound/Melee/melee_hit_flesh");
     }
@@ -509,18 +515,16 @@ public class PlayerCombat : NetworkBehaviour
     private void PlayAK47ShootSFX()
     {
         AutoAssignAK47AudioClips();
-        if (singleShotSFX == null) singleShotSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_single");
-        if (singleShotSFX == null || weaponAudioSource == null)
-        {
-            Debug.LogError("[PlayerCombat] Không tìm thấy file âm thanh súng ak47_single!");
-            return;
-        }
+        ItemData equipped = GetEquippedWeapon();
+        AudioClip shootClip = (equipped != null && equipped.customSingleShootSFX != null) ? equipped.customSingleShootSFX : null;
+        if (shootClip == null) shootClip = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_single");
+        if (shootClip == null || weaponAudioSource == null) return;
 
+        float volMultiplier = (equipped != null && equipped.soundVolumeMultiplier > 0) ? equipped.soundVolumeMultiplier : 1.0f;
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
 
-        // 🔥 PHÁT ÂM THANH BẮN SÚNG VANG TO, UY LỰC TRÊN WEAPON AUDIO SOURCE ĐỘC LẬP
         weaponAudioSource.pitch = Random.Range(0.98f, 1.02f);
-        weaponAudioSource.PlayOneShot(singleShotSFX, 1.0f * sfxVol);
+        weaponAudioSource.PlayOneShot(shootClip, volMultiplier * sfxVol);
     }
 
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
@@ -528,14 +532,14 @@ public class PlayerCombat : NetworkBehaviour
     {
         if (!gameObject.activeInHierarchy) return;
         AutoAssignAK47AudioClips();
-        if (dryFireSFX == null) dryFireSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_dry_fire");
-        if (dryFireSFX == null || weaponAudioSource == null) return;
+        ItemData equipped = GetEquippedWeapon();
+        AudioClip dryClip = (equipped != null && equipped.customDryFireSFX != null) ? equipped.customDryFireSFX : null;
+        if (dryClip == null) dryClip = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_dry_fire");
+        if (dryClip == null || weaponAudioSource == null) return;
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
         weaponAudioSource.pitch = 1.0f;
-
-        // 🔥 PHÁT TIẾNG CLICK TẠCH NỔI BẬT ĐANH RÕ (ÂM LƯỢNG 1.20f)
-        weaponAudioSource.PlayOneShot(dryFireSFX, 1.20f * sfxVol);
+        weaponAudioSource.PlayOneShot(dryClip, 1.80f * sfxVol);
     }
 
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
@@ -543,12 +547,14 @@ public class PlayerCombat : NetworkBehaviour
     {
         if (!gameObject.activeInHierarchy) return;
         AutoAssignAK47AudioClips();
-        if (reloadSFX == null) reloadSFX = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_reload");
-        if (reloadSFX == null || weaponAudioSource == null) return;
+        ItemData equipped = GetEquippedWeapon();
+        AudioClip customReload = (equipped != null && equipped.customReloadSFX != null) ? equipped.customReloadSFX : null;
+        if (customReload == null) customReload = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_reload");
+        if (customReload == null || weaponAudioSource == null) return;
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
         weaponAudioSource.pitch = 1.0f;
-        weaponAudioSource.PlayOneShot(reloadSFX, 0.90f * sfxVol);
+        weaponAudioSource.PlayOneShot(customReload, 1.50f * sfxVol);
     }
 
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
@@ -596,6 +602,8 @@ public class PlayerCombat : NetworkBehaviour
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, bashRange);
         Gizmos.color = Color.magenta;
-        Gizmos.DrawWireSphere(transform.position, shootNoiseRadius);
+        ItemData equipped = GetEquippedWeapon();
+        float currentNoiseRadius = (equipped != null && equipped.shootNoiseRadius > 0) ? equipped.shootNoiseRadius : 20f;
+        Gizmos.DrawWireSphere(transform.position, currentNoiseRadius);
     }
 }

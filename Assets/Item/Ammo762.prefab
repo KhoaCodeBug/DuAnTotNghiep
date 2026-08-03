@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 6874392213252319883}
   - component: {fileID: 6778875387054156885}
   m_Layer: 0
-  m_Name: Ammo
+  m_Name: Ammo762
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -79,7 +79,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: -8704383721093287524, guid: b654856c042e05e4fb15ef768ae926be, type: 3}
+  m_Sprite: {fileID: 5101171989399469654, guid: 29c29952bcc3eb04ea2059ff73cc8e72, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -128,7 +128,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 8.66, y: 7.81}
+    oldSize: {x: 9.1, y: 9.87}
     newSize: {x: 10.24, y: 10.24}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dc50384b3121c2a409a2ed4fc4c966f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  item: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
+  item: {fileID: 11400000, guid: a7620000000000000000000000007620, type: 2}
   amount: 30
 --- !u!114 &6778875387054156885
 MonoBehaviour:
