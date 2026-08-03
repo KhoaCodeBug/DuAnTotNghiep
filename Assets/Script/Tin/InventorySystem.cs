@@ -51,6 +51,12 @@ public class InventorySystem : NetworkBehaviour
             {
                 AddItem(startingWeapon, 1);
             }
+
+            ItemData startingS12K = Resources.Load<ItemData>("Items/S12K");
+            if (startingS12K != null)
+            {
+                AddItem(startingS12K, 1);
+            }
         }
     }
 
@@ -340,7 +346,7 @@ public class InventorySystem : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_RequestPickupItem(NetworkObject itemNetObj, string itemName, int amount)
     {
-        ItemData data = Resources.Load<ItemData>("Items/" + itemName);
+        ItemData data = ItemDataLoader.LoadItem(itemName);
         if (data != null)
         {
             bool pickedUp = AddItem(data, amount);
@@ -354,7 +360,7 @@ public class InventorySystem : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
     private void RPC_SyncItemToClient(string itemName, int amount, bool isAdding)
     {
-        ItemData data = Resources.Load<ItemData>("Items/" + itemName);
+        ItemData data = ItemDataLoader.LoadItem(itemName);
         if (data != null)
         {
             isSyncing = true; // Bật cờ để Client không gọi ngược lại lên Server gây lặp vô hạn
@@ -367,7 +373,7 @@ public class InventorySystem : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_SyncItemToServer(string itemName, int amount, bool isAdding)
     {
-        ItemData data = Resources.Load<ItemData>("Items/" + itemName);
+        ItemData data = ItemDataLoader.LoadItem(itemName);
         if (data != null)
         {
             isSyncing = true;

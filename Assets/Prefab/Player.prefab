@@ -714,7 +714,7 @@ MonoBehaviour:
   autoShotSFX: {fileID: 0}
   reloadSFX: {fileID: 0}
   dryFireSFX: {fileID: 0}
-  ammoType: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
+  ammoType: {fileID: 11400000, guid: a7620000000000000000000000007620, type: 2}
   magazineSize: 30
   _currentAmmo: 30
   bashDamage: 50

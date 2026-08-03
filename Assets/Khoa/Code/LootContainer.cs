@@ -221,7 +221,7 @@ public class LootContainer : NetworkBehaviour
     {
         if (Runner.LocalPlayer == targetPlayer)
         {
-            ItemData itemData = Resources.Load<ItemData>("Items/" + itemName);
+            ItemData itemData = ItemDataLoader.LoadItem(itemName);
             InventorySystem inv = GetLocalInventoryCached();
             if (inv != null && itemData != null)
             {
@@ -250,7 +250,7 @@ public class LootContainer : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_StoreItem(string itemName, int amount)
     {
-        ItemData itemData = Resources.Load<ItemData>("Items/" + itemName);
+        ItemData itemData = ItemDataLoader.LoadItem(itemName);
         if (itemData == null) return;
 
         StoreItemLocal(itemData, amount);
@@ -264,7 +264,7 @@ public class LootContainer : NetworkBehaviour
         {
             // Vẫn giữ isFullSync phòng hờ các trường hợp ép nạp mới khác
             if (isFullSync) itemsInContainer.Clear();
-            ItemData itemData = Resources.Load<ItemData>("Items/" + itemName);
+            ItemData itemData = ItemDataLoader.LoadItem(itemName);
             if (itemData != null) StoreItemLocal(itemData, amount);
         }
 

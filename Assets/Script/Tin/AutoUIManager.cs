@@ -1219,7 +1219,7 @@ public class AutoUIManager : MonoBehaviour
         }
         else
         {
-            ItemData data = Resources.Load<ItemData>("Items/" + itemName);
+            ItemData data = ItemDataLoader.LoadItem(itemName);
             if (data != null)
             {
                 icon.sprite = data.icon;

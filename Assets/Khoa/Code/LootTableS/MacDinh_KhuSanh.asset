@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MacDinh_KhuSanh
   m_EditorClassIdentifier: 
   lootRules:
-  - itemPrefab: {fileID: 11400000, guid: e394d11ed000d614487ccf245d039bb5, type: 2}
+  - itemPrefab: {fileID: 11400000, guid: a7620000000000000000000000007620, type: 2}
     dropChance: 30
     minAmount: 16
     maxAmount: 30
@@ -37,3 +37,7 @@ MonoBehaviour:
     dropChance: 60
     minAmount: 1
     maxAmount: 1
+  - itemPrefab: {fileID: 11400000, guid: 6de1eb1fa3b69d246a599b1370184fc9, type: 2}
+    dropChance: 30
+    minAmount: 5
+    maxAmount: 10
