@@ -113,6 +113,7 @@ public class ZombieAI : NetworkBehaviour
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
     [Networked] public NetworkBool NetIsChasing { get; set; }
+    [Networked] public float NetMoveSpeed { get; set; }
 
     private void Awake()
     {
@@ -188,7 +189,8 @@ public class ZombieAI : NetworkBehaviour
             lastMoveDirection.Normalize();
             rb.MovePosition(rb.position + lastMoveDirection * distanceToMove);
             NetMoveDir = lastMoveDirection;
-            return false;
+            NetMoveSpeed = currentSpeed;
+            return true;
         }
         else
         {
@@ -203,12 +205,14 @@ public class ZombieAI : NetworkBehaviour
                 lastMoveDirection.Normalize();
                 rb.MovePosition(rb.position + lastMoveDirection * slideDistance);
                 NetMoveDir = lastMoveDirection;
+                NetMoveSpeed = currentSpeed * 0.8f;
+                return true;
             }
             else
             {
                 StopMovement();
             }
-            return true;
+            return false;
         }
     }
 
@@ -354,6 +358,7 @@ public class ZombieAI : NetworkBehaviour
     {
         if (rb != null) rb.linearVelocity = Vector2.zero;
         path = null;
+        NetMoveSpeed = 0f;
     }
 
     public override void FixedUpdateNetwork()
@@ -470,9 +475,9 @@ public class ZombieAI : NetworkBehaviour
             if (distanceToPlayer <= directChaseRange && CanSeePlayer())
             {
                 Vector2 directDir = (targetPos - rb.position).normalized;
-                SafeMove(directDir, moveSpeed, distanceToPlayer - attackStartRange);
+                bool moved = SafeMove(directDir, moveSpeed, distanceToPlayer - attackStartRange);
                 CheckForStuck(targetPos);
-                NetIsRunning = true;
+                NetIsRunning = moved;
                 path = null;
             }
             else
@@ -483,9 +488,9 @@ public class ZombieAI : NetworkBehaviour
                     CalculatePath(targetPos, AIMode.Chase);
                     pathUpdateTimer = 0.3f;
                 }
-                MoveAlongPath(moveSpeed);
+                bool moved = MoveAlongPath(moveSpeed);
                 CheckForStuck(targetPos);
-                NetIsRunning = true;
+                NetIsRunning = moved;
             }
         }
         else
@@ -688,9 +693,9 @@ public class ZombieAI : NetworkBehaviour
         float investigateSpeed = hasHeardSound
             ? moveSpeed * hearingInvestigateSpeedMultiplier
             : moveSpeed * 0.8f;
-        MoveAlongPath(investigateSpeed);
+        bool moved = MoveAlongPath(investigateSpeed);
         CheckForStuck(investigatePos);
-        NetIsRunning = true;
+        NetIsRunning = moved;
 
         if (Vector2.Distance(transform.position, investigatePos) < 0.5f)
         {
@@ -744,9 +749,9 @@ public class ZombieAI : NetworkBehaviour
                 pathUpdateTimer = 0.5f;
             }
 
-            MoveAlongPath(moveSpeed * 0.55f);
+            bool moved = MoveAlongPath(moveSpeed * 0.55f);
             CheckForStuck(currentSearchTarget);
-            NetIsRunning = true;
+            NetIsRunning = moved;
             return;
         }
 
@@ -763,7 +768,7 @@ public class ZombieAI : NetworkBehaviour
     public override void Render()
     {
         if (anim == null) return;
-        anim.SetBool("isRunning", NetIsRunning);
+        anim.SetBool("isRunning", NetIsRunning && NetMoveSpeed > 0.05f);
         if (NetMoveDir != Vector2.zero)
         {
             anim.SetFloat("DirX", NetMoveDir.x);

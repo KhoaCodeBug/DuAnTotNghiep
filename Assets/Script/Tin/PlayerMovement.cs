@@ -27,6 +27,11 @@ public class PlayerMovement : NetworkBehaviour
     public LayerMask zombieLayer;
     public float walkNoiseRadius = 4f;
     public float runNoiseRadius = 8f;
+    [Header("--- Thai Zombie Hearing Balance ---")]
+    public float thaiZombieWalkNoiseRadius = 2f;
+    public int thaiZombieWalkResponderLimit = 1;
+    public int thaiZombieRunResponderLimit = 3;
+    public int thaiZombieLoudResponderLimit = 5;
     private float noiseEmitTimer = 0f;
 
     [Header("--- Animations ---")]
@@ -54,6 +59,17 @@ public class PlayerMovement : NetworkBehaviour
     private float smoothStrafeX;
     private float smoothStrafeY;
     private const float ANIM_SMOOTH_SPEED = 10f;
+    private struct ThaiZombieNoiseCandidate
+    {
+        public ZombieAI ai;
+        public float distance;
+
+        public ThaiZombieNoiseCandidate(ZombieAI ai, float distance)
+        {
+            this.ai = ai;
+            this.distance = distance;
+        }
+    }
 
     // ==========================================
     // 🔥 BIẾN ĐỒNG BỘ MẠNG
@@ -478,13 +494,20 @@ public class PlayerMovement : NetworkBehaviour
         rb.linearVelocity = Vector2.zero;
     }
 
-    public void MakeNoise(float radius)
+    public void MakeNoise(float radius, bool useThaiEnhancedHearing = true, int thaiResponderLimit = -1, float thaiBaseRadiusOverride = -1f)
     {
         if (!HasStateAuthority) return;
 
         const float maxThaiZombieHearingMultiplier = 2f;
-        Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, radius * maxThaiZombieHearingMultiplier, zombieLayer);
+        float thaiBaseRadius = thaiBaseRadiusOverride > 0f ? thaiBaseRadiusOverride : radius;
+        float thaiScanRadius = useThaiEnhancedHearing ? thaiBaseRadius * maxThaiZombieHearingMultiplier : thaiBaseRadius;
+        float scanRadius = Mathf.Max(radius, thaiScanRadius);
+        int maxThaiResponders = thaiResponderLimit < 0 ? thaiZombieLoudResponderLimit : thaiResponderLimit;
+
+        Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, scanRadius, zombieLayer);
         HashSet<int> notifiedZombies = new HashSet<int>();
+        List<ThaiZombieNoiseCandidate> thaiCandidates = new List<ThaiZombieNoiseCandidate>();
+
         foreach (Collider2D z in zombies)
         {
          
@@ -492,11 +515,12 @@ public class PlayerMovement : NetworkBehaviour
             if (aiNew != null)
             {
                 int id = aiNew.GetInstanceID();
-                float hearingRadius = radius * aiNew.HearingRangeMultiplier;
-                if (!notifiedZombies.Contains(id) && Vector2.Distance(transform.position, aiNew.transform.position) <= hearingRadius)
+                float hearingRadius = useThaiEnhancedHearing ? thaiBaseRadius * aiNew.HearingRangeMultiplier : thaiBaseRadius;
+                float distance = Vector2.Distance(transform.position, aiNew.transform.position);
+                if (!notifiedZombies.Contains(id) && distance <= hearingRadius)
                 {
                     notifiedZombies.Add(id);
-                    aiNew.RPC_HearSound(transform.position);
+                    thaiCandidates.Add(new ThaiZombieNoiseCandidate(aiNew, distance));
                 }
                 continue;
             }
@@ -511,6 +535,16 @@ public class PlayerMovement : NetworkBehaviour
                     notifiedZombies.Add(id);
                     aiOld.RPC_HearSound(transform.position);
                 }
+            }
+        }
+
+        thaiCandidates.Sort((a, b) => a.distance.CompareTo(b.distance));
+        int notifyCount = Mathf.Min(Mathf.Max(maxThaiResponders, 0), thaiCandidates.Count);
+        for (int i = 0; i < notifyCount; i++)
+        {
+            if (thaiCandidates[i].ai != null)
+            {
+                thaiCandidates[i].ai.RPC_HearSound(transform.position);
             }
         }
     }
@@ -540,8 +574,14 @@ public class PlayerMovement : NetworkBehaviour
         if (distMoved < lastNoisePositionThreshold) return;
         lastNoisePosition = transform.position;
 
-        if (NetIsRunning) MakeNoise(runNoiseRadius);
-        else MakeNoise(walkNoiseRadius);
+        if (NetIsRunning)
+        {
+            MakeNoise(runNoiseRadius, true, thaiZombieRunResponderLimit);
+        }
+        else
+        {
+            MakeNoise(walkNoiseRadius, false, thaiZombieWalkResponderLimit, thaiZombieWalkNoiseRadius);
+        }
     }
 
     private Vector2 SnapTo8Way(Vector2 dir)
