@@ -379,7 +379,8 @@ MonoBehaviour:
   searchPointCount: 5
   searchRadius: 3
   searchWaitDuration: 1.2
-  hearingInvestigateSpeedMultiplier: 1.8
+  hearingRangeMultiplier: 2
+  hearingInvestigateSpeedMultiplier: 2
   moveSpeed: 1
   attackRange: 0.31
   damageRadius: 0.31

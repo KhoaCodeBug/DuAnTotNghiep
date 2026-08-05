@@ -482,14 +482,22 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (!HasStateAuthority) return;
 
-        Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, radius, zombieLayer);
+        const float maxThaiZombieHearingMultiplier = 2f;
+        Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, radius * maxThaiZombieHearingMultiplier, zombieLayer);
+        HashSet<int> notifiedZombies = new HashSet<int>();
         foreach (Collider2D z in zombies)
         {
          
             ZombieAI aiNew = z.GetComponentInParent<ZombieAI>();
             if (aiNew != null)
             {
-                aiNew.RPC_HearSound(transform.position);
+                int id = aiNew.GetInstanceID();
+                float hearingRadius = radius * aiNew.HearingRangeMultiplier;
+                if (!notifiedZombies.Contains(id) && Vector2.Distance(transform.position, aiNew.transform.position) <= hearingRadius)
+                {
+                    notifiedZombies.Add(id);
+                    aiNew.RPC_HearSound(transform.position);
+                }
                 continue;
             }
 
@@ -497,7 +505,12 @@ public class PlayerMovement : NetworkBehaviour
             ZOmbieAI_Khoa aiOld = z.GetComponentInParent<ZOmbieAI_Khoa>();
             if (aiOld != null)
             {
-                aiOld.RPC_HearSound(transform.position);
+                int id = aiOld.GetInstanceID();
+                if (!notifiedZombies.Contains(id) && Vector2.Distance(transform.position, aiOld.transform.position) <= radius)
+                {
+                    notifiedZombies.Add(id);
+                    aiOld.RPC_HearSound(transform.position);
+                }
             }
         }
     }
