@@ -16,6 +16,12 @@ public class ZombieAI : NetworkBehaviour
     private Path path;
     private int currentWaypoint = 0;
     private Rigidbody2D rb;
+    private int pathRequestId = 0;
+    private Vector2 requestedPathTarget;
+    private Vector2 lastMoveDirection;
+    private Vector2 lastStuckCheckPosition;
+    private float stuckTimer = 0f;
+    private float crowdSidePreference = 1f;
     [SerializeField] private LayerMask zombieMask;
     [SerializeField] private float separationRadius = 0.4f;
     [SerializeField] private float separationWeight = 1.5f;
@@ -25,6 +31,9 @@ public class ZombieAI : NetworkBehaviour
     [Header("--- Né Vật Cản (Local) ---")]
     [SerializeField] private LayerMask obstacleMask; // Gán layer Obstacle (Layer 6) vào đây
     [SerializeField] private float zombieRadius = 0.4f; // Bán kính vòng tròn dò tường của zombie
+    [SerializeField] private float obstacleProbeDistance = 0.8f;
+    [SerializeField] private float obstacleAvoidanceWeight = 1.8f;
+    [SerializeField] private float stuckRepathDelay = 0.75f;
 
     [Header("--- Phạm vi Phát hiện (Detection) ---")]
     public float detectionRange = 10f;
@@ -120,6 +129,11 @@ public class ZombieAI : NetworkBehaviour
 
         anim = GetComponent<Animator>();
         healthScript = GetComponent<ZombieHealth>();
+        lastMoveDirection = NetMoveDir == Vector2.zero ? Random.insideUnitCircle.normalized : NetMoveDir.normalized;
+        if (lastMoveDirection.sqrMagnitude < 0.001f) lastMoveDirection = Vector2.up;
+        NetMoveDir = lastMoveDirection;
+        lastStuckCheckPosition = rb != null ? rb.position : (Vector2)transform.position;
+        crowdSidePreference = Random.value < 0.5f ? -1f : 1f;
 
         if (!HasStateAuthority)
         {
@@ -167,8 +181,11 @@ public class ZombieAI : NetworkBehaviour
 
         if (hit.collider == null)
         {
-            rb.MovePosition(rb.position + targetDir * distanceToMove);
-            NetMoveDir = targetDir;
+            lastMoveDirection = Vector2.Lerp(lastMoveDirection, targetDir, 10f * Runner.DeltaTime);
+            if (lastMoveDirection.sqrMagnitude < 0.001f) lastMoveDirection = targetDir;
+            lastMoveDirection.Normalize();
+            rb.MovePosition(rb.position + lastMoveDirection * distanceToMove);
+            NetMoveDir = lastMoveDirection;
             return false;
         }
         else
@@ -179,8 +196,11 @@ public class ZombieAI : NetworkBehaviour
             if (slideDirection.sqrMagnitude > 0.01f)
             {
                 float slideDistance = Mathf.Min((currentSpeed * 0.8f) * Runner.DeltaTime, maxMoveDistance);
-                rb.MovePosition(rb.position + slideDirection * slideDistance);
-                NetMoveDir = slideDirection;
+                lastMoveDirection = Vector2.Lerp(lastMoveDirection, slideDirection, 10f * Runner.DeltaTime);
+                if (lastMoveDirection.sqrMagnitude < 0.001f) lastMoveDirection = slideDirection;
+                lastMoveDirection.Normalize();
+                rb.MovePosition(rb.position + lastMoveDirection * slideDistance);
+                NetMoveDir = lastMoveDirection;
             }
             else
             {
@@ -192,17 +212,22 @@ public class ZombieAI : NetworkBehaviour
 
     private void CalculatePath(Vector2 targetPos, AIMode mode)
     {
-        if (seeker.IsDone())
+        if (seeker != null && seeker.IsDone())
         {
             pathRequestMode = mode;
+            int requestId = ++pathRequestId;
+            requestedPathTarget = targetPos;
             path = null;
-            seeker.StartPath(rb.position, targetPos, OnPathComplete);
+            seeker.StartPath(rb.position, targetPos, p => OnPathComplete(p, requestId, targetPos));
         }
     }
 
-    private void OnPathComplete(Path p)
+    private void OnPathComplete(Path p, int requestId, Vector2 targetAtRequest)
     {
-        if (!p.error && currentMode == pathRequestMode)
+        if (!p.error
+            && currentMode == pathRequestMode
+            && requestId == pathRequestId
+            && Vector2.Distance(targetAtRequest, requestedPathTarget) < 0.1f)
         {
             path = p;
             currentWaypoint = 0;
@@ -260,8 +285,67 @@ public class ZombieAI : NetworkBehaviour
         if (desiredDirection.sqrMagnitude < 0.001f) return desiredDirection;
 
         Vector2 desired = desiredDirection.normalized;
-        Vector2 result = desired + GetSeparationForce() * separationWeight;
+        Vector2 separation = GetSeparationForce();
+
+        float forwardPressure = Vector2.Dot(separation, desired);
+        Vector2 lateralSeparation = separation - desired * forwardPressure;
+        if (forwardPressure < 0f && lateralSeparation.sqrMagnitude < 0.001f)
+        {
+            lateralSeparation = new Vector2(-desired.y, desired.x) * crowdSidePreference * -forwardPressure;
+        }
+
+        separation = (lateralSeparation + desired * Mathf.Max(0f, forwardPressure)) * separationWeight;
+        Vector2 avoidance = GetObstacleAvoidance(desired) * obstacleAvoidanceWeight;
+        Vector2 result = desired + separation + avoidance;
         return result.sqrMagnitude > 0.001f ? result.normalized : desired;
+    }
+
+    private Vector2 GetObstacleAvoidance(Vector2 desiredDirection)
+    {
+        if (desiredDirection.sqrMagnitude < 0.001f || obstacleProbeDistance <= 0f)
+            return Vector2.zero;
+
+        Vector2 forward = desiredDirection.normalized;
+        RaycastHit2D frontHit = Physics2D.Raycast(rb.position, forward, obstacleProbeDistance, obstacleMask);
+        if (frontHit.collider == null)
+            return Vector2.zero;
+
+        Vector2 left = new Vector2(-forward.y, forward.x);
+        Vector2 right = -left;
+        float diagonalDistance = obstacleProbeDistance * 0.9f;
+
+        RaycastHit2D leftHit = Physics2D.Raycast(rb.position, (forward + left * 0.65f).normalized, diagonalDistance, obstacleMask);
+        RaycastHit2D rightHit = Physics2D.Raycast(rb.position, (forward + right * 0.65f).normalized, diagonalDistance, obstacleMask);
+
+        float leftClearance = leftHit.collider == null ? diagonalDistance : leftHit.distance;
+        float rightClearance = rightHit.collider == null ? diagonalDistance : rightHit.distance;
+        Vector2 steerSide = leftClearance >= rightClearance ? left : right;
+        float urgency = 1f - Mathf.Clamp01(frontHit.distance / obstacleProbeDistance);
+        return steerSide * urgency;
+    }
+
+    private void CheckForStuck(Vector2 pathTarget)
+    {
+        float movedDistance = Vector2.Distance(rb.position, lastStuckCheckPosition);
+        if (movedDistance < 0.025f)
+        {
+            stuckTimer += Runner.DeltaTime;
+        }
+        else
+        {
+            stuckTimer = 0f;
+            lastStuckCheckPosition = rb.position;
+        }
+
+        if (stuckTimer >= stuckRepathDelay)
+        {
+            path = null;
+            currentWaypoint = 0;
+            pathUpdateTimer = 0f;
+            CalculatePath(pathTarget, currentMode);
+            stuckTimer = 0f;
+            lastStuckCheckPosition = rb.position;
+        }
     }
 
     private void StopMovement()
@@ -385,6 +469,7 @@ public class ZombieAI : NetworkBehaviour
             {
                 Vector2 directDir = (targetPos - rb.position).normalized;
                 SafeMove(directDir, moveSpeed, distanceToPlayer - attackStartRange);
+                CheckForStuck(targetPos);
                 NetIsRunning = true;
                 path = null;
             }
@@ -397,6 +482,7 @@ public class ZombieAI : NetworkBehaviour
                     pathUpdateTimer = 0.3f;
                 }
                 MoveAlongPath(moveSpeed);
+                CheckForStuck(targetPos);
                 NetIsRunning = true;
             }
         }
@@ -484,6 +570,7 @@ public class ZombieAI : NetworkBehaviour
         lockedAttackDirection = faceDir.sqrMagnitude > 0.0001f
             ? faceDir.normalized
             : (NetMoveDir == Vector2.zero ? Vector2.up : NetMoveDir.normalized);
+        lastMoveDirection = lockedAttackDirection;
         NetMoveDir = lockedAttackDirection;
     }
 
@@ -529,6 +616,7 @@ public class ZombieAI : NetworkBehaviour
 
         if (attackTargetCollider != null)
         {
+            lastMoveDirection = lockedAttackDirection;
             NetMoveDir = lockedAttackDirection;
         }
         else if (player != null)
@@ -537,6 +625,7 @@ public class ZombieAI : NetworkBehaviour
             if (faceDir.sqrMagnitude > 0.0001f)
             {
                 NetMoveDir = faceDir.normalized;
+                lastMoveDirection = NetMoveDir;
             }
         }
 
@@ -577,6 +666,7 @@ public class ZombieAI : NetworkBehaviour
         {
             lockedAttackDirection = NetMoveDir == Vector2.zero ? Vector2.up : NetMoveDir.normalized;
         }
+        lastMoveDirection = lockedAttackDirection;
         NetMoveDir = lockedAttackDirection;
         RPC_TriggerAttack(randomAtk);
         attackTimer = attackCooldown;
@@ -597,6 +687,7 @@ public class ZombieAI : NetworkBehaviour
             ? moveSpeed * hearingInvestigateSpeedMultiplier
             : moveSpeed * 0.8f;
         MoveAlongPath(investigateSpeed);
+        CheckForStuck(investigatePos);
         NetIsRunning = true;
 
         if (Vector2.Distance(transform.position, investigatePos) < 0.5f)
@@ -652,6 +743,7 @@ public class ZombieAI : NetworkBehaviour
             }
 
             MoveAlongPath(moveSpeed * 0.55f);
+            CheckForStuck(currentSearchTarget);
             NetIsRunning = true;
             return;
         }
