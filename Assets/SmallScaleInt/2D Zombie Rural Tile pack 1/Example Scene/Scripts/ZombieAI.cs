@@ -64,7 +64,7 @@ namespace SmallScaleInc.ZombieRural
         {
             animator = GetComponent<Animator>();
             capsuleCollider = GetComponent<CapsuleCollider2D>();
-            playerController = FindObjectOfType<PlayerController>();
+            playerController = FindFirstObjectByType<PlayerController>();
             spriteRenderer = GetComponent<SpriteRenderer>();
             previousPosition = transform.position;
             currentHealth = maxHealth;

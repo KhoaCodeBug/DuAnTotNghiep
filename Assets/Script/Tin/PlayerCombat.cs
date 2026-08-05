@@ -24,6 +24,11 @@ public class PlayerCombat : NetworkBehaviour
     [Networked] public int currentAmmo { get; set; } = 30;
     private bool isReloading = false;
 
+    // 🔥 HỆ THỐNG BĂNG ĐẠN RIÊNG CHO TỪNG SÚNG
+    // Cache đạn cho từng súng (key = itemName, value = số đạn hiện tại trong băng)
+    private Dictionary<string, int> weaponAmmoCache = new Dictionary<string, int>();
+    private string lastEquippedWeaponName = "";
+
     [Header("--- Cận Chiến (Gun Bash) ---")]
     public float bashDamage = 10f;
     public float bashRange = 1f;
@@ -51,9 +56,21 @@ public class PlayerCombat : NetworkBehaviour
         invSys = FindAnyObjectByType<InventorySystem>();
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
+
+        // Khởi tạo đạn cho súng đang cầm đầu tiên
         ItemData equipped = GetEquippedWeapon();
-        int initialMag = (equipped != null && equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
-        if (HasStateAuthority) currentAmmo = initialMag;
+        if (equipped != null)
+        {
+            int mag = (equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
+            weaponAmmoCache[equipped.itemName] = mag;
+            lastEquippedWeaponName = equipped.itemName;
+            if (HasStateAuthority) currentAmmo = mag;
+        }
+        else
+        {
+            if (HasStateAuthority) currentAmmo = 0;
+        }
+
         AutoAssignAK47AudioClips();
     }
 
@@ -74,6 +91,9 @@ public class PlayerCombat : NetworkBehaviour
         }
 
         if (!HasInputAuthority) return;
+
+        // 🔥 Kiểm tra chuyển súng mỗi frame để save/restore đạn riêng từng cây
+        CheckWeaponSwitch();
 
         UpdateAmmoHUD();
 
@@ -212,6 +232,7 @@ public class PlayerCombat : NetworkBehaviour
         }
 
         isReloading = false;
+        SyncAmmoCache();
         Debug.Log("Nạp đạn xong!");
         UpdateAmmoHUD();
     }
@@ -237,6 +258,7 @@ public class PlayerCombat : NetworkBehaviour
             if (consumeAmmo)
             {
                 currentAmmo--;
+                SyncAmmoCache();
             }
 
             float currentNoiseRadius = (equipped != null && equipped.shootNoiseRadius > 0) ? equipped.shootNoiseRadius : 20f;
@@ -453,6 +475,66 @@ public class PlayerCombat : NetworkBehaviour
             return HotbarHUDManager.Instance.GetSelectedWeapon();
         }
         return null;
+    }
+
+    // =========================================================
+    // 🔥 HỆ THỐNG CHUYỂN SÚNG: Save/Restore đạn riêng từng cây
+    // =========================================================
+    private void CheckWeaponSwitch()
+    {
+        ItemData equipped = GetEquippedWeapon();
+        string currentWeaponName = (equipped != null) ? equipped.itemName : "";
+
+        // Không có gì thay đổi → bỏ qua
+        if (currentWeaponName == lastEquippedWeaponName) return;
+
+        // 1. SAVE đạn cho súng CŨ vào cache
+        if (!string.IsNullOrEmpty(lastEquippedWeaponName))
+        {
+            weaponAmmoCache[lastEquippedWeaponName] = currentAmmo;
+        }
+
+        // 2. LOAD đạn cho súng MỚI từ cache
+        if (equipped != null && !string.IsNullOrEmpty(currentWeaponName))
+        {
+            if (weaponAmmoCache.ContainsKey(currentWeaponName))
+            {
+                // Súng này đã bắn trước đó → khôi phục đạn còn lại
+                if (HasStateAuthority) currentAmmo = weaponAmmoCache[currentWeaponName];
+            }
+            else
+            {
+                // Súng mới lần đầu cầm → đổ đầy băng đạn
+                int fullMag = (equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
+                weaponAmmoCache[currentWeaponName] = fullMag;
+                if (HasStateAuthority) currentAmmo = fullMag;
+            }
+        }
+        else
+        {
+            // Không cầm súng nào → ammo = 0
+            if (HasStateAuthority) currentAmmo = 0;
+        }
+
+        lastEquippedWeaponName = currentWeaponName;
+
+        // Hủy reload nếu đang nạp đạn mà chuyển súng giữa chừng
+        if (isReloading)
+        {
+            isReloading = false;
+            StopAllCoroutines();
+            RPC_StopReloadSFX();
+            if (AutoUIManager.Instance != null) AutoUIManager.Instance.HideReloadUI();
+        }
+    }
+
+    // Đồng bộ cache sau mỗi lần bắn hoặc nạp đạn
+    private void SyncAmmoCache()
+    {
+        if (!string.IsNullOrEmpty(lastEquippedWeaponName))
+        {
+            weaponAmmoCache[lastEquippedWeaponName] = currentAmmo;
+        }
     }
 
     public void UpdateAmmoHUD()

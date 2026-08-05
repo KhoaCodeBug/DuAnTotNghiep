@@ -129,11 +129,20 @@ public class AutoTabManager : MonoBehaviour
         return btn;
     }
 
+    public bool IsTabCanvasActive()
+    {
+        return tabCanvasObj != null && tabCanvasObj.activeSelf;
+    }
+
     public void ShowTabs(bool show)
     {
         if (tabCanvasObj != null)
         {
             tabCanvasObj.SetActive(show);
+            if (show && DevCheatManager.Instance != null)
+            {
+                DevCheatManager.Instance.HideCheatMenu();
+            }
         }
         
         if (show)

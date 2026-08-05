@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum ItemCategory { Ammunition, Medical, Consumable, Weapon }
+public enum ItemCategory { Ammunition, Medical, Consumable, Weapon, Backpack }
 
 [CreateAssetMenu(fileName = "New Item", menuName = "Inventory/Item")]
 public class ItemData : ScriptableObject
@@ -8,6 +8,10 @@ public class ItemData : ScriptableObject
     public string itemName;
     public Sprite icon;
     public ItemCategory category;
+
+    [Header("Cài đặt Balo")]
+    public int backpackLevel = 1; // Cấp 1 đến 5 (PUBG Style)
+    public int backpackSlotsBonus = 5;
 
     // Chỉ số thời gian để dùng vật phẩm này (Tính bằng giây)
     [Tooltip("Ví dụ: Băng gạc = 3 giây, Nước = 1.5 giây, Đạn = 4 giây (Thời gian nạp đạn)")]

@@ -11,7 +11,7 @@ namespace SmallScaleInc.ZombieRural
 
         void Start()
         {
-            playerController = FindObjectOfType<PlayerController>();
+            playerController = FindFirstObjectByType<PlayerController>();
             animator = GetComponent<Animator>();
         }
 

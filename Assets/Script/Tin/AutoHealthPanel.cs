@@ -69,7 +69,6 @@ public class AutoHealthPanel : MonoBehaviour
 
     private bool isHealing = false;
     public bool IsHealing => isHealing;
-    private float toggleCooldown = 0f;
     private float currentDisplayedHealth = 100f;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -462,9 +461,9 @@ public class AutoHealthPanel : MonoBehaviour
         float maxHP = 100f;
         if (localPlayerHealth != null)
         {
-            displayHP = localPlayerHealth.currentHealth;
+            displayHP = localPlayerHealth.CurrentHealthSafe;
             maxHP = localPlayerHealth.maxHealth;
-            isPainReal = localPlayerHealth.isInPain;
+            isPainReal = (localPlayerHealth.Object != null && localPlayerHealth.Object.IsValid) ? localPlayerHealth.isInPain : false;
         }
 
         // Bỏ cập nhật ngang lập tức, thay bằng hiệu ứng Lerp ở hàm Update()
@@ -660,7 +659,7 @@ public class AutoHealthPanel : MonoBehaviour
     {
         if (localPlayerHealth == null) return;
 
-        float displayHP = localPlayerHealth.currentHealth;
+        float displayHP = localPlayerHealth.CurrentHealthSafe;
 
         StringBuilder headerText = new StringBuilder();
         headerText.AppendLine("Overall Body Status");

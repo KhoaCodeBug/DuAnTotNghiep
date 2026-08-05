@@ -75,14 +75,14 @@ public class HotbarHUDManager : MonoBehaviour
         hudCanvas.AddComponent<GraphicRaycaster>();
         DontDestroyOnLoad(hudCanvas);
 
-        // --- HOTBAR PANEL ---
+        // --- HOTBAR PANEL (Dành cho 5 ô size 80x80: 5*80 + 4*8 spacing + 16 padding = 448px width, 80 + 16 = 96px height) ---
         hotbarPanel = new GameObject("HotbarPanel");
         hotbarPanel.transform.SetParent(hudCanvas.transform, false);
         RectTransform hbRt = hotbarPanel.AddComponent<RectTransform>();
         hbRt.anchorMin = new Vector2(0.5f, 0f); hbRt.anchorMax = new Vector2(0.5f, 0f);
         hbRt.pivot = new Vector2(0.5f, 0f);
         hbRt.anchoredPosition = new Vector2(0, 15);
-        hbRt.sizeDelta = new Vector2(320, 60);
+        hbRt.sizeDelta = new Vector2(448, 96);
 
         Image hbBg = hotbarPanel.AddComponent<Image>();
         hbBg.color = new Color(0, 0, 0, 0.6f);
@@ -100,25 +100,23 @@ public class HotbarHUDManager : MonoBehaviour
         }
         if (defaultFont != null) itemNameText.font = defaultFont;
         
-        itemNameText.fontSize = 16;
+        itemNameText.fontSize = 20;
         itemNameText.fontStyle = FontStyles.Normal;
         itemNameText.color = Color.white;
         itemNameText.alignment = TextAlignmentOptions.Center;
-        itemNameText.enableWordWrapping = false;
-        
-        // Removed Shadow component as it can break TextMeshPro rendering in some cases
+        itemNameText.textWrappingMode = TextWrappingModes.NoWrap;
 
         RectTransform nameRt = nameObj.GetComponent<RectTransform>();
         nameRt.anchorMin = new Vector2(0.5f, 0f); nameRt.anchorMax = new Vector2(0.5f, 0f);
         nameRt.pivot = new Vector2(0.5f, 0f);
-        nameRt.anchoredPosition = new Vector2(0, 80); // Nằm ở độ cao 80
-        nameRt.sizeDelta = new Vector2(320, 30);
+        nameRt.anchoredPosition = new Vector2(0, 120); // Nằm ở độ cao 120 (phía trên panel 96px)
+        nameRt.sizeDelta = new Vector2(448, 35);
         itemNameText.gameObject.SetActive(false); // Ẩn mặc định
 
         // --- HOTBAR LAYOUT ---
         HorizontalLayoutGroup layout = hotbarPanel.AddComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(5, 5, 5, 5);
-        layout.spacing = 5;
+        layout.padding = new RectOffset(8, 8, 8, 8);
+        layout.spacing = 8;
         layout.childControlHeight = true; layout.childControlWidth = true;
 
         for (int i = 0; i < hotbarSize; i++)
@@ -143,7 +141,7 @@ public class HotbarHUDManager : MonoBehaviour
             iconObj.transform.SetParent(slotObj.transform, false);
             RectTransform iconRt = iconObj.AddComponent<RectTransform>();
             iconRt.anchorMin = Vector2.zero; iconRt.anchorMax = Vector2.one;
-            iconRt.offsetMin = new Vector2(4, 4); iconRt.offsetMax = new Vector2(-4, -4);
+            iconRt.offsetMin = new Vector2(6, 6); iconRt.offsetMax = new Vector2(-6, -6);
             Image icon = iconObj.AddComponent<Image>();
             icon.preserveAspect = true;
             iconObj.SetActive(false);
@@ -153,13 +151,13 @@ public class HotbarHUDManager : MonoBehaviour
             txtObj.transform.SetParent(slotObj.transform, false);
             RectTransform txtRt = txtObj.AddComponent<RectTransform>();
             txtRt.anchorMin = Vector2.zero; txtRt.anchorMax = Vector2.one;
-            txtRt.offsetMin = Vector2.zero; txtRt.offsetMax = new Vector2(-2, -2);
+            txtRt.offsetMin = Vector2.zero; txtRt.offsetMax = new Vector2(-4, -4);
             TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
             txt.alignment = TextAlignmentOptions.BottomRight;
-            txt.fontSize = 14;
+            txt.fontSize = 18;
             txt.fontStyle = FontStyles.Bold;
             txt.color = Color.white;
-            txt.enableWordWrapping = false;
+            txt.textWrappingMode = TextWrappingModes.NoWrap;
             txtObj.SetActive(false);
             slotAmounts.Add(txt);
         }
@@ -361,5 +359,13 @@ public class HotbarHUDManager : MonoBehaviour
     public bool HasGunEquipped()
     {
         return GetSelectedWeapon() != null;
+    }
+
+    public void SetHUDVisible(bool visible)
+    {
+        if (hudCanvas != null)
+        {
+            hudCanvas.SetActive(visible);
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -161,7 +161,7 @@ public class VehicleControllerFusion : NetworkBehaviour
 
         vehicleCamera.gameObject.SetActive(enable);
 
-        foreach (var l in FindObjectsOfType<AudioListener>())
+        foreach (var l in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))
             l.enabled = false;
 
         if (enable)

@@ -12,6 +12,7 @@ public class PlayerHealth : NetworkBehaviour
     [Header("Chỉ số Máu")]
     public float maxHealth = 100f;
     [Networked] public float currentHealth { get; set; }
+    public float CurrentHealthSafe => (Object != null && Object.IsValid) ? currentHealth : maxHealth;
 
     [Header("Hiệu ứng khi bị đánh")]
     public float stunDuration = 0.4f;
