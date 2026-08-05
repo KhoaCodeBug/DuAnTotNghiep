@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using Fusion;
 
 public class MinimapFollow : MonoBehaviour
@@ -10,7 +10,7 @@ public class MinimapFollow : MonoBehaviour
         // luôn cố tìm nếu chưa có
         if (localPlayer == null)
         {
-            foreach (var obj in FindObjectsOfType<NetworkObject>())
+            foreach (var obj in FindObjectsByType<NetworkObject>(FindObjectsSortMode.None))
             {
                 if (obj.HasInputAuthority)
                 {

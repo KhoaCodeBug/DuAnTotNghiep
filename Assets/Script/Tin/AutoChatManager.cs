@@ -246,7 +246,6 @@ public class AutoChatManager : MonoBehaviour
         }
 
         // --- Logic phát sáng, kéo thả & tự động làm mờ khi di chuột ---
-        bool isHovered = false;
         bool isDragging = false;
 
         if (chatPanelRt != null)

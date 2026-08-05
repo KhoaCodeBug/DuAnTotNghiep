@@ -11,7 +11,7 @@ public class AutoUIManager : MonoBehaviour
 
     #region Cài Đặt Chung
     [Header("Cài đặt")]
-    public int maxSlots = 20;
+    public int maxSlots = 40; // Hỗ trợ tối đa Cấp 5 = 40 ô (5 Hotbar + 35 Kho)
     private int containerSlots = 9; // Tủ đồ 3x3
     public TMP_FontAsset gameFont;
     public Sprite iconAmmo;
@@ -41,6 +41,7 @@ public class AutoUIManager : MonoBehaviour
     private GameObject spectatorPanel;
     private Button btnRespawn;
     private TextMeshProUGUI spectatorText;
+    private bool wasSpectating = false;
     #endregion
 
     #region Biến UI - Tủ Đồ
@@ -144,10 +145,12 @@ public class AutoUIManager : MonoBehaviour
         {
             bool isSpectator = spectatorPanel != null && spectatorPanel.activeSelf;
             bool isInvOpen = inventoryPanel != null && inventoryPanel.activeSelf;
+            bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
+            bool isTabActive = AutoTabManager.Instance != null && AutoTabManager.Instance.IsTabCanvasActive();
 
             bool hasWeapon = HotbarHUDManager.Instance != null && HotbarHUDManager.Instance.HasGunEquipped();
 
-            bool shouldShowAmmo = hasWeapon && !isSpectator && !isInvOpen;
+            bool shouldShowAmmo = hasWeapon && !isSpectator;
             
             if (ammoContainer.activeSelf != shouldShowAmmo)
             {
@@ -192,11 +195,6 @@ public class AutoUIManager : MonoBehaviour
                     shouldShowSpectator = true;
                 }
             }
-            else
-            {
-                // Không có nhân vật cục bộ trong gameplay -> đã bị despawn (chuyển thành zombie hoặc đang chờ đẻ)
-                shouldShowSpectator = true;
-            }
 
             if (shouldShowSpectator)
             {
@@ -206,12 +204,24 @@ public class AutoUIManager : MonoBehaviour
                     Cursor.lockState = CursorLockMode.None;
                     Cursor.visible = true;
                 }
+
+                if (!wasSpectating)
+                {
+                    wasSpectating = true;
+                    SetGameplayHUDVisible(false);
+                }
             }
             else
             {
                 if (spectatorPanel != null && spectatorPanel.activeSelf)
                 {
                     spectatorPanel.SetActive(false);
+                }
+
+                if (wasSpectating)
+                {
+                    wasSpectating = false;
+                    SetGameplayHUDVisible(true);
                 }
             }
         }
@@ -221,6 +231,62 @@ public class AutoUIManager : MonoBehaviour
             if (spectatorPanel != null && spectatorPanel.activeSelf)
             {
                 spectatorPanel.SetActive(false);
+            }
+            if (wasSpectating)
+            {
+                wasSpectating = false;
+                SetGameplayHUDVisible(true);
+            }
+        }
+    }
+
+    public void SetGameplayHUDVisible(bool visible)
+    {
+        // 1. Hotbar Canvas (Gọi trực tiếp Singleton quản lý Hotbar)
+        if (HotbarHUDManager.Instance != null)
+        {
+            HotbarHUDManager.Instance.SetHUDVisible(visible);
+        }
+
+        // 2. Noise Meter Canvas (Gọi trực tiếp Singleton quản lý Noise Meter)
+        AutoNoiseMeter.SetHUDVisible(visible);
+
+        // 3. Đóng sạch toàn bộ Tab Header & Bảng Sức Khỏe & Túi Đồ khi chết
+        if (!visible)
+        {
+            if (AutoTabManager.Instance != null) AutoTabManager.Instance.ShowTabs(false);
+            if (AutoHealthPanel.Instance != null) AutoHealthPanel.Instance.SetOpenState(false);
+            if (inventoryPanel != null) inventoryPanel.SetActive(false);
+        }
+
+        // 4. Tìm tất cả Canvas bao gồm cả inactive để ẩn/hiện an toàn
+        Canvas[] allCanvases = Resources.FindObjectsOfTypeAll<Canvas>();
+        foreach (var c in allCanvases)
+        {
+            if (c != null && (c.name.StartsWith("ParanoiaCanvas") || c.name == "--- AUTO HEALTH CANVAS ---" || c.name == "TabCanvas"))
+            {
+                c.gameObject.SetActive(visible);
+            }
+        }
+
+        // 5. Ammo Display Container
+        if (ammoContainer != null)
+        {
+            ammoContainer.SetActive(visible);
+        }
+
+        // 6. Ẩn toàn bộ các panel con trong AutoCanvas ngoại trừ ClockPanel và SpectatorPanel
+        if (mainCanvas != null)
+        {
+            foreach (Transform child in mainCanvas.transform)
+            {
+                if (child.name == "ClockPanel" || child.name == "SpectatorPanel")
+                    continue;
+
+                if (!visible)
+                {
+                    child.gameObject.SetActive(false);
+                }
             }
         }
     }
@@ -493,12 +559,13 @@ public class AutoUIManager : MonoBehaviour
         {
             panelBg.sprite = generatedBorderSprite;
             panelBg.type = Image.Type.Sliced;
-            panelBg.color = Color.white; // Để nguyên màu của Sprite tự sinh
+            panelBg.color = Color.white;
         }
         else
         {
             panelBg.color = new Color(0.1f, 0.1f, 0.1f, 0.95f);
         }
+        panelBg.raycastTarget = true; // Chặn click xuyên qua
         inventoryPanel.SetActive(false);
 
         GameObject titleObj = new GameObject("TitleText");
@@ -516,18 +583,51 @@ public class AutoUIManager : MonoBehaviour
         titleRect.pivot = new Vector2(0.5f, 1); titleRect.anchoredPosition = new Vector2(0, -20);
         titleRect.sizeDelta = new Vector2(0, 40);
 
+        // ===== SCROLL VIEW =====
+        GameObject scrollGO = new GameObject("InvScrollView");
+        scrollGO.transform.SetParent(inventoryPanel.transform, false);
+        RectTransform scrollRect = scrollGO.AddComponent<RectTransform>();
+        scrollRect.anchorMin = new Vector2(0, 0); scrollRect.anchorMax = new Vector2(1, 1);
+        scrollRect.offsetMin = new Vector2(30, 40);
+        scrollRect.offsetMax = new Vector2(-30, -75);
+
+        ScrollRect sr = scrollGO.AddComponent<ScrollRect>();
+        sr.horizontal = false;
+        sr.vertical = true;
+        sr.movementType = ScrollRect.MovementType.Clamped;
+        sr.scrollSensitivity = 30f;
+
+        // Viewport (mask)
+        GameObject vpGO = new GameObject("Viewport");
+        vpGO.transform.SetParent(scrollGO.transform, false);
+        RectTransform vpRect = vpGO.AddComponent<RectTransform>();
+        vpRect.anchorMin = Vector2.zero; vpRect.anchorMax = Vector2.one;
+        vpRect.offsetMin = Vector2.zero; vpRect.offsetMax = Vector2.zero;
+        Image vpImg = vpGO.AddComponent<Image>();
+        vpImg.color = Color.white;
+        Mask vpMask = vpGO.AddComponent<Mask>();
+        vpMask.showMaskGraphic = false;
+        sr.viewport = vpRect;
+
+        // Content (grid holder)
         GameObject gridObj = new GameObject("SlotGrid");
-        gridObj.transform.SetParent(inventoryPanel.transform, false);
+        gridObj.transform.SetParent(vpGO.transform, false);
         RectTransform gridRect = gridObj.AddComponent<RectTransform>();
-        gridRect.anchorMin = new Vector2(0, 0); gridRect.anchorMax = new Vector2(1, 1);
-        gridRect.offsetMin = new Vector2(30, 40);
-        gridRect.offsetMax = new Vector2(-30, -75);
+        gridRect.anchorMin = new Vector2(0, 1); gridRect.anchorMax = new Vector2(1, 1);
+        gridRect.pivot = new Vector2(0.5f, 1);
+        gridRect.anchoredPosition = Vector2.zero;
+        gridRect.sizeDelta = new Vector2(0, 0);
 
         GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
         gridLayout.cellSize = new Vector2(90, 90); gridLayout.spacing = new Vector2(10, 10);
         gridLayout.childAlignment = TextAnchor.UpperCenter;
 
-        for (int i = 5; i < maxSlots; i++)
+        ContentSizeFitter csf = gridObj.AddComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        sr.content = gridRect;
+
+        // Luôn luôn tạo sẵn toàn bộ 35 ô UI Kho (slotIndex 5 đến 39) hỗ trợ Balo tối đa Cấp 5 (40 ô total)
+        for (int i = 5; i < 40; i++)
         {
             int slotIndex = i;
             GameObject slotObj = new GameObject("InvSlot_" + i);
@@ -1631,15 +1731,37 @@ public class AutoUIManager : MonoBehaviour
     #endregion
 
     #region Quản Lý Context Menu & Tooltip
-    public void RefreshUI(List<InventorySlot> playerSlots)
+    public void RefreshUI(List<InventorySlot> playerSlots, int maxSlots = -1)
     {
         currentSlots = playerSlots;
+        EnsureLocalPlayer();
 
-        for (int i = 5; i < maxSlots; i++)
+        int currentMax = maxSlots;
+        if (currentMax <= 0)
+        {
+            InventorySystem localInv = (localPlayer != null) ? localPlayer.GetComponent<InventorySystem>() : null;
+            if (localInv == null && PlayerMovement.LocalPlayerInstance != null)
+            {
+                localInv = PlayerMovement.LocalPlayerInstance.GetComponent<InventorySystem>();
+            }
+            currentMax = (localInv != null) ? localInv.maxSlots : 20;
+        }
+
+        for (int i = 5; i < 40; i++)
         {
             int uiIndex = i - 5;
             if (uiIndex >= slotUIList.Count) break;
             SlotUIElements ui = slotUIList[uiIndex];
+
+            // Nếu vượt quá sức chứa hiện tại của Ba lô -> Ẩn ô đó đi
+            if (i >= currentMax)
+            {
+                ui.slotButton.gameObject.SetActive(false);
+                continue;
+            }
+
+            ui.slotButton.gameObject.SetActive(true);
+
             if (i < playerSlots.Count && playerSlots[i] != null && playerSlots[i].item != null && playerSlots[i].amount > 0)
             {
                 ui.iconImage.gameObject.SetActive(true);
@@ -1670,9 +1792,22 @@ public class AutoUIManager : MonoBehaviour
         if (currentSlots != null && index < currentSlots.Count && currentSlots[index] != null && currentSlots[index].amount > 0)
         {
             tooltipTitleText.text = currentSlots[index].item.itemName;
-            string cat = currentSlots[index].item.category == ItemCategory.Ammunition ? "Ammunition" : currentSlots[index].item.category == ItemCategory.Medical ? "Medical Supplies" : "Consumables";
+            string cat = GetCategoryString(currentSlots[index].item.category);
             tooltipDescText.text = "Type: " + cat;
             tooltipPanel.SetActive(true);
+        }
+    }
+
+    private string GetCategoryString(ItemCategory category)
+    {
+        switch (category)
+        {
+            case ItemCategory.Ammunition: return "Ammunition";
+            case ItemCategory.Medical: return "Medical";
+            case ItemCategory.Consumable: return "Consumable";
+            case ItemCategory.Weapon: return "Weapon";
+            case ItemCategory.Backpack: return "Backpack";
+            default: return "Item";
         }
     }
 
@@ -1719,7 +1854,9 @@ public class AutoUIManager : MonoBehaviour
 
         RectTransform containerRt = ammoContainer.AddComponent<RectTransform>();
         containerRt.anchorMin = new Vector2(0.5f, 0f); containerRt.anchorMax = new Vector2(0.5f, 0f);
-        containerRt.pivot = new Vector2(0.5f, 0f); containerRt.anchoredPosition = new Vector2(0, 80); containerRt.sizeDelta = new Vector2(320, 40);
+        containerRt.pivot = new Vector2(0.5f, 0f); 
+        containerRt.anchoredPosition = new Vector2(-290f, 15f); 
+        containerRt.sizeDelta = new Vector2(120f, 40f);
 
         GameObject iconObj = new GameObject("AmmoIcon");
         iconObj.transform.SetParent(ammoContainer.transform, false);
@@ -1728,8 +1865,10 @@ public class AutoUIManager : MonoBehaviour
         if (iconAmmo != null) ammoImage.sprite = iconAmmo;
 
         RectTransform iconRt = iconObj.GetComponent<RectTransform>();
-        iconRt.anchorMin = new Vector2(0, 0); iconRt.anchorMax = new Vector2(0, 0);
-        iconRt.pivot = new Vector2(0, 0.5f); iconRt.anchoredPosition = new Vector2(0, 7.5f); iconRt.sizeDelta = new Vector2(10, 15);
+        iconRt.anchorMin = new Vector2(0f, 0.5f); iconRt.anchorMax = new Vector2(0f, 0.5f);
+        iconRt.pivot = new Vector2(0f, 0.5f); 
+        iconRt.anchoredPosition = new Vector2(5f, 0f); 
+        iconRt.sizeDelta = new Vector2(15f, 30f);
 
         GameObject textObj = new GameObject("AmmoText");
         textObj.transform.SetParent(ammoContainer.transform, false);
@@ -1743,11 +1882,13 @@ public class AutoUIManager : MonoBehaviour
         }
         if (defaultFont != null) ammoText.font = defaultFont; else if (gameFont != null) ammoText.font = gameFont;
 
-        ammoText.fontSize = 12; ammoText.color = Color.white; ammoText.alignment = TextAlignmentOptions.BottomLeft;
+        ammoText.fontSize = 18; ammoText.fontStyle = FontStyles.Bold; ammoText.color = Color.white; ammoText.alignment = TextAlignmentOptions.Left;
 
         RectTransform textRt = textObj.GetComponent<RectTransform>();
-        textRt.anchorMin = new Vector2(0, 0); textRt.anchorMax = new Vector2(0, 0);
-        textRt.pivot = new Vector2(0, 0.5f); textRt.anchoredPosition = new Vector2(20, 12.5f); textRt.sizeDelta = new Vector2(200, 25);
+        textRt.anchorMin = new Vector2(0f, 0.5f); textRt.anchorMax = new Vector2(0f, 0.5f);
+        textRt.pivot = new Vector2(0f, 0.5f); 
+        textRt.anchoredPosition = new Vector2(25f, 0f); 
+        textRt.sizeDelta = new Vector2(90f, 30f);
         ammoText.text = "-- / --";
     }
 
@@ -1917,6 +2058,8 @@ public class AutoUIManager : MonoBehaviour
             string playerName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
             
             if (spectatorPanel != null) spectatorPanel.SetActive(false);
+            wasSpectating = false;
+            SetGameplayHUDVisible(true);
 
             spawner.RPC_RequestRespawn(runner.LocalPlayer, characterID, playerName);
         }

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System.Linq;
 using System.Collections.Generic;
@@ -33,7 +33,7 @@ namespace IsoTools.Internal {
 							iso_world.IsoToScreen(p.position + p.size * 0.5f));
 					}) / pair.Value.Count;
 				});
-			_otherObjects = FindObjectsOfType<IsoObject>()
+			_otherObjects = FindObjectsByType<IsoObject>(FindObjectsSortMode.None)
 				.Where(p => p.IsActive() && p.isoWorld)
 				.Where(p => _isoObjects.ContainsKey(p.isoWorld))
 				.Where(p => !_isoObjects[p.isoWorld].Contains(p))

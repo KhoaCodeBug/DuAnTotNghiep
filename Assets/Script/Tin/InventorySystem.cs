@@ -31,15 +31,51 @@ public class InventorySystem : NetworkBehaviour
     public GameObject droppedItemPrefab;
     public float dropLifeTime = 30f;
 
+    [Header("Balo Đang Trang Bị")]
+    public ItemData equippedBackpack;
+    public int currentBackpackLevel = 0; // 0 = Chưa có Balo (Mặc định 15 ô: 5 Hotbar + 10 Kho)
+
     // Cờ chống lặp vô hạn khi 2 máy gọi điện cho nhau
     private bool isSyncing = false;
 
     private void Awake()
     {
-        for (int i = 0; i < maxSlots; i++)
+        // Khởi tạo sẵn tối đa 40 ô slot trong danh sách
+        for (int i = 0; i < 40; i++)
         {
             slots.Add(new InventorySlot(null, 0));
         }
+        maxSlots = 15; // Mặc định khởi đầu 15 ô (5 Hotbar + 10 Kho)
+    }
+
+    public bool EquipBackpack(ItemData backpack)
+    {
+        if (backpack == null || backpack.category != ItemCategory.Backpack) return false;
+
+        // KIỂM TRA PHONG CÁCH PUBG: Nếu cấp balo định mặc nhỏ hơn hoặc bằng cấp hiện tại -> Từ chối!
+        if (backpack.backpackLevel <= currentBackpackLevel)
+        {
+            Debug.Log($"[INVENTORY] ❌ Balo {backpack.itemName} (Cấp {backpack.backpackLevel}) không cao hơn Balo hiện tại (Cấp {currentBackpackLevel})!");
+            return false;
+        }
+
+        equippedBackpack = backpack;
+        currentBackpackLevel = backpack.backpackLevel;
+
+        int targetTotalSlots = 15 + (backpack.backpackLevel * 5); // Cấp 1=20, 2=25, 3=30, 4=35, 5=40
+        SetMaxSlots(targetTotalSlots);
+        Debug.Log($"[INVENTORY] ✅ Đã nâng cấp Balo Cấp {currentBackpackLevel}! Tổng sức chứa: {maxSlots} ô.");
+        return true;
+    }
+
+    public void SetMaxSlots(int newMax)
+    {
+        maxSlots = Mathf.Clamp(newMax, 15, 40);
+        while (slots.Count < maxSlots)
+        {
+            slots.Add(new InventorySlot(null, 0));
+        }
+        UpdateUI();
     }
 
     public override void Spawned()
@@ -101,41 +137,79 @@ public class InventorySystem : NetworkBehaviour
     // ==========================================
     public bool AddItem(ItemData itemToAdd, int amountToAdd)
     {
-        // 🔥 ĐÃ GỠ BỎ LỆNH "if (!HasInputAuthority)" ĐỂ SERVER CŨNG ĐƯỢC QUYỀN THÊM ĐỒ
-
         int originalAmount = amountToAdd;
 
+        // 1. Nối chồng đạn/đồ gộp (Stacking): Ưu tiên tìm trong Ba lô (Slot 5->maxSlots) trước, rồi mới đến Hotbar (0->4)
         if (itemToAdd.isStackable)
         {
-            foreach (InventorySlot slot in slots)
+            // Quét trong Ba lô trước
+            for (int i = 5; i < maxSlots; i++)
             {
-                if (slot.item != null && slot.item.itemName == itemToAdd.itemName && slot.amount < itemToAdd.maxStack)
+                if (amountToAdd <= 0) break;
+                if (i < slots.Count && slots[i].item != null && slots[i].item.itemName == itemToAdd.itemName && slots[i].amount < itemToAdd.maxStack)
                 {
-                    int spaceLeft = itemToAdd.maxStack - slot.amount;
+                    int spaceLeft = itemToAdd.maxStack - slots[i].amount;
                     if (amountToAdd <= spaceLeft)
                     {
-                        slot.AddAmount(amountToAdd);
+                        slots[i].AddAmount(amountToAdd);
                         amountToAdd = 0;
                         break;
                     }
                     else
                     {
-                        slot.AddAmount(spaceLeft);
+                        slots[i].AddAmount(spaceLeft);
+                        amountToAdd -= spaceLeft;
+                    }
+                }
+            }
+
+            // Nếu chưa xếp hết -> mới tìm tiếp trong Hotbar
+            for (int i = 0; i < 5; i++)
+            {
+                if (amountToAdd <= 0) break;
+                if (i < slots.Count && slots[i].item != null && slots[i].item.itemName == itemToAdd.itemName && slots[i].amount < itemToAdd.maxStack)
+                {
+                    int spaceLeft = itemToAdd.maxStack - slots[i].amount;
+                    if (amountToAdd <= spaceLeft)
+                    {
+                        slots[i].AddAmount(amountToAdd);
+                        amountToAdd = 0;
+                        break;
+                    }
+                    else
+                    {
+                        slots[i].AddAmount(spaceLeft);
                         amountToAdd -= spaceLeft;
                     }
                 }
             }
         }
 
+        // 2. Xếp vào ô trống mới: Ưu tiên nhét vào Ba lô (Slot 5->maxSlots) trước!
         while (amountToAdd > 0)
         {
             int emptyIndex = -1;
-            for (int i = 0; i < maxSlots; i++)
+
+            // Tìm ô trống trong Ba lô trước (5 đến maxSlots-1)
+            for (int i = 5; i < maxSlots; i++)
             {
-                if (slots[i].item == null || slots[i].amount <= 0)
+                if (i < slots.Count && (slots[i].item == null || slots[i].amount <= 0))
                 {
                     emptyIndex = i;
                     break;
+                }
+            }
+
+            // Nếu Ba lô đã đầy -> mới nhét vào Hotbar (0 đến 4)
+            if (emptyIndex == -1)
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    if (i < slots.Count && (slots[i].item == null || slots[i].amount <= 0))
+                    {
+                        emptyIndex = i;
+                        break;
+                    }
                 }
             }
 
@@ -148,7 +222,7 @@ public class InventorySystem : NetworkBehaviour
             }
             else
             {
-                break; // Ba lô đầy
+                break; // Cả Ba lô lẫn Hotbar đều đã đầy
             }
         }
 
@@ -287,8 +361,8 @@ public class InventorySystem : NetworkBehaviour
 
     private void UpdateUI()
     {
-        if (!HasInputAuthority) return; // Chỉ Client sở hữu nhân vật mới vẽ Balo
-        if (AutoUIManager.Instance != null) AutoUIManager.Instance.RefreshUI(this.slots);
+        if (Object != null && Object.IsValid && !HasInputAuthority && !HasStateAuthority) return;
+        if (AutoUIManager.Instance != null) AutoUIManager.Instance.RefreshUI(this.slots, this.maxSlots);
     }
 
     public int GetItemCount(ItemData itemToCount)

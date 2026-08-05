@@ -52,6 +52,14 @@ public class AutoNoiseMeter : MonoBehaviour
         Instance.FlashHeardVoice(proximity);
     }
 
+    public static void SetHUDVisible(bool visible)
+    {
+        if (instance != null && instance.canvasObject != null)
+        {
+            instance.canvasObject.SetActive(visible);
+        }
+    }
+
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -69,9 +77,11 @@ public class AutoNoiseMeter : MonoBehaviour
         if (instance == this) instance = null;
     }
 
+    private GameObject canvasObject;
+
     private void BuildUi()
     {
-        GameObject canvasObject = new GameObject("--- NOISE METER CANVAS ---");
+        canvasObject = new GameObject("--- NOISE METER CANVAS ---");
         canvasObject.transform.SetParent(transform, false);
 
         Canvas canvas = canvasObject.AddComponent<Canvas>();
