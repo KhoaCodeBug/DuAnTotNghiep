@@ -362,6 +362,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   zombieRadius: 0.5
+  obstacleProbeDistance: 0.8
+  obstacleAvoidanceWeight: 1.8
+  stuckRepathDelay: 0.75
   zombieMask:
     serializedVersion: 2
     m_Bits: 8
