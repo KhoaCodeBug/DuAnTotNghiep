@@ -48,7 +48,8 @@ public class ZombieAI : NetworkBehaviour
     [SerializeField] private int searchPointCount = 3;
     [SerializeField] private float searchRadius = 2f;
     [SerializeField] private float searchWaitDuration = 1f;
-    [SerializeField] private float hearingInvestigateSpeedMultiplier = 1.8f;
+    [SerializeField] private float hearingRangeMultiplier = 2f;
+    [SerializeField] private float hearingInvestigateSpeedMultiplier = 2f;
 
     [Header("--- Tấn công & Tốc độ ---")]
     public float moveSpeed = 3.5f;
@@ -72,6 +73,7 @@ public class ZombieAI : NetworkBehaviour
     private bool hasHeardSound = false;
     private float hearMemoryTimer = 0f;
     public float hearMemoryDuration = 3f;
+    public float HearingRangeMultiplier => Mathf.Max(1f, hearingRangeMultiplier);
 
     private Transform player;
     private PlayerHealth playerHealth;
@@ -964,6 +966,17 @@ public class ZombieAI : NetworkBehaviour
         RaycastHit2D hit = Physics2D.Raycast(from, (to - from).normalized, distance, obstacleMask);
         if (hit.collider == null) return true;
         return expectedTarget != null && hit.collider.GetComponentInParent<PlayerHealth>() == expectedTarget;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Vector3 center = transform.position;
+
+        Gizmos.color = new Color(1f, 0.15f, 0.1f, 0.95f);
+        Gizmos.DrawWireSphere(center, Mathf.Max(attackRange, damageRadius));
+
+        Gizmos.color = new Color(1f, 0.85f, 0.05f, 0.45f);
+        Gizmos.DrawWireSphere(center, Mathf.Max(attackRange, damageRadius) + attackPrepareHoldBuffer);
     }
 
     public void ApplyStun(float duration)
