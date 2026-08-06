@@ -50,6 +50,10 @@ public class ZombieAI : NetworkBehaviour
     [SerializeField] private float searchWaitDuration = 1f;
     [SerializeField] private float hearingRangeMultiplier = 2f;
     [SerializeField] private float hearingInvestigateSpeedMultiplier = 2f;
+    [SerializeField, Range(0f, 1f)] private float loudHearingUrgencyThreshold = 0.75f;
+    [SerializeField] private float quietHearingSpeedMultiplier = 0.65f;
+    [SerializeField] private float normalHearingSpeedMultiplier = 1f;
+    [SerializeField] private float quietSoundPositionUncertainty = 0.75f;
 
     [Header("--- Tấn công & Tốc độ ---")]
     public float moveSpeed = 3.5f;
@@ -72,6 +76,7 @@ public class ZombieAI : NetworkBehaviour
     private Vector3 lastHeardPosition;
     private bool hasHeardSound = false;
     private float hearMemoryTimer = 0f;
+    private float lastHeardUrgency = 1f;
     public float hearMemoryDuration = 3f;
     public float HearingRangeMultiplier => Mathf.Max(1f, hearingRangeMultiplier);
 
@@ -109,6 +114,7 @@ public class ZombieAI : NetworkBehaviour
     private Vector2 currentSearchTarget;
     private int currentSearchPoint = 0;
     private float searchWaitTimer = 0f;
+    private float smoothMoveSpeed = 0f;
 
     [Networked] public Vector2 NetMoveDir { get; set; }
     [Networked] public NetworkBool NetIsRunning { get; set; }
@@ -246,7 +252,11 @@ public class ZombieAI : NetworkBehaviour
 
     private bool MoveAlongPath(float currentSpeed)
     {
-        if (path == null || currentWaypoint >= path.vectorPath.Count) return false;
+        if (path == null || currentWaypoint >= path.vectorPath.Count)
+        {
+            NetMoveSpeed = 0f;
+            return false;
+        }
 
         while (currentWaypoint < path.vectorPath.Count &&
                Vector2.Distance(rb.position, path.vectorPath[currentWaypoint]) < nextWaypointDistance)
@@ -254,7 +264,11 @@ public class ZombieAI : NetworkBehaviour
             currentWaypoint++;
         }
 
-        if (currentWaypoint >= path.vectorPath.Count) return false;
+        if (currentWaypoint >= path.vectorPath.Count)
+        {
+            NetMoveSpeed = 0f;
+            return false;
+        }
 
         Vector2 currentWp = (Vector2)path.vectorPath[currentWaypoint];
         Vector2 targetMoveDir = (currentWp - rb.position).normalized;
@@ -691,7 +705,7 @@ public class ZombieAI : NetworkBehaviour
         }
 
         float investigateSpeed = hasHeardSound
-            ? moveSpeed * hearingInvestigateSpeedMultiplier
+            ? moveSpeed * GetHearingInvestigateSpeedMultiplier()
             : moveSpeed * 0.8f;
         bool moved = MoveAlongPath(investigateSpeed);
         CheckForStuck(investigatePos);
@@ -713,6 +727,19 @@ public class ZombieAI : NetworkBehaviour
         currentSearchPoint = 0;
         searchWaitTimer = 0f;
         AdvanceSearchPoint();
+    }
+
+    private float GetHearingInvestigateSpeedMultiplier()
+    {
+        if (lastHeardUrgency >= loudHearingUrgencyThreshold)
+        {
+            return hearingInvestigateSpeedMultiplier;
+        }
+
+        float t = loudHearingUrgencyThreshold <= 0f
+            ? 1f
+            : Mathf.Clamp01(lastHeardUrgency / loudHearingUrgencyThreshold);
+        return Mathf.Lerp(quietHearingSpeedMultiplier, normalHearingSpeedMultiplier, t);
     }
 
     private void AdvanceSearchPoint()
@@ -768,7 +795,11 @@ public class ZombieAI : NetworkBehaviour
     public override void Render()
     {
         if (anim == null) return;
-        anim.SetBool("isRunning", NetIsRunning && NetMoveSpeed > 0.05f);
+        float targetSpeed = NetIsRunning ? NetMoveSpeed : 0f;
+        smoothMoveSpeed = Mathf.Lerp(smoothMoveSpeed, targetSpeed, Time.deltaTime * 15f);
+        if (smoothMoveSpeed < 0.03f) smoothMoveSpeed = 0f;
+
+        anim.SetFloat("Speed", smoothMoveSpeed);
         if (NetMoveDir != Vector2.zero)
         {
             anim.SetFloat("DirX", NetMoveDir.x);
@@ -781,7 +812,24 @@ public class ZombieAI : NetworkBehaviour
     {
         if (!HasStateAuthority) return;
 
-        lastHeardPosition = pos;
+        ApplyHeardSound(pos, 1f);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    public void RPC_HearSoundWithUrgency(Vector3 pos, float urgency)
+    {
+        if (!HasStateAuthority) return;
+
+        ApplyHeardSound(pos, urgency);
+    }
+
+    private void ApplyHeardSound(Vector3 pos, float urgency)
+    {
+        lastHeardUrgency = Mathf.Clamp01(urgency);
+        float uncertainty = quietSoundPositionUncertainty * (1f - lastHeardUrgency);
+        Vector2 offset = uncertainty > 0f ? Random.insideUnitCircle * uncertainty : Vector2.zero;
+
+        lastHeardPosition = pos + (Vector3)offset;
         hasHeardSound = true;
         hearMemoryTimer = hearMemoryDuration;
         currentTrackingTimer = 0f;
@@ -864,13 +912,20 @@ public class ZombieAI : NetworkBehaviour
 
     public void DealDamage()
     {
-        float damage = currentAttackIndex switch { 1 => damageAtk1, 2 => damageAtk2, 3 => damageAtk3, _ => damageAtk4 };
-        ExecuteDamage(damage, currentAttackIndex);
+        ExecuteDamage(GetAttackDamage(currentAttackIndex), currentAttackIndex);
     }
 
-    public void DealDamage(int damageFromAnimation)
+    public void DealDamage(int attackIndexFromAnimation)
     {
-        ExecuteDamage(damageFromAnimation, currentAttackIndex);
+        int attackIndex = attackIndexFromAnimation >= 1 && attackIndexFromAnimation <= 4
+            ? attackIndexFromAnimation
+            : currentAttackIndex;
+        ExecuteDamage(GetAttackDamage(attackIndex), attackIndex);
+    }
+
+    private float GetAttackDamage(int attackIndex)
+    {
+        return attackIndex switch { 1 => damageAtk1, 2 => damageAtk2, 3 => damageAtk3, _ => damageAtk4 };
     }
 
     private void ExecuteDamage(float damageAmount, int attackIndex)
@@ -895,6 +950,7 @@ public class ZombieAI : NetworkBehaviour
         PlayerHealth targetHealth = attackTargetHealth != null ? attackTargetHealth : playerHealth;
         Collider2D targetCollider = attackTargetCollider != null ? attackTargetCollider : playerCollider;
         if (targetHealth == null || targetCollider == null) return false;
+        if (targetHealth.isDead || !targetCollider.enabled || !targetCollider.gameObject.activeInHierarchy) return false;
 
         pHealth = targetHealth;
 
@@ -905,6 +961,12 @@ public class ZombieAI : NetworkBehaviour
             : Vector2.Distance(attackCenter, targetCollider.bounds.center);
         Vector2 targetCenter = targetCollider.bounds.center;
         Vector2 directionFromAttackOrigin = (targetCenter - attackOrigin).normalized;
+        if (directionFromAttackOrigin.sqrMagnitude < 0.001f)
+        {
+            directionFromAttackOrigin = lockedAttackDirection.sqrMagnitude > 0.001f
+                ? lockedAttackDirection.normalized
+                : Vector2.up;
+        }
 
         return currentDist <= GetEffectiveAttackRange()
             && HasLineOfSight(attackCenter, targetCenter, Vector2.Distance(attackCenter, targetCenter), targetHealth)
@@ -917,6 +979,7 @@ public class ZombieAI : NetworkBehaviour
             && playerHealth != null
             && playerCollider != null
             && !playerHealth.isDead
+            && playerCollider.enabled
             && player.gameObject.activeInHierarchy;
     }
 
@@ -926,6 +989,8 @@ public class ZombieAI : NetworkBehaviour
         playerHealth = null;
         playerCollider = null;
         CancelPrepareAttack();
+        StopMovement();
+        NetIsRunning = false;
     }
 
     private Collider2D GetMainTargetCollider(GameObject target)
@@ -992,5 +1057,7 @@ public class ZombieAI : NetworkBehaviour
         attackTargetHealth = null;
         attackTargetCollider = null;
         CancelPrepareAttack();
+        StopMovement();
+        NetIsRunning = false;
     }
 }
