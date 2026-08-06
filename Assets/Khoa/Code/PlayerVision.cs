@@ -25,9 +25,28 @@ public class PlayerVision : NetworkBehaviour
     [Tooltip("Khoảng cách cảm nhận sau lưng (Mặc định 1.5f - Vào vùng là hiện)")]
     public float passiveVisionRadius = 1.5f;
 
+    [Header("=== ÁNH SÁNG TRONG NHÀ ===")]
+    [Range(0f, 1f)]
+    [Tooltip("Ánh sáng mắt người trong nhà. Đèn pin sau này sẽ dùng mức sáng mạnh riêng.")]
+    public float indoorLightIntensityMultiplier = 0.12f;
+
+    [Header("=== HIỂN THỊ PLAYER CỤC BỘ ===")]
+    [Range(0.2f, 1f)]
+    [Tooltip("Độ sáng của Player do người chơi điều khiển. Không chịu Global Light hoặc hướng của nón nhìn.")]
+    public float localPlayerReadableBrightness = 0.88f;
+
     private Collider2D[] zombiesInRadius = new Collider2D[100];
     private ContactFilter2D zombieFilter;
     private PlayerMovement pMove;
+    private RoofDetector roofDetector;
+    private SpriteRenderer playerBodyRenderer;
+    private Material originalPlayerMaterial;
+    private Color originalPlayerColor;
+    private Material localPlayerUnlitMaterial;
+
+    public float CurrentVisionRadius { get; private set; }
+    public float CurrentVisionAngle { get; private set; }
+    public Collider2D ActiveIndoorCollider => roofDetector != null ? roofDetector.CurrentIndoorCollider : null;
 
     private void Awake()
     {
@@ -38,6 +57,38 @@ public class PlayerVision : NetworkBehaviour
         zombieFilter.SetLayerMask(zombieLayer);
 
         pMove = GetComponent<PlayerMovement>();
+        roofDetector = GetComponentInChildren<RoofDetector>();
+        SetupLocalPlayerReadability();
+    }
+
+    private void SetupLocalPlayerReadability()
+    {
+        // The player body's renderer lives on the root in both Player prefabs.
+        // Fallback keeps this resilient if a future prefab moves it to a child.
+        playerBodyRenderer = GetComponent<SpriteRenderer>();
+        if (playerBodyRenderer == null)
+            playerBodyRenderer = GetComponentInChildren<SpriteRenderer>();
+
+        if (playerBodyRenderer == null) return;
+
+        originalPlayerMaterial = playerBodyRenderer.sharedMaterial;
+        originalPlayerColor = playerBodyRenderer.color;
+
+        Shader unlitShader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+        if (unlitShader == null)
+            unlitShader = Shader.Find("Sprites/Default");
+
+        if (unlitShader == null)
+        {
+            Debug.LogWarning("[PlayerVision] No unlit sprite shader found; local Player readability fallback is disabled.");
+            return;
+        }
+
+        localPlayerUnlitMaterial = new Material(unlitShader)
+        {
+            name = "Local Player Readability (Runtime)",
+            hideFlags = HideFlags.DontSave
+        };
     }
 
     private bool wasTarget = false;
@@ -55,6 +106,8 @@ public class PlayerVision : NetworkBehaviour
     private void Update()
     {
         bool isTarget = HasInputAuthority || (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode && PZ_CameraController.Instance.CurrentTarget == this.transform);
+
+        SetLocalPlayerReadability(isTarget);
 
         if (playerLight != null)
         {
@@ -79,14 +132,27 @@ public class PlayerVision : NetworkBehaviour
         if (DayNightManager.Instance != null)
         {
             float timePercent = DayNightManager.Instance.GetTimePercent();
-            playerLight.pointLightOuterRadius = radiusCurve.Evaluate(timePercent);
-            playerLight.intensity = intensityCurve.Evaluate(timePercent);
+            float baseRadius = radiusCurve.Evaluate(timePercent);
+            bool isInside = ActiveIndoorCollider != null;
+            float fogMultiplier = !isInside && FogVisionController.Instance != null
+                ? FogVisionController.Instance.GetOutdoorVisionMultiplier()
+                : 1f;
+
+            CurrentVisionRadius = baseRadius * fogMultiplier;
+            playerLight.pointLightOuterRadius = CurrentVisionRadius;
+            float baseIntensity = intensityCurve.Evaluate(timePercent);
+            playerLight.intensity = baseIntensity * (isInside ? indoorLightIntensityMultiplier : 1f);
+        }
+        else
+        {
+            CurrentVisionRadius = playerLight.pointLightOuterRadius;
         }
 
         // 2. BÓP GÓC KHI NGẮM BẮN
         bool isAiming = HasInputAuthority ? Input.GetMouseButton(1) : pMove.NetIsAiming;
         float targetInner = isAiming ? aimInnerAngle : normalInnerAngle;
         float targetOuter = isAiming ? aimOuterAngle : normalOuterAngle;
+        CurrentVisionAngle = targetOuter;
 
         playerLight.pointLightInnerAngle = Mathf.Lerp(playerLight.pointLightInnerAngle, targetInner, Time.deltaTime * aimTransitionSpeed);
         playerLight.pointLightOuterAngle = Mathf.Lerp(playerLight.pointLightOuterAngle, targetOuter, Time.deltaTime * aimTransitionSpeed);
@@ -110,6 +176,40 @@ public class PlayerVision : NetworkBehaviour
         }
     }
 
+    private void SetLocalPlayerReadability(bool isLocalViewTarget)
+    {
+        if (playerBodyRenderer == null || localPlayerUnlitMaterial == null) return;
+
+        if (isLocalViewTarget)
+        {
+            if (playerBodyRenderer.sharedMaterial != localPlayerUnlitMaterial)
+                playerBodyRenderer.sharedMaterial = localPlayerUnlitMaterial;
+
+            Color readableColor = originalPlayerColor;
+            readableColor.r *= localPlayerReadableBrightness;
+            readableColor.g *= localPlayerReadableBrightness;
+            readableColor.b *= localPlayerReadableBrightness;
+            playerBodyRenderer.color = readableColor;
+        }
+        else if (playerBodyRenderer.sharedMaterial == localPlayerUnlitMaterial)
+        {
+            playerBodyRenderer.sharedMaterial = originalPlayerMaterial;
+            playerBodyRenderer.color = originalPlayerColor;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (playerBodyRenderer != null && playerBodyRenderer.sharedMaterial == localPlayerUnlitMaterial)
+        {
+            playerBodyRenderer.sharedMaterial = originalPlayerMaterial;
+            playerBodyRenderer.color = originalPlayerColor;
+        }
+
+        if (localPlayerUnlitMaterial != null)
+            Destroy(localPlayerUnlitMaterial);
+    }
+
     private void UpdateZombieVisibility(float currentLogicAngle)
     {
         Vector2 lookDir = pMove.NetLastLookDir;
@@ -120,6 +220,8 @@ public class PlayerVision : NetworkBehaviour
         lookDir.Normalize();
 
         int zombieCount = Physics2D.OverlapCircle(transform.position, 40f, zombieFilter, zombiesInRadius);
+        Collider2D indoorCollider = ActiveIndoorCollider;
+        bool isInside = indoorCollider != null;
 
         for (int i = 0; i < zombieCount; i++)
         {
@@ -133,8 +235,14 @@ public class PlayerVision : NetworkBehaviour
 
             bool isVisible = false;
 
-            // A. CẢM NHẬN SAU LƯNG (Bước vào vùng 1.5f là bật hiện hình luôn)
-            if (dstToZombie <= passiveVisionRadius)
+            // While indoors, the dim ambient view shows the room but not zombie silhouettes.
+            // A zombie must be inside this same indoor area and inside the direct cone to render.
+            if (isInside && !indoorCollider.OverlapPoint(zCollider.bounds.center))
+            {
+                isVisible = false;
+            }
+            // The close-range safety sense is outdoor-only; indoors the 80% ambient area remains a blind spot.
+            else if (!isInside && dstToZombie <= passiveVisionRadius)
             {
                 isVisible = true;
             }

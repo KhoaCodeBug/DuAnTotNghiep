@@ -1246,6 +1246,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   passiveVisionRadius: 2.5
+  indoorLightIntensityMultiplier: 0.12
+  localPlayerReadableBrightness: 0.88
 --- !u!114 &439164608495678969
 MonoBehaviour:
   m_ObjectHideFlags: 0

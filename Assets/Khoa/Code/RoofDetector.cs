@@ -1,69 +1,92 @@
 using SmallScaleInc.ZombieRural;
 using UnityEngine;
 using Fusion;
+using UnityEngine.Tilemaps;
 
 public class RoofDetector : MonoBehaviour
 {
     private PlayerMovement localPlayerMovement;
     private Collider2D myCollider;
+    private readonly Collider2D[] hitColliders = new Collider2D[10];
+    private ContactFilter2D overlapFilter;
 
-    // Nhớ lại cái mái nhà sếp đang đứng trong đó
     private RoofVisibility currentRoof;
+    private Collider2D currentIndoorCollider;
+
+    public RoofVisibility CurrentRoof => currentRoof;
+    public Collider2D CurrentIndoorCollider => currentIndoorCollider;
 
     private void Start()
     {
         // Lấy script gốc từ cha
         localPlayerMovement = GetComponentInParent<PlayerMovement>();
-        // Lấy cái vòng Trigger dưới chân
         myCollider = GetComponent<Collider2D>();
+        overlapFilter = new ContactFilter2D();
+        overlapFilter.NoFilter();
     }
 
     private void Update()
     {
-        // 1. Chặn lỗi rác
         if (localPlayerMovement == null || myCollider == null) return;
 
-        // 2. CHỈ CÓ CHỦ MÁY HOẶC CAMERA ĐANG SPECTATE MỚI ĐƯỢC QUÉT MÁI NHÀ
         bool isTarget = localPlayerMovement.HasInputAuthority || 
                         (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode && PZ_CameraController.Instance.CurrentTarget == localPlayerMovement.transform);
         
         if (!isTarget) return;
 
-        // 3. RADAR QUÉT CHỦ ĐỘNG (Phá vỡ giới hạn mù vật lý của Client)
-        Collider2D[] hitColliders = new Collider2D[10]; // Quét tối đa 10 vật thể chạm vào chân
-        ContactFilter2D filter = new ContactFilter2D();
-        filter.NoFilter(); // Không lọc, lấy hết
-
-        int hitCount = myCollider.Overlap(filter, hitColliders);
+        int hitCount = myCollider.Overlap(overlapFilter, hitColliders);
         RoofVisibility foundRoof = null;
+        Collider2D foundIndoorCollider = null;
 
-        // Kiểm tra xem trong mớ dẫm trúng, có cái nào là Mái Nhà không?
         for (int i = 0; i < hitCount; i++)
         {
-            RoofVisibility roof = hitColliders[i].GetComponentInParent<RoofVisibility>();
-            if (roof != null)
+            Collider2D candidate = hitColliders[i];
+            // A house's obstacle colliders (walls, furniture blockers) are also children
+            // of RoofVisibility. Only its trigger volume represents the whole indoor area.
+            if (candidate == null || !candidate.isTrigger)
+                continue;
+
+            RoofVisibility roof = candidate.GetComponentInParent<RoofVisibility>();
+            IndoorVisionArea indoorArea = candidate.GetComponentInParent<IndoorVisionArea>();
+
+            // Main uses trigger colliders on its roof Tilemaps. This makes every
+            // existing "nocnha" room an indoor area without reserializing the map.
+            bool isMainRoofArea = candidate.GetComponent<Tilemap>() != null &&
+                                  candidate.gameObject.name.StartsWith("nocnha");
+            if (roof != null || indoorArea != null || isMainRoofArea)
             {
                 foundRoof = roof;
-                break; // Tìm thấy mái nhà là ngừng quét
+                foundIndoorCollider = candidate;
+                break;
             }
         }
 
-        // 4. KIỂM TRA ĐI VÀO / ĐI RA
-        // Trường hợp A: Đang ở ngoài sân (currentRoof rỗng) -> Vừa dẫm trúng nhà (foundRoof có)
-        if (foundRoof != null && currentRoof == null)
+        if (foundRoof == currentRoof)
         {
-            currentRoof = foundRoof;
-            currentRoof.EnterRoof();
-            Debug.Log("✅ [ROOF] BẰNG RADAR: Đã chui vào nhà!");
+            // Keep the first valid house trigger for this stay. Physics2D overlap ordering
+            // is not stable, so replacing it every frame caused the indoor mask to jump.
+            if (foundRoof != null || foundIndoorCollider == currentIndoorCollider)
+                return;
         }
-        // Trường hợp B: Đang ở trong nhà (currentRoof có) -> Vừa bước ra sân (foundRoof rỗng)
-        else if (foundRoof == null && currentRoof != null)
+
+        if (currentRoof != null)
         {
             currentRoof.ExitRoof();
-            Debug.Log("✅ [ROOF] BẰNG RADAR: Đã bước ra sân!");
-            currentRoof = null;
         }
+
+        currentRoof = foundRoof;
+        currentIndoorCollider = foundIndoorCollider;
+
+        if (currentRoof != null)
+            currentRoof.EnterRoof();
     }
 
-    // Tui xóa luôn 2 hàm OnTriggerEnter/Exit cũ vì nó liệt rồi, không thèm xài nữa!
+    private void OnDisable()
+    {
+        if (currentRoof != null)
+            currentRoof.ExitRoof();
+
+        currentRoof = null;
+        currentIndoorCollider = null;
+    }
 }
