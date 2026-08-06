@@ -32,6 +32,9 @@ public class PlayerMovement : NetworkBehaviour
     public int thaiZombieWalkResponderLimit = 1;
     public int thaiZombieRunResponderLimit = 3;
     public int thaiZombieLoudResponderLimit = 5;
+    [Range(0f, 1f)] public float thaiZombieWalkNoiseUrgency = 0.35f;
+    [Range(0f, 1f)] public float thaiZombieRunNoiseUrgency = 0.85f;
+    [Range(0f, 1f)] public float thaiZombieLoudNoiseUrgency = 1f;
     private float noiseEmitTimer = 0f;
 
     [Header("--- Animations ---")]
@@ -494,7 +497,7 @@ public class PlayerMovement : NetworkBehaviour
         rb.linearVelocity = Vector2.zero;
     }
 
-    public void MakeNoise(float radius, bool useThaiEnhancedHearing = true, int thaiResponderLimit = -1, float thaiBaseRadiusOverride = -1f)
+    public void MakeNoise(float radius, bool useThaiEnhancedHearing = true, int thaiResponderLimit = -1, float thaiBaseRadiusOverride = -1f, float thaiNoiseUrgency = -1f)
     {
         if (!HasStateAuthority) return;
 
@@ -503,6 +506,7 @@ public class PlayerMovement : NetworkBehaviour
         float thaiScanRadius = useThaiEnhancedHearing ? thaiBaseRadius * maxThaiZombieHearingMultiplier : thaiBaseRadius;
         float scanRadius = Mathf.Max(radius, thaiScanRadius);
         int maxThaiResponders = thaiResponderLimit < 0 ? thaiZombieLoudResponderLimit : thaiResponderLimit;
+        float urgency = thaiNoiseUrgency < 0f ? thaiZombieLoudNoiseUrgency : Mathf.Clamp01(thaiNoiseUrgency);
 
         Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, scanRadius, zombieLayer);
         HashSet<int> notifiedZombies = new HashSet<int>();
@@ -544,7 +548,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             if (thaiCandidates[i].ai != null)
             {
-                thaiCandidates[i].ai.RPC_HearSound(transform.position);
+                thaiCandidates[i].ai.RPC_HearSoundWithUrgency(transform.position, urgency);
             }
         }
     }
@@ -576,11 +580,11 @@ public class PlayerMovement : NetworkBehaviour
 
         if (NetIsRunning)
         {
-            MakeNoise(runNoiseRadius, true, thaiZombieRunResponderLimit);
+            MakeNoise(runNoiseRadius, true, thaiZombieRunResponderLimit, -1f, thaiZombieRunNoiseUrgency);
         }
         else
         {
-            MakeNoise(walkNoiseRadius, false, thaiZombieWalkResponderLimit, thaiZombieWalkNoiseRadius);
+            MakeNoise(walkNoiseRadius, false, thaiZombieWalkResponderLimit, thaiZombieWalkNoiseRadius, thaiZombieWalkNoiseUrgency);
         }
     }
 
