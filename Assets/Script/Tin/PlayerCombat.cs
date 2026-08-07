@@ -53,7 +53,7 @@ public class PlayerCombat : NetworkBehaviour
         mainCam = Camera.main;
         playerMove = GetComponent<PlayerMovement>();
         staminaSystem = GetComponent<PlayerStamina>();
-        invSys = FindAnyObjectByType<InventorySystem>();
+        invSys = GetComponent<InventorySystem>();
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
 

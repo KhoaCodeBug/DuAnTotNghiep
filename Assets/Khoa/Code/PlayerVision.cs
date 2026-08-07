@@ -91,7 +91,6 @@ public class PlayerVision : NetworkBehaviour
         };
     }
 
-    private bool wasTarget = false;
 
     public override void Spawned()
     {
@@ -105,7 +104,19 @@ public class PlayerVision : NetworkBehaviour
 
     private void Update()
     {
-        bool isTarget = HasInputAuthority || (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode && PZ_CameraController.Instance.CurrentTarget == this.transform);
+        bool isTarget = false;
+        if (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode)
+        {
+            Transform camTarget = PZ_CameraController.Instance.CurrentTarget;
+            if (camTarget != null)
+            {
+                isTarget = (camTarget == transform || camTarget.IsChildOf(transform) || transform.IsChildOf(camTarget));
+            }
+        }
+        else
+        {
+            isTarget = HasInputAuthority;
+        }
 
         SetLocalPlayerReadability(isTarget);
 
@@ -116,15 +127,8 @@ public class PlayerVision : NetworkBehaviour
 
         if (!isTarget)
         {
-            if (wasTarget)
-            {
-                HideAllZombies();
-                wasTarget = false;
-            }
             return;
         }
-
-        wasTarget = true;
 
         if (playerLight == null || pMove == null) return;
 

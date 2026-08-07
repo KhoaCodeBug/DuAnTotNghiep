@@ -76,6 +76,11 @@ public class InventorySystem : NetworkBehaviour
             slots.Add(new InventorySlot(null, 0));
         }
         UpdateUI();
+
+        if (HasInputAuthority && !HasStateAuthority)
+        {
+            RPC_SyncBackpackToServer(maxSlots, currentBackpackLevel);
+        }
     }
 
     public override void Spawned()
@@ -255,6 +260,7 @@ public class InventorySystem : NetworkBehaviour
 
         InventorySlot slot = slots[index];
         ItemData item = slot.item;
+        if (item == null) return;
         bool itemUsed = false;
 
         PlayerHealth health = GetComponent<PlayerHealth>();
@@ -263,7 +269,26 @@ public class InventorySystem : NetworkBehaviour
 
         if (item.category == ItemCategory.Medical)
         {
-            if (health != null && health.currentHealth < health.maxHealth)
+            string nameLower = item.itemName.ToLower();
+            if (nameLower.Contains("bandage") || nameLower.Contains("băng"))
+            {
+                if (health != null && (health.isBleeding || health.currentHealth < health.maxHealth))
+                {
+                    health.SetGlobalBleeding(false);
+                    if (item.healAmount > 0) health.Heal(item.healAmount);
+                    itemUsed = true;
+                }
+            }
+            else if (nameLower.Contains("painkiller") || nameLower.Contains("thuốc") || nameLower.Contains("đau"))
+            {
+                if (health != null && (health.isInPain || health.currentHealth < health.maxHealth))
+                {
+                    health.UsePainkiller();
+                    if (item.healAmount > 0) health.Heal(item.healAmount);
+                    itemUsed = true;
+                }
+            }
+            else if (health != null && health.currentHealth < health.maxHealth)
             {
                 health.Heal(item.healAmount);
                 itemUsed = true;
@@ -283,6 +308,10 @@ public class InventorySystem : NetworkBehaviour
                 stamina.ApplyEnergyBuff(item.buffDuration, item.speedMultiplier, item.maxStaminaBoost);
                 itemUsed = true;
             }
+        }
+        else if (item.category == ItemCategory.Backpack)
+        {
+            itemUsed = EquipBackpack(item);
         }
 
         if (itemUsed)
@@ -464,5 +493,17 @@ public class InventorySystem : NetworkBehaviour
         {
             Runner.Despawn(itemNetObj);
         }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_SyncBackpackToServer(int newMaxSlots, int backpackLevel)
+    {
+        maxSlots = Mathf.Clamp(newMaxSlots, 15, 40);
+        currentBackpackLevel = backpackLevel;
+        while (slots.Count < maxSlots)
+        {
+            slots.Add(new InventorySlot(null, 0));
+        }
+        Debug.Log($"[SERVER INVENTORY] ✅ Đã đồng bộ sức chứa Balo mới cho Player: {maxSlots} ô (Level {currentBackpackLevel})");
     }
 }

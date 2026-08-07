@@ -196,7 +196,10 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     private void SendMessageToChat(string msg)
     {
-        // Sếp tùy chỉnh lại dòng này gọi đúng vào hàm AddMessage trong AutoChatManager của sếp nhé
+        if (AutoChatManager.Instance != null)
+        {
+            AutoChatManager.Instance.AddMessage("SYSTEM", msg);
+        }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
