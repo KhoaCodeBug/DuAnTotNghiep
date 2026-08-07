@@ -153,7 +153,7 @@ public class LootContainer : NetworkBehaviour
                 {
                     if (AutoUIManager.Instance != null)
                     {
-                        RPC_RequestSyncContainerStatus();
+                        RPC_RequestSyncContainerStatus(Runner.LocalPlayer);
                         AutoUIManager.Instance.OpenContainerUI(this);
                     }
                 }
@@ -179,24 +179,37 @@ public class LootContainer : NetworkBehaviour
     // =========================================================
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_RequestSyncContainerStatus()
+    public void RPC_RequestSyncContainerStatus(PlayerRef requestingPlayer)
     {
-        // 1. Gửi lệnh yêu cầu tất cả Client dọn dẹp tủ đồ trước
-        RPC_ClearClientContainer();
+        RPC_ClearClientContainer(requestingPlayer);
 
-        // 2. Gửi từng món đồ sang Client (isFullSync = false để không bị xóa đè)
         foreach (var slot in itemsInContainer)
         {
-            RPC_SyncAddItem(slot.item.itemName, slot.amount, false);
+            RPC_SyncAddItemToTarget(requestingPlayer, slot.item.itemName, slot.amount);
         }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_ClearClientContainer()
+    public void RPC_ClearClientContainer([RpcTarget] PlayerRef targetPlayer)
     {
-        if (!HasStateAuthority)
+        if (Runner.LocalPlayer == targetPlayer && !HasStateAuthority)
         {
             itemsInContainer.Clear();
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_SyncAddItemToTarget([RpcTarget] PlayerRef targetPlayer, string itemName, int amount)
+    {
+        if (Runner.LocalPlayer == targetPlayer && !HasStateAuthority)
+        {
+            ItemData itemData = ItemDataLoader.LoadItem(itemName);
+            if (itemData != null) StoreItemLocal(itemData, amount);
+        }
+
+        if (Runner.LocalPlayer == targetPlayer && AutoUIManager.Instance != null && AutoUIManager.Instance.IsContainerOpen(this))
+        {
+            AutoUIManager.Instance.RefreshContainerUI(this);
         }
     }
 

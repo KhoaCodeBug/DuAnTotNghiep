@@ -29,9 +29,21 @@ public class RoofDetector : MonoBehaviour
     {
         if (localPlayerMovement == null || myCollider == null) return;
 
-        bool isTarget = localPlayerMovement.HasInputAuthority || 
-                        (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode && PZ_CameraController.Instance.CurrentTarget == localPlayerMovement.transform);
-        
+        bool isTarget = false;
+        if (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode)
+        {
+            Transform camTarget = PZ_CameraController.Instance.CurrentTarget;
+            if (camTarget != null && localPlayerMovement != null)
+            {
+                Transform pTrans = localPlayerMovement.transform;
+                isTarget = (camTarget == pTrans || camTarget.IsChildOf(pTrans) || pTrans.IsChildOf(camTarget));
+            }
+        }
+        else
+        {
+            isTarget = localPlayerMovement != null && localPlayerMovement.HasInputAuthority;
+        }
+
         if (!isTarget) return;
 
         int hitCount = myCollider.Overlap(overlapFilter, hitColliders);

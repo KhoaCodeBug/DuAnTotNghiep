@@ -948,8 +948,12 @@ public class AutoUIManager : MonoBehaviour
         EnsureLocalPlayer();
         if (localPlayer == null) return;
 
+        if (index < 0 || index >= currentOpenContainer.itemsInContainer.Count) return;
+        InventorySlot contSlot = currentOpenContainer.itemsInContainer[index];
+        if (contSlot == null || contSlot.item == null) return;
+
         PlayerRef myNetworkID = localPlayer.GetComponent<NetworkObject>().InputAuthority;
-        string itemName = currentOpenContainer.itemsInContainer[index].item.itemName;
+        string itemName = contSlot.item.itemName;
 
         currentOpenContainer.RPC_RequestTakeItem(index, itemName, myNetworkID);
 
@@ -1469,6 +1473,7 @@ public class AutoUIManager : MonoBehaviour
         string nameLower = itemName.ToLower();
         if (nameLower.Contains("bandage") || nameLower.Contains("băng"))
         {
+            health.SetGlobalBleeding(false);
             Debug.Log("Đã quấn băng gạc!");
         }
         else if (nameLower.Contains("painkiller") || nameLower.Contains("thuốc") || nameLower.Contains("đau"))
