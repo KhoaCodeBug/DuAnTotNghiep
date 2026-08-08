@@ -247,16 +247,34 @@ public class LootContainer : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_RequestTakeItem(int slotIndex, string requestedItemName, PlayerRef playerTryingToLoot, RpcInfo info = default)
     {
-        // A client may request loot only for its own PlayerRef.
-        if (info.Source != playerTryingToLoot) return;
-        if (slotIndex < 0 || slotIndex >= itemsInContainer.Count) return;
+        // A client may request loot only for its own PlayerRef.  RpcInfo.Source
+        // is normally the caller, including a Host local call; PlayerRef.None
+        // is allowed only for a local-server invocation.
+        if (info.Source != PlayerRef.None && info.Source != playerTryingToLoot)
+        {
+            Debug.LogWarning($"[LOOT SERVER] Rejected spoofed loot request: source={info.Source}, requested={playerTryingToLoot}.");
+            return;
+        }
+        if (slotIndex < 0 || slotIndex >= itemsInContainer.Count)
+        {
+            Debug.LogWarning($"[LOOT SERVER] Rejected invalid container slot {slotIndex} from {playerTryingToLoot}.");
+            return;
+        }
         InventorySlot slot = itemsInContainer[slotIndex];
-        if (slot == null || slot.item == null || slot.amount <= 0) return;
+        if (slot == null || slot.item == null || slot.amount <= 0)
+        {
+            Debug.LogWarning($"[LOOT SERVER] Rejected empty container slot {slotIndex} from {playerTryingToLoot}.");
+            return;
+        }
 
         // Kiểm tra an toàn: Nếu tên item ở vị trí này không đúng với cái Client xin thì từ chối.
-        if (slot.item.itemName != requestedItemName) return;
+        if (slot.item.itemName != requestedItemName)
+        {
+            Debug.LogWarning($"[LOOT SERVER] Rejected item mismatch at slot {slotIndex}: requested={requestedItemName}, actual={slot.item.itemName}.");
+            return;
+        }
 
-        if (HostModeSpawner.Instance == null || !HostModeSpawner.Instance.TryGetPlayerInventory(playerTryingToLoot, out InventorySystem playerInventory))
+        if (!TryGetServerInventory(playerTryingToLoot, out InventorySystem playerInventory))
         {
             RPC_NotifyLootDenied(playerTryingToLoot, "Không tìm thấy túi đồ hợp lệ của người chơi trên Host.");
             return;
@@ -291,6 +309,31 @@ public class LootContainer : NetworkBehaviour
 
         itemsInContainer.RemoveAt(slotIndex);
         RPC_SyncRemoveItem(slotIndex);
+        Debug.Log($"[LOOT SERVER] Granted {amount}x {slot.item.itemName} to {playerTryingToLoot}.");
+    }
+
+    private bool TryGetServerInventory(PlayerRef player, out InventorySystem inventory)
+    {
+        inventory = null;
+
+        // Fast path for the usual HostModeSpawner flow.
+        if (HostModeSpawner.Instance != null && HostModeSpawner.Instance.TryGetPlayerInventory(player, out inventory))
+        {
+            return true;
+        }
+
+        // Reliable fallback for late joins, respawns, or scenes that spawned a
+        // player through a different path than HostModeSpawner's dictionary.
+        foreach (InventorySystem candidate in FindObjectsByType<InventorySystem>(FindObjectsSortMode.None))
+        {
+            if (candidate != null && candidate.Object != null && candidate.Object.IsValid && candidate.Object.InputAuthority == player)
+            {
+                inventory = candidate;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Client-side UX only.  The same rule is revalidated by State Authority in
