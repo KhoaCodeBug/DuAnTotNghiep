@@ -516,7 +516,10 @@ public class InventorySystem : NetworkBehaviour
 
     private void UpdateUI()
     {
-        if (Object != null && Object.IsValid && !HasInputAuthority && !HasStateAuthority) return;
+        // State Authority can be the Host for every remote player.  It owns
+        // their canonical data, but must never paint a remote inventory into
+        // the Host's local UI.  Only the local Input Authority owns a UI.
+        if (!HasInputAuthority) return;
         if (AutoUIManager.Instance != null) AutoUIManager.Instance.RefreshUI(this.slots, this.maxSlots);
     }
 

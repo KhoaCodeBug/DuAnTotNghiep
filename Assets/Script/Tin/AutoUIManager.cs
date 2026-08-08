@@ -1748,13 +1748,23 @@ public class AutoUIManager : MonoBehaviour
     #region Quản Lý Context Menu & Tooltip
     public void RefreshUI(List<InventorySlot> playerSlots, int maxSlots = -1)
     {
-        currentSlots = playerSlots;
         EnsureLocalPlayer();
+
+        // Defense in depth: callers must not be able to replace this machine's
+        // inventory UI with a list belonging to another network player.
+        InventorySystem localInventory = localPlayer != null ? localPlayer.GetComponent<InventorySystem>() : null;
+        if (localInventory != null && !ReferenceEquals(playerSlots, localInventory.slots))
+        {
+            Debug.LogWarning("[UI] Ignored inventory refresh for a remote player.");
+            return;
+        }
+
+        currentSlots = playerSlots;
 
         int currentMax = maxSlots;
         if (currentMax <= 0)
         {
-            InventorySystem localInv = (localPlayer != null) ? localPlayer.GetComponent<InventorySystem>() : null;
+            InventorySystem localInv = localInventory;
             if (localInv == null && PlayerMovement.LocalPlayerInstance != null)
             {
                 localInv = PlayerMovement.LocalPlayerInstance.GetComponent<InventorySystem>();
