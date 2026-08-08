@@ -22,6 +22,11 @@ public class LootContainer : NetworkBehaviour
     [Header("Hệ Thống Random Đồ (Chỉ Host xử lý)")]
     public LootTableSO lootTable;
 
+    [Header("Weapon Loot (Chỉ Host xử lý)")]
+    [Range(0f, 100f)]
+    [Tooltip("Cơ hội một Loot Container sinh tối đa một weapon ngẫu nhiên từ Resources/Items.")]
+    public float bonusWeaponDropChance = 25f;
+
     [Header("Danh sách đồ hiện tại (Realtime)")]
     public List<InventorySlot> itemsInContainer = new List<InventorySlot>();
 
@@ -58,20 +63,46 @@ public class LootContainer : NetworkBehaviour
 
     private void GenerateRandomLoot()
     {
-        if (lootTable == null) return;
         itemsInContainer.Clear();
 
-        foreach (var lootRule in lootTable.lootRules)
+        if (lootTable != null)
         {
-            if (lootRule.itemPrefab == null) continue;
-            float roll = Random.Range(0f, 100f);
-            if (roll <= lootRule.dropChance)
+            foreach (var lootRule in lootTable.lootRules)
             {
-                int spawnAmount = Random.Range(lootRule.minAmount, lootRule.maxAmount + 1);
-                StoreItemLocal(lootRule.itemPrefab, spawnAmount);
+                if (lootRule.itemPrefab == null) continue;
+                float roll = Random.Range(0f, 100f);
+                if (roll <= lootRule.dropChance)
+                {
+                    int spawnAmount = Random.Range(lootRule.minAmount, lootRule.maxAmount + 1);
+                    StoreItemLocal(lootRule.itemPrefab, spawnAmount);
+                }
             }
         }
+
+        // The existing loot table does not contain AK47/S12K.  Roll one
+        // optional weapon separately so a player who starts with one weapon
+        // can still discover a different second weapon in the world.
+        TryGenerateBonusWeapon();
         hasGeneratedLoot = true;
+    }
+
+    private void TryGenerateBonusWeapon()
+    {
+        if (Random.Range(0f, 100f) > bonusWeaponDropChance) return;
+
+        List<ItemData> weaponPool = new List<ItemData>();
+        foreach (ItemData item in Resources.LoadAll<ItemData>("Items"))
+        {
+            if (item != null && item.category == ItemCategory.Weapon && !string.IsNullOrWhiteSpace(item.name))
+            {
+                weaponPool.Add(item);
+            }
+        }
+
+        if (weaponPool.Count == 0) return;
+
+        ItemData selectedWeapon = weaponPool[Random.Range(0, weaponPool.Count)];
+        StoreItemLocal(selectedWeapon, 1);
     }
 
     private void StoreItemLocal(ItemData itemData, int amount)
@@ -214,19 +245,73 @@ public class LootContainer : NetworkBehaviour
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_RequestTakeItem(int slotIndex, string requestedItemName, PlayerRef playerTryingToLoot)
+    public void RPC_RequestTakeItem(int slotIndex, string requestedItemName, PlayerRef playerTryingToLoot, RpcInfo info = default)
     {
+        // A client may request loot only for its own PlayerRef.
+        if (info.Source != playerTryingToLoot) return;
         if (slotIndex < 0 || slotIndex >= itemsInContainer.Count) return;
         InventorySlot slot = itemsInContainer[slotIndex];
+        if (slot == null || slot.item == null || slot.amount <= 0) return;
 
         // Kiểm tra an toàn: Nếu tên item ở vị trí này không đúng với cái Client xin thì từ chối.
         if (slot.item.itemName != requestedItemName) return;
 
-        int amount = slot.amount;
-        itemsInContainer.RemoveAt(slotIndex);
+        if (HostModeSpawner.Instance == null || !HostModeSpawner.Instance.TryGetPlayerInventory(playerTryingToLoot, out InventorySystem playerInventory))
+        {
+            RPC_NotifyLootDenied(playerTryingToLoot, "Không tìm thấy túi đồ hợp lệ của người chơi trên Host.");
+            return;
+        }
 
-        RPC_ConfirmLootSuccess(playerTryingToLoot, requestedItemName, amount);
+        // Weapons are a two-weapon loadout system.  The host owns this check,
+        // so a client cannot bypass it by editing its local inventory/UI.
+        if (slot.item.category == ItemCategory.Weapon)
+        {
+            if (playerInventory.GetWeaponItemCount() >= 2)
+            {
+                RPC_NotifyLootDenied(playerTryingToLoot, "Bạn đã có đủ 2 vũ khí, không thể loot thêm.");
+                return;
+            }
+
+            if (playerInventory.HasWeapon(slot.item.name) || playerInventory.HasWeapon(slot.item.itemName))
+            {
+                RPC_NotifyLootDenied(playerTryingToLoot, "Bạn đã có vũ khí này; hãy tìm khẩu khác trong Loot Container.");
+                return;
+            }
+        }
+
+        int amount = slot.amount;
+        // Canonical transaction: add on State Authority first.  Only remove
+        // from the container if the inventory accepted the full stack.  The
+        // inventory's existing RPC sync then updates the owning client.
+        if (!playerInventory.AddItem(slot.item, amount))
+        {
+            RPC_NotifyLootDenied(playerTryingToLoot, "Túi đồ không đủ chỗ để nhận vật phẩm này.");
+            return;
+        }
+
+        itemsInContainer.RemoveAt(slotIndex);
         RPC_SyncRemoveItem(slotIndex);
+    }
+
+    // Client-side UX only.  The same rule is revalidated by State Authority in
+    // RPC_RequestTakeItem, so changing this UI cannot bypass the limit.
+    public bool CanLocalPlayerLootItem(ItemData itemData)
+    {
+        if (itemData == null || itemData.category != ItemCategory.Weapon) return true;
+
+        InventorySystem inventory = GetLocalInventoryCached();
+        if (inventory == null) return false;
+        if (inventory.GetWeaponItemCount() >= 2) return false;
+        return !inventory.HasWeapon(itemData.name) && !inventory.HasWeapon(itemData.itemName);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_NotifyLootDenied([RpcTarget] PlayerRef targetPlayer, string reason)
+    {
+        if (Runner.LocalPlayer == targetPlayer)
+        {
+            Debug.LogWarning($"[LOOT] {reason}");
+        }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

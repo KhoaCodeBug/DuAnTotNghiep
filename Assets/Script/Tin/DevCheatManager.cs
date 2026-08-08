@@ -48,6 +48,12 @@ public class DevCheatManager : MonoBehaviour
     private GameObject cheatsTabContent;
     private GameObject backpackTabContent;
     private GameObject itemsTabContent;
+    // Keep the ScrollRect roots as well as their contents.  Toggling only the
+    // content leaves an invisible full-screen GraphicRaycaster target on top of
+    // the selected tab, which makes clicks land on the wrong UI.
+    private GameObject cheatsTabRoot;
+    private GameObject backpackTabRoot;
+    private GameObject itemsTabRoot;
 
     private Image tabBtnCheatsImg;
     private Image tabBtnBackpackImg;
@@ -76,7 +82,12 @@ public class DevCheatManager : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoInit()
     {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+        // A developer console must never exist in a release build.
+        return;
+#else
         var _ = Instance;
+#endif
     }
 
     private void Awake()
@@ -118,12 +129,29 @@ public class DevCheatManager : MonoBehaviour
     // ============================
     private void Update()
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // The cheat is a modal UI.  Consume Escape before other menus see it.
+        if (isMenuOpen && Input.GetKeyDown(KeyCode.Escape))
+        {
+            HideCheatMenu();
+            AutoMainMenuManager.EscapeConsumedThisFrame = true;
+            return;
+        }
+
         // Phím P mở/đóng menu cheat
         if (Input.GetKeyDown(KeyCode.P))
         {
             if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
+
+            if (!CanUseDevCheats())
+            {
+                Debug.LogWarning("[CHEAT] Host/server authority is required to open the developer console.");
+                return;
+            }
+
             ToggleMenu();
         }
+#endif
 
         // God Mode Update Loop
         if (isGodMode)
@@ -148,6 +176,12 @@ public class DevCheatManager : MonoBehaviour
 
     public void ToggleMenu()
     {
+        if (!CanUseDevCheats())
+        {
+            Debug.LogWarning("[CHEAT] Rejected ToggleMenu from a non-host client.");
+            return;
+        }
+
         isMenuOpen = !isMenuOpen;
         cheatRootGO.SetActive(isMenuOpen);
 
@@ -168,6 +202,7 @@ public class DevCheatManager : MonoBehaviour
         {
             isMenuOpen = false;
             if (cheatRootGO != null) cheatRootGO.SetActive(false);
+            AutoMainMenuManager.EscapeConsumedThisFrame = true;
         }
     }
 
@@ -176,6 +211,9 @@ public class DevCheatManager : MonoBehaviour
     // ============================
     private void CachePlayer()
     {
+        cachedHealth = null;
+        cachedInventory = null;
+
         if (PlayerMovement.LocalPlayerInstance != null)
         {
             cachedHealth = PlayerMovement.LocalPlayerInstance.GetComponent<PlayerHealth>();
@@ -185,7 +223,9 @@ public class DevCheatManager : MonoBehaviour
 
         foreach (var h in FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None))
         {
-            if (h != null && h.Object != null && h.Object.IsValid && (h.HasInputAuthority || h.HasStateAuthority))
+            // Never fall back to a remote player just because this machine is
+            // the state authority for that player.
+            if (h != null && h.Object != null && h.Object.IsValid && h.HasInputAuthority)
             {
                 cachedHealth = h;
                 cachedInventory = h.GetComponent<InventorySystem>();
@@ -278,9 +318,9 @@ public class DevCheatManager : MonoBehaviour
         caRT.offsetMax = new Vector2(-12, -126);
 
         // Dựng 3 Tab riêng biệt
-        cheatsTabContent = CreateScrollTab("TabContent_Cheats", contentArea.transform);
-        backpackTabContent = CreateScrollTab("TabContent_Backpack", contentArea.transform);
-        itemsTabContent = CreateScrollTab("TabContent_Items", contentArea.transform);
+        cheatsTabRoot = CreateScrollTab("TabContent_Cheats", contentArea.transform, out cheatsTabContent);
+        backpackTabRoot = CreateScrollTab("TabContent_Backpack", contentArea.transform, out backpackTabContent);
+        itemsTabRoot = CreateScrollTab("TabContent_Items", contentArea.transform, out itemsTabContent);
 
         // --- POPULATE TAB 1: PLAYER CHEATS ---
         AddSectionHeader(cheatsTabContent.transform, "⚡ PLAYER QUICK CHEATS");
@@ -330,16 +370,19 @@ public class DevCheatManager : MonoBehaviour
 
     private void SelectTab(string tabName)
     {
-        cheatsTabContent.SetActive(tabName == "CHEATS");
-        backpackTabContent.SetActive(tabName == "BACKPACK");
-        itemsTabContent.SetActive(tabName == "ITEMS");
+        // Disable the complete ScrollRect, not just its Content.  Each root
+        // owns an Image/Viewport which otherwise continues to intercept
+        // pointer events while visually empty.
+        cheatsTabRoot.SetActive(tabName == "CHEATS");
+        backpackTabRoot.SetActive(tabName == "BACKPACK");
+        itemsTabRoot.SetActive(tabName == "ITEMS");
 
         tabBtnCheatsImg.color = (tabName == "CHEATS") ? new Color32(56, 189, 248, 255) : new Color32(30, 41, 59, 255);
         tabBtnBackpackImg.color = (tabName == "BACKPACK") ? new Color32(56, 189, 248, 255) : new Color32(30, 41, 59, 255);
         tabBtnItemsImg.color = (tabName == "ITEMS") ? new Color32(56, 189, 248, 255) : new Color32(30, 41, 59, 255);
     }
 
-    private GameObject CreateScrollTab(string name, Transform parent)
+    private GameObject CreateScrollTab(string name, Transform parent, out GameObject contentGO)
     {
         GameObject scrollGO = MakeRect(name, parent,
             Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f),
@@ -363,7 +406,7 @@ public class DevCheatManager : MonoBehaviour
         vpMask.showMaskGraphic = false;
         sr.viewport = vpGO.GetComponent<RectTransform>();
 
-        GameObject contentGO = MakeRect("Content", vpGO.transform,
+        contentGO = MakeRect("Content", vpGO.transform,
             new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1),
             Vector2.zero, Vector2.zero);
 
@@ -379,7 +422,7 @@ public class DevCheatManager : MonoBehaviour
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         sr.content = contentGO.GetComponent<RectTransform>();
 
-        return contentGO;
+        return scrollGO;
     }
 
     // ============================
@@ -422,6 +465,12 @@ public class DevCheatManager : MonoBehaviour
             new Color32(241, 245, 249, 255), TextAlignmentOptions.Left);
 
         Button btn = MakeButton(row.transform, "TOGGLE", new Color32(239, 68, 68, 255), () => {
+            if (!CanUseDevCheats())
+            {
+                Debug.LogWarning("[CHEAT] Rejected God Mode command from a non-host client.");
+                return;
+            }
+
             isGodMode = !isGodMode;
             UpdateGodModeButtonStyle();
             Debug.Log(isGodMode ? "[CHEAT] 🛡️ God Mode ENABLED" : "[CHEAT] 🛡️ God Mode DISABLED");
@@ -468,7 +517,15 @@ public class DevCheatManager : MonoBehaviour
 
         TextMeshProUGUI tmpText;
         Image tmpImg;
-        MakeButton(row.transform, btnText, btnColor, onClick,
+        MakeButton(row.transform, btnText, btnColor, () => {
+            if (!CanUseDevCheats())
+            {
+                Debug.LogWarning("[CHEAT] Rejected action command from a non-host client.");
+                return;
+            }
+
+            onClick?.Invoke();
+        },
             new Vector2(0.70f, 0.12f), new Vector2(0.97f, 0.88f), out tmpText, out tmpImg);
     }
 
@@ -505,19 +562,56 @@ public class DevCheatManager : MonoBehaviour
 
     private void ApplyBackpackCapacity(int targetSlots)
     {
-        CachePlayer();
-        if (cachedInventory != null)
+        if (!CanUseDevCheats())
         {
-            cachedInventory.currentBackpackLevel = Mathf.Clamp((targetSlots - 15) / 5, 0, 5);
-            cachedInventory.SetMaxSlots(targetSlots);
-            if (AutoUIManager.Instance != null)
-            {
-                AutoUIManager.Instance.RefreshUI(cachedInventory.slots, cachedInventory.maxSlots);
-            }
-            Debug.Log($"[CHEAT] 🎒 Capacity set to {targetSlots} Total Slots (Level {cachedInventory.currentBackpackLevel})!");
-            UpdateCapacityButtonStyles();
-            UpdateStatusDisplay();
+            Debug.LogWarning("[CHEAT] Rejected backpack-capacity command from a non-host client.");
+            return;
         }
+
+        CachePlayer();
+        if (cachedInventory == null)
+        {
+            Debug.LogWarning("[CHEAT] Cannot set backpack capacity: the host local inventory was not found.");
+            return;
+        }
+
+        // Do not hide active items by reducing the visible capacity below an
+        // occupied slot.  The fixed-index inventory UI must keep its items in
+        // the visible range.
+        for (int i = targetSlots; i < cachedInventory.slots.Count; i++)
+        {
+            InventorySlot slot = cachedInventory.slots[i];
+            if (slot != null && slot.item != null && slot.amount > 0)
+            {
+                Debug.LogWarning($"[CHEAT] Capacity change to {targetSlots} rejected: slot {i} still contains {slot.item.itemName}.");
+                return;
+            }
+        }
+
+        int level = Mathf.Clamp((targetSlots - 15) / 5, 0, 5);
+        ItemData equipped = null;
+        if (level > 0)
+        {
+            foreach (ItemData item in Resources.LoadAll<ItemData>("Items"))
+            {
+                if (item != null && item.category == ItemCategory.Backpack && item.backpackLevel == level)
+                {
+                    equipped = item;
+                    break;
+                }
+            }
+        }
+
+        cachedInventory.equippedBackpack = equipped;
+        cachedInventory.currentBackpackLevel = level;
+        cachedInventory.SetMaxSlots(targetSlots);
+        if (AutoUIManager.Instance != null)
+        {
+            AutoUIManager.Instance.RefreshUI(cachedInventory.slots, cachedInventory.maxSlots);
+        }
+        Debug.Log($"[CHEAT] 🎒 Capacity set to {targetSlots} Total Slots (Level {level}). Command: SetBackpackCapacity");
+        UpdateCapacityButtonStyles();
+        UpdateStatusDisplay();
     }
 
     private void UpdateCapacityButtonStyles()
@@ -592,6 +686,12 @@ public class DevCheatManager : MonoBehaviour
 
     private void SpawnItem(ItemData item, int amount)
     {
+        if (!CanUseDevCheats())
+        {
+            Debug.LogWarning("[CHEAT] Rejected item-spawn command from a non-host client.");
+            return;
+        }
+
         CachePlayer();
         if (cachedInventory == null) return;
 
@@ -699,6 +799,10 @@ public class DevCheatManager : MonoBehaviour
         outImage = btnBG;
 
         Button btn = btnGO.AddComponent<Button>();
+        // Persistent states such as [ACTIVE] are controlled explicitly by the
+        // cheat UI.  Unity's ColorTint was overwriting those colours on hover
+        // and press, making a successful command look inactive.
+        btn.transition = Selectable.Transition.None;
         btn.onClick.AddListener(() => {
             onClick?.Invoke();
             if (EventSystem.current != null)
@@ -715,5 +819,19 @@ public class DevCheatManager : MonoBehaviour
         outText = MakeTMP(btnGO, label, 12, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
 
         return btn;
+    }
+
+    private bool CanUseDevCheats()
+    {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+        return false;
+#else
+        NetworkRunner runner = FindFirstObjectByType<NetworkRunner>();
+
+        // No runner means an offline development test, where this machine is
+        // the only authority.  In Fusion, IsServer is true for Host and Server
+        // modes and false for regular clients.
+        return runner == null || runner.IsServer;
+#endif
     }
 }

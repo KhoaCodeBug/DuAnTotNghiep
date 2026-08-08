@@ -18,6 +18,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     [SerializeField] private bool deferInitialSpawn;
 
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
+    // Lives for the current room/session.  A respawn creates a new player
+    // NetworkObject, but the same PlayerRef keeps its original starting gun.
+    private Dictionary<PlayerRef, string> startingWeaponByPlayer = new Dictionary<PlayerRef, string>();
     private bool spawnRoutineStarted;
 
     // 🔥 CÁC BIẾN ĐỒNG BỘ MẠNG
@@ -124,6 +127,35 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             RPC_AnnounceLateJoin(playerName); // Báo tin lên Chat
             RPC_PlayBlinkEffect(netObj);      // Cho bất tử chớp nháy 3 giây
         }
+    }
+
+    public bool TryGetCachedStartingWeapon(PlayerRef player, out ItemData weapon)
+    {
+        weapon = null;
+        if (!Runner.IsServer || !startingWeaponByPlayer.TryGetValue(player, out string itemId)) return false;
+
+        weapon = ItemDataLoader.LoadItem(itemId);
+        if (weapon != null && weapon.category == ItemCategory.Weapon) return true;
+
+        // Do not keep an invalid asset ID in the session cache.
+        startingWeaponByPlayer.Remove(player);
+        weapon = null;
+        return false;
+    }
+
+    public void CacheStartingWeapon(PlayerRef player, ItemData weapon)
+    {
+        if (!Runner.IsServer || weapon == null || weapon.category != ItemCategory.Weapon) return;
+        startingWeaponByPlayer[player] = weapon.name;
+    }
+
+    public bool TryGetPlayerInventory(PlayerRef player, out InventorySystem inventory)
+    {
+        inventory = null;
+        if (!Runner.IsServer || !spawnedPlayers.TryGetValue(player, out NetworkObject playerObject) || playerObject == null) return false;
+
+        inventory = playerObject.GetComponent<InventorySystem>();
+        return inventory != null;
     }
 
     // ========================================================
@@ -259,6 +291,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
                 Runner.Despawn(netObj);
                 spawnedPlayers.Remove(player);
             }
+            startingWeaponByPlayer.Remove(player);
 
             // 🔥 FIX LỖI 1: Kẹt Loading. Nếu có đứa rớt mạng lúc đang ở sảnh chờ load, tự động check và cho những người còn lại vào game!
             if (!IsMatchStarted)

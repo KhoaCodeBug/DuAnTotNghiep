@@ -38,6 +38,13 @@ public class InventorySystem : NetworkBehaviour
     // Cờ chống lặp vô hạn khi 2 máy gọi điện cho nhau
     private bool isSyncing = false;
 
+    // Starting loadout is selected once by State Authority.  The item ID is
+    // replicated so the owning client can place the exact same item in its
+    // local fixed-index inventory without running its own random roll.
+    [Networked] private NetworkBool HasStartingWeapon { get; set; }
+    [Networked] private NetworkString<_64> StartingWeaponId { get; set; }
+    private bool hasAppliedStartingWeaponLocally;
+
     private void Awake()
     {
         // Khởi tạo sẵn tối đa 40 ô slot trong danh sách
@@ -85,20 +92,139 @@ public class InventorySystem : NetworkBehaviour
 
     public override void Spawned()
     {
-        if (HasInputAuthority)
+        // Only the server chooses the random starting weapon.  A regular
+        // client must never roll independently, otherwise its inventory can
+        // disagree with the host and other players.
+        if (HasStateAuthority && !HasStartingWeapon)
         {
-            ItemData startingWeapon = Resources.Load<ItemData>("Items/AK47");
-            if (startingWeapon != null)
+            GrantRandomStartingWeapon();
+        }
+
+        ApplyReplicatedStartingWeapon();
+    }
+
+    public override void Render()
+    {
+        // Late-join/input-authority clients receive the Networked values after
+        // Spawned, so retry here until their single starting weapon is applied.
+        ApplyReplicatedStartingWeapon();
+    }
+
+    private void GrantRandomStartingWeapon()
+    {
+        ItemData selectedWeapon = null;
+        HostModeSpawner spawner = HostModeSpawner.Instance;
+        if (spawner != null)
+        {
+            spawner.TryGetCachedStartingWeapon(Object.InputAuthority, out selectedWeapon);
+        }
+
+        if (selectedWeapon == null)
+        {
+            List<ItemData> weaponPool = new List<ItemData>();
+            foreach (ItemData item in Resources.LoadAll<ItemData>("Items"))
             {
-                AddItem(startingWeapon, 1);
+                if (item != null && item.category == ItemCategory.Weapon && !string.IsNullOrWhiteSpace(item.name))
+                {
+                    weaponPool.Add(item);
+                }
             }
 
-            ItemData startingS12K = Resources.Load<ItemData>("Items/S12K");
-            if (startingS12K != null)
+            if (weaponPool.Count == 0)
             {
-                AddItem(startingS12K, 1);
+                Debug.LogError("[STARTING LOADOUT] No valid Weapon ItemData was found in Resources/Items.");
+                return;
+            }
+
+            selectedWeapon = weaponPool[Random.Range(0, weaponPool.Count)];
+            if (spawner != null) spawner.CacheStartingWeapon(Object.InputAuthority, selectedWeapon);
+        }
+
+        StartingWeaponId = selectedWeapon.name;
+        HasStartingWeapon = true;
+
+        // State Authority owns the canonical inventory.  Its local view is
+        // updated immediately; the client receives the replicated ID below.
+        PlaceStartingWeaponInHotbar(selectedWeapon);
+        hasAppliedStartingWeaponLocally = true;
+        Debug.Log($"[STARTING LOADOUT] Player {Object.InputAuthority} received {selectedWeapon.itemName} in hotbar.");
+    }
+
+    private void ApplyReplicatedStartingWeapon()
+    {
+        if (!HasInputAuthority || hasAppliedStartingWeaponLocally || !HasStartingWeapon) return;
+
+        ItemData selectedWeapon = ItemDataLoader.LoadItem(StartingWeaponId.ToString());
+        if (selectedWeapon == null || selectedWeapon.category != ItemCategory.Weapon)
+        {
+            Debug.LogError($"[STARTING LOADOUT] Invalid replicated weapon ID '{StartingWeaponId}'.");
+            return;
+        }
+
+        PlaceStartingWeaponInHotbar(selectedWeapon);
+        hasAppliedStartingWeaponLocally = true;
+        Debug.Log($"[STARTING LOADOUT] Applied {selectedWeapon.itemName} to local hotbar.");
+    }
+
+    private void PlaceStartingWeaponInHotbar(ItemData weapon)
+    {
+        if (weapon == null) return;
+
+        while (slots.Count < 5)
+        {
+            slots.Add(new InventorySlot(null, 0));
+        }
+
+        // Slot 0 is preferred.  The fallback protects future flows that add a
+        // hotbar item before this player finishes spawning.
+        int targetSlot = -1;
+        for (int i = 0; i < 5; i++)
+        {
+            if (slots[i] == null || slots[i].item == null || slots[i].amount <= 0)
+            {
+                targetSlot = i;
+                break;
             }
         }
+
+        if (targetSlot < 0)
+        {
+            Debug.LogWarning($"[STARTING LOADOUT] No empty hotbar slot for {weapon.itemName}; loadout was not applied.");
+            return;
+        }
+
+        if (slots[targetSlot] == null) slots[targetSlot] = new InventorySlot(weapon, 1);
+        else
+        {
+            slots[targetSlot].item = weapon;
+            slots[targetSlot].amount = 1;
+        }
+
+        UpdateUI();
+    }
+
+    public int GetWeaponItemCount()
+    {
+        int total = 0;
+        foreach (InventorySlot slot in slots)
+        {
+            if (slot != null && slot.item != null && slot.item.category == ItemCategory.Weapon && slot.amount > 0)
+            {
+                total += slot.amount;
+            }
+        }
+        return total;
+    }
+
+    public bool HasWeapon(string itemIdOrName)
+    {
+        if (string.IsNullOrWhiteSpace(itemIdOrName)) return false;
+        foreach (InventorySlot slot in slots)
+        {
+            if (slot == null || slot.item == null || slot.item.category != ItemCategory.Weapon || slot.amount <= 0) continue;
+            if (slot.item.name == itemIdOrName || slot.item.itemName == itemIdOrName) return true;
+        }
+        return false;
     }
 
     // ==========================================
