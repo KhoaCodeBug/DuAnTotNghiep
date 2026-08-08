@@ -140,6 +140,13 @@ public class AutoUIManager : MonoBehaviour
 
     private void Update()
     {
+        // DevCheatManager is modal: its input, especially Escape, must not
+        // also open/close inventory, trade, or another UI underneath it.
+        DevCheatManager cheatManager = FindFirstObjectByType<DevCheatManager>();
+        if (cheatManager != null && cheatManager.IsMenuOpen) return;
+
+        if (AutoMainMenuManager.EscapeConsumedThisFrame) return;
+
         // Dynamically update ammo HUD visibility
         if (ammoContainer != null)
         {
@@ -923,7 +930,10 @@ public class AutoUIManager : MonoBehaviour
             {
                 ui.iconImage.gameObject.SetActive(true);
                 ui.iconImage.sprite = cSlots[i].item.icon;
-                ui.slotButton.interactable = true;
+                // Weapon slots are disabled locally when this player already
+                // owns two weapons (or the same weapon).  LootContainer
+                // validates the identical rule again on the server.
+                ui.slotButton.interactable = container.CanLocalPlayerLootItem(cSlots[i].item);
 
                 if (cSlots[i].amount > 1)
                 {

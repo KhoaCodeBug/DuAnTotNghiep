@@ -333,6 +333,17 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             if (isLocalSceneLoaded && !isLoadingScreenActive)
             {
+                // Safety net for modal cheat UI.  This LateUpdate runs after
+                // most gameplay UI handlers, so Pause must never appear under
+                // an open developer console.
+                DevCheatManager cheatManager = FindFirstObjectByType<DevCheatManager>();
+                if (cheatManager != null && cheatManager.IsMenuOpen)
+                {
+                    cheatManager.HideCheatMenu();
+                    EscapeConsumedThisFrame = true;
+                    return;
+                }
+
                 if (EscapeConsumedThisFrame)
                 {
                     EscapeConsumedThisFrame = false;
