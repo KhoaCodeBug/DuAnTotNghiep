@@ -224,6 +224,14 @@ public class PlayerMovement : NetworkBehaviour
                 input.moveInput = Vector2.zero;
             }
 
+            // Tutorial overlays freeze locomotion without freezing Fusion's
+            // network simulation. Aiming stays available for its own lesson.
+            if (TutorialSession.IsActive && TutorialInputGate.MovementLocked)
+            {
+                input.moveInput = Vector2.zero;
+                input.isRunning = false;
+            }
+
             NetIsAiming = input.isAiming;
             NetMoveInput = input.moveInput;
             NetIsMoving = input.moveInput.magnitude > 0.1f;

@@ -346,7 +346,10 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
             bool pointerOnUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
 
-            data.isAiming = (pointerOnUI || !hasWeapon) ? false : Input.GetMouseButton(1);
+            // Phase-one tutorial teaches looking around before asking the
+            // player to explicitly equip a gun. It still cannot shoot here.
+            bool canAim = hasWeapon || TutorialSession.IsActive;
+            data.isAiming = (pointerOnUI || !canAim) ? false : Input.GetMouseButton(1);
             data.isRunning = Input.GetKey(KeyCode.LeftShift);
             data.isCrouching = Input.GetKey(KeyCode.C);
 

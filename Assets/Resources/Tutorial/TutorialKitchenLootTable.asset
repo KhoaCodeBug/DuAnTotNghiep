@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: efc2d088e3dce294393042104a5c0468, type: 3}
+  m_Name: TutorialKitchenLootTable
+  m_EditorClassIdentifier: 
+  lootRules:
+  - itemPrefab: {fileID: 11400000, guid: 2df18970909eaf04c88464db7cb5a4ed, type: 2}
+    dropChance: 100
+    minAmount: 1
+    maxAmount: 1
+  - itemPrefab: {fileID: 11400000, guid: dd0d8f6dbe899b548878105a5a9741f7, type: 2}
+    dropChance: 100
+    minAmount: 1
+    maxAmount: 1
+  - itemPrefab: {fileID: 11400000, guid: 9b2a48c8c18d6294ca217fec6afbd2fe, type: 2}
+    dropChance: 100
+    minAmount: 1
+    maxAmount: 1
+  - itemPrefab: {fileID: 11400000, guid: 6de1eb1fa3b69d246a599b1370184fc9, type: 2}
+    dropChance: 100
+    minAmount: 12
+    maxAmount: 12
+  - itemPrefab: {fileID: 11400000, guid: 6afb32c5b466ed041a109e66fca31400, type: 2}
+    dropChance: 100
+    minAmount: 1
+    maxAmount: 1

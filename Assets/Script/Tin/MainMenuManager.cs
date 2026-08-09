@@ -35,6 +35,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     [Header("Cài đặt Fusion Network")]
     public NetworkRunner runnerPrefab;
     public int mainSceneIndex = 1;
+    [Tooltip("Standalone solo tutorial; it never runs as a multiplayer room.")]
+    public int tutorialSceneIndex = 5;
 
     [Header("Hình ảnh Nhân vật")]
     public GameObject[] previewImages;
@@ -759,8 +761,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject btnContainer = new GameObject("ButtonContainer"); btnContainer.transform.SetParent(mainPanel.transform, false);
         RectTransform btnRect = btnContainer.AddComponent<RectTransform>(); btnRect.anchorMin = new Vector2(0.1f, 0.1f); btnRect.anchorMax = new Vector2(0.3f, 0.6f); btnRect.offsetMin = Vector2.zero; btnRect.offsetMax = Vector2.zero;
         VerticalLayoutGroup vlg = btnContainer.AddComponent<VerticalLayoutGroup>(); vlg.spacing = 15; vlg.childAlignment = TextAnchor.MiddleLeft; vlg.childControlHeight = false; vlg.childControlWidth = true;
-        CreateMenuButton(btnContainer, "SOLO", () => { pendingIsSolo = true; pendingIsHost = false; OpenPanel(newGamePanel.GetComponent<CanvasGroup>()); });
-        CreateMenuButton(btnContainer, "MULTIPLAYER", () => { pendingIsSolo = false; OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>()); });
+        CreateMenuButton(btnContainer, "SOLO", () => { TutorialSession.End(); pendingIsSolo = true; pendingIsHost = false; OpenPanel(newGamePanel.GetComponent<CanvasGroup>()); });
+        CreateMenuButton(btnContainer, "HƯỚNG DẪN", StartStandaloneTutorial);
+        CreateMenuButton(btnContainer, "MULTIPLAYER", () => { TutorialSession.End(); pendingIsSolo = false; OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>()); });
         CreateMenuButton(btnContainer, "OPTIONS", () => OpenPanel(optionsPanel.GetComponent<CanvasGroup>()));
         CreateMenuButton(btnContainer, "CREDITS", () => OpenPanel(creditsPanel.GetComponent<CanvasGroup>()));
         CreateMenuButton(btnContainer, "QUIT", () => Application.Quit());
@@ -1331,6 +1334,20 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         voiceClient.PrimaryRecorder = recorder;
     }
 
+    private void StartStandaloneTutorial()
+    {
+        if (isConnecting) return;
+
+        // The tutorial always starts with survivor prefab 0, regardless of
+        // the character last selected in the regular solo/multiplayer flow.
+        TutorialSession.Begin();
+        SetDifficulty(0);
+        pendingIsSolo = true;
+        pendingIsHost = false;
+        pendingRoomName = "Tutorial_" + Random.Range(1000, 9999);
+        StartGameInternal(GameMode.Single, pendingRoomName);
+    }
+
     private async void StartGameInternal(GameMode mode, string roomName)
     {
         string popupMsg = mode == GameMode.Single
@@ -1401,7 +1418,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 ShowLoadingScreen();
                 await Task.Delay(800);
                 playersLoaded = 0;
-                await activeRunner.LoadScene(SceneRef.FromIndex(mainSceneIndex));
+                int sceneIndex = TutorialSession.IsActive ? tutorialSceneIndex : mainSceneIndex;
+                await activeRunner.LoadScene(SceneRef.FromIndex(sceneIndex));
             }
             else if (mode == GameMode.Host)
             {

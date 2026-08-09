@@ -41,6 +41,7 @@ public class PlayerSurvival : NetworkBehaviour
     {
         if (!HasStateAuthority) return;
         if (healthScript != null && healthScript.isDead) return;
+        if (TutorialSession.IsActive && TutorialInputGate.SurvivalFrozen) return;
 
         currentHunger -= hungerDrainRate * Runner.DeltaTime;
         currentThirst -= thirstDrainRate * Runner.DeltaTime;
@@ -83,6 +84,26 @@ public class PlayerSurvival : NetworkBehaviour
     private void PerformRestoreThirst(float amount)
     {
         currentThirst = Mathf.Min(currentThirst + amount, maxThirst);
+    }
+
+    public void SetTutorialNeeds(float hungerRatio, float thirstRatio)
+    {
+        hungerRatio = Mathf.Clamp01(hungerRatio);
+        thirstRatio = Mathf.Clamp01(thirstRatio);
+        if (HasStateAuthority) PerformSetTutorialNeeds(hungerRatio, thirstRatio);
+        else RPC_RequestSetTutorialNeeds(hungerRatio, thirstRatio);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestSetTutorialNeeds(float hungerRatio, float thirstRatio)
+    {
+        PerformSetTutorialNeeds(hungerRatio, thirstRatio);
+    }
+
+    private void PerformSetTutorialNeeds(float hungerRatio, float thirstRatio)
+    {
+        currentHunger = maxHunger * hungerRatio;
+        currentThirst = maxThirst * thirstRatio;
     }
 
     // =========================================================

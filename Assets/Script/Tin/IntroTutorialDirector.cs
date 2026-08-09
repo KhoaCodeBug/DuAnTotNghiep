@@ -7,6 +7,8 @@ using UnityEngine;
 /// </summary>
 public sealed class IntroTutorialDirector : MonoBehaviour
 {
+    public bool IsComplete => state == State.Complete;
+
     [Header("Scene references")]
     [SerializeField] private IntroCarDriveSetup carDrive;
     [SerializeField] private IntroCameraFollow cameraFollow;
@@ -26,6 +28,7 @@ public sealed class IntroTutorialDirector : MonoBehaviour
 
     private void Awake()
     {
+        TutorialSession.Begin();
         carDrive ??= FindFirstObjectByType<IntroCarDriveSetup>();
         cameraFollow ??= FindFirstObjectByType<IntroCameraFollow>();
         playerSpawner ??= FindFirstObjectByType<HostModeSpawner>();
