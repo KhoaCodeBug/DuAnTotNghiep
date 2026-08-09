@@ -82,6 +82,8 @@ public class FogVisionController : MonoBehaviour
     private Texture2D fogBankTexture;
     private PlayerVision targetVision;
     private PlayerMovement targetMovement;
+    private Transform tutorialRevealTarget;
+    private float tutorialRevealRadius;
     private readonly Vector4[] indoorPoints = new Vector4[16];
     private readonly List<Vector2> polygonPoints = new List<Vector2>(16);
 
@@ -138,6 +140,18 @@ public class FogVisionController : MonoBehaviour
         return CurrentVisionMultiplier;
     }
 
+    public void SetTutorialCinematicReveal(Transform revealTarget, float radius = 3.5f)
+    {
+        tutorialRevealTarget = revealTarget;
+        tutorialRevealRadius = Mathf.Max(0.1f, radius);
+    }
+
+    public void ClearTutorialCinematicReveal()
+    {
+        tutorialRevealTarget = null;
+        tutorialRevealRadius = 0f;
+    }
+
     private void UpdateWeatherState()
     {
         float dayPhase = GetDayPhase();
@@ -187,6 +201,11 @@ public class FogVisionController : MonoBehaviour
     private void ResolveCameraTarget()
     {
         Transform cameraTarget = PZ_CameraController.Instance != null ? PZ_CameraController.Instance.CurrentTarget : null;
+        if (cameraTarget == null && TutorialSession.IsActive)
+        {
+            IntroCameraFollow introCamera = FindFirstObjectByType<IntroCameraFollow>();
+            cameraTarget = introCamera != null ? introCamera.CurrentTarget : null;
+        }
         if (cameraTarget == null)
         {
             targetVision = null;
@@ -215,7 +234,9 @@ public class FogVisionController : MonoBehaviour
             lookDirection = targetVision.transform.up;
         lookDirection.Normalize();
 
-        bool isIndoor = targetVision.ActiveIndoorCollider != null;
+        bool isTutorialReveal = tutorialRevealTarget != null;
+        Vector3 visionCenter = isTutorialReveal ? tutorialRevealTarget.position : playerPosition;
+        bool isIndoor = !isTutorialReveal && targetVision.ActiveIndoorCollider != null;
         int indoorPointCount = isIndoor ? BuildIndoorWorldPolygon(targetVision.ActiveIndoorCollider) : 0;
         isIndoor &= indoorPointCount >= 3;
 
@@ -224,9 +245,9 @@ public class FogVisionController : MonoBehaviour
         // Day phase comes from Fusion's networked clock. The shader never uses local _Time.
         overlayMaterial.SetFloat(FogDayPhaseId, GetDayPhase());
         overlayMaterial.SetVector(FogSeedId, fogSeed);
-        overlayMaterial.SetFloat(PlayerBubbleClearanceId, playerBubbleClearance);
-        overlayMaterial.SetFloat(PlayerBubbleRadiusId, Mathf.Max(targetVision.CurrentVisionRadius * playerBubbleRadiusMultiplier, 0.05f));
-        overlayMaterial.SetVector(VisionWorldCenterId, new Vector2(playerPosition.x, playerPosition.y));
+        overlayMaterial.SetFloat(PlayerBubbleClearanceId, isTutorialReveal ? 0.92f : playerBubbleClearance);
+        overlayMaterial.SetFloat(PlayerBubbleRadiusId, isTutorialReveal ? tutorialRevealRadius : Mathf.Max(targetVision.CurrentVisionRadius * playerBubbleRadiusMultiplier, 0.05f));
+        overlayMaterial.SetVector(VisionWorldCenterId, new Vector2(visionCenter.x, visionCenter.y));
         overlayMaterial.SetVector(VisionDirectionId, lookDirection);
         overlayMaterial.SetFloat(VisionCosHalfAngleId, Mathf.Cos(targetVision.CurrentVisionAngle * 0.5f * Mathf.Deg2Rad));
         overlayMaterial.SetFloat(VisionEdgeSoftnessId, visionEdgeSoftness);

@@ -150,7 +150,7 @@ MonoBehaviour:
   zoomSpeed: 1
   zoomSmoothTime: 0.15
   minZoomSize: 1
-  maxZoomSize: 3
+  maxZoomSize: 5
 --- !u!114 &5663078048034358251
 MonoBehaviour:
   m_ObjectHideFlags: 0

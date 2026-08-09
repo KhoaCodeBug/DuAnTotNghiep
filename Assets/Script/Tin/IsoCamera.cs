@@ -33,10 +33,10 @@ public class PZ_CameraController : MonoBehaviour
     public float maxLookAhead = 6f;
 
     [Header("--- Orthographic Zoom ---")]
-    public float zoomSpeed = 15f;
-    public float zoomSmoothTime = 0.05f;
-    public float minZoomSize = 5f;
-    public float maxZoomSize = 14f;
+    public float zoomSpeed = 1f;
+    public float zoomSmoothTime = 0.15f;
+    public float minZoomSize = 1f;
+    public float maxZoomSize = 5f;
 
     private Camera cam;
     private Vector3 velocity;
@@ -62,7 +62,7 @@ public class PZ_CameraController : MonoBehaviour
     }
 
     private float baseMaxLookAhead = 6f;
-    private float baseZoomSpeed = 15f;
+    private float baseZoomSpeed = 1f;
 
     void Start()
     {
