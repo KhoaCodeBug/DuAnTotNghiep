@@ -86,6 +86,8 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     [Networked] public int NetAttackIndex { get; set; }
     [Networked] public float NetSpeed { get; set; }
     [Networked] public Vector2 NetMoveDir { get; set; }
+    [Networked] public NetworkBool TutorialStationary { get; set; }
+    [Networked] public NetworkBool TutorialForceVisible { get; set; }
 
     private bool isStunned;
     private float stunTimer;
@@ -107,6 +109,24 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     private Vector2 lastStuckCheckPosition;
     private float stuckTimer;
     private float crowdSidePreference = 1f;
+    private bool tutorialSpawnConfigured;
+    private bool tutorialSpawnStationary;
+    private Vector2 tutorialSpawnFacing;
+    private float tutorialSpawnHealth;
+
+    /// <summary>Called from Fusion's onBeforeSpawned callback for scripted tutorial actors.</summary>
+    public void ConfigureTutorialSpawn(Vector2 facing, float health, bool stationary)
+    {
+        tutorialSpawnConfigured = true;
+        tutorialSpawnFacing = facing.sqrMagnitude > 0.001f ? facing.normalized : Vector2.down;
+        tutorialSpawnHealth = Mathf.Max(1f, health);
+        tutorialSpawnStationary = stationary;
+    }
+
+    public void SetTutorialForceVisible(bool visible)
+    {
+        if (HasStateAuthority) TutorialForceVisible = visible;
+    }
 
     [Header("=== Local Avoidance ===")]
     [SerializeField] private float obstacleProbeDistance = 0.8f;
@@ -141,17 +161,34 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
     public override void Spawned()
     {
+        // Tutorial actors are pooled from the same prefab as normal zombies.
+        // Explicitly clear the Animator's death parameter so a reused/default
+        // controller state can never show the corpse pose on its first frame.
+        if (anim != null)
+        {
+            anim.SetBool("IsDead", false);
+            anim.SetBool("IsAttacking", false);
+        }
+        lastIsDead = false;
+
         if (!HasStateAuthority)
         {
             if (rb != null) rb.bodyType = RigidbodyType2D.Kinematic;
         }
         else
         {
-            CurrentHealth = maxHealth;
-            // === CODE FIX CHỖ NÀY ===
-            // Random một góc từ 0 đến 360 độ, sau đó chuyển sang Vector2
-            float randomAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-            Vector2 randomDir = new Vector2(Mathf.Cos(randomAngle), Mathf.Sin(randomAngle)).normalized;
+            CurrentHealth = tutorialSpawnConfigured ? tutorialSpawnHealth : maxHealth;
+            Vector2 randomDir;
+            if (tutorialSpawnConfigured)
+            {
+                randomDir = tutorialSpawnFacing;
+                TutorialStationary = tutorialSpawnStationary;
+            }
+            else
+            {
+                float randomAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+                randomDir = new Vector2(Mathf.Cos(randomAngle), Mathf.Sin(randomAngle)).normalized;
+            }
 
             // Gán hướng ngẫu nhiên này cho các biến mạng và biến helper
             NetMoveDir = randomDir;
@@ -188,6 +225,13 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority || NetIsDead) return;
+
+        if (TutorialStationary)
+        {
+            StopMovement();
+            NetMoveDir = lastMoveDirection;
+            return;
+        }
 
         // Attack là trạng thái khóa cứng: không target lại, không A*, không chase cho tới khi clip kết thúc hoàn toàn.
         if (isAttacking)

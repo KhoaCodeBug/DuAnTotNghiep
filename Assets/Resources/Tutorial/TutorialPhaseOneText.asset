@@ -63,8 +63,37 @@ MonoBehaviour:
     s\u1ED1 v\u1EEBa h\u1ECDc.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
   consumeObjective: "D\xD9NG TH\u1ECAT V\xC0 N\u01AF\u1EDAC U\u1ED0NG TRONG T\xDAI
     \u0110\u1ED2"
-  completeTitle: "GIAI \u0110O\u1EA0N 1 HO\xC0N TH\xC0NH"
-  completeBrief: "B\u1EA1n \u0111\xE3 bi\u1EBFt c\xE1ch di chuy\u1EC3n, quan s\xE1t,
-    nh\u1EADn bi\u1EBFt nhu c\u1EA7u v\xE0 l\u1EE5c so\xE1t \u0111\u1ED3.\n\nPh\u1EA7n
-    chi\u1EBFn \u0111\u1EA5u s\u1EBD \u0111\u01B0\u1EE3c m\u1EDF \u1EDF ch\u1EB7ng
-    ti\u1EBFp theo.\n\n[Chu\u1ED9t tr\xE1i] T\u1EF1 do kh\xE1m ph\xE1"
+  weaponTitle: "TRANG B\u1ECB V\u0168 KH\xCD"
+  weaponBrief: "M\u1EDF t\xFAi \u0111\u1ED3 b\u1EB1ng [TAB] ho\u1EB7c [I], r\u1ED3i
+    k\xE9o kh\u1EA9u S12K v\xE0o m\u1ED9t trong n\u0103m \xF4 Hotbar ph\xEDa d\u01B0\u1EDBi.\n\n[Chu\u1ED9t
+    tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  weaponObjective: "K\xC9O S12K V\xC0O M\u1ED8T \xD4 HOTBAR"
+  reloadTitle: "N\u1EA0P \u0110\u1EA0N"
+  reloadBrief: "Kh\u1EA9u S12K \u0111ang tr\u1ED1ng \u0111\u1EA1n. \u0110\xF3ng t\xFAi
+    \u0111\u1ED3, ch\u1ECDn kh\u1EA9u s\xFAng tr\xEAn Hotbar r\u1ED3i nh\u1EA5n [R] \u0111\u1EC3
+    n\u1EA1p \u0111\u1EA1n.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  reloadObjective: "NH\u1EA4N [R] \u0110\u1EC2 N\u1EA0P \u0110\u1EA0N CHO S12K"
+  leaveHouseTitle: "C\xD3 G\xCC \u0110\xD3 B\xCAN NGO\xC0I"
+  leaveHouseBrief: "B\u1EA1n \u0111\xE3 c\xF3 \u0111\u1ED3 ti\u1EBFp t\u1EBF v\xE0 m\u1ED9t
+    kh\u1EA9u s\xFAng \u0111\xE3 n\u1EA1p \u0111\u1EA1n.\n\nRa kh\u1ECFi c\u0103n nh\xE0 th\u1EADt
+    c\u1EA9n th\u1EADn.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  leaveHouseObjective: "R\u1EDCI KH\u1ECEI C\u0102N NH\xC0"
+  noiseTitle: "TI\u1EBENG \u1ED2N"
+  noiseBrief: "B\u01B0\u1EDBc ch\xE2n, ch\u1EA1y, c\u1EADn chi\u1EBFn v\xE0 s\xFAng n\u1ED5
+    \u0111\u1EC1u c\xF3 th\u1EC3 k\xE9o zombie t\u1EDBi. H\xE3y \u0111\u1EC3 \xFD thanh \u0110\u1ED9
+    \u1ED3n \u1EDF g\xF3c d\u01B0\u1EDBi b\xEAn tr\xE1i.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  noiseObjective: "THEO D\xD5I THANH \u0110\u1ED8 \u1ED2N"
+  sneakTitle: "TI\u1EBEP C\u1EACN \xC2M TH\u1EA6M"
+  sneakBrief: "Nh\u1EA5n [C] \u0111\u1EC3 ng\u1ED3i xu\u1ED1ng, r\u1ED3i ti\u1EBFp c\u1EADn
+    zombie t\u1EEB ph\xEDa sau.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  sneakObjective: "NH\u1EA4N [C] V\xC0 TI\u1EBEP C\u1EACN ZOMBIE T\u1EEA PH\xCDA SAU"
+  meleeTitle: "\u0110\xC1NH TH\u01AF\u1EDCNG"
+  meleeBrief: "Gi\u1EEF [Chu\u1ED9t ph\u1EA3i] \u0111\u1EC3 ng\u1EAFm h\u01B0\u1EDBng ra \u0111\xF2n
+    v\xE0 nh\u1EA5n [Space] \u0111\u1EC3 \u0111\xE1nh b\u1EB1ng b\xE1ng s\xFAng.\n\n[Chu\u1ED9t
+    tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  meleeObjective: "GI\u1EEE [CHU\u1ED8T PH\u1EA2I] + NH\u1EA4N [SPACE] \u0110\u1EC2 H\u1EA0 ZOMBIE"
+  completeTitle: "GIAI \u0110O\u1EA0N HI\u1EC6N T\u1EA0I HO\xC0N TH\xC0NH"
+  completeBrief: "B\u1EA1n \u0111\xE3 bi\u1EBFt c\xE1ch ti\u1EBFp t\u1EBF, chu\u1EA9n b\u1ECB
+    v\u0169 kh\xED, ki\u1EC3m so\xE1t ti\u1EBFng \u1ED3n v\xE0 ti\u1EBFp c\u1EADn zombie t\u1EEB
+    ph\xEDa sau.\n\nB\xE0i h\u1ECDc b\u1EAFn s\xFAng s\u1EBD ti\u1EBFp t\u1EE5c \u1EDF b\u01B0\u1EDBc
+    k\u1EBF ti\u1EBFp.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"

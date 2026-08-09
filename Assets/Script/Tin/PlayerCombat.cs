@@ -145,7 +145,8 @@ public class PlayerCombat : NetworkBehaviour
             ItemData equippedWeapon = GetEquippedWeapon();
             float currentFireRate = (equippedWeapon != null && equippedWeapon.fireRate > 0) ? equippedWeapon.fireRate : 0.1f;
 
-            if (input.isShooting && nextFireTimer.ExpiredOrNotRunning(Runner) && !isMeleeAttacking)
+            bool tutorialFireLocked = TutorialSession.IsActive && TutorialInputGate.FireLocked;
+            if (input.isShooting && !tutorialFireLocked && nextFireTimer.ExpiredOrNotRunning(Runner) && !isMeleeAttacking)
             {
                 if (currentAmmo > 0 || isWeaponMasterActive)
                 {
@@ -505,7 +506,10 @@ public class PlayerCombat : NetworkBehaviour
             else
             {
                 // Súng mới lần đầu cầm → đổ đầy băng đạn
-                int fullMag = (equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
+                // The tutorial deliberately starts its recovered S12K empty,
+                // so the player has to learn the reload step before firing.
+                int fullMag = TutorialSession.IsActive ? 0 :
+                    ((equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30);
                 weaponAmmoCache[currentWeaponName] = fullMag;
                 if (HasStateAuthority) currentAmmo = fullMag;
             }

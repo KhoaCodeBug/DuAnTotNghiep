@@ -36,6 +36,7 @@ public class AutoNoiseMeter : MonoBehaviour
     private float heardVoiceTimer;
     private float sourceTimer;
     private string sourceName = "YÊN LẶNG";
+    private bool tutorialHighlight;
 
     public static void SetMovementNoise(bool isMoving, bool isRunning, bool isCrouching)
     {
@@ -58,6 +59,12 @@ public class AutoNoiseMeter : MonoBehaviour
         {
             instance.canvasObject.SetActive(visible);
         }
+    }
+
+    public static void SetTutorialHighlight(bool highlighted)
+    {
+        if (instance == null && !highlighted) return;
+        Instance.tutorialHighlight = highlighted;
     }
 
     private void Awake()
@@ -225,7 +232,10 @@ public class AutoNoiseMeter : MonoBehaviour
 
         Color levelColor = GetSegmentColor(Mathf.Clamp01(displayedNoise));
         bool heardVoice = heardVoiceTimer > 0f;
-        border.color = heardVoice
+        float tutorialPulse = tutorialHighlight ? 0.5f + Mathf.PingPong(Time.unscaledTime * 2.4f, 0.5f) : 0f;
+        border.color = tutorialHighlight
+            ? new Color(1f, 0.82f, 0.12f, tutorialPulse)
+            : heardVoice
             ? new Color(0.15f, 0.85f, 1f, 0.65f)
             : new Color(levelColor.r, levelColor.g, levelColor.b, 0.18f + (pulseTimer > 0f ? 0.3f : 0f));
         panel.color = heardVoice

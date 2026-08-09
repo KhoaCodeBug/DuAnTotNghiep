@@ -239,9 +239,17 @@ public class PlayerVision : NetworkBehaviour
 
             bool isVisible = false;
 
+            // Tutorial camera pans briefly to the first zombie while the
+            // survivor is still indoors. Keep that one actor visible for the
+            // cinematic even though normal indoor fog hides exterior sprites.
+            if (zCollider.TryGetComponent(out ZOmbieAI_Khoa tutorialZombie) && tutorialZombie.TutorialForceVisible)
+            {
+                isVisible = true;
+            }
+
             // While indoors, the dim ambient view shows the room but not zombie silhouettes.
             // A zombie must be inside this same indoor area and inside the direct cone to render.
-            if (isInside && !indoorCollider.OverlapPoint(zCollider.bounds.center))
+            else if (isInside && !indoorCollider.OverlapPoint(zCollider.bounds.center))
             {
                 isVisible = false;
             }

@@ -22,13 +22,16 @@ public sealed class IntroCameraFollow : MonoBehaviour
     // those stale Inspector values saved on it.
     private const float TutorialZoomSpeed = 1f;
     private const float TutorialMinZoomSize = 1f;
-    private const float TutorialMaxZoomSize = 3f;
+    private const float TutorialMaxZoomSize = 5f;
     private const float TutorialZoomSmoothTime = 0.15f;
 
     private Vector3 followVelocity;
     private Camera sceneCamera;
     private float targetZoom;
     private float zoomVelocity;
+
+    public Transform CurrentTarget => target;
+    public bool IsTutorialFocusPlaying { get; private set; }
 
     public void SetTarget(Transform newTarget, bool snapImmediately = false)
     {
@@ -60,6 +63,7 @@ public sealed class IntroCameraFollow : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (IsTutorialFocusPlaying) return;
         if (target == null) return;
 
         Vector3 desiredPosition = target.position + offset;
@@ -99,5 +103,44 @@ public sealed class IntroCameraFollow : MonoBehaviour
         targetZoom = Mathf.Lerp(activeMaxZoom, activeMinZoom, zoomInAmount);
         zoomVelocity = 0f;
         sceneCamera.orthographicSize = targetZoom;
+    }
+
+    /// <summary>
+    /// Brief cinematic pan used by the tutorial. The regular camera target is
+    /// never changed, so fog-of-war remains centred on the survivor.
+    /// </summary>
+    public void PlayTutorialFocus(Transform focus, float travelSeconds = 1.8f, float holdSeconds = 2.4f, float returnSeconds = 1.25f)
+    {
+        if (focus == null || IsTutorialFocusPlaying) return;
+        StartCoroutine(TutorialFocusRoutine(focus, travelSeconds, holdSeconds, returnSeconds));
+    }
+
+    private System.Collections.IEnumerator TutorialFocusRoutine(Transform focus, float travelSeconds, float holdSeconds, float returnSeconds)
+    {
+        IsTutorialFocusPlaying = true;
+        followVelocity = Vector3.zero;
+        Vector3 from = transform.position;
+        Vector3 to = focus.position + offset;
+
+        for (float elapsed = 0f; elapsed < travelSeconds; elapsed += Time.unscaledDeltaTime)
+        {
+            float t = Mathf.Clamp01(elapsed / travelSeconds);
+            transform.position = Vector3.LerpUnclamped(from, to, t * t);
+            yield return null;
+        }
+        transform.position = to;
+
+        yield return new WaitForSecondsRealtime(holdSeconds);
+
+        from = transform.position;
+        to = target != null ? target.position + offset : from;
+        for (float elapsed = 0f; elapsed < returnSeconds; elapsed += Time.unscaledDeltaTime)
+        {
+            float t = Mathf.Clamp01(elapsed / returnSeconds);
+            transform.position = Vector3.LerpUnclamped(from, to, 1f - (1f - t) * (1f - t));
+            yield return null;
+        }
+        transform.position = to;
+        IsTutorialFocusPlaying = false;
     }
 }

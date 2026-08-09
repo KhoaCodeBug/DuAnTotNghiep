@@ -43,7 +43,29 @@ public sealed class TutorialPhaseOneText : ScriptableObject
     [TextArea(3, 7)] public string consumeBrief = "Mở túi đồ bằng [TAB] hoặc [I].\n\nDùng thịt và nước uống để hồi lại hai chỉ số vừa học.\n\n[Chuột trái] Tiếp tục";
     public string consumeObjective = "DÙNG THỊT VÀ NƯỚC UỐNG TRONG TÚI ĐỒ";
 
-    [Header("Phase complete")]
-    public string completeTitle = "GIAI ĐOẠN 1 HOÀN THÀNH";
-    [TextArea(3, 7)] public string completeBrief = "Bạn đã biết cách di chuyển, quan sát, nhận biết nhu cầu và lục soát đồ.\n\nPhần chiến đấu sẽ được mở ở chặng tiếp theo.\n\n[Chuột trái] Tự do khám phá";
+    [Header("Weapon and reload")]
+    public string weaponTitle = "TRANG BỊ VŨ KHÍ";
+    [TextArea(3, 7)] public string weaponBrief = "Mở túi đồ bằng [TAB] hoặc [I], rồi kéo khẩu S12K vào một trong năm ô Hotbar phía dưới.\n\nĐặt vũ khí vào Hotbar giúp bạn sẵn sàng phản ứng ngay khi nguy hiểm xuất hiện.\n\n[Chuột trái] Tiếp tục";
+    public string weaponObjective = "KÉO S12K VÀO MỘT Ô HOTBAR";
+    public string reloadTitle = "NẠP ĐẠN";
+    [TextArea(3, 7)] public string reloadBrief = "Khẩu S12K đang trống đạn. Đóng túi đồ, chọn khẩu súng trên Hotbar rồi nhấn [R] để nạp đạn.\n\nChưa cần nổ súng vội. Hãy chuẩn bị trước.\n\n[Chuột trái] Tiếp tục";
+    public string reloadObjective = "NHẤN [R] ĐỂ NẠP ĐẠN CHO S12K";
+
+    [Header("First zombie")]
+    public string leaveHouseTitle = "CÓ GÌ ĐÓ BÊN NGOÀI";
+    [TextArea(3, 7)] public string leaveHouseBrief = "Bạn đã có đồ tiếp tế và một khẩu súng đã nạp đạn.\n\nRa khỏi căn nhà thật cẩn thận.\n\n[Chuột trái] Tiếp tục";
+    public string leaveHouseObjective = "RỜI KHỎI CĂN NHÀ";
+    public string noiseTitle = "TIẾNG ỒN";
+    [TextArea(3, 7)] public string noiseBrief = "Mỗi hành động đều có thể tạo tiếng động. Bước chân, chạy nước rút, cận chiến và súng nổ đều có thể kéo zombie tới.\n\nĐể ý thanh Độ ồn ở góc dưới bên trái.\n\n[Chuột trái] Xem thanh Độ ồn";
+    public string noiseObjective = "THEO DÕI THANH ĐỘ ỒN";
+    public string sneakTitle = "TIẾP CẬN ÂM THẦM";
+    [TextArea(3, 7)] public string sneakBrief = "Nhấn [C] để ngồi xuống, rồi tiếp cận zombie từ phía sau.\n\nDi chuyển chậm ít gây chú ý hơn và cho bạn cơ hội ra đòn trước.\n\n[Chuột trái] Tiếp tục";
+    public string sneakObjective = "NHẤN [C] VÀ TIẾP CẬN ZOMBIE TỪ PHÍA SAU";
+    public string meleeTitle = "ĐÁNH THƯỜNG";
+    [TextArea(3, 7)] public string meleeBrief = "Khi đã đủ gần, giữ [Chuột phải] để ngắm hướng ra đòn và nhấn [Space] để đánh thường bằng báng súng.\n\nKết liễu zombie trước khi nó kịp phản ứng.\n\n[Chuột trái] Tiếp tục";
+    public string meleeObjective = "GIỮ [CHUỘT PHẢI] + NHẤN [SPACE] ĐỂ HẠ ZOMBIE";
+
+    [Header("Current phase complete")]
+    public string completeTitle = "GIAI ĐOẠN HIỆN TẠI HOÀN THÀNH";
+    [TextArea(3, 7)] public string completeBrief = "Bạn đã biết cách tiếp tế, chuẩn bị vũ khí, kiểm soát tiếng ồn và tiếp cận zombie từ phía sau.\n\nBài học bắn súng sẽ tiếp tục ở bước kế tiếp.\n\n[Chuột trái] Tiếp tục";
 }

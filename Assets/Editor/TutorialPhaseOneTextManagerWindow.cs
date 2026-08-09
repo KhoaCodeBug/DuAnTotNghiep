@@ -47,7 +47,9 @@ public sealed class TutorialPhaseOneTextManagerWindow : EditorWindow
         DrawSection("ĐÓI VÀ KHÁT", "needsTitle", "needsBrief", "needsFocusTitle", "needsFocusBody");
         DrawSection("NGÔI NHÀ & TỦ BẾP", "houseTitle", "houseBrief", "houseObjective", "houseMarker", "cabinetTitle", "cabinetBrief", "lootObjective", "cabinetMarker");
         DrawSection("DÙNG ĐỒ", "consumeTitle", "consumeBrief", "consumeObjective");
-        DrawSection("HOÀN THÀNH", "completeTitle", "completeBrief");
+        DrawSection("TRANG BỊ & NẠP ĐẠN", "weaponTitle", "weaponBrief", "weaponObjective", "reloadTitle", "reloadBrief", "reloadObjective");
+        DrawSection("ZOMBIE ĐẦU TIÊN", "leaveHouseTitle", "leaveHouseBrief", "leaveHouseObjective", "noiseTitle", "noiseBrief", "noiseObjective", "sneakTitle", "sneakBrief", "sneakObjective", "meleeTitle", "meleeBrief", "meleeObjective");
+        DrawSection("HOÀN THÀNH HIỆN TẠI", "completeTitle", "completeBrief");
         EditorGUILayout.EndScrollView();
 
         if (serializedText.ApplyModifiedProperties())
