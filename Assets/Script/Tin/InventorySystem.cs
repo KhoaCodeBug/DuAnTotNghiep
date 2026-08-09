@@ -97,7 +97,10 @@ public class InventorySystem : NetworkBehaviour
         // disagree with the host and other players.
         if (HasStateAuthority && !HasStartingWeapon)
         {
-            GrantRandomStartingWeapon();
+            if (TutorialSession.IsActive)
+                MarkTutorialLoadoutReady();
+            else
+                GrantRandomStartingWeapon();
         }
 
         ApplyReplicatedStartingWeapon();
@@ -150,8 +153,31 @@ public class InventorySystem : NetworkBehaviour
         Debug.Log($"[STARTING LOADOUT] Player {Object.InputAuthority} received {selectedWeapon.itemName} in hotbar.");
     }
 
+    private void MarkTutorialLoadoutReady()
+    {
+        // The tutorial teaches looting before firearms. S12K is deliberately
+        // placed in the kitchen cabinet with its ammunition, not in hotbar.
+        HasStartingWeapon = true;
+        StartingWeaponId = string.Empty;
+        hasAppliedStartingWeaponLocally = true;
+    }
+
+    public bool HasItemNamed(string itemName)
+    {
+        foreach (InventorySlot slot in slots)
+        {
+            if (slot == null || slot.item == null || slot.amount <= 0) continue;
+            if (string.Equals(slot.item.name, itemName, System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(slot.item.itemName, itemName, System.StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
     private void ApplyReplicatedStartingWeapon()
     {
+        if (TutorialSession.IsActive) return;
         if (!HasInputAuthority || hasAppliedStartingWeaponLocally || !HasStartingWeapon) return;
 
         ItemData selectedWeapon = ItemDataLoader.LoadItem(StartingWeaponId.ToString());

@@ -58,7 +58,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
         if (Runner == null) yield break;
 
-        int myCharacterID = PlayerPrefs.GetInt("SelectedCharacterID", 0);
+        // The standalone tutorial always uses survivor prefab 0 without
+        // overwriting the character that the player chose in the main menu.
+        int myCharacterID = TutorialSession.IsActive ? 0 : PlayerPrefs.GetInt("SelectedCharacterID", 0);
         string myPlayerName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
 
         // 1. Gửi lệnh đẻ nhân vật

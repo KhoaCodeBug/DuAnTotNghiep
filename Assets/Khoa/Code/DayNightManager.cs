@@ -51,6 +51,12 @@ public class DayNightManager : NetworkBehaviour
     {
         if (HasStateAuthority)
         {
+            if (TutorialSession.IsActive)
+            {
+                CurrentTime = 12f;
+                return;
+            }
+
             float timeSpeed = 24f / (realMinutesPerDay * 60f);
             CurrentTime += Runner.DeltaTime * timeSpeed;
 

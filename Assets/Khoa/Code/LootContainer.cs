@@ -33,6 +33,7 @@ public class LootContainer : NetworkBehaviour
     private bool hasGeneratedLoot = false;
     private PlayerMovement cachedLocalPlayer;
     private InventorySystem cachedLocalInventory;
+    private int lastOpenFrame = -1;
 
     [System.Serializable]
     public class LootSpawnData
@@ -165,7 +166,10 @@ public class LootContainer : NetworkBehaviour
             if (UnityEngine.EventSystems.EventSystem.current != null &&
                 UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject()) return;
 
-            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            if (Camera.main == null) return;
+            Vector3 mouseScreenPos = Input.mousePosition;
+            mouseScreenPos.z = Mathf.Abs(Camera.main.transform.position.z - transform.position.z);
+            Vector2 mousePos = Camera.main.ScreenToWorldPoint(mouseScreenPos);
 
             Collider2D[] hits = Physics2D.OverlapPointAll(mousePos);
             bool clickedThisCabinet = false;
@@ -179,24 +183,41 @@ public class LootContainer : NetworkBehaviour
             }
 
             if (clickedThisCabinet)
-            {
-                if (canInteract)
-                {
-                    if (AutoUIManager.Instance != null)
-                    {
-                        RPC_RequestSyncContainerStatus(Runner.LocalPlayer);
-                        AutoUIManager.Instance.OpenContainerUI(this);
-                    }
-                }
-                else
-                {
-                    if (dist > interactDistance)
-                        Debug.Log("Đứng xa quá không với tới tủ đồ!");
-                    else if (isBlockedByWall)
-                        Debug.Log("Có bức tường chắn ngang rồi, không mở được!");
-                }
-            }
+                TryOpenForLocalPlayer();
         }
+    }
+
+    /// <summary>
+    /// Opens this container for the input-authority player after applying the
+    /// exact same distance and wall checks as the normal world click.  It is
+    /// also used by the tutorial's small-target click assist.
+    /// </summary>
+    public bool TryOpenForLocalPlayer()
+    {
+        if (lastOpenFrame == Time.frameCount) return true;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return false;
+
+        PlayerMovement localPlayer = GetLocalPlayerCached();
+        Collider2D myCollider = GetComponent<Collider2D>();
+        if (localPlayer == null || myCollider == null) return false;
+
+        Vector2 playerPos = localPlayer.transform.position;
+        Vector2 closestPoint = myCollider.ClosestPoint(playerPos);
+        float distance = Vector2.Distance(playerPos, closestPoint);
+        bool blockedByWall = obstacleLayer.value != 0 && Physics2D.Linecast(playerPos, closestPoint, obstacleLayer);
+        if (distance > interactDistance || blockedByWall)
+        {
+            Debug.Log(distance > interactDistance
+                ? "Đứng xa quá không với tới tủ đồ!"
+                : "Có bức tường chắn ngang rồi, không mở được!");
+            return false;
+        }
+
+        if (Runner == null || AutoUIManager.Instance == null) return false;
+        lastOpenFrame = Time.frameCount;
+        RPC_RequestSyncContainerStatus(Runner.LocalPlayer);
+        AutoUIManager.Instance.OpenContainerUI(this);
+        return true;
     }
 
     private void OnDrawGizmosSelected()
