@@ -43,6 +43,7 @@ public class ZombieAI : NetworkBehaviour
     [SerializeField, Range(30f, 360f)] private float viewAngle = 180f;
     [SerializeField, Range(90f, 360f)] private float alertViewAngle = 220f;
     [SerializeField] private float closeAwarenessRange = 1.25f;
+    [SerializeField] private float crouchDetectRange = 0.6f;
 
     [Header("--- Search Memory ---")]
     [SerializeField] private int searchPointCount = 3;
@@ -881,6 +882,7 @@ public class ZombieAI : NetworkBehaviour
             Vector2 targetPos = candidateCollider.bounds.center;
             float dist = Vector2.Distance(myPos, targetPos);
             if (dist > activeRange) continue;
+            if (IsHiddenByCrouch(p, dist)) continue;
 
             bool canSee = CanSeeTarget(myPos, targetPos, dist, pHealth);
             if (!canSee) continue;
@@ -979,8 +981,18 @@ public class ZombieAI : NetworkBehaviour
             && playerHealth != null
             && playerCollider != null
             && !playerHealth.isDead
+            && !IsHiddenByCrouch(player.gameObject, GetColliderDistance(playerCollider))
             && playerCollider.enabled
             && player.gameObject.activeInHierarchy;
+    }
+
+    private bool IsHiddenByCrouch(GameObject target, float distance)
+    {
+        if (target == null) return false;
+        if (!target.TryGetComponent(out PlayerMovement movement)) return false;
+        if (!movement.NetIsCrouching) return false;
+
+        return distance > crouchDetectRange;
     }
 
     private void ClearTarget()
