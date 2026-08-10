@@ -1,5 +1,7 @@
 using Fusion;
+using Pathfinding;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Standalone tutorial flow through the first silent takedown. Each concept
@@ -24,7 +26,10 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
         NoiseBrief, NoiseFocus,
         SneakBrief, Sneak,
         MeleeBrief, Melee,
-        CompleteBrief, Complete
+        MeleeKillDelay,
+        BleedingBrief, OpenHealth, Bandage,
+        RangedCinematic, RangedBrief, RangedNoiseBrief, RangedReturn, RangedCombat,
+        FinalKillDelay, FinalTaunt, HordeAssault, DeathPause, Ending
     }
 
     [Header("Targets")]
@@ -45,12 +50,20 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
     [SerializeField, Range(0.05f, 0.39f)] private float tutorialNeedRatio = 0.35f;
     [SerializeField, Range(0f, 1f)] private float initialZoomInAmount = 0.85f;
     [SerializeField, Min(0.05f)] private float meleeInstructionDistance = 0.25f;
+    [SerializeField, Min(0.5f)] private float postMeleeDelaySeconds = 2f;
+    [SerializeField, Min(0.5f)] private float postRangedKillDelaySeconds = 1.5f;
+    [SerializeField, Range(8, 30)] private int finalHordeCount = 16;
+    [SerializeField, Min(3f)] private float finalHordeMinRadius = 7f;
+    [SerializeField, Min(4f)] private float finalHordeMaxRadius = 11f;
+    [SerializeField, Min(5f)] private float finalHordeFailsafeSeconds = 14f;
+    [SerializeField, Min(0.5f)] private float deathScreenDelaySeconds = 2f;
 
     private Step step = Step.WaitingForIntro;
     private PlayerMovement localPlayer;
     private PlayerSurvival survival;
     private InventorySystem inventory;
     private PlayerCombat combat;
+    private PlayerHealth health;
     private RoofDetector roofDetector;
     private IntroCameraFollow introCamera;
     private NetworkRunner runner;
@@ -61,12 +74,18 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
     private float aimingProgress;
     private float indoorProgress;
     private float outdoorProgress;
+    private float postMeleeDelayProgress;
+    private float finalFlowTimer;
     private bool needsApplied;
     private bool initialZoomApplied;
     private bool lootUiClosed;
     private bool zombiesSpawned;
     private bool cinematicStarted;
     private bool crouchConfirmed;
+    private bool tutorialWoundApplied;
+    private bool rangedCinematicStarted;
+    private bool finalHordeSpawned;
+    private bool endingTransitionStarted;
     private string modalTitle;
     private string modalBody;
 
@@ -74,6 +93,7 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
     {
         TutorialSession.Begin();
         TutorialInputGate.SetFireLocked(true);
+        TutorialInputGate.SetHealthFloor(true, 0.3f);
 
         introDirector ??= FindFirstObjectByType<IntroTutorialDirector>();
         introCamera ??= FindFirstObjectByType<IntroCameraFollow>();
@@ -307,16 +327,123 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
 
             case Step.Melee:
                 if (IsFirstTutorialZombieDead())
-                    ShowModal(Step.CompleteBrief, tutorialText.completeTitle, tutorialText.completeBrief);
+                {
+                    step = Step.MeleeKillDelay;
+                    postMeleeDelayProgress = 0f;
+                    SetTutorialMovement(true);
+                }
                 break;
 
-            case Step.CompleteBrief:
+            case Step.MeleeKillDelay:
+                postMeleeDelayProgress += Time.unscaledDeltaTime;
+                if (postMeleeDelayProgress >= postMeleeDelaySeconds)
+                {
+                    EnsureTutorialWound();
+                    ShowModal(Step.BleedingBrief, tutorialText.bleedingTitle, tutorialText.bleedingBrief);
+                }
+                break;
+
+            case Step.BleedingBrief:
                 if (ContinueModalPressed())
                 {
-                    step = Step.Complete;
-                    // The survivor is free to move, but firing stays locked
-                    // until the second zombie's dedicated gun lesson begins.
+                    step = Step.OpenHealth;
+                    SetTutorialMovement(true);
+                }
+                break;
+
+            case Step.OpenHealth:
+                if (IsHealthTabOpen()) step = Step.Bandage;
+                break;
+
+            case Step.Bandage:
+                if (IsTutorialWoundBandaged())
+                {
+                    CloseTutorialPanels();
+                    rangedCinematicStarted = false;
+                    step = Step.RangedCinematic;
+                    SetTutorialMovement(true);
+                }
+                break;
+
+            case Step.RangedCinematic:
+                RunRangedCinematic();
+                break;
+
+            case Step.RangedBrief:
+                if (ContinueModalPressed())
+                    ShowModal(Step.RangedNoiseBrief, tutorialText.rangedNoiseTitle, tutorialText.rangedNoiseBrief);
+                break;
+
+            case Step.RangedNoiseBrief:
+                if (ContinueModalPressed())
+                {
+                    step = Step.RangedReturn;
+                    introCamera?.ReturnTutorialFocus();
+                }
+                break;
+
+            case Step.RangedReturn:
+                if (introCamera == null || !introCamera.IsTutorialFocusPlaying)
+                {
+                    if (FogVisionController.Instance != null) FogVisionController.Instance.ClearTutorialCinematicReveal();
+                    // Zombie B now returns to its normal AI. It will acquire
+                    // the survivor through vision or react to the first gunshot.
+                    secondTutorialZombie?.GetComponent<ZOmbieAI_Khoa>()?.ReleaseTutorialStationary();
+                    step = Step.RangedCombat;
+                    SetTutorialMovement(true);
+                    TutorialInputGate.SetFireLocked(false);
+                }
+                break;
+
+            case Step.RangedCombat:
+                if (IsSecondTutorialZombieDead())
+                {
+                    TutorialInputGate.SetFireLocked(true);
+                    secondTutorialZombie?.GetComponent<ZOmbieAI_Khoa>()?.SetTutorialForceVisible(false);
+                    step = Step.FinalKillDelay;
+                    finalFlowTimer = 0f;
+                    SetTutorialMovement(true);
+                }
+                break;
+
+            case Step.FinalKillDelay:
+                finalFlowTimer += Time.unscaledDeltaTime;
+                if (finalFlowTimer >= postRangedKillDelaySeconds)
+                    ShowModal(Step.FinalTaunt, tutorialText.finalTauntTitle, tutorialText.finalTauntBrief);
+                break;
+
+            case Step.FinalTaunt:
+                if (ContinueModalPressed())
+                {
+                    BeginFinalHorde();
+                }
+                break;
+
+            case Step.HordeAssault:
+                finalFlowTimer += Time.unscaledDeltaTime;
+                if (finalFlowTimer >= 2f) AutoNoiseMeter.SetTutorialHighlight(false);
+                if (health != null && health.isDead)
+                {
+                    step = Step.DeathPause;
+                    finalFlowTimer = 0f;
+                    TutorialInputGate.SetFireLocked(true);
+                    TutorialInputGate.Configure(true, true);
+                }
+                else if (finalFlowTimer >= finalHordeFailsafeSeconds && health != null)
+                {
+                    // The horde should earn the kill naturally. This only
+                    // prevents a broken pathfinding node from soft-locking the ending.
+                    health.TakeDamage(health.maxHealth * 10f, false, true);
+                }
+                break;
+
+            case Step.DeathPause:
+                finalFlowTimer += Time.unscaledDeltaTime;
+                if (finalFlowTimer >= deathScreenDelaySeconds)
+                {
+                    step = Step.Ending;
                     SetTutorialMovement(false);
+                    TutorialInputGate.Configure(true, true);
                     TutorialInputGate.SetFireLocked(true);
                 }
                 break;
@@ -330,6 +457,7 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
         survival ??= localPlayer.GetComponent<PlayerSurvival>();
         inventory ??= localPlayer.GetComponent<InventorySystem>();
         combat ??= localPlayer.GetComponent<PlayerCombat>();
+        health ??= localPlayer.GetComponent<PlayerHealth>();
         roofDetector ??= localPlayer.GetComponentInChildren<RoofDetector>();
         introCamera ??= FindFirstObjectByType<IntroCameraFollow>();
         runner ??= FindAnyObjectByType<NetworkRunner>();
@@ -479,6 +607,160 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
         ShowModal(Step.NoiseBrief, tutorialText.noiseTitle, tutorialText.noiseBrief);
     }
 
+    private void EnsureTutorialWound()
+    {
+        if (tutorialWoundApplied) return;
+        tutorialWoundApplied = true;
+
+        AutoHealthPanel panel = AutoHealthPanel.Instance;
+        if (panel != null && !panel.HasAnyUnbandagedInjury())
+            panel.ApplyTutorialWound("Right Forearm");
+    }
+
+    private bool IsHealthTabOpen()
+    {
+        return AutoTabManager.Instance != null &&
+               AutoTabManager.Instance.IsTabCanvasActive() &&
+               AutoTabManager.Instance.CurrentTab == AutoTabManager.TabType.Health &&
+               AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
+    }
+
+    private bool IsTutorialWoundBandaged()
+    {
+        AutoHealthPanel panel = AutoHealthPanel.Instance;
+        return panel != null && panel.HasAnyBandagedInjury() &&
+               health != null && !health.isBleeding;
+    }
+
+    private static void CloseTutorialPanels()
+    {
+        if (AutoTabManager.Instance != null) AutoTabManager.Instance.ShowTabs(false);
+        if (AutoHealthPanel.Instance != null) AutoHealthPanel.Instance.SetOpenState(false);
+        if (AutoUIManager.Instance != null) AutoUIManager.Instance.ForceHideInventoryOnly();
+    }
+
+    private void RunRangedCinematic()
+    {
+        if (secondTutorialZombie == null) return;
+
+        if (!rangedCinematicStarted)
+        {
+            rangedCinematicStarted = true;
+            SetTutorialMovement(true);
+            TutorialInputGate.SetFireLocked(true);
+            secondTutorialZombie.GetComponent<ZOmbieAI_Khoa>()?.SetTutorialForceVisible(true);
+            if (FogVisionController.Instance != null)
+                FogVisionController.Instance.SetTutorialCinematicReveal(secondTutorialZombie.transform);
+            introCamera ??= FindFirstObjectByType<IntroCameraFollow>();
+            introCamera?.HoldTutorialFocus(secondTutorialZombie.transform);
+            return;
+        }
+
+        if (introCamera != null && !introCamera.IsTutorialFocusHeld) return;
+        ShowModal(Step.RangedBrief, tutorialText.rangedTitle, tutorialText.rangedBrief);
+    }
+
+    private void BeginFinalHorde()
+    {
+        step = Step.HordeAssault;
+        finalFlowTimer = 0f;
+
+        // From this point onward death is intentional. All regular controls
+        // return so the last stand still feels playable rather than scripted.
+        TutorialInputGate.SetHealthFloor(false);
+        TutorialInputGate.Configure(false, false);
+        TutorialInputGate.SetFireLocked(false);
+        TutorialInputGate.SetCameraZoomLocked(false);
+        AutoNoiseMeter.SetTutorialHighlight(true);
+        AutoNoiseMeter.ReportTransientNoise(1f, "TIẾNG SÚNG VANG KHẮP KHU PHỐ");
+
+        SpawnFinalHorde();
+        if (localPlayer != null)
+            localPlayer.MakeNoise(60f, true, 100, 60f, 1f);
+    }
+
+    private void SpawnFinalHorde()
+    {
+        if (finalHordeSpawned || runner == null || !runner.IsServer ||
+            tutorialZombiePrefab == null || localPlayer == null) return;
+
+        finalHordeSpawned = true;
+        Vector3 playerPosition = localPlayer.transform.position;
+        float outerRadius = Mathf.Max(finalHordeMaxRadius, finalHordeMinRadius + 0.5f);
+
+        for (int i = 0; i < finalHordeCount; i++)
+        {
+            float angle = (360f / finalHordeCount) * i + Random.Range(-9f, 9f);
+            float radius = Random.Range(finalHordeMinRadius, outerRadius);
+            Vector2 direction = Quaternion.Euler(0f, 0f, angle) * Vector2.right;
+            Vector3 candidate = playerPosition + (Vector3)(direction * radius);
+            Vector3 spawnPosition = ClosestWalkablePosition(candidate);
+
+            // A nearest-node query can fold an invalid point too close to the
+            // survivor. Skip that actor instead of visibly spawning it on top.
+            if (Vector2.Distance(spawnPosition, playerPosition) < 3.5f) continue;
+
+            Vector2 facing = ((Vector2)playerPosition - (Vector2)spawnPosition).normalized;
+            NetworkObject spawned = runner.Spawn(tutorialZombiePrefab, spawnPosition,
+                Quaternion.identity, null, (_, obj) =>
+                {
+                    obj.GetComponent<ZOmbieAI_Khoa>()?.ConfigureTutorialSpawn(facing, 100f, false);
+                });
+
+            spawned?.GetComponent<ZOmbieAI_Khoa>()?.ReleaseTutorialStationary(playerPosition);
+        }
+    }
+
+    private static Vector3 ClosestWalkablePosition(Vector3 candidate)
+    {
+        if (AstarPath.active == null) return candidate;
+        NNInfo nearest = AstarPath.active.GetNearest(candidate, NNConstraint.Default);
+        return nearest.node != null && nearest.node.Walkable ? (Vector3)nearest.position : candidate;
+    }
+
+    private async void StartMainGame()
+    {
+        if (endingTransitionStarted) return;
+        endingTransitionStarted = true;
+        TutorialSession.End();
+        TutorialInputGate.Clear();
+
+        int sceneIndex = AutoMainMenuManager.Instance != null
+            ? AutoMainMenuManager.Instance.mainSceneIndex
+            : 1;
+        if (runner != null)
+            await runner.LoadScene(SceneRef.FromIndex(sceneIndex));
+        else
+            SceneManager.LoadScene(sceneIndex);
+    }
+
+    private async void ReplayTutorial()
+    {
+        if (endingTransitionStarted) return;
+        endingTransitionStarted = true;
+        TutorialSession.Begin();
+        TutorialInputGate.Clear();
+
+        int sceneIndex = AutoMainMenuManager.Instance != null
+            ? AutoMainMenuManager.Instance.tutorialSceneIndex
+            : SceneManager.GetActiveScene().buildIndex;
+        if (runner != null)
+            await runner.LoadScene(SceneRef.FromIndex(sceneIndex));
+        else
+            SceneManager.LoadScene(sceneIndex);
+    }
+
+    private void ReturnToMenu()
+    {
+        if (endingTransitionStarted) return;
+        endingTransitionStarted = true;
+        TutorialSession.End();
+        TutorialInputGate.Clear();
+
+        if (runner != null) runner.Shutdown();
+        else SceneManager.LoadScene(0);
+    }
+
     private bool IsInMeleeRange()
     {
         if (localPlayer == null || firstTutorialZombie == null || combat == null) return false;
@@ -495,6 +777,12 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
     private bool IsFirstTutorialZombieDead()
     {
         return firstTutorialZombie != null && firstTutorialZombie.TryGetComponent(out ZOmbieAI_Khoa zombie) && zombie.NetIsDead;
+    }
+
+    private bool IsSecondTutorialZombieDead()
+    {
+        return secondTutorialZombie != null &&
+               secondTutorialZombie.TryGetComponent(out ZOmbieAI_Khoa zombie) && zombie.NetIsDead;
     }
 
     private void ShowModal(Step nextStep, string title, string body, bool lockMovement = true)
@@ -521,10 +809,24 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
 
     private void OnGUI()
     {
-        if (step == Step.WaitingForIntro || step == Step.Complete) return;
+        if (step == Step.WaitingForIntro) return;
 
         GUI.depth = -100;
-        if (step == Step.NoiseBrief) DrawNoiseFocusModal();
+
+        if (step == Step.Ending)
+        {
+            DrawEndingScreen();
+            return;
+        }
+
+        if (step == Step.DeathPause)
+        {
+            DrawDeathFade();
+            return;
+        }
+
+        if (step == Step.BleedingBrief) DrawBleedingFocusModal();
+        else if (step == Step.NoiseBrief || step == Step.RangedNoiseBrief) DrawNoiseFocusModal();
         else if (IsModalStep()) DrawModal();
         else if (step == Step.NeedsFocus) DrawNeedsFocus();
         else
@@ -540,7 +842,7 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
                step == Step.ZoomBrief || step == Step.HouseBrief || step == Step.CabinetBrief ||
                step == Step.ConsumeBrief || step == Step.WeaponBrief || step == Step.ReloadBrief ||
                step == Step.LeaveHouseBrief || step == Step.SneakBrief ||
-               step == Step.MeleeBrief || step == Step.CompleteBrief;
+               step == Step.MeleeBrief || step == Step.RangedBrief || step == Step.FinalTaunt;
     }
 
     private void DrawModal()
@@ -579,6 +881,27 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
     private void DrawNeedsIndicatorHighlight() => DrawSpotlightOutline(NeedsIndicatorRect());
 
     private static Rect NeedsIndicatorRect() => new Rect(Screen.width - 75f, 121f, 68f, 110f);
+
+    private void DrawBleedingFocusModal()
+    {
+        if (survival == null || !survival.TryGetBleedingMoodleRect(out Rect hole))
+        {
+            DrawModal();
+            return;
+        }
+
+        DrawDimWithHole(hole);
+        DrawSpotlightOutline(hole, true);
+
+        float width = Mathf.Min(690f, Screen.width - 210f);
+        GUIStyle bodyStyle = BodyStyle();
+        float bodyHeight = bodyStyle.CalcHeight(new GUIContent(modalBody), width - 56f);
+        float boxHeight = Mathf.Clamp(98f + bodyHeight, 215f, Screen.height - 90f);
+        Rect box = new Rect(38f, (Screen.height - boxHeight) * 0.5f, width, boxHeight);
+        GUI.Box(box, string.Empty);
+        GUI.Label(new Rect(box.x + 28f, box.y + 28f, box.width - 56f, 36f), modalTitle, TitleStyle());
+        GUI.Label(new Rect(box.x + 28f, box.y + 75f, box.width - 56f, box.height - 92f), modalBody, bodyStyle);
+    }
 
     private static Rect NoiseMeterRect()
     {
@@ -655,13 +978,21 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
             Step.LeaveHouse => tutorialText.leaveHouseObjective,
             Step.Sneak => crouchConfirmed ? tutorialText.sneakObjective : "NHẤN [C] ĐỂ NGỒI XUỐNG",
             Step.Melee => tutorialText.meleeObjective,
+            Step.OpenHealth => tutorialText.openHealthObjective,
+            Step.Bandage => tutorialText.bandageObjective,
+            Step.RangedCombat => tutorialText.rangedObjective,
+            Step.HordeAssault => tutorialText.hordeObjective,
             _ => string.Empty
         };
 
         if (string.IsNullOrEmpty(text)) return;
-        Rect box = new Rect((Screen.width - 560f) * 0.5f, 30f, 560f, 55f);
+        float width = Mathf.Min(760f, Screen.width - 80f);
+        GUIStyle objectiveStyle = ObjectiveStyle();
+        float labelHeight = objectiveStyle.CalcHeight(new GUIContent(text), width - 30f);
+        float boxHeight = Mathf.Max(55f, labelHeight + 22f);
+        Rect box = new Rect((Screen.width - width) * 0.5f, 30f, width, boxHeight);
         GUI.Box(box, string.Empty);
-        GUI.Label(new Rect(box.x + 15, box.y + 11, box.width - 30, 30), text, ObjectiveStyle());
+        GUI.Label(new Rect(box.x + 15f, box.y + 11f, box.width - 30f, labelHeight), text, objectiveStyle);
 
         if (step == Step.GoToKitchen) DrawHouseRoute();
         else if (step == Step.Loot && ResolveKitchenCabinet())
@@ -745,8 +1076,52 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
 
     private GUIStyle ObjectiveStyle() => new GUIStyle(GUI.skin.label)
     {
-        fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+        fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true,
         normal = { textColor = Color.white }
+    };
+
+    private void DrawEndingScreen()
+    {
+        Color old = GUI.color;
+        GUI.color = new Color(0.015f, 0.01f, 0.01f, 0.96f);
+        GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+        GUI.color = old;
+
+        float width = Mathf.Min(720f, Screen.width - 80f);
+        float height = Mathf.Min(470f, Screen.height - 70f);
+        Rect panel = new Rect((Screen.width - width) * 0.5f, (Screen.height - height) * 0.5f, width, height);
+        GUI.Box(panel, string.Empty);
+
+        GUI.Label(new Rect(panel.x + 30f, panel.y + 42f, panel.width - 60f, 55f),
+            tutorialText.endingTitle, EndingTitleStyle());
+        GUI.Label(new Rect(panel.x + 50f, panel.y + 112f, panel.width - 100f, 90f),
+            tutorialText.endingBody, BodyStyle());
+
+        float buttonWidth = Mathf.Min(430f, panel.width - 100f);
+        float buttonX = panel.center.x - buttonWidth * 0.5f;
+        GUI.enabled = !endingTransitionStarted;
+        if (GUI.Button(new Rect(buttonX, panel.y + 225f, buttonWidth, 48f), tutorialText.startMainButton))
+            StartMainGame();
+        if (GUI.Button(new Rect(buttonX, panel.y + 287f, buttonWidth, 48f), tutorialText.replayButton))
+            ReplayTutorial();
+        if (GUI.Button(new Rect(buttonX, panel.y + 349f, buttonWidth, 48f), tutorialText.returnMenuButton))
+            ReturnToMenu();
+        GUI.enabled = true;
+    }
+
+    private void DrawDeathFade()
+    {
+        float progress = Mathf.Clamp01(finalFlowTimer / Mathf.Max(deathScreenDelaySeconds, 0.01f));
+        Color old = GUI.color;
+        GUI.color = new Color(0f, 0f, 0f, progress * 0.92f);
+        GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+        GUI.color = old;
+    }
+
+    private GUIStyle EndingTitleStyle() => new GUIStyle(GUI.skin.label)
+    {
+        fontSize = 34, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+        normal = { textColor = new Color(0.85f, 0.12f, 0.10f) }
     };
 
     private GUIStyle MarkerStyle() => new GUIStyle(GUI.skin.label)
@@ -760,4 +1135,5 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
         fontSize = 38, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
         normal = { textColor = new Color(1f, 0.86f, 0.15f) }
     };
+
 }

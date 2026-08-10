@@ -21,7 +21,9 @@ public class PlayerHealth : NetworkBehaviour
 
     [Header("Cài đặt Hardcore PZ")]
     public float bleedDamagePerSecond = 1.5f;
+    [Tooltip("Tốc độ hồi máu ở cấp No đầu tiên. Mỗi cấp No cao hơn cộng thêm healBonusPerWellFedTier.")]
     public float passiveHealPerSecond = 0.5f;
+    public float healBonusPerWellFedTier = 0.1f;
 
     [Networked] public NetworkBool isBleeding { get; set; }
     [Networked] public NetworkBool isInPain { get; set; }
@@ -272,14 +274,14 @@ public class PlayerHealth : NetworkBehaviour
             currentHealth -= bleedDamagePerSecond * Runner.DeltaTime;
         }
 
+        ApplyTutorialHealthFloor();
+
         if (!isBleeding && currentHealth < maxHealth && survivalSystem != null)
         {
-            float hungerPct = survivalSystem.currentHunger / survivalSystem.maxHunger;
-            float thirstPct = survivalSystem.currentThirst / survivalSystem.maxThirst;
-
-            if (hungerPct >= 0.8f && thirstPct >= 0.8f)
+            int wellFedTier = survivalSystem.GetWellFedTier();
+            if (wellFedTier > 0)
             {
-                currentHealth += passiveHealPerSecond * Runner.DeltaTime;
+                currentHealth += GetPassiveHealRate(wellFedTier) * Runner.DeltaTime;
             }
         }
 
@@ -299,6 +301,7 @@ public class PlayerHealth : NetworkBehaviour
 
         currentHealth -= damage;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        ApplyTutorialHealthFloor();
 
         if (isTransforming)
         {
@@ -331,6 +334,12 @@ public class PlayerHealth : NetworkBehaviour
 
             if (movementScript != null) movementScript.LockMovement(stunDuration);
         }
+    }
+
+    private void ApplyTutorialHealthFloor()
+    {
+        if (!TutorialSession.IsActive || !TutorialInputGate.HealthFloorEnabled || isDead) return;
+        currentHealth = Mathf.Max(currentHealth, maxHealth * TutorialInputGate.MinimumHealthRatio);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
@@ -506,6 +515,12 @@ public class PlayerHealth : NetworkBehaviour
         if (isDead) return;
         if (HasStateAuthority) PerformHeal(amount);
         else RPC_RequestHeal(amount);
+    }
+
+    public float GetPassiveHealRate(int wellFedTier)
+    {
+        wellFedTier = Mathf.Clamp(wellFedTier, 1, 4);
+        return passiveHealPerSecond + (wellFedTier - 1) * healBonusPerWellFedTier;
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]

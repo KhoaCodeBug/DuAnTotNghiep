@@ -15,6 +15,8 @@ public sealed class IntroCameraFollow : MonoBehaviour
     [SerializeField, Min(0.1f)] private float minZoomSize = 1f;
     [SerializeField, Min(0.1f)] private float maxZoomSize = 3f;
     [SerializeField, Min(0.01f)] private float zoomSmoothTime = 0.15f;
+    [Header("Tutorial camera look-ahead")]
+    [SerializeField, Min(0f)] private float maxLookAhead = 6f;
 
     // These are deliberately the same values configured on Main Camera.  The
     // Intro scene originally serialized a much wider 5-14 range, so tutorial
@@ -32,6 +34,8 @@ public sealed class IntroCameraFollow : MonoBehaviour
 
     public Transform CurrentTarget => target;
     public bool IsTutorialFocusPlaying { get; private set; }
+    public bool IsTutorialFocusHeld { get; private set; }
+    private Coroutine heldFocusRoutine;
 
     public void SetTarget(Transform newTarget, bool snapImmediately = false)
     {
@@ -66,12 +70,26 @@ public sealed class IntroCameraFollow : MonoBehaviour
         if (IsTutorialFocusPlaying) return;
         if (target == null) return;
 
-        Vector3 desiredPosition = target.position + offset;
+        Vector3 desiredPosition = target.position + offset + GetAimLookAhead();
         transform.position = Vector3.SmoothDamp(
             transform.position,
             desiredPosition,
             ref followVelocity,
             smoothTime);
+    }
+
+    private Vector3 GetAimLookAhead()
+    {
+        if (!TutorialSession.IsActive || sceneCamera == null || !Input.GetMouseButton(1)) return Vector3.zero;
+        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return Vector3.zero;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return Vector3.zero;
+        if (AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen) return Vector3.zero;
+
+        Vector3 mouseWorld = sceneCamera.ScreenToWorldPoint(Input.mousePosition);
+        mouseWorld.z = target.position.z;
+        Vector3 direction = mouseWorld - target.position;
+        float sensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 1f);
+        return Vector3.ClampMagnitude(direction, maxLookAhead) * 0.5f * sensitivity;
     }
 
     private void Update()
@@ -113,6 +131,59 @@ public sealed class IntroCameraFollow : MonoBehaviour
     {
         if (focus == null || IsTutorialFocusPlaying) return;
         StartCoroutine(TutorialFocusRoutine(focus, travelSeconds, holdSeconds, returnSeconds));
+    }
+
+    /// <summary>Moves to a tutorial subject and stays there until ReturnTutorialFocus is called.</summary>
+    public void HoldTutorialFocus(Transform focus, float travelSeconds = 1.65f)
+    {
+        if (focus == null || IsTutorialFocusPlaying) return;
+        heldFocusRoutine = StartCoroutine(HeldTutorialFocusRoutine(focus, travelSeconds));
+    }
+
+    public void ReturnTutorialFocus(float returnSeconds = 1.25f)
+    {
+        if (!IsTutorialFocusPlaying) return;
+        if (heldFocusRoutine != null) StopCoroutine(heldFocusRoutine);
+        heldFocusRoutine = StartCoroutine(ReturnTutorialFocusRoutine(returnSeconds));
+    }
+
+    private System.Collections.IEnumerator HeldTutorialFocusRoutine(Transform focus, float travelSeconds)
+    {
+        IsTutorialFocusPlaying = true;
+        IsTutorialFocusHeld = false;
+        followVelocity = Vector3.zero;
+        Vector3 from = transform.position;
+        Vector3 to = focus.position + offset;
+
+        for (float elapsed = 0f; elapsed < travelSeconds; elapsed += Time.unscaledDeltaTime)
+        {
+            float t = Mathf.Clamp01(elapsed / travelSeconds);
+            transform.position = Vector3.LerpUnclamped(from, to, t * t);
+            yield return null;
+        }
+
+        transform.position = to;
+        IsTutorialFocusHeld = true;
+        heldFocusRoutine = null;
+    }
+
+    private System.Collections.IEnumerator ReturnTutorialFocusRoutine(float returnSeconds)
+    {
+        IsTutorialFocusHeld = false;
+        Vector3 from = transform.position;
+        Vector3 to = target != null ? target.position + offset : from;
+
+        for (float elapsed = 0f; elapsed < returnSeconds; elapsed += Time.unscaledDeltaTime)
+        {
+            float t = Mathf.Clamp01(elapsed / returnSeconds);
+            to = target != null ? target.position + offset : to;
+            transform.position = Vector3.LerpUnclamped(from, to, 1f - (1f - t) * (1f - t));
+            yield return null;
+        }
+
+        transform.position = to;
+        IsTutorialFocusPlaying = false;
+        heldFocusRoutine = null;
     }
 
     private System.Collections.IEnumerator TutorialFocusRoutine(Transform focus, float travelSeconds, float holdSeconds, float returnSeconds)

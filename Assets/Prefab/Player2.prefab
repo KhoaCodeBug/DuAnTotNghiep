@@ -882,7 +882,8 @@ MonoBehaviour:
   hurtColor: {r: 1, g: 0, b: 0, a: 1}
   flashDuration: 0.1
   bleedDamagePerSecond: 2
-  passiveHealPerSecond: 2
+  passiveHealPerSecond: 0.5
+  healBonusPerWellFedTier: 0.1
   _isBleeding:
     _value: 0
   _isInPain:
@@ -915,6 +916,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   iconHunger: {fileID: 2800000, guid: 4089d64390dfec244b603edee23555f6, type: 3}
   iconThirst: {fileID: 2800000, guid: 86a3b6e0caa9d48469793001bd3204d0, type: 3}
+  iconBleeding: {fileID: 2800000, guid: daa242e7ebb24845a4fb2b9e57335716, type: 3}
+  badBackgrounds:
+  - {fileID: 2800000, guid: a68396595b654d1fabffc7694f051685, type: 3}
+  - {fileID: 2800000, guid: 3e6254b1d14a4d71b927489ed64eff9e, type: 3}
+  - {fileID: 2800000, guid: 1fd2a9d439f343bbaec11f50c19a75ef, type: 3}
+  - {fileID: 2800000, guid: fa5823e635154243a9458da5f697a115, type: 3}
+  goodBackgrounds:
+  - {fileID: 2800000, guid: 4f52be7470fd4387bb004cf1d84f9d24, type: 3}
+  - {fileID: 2800000, guid: a1de0b9266d44ae38ed65f9a6cc6a9af, type: 3}
+  - {fileID: 2800000, guid: 6f85e074077d4a7ea715f77956ce9a2b, type: 3}
+  - {fileID: 2800000, guid: 704f39b505ac41798e0cf6dd7880c0f0, type: 3}
   maxHunger: 100
   _currentHunger: 0
   hungerDrainRate: 0.5
