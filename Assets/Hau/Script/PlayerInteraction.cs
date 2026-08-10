@@ -1,108 +1,84 @@
-﻿using UnityEngine;
 using Fusion;
+using UnityEngine;
 
 public class PlayerInteraction : NetworkBehaviour
 {
-    public float interactRange = 3f;
+    [SerializeField] private float interactRange = 3f;
 
+    [Networked] private NetworkBool NetworkIsInVehicle { get; set; }
+    [Networked] private NetworkBool NetworkIsVehicleDriver { get; set; }
+    [Networked] public NetworkObject CurrentVehicle { get; private set; }
+
+    public bool IsInVehicle => NetworkIsInVehicle;
     private VehicleControllerFusion nearbyVehicle;
     private VehicleControllerFusion currentVehicle;
+    private Rigidbody2D body;
+    private SpriteRenderer sprite;
+    private Transform nameTag;
+    private bool presentationApplied;
 
-    private bool isInVehicle = false;
-    private MonoBehaviour movementScript;
-
-    void Start()
+    private void Awake()
     {
-        movementScript = GetComponent<PlayerMovement>();
+        body = GetComponent<Rigidbody2D>();
+        sprite = GetComponent<SpriteRenderer>();
+        nameTag = transform.Find("NameTag");
     }
 
-    void Update()
+    private void Update()
     {
         if (!Object.HasInputAuthority) return;
-
         CheckNearbyVehicle();
-
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            if (!isInVehicle)
-                TryEnterVehicle();
-            else
-                ExitVehicle();
-        }
+        if (!Input.GetKeyDown(KeyCode.F)) return;
+        if (NetworkIsInVehicle) currentVehicle?.RequestExit(Object);
+        else nearbyVehicle?.RequestEnter(Object);
     }
 
-    void CheckNearbyVehicle()
+    public override void Render() => ApplyVehiclePresentation();
+
+    public void SetVehicleNetworkState(NetworkObject vehicleObject, bool inVehicle, bool isDriver)
+    {
+        if (!HasStateAuthority) return;
+        CurrentVehicle = inVehicle ? vehicleObject : null;
+        NetworkIsInVehicle = inVehicle;
+        NetworkIsVehicleDriver = inVehicle && isDriver;
+        SetPhysicsEnabled(!inVehicle);
+    }
+
+    private void CheckNearbyVehicle()
     {
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, interactRange);
-
-        VehicleControllerFusion foundVehicle = null;
-
-        foreach (var hit in hits)
+        nearbyVehicle = null;
+        foreach (Collider2D hit in hits)
         {
-            var vehicle = hit.GetComponentInParent<VehicleControllerFusion>();
-            if (vehicle != null)
-            {
-                foundVehicle = vehicle;
-                break;
-            }
-        }
-
-        if (foundVehicle != null && nearbyVehicle == null)
-        {
-            nearbyVehicle = foundVehicle;
-            Debug.Log("[NEAR VEHICLE] " + foundVehicle.name);
-        }
-
-        if (foundVehicle == null && nearbyVehicle != null)
-        {
-            nearbyVehicle = null;
-            Debug.Log("[LEFT VEHICLE]");
+            VehicleControllerFusion vehicle = hit.GetComponentInParent<VehicleControllerFusion>();
+            if (vehicle != null) { nearbyVehicle = vehicle; break; }
         }
     }
 
-    void TryEnterVehicle()
+    private void SetPhysicsEnabled(bool enabled)
     {
-        if (nearbyVehicle == null)
-        {
-            Debug.Log("No vehicle nearby");
-            return;
-        }
-
-        nearbyVehicle.RequestEnter(Object);
+        if (body == null) return;
+        body.linearVelocity = Vector2.zero;
+        body.angularVelocity = 0f;
+        body.simulated = enabled;
     }
 
-    void ExitVehicle()
+    private void ApplyVehiclePresentation()
     {
-        if (currentVehicle != null)
-        {
-            currentVehicle.RequestExit(Object);
-        }
-    }
+        VehicleControllerFusion vehicle = CurrentVehicle != null ? CurrentVehicle.GetComponent<VehicleControllerFusion>() : null;
+        bool shouldApply = NetworkIsInVehicle;
+        if (presentationApplied == shouldApply && currentVehicle == vehicle) return;
 
-    public void SetVehicle(VehicleControllerFusion vehicle, bool enter, bool isDriver)
-    {
-        isInVehicle = enter;
-        currentVehicle = enter ? vehicle : null;
+        VehicleControllerFusion previousVehicle = currentVehicle;
+        presentationApplied = shouldApply;
+        currentVehicle = vehicle;
+        if (sprite != null) sprite.enabled = !shouldApply;
+        if (nameTag != null) nameTag.gameObject.SetActive(!shouldApply);
+        Animator playerAnimator = GetComponent<Animator>();
+        if (playerAnimator != null) playerAnimator.SetBool("isSitting", shouldApply);
 
-        // 🔥 FIX: CHỈ LOCAL PLAYER ĐƯỢC ĐỔI CAMERA
-        if (Object.HasInputAuthority && vehicle != null)
-        {
-            vehicle.SetCamera(isDriver);
-        }
-
-        var anim = GetComponent<Animator>();
-        if (anim != null)
-            anim.SetBool("isSitting", enter);
-
-        if (movementScript != null)
-            movementScript.enabled = !enter;
-
-        Transform tag = transform.Find("NameTag");
-        if (tag != null)
-            tag.gameObject.SetActive(!enter);
-
-        var sprite = GetComponent<SpriteRenderer>();
-        if (sprite != null)
-            sprite.enabled = !enter;
+        if (!Object.HasInputAuthority) return;
+        if (!shouldApply) previousVehicle?.SetCamera(false);
+        else if (vehicle != null) vehicle.SetCamera(NetworkIsVehicleDriver);
     }
 }

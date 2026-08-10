@@ -213,6 +213,21 @@ public class PlayerMovement : NetworkBehaviour
 
         if (GetInput(out PlayerNetworkInput input))
         {
+            // Keep this behaviour active while seated so the driver's input is
+            // still replicated to the authoritative vehicle. The player body
+            // itself must never move independently of the vehicle.
+            PlayerInteraction interaction = GetComponent<PlayerInteraction>();
+            bool isInVehicle = interaction != null && interaction.IsInVehicle;
+
+            if (isInVehicle)
+            {
+                NetMoveInput = input.moveInput;
+                NetIsMoving = false;
+                NetIsRunning = false;
+                rb.linearVelocity = Vector2.zero;
+                return;
+            }
+
             if (NetStunTimer > 0)
             {
                 input.moveInput = Vector2.zero;
