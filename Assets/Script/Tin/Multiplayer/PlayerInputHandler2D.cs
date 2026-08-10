@@ -286,9 +286,12 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             isDead = health.currentHealth <= 0;
         }
 
+        PlayerSurvival survival = GetComponent<PlayerSurvival>();
+        bool isSleepLocked = survival != null && survival.IsSleepInputLocked;
+
         // 🔥 CHẶN TẤT CẢ INPUT NẾU ĐANG MỞ UI HOẶC ĐÃ CHẾT
         // Khi trả về 1 input rỗng, nhân vật sẽ đứng im, không bấm chuột phải bắn súng được luôn!
-        if (isTyping || isUIMenuOpen || isHealthOpen || isDead)
+        if (isTyping || isUIMenuOpen || isHealthOpen || isDead || isSleepLocked)
         {
             input.Set(new PlayerNetworkInput());
             return;

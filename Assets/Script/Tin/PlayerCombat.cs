@@ -42,6 +42,7 @@ public class PlayerCombat : NetworkBehaviour
     private PlayerMovement playerMove;
     private PlayerStamina staminaSystem;
     private InventorySystem invSys;
+    private PlayerSurvival survivalSystem;
 
     [Networked] private TickTimer nextFireTimer { get; set; }
     [Networked] private TickTimer nextBashTimer { get; set; }
@@ -54,6 +55,7 @@ public class PlayerCombat : NetworkBehaviour
         playerMove = GetComponent<PlayerMovement>();
         staminaSystem = GetComponent<PlayerStamina>();
         invSys = GetComponent<InventorySystem>();
+        survivalSystem = GetComponent<PlayerSurvival>();
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
 
@@ -128,6 +130,8 @@ public class PlayerCombat : NetworkBehaviour
             return;
         }
 
+        if (survivalSystem != null && survivalSystem.IsSleepInputLocked) return;
+
         if (GetInput(out PlayerNetworkInput input))
         {
             if (isReloading) return;
@@ -172,7 +176,8 @@ public class PlayerCombat : NetworkBehaviour
             {
                 if (staminaSystem != null && staminaSystem.currentStamina < bashStaminaCost) return;
 
-                nextBashTimer = TickTimer.CreateFromSeconds(Runner, bashCooldown);
+                float meleeSpeed = survivalSystem != null ? survivalSystem.GetFatigueMeleeSpeedMultiplier() : 1f;
+                nextBashTimer = TickTimer.CreateFromSeconds(Runner, bashCooldown / Mathf.Max(0.1f, meleeSpeed));
                 Bash();
             }
         }
@@ -368,6 +373,11 @@ public class PlayerCombat : NetworkBehaviour
                 if (myHealth != null && myHealth.isInPain)
                 {
                     finalBashDamage *= 0.7f;
+                }
+
+                if (survivalSystem != null)
+                {
+                    finalBashDamage *= survivalSystem.GetFatigueMeleeDamageMultiplier();
                 }
 
                 // ========================================================

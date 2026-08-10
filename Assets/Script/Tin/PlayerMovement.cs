@@ -48,6 +48,7 @@ public class PlayerMovement : NetworkBehaviour
     private Rigidbody2D rb;
     private PlayerStamina staminaSystem;
     private PlayerHealth healthSystem;
+    private PlayerSurvival survivalSystem;
 
     // 🔥 CÔNG TẮC KHÓA LỖI VÀNG KHÈ KHI BỊ ẢO GIÁC
     public bool isParanoiaZombie = false;
@@ -131,6 +132,7 @@ public class PlayerMovement : NetworkBehaviour
         rb = GetComponent<Rigidbody2D>();
         staminaSystem = GetComponent<PlayerStamina>();
         healthSystem = GetComponent<PlayerHealth>();
+        survivalSystem = GetComponent<PlayerSurvival>();
         rb.freezeRotation = true;
 
         if (footstepAudioSource == null)
@@ -204,6 +206,16 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming))
         {
+            rb.linearVelocity = Vector2.zero;
+            return;
+        }
+
+        if (survivalSystem != null && survivalSystem.IsSleepInputLocked)
+        {
+            NetMoveInput = Vector2.zero;
+            NetIsMoving = false;
+            NetIsRunning = false;
+            NetIsAiming = false;
             rb.linearVelocity = Vector2.zero;
             return;
         }
@@ -293,6 +305,11 @@ public class PlayerMovement : NetworkBehaviour
             if (health != null && health.isInPain)
             {
                 currentSpeed *= 0.6f;
+            }
+
+            if (survivalSystem != null)
+            {
+                currentSpeed *= survivalSystem.GetFatigueMovementMultiplier();
             }
 
             rb.linearVelocity = input.moveInput * currentSpeed;
