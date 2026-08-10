@@ -128,6 +128,34 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         if (HasStateAuthority) TutorialForceVisible = visible;
     }
 
+    /// <summary>
+    /// Releases a staged tutorial zombie back into the same vision, hearing,
+    /// pathfinding and attack loop used by normal zombies.
+    /// </summary>
+    public void ReleaseTutorialStationary(Vector2 alertPosition)
+    {
+        if (!HasStateAuthority || NetIsDead) return;
+
+        ReleaseTutorialStationary();
+        isInvestigating = true;
+        isSearching = false;
+        investigateTarget = alertPosition;
+        investigateTimer = 3f;
+        path = null;
+        currentWaypoint = 0;
+        pathRecalcTimer = 0f;
+    }
+
+    public void ReleaseTutorialStationary()
+    {
+        if (!HasStateAuthority || NetIsDead) return;
+        TutorialStationary = false;
+        tutorialSpawnStationary = false;
+        path = null;
+        currentWaypoint = 0;
+        pathRecalcTimer = 0f;
+    }
+
     [Header("=== Local Avoidance ===")]
     [SerializeField] private float obstacleProbeDistance = 0.8f;
     [SerializeField] private float obstacleAvoidanceWeight = 1.8f;

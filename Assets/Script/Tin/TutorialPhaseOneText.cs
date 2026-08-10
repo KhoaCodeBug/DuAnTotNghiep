@@ -65,7 +65,28 @@ public sealed class TutorialPhaseOneText : ScriptableObject
     [TextArea(3, 7)] public string meleeBrief = "Khi đã đủ gần, giữ [Chuột phải] để ngắm hướng ra đòn và nhấn [Space] để đánh thường bằng báng súng.\n\nKết liễu zombie trước khi nó kịp phản ứng.\n\n[Chuột trái] Tiếp tục";
     public string meleeObjective = "GIỮ [CHUỘT PHẢI] + NHẤN [SPACE] ĐỂ HẠ ZOMBIE";
 
-    [Header("Current phase complete")]
-    public string completeTitle = "GIAI ĐOẠN HIỆN TẠI HOÀN THÀNH";
-    [TextArea(3, 7)] public string completeBrief = "Bạn đã biết cách tiếp tế, chuẩn bị vũ khí, kiểm soát tiếng ồn và tiếp cận zombie từ phía sau.\n\nBài học bắn súng sẽ tiếp tục ở bước kế tiếp.\n\n[Chuột trái] Tiếp tục";
+    [Header("Bleeding and bandage")]
+    public string bleedingTitle = "BẠN ĐANG CHẢY MÁU";
+    [TextArea(3, 7)] public string bleedingBrief = "Một vết rách ở tay đang khiến bạn mất máu. Biểu tượng đỏ này sẽ cảnh báo khi cơ thể còn vết thương hở.\n\nHãy kiểm tra tình trạng cơ thể và xử lý nó trước khi đi tiếp.\n\n[Chuột trái] Tiếp tục";
+    public string openHealthObjective = "NHẤN [TAB], SAU ĐÓ CHỌN HEALTH STATUS";
+    public string bandageObjective = "NHẤP CHUỘT PHẢI VÀO VẾT THƯƠNG VÀ CHỌN APPLY BANDAGE";
+
+    [Header("Ranged weapon")]
+    public string rangedTitle = "MỤC TIÊU Ở XA";
+    [TextArea(3, 7)] public string rangedBrief = "Không phải mối nguy nào cũng cho phép bạn tiếp cận an toàn. Với mục tiêu ở xa, khẩu súng giúp bạn tấn công trước khi nó chạm tới mình.\n\n[Chuột trái] Tiếp tục";
+    public string rangedNoiseTitle = "CÁI GIÁ CỦA MỘT PHÁT SÚNG";
+    [TextArea(3, 7)] public string rangedNoiseBrief = "Súng rất hiệu quả, nhưng tiếng nổ có thể kéo mọi zombie trong khu vực tới vị trí của bạn. Hãy nhìn thanh Độ ồn trước khi bóp cò.\n\n[Chuột trái] Sẵn sàng";
+    public string rangedObjective = "GIỮ [CHUỘT PHẢI] VÀ BẮN HẠ ZOMBIE B";
+
+    [Header("Final horde")]
+    public string finalTauntTitle = "BẮN KHÁ ĐẤY";
+    [TextArea(3, 7)] public string finalTauntBrief = "Bạn đã xử lý được mục tiêu. Nhanh, gọn và chính xác.\n\nChỉ có một vấn đề nhỏ... cả khu phố vừa nghe thấy rồi.\n\nChúc may mắn, kẻ sống sót.\n\n[Chuột trái] Tiếp tục";
+    public string hordeObjective = "SỐNG SÓT";
+
+    [Header("Tutorial ending")]
+    public string endingTitle = "ĐÂY LÀ CÁCH BẠN CHẾT";
+    [TextArea(2, 5)] public string endingBody = "Bạn đã hoàn thành phần hướng dẫn. Trong thế giới này, sống sót không có nghĩa là chiến thắng — chỉ là trì hoãn điều không thể tránh khỏi.";
+    public string startMainButton = "BẮT ĐẦU SINH TỒN";
+    public string replayButton = "CHƠI LẠI HƯỚNG DẪN";
+    public string returnMenuButton = "TRỞ VỀ MENU";
 }

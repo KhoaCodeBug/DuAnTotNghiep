@@ -92,8 +92,20 @@ MonoBehaviour:
     v\xE0 nh\u1EA5n [Space] \u0111\u1EC3 \u0111\xE1nh b\u1EB1ng b\xE1ng s\xFAng.\n\n[Chu\u1ED9t
     tr\xE1i] Ti\u1EBFp t\u1EE5c"
   meleeObjective: "GI\u1EEE [CHU\u1ED8T PH\u1EA2I] + NH\u1EA4N [SPACE] \u0110\u1EC2 H\u1EA0 ZOMBIE"
-  completeTitle: "GIAI \u0110O\u1EA0N HI\u1EC6N T\u1EA0I HO\xC0N TH\xC0NH"
-  completeBrief: "B\u1EA1n \u0111\xE3 bi\u1EBFt c\xE1ch ti\u1EBFp t\u1EBF, chu\u1EA9n b\u1ECB
-    v\u0169 kh\xED, ki\u1EC3m so\xE1t ti\u1EBFng \u1ED3n v\xE0 ti\u1EBFp c\u1EADn zombie t\u1EEB
-    ph\xEDa sau.\n\nB\xE0i h\u1ECDc b\u1EAFn s\xFAng s\u1EBD ti\u1EBFp t\u1EE5c \u1EDF b\u01B0\u1EDBc
-    k\u1EBF ti\u1EBFp.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  bleedingTitle: "BẠN ĐANG CHẢY MÁU"
+  bleedingBrief: "Một vết rách ở tay đang khiến bạn mất máu. Biểu tượng đỏ này sẽ cảnh báo khi cơ thể còn vết thương hở.\n\nHãy kiểm tra tình trạng cơ thể và xử lý nó trước khi đi tiếp.\n\n[Chuột trái] Tiếp tục"
+  openHealthObjective: "NHẤN [TAB], SAU ĐÓ CHỌN HEALTH STATUS"
+  bandageObjective: "NHẤP CHUỘT PHẢI VÀO VẾT THƯƠNG VÀ CHỌN APPLY BANDAGE"
+  rangedTitle: "MỤC TIÊU Ở XA"
+  rangedBrief: "Không phải mối nguy nào cũng cho phép bạn tiếp cận an toàn. Với mục tiêu ở xa, khẩu súng giúp bạn tấn công trước khi nó chạm tới mình.\n\n[Chuột trái] Tiếp tục"
+  rangedNoiseTitle: "CÁI GIÁ CỦA MỘT PHÁT SÚNG"
+  rangedNoiseBrief: "Súng rất hiệu quả, nhưng tiếng nổ có thể kéo mọi zombie trong khu vực tới vị trí của bạn. Hãy nhìn thanh Độ ồn trước khi bóp cò.\n\n[Chuột trái] Sẵn sàng"
+  rangedObjective: "GIỮ [CHUỘT PHẢI] VÀ BẮN HẠ ZOMBIE B"
+  finalTauntTitle: "BẮN KHÁ ĐẤY"
+  finalTauntBrief: "Bạn đã xử lý được mục tiêu. Nhanh, gọn và chính xác.\n\nChỉ có một vấn đề nhỏ... cả khu phố vừa nghe thấy rồi.\n\nChúc may mắn, kẻ sống sót.\n\n[Chuột trái] Tiếp tục"
+  hordeObjective: "SỐNG SÓT"
+  endingTitle: "ĐÂY LÀ CÁCH BẠN CHẾT"
+  endingBody: "Bạn đã hoàn thành phần hướng dẫn. Trong thế giới này, sống sót không có nghĩa là chiến thắng — chỉ là trì hoãn điều không thể tránh khỏi."
+  startMainButton: "BẮT ĐẦU SINH TỒN"
+  replayButton: "CHƠI LẠI HƯỚNG DẪN"
+  returnMenuButton: "TRỞ VỀ MENU"

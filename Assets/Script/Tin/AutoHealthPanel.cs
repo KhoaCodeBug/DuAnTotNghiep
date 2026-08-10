@@ -39,6 +39,7 @@ public class AutoHealthPanel : MonoBehaviour
     
     // --- Graphical Health Bar ---
     private Image healthBarFill;
+    private RectTransform healthBarFillRect;
     private Text healthBarText;
 
     private bool isOpen = false;
@@ -179,16 +180,15 @@ public class AutoHealthPanel : MonoBehaviour
 
         GameObject hbFillObj = new GameObject("HealthBarFill");
         hbFillObj.transform.SetParent(hbBgObj.transform, false);
-        RectTransform hbFillRect = hbFillObj.AddComponent<RectTransform>();
-        hbFillRect.anchorMin = Vector2.zero; hbFillRect.anchorMax = Vector2.one;
-        // Khoảng cách từ fill tới viền khung
-        hbFillRect.offsetMin = new Vector2(3, 3); hbFillRect.offsetMax = new Vector2(-3, -3);
+        healthBarFillRect = hbFillObj.AddComponent<RectTransform>();
+        healthBarFillRect.anchorMin = new Vector2(0f, 0f);
+        healthBarFillRect.anchorMax = new Vector2(1f, 0f);
+        healthBarFillRect.pivot = new Vector2(0.5f, 0f);
+        healthBarFillRect.anchoredPosition = new Vector2(0f, 3f);
+        healthBarFillRect.sizeDelta = new Vector2(-6f, 314f);
         
         healthBarFill = hbFillObj.AddComponent<Image>();
-        healthBarFill.type = Image.Type.Filled;
-        healthBarFill.fillMethod = Image.FillMethod.Vertical; // Máu dựt dọc
-
-        healthBarFill.fillAmount = 1f;
+        healthBarFill.type = Image.Type.Simple;
         healthBarFill.color = Color.green;
 
         GameObject hbTxtObj = new GameObject("HealthBarText");
@@ -432,6 +432,39 @@ public class AutoHealthPanel : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Adds one deterministic, non-lethal wound for the standalone tutorial.
+    /// It uses the real body-part and bleeding systems so the player must heal
+    /// it through the normal Health Status context menu.
+    /// </summary>
+    public void ApplyTutorialWound(string targetPart = "Right Forearm")
+    {
+        FindLocalPlayerCache();
+        if (!bodyParts.TryGetValue(targetPart, out BodyPartData part))
+            part = bodyParts["Right Forearm"];
+
+        if (part.Injuries.Count == 0)
+            part.Injuries.Add(InjuryType.Laceration);
+
+        part.IsBandaged = false;
+        EvaluateGlobalBleeding();
+        if (isOpen) UpdateAllUI();
+    }
+
+    public bool HasAnyUnbandagedInjury()
+    {
+        foreach (BodyPartData part in bodyParts.Values)
+            if (part.Injuries.Count > 0 && !part.IsBandaged) return true;
+        return false;
+    }
+
+    public bool HasAnyBandagedInjury()
+    {
+        foreach (BodyPartData part in bodyParts.Values)
+            if (part.Injuries.Count > 0 && part.IsBandaged) return true;
+        return false;
+    }
+
     private void EvaluateGlobalBleeding()
     {
         if (localPlayerHealth == null) return;
@@ -601,7 +634,7 @@ public class AutoHealthPanel : MonoBehaviour
             }
         }
         
-        // Hiệu ứng máu giật mượt mà (Lerp)
+        // Co chiều cao thật của thanh từ đáy lên theo HP, đồng thời vẫn giữ hiệu ứng mượt.
         if (localPlayerHealth != null && localPlayerHealth.Object != null && localPlayerHealth.Object.IsValid && healthBarFill != null)
         {
             float targetHealth = localPlayerHealth.currentHealth;
@@ -611,11 +644,17 @@ public class AutoHealthPanel : MonoBehaviour
                 float lerpSpeed = (targetHealth < currentDisplayedHealth) ? 8f : 2f; 
                 currentDisplayedHealth = Mathf.Lerp(currentDisplayedHealth, targetHealth, Time.deltaTime * lerpSpeed);
                 
-                float maxHP = localPlayerHealth.maxHealth;
-                float pct = maxHP > 0 ? currentDisplayedHealth / maxHP : 0f;
-                healthBarFill.fillAmount = pct;
-                healthBarFill.color = Color.Lerp(colInjured, Color.white, pct); // Theo Hình 2 thì máu từ Trắng ngả xuống Đỏ
             }
+            else
+            {
+                currentDisplayedHealth = targetHealth;
+            }
+
+            float maxHP = localPlayerHealth.maxHealth;
+            float pct = maxHP > 0f ? Mathf.Clamp01(currentDisplayedHealth / maxHP) : 0f;
+            if (healthBarFillRect != null)
+                healthBarFillRect.sizeDelta = new Vector2(-6f, 314f * pct);
+            healthBarFill.color = Color.Lerp(colInjured, Color.white, pct);
         }
         if (Input.GetMouseButtonDown(0) && EventSystem.current != null && !EventSystem.current.IsPointerOverGameObject())
         {
