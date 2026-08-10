@@ -27,6 +27,8 @@ public class PlayerInteraction : NetworkBehaviour
     private void Update()
     {
         if (!Object.HasInputAuthority) return;
+        PlayerSurvival survival = GetComponent<PlayerSurvival>();
+        if (survival != null && survival.IsSleepInputLocked) return;
         CheckNearbyVehicle();
         if (!Input.GetKeyDown(KeyCode.F)) return;
         if (NetworkIsInVehicle) currentVehicle?.RequestExit(Object);

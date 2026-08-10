@@ -12,6 +12,7 @@ public class PlayerSurvival : NetworkBehaviour
     public Texture2D iconHunger;
     public Texture2D iconThirst;
     public Texture2D iconBleeding;
+    public Texture2D iconSleepy;
 
     [Header("--- Moodle Backgrounds ---")]
     public Texture2D[] badBackgrounds = new Texture2D[4];
@@ -31,12 +32,27 @@ public class PlayerSurvival : NetworkBehaviour
     public float damageOverTime = 2f;
     private PlayerHealth healthScript;
 
+    [Header("--- Ngủ & Mệt mỏi ---")]
+    [Networked] public NetworkBool IsWaitingForSleep { get; set; }
+    [Networked] public NetworkBool RestedThisNight { get; set; }
+    [Networked] public int SleepBedId { get; set; }
+    [Networked] public float SleepRequestedAtHour { get; set; }
+
+    private string sleepStatusMessage;
+    private float sleepStatusMessageUntil;
+
+    public bool IsSleepInputLocked => IsWaitingForSleep ||
+                                      (DayNightManager.Instance != null && DayNightManager.Instance.IsSleepTransitionActive);
+
     public override void Spawned()
     {
         if (HasStateAuthority)
         {
             currentHunger = maxHunger;
             currentThirst = maxThirst;
+            IsWaitingForSleep = false;
+            RestedThisNight = false;
+            SleepBedId = 0;
         }
 
         healthScript = GetComponent<PlayerHealth>();
@@ -55,6 +71,161 @@ public class PlayerSurvival : NetworkBehaviour
         {
             healthScript?.TakeDamage(damageOverTime * Runner.DeltaTime, true);
         }
+    }
+
+    public void TrySleepAtBed(SleepInteractable bed)
+    {
+        if (!HasInputAuthority || bed == null) return;
+        if (HasStateAuthority) ServerTrySleepAtBed(bed.BedId);
+        else RPC_RequestSleepAtBed(bed.BedId);
+    }
+
+    public void CancelWaitingForSleep()
+    {
+        if (!HasInputAuthority) return;
+        if (HasStateAuthority) ServerCancelSleep();
+        else RPC_RequestCancelSleep();
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestSleepAtBed(int bedId)
+    {
+        ServerTrySleepAtBed(bedId);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestCancelSleep()
+    {
+        ServerCancelSleep();
+    }
+
+    private void ServerTrySleepAtBed(int bedId)
+    {
+        if (!HasStateAuthority || IsWaitingForSleep) return;
+
+        DayNightManager manager = DayNightManager.Instance;
+        if (manager == null)
+        {
+            RPC_ShowSleepMessage("Không tìm thấy hệ thống ngày và đêm.");
+            return;
+        }
+
+        if (!manager.CanUseBedNow())
+        {
+            RPC_ShowSleepMessage("Chỉ có thể ngủ từ 20:00 đến 03:00.");
+            return;
+        }
+
+        if (!SleepInteractable.TryGetBed(bedId, out SleepInteractable bed) ||
+            bed.DistanceTo(transform.position) > bed.interactionDistance + 0.4f)
+        {
+            RPC_ShowSleepMessage("Bạn đang đứng quá xa giường.");
+            return;
+        }
+
+        PlayerSurvival[] players = FindObjectsByType<PlayerSurvival>(FindObjectsSortMode.None);
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (players[i] == null || players[i] == this) continue;
+            if (players[i].IsWaitingForSleep && players[i].SleepBedId == bedId)
+            {
+                RPC_ShowSleepMessage("Giường này đã có người sử dụng.");
+                return;
+            }
+        }
+
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (health == null || health.isDead || health.isTransforming) return;
+        PlayerInteraction interaction = GetComponent<PlayerInteraction>();
+        if (interaction != null && interaction.IsInVehicle)
+        {
+            RPC_ShowSleepMessage("Hãy xuống xe trước khi sử dụng giường.");
+            return;
+        }
+
+        IsWaitingForSleep = true;
+        SleepBedId = bedId;
+        SleepRequestedAtHour = manager.CurrentTime;
+        RPC_ShowSleepMessage("Đã nằm xuống. Đang đợi những người chơi khác...");
+    }
+
+    private void ServerCancelSleep()
+    {
+        if (!HasStateAuthority || !IsWaitingForSleep) return;
+        if (DayNightManager.Instance != null && DayNightManager.Instance.IsSleepTransitionActive) return;
+
+        IsWaitingForSleep = false;
+        SleepBedId = 0;
+        RPC_ShowSleepMessage("Bạn đã rời khỏi giường.");
+    }
+
+    public void ServerFinishSleep()
+    {
+        if (!HasStateAuthority) return;
+        IsWaitingForSleep = false;
+        SleepBedId = 0;
+        RestedThisNight = true;
+    }
+
+    public void ServerResetRestForNextNight(float currentHour)
+    {
+        if (!HasStateAuthority) return;
+        if (currentHour >= 12f && currentHour < 20f)
+            RestedThisNight = false;
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    public void RPC_ShowSleepMessage(string message)
+    {
+        sleepStatusMessage = message;
+        sleepStatusMessageUntil = Time.unscaledTime + 3.5f;
+    }
+
+    public float GetSleepiness01()
+    {
+        if (RestedThisNight || DayNightManager.Instance == null || TutorialSession.IsActive) return 0f;
+        float elapsed = GetNightElapsedSince22(DayNightManager.Instance.CurrentTime);
+        return elapsed < 0f ? 0f : Mathf.Clamp01((elapsed + 0.01f) / 5f);
+    }
+
+    public int GetSleepinessTier()
+    {
+        float sleepiness = GetSleepiness01();
+        if (sleepiness <= 0f) return 0;
+        return Mathf.Clamp(Mathf.CeilToInt(sleepiness * 4f), 1, 4);
+    }
+
+    public float GetFatigueMovementMultiplier()
+    {
+        float debuff = GetFatigueDebuff01();
+        return debuff <= 0f ? 1f : Mathf.Lerp(0.85f, 0.60f, debuff);
+    }
+
+    public float GetFatigueMeleeDamageMultiplier()
+    {
+        float debuff = GetFatigueDebuff01();
+        return debuff <= 0f ? 1f : Mathf.Lerp(0.85f, 0.60f, debuff);
+    }
+
+    public float GetFatigueMeleeSpeedMultiplier()
+    {
+        float debuff = GetFatigueDebuff01();
+        return debuff <= 0f ? 1f : Mathf.Lerp(0.85f, 0.60f, debuff);
+    }
+
+    private float GetFatigueDebuff01()
+    {
+        if (RestedThisNight || DayNightManager.Instance == null) return 0f;
+        float elapsed = GetNightElapsedSince22(DayNightManager.Instance.CurrentTime);
+        // 01:00 là 3 giờ sau 22:00; debuff nặng dần đến lúc bất tỉnh lúc 03:00.
+        return elapsed <= 3f ? 0f : Mathf.InverseLerp(3f, 5f, elapsed);
+    }
+
+    private static float GetNightElapsedSince22(float hour)
+    {
+        if (hour >= 22f) return hour - 22f;
+        if (hour < 3f) return hour + 2f;
+        return -1f;
     }
 
     public void RestoreHunger(float amount)
@@ -175,6 +346,20 @@ public class PlayerSurvival : NetworkBehaviour
             yPos += MoodleSpacingY;
         }
 
+        int sleepTier = GetSleepinessTier();
+        if (sleepTier > 0)
+        {
+            string[] names = { "", "Hơi buồn ngủ", "Buồn ngủ", "Rất buồn ngủ", "Kiệt sức" };
+            string effect = DayNightManager.Instance != null && DayNightManager.Instance.CurrentTime >= 1f &&
+                            DayNightManager.Instance.CurrentTime < 3f
+                ? $"Di chuyển và cận chiến đang bị suy giảm. Bạn sẽ bất tỉnh lúc 03:00."
+                : "Hãy tìm một chiếc giường an toàn trước 03:00.";
+            string tooltip = $"<b>{names[sleepTier]}</b>\n{effect}";
+            DrawMoodle(iconSleepy, GetBackground(badBackgrounds, sleepTier),
+                new Rect(xPos, yPos, MoodleIconSize, MoodleIconSize), tooltip, new Color(0.78f, 0.84f, 1f));
+            yPos += MoodleSpacingY;
+        }
+
         if (healthScript != null && healthScript.isBleeding)
         {
             string tooltip = $"<b>Đang chảy máu</b>\n" +
@@ -183,6 +368,8 @@ public class PlayerSurvival : NetworkBehaviour
             DrawMoodle(iconBleeding, GetBackground(badBackgrounds, 4),
                 new Rect(xPos, yPos, MoodleIconSize, MoodleIconSize), tooltip, new Color(1f, 0.75f, 0.75f));
         }
+
+        DrawSleepOverlay();
     }
 
     /// <summary>
@@ -203,9 +390,70 @@ public class PlayerSurvival : NetworkBehaviour
             yPos += MoodleSpacingY;
         if (thirstRatio < 0.4f)
             yPos += MoodleSpacingY;
+        if (GetSleepinessTier() > 0)
+            yPos += MoodleSpacingY;
 
         rect = new Rect(Screen.width - MoodleRightMargin, yPos, MoodleIconSize, MoodleIconSize);
         return true;
+    }
+
+    private void DrawSleepOverlay()
+    {
+        DayNightManager manager = DayNightManager.Instance;
+        bool waiting = IsWaitingForSleep && (manager == null || !manager.IsSleepTransitionActive);
+        bool transitioning = manager != null && manager.IsSleepTransitionActive;
+
+        if (waiting || transitioning)
+        {
+            int previousDepth = GUI.depth;
+            GUI.depth = -1000;
+            Color previousColor = GUI.color;
+            float alpha = transitioning ? manager.GetSleepOverlayAlpha() : 0.72f;
+            GUI.color = transitioning ? new Color(0f, 0f, 0f, alpha) : new Color(0.16f, 0.18f, 0.22f, alpha);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 26,
+                fontStyle = FontStyle.Bold
+            };
+            titleStyle.normal.textColor = Color.white;
+
+            if (waiting)
+            {
+                int sleeping = 0;
+                int total = 0;
+                if (manager != null) manager.GetSleepCounts(out sleeping, out total);
+                GUI.Label(new Rect(0f, Screen.height * 0.42f, Screen.width, 48f),
+                    $"ĐANG ĐỢI NGƯỜI CHƠI KHÁC  ({sleeping}/{total})", titleStyle);
+                if (GUI.Button(new Rect(Screen.width * 0.5f - 90f, Screen.height * 0.54f, 180f, 44f), "RỜI KHỎI GIƯỜNG"))
+                    CancelWaitingForSleep();
+            }
+            else if (alpha > 0.08f)
+            {
+                string label = manager.CurrentSleepPhase == DayNightManager.SleepPhase.ForcedFade
+                    ? "BẠN ĐÃ KIỆT SỨC..."
+                    : "ĐANG NGỦ...";
+                GUI.Label(new Rect(0f, Screen.height * 0.46f, Screen.width, 48f), label, titleStyle);
+            }
+
+            GUI.color = previousColor;
+            GUI.depth = previousDepth;
+        }
+
+        if (!string.IsNullOrEmpty(sleepStatusMessage) && Time.unscaledTime < sleepStatusMessageUntil)
+        {
+            GUIStyle messageStyle = new GUIStyle(GUI.skin.box)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 16,
+                fontStyle = FontStyle.Bold,
+                wordWrap = true
+            };
+            GUI.Box(new Rect(Screen.width * 0.5f - 230f, 55f, 460f, 48f), sleepStatusMessage, messageStyle);
+        }
     }
 
     private static int GetBadTier(float ratio)
