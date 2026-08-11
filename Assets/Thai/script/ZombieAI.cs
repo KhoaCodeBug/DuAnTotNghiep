@@ -48,7 +48,7 @@ public class ZombieAI : NetworkBehaviour
     [SerializeField] private float searchRadius = 2f;
     [SerializeField] private float searchWaitDuration = 1f;
     [SerializeField] private float hearingRangeMultiplier = 2f;
-    [SerializeField] private float hearingInvestigateSpeedMultiplier = 2f;
+    [SerializeField] private float hearingInvestigateSpeedMultiplier = 1.2f;
     [SerializeField, Range(0f, 1f)] private float loudHearingUrgencyThreshold = 0.75f;
     [SerializeField] private float quietHearingSpeedMultiplier = 0.65f;
     [SerializeField] private float normalHearingSpeedMultiplier = 1f;
