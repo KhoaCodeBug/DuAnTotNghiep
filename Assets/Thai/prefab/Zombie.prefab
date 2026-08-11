@@ -371,7 +371,6 @@ MonoBehaviour:
   separationRadius: 0.45
   separationWeight: 1.5
   detectionRange: 1.35
-  directChaseRange: 2
   trackingDuration: 4
   viewAngle: 90
   alertViewAngle: 140
@@ -381,15 +380,12 @@ MonoBehaviour:
   searchWaitDuration: 1.2
   hearingRangeMultiplier: 2
   hearingInvestigateSpeedMultiplier: 2
-  moveSpeed: 1
-  attackRange: 0.31
-  damageRadius: 0.31
+  moveSpeed: 2.5
+  attackRange: 0.12
+  damageRadius: 0.12
   attackCooldown: 1.5
   attackCommitDuration: 1.25
-  attackRangeBuffer: 0.05
   attackHitAngle: 120
-  attackWindupDelay: 1.5
-  attackPrepareHoldBuffer: 0.25
   damageAtk1: 5
   damageAtk2: 5
   damageAtk3: 5
