@@ -37,8 +37,6 @@ public class ZombieAI : NetworkBehaviour
 
     [Header("--- Phạm vi Phát hiện (Detection) ---")]
     public float detectionRange = 10f;
-    [Tooltip("Khoảng cách bỏ qua A* để lao thẳng vào Player nếu không có tường")]
-    public float directChaseRange = 3f;
     [SerializeField] private float trackingDuration = 3f;
     [SerializeField, Range(30f, 360f)] private float viewAngle = 180f;
     [SerializeField, Range(90f, 360f)] private float alertViewAngle = 220f;
@@ -57,15 +55,12 @@ public class ZombieAI : NetworkBehaviour
     [SerializeField] private float quietSoundPositionUncertainty = 0.75f;
 
     [Header("--- Tấn công & Tốc độ ---")]
-    public float moveSpeed = 3.5f;
-    public float attackRange = 1.5f;
-    public float damageRadius = 1.8f;
+    public float moveSpeed = 2.5f;
+    public float attackRange = 0.12f;
+    public float damageRadius = 0.12f;
     public float attackCooldown = 1.5f;
     [SerializeField] private float attackCommitDuration = 1.25f;
-    [SerializeField] private float attackRangeBuffer = 0.05f;
     [SerializeField, Range(30f, 180f)] private float attackHitAngle = 120f;
-    [SerializeField] private float attackWindupDelay = 1.5f;
-    [SerializeField] private float attackPrepareHoldBuffer = 0.25f;
 
     [Header("--- Sát thương các chiêu ---")]
     public float damageAtk1 = 10f;
@@ -91,8 +86,6 @@ public class ZombieAI : NetworkBehaviour
     private float searchTimer = 0f;
     private float stunTimer = 0f;
     private float pathUpdateTimer = 0f;
-    private float attackWindupTimer = 0f;
-    private bool isPreparingAttack = false;
 
     private int currentAttackIndex = 1;
     private bool hasDealtDamageThisAttack = false;
@@ -102,8 +95,6 @@ public class ZombieAI : NetworkBehaviour
     private Vector2 lockedAttackDirection;
     private PlayerHealth attackTargetHealth;
     private Collider2D attackTargetCollider;
-    private PlayerHealth preparedAttackHealth;
-    private Collider2D preparedAttackCollider;
 
     private Vector2 lastKnownPlayerPos;
     private float currentTrackingTimer = 0f;
@@ -251,10 +242,16 @@ public class ZombieAI : NetworkBehaviour
         }
     }
 
-    private bool MoveAlongPath(float currentSpeed)
+    private bool MoveAlongPath(float currentSpeed, bool allowDirectChaseFallback = false)
     {
         if (path == null || currentWaypoint >= path.vectorPath.Count)
         {
+            if (allowDirectChaseFallback && HasValidTarget() && CanSeePlayer())
+            {
+                Vector2 targetDirection = (playerCollider.bounds.center - (Vector3)rb.position).normalized;
+                return SafeMove(targetDirection, currentSpeed);
+            }
+
             NetMoveSpeed = 0f;
             return false;
         }
@@ -417,7 +414,6 @@ public class ZombieAI : NetworkBehaviour
         }
 
         if (HandleCommittedAttack()) return;
-        if (HandlePreparingAttack()) return;
 
         searchTimer -= Runner.DeltaTime;
         if (searchTimer <= 0)
@@ -485,28 +481,16 @@ public class ZombieAI : NetworkBehaviour
 
         if (distanceToPlayer > attackStartRange)
         {
-            CancelPrepareAttack();
+            pathUpdateTimer -= Runner.DeltaTime;
+            if (pathUpdateTimer <= 0 && seeker.IsDone())
+            {
+                CalculatePath(targetPos, AIMode.Chase);
+                pathUpdateTimer = 0.25f;
+            }
 
-            if (distanceToPlayer <= directChaseRange && CanSeePlayer())
-            {
-                Vector2 directDir = (targetPos - rb.position).normalized;
-                bool moved = SafeMove(directDir, moveSpeed, distanceToPlayer - attackStartRange);
-                CheckForStuck(targetPos);
-                NetIsRunning = moved;
-                path = null;
-            }
-            else
-            {
-                pathUpdateTimer -= Runner.DeltaTime;
-                if (pathUpdateTimer <= 0 && seeker.IsDone())
-                {
-                    CalculatePath(targetPos, AIMode.Chase);
-                    pathUpdateTimer = 0.3f;
-                }
-                bool moved = MoveAlongPath(moveSpeed);
-                CheckForStuck(targetPos);
-                NetIsRunning = moved;
-            }
+            bool moved = MoveAlongPath(moveSpeed, true);
+            CheckForStuck(targetPos);
+            NetIsRunning = moved;
         }
         else
         {
@@ -516,101 +500,9 @@ public class ZombieAI : NetworkBehaviour
 
             if (attackTimer <= 0 && CanSeePlayer() && HasLineOfSight(rb.position, targetPos, Vector2.Distance(rb.position, targetPos), playerHealth))
             {
-                BeginPrepareAttack();
-            }
-            else
-            {
-                CancelPrepareAttack();
-            }
-        }
-    }
-
-    private bool HandlePreparingAttack()
-    {
-        if (!isPreparingAttack) return false;
-
-        StopMovement();
-        NetIsRunning = false;
-        NetIsChasing = player != null;
-
-        if (!HasValidPreparedTarget())
-        {
-            CancelPrepareAttack();
-            return false;
-        }
-
-        Vector2 myPos = rb != null ? rb.position : (Vector2)transform.position;
-        Vector2 targetPos = preparedAttackCollider.bounds.center;
-        Vector2 faceDir = targetPos - myPos;
-        if (faceDir.sqrMagnitude > 0.0001f)
-        {
-            lockedAttackDirection = faceDir.normalized;
-            NetMoveDir = lockedAttackDirection;
-        }
-
-        float distanceToTarget = GetColliderDistance(preparedAttackCollider);
-        float attackStartRange = GetEffectiveAttackRange();
-        float holdRange = attackStartRange + attackPrepareHoldBuffer;
-
-        if (distanceToTarget > holdRange || !HasLineOfSight(myPos, targetPos, Vector2.Distance(myPos, targetPos), preparedAttackHealth))
-        {
-            CancelPrepareAttack();
-            return false;
-        }
-
-        attackWindupTimer += Runner.DeltaTime;
-        if (attackWindupTimer >= attackWindupDelay)
-        {
-            if (distanceToTarget <= attackStartRange && attackTimer <= 0f)
-            {
                 StartAttack();
             }
-
-            CancelPrepareAttack();
-            return isAttackLocked;
         }
-
-        return true;
-    }
-
-    private void BeginPrepareAttack()
-    {
-        if (!HasValidTarget()) return;
-
-        if (!isPreparingAttack)
-        {
-            attackWindupTimer = 0f;
-            preparedAttackHealth = playerHealth;
-            preparedAttackCollider = playerCollider;
-        }
-
-        isPreparingAttack = true;
-
-        Vector2 myPos = rb != null ? rb.position : (Vector2)transform.position;
-        Vector2 targetPos = preparedAttackCollider.bounds.center;
-        Vector2 faceDir = targetPos - myPos;
-        lockedAttackDirection = faceDir.sqrMagnitude > 0.0001f
-            ? faceDir.normalized
-            : (NetMoveDir == Vector2.zero ? Vector2.up : NetMoveDir.normalized);
-        lastMoveDirection = lockedAttackDirection;
-        NetMoveDir = lockedAttackDirection;
-    }
-
-    private void CancelPrepareAttack()
-    {
-        isPreparingAttack = false;
-        attackWindupTimer = 0f;
-        preparedAttackHealth = null;
-        preparedAttackCollider = null;
-    }
-
-    private bool HasValidPreparedTarget()
-    {
-        return preparedAttackHealth != null
-            && preparedAttackCollider != null
-            && !preparedAttackHealth.isDead
-            && preparedAttackCollider.enabled
-            && preparedAttackCollider.gameObject.activeInHierarchy;
     }
 
     private float GetColliderDistance(Collider2D targetCollider)
@@ -656,7 +548,6 @@ public class ZombieAI : NetworkBehaviour
             isAttackLocked = false;
             attackTargetHealth = null;
             attackTargetCollider = null;
-            attackWindupTimer = 0f;
         }
 
         return true;
@@ -671,8 +562,8 @@ public class ZombieAI : NetworkBehaviour
     {
         if (!HasValidTarget()) return;
 
-        PlayerHealth selectedHealth = preparedAttackHealth != null ? preparedAttackHealth : playerHealth;
-        Collider2D selectedCollider = preparedAttackCollider != null ? preparedAttackCollider : playerCollider;
+        PlayerHealth selectedHealth = playerHealth;
+        Collider2D selectedCollider = playerCollider;
         if (selectedHealth == null || selectedCollider == null) return;
 
         int randomAtk = Random.Range(1, 5);
@@ -690,6 +581,13 @@ public class ZombieAI : NetworkBehaviour
         }
         lastMoveDirection = lockedAttackDirection;
         NetMoveDir = lockedAttackDirection;
+        pathRequestId++;
+        path = null;
+        currentWaypoint = 0;
+        pathUpdateTimer = 0f;
+        StopMovement();
+        NetIsRunning = false;
+        NetIsChasing = true;
         RPC_TriggerAttack(randomAtk);
         attackTimer = attackCooldown;
     }
@@ -835,7 +733,6 @@ public class ZombieAI : NetworkBehaviour
         hearMemoryTimer = hearMemoryDuration;
         currentTrackingTimer = 0f;
         isSearching = false;
-        CancelPrepareAttack();
 
         if (player == null)
         {
@@ -1000,7 +897,6 @@ public class ZombieAI : NetworkBehaviour
         player = null;
         playerHealth = null;
         playerCollider = null;
-        CancelPrepareAttack();
         StopMovement();
         NetIsRunning = false;
     }
@@ -1056,9 +952,6 @@ public class ZombieAI : NetworkBehaviour
 
         Gizmos.color = new Color(1f, 0.15f, 0.1f, 0.95f);
         Gizmos.DrawWireSphere(center, Mathf.Max(attackRange, damageRadius));
-
-        Gizmos.color = new Color(1f, 0.85f, 0.05f, 0.45f);
-        Gizmos.DrawWireSphere(center, Mathf.Max(attackRange, damageRadius) + attackPrepareHoldBuffer);
     }
 
     public void ApplyStun(float duration)
@@ -1068,7 +961,6 @@ public class ZombieAI : NetworkBehaviour
         isAttackLocked = false;
         attackTargetHealth = null;
         attackTargetCollider = null;
-        CancelPrepareAttack();
         StopMovement();
         NetIsRunning = false;
     }
