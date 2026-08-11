@@ -11,9 +11,9 @@ public sealed class IntroCarDriveSetup : MonoBehaviour
     [SerializeField, Min(0.1f)] private float brakingDuration = 2.5f;
     [SerializeField, Min(0f)] private float stopShakeDuration = 0.35f;
     [SerializeField, Min(0f)] private float stopShakeDistance = 0.06f;
-
     private float elapsed;
     private Vector3 stopPosition;
+    private Vector3 startPosition;
 
     public bool IsComplete { get; private set; }
 
@@ -28,15 +28,26 @@ public sealed class IntroCarDriveSetup : MonoBehaviour
             return;
         }
 
-        transform.position = WithOwnZ(carStart.position);
+        startPosition = WithOwnZ(carStart.position);
+        transform.position = startPosition;
         stopPosition = WithOwnZ(carStop.position);
+
+        // The director starts the car only after the opening-eye sequence.
+        enabled = false;
+    }
+
+    public void BeginDrive()
+    {
+        if (IsComplete) return;
+        // Begin immediately when the eyelids start moving; startDelay is only
+        // retained for backwards-compatible scene data.
+        elapsed = startDelay;
+        enabled = true;
     }
 
     private void Update()
     {
         elapsed += Time.deltaTime;
-        if (elapsed <= startDelay) return;
-
         float driveTime = elapsed - startDelay;
         float finalShakeDuration = Mathf.Max(0.05f, stopShakeDuration);
         float totalMotionDuration = Mathf.Max(0.1f, travelDuration);
@@ -46,8 +57,6 @@ public sealed class IntroCarDriveSetup : MonoBehaviour
 
         const float cruiseEnd = 0.73f;
         const float brakeEnd = 0.96f;
-        Vector3 startPosition = WithOwnZ(carStart.position);
-
         if (driveTime < cruiseDuration)
         {
             float t = driveTime / cruiseDuration;
