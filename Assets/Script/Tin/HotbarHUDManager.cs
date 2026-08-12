@@ -216,9 +216,9 @@ public class HotbarHUDManager : MonoBehaviour
 
         if (isTyping || isMenuOpen) return;
 
-        // Ctrl+1..4 is reserved for multiplayer vehicle seat switching.
-        bool controlHeld = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
-        for (int i = 0; i < hotbarSize && !controlHeld; i++)
+        // Shift+1..4 is reserved for multiplayer vehicle seat switching.
+        bool seatModifierHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+        for (int i = 0; i < hotbarSize && !seatModifierHeld; i++)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i)) selectedSlotIndex = i;
         }

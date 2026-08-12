@@ -289,7 +289,8 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         if (cooldownTimer > 0f) cooldownTimer -= Runner.DeltaTime;
 
         Vector2 myPos = myCol.bounds.center;
-        bool hasValidTarget = player != null && playerCol != null && playerHealth != null && !playerHealth.isDead;
+        bool hasValidTarget = player != null && playerCol != null && playerHealth != null &&
+            !playerHealth.isDead && !PlayerInteraction.IsProtectedOccupant(playerHealth);
         float distance = float.PositiveInfinity;
         Vector2 targetPos = myPos;
         Vector2 dirToPlayer = lastMoveDirection == Vector2.zero ? Vector2.up : lastMoveDirection.normalized;
@@ -702,6 +703,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
             if (!p.TryGetComponent(out PlayerHealth pHealth) || pHealth.Object == null || !pHealth.Object.IsValid || pHealth.isDead)
                 continue;
+            if (PlayerInteraction.IsProtectedOccupant(pHealth)) continue;
 
             Collider2D candidateCol = p.GetComponent<Collider2D>();
             if (candidateCol == null) continue;
@@ -745,7 +747,8 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
                 StartSearch(lastKnownPlayerPos);
             }
         }
-        else if (player != null && (playerHealth == null || playerHealth.Object == null || !playerHealth.Object.IsValid || playerHealth.isDead))
+        else if (player != null && (playerHealth == null || playerHealth.Object == null || !playerHealth.Object.IsValid ||
+            playerHealth.isDead || PlayerInteraction.IsProtectedOccupant(playerHealth)))
         {
             player = null;
             playerCol = null;

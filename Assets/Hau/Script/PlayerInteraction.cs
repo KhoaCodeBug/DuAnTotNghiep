@@ -7,10 +7,19 @@ public class PlayerInteraction : NetworkBehaviour
 
     [Networked] private NetworkBool NetworkIsInVehicle { get; set; }
     [Networked] private NetworkBool NetworkIsVehicleDriver { get; set; }
+    [Networked] public int CurrentSeatNumber { get; private set; }
     [Networked] public NetworkObject CurrentVehicle { get; private set; }
+    [Networked] public Vector2 LastVehicleExitPosition { get; private set; }
+    [Networked] private NetworkBool HasVehicleExitPosition { get; set; }
 
     public bool IsInVehicle => NetworkIsInVehicle;
     public bool IsVehicleDriver => NetworkIsVehicleDriver;
+    public static bool IsProtectedOccupant(PlayerHealth health)
+    {
+        if (health == null) return false;
+        PlayerInteraction interaction = health.GetComponent<PlayerInteraction>();
+        return interaction != null && interaction.IsInVehicle;
+    }
     public VehicleControllerFusion CurrentVehicleController =>
         CurrentVehicle != null ? CurrentVehicle.GetComponent<VehicleControllerFusion>() : null;
     private VehicleControllerFusion nearbyVehicle;
@@ -55,7 +64,7 @@ public class PlayerInteraction : NetworkBehaviour
             return;
         }
 
-        if (NetworkIsInVehicle && IsControlHeld())
+        if (NetworkIsInVehicle && IsSeatModifierHeld())
         {
             int requestedSeat = GetRequestedSeatNumber();
             if (requestedSeat > 0)
@@ -120,13 +129,51 @@ public class PlayerInteraction : NetworkBehaviour
         if (Object != null && Object.IsValid) ApplyVehiclePresentation();
     }
 
-    public void SetVehicleNetworkState(NetworkObject vehicleObject, bool inVehicle, bool isDriver)
+    public void SetVehicleNetworkState(
+        NetworkObject vehicleObject,
+        bool inVehicle,
+        bool isDriver,
+        int seatNumber,
+        Vector2 exitPosition)
     {
         if (!HasStateAuthority) return;
+        if (!inVehicle)
+        {
+            LastVehicleExitPosition = exitPosition;
+            HasVehicleExitPosition = true;
+        }
+        else
+        {
+            HasVehicleExitPosition = false;
+        }
         CurrentVehicle = inVehicle ? vehicleObject : null;
         NetworkIsInVehicle = inVehicle;
         NetworkIsVehicleDriver = inVehicle && isDriver;
+        CurrentSeatNumber = inVehicle ? Mathf.Clamp(seatNumber, 1, 4) : 0;
         SetPhysicsEnabled(!inVehicle);
+    }
+
+    private void OnGUI()
+    {
+        if (Object == null || !Object.IsValid || !Object.HasInputAuthority || !NetworkIsInVehicle) return;
+
+        string seatName = CurrentSeatNumber switch
+        {
+            1 => GameLocalization.Get("vehicle.seat.driver"),
+            2 => GameLocalization.Get("vehicle.seat.front"),
+            3 => GameLocalization.Get("vehicle.seat.rear_left"),
+            4 => GameLocalization.Get("vehicle.seat.rear_right"),
+            _ => GameLocalization.Get("vehicle.seat.unknown")
+        };
+        string message = string.Format(GameLocalization.Get("vehicle.seat.status"), CurrentSeatNumber, seatName);
+        GUIStyle style = new(GUI.skin.box)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 15,
+            fontStyle = FontStyle.Bold,
+            normal = { textColor = Color.white }
+        };
+        GUI.Box(new Rect(Screen.width * 0.5f - 360f, 58f, 720f, 38f), message, style);
     }
 
     private void CheckNearbyVehicle()
@@ -188,14 +235,29 @@ public class PlayerInteraction : NetworkBehaviour
         if (muzzleFlash != null) muzzleFlash.gameObject.SetActive(!shouldApply);
         if (playerAnimator != null && hasSittingParameter)
             playerAnimator.SetBool("isSitting", shouldApply);
+        SetPhysicsEnabled(!shouldApply);
 
         if (!Object.HasInputAuthority) return;
-        if (!shouldApply) previousVehicle?.SetCamera(false);
+        if (!shouldApply)
+        {
+            if (HasVehicleExitPosition)
+            {
+                transform.position = LastVehicleExitPosition;
+                if (body != null)
+                {
+                    body.position = LastVehicleExitPosition;
+                    body.linearVelocity = Vector2.zero;
+                    body.angularVelocity = 0f;
+                }
+                Physics2D.SyncTransforms();
+            }
+            previousVehicle?.SetCamera(false);
+        }
         else if (vehicle != null) vehicle.SetCamera(true);
     }
 
-    private static bool IsControlHeld() =>
-        Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+    private static bool IsSeatModifierHeld() =>
+        Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 
     private static int GetRequestedSeatNumber()
     {

@@ -304,6 +304,11 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (!HasStateAuthority) return;
 
+        // The vehicle body, not an invisible seated player body, receives
+        // zombie contact. This authority-side guard also covers attacks that
+        // were committed just before the player entered the vehicle.
+        if (isZombieAttack && PlayerInteraction.IsProtectedOccupant(this)) return;
+
         if (isDead && !isTransforming) return;
 
         currentHealth -= damage;
