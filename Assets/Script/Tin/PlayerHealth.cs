@@ -105,6 +105,7 @@ public class PlayerHealth : NetworkBehaviour
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
+        CleanupParanoia();
         if (paranoiaCanvas != null)
         {
             Destroy(paranoiaCanvas.gameObject);
@@ -140,6 +141,12 @@ public class PlayerHealth : NetworkBehaviour
     {
         if (!HasInputAuthority) return;
 
+        // Death is authored by StateAuthority and reaches the owning client through
+        // Fusion replication. Clean local-only hallucination visuals as soon as that
+        // replicated state arrives instead of waiting for the old avatar to despawn.
+        if (isDead && (isBlinking || isFakeZombieVisible))
+            CleanupParanoia();
+
         if (isDead && !hasTriggeredSpectate)
         {
             hasTriggeredSpectate = true; // Khóa lại, chỉ gọi 1 lần duy nhất
@@ -160,18 +167,18 @@ public class PlayerHealth : NetworkBehaviour
             {
                 if (infectionTimer <= 420f && infectionTimer > 240f)
                 {
-                    StartCoroutine(ParanoiaBlinkRoutine());
+                    StartCoroutine(nameof(ParanoiaBlinkRoutine));
                     blinkCooldown = 20f;
                 }
                 else if (infectionTimer <= 240f && infectionTimer > 180f)
                 {
-                    StartCoroutine(ParanoiaBlinkRoutine());
+                    StartCoroutine(nameof(ParanoiaBlinkRoutine));
                     blinkCooldown = 8f;
                 }
                 else if (infectionTimer <= 180f && infectionTimer > 0f)
                 {
-                    StartCoroutine(ParanoiaBlinkRoutine());
-                    blinkCooldown = 20f;
+                    StartCoroutine(nameof(ParanoiaBlinkRoutine));
+                    blinkCooldown = Random.Range(5f, 7f);
                 }
             }
         }
@@ -375,6 +382,7 @@ public class PlayerHealth : NetworkBehaviour
 
     private void TriggerDeathLogic()
     {
+        CleanupParanoia();
         isDead = true;
 
         if (isBitten)
@@ -685,6 +693,20 @@ public class PlayerHealth : NetworkBehaviour
             if (tag != null && tag.nameText != null) tag.nameText.gameObject.SetActive(true);
         }
         hiddenNameTags.Clear();
+    }
+
+    private void CleanupParanoia()
+    {
+        StopCoroutine(nameof(ParanoiaBlinkRoutine));
+        RestoreTeammatesSprites();
+        isBlinking = false;
+        blinkCooldown = 0f;
+        if (paranoiaImage != null) paranoiaImage.color = Color.clear;
+    }
+
+    private void OnDisable()
+    {
+        CleanupParanoia();
     }
 
     // ĐỂ TRỐNG THEO LỆNH SẾP (KHÔNG VẼ MOODLE RÁC)

@@ -42,6 +42,9 @@ public class AutoUIManager : MonoBehaviour
     private Button btnRespawn;
     private TextMeshProUGUI spectatorText;
     private bool wasSpectating = false;
+    private bool respawnPending;
+    private float respawnRequestedAt;
+    private const float RespawnTimeout = 6f;
     #endregion
 
     #region Biến UI - Tủ Đồ
@@ -88,6 +91,8 @@ public class AutoUIManager : MonoBehaviour
 
         GenerateEntireUI();
         CreateAmmoUI();
+        GameLocalization.LanguageChanged += RefreshLocalizedText;
+        RefreshLocalizedText();
     }
 
     private Sprite GenerateGreenBorderSprite()
@@ -122,6 +127,7 @@ public class AutoUIManager : MonoBehaviour
 
     private void OnDestroy()
     {
+        GameLocalization.LanguageChanged -= RefreshLocalizedText;
         // 1. Phá hủy cái Canvas tổng (Chứa Balo, Bảng Trade, Đồng Hồ...)
         if (mainCanvas != null)
         {
@@ -193,7 +199,9 @@ public class AutoUIManager : MonoBehaviour
         {
             EnsureLocalPlayer();
 
-            bool shouldShowSpectator = false;
+            // Keep the death screen latched while the dead/transforming player
+            // is despawned and no replacement NetworkObject exists yet.
+            bool shouldShowSpectator = respawnPending || (wasSpectating && localPlayer == null);
             if (localPlayer != null)
             {
                 PlayerHealth health = localPlayer.GetComponent<PlayerHealth>();
@@ -201,6 +209,25 @@ public class AutoUIManager : MonoBehaviour
                 {
                     shouldShowSpectator = true;
                 }
+            }
+
+            if (respawnPending && localPlayer != null)
+            {
+                PlayerHealth spawnedHealth = localPlayer.GetComponent<PlayerHealth>();
+                if (spawnedHealth != null && spawnedHealth.Object != null && spawnedHealth.Object.IsValid
+                    && spawnedHealth.HasInputAuthority && !spawnedHealth.isDead)
+                {
+                    CompleteRespawnUI();
+                    shouldShowSpectator = false;
+                }
+            }
+
+            if (respawnPending && Time.unscaledTime - respawnRequestedAt >= RespawnTimeout)
+            {
+                respawnPending = false;
+                if (btnRespawn != null) btnRespawn.interactable = true;
+                if (spectatorText != null) spectatorText.text = GameLocalization.Get("respawn.failed");
+                shouldShowSpectator = true;
             }
 
             if (shouldShowSpectator)
@@ -579,7 +606,7 @@ public class AutoUIManager : MonoBehaviour
         titleObj.transform.SetParent(inventoryPanel.transform, false);
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) titleText.font = gameFont;
-        titleText.text = "INVENTORY";
+        titleText.text = GameLocalization.Get("inventory.title");
         titleText.fontSize = 22;
         titleText.fontStyle = FontStyles.Bold | FontStyles.Italic;
         titleText.alignment = TextAlignmentOptions.Center;
@@ -822,7 +849,7 @@ public class AutoUIManager : MonoBehaviour
         titleObj.transform.SetParent(containerPanel.transform, false);
         TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) titleText.font = gameFont;
-        titleText.text = "LOOT CONTAINER";
+        titleText.text = GameLocalization.Get("loot.title");
         titleText.fontSize = 24;
         titleText.fontStyle = FontStyles.Bold;
         titleText.alignment = TextAlignmentOptions.Center;
@@ -1110,7 +1137,7 @@ public class AutoUIManager : MonoBehaviour
 
         TextMeshProUGUI titleTxt = titleObj.AddComponent<TextMeshProUGUI>();
         titleTxt.font = activeFont;
-        titleTxt.text = "BÀN GIAO DỊCH";
+        titleTxt.text = GameLocalization.Get("trade.title");
         titleTxt.fontSize = 26;
         titleTxt.fontStyle = FontStyles.Bold;
         titleTxt.alignment = TextAlignmentOptions.Center;
@@ -1144,7 +1171,7 @@ public class AutoUIManager : MonoBehaviour
 
         partnerStatusTxt = pStatObj.AddComponent<TextMeshProUGUI>();
         partnerStatusTxt.font = activeFont;
-        partnerStatusTxt.text = "Đang chọn...";
+        partnerStatusTxt.text = GameLocalization.Get("trade.choosing");
         partnerStatusTxt.fontSize = 18;
         partnerStatusTxt.fontStyle = FontStyles.Bold;
         partnerStatusTxt.alignment = TextAlignmentOptions.Center;
@@ -1302,7 +1329,7 @@ public class AutoUIManager : MonoBehaviour
 
         btnPickItem.gameObject.SetActive(!myTrade.IsReady);
 
-        btnReadyTxt.text = myTrade.IsReady ? "MỞ KHÓA" : "KHÓA LẠI";
+        btnReadyTxt.text = myTrade.IsReady ? GameLocalization.Get("trade.unlock") : GameLocalization.Get("trade.lock");
         btnReady.GetComponent<Image>().color = myTrade.IsReady ? new Color(0.8f, 0.2f, 0.2f) : new Color(0.8f, 0.5f, 0.1f);
 
         UpdateTradeSlotUI(partnerOfferIcon, partnerOfferAmountTxt, partnerTrade.OfferItemName.ToString(), partnerTrade.OfferAmount);
@@ -2020,7 +2047,7 @@ public class AutoUIManager : MonoBehaviour
         spectatorText.fontStyle = FontStyles.Bold;
         spectatorText.color = Color.white;
         spectatorText.alignment = TextAlignmentOptions.Center;
-        spectatorText.text = "YOU DIED. SPECTATING TEAMMATES.\nUse A/D or Click to cycle.";
+        spectatorText.text = GameLocalization.Get("spectator.dead");
 
         RectTransform txtRect = txtObj.GetComponent<RectTransform>();
         txtRect.anchorMin = new Vector2(0, 0.4f);
@@ -2052,7 +2079,7 @@ public class AutoUIManager : MonoBehaviour
         btnTxt.fontStyle = FontStyles.Bold;
         btnTxt.color = Color.white;
         btnTxt.alignment = TextAlignmentOptions.Center;
-        btnTxt.text = "RESPAWN";
+        btnTxt.text = GameLocalization.Get("respawn.action");
 
         RectTransform btnTxtRect = btnTxtObj.GetComponent<RectTransform>();
         btnTxtRect.anchorMin = Vector2.zero;
@@ -2064,6 +2091,7 @@ public class AutoUIManager : MonoBehaviour
 
     private void OnRespawnClicked()
     {
+        if (respawnPending) return;
         var runner = FindAnyObjectByType<NetworkRunner>();
         if (runner == null || !runner.IsRunning) return;
 
@@ -2082,11 +2110,36 @@ public class AutoUIManager : MonoBehaviour
             int characterID = PlayerPrefs.GetInt("SelectedCharacterID", 0);
             string playerName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
             
-            if (spectatorPanel != null) spectatorPanel.SetActive(false);
-            wasSpectating = false;
-            SetGameplayHUDVisible(true);
+            respawnPending = true;
+            respawnRequestedAt = Time.unscaledTime;
+            btnRespawn.interactable = false;
+            spectatorText.text = GameLocalization.Get("respawn.waiting");
 
             spawner.RPC_RequestRespawn(runner.LocalPlayer, characterID, playerName);
+        }
+    }
+
+    private void CompleteRespawnUI()
+    {
+        respawnPending = false;
+        if (btnRespawn != null) btnRespawn.interactable = true;
+        if (spectatorPanel != null) spectatorPanel.SetActive(false);
+        wasSpectating = false;
+        SetGameplayHUDVisible(true);
+        RefreshLocalizedText();
+    }
+
+    private void RefreshLocalizedText()
+    {
+        gameFont = GameLocalization.GetRuntimeFont(gameFont);
+        if (spectatorText != null && !respawnPending)
+            spectatorText.text = GameLocalization.Get("spectator.dead");
+        if (btnRespawn != null)
+        {
+            TextMeshProUGUI label = btnRespawn.GetComponentInChildren<TextMeshProUGUI>();
+            if (label != null) label.text = respawnPending
+                ? GameLocalization.Get("respawn.waiting")
+                : GameLocalization.Get("respawn.action");
         }
     }
     #endregion

@@ -18,3 +18,8 @@ MonoBehaviour:
   - "Nh\u01B0ng v\xF4 l\xFD qu\xE1, m\xECnh v\u1EEBa m\u1EDBi \u0111\u1ED5 x\u0103ng
     tr\u01B0\u1EDBc khi ch\u1EA1y t\u1EDBi \u0111\xE2y m\xE0?"
   - "Ch\u1EAFc l\xE0 ph\u1EA3i xu\u1ED1ng xe ki\u1EC3m tra th\xF4i."
+  englishLines:
+  - Huh... what's wrong with the car?
+  - Did I run out of fuel?
+  - That makes no sense. I filled it before coming here.
+  - I should get out and inspect it.

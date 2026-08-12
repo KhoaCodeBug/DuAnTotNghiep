@@ -70,42 +70,64 @@ MonoBehaviour:
   weaponObjective: "K\xC9O S12K V\xC0O M\u1ED8T \xD4 HOTBAR"
   reloadTitle: "N\u1EA0P \u0110\u1EA0N"
   reloadBrief: "Kh\u1EA9u S12K \u0111ang tr\u1ED1ng \u0111\u1EA1n. \u0110\xF3ng t\xFAi
-    \u0111\u1ED3, ch\u1ECDn kh\u1EA9u s\xFAng tr\xEAn Hotbar r\u1ED3i nh\u1EA5n [R] \u0111\u1EC3
-    n\u1EA1p \u0111\u1EA1n.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+    \u0111\u1ED3, ch\u1ECDn kh\u1EA9u s\xFAng tr\xEAn Hotbar r\u1ED3i nh\u1EA5n [R]
+    \u0111\u1EC3 n\u1EA1p \u0111\u1EA1n.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
   reloadObjective: "NH\u1EA4N [R] \u0110\u1EC2 N\u1EA0P \u0110\u1EA0N CHO S12K"
   leaveHouseTitle: "C\xD3 G\xCC \u0110\xD3 B\xCAN NGO\xC0I"
-  leaveHouseBrief: "B\u1EA1n \u0111\xE3 c\xF3 \u0111\u1ED3 ti\u1EBFp t\u1EBF v\xE0 m\u1ED9t
-    kh\u1EA9u s\xFAng \u0111\xE3 n\u1EA1p \u0111\u1EA1n.\n\nRa kh\u1ECFi c\u0103n nh\xE0 th\u1EADt
-    c\u1EA9n th\u1EADn.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  leaveHouseBrief: "B\u1EA1n \u0111\xE3 c\xF3 \u0111\u1ED3 ti\u1EBFp t\u1EBF v\xE0
+    m\u1ED9t kh\u1EA9u s\xFAng \u0111\xE3 n\u1EA1p \u0111\u1EA1n.\n\nRa kh\u1ECFi
+    c\u0103n nh\xE0 th\u1EADt c\u1EA9n th\u1EADn.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp
+    t\u1EE5c"
   leaveHouseObjective: "R\u1EDCI KH\u1ECEI C\u0102N NH\xC0"
   noiseTitle: "TI\u1EBENG \u1ED2N"
-  noiseBrief: "B\u01B0\u1EDBc ch\xE2n, ch\u1EA1y, c\u1EADn chi\u1EBFn v\xE0 s\xFAng n\u1ED5
-    \u0111\u1EC1u c\xF3 th\u1EC3 k\xE9o zombie t\u1EDBi. H\xE3y \u0111\u1EC3 \xFD thanh \u0110\u1ED9
-    \u1ED3n \u1EDF g\xF3c d\u01B0\u1EDBi b\xEAn tr\xE1i.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  noiseBrief: "B\u01B0\u1EDBc ch\xE2n, ch\u1EA1y, c\u1EADn chi\u1EBFn v\xE0 s\xFAng
+    n\u1ED5 \u0111\u1EC1u c\xF3 th\u1EC3 k\xE9o zombie t\u1EDBi. H\xE3y \u0111\u1EC3
+    \xFD thanh \u0110\u1ED9 \u1ED3n \u1EDF g\xF3c d\u01B0\u1EDBi b\xEAn tr\xE1i.\n\n[Chu\u1ED9t
+    tr\xE1i] Ti\u1EBFp t\u1EE5c"
   noiseObjective: "THEO D\xD5I THANH \u0110\u1ED8 \u1ED2N"
   sneakTitle: "TI\u1EBEP C\u1EACN \xC2M TH\u1EA6M"
-  sneakBrief: "Nh\u1EA5n [C] \u0111\u1EC3 ng\u1ED3i xu\u1ED1ng, r\u1ED3i ti\u1EBFp c\u1EADn
-    zombie t\u1EEB ph\xEDa sau.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
-  sneakObjective: "NH\u1EA4N [C] V\xC0 TI\u1EBEP C\u1EACN ZOMBIE T\u1EEA PH\xCDA SAU"
+  sneakBrief: "Nh\u1EA5n [C] \u0111\u1EC3 ng\u1ED3i xu\u1ED1ng, r\u1ED3i ti\u1EBFp
+    c\u1EADn zombie t\u1EEB ph\xEDa sau.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  sneakObjective: "NH\u1EA4N [C] V\xC0 TI\u1EBEP C\u1EACN ZOMBIE T\u1EEA PH\xCDA
+    SAU"
   meleeTitle: "\u0110\xC1NH TH\u01AF\u1EDCNG"
-  meleeBrief: "Gi\u1EEF [Chu\u1ED9t ph\u1EA3i] \u0111\u1EC3 ng\u1EAFm h\u01B0\u1EDBng ra \u0111\xF2n
-    v\xE0 nh\u1EA5n [Space] \u0111\u1EC3 \u0111\xE1nh b\u1EB1ng b\xE1ng s\xFAng.\n\n[Chu\u1ED9t
-    tr\xE1i] Ti\u1EBFp t\u1EE5c"
-  meleeObjective: "GI\u1EEE [CHU\u1ED8T PH\u1EA2I] + NH\u1EA4N [SPACE] \u0110\u1EC2 H\u1EA0 ZOMBIE"
-  bleedingTitle: "BẠN ĐANG CHẢY MÁU"
-  bleedingBrief: "Một vết rách ở tay đang khiến bạn mất máu. Biểu tượng đỏ này sẽ cảnh báo khi cơ thể còn vết thương hở.\n\nHãy kiểm tra tình trạng cơ thể và xử lý nó trước khi đi tiếp.\n\n[Chuột trái] Tiếp tục"
-  openHealthObjective: "NHẤN [TAB], SAU ĐÓ CHỌN HEALTH STATUS"
-  bandageObjective: "NHẤP CHUỘT PHẢI VÀO VẾT THƯƠNG VÀ CHỌN APPLY BANDAGE"
-  rangedTitle: "MỤC TIÊU Ở XA"
-  rangedBrief: "Không phải mối nguy nào cũng cho phép bạn tiếp cận an toàn. Với mục tiêu ở xa, khẩu súng giúp bạn tấn công trước khi nó chạm tới mình.\n\n[Chuột trái] Tiếp tục"
-  rangedNoiseTitle: "CÁI GIÁ CỦA MỘT PHÁT SÚNG"
-  rangedNoiseBrief: "Súng rất hiệu quả, nhưng tiếng nổ có thể kéo mọi zombie trong khu vực tới vị trí của bạn. Hãy nhìn thanh Độ ồn trước khi bóp cò.\n\n[Chuột trái] Sẵn sàng"
-  rangedObjective: "GIỮ [CHUỘT PHẢI] VÀ BẮN HẠ ZOMBIE B"
-  finalTauntTitle: "BẮN KHÁ ĐẤY"
-  finalTauntBrief: "Bạn đã xử lý được mục tiêu. Nhanh, gọn và chính xác.\n\nChỉ có một vấn đề nhỏ... cả khu phố vừa nghe thấy rồi.\n\nChúc may mắn, kẻ sống sót.\n\n[Chuột trái] Tiếp tục"
-  hordeObjective: "SỐNG SÓT"
-  endingTitle: "ĐÂY LÀ CÁCH BẠN CHẾT"
-  endingBody: "Bạn đã hoàn thành phần hướng dẫn. Trong thế giới này, sống sót không có nghĩa là chiến thắng — chỉ là trì hoãn điều không thể tránh khỏi."
-  startMainButton: "BẮT ĐẦU SINH TỒN"
-  replayButton: "CHƠI LẠI HƯỚNG DẪN"
-  returnMenuButton: "TRỞ VỀ MENU"
+  meleeBrief: "Gi\u1EEF [Chu\u1ED9t ph\u1EA3i] \u0111\u1EC3 ng\u1EAFm h\u01B0\u1EDBng
+    ra \u0111\xF2n v\xE0 nh\u1EA5n [Space] \u0111\u1EC3 \u0111\xE1nh b\u1EB1ng b\xE1ng
+    s\xFAng.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  meleeObjective: "GI\u1EEE [CHU\u1ED8T PH\u1EA2I] + NH\u1EA4N [SPACE] \u0110\u1EC2
+    H\u1EA0 ZOMBIE"
+  bleedingTitle: "B\u1EA0N \u0110ANG CH\u1EA2Y M\xC1U"
+  bleedingBrief: "M\u1ED9t v\u1EBFt r\xE1ch \u1EDF tay \u0111ang khi\u1EBFn b\u1EA1n
+    m\u1EA5t m\xE1u. Bi\u1EC3u t\u01B0\u1EE3ng \u0111\u1ECF n\xE0y s\u1EBD c\u1EA3nh
+    b\xE1o khi c\u01A1 th\u1EC3 c\xF2n v\u1EBFt th\u01B0\u01A1ng h\u1EDF.\n\nH\xE3y
+    ki\u1EC3m tra t\xECnh tr\u1EA1ng c\u01A1 th\u1EC3 v\xE0 x\u1EED l\xFD n\xF3 tr\u01B0\u1EDBc
+    khi \u0111i ti\u1EBFp.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  openHealthObjective: "NH\u1EA4N [TAB], SAU \u0110\xD3 CH\u1ECCN HEALTH STATUS"
+  bandageObjective: "NH\u1EA4P CHU\u1ED8T PH\u1EA2I V\xC0O V\u1EBET TH\u01AF\u01A0NG
+    V\xC0 CH\u1ECCN APPLY BANDAGE"
+  rangedTitle: "M\u1EE4C TI\xCAU \u1EDE XA"
+  rangedBrief: "Kh\xF4ng ph\u1EA3i m\u1ED1i nguy n\xE0o c\u0169ng cho ph\xE9p b\u1EA1n
+    ti\u1EBFp c\u1EADn an to\xE0n. V\u1EDBi m\u1EE5c ti\xEAu \u1EDF xa, kh\u1EA9u
+    s\xFAng gi\xFAp b\u1EA1n t\u1EA5n c\xF4ng tr\u01B0\u1EDBc khi n\xF3 ch\u1EA1m
+    t\u1EDBi m\xECnh.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  rangedNoiseTitle: "C\xC1I GI\xC1 C\u1EE6A M\u1ED8T PH\xC1T S\xDANG"
+  rangedNoiseBrief: "S\xFAng r\u1EA5t hi\u1EC7u qu\u1EA3, nh\u01B0ng ti\u1EBFng n\u1ED5
+    c\xF3 th\u1EC3 k\xE9o m\u1ECDi zombie trong khu v\u1EF1c t\u1EDBi v\u1ECB tr\xED
+    c\u1EE7a b\u1EA1n. H\xE3y nh\xECn thanh \u0110\u1ED9 \u1ED3n tr\u01B0\u1EDBc
+    khi b\xF3p c\xF2.\n\n[Chu\u1ED9t tr\xE1i] S\u1EB5n s\xE0ng"
+  rangedObjective: "GI\u1EEE [CHU\u1ED8T PH\u1EA2I] V\xC0 B\u1EAEN H\u1EA0 ZOMBIE
+    B"
+  finalTauntTitle: "B\u1EAEN KH\xC1 \u0110\u1EA4Y"
+  finalTauntBrief: "B\u1EA1n \u0111\xE3 x\u1EED l\xFD \u0111\u01B0\u1EE3c m\u1EE5c
+    ti\xEAu. Nhanh, g\u1ECDn v\xE0 ch\xEDnh x\xE1c.\n\nCh\u1EC9 c\xF3 m\u1ED9t v\u1EA5n
+    \u0111\u1EC1 nh\u1ECF... c\u1EA3 khu ph\u1ED1 v\u1EEBa nghe th\u1EA5y r\u1ED3i.\n\nCh\xFAc
+    may m\u1EAFn, k\u1EBB s\u1ED1ng s\xF3t.\n\n[Chu\u1ED9t tr\xE1i] Ti\u1EBFp t\u1EE5c"
+  hordeObjective: "S\u1ED0NG S\xD3T"
+  endingTitle: "\u0110\xC2Y L\xC0 C\xC1CH B\u1EA0N CH\u1EBET"
+  endingBody: "B\u1EA1n \u0111\xE3 ho\xE0n th\xE0nh ph\u1EA7n h\u01B0\u1EDBng d\u1EABn.
+    Trong th\u1EBF gi\u1EDBi n\xE0y, s\u1ED1ng s\xF3t kh\xF4ng c\xF3 ngh\u0129a l\xE0
+    chi\u1EBFn th\u1EAFng \u2014 ch\u1EC9 l\xE0 tr\xEC ho\xE3n \u0111i\u1EC1u kh\xF4ng
+    th\u1EC3 tr\xE1nh kh\u1ECFi."
+  startMainButton: "B\u1EAET \u0110\u1EA6U SINH T\u1ED2N"
+  replayButton: "CH\u01A0I L\u1EA0I H\u01AF\u1EDANG D\u1EAAN"
+  returnMenuButton: "TR\u1EDE V\u1EC0 MENU"

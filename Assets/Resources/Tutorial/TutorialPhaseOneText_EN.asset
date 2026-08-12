@@ -1,0 +1,155 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 699db8b9b9dcceb48a9a0dd18183fbef, type: 3}
+  m_Name: TutorialPhaseOneText_EN
+  m_EditorClassIdentifier: 
+  moveTitle: MOVEMENT
+  moveBrief: 'Use [W] [A] [S] [D] to move.
+
+
+    Learn the controls while this area
+    is still safe.
+
+
+    [Left Click] Begin'
+  moveObjective: MOVE AROUND
+  zoomTitle: FIELD OF VIEW
+  zoomBrief: 'Scroll the mouse wheel to zoom in or out.
+
+
+    A wider view helps
+    you read danger; a closer view helps with details.
+
+
+    [Left Click] Try it'
+  zoomObjective: SCROLL TO ZOOM IN / OUT
+  aimTitle: LOOK AROUND
+  aimBrief: 'Hold [Right Mouse] and point toward the area you want to inspect.
+
+
+    [Left
+    Click] Continue'
+  aimObjective: HOLD RIGHT MOUSE AND LOOK AROUND
+  needsTitle: BODY CONDITION
+  needsBrief: 'The icons in the upper-right show your current condition.
+
+
+    [Left
+    Click] View status'
+  needsFocusTitle: HUNGER AND THIRST
+  needsFocusBody: 'These icons show your current needs. Keep them balanced to survive.
+
+
+    [Left
+    Click] Continue'
+  houseTitle: FIND SUPPLIES
+  houseBrief: 'Enter the nearest marked house and look for supplies.
+
+
+    [Left
+    Click] Move out'
+  houseObjective: ENTER THE MARKED HOUSE
+  houseMarker: ENTER HOUSE
+  cabinetTitle: SEARCH
+  cabinetBrief: 'Approach the marked kitchen cabinet and click it. Take everything
+    inside, including the S12K.
+
+
+    [Left Click] Open cabinet'
+  lootObjective: TAKE EVERYTHING FROM THE CABINET
+  cabinetMarker: CABINET
+  consumeTitle: USE SUPPLIES
+  consumeBrief: 'Open inventory with [TAB] or [I]. Use food and water to recover
+    your needs.
+
+
+    [Left Click] Continue'
+  consumeObjective: USE FOOD AND WATER
+  weaponTitle: EQUIP A WEAPON
+  weaponBrief: 'Open inventory and drag the S12K into a hotbar slot.
+
+
+    [Left
+    Click] Continue'
+  weaponObjective: DRAG S12K INTO THE HOTBAR
+  reloadTitle: RELOAD
+  reloadBrief: 'Close inventory, select the S12K and press [R] to reload.
+
+
+    [Left
+    Click] Continue'
+  reloadObjective: PRESS [R] TO RELOAD THE S12K
+  leaveHouseTitle: SOMETHING IS OUTSIDE
+  leaveHouseBrief: 'You have supplies and a loaded weapon. Leave the house carefully.
+
+
+    [Left
+    Click] Continue'
+  leaveHouseObjective: LEAVE THE HOUSE
+  noiseTitle: NOISE
+  noiseBrief: 'Footsteps, running, melee and gunshots can attract zombies. Watch
+    the Noise Meter.
+
+
+    [Left Click] Continue'
+  noiseObjective: WATCH THE NOISE METER
+  sneakTitle: SILENT APPROACH
+  sneakBrief: 'Press [C] to crouch, then approach the zombie from behind.
+
+
+    [Left
+    Click] Continue'
+  sneakObjective: PRESS [C] AND APPROACH FROM BEHIND
+  meleeTitle: MELEE ATTACK
+  meleeBrief: 'Hold [Right Mouse] to aim and press [Space] to strike.
+
+
+    [Left
+    Click] Continue'
+  meleeObjective: 'HOLD RIGHT MOUSE + PRESS [SPACE]'
+  bleedingTitle: YOU ARE BLEEDING
+  bleedingBrief: 'An open wound is draining your health. Inspect your body and treat
+    it before moving on.
+
+
+    [Left Click] Continue'
+  openHealthObjective: PRESS [TAB], THEN SELECT HEALTH STATUS
+  bandageObjective: RIGHT-CLICK THE WOUND AND APPLY BANDAGE
+  rangedTitle: DISTANT TARGET
+  rangedBrief: 'A firearm lets you attack a distant threat before it reaches you.
+
+
+    [Left
+    Click] Continue'
+  rangedNoiseTitle: THE PRICE OF A GUNSHOT
+  rangedNoiseBrief: 'Gunshots are powerful, but they can draw every zombie nearby.
+    Check your Noise Meter before firing.
+
+
+    [Left Click] Ready'
+  rangedObjective: AIM AND SHOOT ZOMBIE B
+  finalTauntTitle: NICE SHOT
+  finalTauntBrief: 'Fast and accurate. One small problem: the whole neighborhood
+    heard it.
+
+
+    Good luck, survivor.
+
+
+    [Left Click] Continue'
+  hordeObjective: SURVIVE
+  endingTitle: THIS IS HOW YOU DIED
+  endingBody: "You completed the tutorial. In this world, survival is not victory
+    \u2014 only delaying the inevitable."
+  startMainButton: START SURVIVAL
+  replayButton: REPLAY TUTORIAL
+  returnMenuButton: RETURN TO MENU

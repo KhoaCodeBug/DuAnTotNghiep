@@ -85,9 +85,26 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_RequestRespawn(PlayerRef player, int characterID, string playerName)
+    public void RPC_RequestRespawn(PlayerRef player, int characterID, string playerName, RpcInfo info = default)
     {
         if (!Runner.IsServer) return;
+        // A client may only request a respawn for its own PlayerRef.
+        if (info.Source != PlayerRef.None && info.Source != player)
+        {
+            Debug.LogWarning($"[SPAWNER] Rejected respawn spoof: {info.Source} requested {player}.");
+            return;
+        }
+
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject currentObject)
+            && currentObject != null && currentObject.IsValid)
+        {
+            PlayerHealth currentHealth = currentObject.GetComponent<PlayerHealth>();
+            if (currentHealth != null && !currentHealth.isDead && !currentHealth.isTransforming)
+            {
+                Debug.LogWarning($"[SPAWNER] Rejected respawn for living player {player}.");
+                return;
+            }
+        }
 
         // Despawn old character if it exists
         if (spawnedPlayers.TryGetValue(player, out NetworkObject oldNetObj) && oldNetObj != null)
@@ -122,6 +139,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
         // 🔥 FIX LỖI 2: Dùng chép đè để tránh Crash nếu người chơi gửi lệnh đẻ 2 lần do lag
         spawnedPlayers[player] = netObj;
+        Runner.SetPlayerObject(player, netObj);
 
         // 🔥 LOGIC LATE JOIN (NGƯỜI CHƠI NHẢY DÙ VÀO SAU)
         if (IsMatchStarted)
