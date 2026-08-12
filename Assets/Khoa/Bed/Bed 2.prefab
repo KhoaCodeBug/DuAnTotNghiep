@@ -92,7 +92,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a68dc40c49be9f941ba02ce1f6352eba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactionDistance: 1.6
+  interactionDistance: 0.7
   prompt: "NH\u1EA4N [E] \u0110\u1EC2 NG\u1EE6"
 --- !u!212 &4736166260141529769
 SpriteRenderer:

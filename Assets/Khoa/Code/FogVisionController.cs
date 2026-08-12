@@ -240,7 +240,11 @@ public class FogVisionController : MonoBehaviour
         int indoorPointCount = isIndoor ? BuildIndoorWorldPolygon(targetVision.ActiveIndoorCollider) : 0;
         isIndoor &= indoorPointCount >= 3;
 
-        overlayMaterial.SetColor(FogColorId, fogColor);
+        float nightBlend = DayNightManager.Instance != null
+            ? DayNightManager.EvaluateNightBlend(DayNightManager.Instance.CurrentTime)
+            : 0f;
+        Color nightFogColor = new Color(0.075f, 0.105f, 0.17f, fogColor.a);
+        overlayMaterial.SetColor(FogColorId, Color.Lerp(fogColor, nightFogColor, nightBlend * 0.78f));
         overlayMaterial.SetFloat(FogDensityId, CurrentFogDensity);
         // Day phase comes from Fusion's networked clock. The shader never uses local _Time.
         overlayMaterial.SetFloat(FogDayPhaseId, GetDayPhase());

@@ -336,6 +336,28 @@ public class PlayerHealth : NetworkBehaviour
         }
     }
 
+    /// <summary>
+    /// Authority-safe damage entry point for server-owned AI. In Host/Single it
+    /// applies immediately; in other Fusion topologies it reaches this player's
+    /// State Authority instead of being silently discarded.
+    /// </summary>
+    public void TakeDamageNetworked(float damage, bool isStarving = false, bool isZombieAttack = false)
+    {
+        if (HasStateAuthority)
+        {
+            TakeDamage(damage, isStarving, isZombieAttack);
+            return;
+        }
+
+        RPC_RequestTakeDamage(damage, isStarving, isZombieAttack);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestTakeDamage(float damage, NetworkBool isStarving, NetworkBool isZombieAttack)
+    {
+        TakeDamage(damage, isStarving, isZombieAttack);
+    }
+
     private void ApplyTutorialHealthFloor()
     {
         if (!TutorialSession.IsActive || !TutorialInputGate.HealthFloorEnabled || isDead) return;

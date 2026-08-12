@@ -47,12 +47,16 @@ public class DayNightManager : NetworkBehaviour
 
     [Networked] public int NetworkSleepPhase { get; set; }
     [Networked] public TickTimer SleepPhaseTimer { get; set; }
+    [Networked] public float SleepStartHour { get; set; }
     [Networked] public float PendingWakeHour { get; set; }
 
     private readonly HashSet<PlayerRef> pendingAmbushPlayers = new HashSet<PlayerRef>();
     private bool isSpawned;
     private int lastAnnouncedSleeping = -1;
     private int lastAnnouncedTotal = -1;
+
+    private const float SleepSequenceSeconds = 6f;
+    private const float ForcedFadeToBlackSeconds = 0.65f;
 
     public SleepPhase CurrentSleepPhase => (SleepPhase)NetworkSleepPhase;
     public bool IsSleepTransitionActive => CurrentSleepPhase != SleepPhase.None;
@@ -147,11 +151,15 @@ public class DayNightManager : NetworkBehaviour
 
     private void UpdateSleepTransition()
     {
-        if (!SleepPhaseTimer.Expired(Runner)) return;
-
         SleepPhase phase = CurrentSleepPhase;
         if (phase == SleepPhase.VoluntaryFade || phase == SleepPhase.ForcedFade)
         {
+            float remaining = SleepPhaseTimer.RemainingTime(Runner) ?? 0f;
+            float progress = 1f - Mathf.Clamp01(remaining / SleepSequenceSeconds);
+            CurrentTime = LerpClockForward(SleepStartHour, PendingWakeHour, progress);
+
+            if (!SleepPhaseTimer.Expired(Runner)) return;
+
             CurrentTime = PendingWakeHour;
             List<PlayerSurvival> alivePlayers = GetAlivePlayers();
 
@@ -164,6 +172,8 @@ public class DayNightManager : NetworkBehaviour
             AnnounceSleepCountIfChanged(alivePlayers, true);
             return;
         }
+
+        if (!SleepPhaseTimer.Expired(Runner)) return;
 
         if (phase == SleepPhase.Waking)
         {
@@ -178,6 +188,7 @@ public class DayNightManager : NetworkBehaviour
         if (alivePlayers == null || alivePlayers.Count == 0 || IsSleepTransitionActive) return;
 
         pendingAmbushPlayers.Clear();
+        SleepStartHour = CurrentTime;
 
         if (forced)
         {
@@ -212,7 +223,7 @@ public class DayNightManager : NetworkBehaviour
                 : "Tất cả người chơi đã lên giường. Đang tua đến sáng...");
         }
 
-        SleepPhaseTimer = TickTimer.CreateFromSeconds(Runner, sleepFadeSeconds);
+        SleepPhaseTimer = TickTimer.CreateFromSeconds(Runner, SleepSequenceSeconds);
     }
 
     private void SpawnPendingAmbushes(List<PlayerSurvival> alivePlayers)
@@ -234,9 +245,16 @@ public class DayNightManager : NetworkBehaviour
                 NetworkObject zombie = Runner.Spawn(ambushZombiePrefab, spawnPosition, Quaternion.identity, null,
                     (runner, spawned) =>
                     {
-                        spawned.GetComponent<ZOmbieAI_Khoa>()?.ConfigureTutorialSpawn(facing, 100f, false);
+                        ZOmbieAI_Khoa oldAI = spawned.GetComponent<ZOmbieAI_Khoa>();
+                        if (oldAI != null) oldAI.ConfigureTutorialSpawn(facing, 100f, false);
+                        else spawned.GetComponent<ZombieAIKhoaRebuilt>()?.ConfigureTutorialSpawn(facing, 100f, false);
                     });
-                zombie?.GetComponent<ZOmbieAI_Khoa>()?.ReleaseTutorialStationary(survival.transform.position);
+                if (zombie != null)
+                {
+                    ZOmbieAI_Khoa oldAI = zombie.GetComponent<ZOmbieAI_Khoa>();
+                    if (oldAI != null) oldAI.ReleaseTutorialStationary(survival.transform.position);
+                    else zombie.GetComponent<ZombieAIKhoaRebuilt>()?.ReleaseTutorialStationary(survival.transform.position);
+                }
             }
             else
             {
@@ -285,6 +303,15 @@ public class DayNightManager : NetworkBehaviour
                 nearest = Mathf.Min(nearest, distance);
         }
 
+        ZombieAIKhoaRebuilt[] rebuiltZombies = FindObjectsByType<ZombieAIKhoaRebuilt>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        for (int i = 0; i < rebuiltZombies.Length; i++)
+        {
+            if (rebuiltZombies[i] == null || rebuiltZombies[i].NetIsDead) continue;
+            float distance = Vector2.Distance(playerPosition, rebuiltZombies[i].transform.position);
+            if (distance <= radius && !IsAmbushPathBlocked(playerPosition, rebuiltZombies[i].transform.position))
+                nearest = Mathf.Min(nearest, distance);
+        }
+
         ZombieAI[] thaiZombies = FindObjectsByType<ZombieAI>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         for (int i = 0; i < thaiZombies.Length; i++)
         {
@@ -321,6 +348,12 @@ public class DayNightManager : NetworkBehaviour
     private static float NightElapsedFrom20(float hour)
     {
         return hour >= 20f ? hour - 20f : hour + 4f;
+    }
+
+    private static float LerpClockForward(float startHour, float endHour, float progress)
+    {
+        float forwardHours = Mathf.Repeat(endHour - startHour, 24f);
+        return Mathf.Repeat(startHour + forwardHours * Mathf.Clamp01(progress), 24f);
     }
 
     private static bool CrossedHour(float previous, float current, float target)
@@ -386,7 +419,16 @@ public class DayNightManager : NetworkBehaviour
         float remaining = SleepPhaseTimer.RemainingTime(Runner) ?? 0f;
         if (CurrentSleepPhase == SleepPhase.Waking)
             return Mathf.Clamp01(remaining / Mathf.Max(0.01f, wakeFadeSeconds));
-        return 1f - Mathf.Clamp01(remaining / Mathf.Max(0.01f, sleepFadeSeconds));
+        if (CurrentSleepPhase == SleepPhase.VoluntaryFade) return 1f;
+
+        float elapsed = SleepSequenceSeconds - remaining;
+        return Mathf.Clamp01(elapsed / ForcedFadeToBlackSeconds);
+    }
+
+    public bool ShouldShowFastForwardClock()
+    {
+        return CurrentSleepPhase == SleepPhase.VoluntaryFade ||
+               (CurrentSleepPhase == SleepPhase.ForcedFade && GetSleepOverlayAlpha() >= 0.95f);
     }
 
     public bool CanUseBedNow()
@@ -418,8 +460,32 @@ public class DayNightManager : NetworkBehaviour
     {
         if (globalLight == null) return;
         float timePercent = CurrentTime / 24f;
-        globalLight.intensity = globalIntensityCurve.Evaluate(timePercent);
-        globalLight.color = skyColorCurve.Evaluate(timePercent);
+        float authoredIntensity = globalIntensityCurve != null && globalIntensityCurve.length > 0
+            ? globalIntensityCurve.Evaluate(timePercent)
+            : 1f;
+        globalLight.intensity = Mathf.Min(authoredIntensity, EvaluateNightIntensityCap(CurrentTime));
+
+        Color authoredColor = skyColorCurve != null ? skyColorCurve.Evaluate(timePercent) : Color.white;
+        float nightBlend = EvaluateNightBlend(CurrentTime);
+        globalLight.color = Color.Lerp(authoredColor, new Color(0.12f, 0.18f, 0.34f, 1f), nightBlend * 0.72f);
+    }
+
+    private static float EvaluateNightIntensityCap(float hour)
+    {
+        hour = Mathf.Repeat(hour, 24f);
+        if (hour >= 18.5f) return Mathf.Lerp(0.55f, 0.055f, Mathf.InverseLerp(18.5f, 23f, hour));
+        if (hour < 5f) return 0.055f;
+        if (hour < 7.5f) return Mathf.Lerp(0.055f, 1.5f, Mathf.InverseLerp(5f, 7.5f, hour));
+        return 1.5f;
+    }
+
+    public static float EvaluateNightBlend(float hour)
+    {
+        hour = Mathf.Repeat(hour, 24f);
+        if (hour >= 18.5f) return Mathf.InverseLerp(18.5f, 22f, hour);
+        if (hour < 5.5f) return 1f;
+        if (hour < 8f) return 1f - Mathf.InverseLerp(5.5f, 8f, hour);
+        return 0f;
     }
 
     private void UpdateUI()
