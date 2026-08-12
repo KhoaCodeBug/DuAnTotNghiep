@@ -318,13 +318,13 @@ public sealed class IntroTutorialDirector : MonoBehaviour
         }
     }
 
-    private int DialogueLineCount => dialogueSequence != null && dialogueSequence.lines.Count > 0
-        ? dialogueSequence.lines.Count
+    private int DialogueLineCount => dialogueSequence != null && dialogueSequence.LocalizedLines.Count > 0
+        ? dialogueSequence.LocalizedLines.Count
         : 1;
 
-    private string CurrentDialogueLine => dialogueSequence != null && dialogueSequence.lines.Count > 0
-        ? dialogueSequence.lines[Mathf.Clamp(dialogueLineIndex, 0, dialogueSequence.lines.Count - 1)]
-        : "Xe đã chết máy. Phải xuống kiểm tra thôi.";
+    private string CurrentDialogueLine => dialogueSequence != null && dialogueSequence.LocalizedLines.Count > 0
+        ? dialogueSequence.LocalizedLines[Mathf.Clamp(dialogueLineIndex, 0, dialogueSequence.LocalizedLines.Count - 1)]
+        : GameLocalization.Get("intro.fallback");
 
     private void StartTrailerLoop()
     {
@@ -521,7 +521,9 @@ public sealed class IntroTutorialDirector : MonoBehaviour
             };
 
             GUI.Label(new Rect(box.x + 28f, box.y + 78f, box.width - 56f, 28f),
-                dialogueLineIndex < DialogueLineCount - 1 ? "[E] Tiếp" : "[E] Rời xe", promptStyle);
+                dialogueLineIndex < DialogueLineCount - 1
+                    ? GameLocalization.Get("intro.next")
+                    : GameLocalization.Get("intro.leave"), promptStyle);
         }
 
         float barAlpha = state == State.Dialogue

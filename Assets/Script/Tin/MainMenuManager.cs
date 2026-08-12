@@ -93,6 +93,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private int tempAntiAliasing = 2;       // 0=Off, 1=2x, 2=4x, 3=8x
     private int tempShowFPS = 1;            // 0=Off, 1=On
     private int tempFPSPosition = 0;        // 0=TopRight, 1=TopLeft, 2=BottomRight, 3=BottomLeft, 4=Center
+    private int tempLanguage = 0;           // 0=English, 1=Vietnamese (client-local)
     private float tempZoomSensitivity = 1.0f; // 0.5f đến 2.0f
 
     // Đối tượng Tab area và Text hiển thị
@@ -159,6 +160,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private TextMeshProUGUI modeDropdownText;
     private TextMeshProUGUI fpsPosDropdownText;
     private TextMeshProUGUI pFpsPosDropdownText;
+    private TextMeshProUGUI languageValText;
+    private TextMeshProUGUI pLanguageText;
 
     private string[] windowModeLabels = new string[] { "FULLSCREEN", "BORDERLESS", "WINDOWED" };
     private GameObject activeDropdownOverlay = null;
@@ -609,6 +612,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 sfxVolume = val;
             }, out pSfxText, "%");
         pSliderSFXVolume = pSfxSliderObj.GetComponent<Slider>();
+
+        string[] pLanguageLabels = new string[] { "ENGLISH", "TIẾNG VIỆT" };
+        CreateDropdown(pAudioTab, GameLocalization.Get("settings.language"),
+            new Vector2(0.05f, pStartYAud - pSpacingAud*3 - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud*3 + 0.02f),
+            new Vector2(0.45f, pStartYAud - pSpacingAud*3 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*3 + 0.03f),
+            pLanguageLabels, () => tempLanguage, (idx) => {
+                tempLanguage = idx;
+                GameLocalization.SetLanguage((GameLocalization.Language)idx, false);
+                UpdateDropdownTexts();
+            }, out pLanguageText);
 
         // Nút BACK + SAVE
         CreateMenuButton(pauseOptionsPanel, "BACK", () => ClosePauseOptions(false), new Vector2(0.1f, 0.08f));
@@ -2205,6 +2218,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             }, out sfxValText, "%");
         sliderSFXVolume = sfxSliderObj.GetComponent<Slider>();
 
+        string[] languageLabels = new string[] { "ENGLISH", "TIẾNG VIỆT" };
+        CreateDropdown(audioTabArea, GameLocalization.Get("settings.language"),
+            new Vector2(0.05f, startYAud - spacingYAud*3 - 0.04f), new Vector2(0.4f, startYAud - spacingYAud*3 + 0.02f),
+            new Vector2(0.45f, startYAud - spacingYAud*3 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*3 + 0.03f),
+            languageLabels, () => tempLanguage, (idx) => {
+                tempLanguage = idx;
+                GameLocalization.SetLanguage((GameLocalization.Language)idx, false);
+                UpdateDropdownTexts();
+            }, out languageValText);
+
 
         // Nút BACK (Bên trái)
         CreateMenuButton(optionsPanel, "BACK", () => {
@@ -2894,6 +2917,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         tempShowFPS = Mathf.Clamp(PlayerPrefs.GetInt("GameShowFPS", 1), 0, 1);
         tempFPSPosition = Mathf.Clamp(PlayerPrefs.GetInt("GameFPSPosition", 0), 0, 5);
         tempZoomSensitivity = PlayerPrefs.GetFloat("ZoomSensitivity", 1.0f);
+        tempLanguage = Mathf.Clamp(PlayerPrefs.GetInt("GameLanguage", (int)GameLocalization.Current), 0, 1);
+        GameLocalization.SetLanguage((GameLocalization.Language)tempLanguage, false);
 
         UpdateFPSText();
         UpdateBrightText();
@@ -2969,6 +2994,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         PlayerPrefs.SetInt("GameShowFPS", tempShowFPS);
         PlayerPrefs.SetInt("GameFPSPosition", tempFPSPosition);
         PlayerPrefs.SetFloat("ZoomSensitivity", tempZoomSensitivity);
+        PlayerPrefs.SetInt("GameLanguage", tempLanguage);
+        GameLocalization.SetLanguage((GameLocalization.Language)tempLanguage, false);
         PlayerPrefs.Save();
 
         FullScreenMode mode = FullScreenMode.ExclusiveFullScreen;
@@ -3009,12 +3036,18 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         if (tempShowFPS != PlayerPrefs.GetInt("GameShowFPS", 1)) return true;
         if (tempFPSPosition != PlayerPrefs.GetInt("GameFPSPosition", 0)) return true;
         if (Mathf.Abs(tempZoomSensitivity - PlayerPrefs.GetFloat("ZoomSensitivity", 1.0f)) > 0.01f) return true;
+        if (tempLanguage != PlayerPrefs.GetInt("GameLanguage", (int)GameLocalization.Current)) return true;
 
         return false;
     }
 
     private void UpdateDropdownTexts()
     {
+        string languageLabel = tempLanguage == 0
+            ? GameLocalization.Get("settings.english")
+            : GameLocalization.Get("settings.vietnamese");
+        if (languageValText != null) languageValText.text = languageLabel + "  ▼";
+        if (pLanguageText != null) pLanguageText.text = languageLabel + "  ▼";
         if (resDropdownText != null)
         {
             resDropdownText.text = $"{commonResolutions[tempResIndex].x} x {commonResolutions[tempResIndex].y}  ▼";

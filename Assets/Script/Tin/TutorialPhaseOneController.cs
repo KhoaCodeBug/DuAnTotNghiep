@@ -9,6 +9,7 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public sealed class TutorialPhaseOneController : MonoBehaviour
 {
+    private Font tutorialGuiFont;
     private enum Step
     {
         WaitingForIntro,
@@ -91,13 +92,18 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
 
     private void Awake()
     {
+        tutorialGuiFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         TutorialSession.Begin();
         TutorialInputGate.SetFireLocked(true);
         TutorialInputGate.SetHealthFloor(true, 0.3f);
 
         introDirector ??= FindFirstObjectByType<IntroTutorialDirector>();
         introCamera ??= FindFirstObjectByType<IntroCameraFollow>();
-        tutorialText ??= Resources.Load<TutorialPhaseOneText>("Tutorial/TutorialPhaseOneText");
+        string tutorialTextPath = GameLocalization.IsVietnamese
+            ? "Tutorial/TutorialPhaseOneText"
+            : "Tutorial/TutorialPhaseOneText_EN";
+        tutorialText = Resources.Load<TutorialPhaseOneText>(tutorialTextPath)
+            ?? Resources.Load<TutorialPhaseOneText>("Tutorial/TutorialPhaseOneText");
         kitchenCabinet ??= FindTransform("Prefab_Kitchen1_E (1)");
         targetHouseRoof ??= FindComponent<RoofVisibility>("Nha8 (1)");
         tutorialZombieSpawn ??= FindTransform("TutorialZombieSpawn");
@@ -1104,19 +1110,19 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
 
     private GUIStyle TitleStyle() => new GUIStyle(GUI.skin.label)
     {
-        fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+        font = tutorialGuiFont, fontSize = 26, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
         normal = { textColor = new Color(1f, 0.83f, 0.22f) }
     };
 
     private GUIStyle BodyStyle() => new GUIStyle(GUI.skin.label)
     {
-        fontSize = 19, alignment = TextAnchor.UpperCenter, wordWrap = true,
+        font = tutorialGuiFont, fontSize = 19, alignment = TextAnchor.UpperCenter, wordWrap = true,
         normal = { textColor = Color.white }
     };
 
     private GUIStyle ObjectiveStyle() => new GUIStyle(GUI.skin.label)
     {
-        fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true,
+        font = tutorialGuiFont, fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter, wordWrap = true,
         normal = { textColor = Color.white }
     };
 
@@ -1160,19 +1166,19 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
 
     private GUIStyle EndingTitleStyle() => new GUIStyle(GUI.skin.label)
     {
-        fontSize = 34, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+        font = tutorialGuiFont, fontSize = 34, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
         normal = { textColor = new Color(0.85f, 0.12f, 0.10f) }
     };
 
     private GUIStyle MarkerStyle() => new GUIStyle(GUI.skin.label)
     {
-        fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+        font = tutorialGuiFont, fontSize = 18, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
         normal = { textColor = new Color(1f, 0.88f, 0.2f) }
     };
 
     private GUIStyle PointerStyle() => new GUIStyle(GUI.skin.label)
     {
-        fontSize = 38, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
+        font = tutorialGuiFont, fontSize = 38, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleCenter,
         normal = { textColor = new Color(1f, 0.86f, 0.15f) }
     };
 

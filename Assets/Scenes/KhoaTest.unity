@@ -462,7 +462,6 @@ GameObject:
   m_Component:
   - component: {fileID: 213963934}
   - component: {fileID: 213963940}
-  - component: {fileID: 213963939}
   - component: {fileID: 213963938}
   - component: {fileID: 213963937}
   - component: {fileID: 213963936}
@@ -615,51 +614,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &213963939
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 213963933}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 0}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 0
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &213963940
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -1685,7 +1639,6 @@ GameObject:
   m_Component:
   - component: {fileID: 431897254}
   - component: {fileID: 431897260}
-  - component: {fileID: 431897259}
   - component: {fileID: 431897258}
   - component: {fileID: 431897257}
   - component: {fileID: 431897256}
@@ -1838,51 +1791,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &431897259
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 431897253}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 0}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 0
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &431897260
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -2023,7 +1931,6 @@ GameObject:
   m_Component:
   - component: {fileID: 485144507}
   - component: {fileID: 485144513}
-  - component: {fileID: 485144512}
   - component: {fileID: 485144511}
   - component: {fileID: 485144510}
   - component: {fileID: 485144509}
@@ -2176,51 +2083,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &485144512
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 485144506}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 0}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 0
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &485144513
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -2286,7 +2148,6 @@ GameObject:
   m_Component:
   - component: {fileID: 503603425}
   - component: {fileID: 503603431}
-  - component: {fileID: 503603430}
   - component: {fileID: 503603429}
   - component: {fileID: 503603428}
   - component: {fileID: 503603427}
@@ -2439,51 +2300,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &503603430
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 503603424}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 0}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 0
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &503603431
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -17217,7 +17033,6 @@ GameObject:
   m_Component:
   - component: {fileID: 774180051}
   - component: {fileID: 774180057}
-  - component: {fileID: 774180056}
   - component: {fileID: 774180055}
   - component: {fileID: 774180054}
   - component: {fileID: 774180053}
@@ -17370,51 +17185,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &774180056
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 774180050}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 113278631}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 1
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &774180057
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -21880,7 +21650,6 @@ GameObject:
   m_Component:
   - component: {fileID: 891142431}
   - component: {fileID: 891142437}
-  - component: {fileID: 891142436}
   - component: {fileID: 891142435}
   - component: {fileID: 891142434}
   - component: {fileID: 891142433}
@@ -22033,51 +21802,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &891142436
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 891142430}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 113278631}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 1
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &891142437
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -25535,7 +25259,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1045524294}
   - component: {fileID: 1045524300}
-  - component: {fileID: 1045524299}
   - component: {fileID: 1045524298}
   - component: {fileID: 1045524297}
   - component: {fileID: 1045524296}
@@ -25688,51 +25411,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &1045524299
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1045524293}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 113278631}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 0
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &1045524300
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -34256,7 +33934,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1172239833}
   - component: {fileID: 1172239839}
-  - component: {fileID: 1172239838}
   - component: {fileID: 1172239837}
   - component: {fileID: 1172239836}
   - component: {fileID: 1172239835}
@@ -34409,51 +34086,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &1172239838
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1172239832}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 0}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 0
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &1172239839
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -76393,7 +76025,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1318796891}
   - component: {fileID: 1318796897}
-  - component: {fileID: 1318796896}
   - component: {fileID: 1318796895}
   - component: {fileID: 1318796894}
   - component: {fileID: 1318796893}
@@ -76546,51 +76177,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &1318796896
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1318796890}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 113278631}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 0
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &1318796897
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -77138,7 +76724,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1419899920}
   - component: {fileID: 1419899926}
-  - component: {fileID: 1419899925}
   - component: {fileID: 1419899924}
   - component: {fileID: 1419899923}
   - component: {fileID: 1419899922}
@@ -77291,51 +76876,6 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0.04, y: 0}
   m_Radius: 0.1
---- !u!114 &1419899925
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1419899919}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 18557f46f5dc03b48ad855acc2a30b32, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 0}
-  playerController: {fileID: 0}
-  spriteRenderer: {fileID: 0}
-  detectionRadius: 2
-  moveSpeed: 0.5
-  isRunner: 0
-  alertRange: 3
-  alertedDetectionRadius: 15
-  alertDuration: 15
-  zombieAnimatorControllers:
-  - {fileID: 9100000, guid: 26e29c083ba2c8640b259131f7f49790, type: 2}
-  - {fileID: 9100000, guid: a834446385b53d245a3565614d62c59a, type: 2}
-  - {fileID: 9100000, guid: 89e26d138b978ca47ae4ee125d5f0fdb, type: 2}
-  - {fileID: 9100000, guid: a219cec93b41b9e48892ca0bd708b689, type: 2}
-  - {fileID: 9100000, guid: 463eb44d900d97740af90880aa55680c, type: 2}
-  maxHealth: 2
-  isChasing: 0
-  attackRange: 0.3
-  attackDelay: 0.3
-  windUpTime: 0.3
-  totalAttackTime: 1
-  zombieDamage: 1
-  stopMovementWhileAttacking: 1
-  isAttacking: 0
-  bloodPrefabs:
-  - {fileID: 7832956911143034944, guid: c9d717f5728e9e441a8f114188da3466, type: 3}
-  - {fileID: 761505443441836314, guid: 4ddf2aa595a05824b8ca85c961b24fce, type: 3}
-  - {fileID: 9188630017558119653, guid: df7676f06b37ebb4c821b6945a1a3272, type: 3}
-  - {fileID: 6343985419048066051, guid: 483e27109536f674abd2824190b9b542, type: 3}
-  - {fileID: 7506781129403749045, guid: 380d623fab209db488393d62642d2daf, type: 3}
-  radiatedPrefabs: []
-  isRadiated: 0
-  directionUpdateInterval: 0.2
 --- !u!212 &1419899926
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -77670,22 +77210,47 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0.3
+  nextWaypointDistance: 0.5
+  trackingDuration: 3
+  zombieMask:
+    serializedVersion: 2
+    m_Bits: 0
+  separationRadius: 0.4
+  separationWeight: 1.5
   zombieDamage: 15
   detectionRange: 1
   viewAngle: 180
+  alertViewAngle: 200
+  closeAwarenessRange: 2.25
   obstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  loseTime: 5
-  isInvestigating: 0
+  searchPointCount: 3
+  searchRadius: 2.25
+  searchWaitDuration: 1.1
   attackRange: 0.04
-  attackDuration: 1.2
+  attackHitAngle: 120
+  attack1Duration: 1.0833334
+  attack2Duration: 1.25
   attackCooldown: 1.5
   maxHealth: 100
-  currentHealth: 0
   stunDuration: 0.3
   hurtColor: {r: 1, g: 0, b: 0, a: 1}
-  currentState: 0
+  _CurrentHealth: 0
+  _NetIsDead:
+    _value: 0
+  _NetIsAttacking:
+    _value: 0
+  _NetAttackIndex: 0
+  _NetSpeed: 0
+  _NetMoveDir: {x: 0, y: 0}
+  _TutorialStationary:
+    _value: 0
+  _TutorialForceVisible:
+    _value: 0
+  obstacleProbeDistance: 0.8
+  obstacleAvoidanceWeight: 1.8
+  stuckRepathDelay: 0.75
 --- !u!70 &1497146807
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -78399,8 +77964,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 'KILL COUNT:'
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 2e498d1c8094910479dc3e1b768306a4, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -78863,22 +78428,47 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 0.3
+  nextWaypointDistance: 0.5
+  trackingDuration: 3
+  zombieMask:
+    serializedVersion: 2
+    m_Bits: 0
+  separationRadius: 0.4
+  separationWeight: 1.5
   zombieDamage: 15
   detectionRange: 1
   viewAngle: 180
+  alertViewAngle: 200
+  closeAwarenessRange: 2.25
   obstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  loseTime: 5
-  isInvestigating: 0
+  searchPointCount: 3
+  searchRadius: 2.25
+  searchWaitDuration: 1.1
   attackRange: 0.04
-  attackDuration: 1.3
+  attackHitAngle: 120
+  attack1Duration: 1.0833334
+  attack2Duration: 1.25
   attackCooldown: 1.5
   maxHealth: 100
-  currentHealth: 0
   stunDuration: 0.3
   hurtColor: {r: 1, g: 0, b: 0, a: 1}
-  currentState: 0
+  _CurrentHealth: 0
+  _NetIsDead:
+    _value: 0
+  _NetIsAttacking:
+    _value: 0
+  _NetAttackIndex: 0
+  _NetSpeed: 0
+  _NetMoveDir: {x: 0, y: 0}
+  _TutorialStationary:
+    _value: 0
+  _TutorialForceVisible:
+    _value: 0
+  obstacleProbeDistance: 0.8
+  obstacleAvoidanceWeight: 1.8
+  stuckRepathDelay: 0.75
 --- !u!114 &1611119453
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -94005,7 +93595,8 @@ PrefabInstance:
       propertyPath: player
       value: 
       objectReference: {fileID: 113278631}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 7428784016494044470, guid: 6b00a440161c0f347b485bcc6f60fcae, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

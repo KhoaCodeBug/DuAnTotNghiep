@@ -126,7 +126,7 @@ public class AutoNoiseMeter : MonoBehaviour
         border = borderObject.AddComponent<Image>();
         border.color = new Color(0.2f, 0.85f, 0.42f, 0.2f);
 
-        title = CreateText("Title", panelObject.transform, "ĐỘ ỒN", 15, FontStyle.Bold, new Color(0.8f, 0.9f, 0.85f, 1f));
+        title = CreateText("Title", panelObject.transform, GameLocalization.Get("noise.title"), 15, FontStyle.Bold, new Color(0.8f, 0.9f, 0.85f, 1f));
         RectTransform titleRect = title.rectTransform;
         titleRect.anchorMin = new Vector2(0f, 1f);
         titleRect.anchorMax = new Vector2(0f, 1f);
@@ -134,7 +134,7 @@ public class AutoNoiseMeter : MonoBehaviour
         titleRect.anchoredPosition = new Vector2(14f, -9f);
         titleRect.sizeDelta = new Vector2(150f, 22f);
 
-        sourceLabel = CreateText("Source", panelObject.transform, "YÊN LẶNG", 12, FontStyle.Normal, new Color(0.55f, 0.65f, 0.62f, 1f));
+        sourceLabel = CreateText("Source", panelObject.transform, GameLocalization.Get("noise.silent"), 12, FontStyle.Normal, new Color(0.55f, 0.65f, 0.62f, 1f));
         sourceLabel.alignment = TextAnchor.MiddleRight;
         RectTransform sourceRect = sourceLabel.rectTransform;
         sourceRect.anchorMin = new Vector2(1f, 1f);
@@ -185,7 +185,7 @@ public class AutoNoiseMeter : MonoBehaviour
         movementNoise = !isMoving || isCrouching ? 0f : (isRunning ? 0.48f : 0.24f);
         if (movementNoise > 0f)
         {
-            sourceName = isRunning ? "CHẠY" : "BƯỚC CHÂN";
+            sourceName = isRunning ? GameLocalization.Get("noise.running") : GameLocalization.Get("noise.footsteps");
             sourceTimer = 0.15f;
             pulseTimer = Mathf.Max(pulseTimer, 0.06f);
         }
@@ -242,7 +242,8 @@ public class AutoNoiseMeter : MonoBehaviour
             ? new Color(0.025f, 0.08f, 0.1f, 0.94f)
             : new Color(0.025f, 0.035f, 0.045f, 0.9f);
 
-        sourceLabel.text = heardVoice ? "VOICE LÂN CẬN" : (sourceTimer > 0f ? sourceName : "YÊN LẶNG");
+        sourceLabel.text = heardVoice ? GameLocalization.Get("noise.voice")
+            : (sourceTimer > 0f ? sourceName : GameLocalization.Get("noise.silent"));
         sourceLabel.color = heardVoice ? new Color(0.4f, 0.9f, 1f, 1f) : levelColor;
     }
 
