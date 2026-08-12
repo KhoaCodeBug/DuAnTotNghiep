@@ -100,6 +100,7 @@ public static class GameLocalization
         return new Dictionary<string, string[]>
         {
             { "new_game", new[] { "NEW GAME", "CHƠI MỚI" } },
+            { "tutorial", new[] { "TUTORIAL", "HƯỚNG DẪN" } },
             { "multiplayer", new[] { "MULTIPLAYER", "NHIỀU NGƯỜI CHƠI" } },
             { "options", new[] { "OPTIONS", "TÙY CHỌN" } },
             { "credits", new[] { "CREDITS", "GIỚI THIỆU" } },
