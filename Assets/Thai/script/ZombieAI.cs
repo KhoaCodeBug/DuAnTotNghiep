@@ -35,13 +35,8 @@ public class ZombieAI : NetworkBehaviour
     [SerializeField] private float obstacleAvoidanceWeight = 1.8f;
     [SerializeField] private float stuckRepathDelay = 0.75f;
 
-    [Header("--- Phạm vi Phát hiện (Detection) ---")]
-    public float detectionRange = 10f;
-    [SerializeField] private float trackingDuration = 3f;
-    [SerializeField, Range(30f, 360f)] private float viewAngle = 180f;
-    [SerializeField, Range(90f, 360f)] private float alertViewAngle = 220f;
-    [SerializeField] private float closeAwarenessRange = 1.25f;
-    [SerializeField] private float crouchDetectRange = 0.6f;
+    [Header("--- Cảm nhận cự ly gần (Zombie mù) ---")]
+    [SerializeField] private float closeAwarenessRange = 0.6f;
 
     [Header("--- Search Memory ---")]
     [SerializeField] private int searchPointCount = 3;
@@ -53,9 +48,11 @@ public class ZombieAI : NetworkBehaviour
     [SerializeField] private float quietHearingSpeedMultiplier = 0.65f;
     [SerializeField] private float normalHearingSpeedMultiplier = 1f;
     [SerializeField] private float quietSoundPositionUncertainty = 0.75f;
+    [SerializeField] private float soundRepathDistance = 0.35f;
 
     [Header("--- Tấn công & Tốc độ ---")]
     public float moveSpeed = 2.5f;
+    [SerializeField] private float chaseSpeedMultiplier = 1.7f;
     public float attackRange = 0.12f;
     public float damageRadius = 0.12f;
     public float attackCooldown = 1.5f;
@@ -73,6 +70,7 @@ public class ZombieAI : NetworkBehaviour
     private bool hasHeardSound = false;
     private float hearMemoryTimer = 0f;
     private float lastHeardUrgency = 1f;
+    private PlayerRef heardPlayerRef = PlayerRef.None;
     public float hearMemoryDuration = 3f;
     public float HearingRangeMultiplier => Mathf.Max(1f, hearingRangeMultiplier);
 
@@ -91,16 +89,12 @@ public class ZombieAI : NetworkBehaviour
     private bool hasDealtDamageThisAttack = false;
     private bool isAttackLocked = false;
     private float attackCommitTimer = 0f;
+    private Vector2 attackLockedPosition;
     private Vector2 attackOrigin;
     private Vector2 lockedAttackDirection;
     private PlayerHealth attackTargetHealth;
     private Collider2D attackTargetCollider;
 
-    private Vector2 lastKnownPlayerPos;
-    private float currentTrackingTimer = 0f;
-    private Vector2 lastObservedPosition;
-    private Vector2 lastObservedVelocity;
-    private bool hasObservedTarget;
     private bool isSearching = false;
     private Vector2 searchCenter;
     private Vector2 currentSearchTarget;
@@ -153,18 +147,6 @@ public class ZombieAI : NetworkBehaviour
         {
             healthScript.OnStunRequested -= ApplyStun;
         }
-    }
-
-    // --- HÀM KIỂM TRA TẦM NHÌN THẲNG ---
-    private bool CanSeePlayer()
-    {
-        if (player == null || playerHealth == null || playerCollider == null) return false;
-
-        Vector2 from = rb != null ? rb.position : (Vector2)transform.position;
-        Vector2 to = playerCollider.bounds.center;
-        float distance = Vector2.Distance(from, to);
-
-        return CanSeeTarget(from, to, distance, playerHealth);
     }
 
     // --- HÀM TRƯỢT TƯỜNG (CẢI TIẾN) ---
@@ -246,9 +228,9 @@ public class ZombieAI : NetworkBehaviour
     {
         if (path == null || currentWaypoint >= path.vectorPath.Count)
         {
-            if (allowDirectChaseFallback && HasValidTarget() && CanSeePlayer())
+            if (allowDirectChaseFallback && HasValidTarget())
             {
-                Vector2 targetDirection = (playerCollider.bounds.center - (Vector3)rb.position).normalized;
+                Vector2 targetDirection = (requestedPathTarget - rb.position).normalized;
                 return SafeMove(targetDirection, currentSpeed);
             }
 
@@ -396,11 +378,18 @@ public class ZombieAI : NetworkBehaviour
 
         if (hasHeardSound)
         {
-            bool isMovingToHeardSound = currentMode == AIMode.Investigate && player == null;
-            if (!isMovingToHeardSound)
+            hearMemoryTimer -= Runner.DeltaTime;
+            if (hearMemoryTimer <= 0f)
             {
-                hearMemoryTimer -= Runner.DeltaTime;
-                if (hearMemoryTimer <= 0) hasHeardSound = false;
+                Vector2 expiredSoundPosition = lastHeardPosition;
+                hasHeardSound = false;
+                heardPlayerRef = PlayerRef.None;
+
+                if (!isAttackLocked)
+                {
+                    ClearTarget(false);
+                    StartSearch(expiredSoundPosition);
+                }
             }
         }
 
@@ -409,7 +398,7 @@ public class ZombieAI : NetworkBehaviour
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
             if (pHealth == null || pHealth.isDead || !player.gameObject.activeInHierarchy)
             {
-                ClearTarget();
+                ClearTarget(false);
             }
         }
 
@@ -418,20 +407,16 @@ public class ZombieAI : NetworkBehaviour
         searchTimer -= Runner.DeltaTime;
         if (searchTimer <= 0)
         {
-            FindClosestPlayerInRange();
+            FindPlayerInCloseAwareness();
             searchTimer = 0.2f;
         }
 
         AIMode previousMode = currentMode;
 
-        // CẬP NHẬT LOGIC TRẠNG THÁI: Nếu không đuổi, không điều tra thì sẽ IDLE (Đứng yên)
-        if (player != null) currentMode = AIMode.Chase;
-        else if (currentTrackingTimer > 0f)
-        {
-            currentTrackingTimer -= Runner.DeltaTime;
+        if (HasValidTarget() && (hasHeardSound || GetColliderDistance(playerCollider) <= closeAwarenessRange))
+            currentMode = AIMode.Chase;
+        else if (hasHeardSound)
             currentMode = AIMode.Investigate;
-        }
-        else if (hasHeardSound) currentMode = AIMode.Investigate;
         else if (isSearching) currentMode = AIMode.Search;
         else currentMode = AIMode.Idle;
 
@@ -463,7 +448,7 @@ public class ZombieAI : NetworkBehaviour
     {
         if (!HasValidTarget())
         {
-            ClearTarget();
+            ClearTarget(false);
             return;
         }
 
@@ -477,20 +462,34 @@ public class ZombieAI : NetworkBehaviour
             : Vector2.Distance(rb.position, targetPos);
         float attackStartRange = GetEffectiveAttackRange();
 
-        RememberTarget(targetPos);
+        if (distanceToPlayer <= closeAwarenessRange)
+        {
+            lastHeardPosition = targetPos;
+            hasHeardSound = true;
+            hearMemoryTimer = Mathf.Max(hearMemoryTimer, 0.5f);
+        }
 
         if (distanceToPlayer > attackStartRange)
         {
+            Vector2 chaseDestination = lastHeardPosition;
             pathUpdateTimer -= Runner.DeltaTime;
             if (pathUpdateTimer <= 0 && seeker.IsDone())
             {
-                CalculatePath(targetPos, AIMode.Chase);
+                CalculatePath(chaseDestination, AIMode.Chase);
                 pathUpdateTimer = 0.25f;
             }
 
-            bool moved = MoveAlongPath(moveSpeed, true);
-            CheckForStuck(targetPos);
+            bool moved = MoveAlongPath(moveSpeed * chaseSpeedMultiplier, true);
+            CheckForStuck(chaseDestination);
             NetIsRunning = moved;
+
+            if (Vector2.Distance(rb.position, chaseDestination) < 0.5f && distanceToPlayer > closeAwarenessRange)
+            {
+                hasHeardSound = false;
+                heardPlayerRef = PlayerRef.None;
+                ClearTarget(false);
+                StartSearch(chaseDestination);
+            }
         }
         else
         {
@@ -498,7 +497,7 @@ public class ZombieAI : NetworkBehaviour
             NetIsRunning = false;
             NetMoveDir = (targetPos - rb.position).normalized;
 
-            if (attackTimer <= 0 && CanSeePlayer() && HasLineOfSight(rb.position, targetPos, Vector2.Distance(rb.position, targetPos), playerHealth))
+            if (attackTimer <= 0 && HasLineOfSight(rb.position, targetPos, Vector2.Distance(rb.position, targetPos), playerHealth))
             {
                 StartAttack();
             }
@@ -525,29 +524,33 @@ public class ZombieAI : NetworkBehaviour
 
         attackCommitTimer -= Runner.DeltaTime;
         StopMovement();
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.MovePosition(attackLockedPosition);
+        }
         NetIsRunning = false;
         NetIsChasing = player != null;
 
-        if (attackTargetCollider != null)
-        {
-            lastMoveDirection = lockedAttackDirection;
-            NetMoveDir = lockedAttackDirection;
-        }
-        else if (player != null)
-        {
-            Vector2 faceDir = player.position - transform.position;
-            if (faceDir.sqrMagnitude > 0.0001f)
-            {
-                NetMoveDir = faceDir.normalized;
-                lastMoveDirection = NetMoveDir;
-            }
-        }
+        lastMoveDirection = lockedAttackDirection;
+        NetMoveDir = lockedAttackDirection;
 
         if (attackCommitTimer <= 0f)
         {
             isAttackLocked = false;
             attackTargetHealth = null;
             attackTargetCollider = null;
+
+            if (!hasHeardSound && GetColliderDistance(playerCollider) > closeAwarenessRange)
+            {
+                Vector2 searchPosition = lastHeardPosition;
+                ClearTarget(false);
+                StartSearch(searchPosition);
+            }
+            else if (hasHeardSound)
+            {
+                TryBindPlayerFromSound(heardPlayerRef);
+            }
         }
 
         return true;
@@ -572,6 +575,7 @@ public class ZombieAI : NetworkBehaviour
         isAttackLocked = true;
         attackCommitTimer = attackCommitDuration;
         attackOrigin = rb != null ? rb.position : (Vector2)transform.position;
+        attackLockedPosition = attackOrigin;
         attackTargetHealth = selectedHealth;
         attackTargetCollider = selectedCollider;
         lockedAttackDirection = ((Vector2)selectedCollider.bounds.center - attackOrigin).normalized;
@@ -594,7 +598,7 @@ public class ZombieAI : NetworkBehaviour
 
     private void HandleInvestigateState()
     {
-        Vector2 investigatePos = currentTrackingTimer > 0f ? lastKnownPlayerPos : (Vector2)lastHeardPosition;
+        Vector2 investigatePos = lastHeardPosition;
 
         pathUpdateTimer -= Runner.DeltaTime;
         if (pathUpdateTimer <= 0 && seeker.IsDone())
@@ -613,7 +617,7 @@ public class ZombieAI : NetworkBehaviour
         if (Vector2.Distance(transform.position, investigatePos) < 0.5f)
         {
             hasHeardSound = false;
-            currentTrackingTimer = 0f;
+            heardPlayerRef = PlayerRef.None;
             StopMovement();
             StartSearch(investigatePos);
         }
@@ -711,34 +715,68 @@ public class ZombieAI : NetworkBehaviour
     {
         if (!HasStateAuthority) return;
 
-        ApplyHeardSound(pos, 1f);
+        ApplyHeardSound(pos, 1f, PlayerRef.None);
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_HearSoundWithUrgency(Vector3 pos, float urgency)
+    public void RPC_HearSoundWithUrgency(Vector3 pos, float urgency, PlayerRef sourcePlayer)
     {
         if (!HasStateAuthority) return;
 
-        ApplyHeardSound(pos, urgency);
+        ApplyHeardSound(pos, urgency, sourcePlayer);
     }
 
-    private void ApplyHeardSound(Vector3 pos, float urgency)
+    private void ApplyHeardSound(Vector3 pos, float urgency, PlayerRef sourcePlayer)
     {
         lastHeardUrgency = Mathf.Clamp01(urgency);
         float uncertainty = quietSoundPositionUncertainty * (1f - lastHeardUrgency);
         Vector2 offset = uncertainty > 0f ? Random.insideUnitCircle * uncertainty : Vector2.zero;
+        Vector2 newHeardPosition = pos + (Vector3)offset;
+        bool destinationChanged = Vector2.Distance(lastHeardPosition, newHeardPosition) >= soundRepathDistance;
 
-        lastHeardPosition = pos + (Vector3)offset;
+        lastHeardPosition = newHeardPosition;
         hasHeardSound = true;
         hearMemoryTimer = hearMemoryDuration;
-        currentTrackingTimer = 0f;
         isSearching = false;
+        if (sourcePlayer != PlayerRef.None) heardPlayerRef = sourcePlayer;
+        TryBindPlayerFromSound(sourcePlayer);
 
-        if (player == null)
+        if (!isAttackLocked)
         {
-            currentMode = AIMode.Investigate;
-            StopMovement();
-            pathUpdateTimer = 0f;
+            currentMode = HasValidTarget() ? AIMode.Chase : AIMode.Investigate;
+            if (destinationChanged)
+            {
+                pathRequestId++;
+                pathUpdateTimer = 0f;
+            }
+        }
+    }
+
+    private void TryBindPlayerFromSound(PlayerRef sourcePlayer)
+    {
+        if (sourcePlayer == PlayerRef.None) return;
+        if (HasValidTarget()
+            && playerHealth.Object != null
+            && playerHealth.Object.IsValid
+            && playerHealth.Object.InputAuthority == sourcePlayer)
+            return;
+        if (isAttackLocked && attackTargetHealth != null) return;
+
+        GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
+        foreach (GameObject candidate in allPlayers)
+        {
+            PlayerHealth candidateHealth = candidate.GetComponent<PlayerHealth>();
+            if (candidateHealth == null || candidateHealth.Object == null || !candidateHealth.Object.IsValid) continue;
+            if (candidateHealth.Object.InputAuthority != sourcePlayer || candidateHealth.isDead) continue;
+
+            Collider2D candidateCollider = GetMainTargetCollider(candidate);
+            if (candidateCollider == null) return;
+
+            player = candidate.transform;
+            playerHealth = candidateHealth;
+            playerCollider = candidateCollider;
+            heardPlayerRef = sourcePlayer;
+            return;
         }
     }
 
@@ -752,11 +790,10 @@ public class ZombieAI : NetworkBehaviour
         }
     }
 
-    void FindClosestPlayerInRange()
+    private void FindPlayerInCloseAwareness()
     {
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
-        float activeRange = (currentMode == AIMode.Chase) ? detectionRange * 1.5f : detectionRange;
-        float bestScore = float.NegativeInfinity;
+        float bestDistance = closeAwarenessRange;
         GameObject bestCandidate = null;
         PlayerHealth bestHealth = null;
         Collider2D bestCollider = null;
@@ -764,31 +801,17 @@ public class ZombieAI : NetworkBehaviour
 
         foreach (GameObject p in allPlayers)
         {
-            if (p.TryGetComponent(out Skill_StealthCrouch stealth) && stealth.IsInvisible) continue;
-
             PlayerHealth pHealth = p.GetComponent<PlayerHealth>();
-            if (pHealth != null)
-            {
-                if (pHealth.Object == null || !pHealth.Object.IsValid) continue;
-                if (pHealth.isDead) continue;
-            }
+            if (pHealth == null || pHealth.Object == null || !pHealth.Object.IsValid || pHealth.isDead) continue;
 
             Collider2D candidateCollider = GetMainTargetCollider(p);
             if (candidateCollider == null) continue;
 
+            float distance = GetColliderDistance(candidateCollider);
             Vector2 targetPos = candidateCollider.bounds.center;
-            float dist = Vector2.Distance(myPos, targetPos);
-            if (dist > activeRange) continue;
-            if (IsHiddenByCrouch(p, dist)) continue;
-
-            bool canSee = CanSeeTarget(myPos, targetPos, dist, pHealth);
-            if (!canSee) continue;
-
-            bool isCurrentTarget = player == p.transform;
-            float score = -dist + 1000f + (isCurrentTarget ? 25f : 0f);
-            if (score > bestScore)
+            if (distance <= bestDistance && HasLineOfSight(myPos, targetPos, Vector2.Distance(myPos, targetPos), pHealth))
             {
-                bestScore = score;
+                bestDistance = distance;
                 bestCandidate = p;
                 bestHealth = pHealth;
                 bestCollider = candidateCollider;
@@ -800,12 +823,11 @@ public class ZombieAI : NetworkBehaviour
             player = bestCandidate.transform;
             playerHealth = bestHealth;
             playerCollider = bestCollider;
-            RememberTarget(bestCollider.bounds.center);
+            heardPlayerRef = bestHealth.Object.InputAuthority;
+            lastHeardPosition = bestCollider.bounds.center;
+            hasHeardSound = true;
+            hearMemoryTimer = Mathf.Max(hearMemoryTimer, 0.5f);
             isSearching = false;
-        }
-        else if (player != null)
-        {
-            ClearTarget();
         }
     }
 
@@ -878,27 +900,20 @@ public class ZombieAI : NetworkBehaviour
             && playerHealth != null
             && playerCollider != null
             && !playerHealth.isDead
-            && !IsHiddenByCrouch(player.gameObject, GetColliderDistance(playerCollider))
             && playerCollider.enabled
             && player.gameObject.activeInHierarchy;
     }
 
-    private bool IsHiddenByCrouch(GameObject target, float distance)
-    {
-        if (target == null) return false;
-        if (!target.TryGetComponent(out PlayerMovement movement)) return false;
-        if (!movement.NetIsCrouching) return false;
-
-        return distance > crouchDetectRange;
-    }
-
-    private void ClearTarget()
+    private void ClearTarget(bool stopMovement = true)
     {
         player = null;
         playerHealth = null;
         playerCollider = null;
-        StopMovement();
-        NetIsRunning = false;
+        if (stopMovement)
+        {
+            StopMovement();
+            NetIsRunning = false;
+        }
     }
 
     private Collider2D GetMainTargetCollider(GameObject target)
@@ -910,31 +925,6 @@ public class ZombieAI : NetworkBehaviour
         }
 
         return target.GetComponent<Collider2D>();
-    }
-
-    private void RememberTarget(Vector2 targetPos)
-    {
-        if (hasObservedTarget)
-        {
-            lastObservedVelocity = (targetPos - lastObservedPosition) / Mathf.Max(Runner.DeltaTime, 0.001f);
-        }
-
-        hasObservedTarget = true;
-        lastObservedPosition = targetPos;
-        lastKnownPlayerPos = targetPos;
-        currentTrackingTimer = trackingDuration;
-    }
-
-    private bool CanSeeTarget(Vector2 from, Vector2 to, float distance, PlayerHealth expectedTarget)
-    {
-        if (distance > detectionRange * (currentMode == AIMode.Chase ? 1.5f : 1f)) return false;
-        if (!HasLineOfSight(from, to, distance, expectedTarget)) return false;
-        if (distance <= closeAwarenessRange) return true;
-
-        Vector2 forward = NetMoveDir == Vector2.zero ? Vector2.up : NetMoveDir.normalized;
-        Vector2 toTarget = (to - from).normalized;
-        float effectiveAngle = currentMode == AIMode.Chase ? alertViewAngle : viewAngle;
-        return Vector2.Angle(forward, toTarget) <= effectiveAngle * 0.5f;
     }
 
     private bool HasLineOfSight(Vector2 from, Vector2 to, float distance, PlayerHealth expectedTarget)
