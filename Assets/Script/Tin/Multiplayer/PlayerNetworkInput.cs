@@ -8,6 +8,7 @@ public struct PlayerNetworkInput : INetworkInput
     public NetworkBool isAiming;
     public NetworkBool isRunning;
     public NetworkBool isCrouching;
+    public NetworkBool isVehicleBraking;
 
     // 🔥 MỚI: Thêm 2 nút phục vụ chiến đấu
     public NetworkBool isShooting;

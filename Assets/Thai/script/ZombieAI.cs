@@ -396,7 +396,8 @@ public class ZombieAI : NetworkBehaviour
         if (player != null)
         {
             PlayerHealth pHealth = player.GetComponent<PlayerHealth>();
-            if (pHealth == null || pHealth.isDead || !player.gameObject.activeInHierarchy)
+            if (pHealth == null || pHealth.isDead || PlayerInteraction.IsProtectedOccupant(pHealth) ||
+                !player.gameObject.activeInHierarchy)
             {
                 ClearTarget(false);
             }
@@ -767,7 +768,8 @@ public class ZombieAI : NetworkBehaviour
         {
             PlayerHealth candidateHealth = candidate.GetComponent<PlayerHealth>();
             if (candidateHealth == null || candidateHealth.Object == null || !candidateHealth.Object.IsValid) continue;
-            if (candidateHealth.Object.InputAuthority != sourcePlayer || candidateHealth.isDead) continue;
+            if (candidateHealth.Object.InputAuthority != sourcePlayer || candidateHealth.isDead ||
+                PlayerInteraction.IsProtectedOccupant(candidateHealth)) continue;
 
             Collider2D candidateCollider = GetMainTargetCollider(candidate);
             if (candidateCollider == null) return;
@@ -803,6 +805,7 @@ public class ZombieAI : NetworkBehaviour
         {
             PlayerHealth pHealth = p.GetComponent<PlayerHealth>();
             if (pHealth == null || pHealth.Object == null || !pHealth.Object.IsValid || pHealth.isDead) continue;
+            if (PlayerInteraction.IsProtectedOccupant(pHealth)) continue;
 
             Collider2D candidateCollider = GetMainTargetCollider(p);
             if (candidateCollider == null) continue;
@@ -900,6 +903,7 @@ public class ZombieAI : NetworkBehaviour
             && playerHealth != null
             && playerCollider != null
             && !playerHealth.isDead
+            && !PlayerInteraction.IsProtectedOccupant(playerHealth)
             && playerCollider.enabled
             && player.gameObject.activeInHierarchy;
     }

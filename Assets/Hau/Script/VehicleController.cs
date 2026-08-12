@@ -29,14 +29,16 @@ public class VehicleControllerFusion : NetworkBehaviour
     [SerializeField] private Transform rearRightExitPoint;
 
     [Header("Driving")]
-    [SerializeField, Min(0.1f)] private float maxForwardSpeed = 10f;
-    [SerializeField, Min(0.1f)] private float maxReverseSpeed = 4f;
-    [SerializeField, Min(0.1f)] private float acceleration = 16f;
-    [SerializeField, Min(0.1f)] private float braking = 24f;
-    [SerializeField, Min(0f)] private float coastDeceleration = 8f;
-    [SerializeField, Min(0f)] private float turnSpeed = 150f;
-    [SerializeField, Range(0f, 1f)] private float lateralGrip = 0.9f;
-    [SerializeField, Range(0f, 1f)] private float steeringAtLowSpeed = 0.15f;
+    [SerializeField, Min(0.1f)] private float maxForwardSpeed = 5.5f;
+    [SerializeField, Min(0.1f)] private float maxReverseSpeed = 2.2f;
+    [SerializeField, Min(0.1f)] private float acceleration = 7f;
+    [SerializeField, Min(0.1f)] private float braking = 10f;
+    [SerializeField, Min(0.1f)] private float handbrakeDeceleration = 18f;
+    [SerializeField, Min(0f)] private float coastDeceleration = 2.5f;
+    [SerializeField, Min(0f)] private float turnSpeed = 90f;
+    [SerializeField, Range(0f, 1f)] private float lateralGrip = 0.68f;
+    [SerializeField, Range(0f, 1f)] private float steeringAtLowSpeed = 0.45f;
+    [SerializeField, Min(0.01f)] private float gearChangeSpeedThreshold = 0.12f;
     [SerializeField, Range(0, DirectionCount - 1)] private int initialDirectionIndex = 2;
 
     [Header("Visuals")]
@@ -50,15 +52,22 @@ public class VehicleControllerFusion : NetworkBehaviour
     [SerializeField] private CircleCollider2D interactionCollider;
 
     [Header("Headlights and vehicle vision")]
+    [Tooltip("Legacy/main beam reference. Used as the left headlight.")]
     [SerializeField] private Light2D headlights;
+    [SerializeField] private Light2D secondaryHeadlight;
     [SerializeField, Min(1f)] private float headlightVisionRadius = 12f;
-    [SerializeField, Range(20f, 180f)] private float headlightVisionAngle = 85f;
+    [SerializeField, Range(20f, 90f)] private float headlightVisionAngle = 48f;
+    [SerializeField, Min(0.1f)] private float headlightForwardOffset = 0.52f;
+    [SerializeField, Min(0.02f)] private float headlightLateralOffset = 0.14f;
+    [SerializeField, Range(0.05f, 2f)] private float headlightBeamIntensity = 0.36f;
+    [SerializeField, Range(0f, 8f)] private float headlightToeInAngle = 2.2f;
     [SerializeField, Min(0.5f)] private float lightsOffVisionRadius = 2.5f;
 
     [Header("Zombie collision")]
-    [SerializeField, Min(0.1f)] private float minimumImpactSpeed = 2.5f;
-    [SerializeField, Min(1f)] private float maximumImpactDamage = 100f;
-    [SerializeField, Min(0f)] private float impactForce = 7f;
+    [SerializeField, Min(0.1f)] private float minimumImpactSpeed = 1.25f;
+    [SerializeField, Min(1f)] private float minimumImpactDamage = 55f;
+    [SerializeField, Min(1f)] private float maximumImpactDamage = 180f;
+    [SerializeField, Min(0f)] private float impactForce = 4f;
 
     [Header("Door audio")]
     [SerializeField] private AudioSource doorAudioSource;
@@ -79,17 +88,22 @@ public class VehicleControllerFusion : NetworkBehaviour
     private int displayedDirection = -1;
     private Coroutine doorSequence;
     private readonly Dictionary<int, float> zombieImpactCooldown = new();
+    private readonly Collider2D[] zombieContacts = new Collider2D[32];
+    private readonly RaycastHit2D[] zombieSweepHits = new RaycastHit2D[32];
+    private ContactFilter2D zombieContactFilter;
 
     public Vector2 VisionOrigin => transform.position;
     public Vector2 VisionDirection => GridIndexToVector(DirectionIndex);
     public float VisionRadius => HeadlightsOn ? headlightVisionRadius : lightsOffVisionRadius;
-    public float VisionAngle => HeadlightsOn ? headlightVisionAngle : 360f;
+    public float VisionAngle => HeadlightsOn ? EffectiveHeadlightAngle : 360f;
+    private float EffectiveHeadlightAngle => Mathf.Clamp(headlightVisionAngle, 20f, 60f);
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
+        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         rb.mass = Mathf.Max(300f, rb.mass);
         spriteRenderer ??= GetComponent<SpriteRenderer>();
         bodyCollider ??= GetComponent<PolygonCollider2D>();
@@ -97,6 +111,7 @@ public class VehicleControllerFusion : NetworkBehaviour
         ConfigureColliders();
         ConfigureHeadlights();
         ConfigureDoorAudio();
+        ConfigureZombieContactFilter();
         UpdateBodyCollider(initialDirectionIndex);
         SetVehicleMotionLocked(true);
         if (vehicleCamera != null) vehicleCamera.gameObject.SetActive(false);
@@ -147,10 +162,15 @@ public class VehicleControllerFusion : NetworkBehaviour
         SeatSlot slot = FindOccupiedSeat(player);
         if (slot == SeatSlot.None) return false;
 
+        Vector2 exitPosition = GetExitWorldPosition(slot);
         SetOccupant(slot, null);
-        SetPlayerVehicleState(player, false, false);
-        PlaceAtExit(player, slot);
-        if (slot == SeatSlot.Driver) StopVehicle();
+        MovePlayerImmediately(player, exitPosition);
+        SetPlayerVehicleState(player, false, false, 0, exitPosition);
+        if (slot == SeatSlot.Driver)
+        {
+            HeadlightsOn = false;
+            StopVehicle();
+        }
         RPC_PlayDoorSequence();
         return true;
     }
@@ -207,11 +227,14 @@ public class VehicleControllerFusion : NetworkBehaviour
 
         SetOccupant(current, null);
         SetOccupant(target, player);
-        SetPlayerVehicleState(player, true, target == SeatSlot.Driver);
+        SetPlayerVehicleState(player, true, target == SeatSlot.Driver, SeatNumber(target), default);
         MoveToSeat(player, GetAnchorWorldPosition(GetSeatAnchor(target)));
 
         if (current == SeatSlot.Driver && target != SeatSlot.Driver)
+        {
+            HeadlightsOn = false;
             StopVehicle();
+        }
         if (target == SeatSlot.Driver)
             SetVehicleMotionLocked(false);
         return true;
@@ -229,15 +252,20 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (!HasStateAuthority) return;
         if (Driver == null)
         {
+            HeadlightsOn = false;
             StopVehicle();
             SetVehicleMotionLocked(true);
+            ProcessZombieContacts();
             return;
         }
 
         SetVehicleMotionLocked(false);
         PlayerMovement driverMovement = Driver.GetComponent<PlayerMovement>();
-        SimulateDrive(driverMovement != null ? driverMovement.NetMoveInput : Vector2.zero);
+        SimulateDrive(
+            driverMovement != null ? driverMovement.NetMoveInput : Vector2.zero,
+            driverMovement != null && driverMovement.NetIsVehicleBraking);
         SyncOccupants();
+        ProcessZombieContacts();
     }
 
     public override void Render()
@@ -295,16 +323,22 @@ public class VehicleControllerFusion : NetworkBehaviour
     private void AssignSeat(SeatSlot slot, NetworkObject player)
     {
         SetOccupant(slot, player);
-        SetPlayerVehicleState(player, true, slot == SeatSlot.Driver);
+        SetPlayerVehicleState(player, true, slot == SeatSlot.Driver, SeatNumber(slot), default);
         MoveToSeat(player, GetAnchorWorldPosition(GetSeatAnchor(slot)));
         if (slot == SeatSlot.Driver) SetVehicleMotionLocked(false);
         RPC_PlayDoorSequence();
     }
 
-    private void SetPlayerVehicleState(NetworkObject player, bool inVehicle, bool isDriver)
+    private void SetPlayerVehicleState(
+        NetworkObject player,
+        bool inVehicle,
+        bool isDriver,
+        int seatNumber,
+        Vector2 exitPosition)
     {
         PlayerInteraction interaction = player.GetComponent<PlayerInteraction>();
-        if (interaction != null) interaction.SetVehicleNetworkState(Object, inVehicle, isDriver);
+        if (interaction != null)
+            interaction.SetVehicleNetworkState(Object, inVehicle, isDriver, seatNumber, exitPosition);
     }
 
     private void SyncOccupants()
@@ -320,16 +354,26 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (player == null) return;
         Rigidbody2D playerBody = player.GetComponent<Rigidbody2D>();
         if (playerBody != null) playerBody.position = seatPosition;
-        else player.transform.position = seatPosition;
+        player.transform.position = seatPosition;
     }
 
-    private void PlaceAtExit(NetworkObject player, SeatSlot slot)
+    private Vector2 GetExitWorldPosition(SeatSlot slot)
     {
         Transform point = GetExitPoint(slot) ?? GetEnterPoint(slot) ?? transform;
-        Vector2 exitPosition = GetAnchorWorldPosition(point);
+        return GetAnchorWorldPosition(point);
+    }
+
+    private static void MovePlayerImmediately(NetworkObject player, Vector2 worldPosition)
+    {
+        if (player == null) return;
         Rigidbody2D playerBody = player.GetComponent<Rigidbody2D>();
-        if (playerBody != null) playerBody.position = exitPosition;
-        else player.transform.position = exitPosition;
+        if (playerBody != null)
+        {
+            playerBody.position = worldPosition;
+            playerBody.linearVelocity = Vector2.zero;
+            playerBody.angularVelocity = 0f;
+        }
+        player.transform.position = worldPosition;
     }
 
     private NetworkObject GetOccupant(SeatSlot slot) => slot switch
@@ -368,6 +412,15 @@ public class VehicleControllerFusion : NetworkBehaviour
         _ => SeatSlot.None
     };
 
+    private static int SeatNumber(SeatSlot slot) => slot switch
+    {
+        SeatSlot.Driver => 1,
+        SeatSlot.FrontPassenger => 2,
+        SeatSlot.RearLeftPassenger => 3,
+        SeatSlot.RearRightPassenger => 4,
+        _ => 0
+    };
+
     private Transform GetSeatAnchor(SeatSlot slot) => slot switch
     {
         SeatSlot.Driver => driverSeat,
@@ -395,14 +448,38 @@ public class VehicleControllerFusion : NetworkBehaviour
         _ => null
     };
 
-    private void SimulateDrive(Vector2 input)
+    private void SimulateDrive(Vector2 input, bool handbrake)
     {
         Vector2 forward = HeadingToVector(HeadingDegrees);
         float forwardSpeed = Vector2.Dot(rb.linearVelocity, forward);
         float throttle = Mathf.Clamp(input.y, -1f, 1f);
-        float targetSpeed = throttle >= 0f ? throttle * maxForwardSpeed : throttle * maxReverseSpeed;
-        float rate = Mathf.Abs(targetSpeed) > Mathf.Abs(forwardSpeed) ? acceleration : braking;
-        if (Mathf.Abs(throttle) < 0.01f) targetSpeed = Mathf.MoveTowards(forwardSpeed, 0f, coastDeceleration * Runner.DeltaTime);
+
+        // A gearbox cannot jump directly from forward to reverse. Opposite
+        // throttle first acts as a service brake until the car is almost still.
+        bool changingDirection =
+            (throttle < -0.01f && forwardSpeed > gearChangeSpeedThreshold) ||
+            (throttle > 0.01f && forwardSpeed < -gearChangeSpeedThreshold);
+
+        float targetSpeed;
+        float rate;
+        if (handbrake)
+        {
+            targetSpeed = 0f;
+            rate = handbrakeDeceleration;
+        }
+        else if (changingDirection)
+        {
+            targetSpeed = 0f;
+            rate = braking;
+        }
+        else
+        {
+            targetSpeed = throttle >= 0f ? throttle * maxForwardSpeed : throttle * maxReverseSpeed;
+            rate = Mathf.Abs(targetSpeed) > Mathf.Abs(forwardSpeed) ? acceleration : braking;
+            if (Mathf.Abs(throttle) < 0.01f)
+                targetSpeed = Mathf.MoveTowards(forwardSpeed, 0f, coastDeceleration * Runner.DeltaTime);
+        }
+
         forwardSpeed = Mathf.MoveTowards(forwardSpeed, targetSpeed, rate * Runner.DeltaTime);
         Vector2 lateral = rb.linearVelocity - forward * Vector2.Dot(rb.linearVelocity, forward);
         rb.linearVelocity = forward * forwardSpeed + lateral * (1f - lateralGrip);
@@ -470,34 +547,93 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     private void ConfigureHeadlights()
     {
-        if (headlights == null)
-        {
-            GameObject lightObject = new("Vehicle Headlights");
-            lightObject.transform.SetParent(transform, false);
-            headlights = lightObject.AddComponent<Light2D>();
-        }
+        headlights = GetOrCreateVehicleLight(headlights, "Vehicle Headlight Left");
+        secondaryHeadlight = GetOrCreateVehicleLight(secondaryHeadlight, "Vehicle Headlight Right");
 
-        headlights.lightType = Light2D.LightType.Point;
-        headlights.pointLightInnerRadius = 0.25f;
-        headlights.pointLightOuterRadius = headlightVisionRadius;
-        headlights.pointLightInnerAngle = Mathf.Max(10f, headlightVisionAngle - 20f);
-        headlights.pointLightOuterAngle = headlightVisionAngle;
-        headlights.intensity = 1.15f;
-        headlights.color = new Color(1f, 0.91f, 0.68f, 1f);
-        headlights.gameObject.SetActive(false);
+        // Both real lamp positions now cast their own full road beam. The small
+        // toe-in angle makes them overlap naturally at distance without ever
+        // inventing a third light source in the middle of the vehicle.
+        float individualBeamAngle = Mathf.Clamp(EffectiveHeadlightAngle * 0.9f, 38f, 52f);
+        ConfigureHeadlightBeam(
+            headlights, headlightVisionRadius, individualBeamAngle,
+            headlightBeamIntensity, true, 0.3f, 0.9f);
+        ConfigureHeadlightBeam(
+            secondaryHeadlight, headlightVisionRadius, individualBeamAngle,
+            headlightBeamIntensity, true, 0.3f, 0.9f);
+
+        SetHeadlightObjectsActive(false);
     }
 
     private void ApplyHeadlightVisual()
     {
-        if (headlights == null) return;
-        bool enabled = HeadlightsOn;
-        if (headlights.gameObject.activeSelf != enabled)
-            headlights.gameObject.SetActive(enabled);
+        if (headlights == null || secondaryHeadlight == null)
+            ConfigureHeadlights();
 
-        Vector2 forward = VisionDirection;
-        float angle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
-        headlights.transform.localPosition = forward * 0.48f;
-        headlights.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+        bool enabled = HeadlightsOn;
+        SetHeadlightObjectsActive(enabled);
+
+        Vector2 forward = VisionDirection.normalized;
+        Vector2 right = new(forward.y, -forward.x);
+        Vector2 frontCenter = (Vector2)transform.position + forward * headlightForwardOffset;
+        Vector2 leftBeamDirection = Quaternion.Euler(0f, 0f, -headlightToeInAngle) * forward;
+        Vector2 rightBeamDirection = Quaternion.Euler(0f, 0f, headlightToeInAngle) * forward;
+
+        PositionHeadlight(headlights, frontCenter - right * headlightLateralOffset, leftBeamDirection);
+        PositionHeadlight(secondaryHeadlight, frontCenter + right * headlightLateralOffset, rightBeamDirection);
+    }
+
+    private Light2D GetOrCreateVehicleLight(Light2D light, string objectName)
+    {
+        if (light != null) return light;
+        Transform existing = transform.Find(objectName);
+        if (existing != null && existing.TryGetComponent(out Light2D existingLight)) return existingLight;
+
+        GameObject lightObject = new(objectName);
+        lightObject.transform.SetParent(transform, false);
+        return lightObject.AddComponent<Light2D>();
+    }
+
+    private static void ConfigureHeadlightBeam(
+        Light2D light,
+        float radius,
+        float outerAngle,
+        float intensity,
+        bool castShadows,
+        float innerAngleRatio,
+        float falloff)
+    {
+        light.lightType = Light2D.LightType.Point;
+        light.pointLightInnerRadius = 0.12f;
+        light.pointLightOuterRadius = radius;
+        light.pointLightInnerAngle = Mathf.Clamp(outerAngle * innerAngleRatio, 5f, outerAngle - 2f);
+        light.pointLightOuterAngle = outerAngle;
+        light.falloffIntensity = falloff;
+        light.intensity = intensity;
+        light.color = new Color(1f, 0.93f, 0.78f, 1f);
+        light.shadowsEnabled = castShadows;
+        light.shadowIntensity = castShadows ? 0.72f : 0f;
+        light.shadowSoftness = castShadows ? 0.55f : 0f;
+    }
+
+    private void SetHeadlightObjectsActive(bool active)
+    {
+        SetLightActive(headlights, active);
+        SetLightActive(secondaryHeadlight, active);
+    }
+
+    private static void SetLightActive(Light2D light, bool active)
+    {
+        if (light != null && light.gameObject.activeSelf != active)
+            light.gameObject.SetActive(active);
+    }
+
+    private static void PositionHeadlight(Light2D light, Vector2 worldPosition, Vector2 forward)
+    {
+        if (light == null) return;
+        light.transform.position = worldPosition;
+
+        // URP Light2D point cones face along Transform.up.
+        light.transform.up = forward;
     }
 
     private void ConfigureDoorAudio()
@@ -505,6 +641,7 @@ public class VehicleControllerFusion : NetworkBehaviour
         doorAudioSource ??= GetComponent<AudioSource>();
         if (doorAudioSource == null) doorAudioSource = gameObject.AddComponent<AudioSource>();
         GameplayAudioSpatializer.Configure(doorAudioSource, GameplayAudioSpatializer.Profile.Body);
+        doorAudioSource.volume = Mathf.Clamp01(PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
         // Serialized UnityEngine.Object references can be Unity "fake null",
         // therefore use Unity's == null operator instead of ??= here.
         if (doorOpenClip == null)
@@ -526,11 +663,79 @@ public class VehicleControllerFusion : NetworkBehaviour
         doorAudioSource.Stop();
         if (doorOpenClip != null)
         {
-            doorAudioSource.PlayOneShot(doorOpenClip);
-            yield return new WaitForSeconds(doorOpenClip.length);
+            doorAudioSource.clip = doorOpenClip;
+            doorAudioSource.Play();
+            yield return new WaitForSecondsRealtime(doorOpenClip.length + 0.08f);
         }
-        if (doorCloseClip != null) doorAudioSource.PlayOneShot(doorCloseClip);
+        if (doorCloseClip != null)
+        {
+            doorAudioSource.clip = doorCloseClip;
+            doorAudioSource.Play();
+        }
         doorSequence = null;
+    }
+
+    private void ConfigureZombieContactFilter()
+    {
+        int enemyLayer = LayerMask.NameToLayer("Enemy");
+        zombieContactFilter = new ContactFilter2D
+        {
+            useLayerMask = enemyLayer >= 0,
+            useTriggers = false
+        };
+        if (enemyLayer >= 0) zombieContactFilter.SetLayerMask(1 << enemyLayer);
+    }
+
+    private void ProcessZombieContacts()
+    {
+        if (!HasStateAuthority || bodyCollider == null) return;
+        float speed = rb != null ? rb.linearVelocity.magnitude : 0f;
+
+        // Sweep the body through the distance it will travel this tick. This
+        // prevents a fast car from tunnelling through a narrow zombie collider.
+        if (speed >= minimumImpactSpeed)
+        {
+            Vector2 travelDirection = rb.linearVelocity.normalized;
+            float sweepDistance = speed * Runner.DeltaTime + 0.12f;
+            int sweepCount = bodyCollider.Cast(
+                travelDirection, zombieContactFilter, zombieSweepHits, sweepDistance);
+            for (int i = 0; i < sweepCount; i++)
+            {
+                Collider2D hitCollider = zombieSweepHits[i].collider;
+                zombieSweepHits[i] = default;
+                if (hitCollider != null) TryDamageZombie(hitCollider.gameObject, speed);
+            }
+        }
+
+        int count = bodyCollider.Overlap(zombieContactFilter, zombieContacts);
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider2D zombieCollider = zombieContacts[i];
+            zombieContacts[i] = null;
+            if (zombieCollider == null || !IsZombie(zombieCollider.gameObject)) continue;
+
+            // Commit damage before depenetration so pushing a zombie out of the
+            // car can never consume the collision without registering a hit.
+            if (speed >= minimumImpactSpeed)
+                TryDamageZombie(zombieCollider.gameObject, speed);
+
+            // Zombie bodies are Kinematic, so Unity's solver would otherwise
+            // let them push the Dynamic car. Move the authoritative zombie out
+            // of the vehicle footprint before the next physics solve instead.
+            Rigidbody2D zombieBody = zombieCollider.attachedRigidbody;
+            ColliderDistance2D gap = bodyCollider.Distance(zombieCollider);
+            if (zombieBody != null && zombieCollider.enabled && gap.isOverlapped)
+            {
+                Vector2 outward = gap.normal;
+                Vector2 centerDelta = zombieCollider.bounds.center - bodyCollider.bounds.center;
+                if (outward.sqrMagnitude < 0.001f) outward = centerDelta.normalized;
+                if (Vector2.Dot(outward, centerDelta) < 0f) outward = -outward;
+                float depth = Mathf.Max(0.02f, -gap.distance + 0.025f);
+                zombieBody.position += outward.normalized * depth;
+                zombieBody.linearVelocity = Vector2.zero;
+            }
+        }
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -539,14 +744,20 @@ public class VehicleControllerFusion : NetworkBehaviour
         float speed = rb.linearVelocity.magnitude;
         if (speed < minimumImpactSpeed) return;
 
-        GameObject target = collision.collider.gameObject;
-        NetworkObject zombieObject = target.GetComponentInParent<NetworkObject>();
-        if (zombieObject == null) return;
-        int id = zombieObject.GetInstanceID();
-        if (zombieImpactCooldown.TryGetValue(id, out float allowedAt) && Time.time < allowedAt) return;
+        TryDamageZombie(collision.collider.gameObject, speed);
+    }
 
-        float damage = Mathf.Lerp(15f, maximumImpactDamage,
-            Mathf.InverseLerp(minimumImpactSpeed, maxForwardSpeed, speed));
+    private bool TryDamageZombie(GameObject target, float speed)
+    {
+        if (target == null || !IsZombie(target)) return false;
+        NetworkObject zombieObject = target.GetComponentInParent<NetworkObject>();
+        if (zombieObject == null) return false;
+        int id = zombieObject.GetInstanceID();
+        if (zombieImpactCooldown.TryGetValue(id, out float allowedAt) && Time.time < allowedAt) return false;
+
+        float lethalSpeed = Mathf.Max(minimumImpactSpeed + 0.1f, maxForwardSpeed * 0.72f);
+        float damage = Mathf.Lerp(minimumImpactDamage, maximumImpactDamage,
+            Mathf.InverseLerp(minimumImpactSpeed, lethalSpeed, speed));
         PlayerRef driverRef = Driver != null ? Driver.InputAuthority : PlayerRef.None;
         bool hitZombie = false;
 
@@ -566,12 +777,24 @@ public class VehicleControllerFusion : NetworkBehaviour
             hitZombie = true;
         }
 
-        if (!hitZombie) return;
-        zombieImpactCooldown[id] = Time.time + 0.45f;
+        if (!hitZombie) return false;
+        zombieImpactCooldown[id] = Time.time + 0.3f;
         Rigidbody2D zombieBody = zombieObject.GetComponent<Rigidbody2D>();
         if (zombieBody != null)
-            zombieBody.AddForce(VisionDirection * impactForce, ForceMode2D.Impulse);
+        {
+            Vector2 impactDirection = rb != null && rb.linearVelocity.sqrMagnitude > 0.01f
+                ? rb.linearVelocity.normalized
+                : VisionDirection;
+            zombieBody.position += impactDirection * Mathf.Min(0.5f, impactForce * 0.06f);
+            zombieBody.linearVelocity = Vector2.zero;
+        }
+        return true;
     }
+
+    private static bool IsZombie(GameObject target) =>
+        target.GetComponentInParent<ZombieAIKhoaRebuilt>() != null ||
+        target.GetComponentInParent<ZOmbieAI_Khoa>() != null ||
+        target.GetComponentInParent<ZombieHealth>() != null;
 
     private Vector2 GetAnchorWorldPosition(Transform anchor)
     {

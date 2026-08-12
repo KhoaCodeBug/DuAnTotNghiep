@@ -77,6 +77,14 @@ public static class GameLocalization
         { "menu.loading_shelter", new[] { "FINDING A WAY BACK TO SHELTER...", "ĐANG TÌM ĐƯỜNG VỀ NƠI TRÚ ẨN..." } },
         { "menu.loading_escape", new[] { "ESCAPING...{0}%", "ĐANG THOÁT...{0}%" } },
         { "menu.death_loading", new[] { "<color=#990000>THIS IS HOW YOU DIED...</color>", "<color=#990000>ĐÂY LÀ CÁCH BẠN ĐÃ CHẾT...</color>" } },
+        { "vehicle.seat.driver", new[] { "DRIVER", "TÀI XẾ" } },
+        { "vehicle.seat.front", new[] { "FRONT PASSENGER", "GHẾ PHỤ" } },
+        { "vehicle.seat.rear_left", new[] { "REAR LEFT", "GHẾ SAU TRÁI" } },
+        { "vehicle.seat.rear_right", new[] { "REAR RIGHT", "GHẾ SAU PHẢI" } },
+        { "vehicle.seat.unknown", new[] { "UNKNOWN", "KHÔNG XÁC ĐỊNH" } },
+        { "vehicle.seat.status", new[] {
+            "SEAT {0} — {1}   |   SHIFT+1-4: SEAT   |   SPACE: BRAKE   |   F: EXIT",
+            "GHẾ {0} — {1}   |   SHIFT+1-4: ĐỔI GHẾ   |   SPACE: PHANH   |   F: XUỐNG XE" } },
         { "difficulty.easy.title", new[] { "★ EASY MODE ★", "★ CHẾ ĐỘ DỄ ★" } },
         { "difficulty.easy.stats", new[] {
             "<color=#99FF99>ZOMBIE DENSITY:</color> Low (-50% Spawn Rate)\n<color=#99FF99>RESOURCES:</color> Abundant (Loot rate 150%)\n<color=#99FF99>DAMAGE TAKEN:</color> Reduced (-30% Damage)\n<color=#99FF99>STARTING GEAR:</color> Pistol + Ammo & Canned Food\n<color=#99FF99>SURVIVAL RATE:</color> Very High (90%)",

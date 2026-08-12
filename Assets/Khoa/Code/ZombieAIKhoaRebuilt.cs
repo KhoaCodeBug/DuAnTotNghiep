@@ -266,6 +266,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
             GameObject candidate = players[i];
             if (candidate.TryGetComponent(out Skill_StealthCrouch stealth) && stealth.IsInvisible) continue;
             if (!candidate.TryGetComponent(out PlayerHealth health) || health.Object == null || !health.Object.IsValid || health.isDead) continue;
+            if (PlayerInteraction.IsProtectedOccupant(health)) continue;
             Collider2D candidateCollider = candidate.GetComponent<Collider2D>();
             if (candidateCollider == null) continue;
 
@@ -594,6 +595,8 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
 
     private void AssignTarget(GameObject playerObject)
     {
+        PlayerHealth candidateHealth = playerObject != null ? playerObject.GetComponent<PlayerHealth>() : null;
+        if (PlayerInteraction.IsProtectedOccupant(candidateHealth)) return;
         target = playerObject.transform;
         targetCollider = playerObject.GetComponent<Collider2D>();
         targetHealth = playerObject.GetComponent<PlayerHealth>();
@@ -604,6 +607,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
     private void ValidateTarget()
     {
         if (target == null || targetHealth == null || targetHealth.Object == null || !targetHealth.Object.IsValid || targetHealth.isDead ||
+            PlayerInteraction.IsProtectedOccupant(targetHealth) ||
             (target.TryGetComponent(out Skill_StealthCrouch stealth) && stealth.IsInvisible))
         {
             target = null;
@@ -867,7 +871,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
             PlayerHealth health = players[i].GetComponent<PlayerHealth>();
             Collider2D playerCollider = players[i].GetComponent<Collider2D>();
             if (health == null || playerCollider == null || health.Object == null || !health.Object.IsValid ||
-                health.Object.InputAuthority != shooter || health.isDead) continue;
+                health.Object.InputAuthority != shooter || health.isDead || PlayerInteraction.IsProtectedOccupant(health)) continue;
 
             Vector2 source = playerCollider.bounds.center;
             movementGoal = source;

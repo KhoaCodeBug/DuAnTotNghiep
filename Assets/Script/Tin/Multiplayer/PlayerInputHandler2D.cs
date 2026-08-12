@@ -355,6 +355,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             data.isAiming = (pointerOnUI || !canAim) ? false : Input.GetMouseButton(1);
             data.isRunning = Input.GetKey(KeyCode.LeftShift);
             data.isCrouching = Input.GetKey(KeyCode.C);
+            data.isVehicleBraking = Input.GetKey(KeyCode.Space);
 
             data.isShooting = hasWeapon ? Input.GetMouseButton(0) : false;
             data.isBashing = hasWeapon ? Input.GetKey(KeyCode.Space) : false;

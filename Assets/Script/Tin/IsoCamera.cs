@@ -48,9 +48,12 @@ public class PZ_CameraController : MonoBehaviour
 
     public void SetTarget(Transform targetTransform)
     {
+        if (targetTransform == null) return;
         player = targetTransform;
         hasTarget = true;
         isSpectatingMode = false;
+        velocity = Vector3.zero;
+        zoomVelocity = 0f;
         transform.position = player.position + offset;
     }
 

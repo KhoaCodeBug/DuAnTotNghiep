@@ -98,6 +98,7 @@ public class PlayerMovement : NetworkBehaviour
     [Networked] public NetworkBool NetIsRunning { get; set; }
     [Networked] public NetworkBool NetIsAiming { get; set; }
     [Networked] public NetworkBool NetIsCrouching { get; set; }
+    [Networked] public NetworkBool NetIsVehicleBraking { get; set; }
     [Networked] public NetworkBool NetIsUsingItem { get; set; }
     [Networked] public float NetCameraZoom { get; set; }
 
@@ -214,6 +215,7 @@ public class PlayerMovement : NetworkBehaviour
     {
         if (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming))
         {
+            NetIsVehicleBraking = false;
             rb.linearVelocity = Vector2.zero;
             return;
         }
@@ -224,6 +226,7 @@ public class PlayerMovement : NetworkBehaviour
             NetIsMoving = false;
             NetIsRunning = false;
             NetIsAiming = false;
+            NetIsVehicleBraking = false;
             rb.linearVelocity = Vector2.zero;
             return;
         }
@@ -242,6 +245,7 @@ public class PlayerMovement : NetworkBehaviour
             if (isInVehicle)
             {
                 NetMoveInput = input.moveInput;
+                NetIsVehicleBraking = input.isVehicleBraking;
                 NetIsMoving = false;
                 NetIsRunning = false;
                 rb.linearVelocity = Vector2.zero;
@@ -268,6 +272,7 @@ public class PlayerMovement : NetworkBehaviour
             }
 
             NetIsAiming = input.isAiming;
+            NetIsVehicleBraking = false;
             NetMoveInput = input.moveInput;
             NetIsMoving = input.moveInput.magnitude > 0.1f;
             NetIsRunning = input.isRunning && NetIsMoving;
