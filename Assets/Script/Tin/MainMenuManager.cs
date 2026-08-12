@@ -775,7 +775,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         RectTransform btnRect = btnContainer.AddComponent<RectTransform>(); btnRect.anchorMin = new Vector2(0.1f, 0.1f); btnRect.anchorMax = new Vector2(0.3f, 0.6f); btnRect.offsetMin = Vector2.zero; btnRect.offsetMax = Vector2.zero;
         VerticalLayoutGroup vlg = btnContainer.AddComponent<VerticalLayoutGroup>(); vlg.spacing = 15; vlg.childAlignment = TextAnchor.MiddleLeft; vlg.childControlHeight = false; vlg.childControlWidth = true;
         CreateMenuButton(btnContainer, "SOLO", () => { TutorialSession.End(); pendingIsSolo = true; pendingIsHost = false; OpenPanel(newGamePanel.GetComponent<CanvasGroup>()); });
-        CreateMenuButton(btnContainer, "HƯỚNG DẪN", StartStandaloneTutorial);
+        CreateMenuButton(btnContainer,
+            GameLocalization.TranslateLiteral("HƯỚNG DẪN"),
+            StartStandaloneTutorial);
         CreateMenuButton(btnContainer, "MULTIPLAYER", () => { TutorialSession.End(); pendingIsSolo = false; OpenPanel(multiplayerPanel.GetComponent<CanvasGroup>()); });
         CreateMenuButton(btnContainer, "OPTIONS", () => OpenPanel(optionsPanel.GetComponent<CanvasGroup>()));
         CreateMenuButton(btnContainer, "CREDITS", () => OpenPanel(creditsPanel.GetComponent<CanvasGroup>()));
