@@ -75,6 +75,18 @@ public class PlayerMovement : NetworkBehaviour
         }
     }
 
+    private struct RebuiltZombieNoiseCandidate
+    {
+        public ZombieAIKhoaRebuilt ai;
+        public float distance;
+
+        public RebuiltZombieNoiseCandidate(ZombieAIKhoaRebuilt ai, float distance)
+        {
+            this.ai = ai;
+            this.distance = distance;
+        }
+    }
+
     // ==========================================
     // 🔥 BIẾN ĐỒNG BỘ MẠNG
     // ==========================================
@@ -563,6 +575,7 @@ public class PlayerMovement : NetworkBehaviour
         Collider2D[] zombies = Physics2D.OverlapCircleAll(transform.position, scanRadius, zombieLayer);
         HashSet<int> notifiedZombies = new HashSet<int>();
         List<ThaiZombieNoiseCandidate> thaiCandidates = new List<ThaiZombieNoiseCandidate>();
+        List<RebuiltZombieNoiseCandidate> rebuiltCandidates = new List<RebuiltZombieNoiseCandidate>();
 
         foreach (Collider2D z in zombies)
         {
@@ -582,6 +595,23 @@ public class PlayerMovement : NetworkBehaviour
             }
 
         
+            ZombieAIKhoaRebuilt aiRebuilt = z.GetComponentInParent<ZombieAIKhoaRebuilt>();
+            if (aiRebuilt != null)
+            {
+                int id = aiRebuilt.GetInstanceID();
+                float distance = Vector2.Distance(transform.position, aiRebuilt.transform.position);
+                // The rebuilt AI uses the same balanced hearing radius/responder
+                // budget as the newer zombie implementation. Walking therefore
+                // alerts one nearby zombie at 2m, not every Khoa zombie at 4m.
+                float hearingRadius = thaiBaseRadius;
+                if (!notifiedZombies.Contains(id) && distance <= hearingRadius)
+                {
+                    notifiedZombies.Add(id);
+                    rebuiltCandidates.Add(new RebuiltZombieNoiseCandidate(aiRebuilt, distance));
+                }
+                continue;
+            }
+
             ZOmbieAI_Khoa aiOld = z.GetComponentInParent<ZOmbieAI_Khoa>();
             if (aiOld != null)
             {
@@ -602,6 +632,14 @@ public class PlayerMovement : NetworkBehaviour
             {
                 thaiCandidates[i].ai.RPC_HearSoundWithUrgency(transform.position, urgency);
             }
+        }
+
+        rebuiltCandidates.Sort((a, b) => a.distance.CompareTo(b.distance));
+        int rebuiltNotifyCount = Mathf.Min(Mathf.Max(maxThaiResponders, 0), rebuiltCandidates.Count);
+        for (int i = 0; i < rebuiltNotifyCount; i++)
+        {
+            if (rebuiltCandidates[i].ai != null)
+                rebuiltCandidates[i].ai.RPC_HearSoundWithUrgency(transform.position, urgency);
         }
     }
 

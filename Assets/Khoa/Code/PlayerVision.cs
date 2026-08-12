@@ -242,7 +242,8 @@ public class PlayerVision : NetworkBehaviour
             // Tutorial camera pans briefly to the first zombie while the
             // survivor is still indoors. Keep that one actor visible for the
             // cinematic even though normal indoor fog hides exterior sprites.
-            if (zCollider.TryGetComponent(out ZOmbieAI_Khoa tutorialZombie) && tutorialZombie.TutorialForceVisible)
+            if ((zCollider.TryGetComponent(out ZOmbieAI_Khoa tutorialZombie) && tutorialZombie.TutorialForceVisible) ||
+                (zCollider.TryGetComponent(out ZombieAIKhoaRebuilt rebuiltTutorialZombie) && rebuiltTutorialZombie.TutorialForceVisible))
             {
                 isVisible = true;
             }

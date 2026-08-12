@@ -408,8 +408,8 @@ public class PlayerSurvival : NetworkBehaviour
             int previousDepth = GUI.depth;
             GUI.depth = -1000;
             Color previousColor = GUI.color;
-            float alpha = transitioning ? manager.GetSleepOverlayAlpha() : 0.72f;
-            GUI.color = transitioning ? new Color(0f, 0f, 0f, alpha) : new Color(0.16f, 0.18f, 0.22f, alpha);
+            float alpha = transitioning ? manager.GetSleepOverlayAlpha() : 1f;
+            GUI.color = new Color(0f, 0f, 0f, alpha);
             GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
@@ -433,10 +433,16 @@ public class PlayerSurvival : NetworkBehaviour
             }
             else if (alpha > 0.08f)
             {
-                string label = manager.CurrentSleepPhase == DayNightManager.SleepPhase.ForcedFade
-                    ? "BẠN ĐÃ KIỆT SỨC..."
-                    : "ĐANG NGỦ...";
-                GUI.Label(new Rect(0f, Screen.height * 0.46f, Screen.width, 48f), label, titleStyle);
+                if (manager.ShouldShowFastForwardClock())
+                {
+                    DrawFastForwardClock(manager.CurrentTime);
+                    GUI.Label(new Rect(0f, Screen.height * 0.65f, Screen.width, 48f), "ĐANG NGỦ...", titleStyle);
+                }
+                else
+                {
+                    GUI.Label(new Rect(0f, Screen.height * 0.46f, Screen.width, 48f),
+                        "BẠN ĐÃ KIỆT SỨC...", titleStyle);
+                }
             }
 
             GUI.color = previousColor;
@@ -454,6 +460,52 @@ public class PlayerSurvival : NetworkBehaviour
             };
             GUI.Box(new Rect(Screen.width * 0.5f - 230f, 55f, 460f, 48f), sleepStatusMessage, messageStyle);
         }
+    }
+
+    private static void DrawFastForwardClock(float currentHour)
+    {
+        Vector2 center = new Vector2(Screen.width * 0.5f, Screen.height * 0.46f);
+        const float radius = 62f;
+
+        Color oldColor = GUI.color;
+        GUI.color = new Color(0.88f, 0.91f, 0.96f, 1f);
+
+        for (int i = 0; i < 12; i++)
+        {
+            float angle = i * Mathf.PI * 2f / 12f - Mathf.PI * 0.5f;
+            Vector2 mark = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            float size = i % 3 == 0 ? 7f : 4f;
+            GUI.DrawTexture(new Rect(mark.x - size * 0.5f, mark.y - size * 0.5f, size, size), Texture2D.whiteTexture);
+        }
+
+        // Nhảy từng 15 phút để tạo cảm giác đồng hồ đang tua nhanh thay vì chạy mượt như đồng hồ thật.
+        float steppedHour = Mathf.Floor(Mathf.Repeat(currentHour, 24f) * 4f) / 4f;
+        float minute = (steppedHour - Mathf.Floor(steppedHour)) * 60f;
+        float minuteAngle = minute * 6f;
+        float hourAngle = Mathf.Repeat(steppedHour, 12f) * 30f;
+        DrawClockHand(center, 43f, 3f, minuteAngle);
+        DrawClockHand(center, 30f, 5f, hourAngle);
+        GUI.DrawTexture(new Rect(center.x - 4f, center.y - 4f, 8f, 8f), Texture2D.whiteTexture);
+
+        GUIStyle timeStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 18,
+            fontStyle = FontStyle.Bold
+        };
+        timeStyle.normal.textColor = Color.white;
+        int hours = Mathf.FloorToInt(steppedHour);
+        int minutes = Mathf.RoundToInt(minute);
+        GUI.Label(new Rect(center.x - 70f, center.y + radius + 10f, 140f, 28f), $"{hours:00}:{minutes:00}", timeStyle);
+        GUI.color = oldColor;
+    }
+
+    private static void DrawClockHand(Vector2 center, float length, float width, float clockwiseDegrees)
+    {
+        Matrix4x4 oldMatrix = GUI.matrix;
+        GUIUtility.RotateAroundPivot(clockwiseDegrees, center);
+        GUI.DrawTexture(new Rect(center.x - width * 0.5f, center.y - length, width, length), Texture2D.whiteTexture);
+        GUI.matrix = oldMatrix;
     }
 
     private static int GetBadTier(float ratio)

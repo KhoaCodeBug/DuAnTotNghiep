@@ -388,7 +388,7 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
                     if (FogVisionController.Instance != null) FogVisionController.Instance.ClearTutorialCinematicReveal();
                     // Zombie B now returns to its normal AI. It will acquire
                     // the survivor through vision or react to the first gunshot.
-                    secondTutorialZombie?.GetComponent<ZOmbieAI_Khoa>()?.ReleaseTutorialStationary();
+                    ReleaseTutorialZombie(secondTutorialZombie);
                     step = Step.RangedCombat;
                     SetTutorialMovement(true);
                     TutorialInputGate.SetFireLocked(false);
@@ -399,7 +399,7 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
                 if (IsSecondTutorialZombieDead())
                 {
                     TutorialInputGate.SetFireLocked(true);
-                    secondTutorialZombie?.GetComponent<ZOmbieAI_Khoa>()?.SetTutorialForceVisible(false);
+                    SetTutorialZombieVisible(secondTutorialZombie, false);
                     step = Step.FinalKillDelay;
                     finalFlowTimer = 0f;
                     SetTutorialMovement(true);
@@ -569,13 +569,13 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
         firstTutorialZombie = runner.Spawn(tutorialZombiePrefab, tutorialZombieSpawn.position,
             Quaternion.identity, null, (_, obj) =>
             {
-                obj.GetComponent<ZOmbieAI_Khoa>()?.ConfigureTutorialSpawn(firstFacing, 10f, true);
+                ConfigureTutorialZombie(obj, firstFacing, 10f, true);
             });
         secondTutorialZombie = runner.Spawn(tutorialZombiePrefab, tutorialZombieSpawn2.position,
             Quaternion.identity, null, (_, obj) =>
             {
                 // Reserved, hidden by fog, for the next gunfire lesson.
-                obj.GetComponent<ZOmbieAI_Khoa>()?.ConfigureTutorialSpawn(secondFacing, 100f, true);
+                ConfigureTutorialZombie(obj, secondFacing, 100f, true);
             });
     }
 
@@ -592,7 +592,7 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
         if (!cinematicStarted)
         {
             cinematicStarted = true;
-            firstTutorialZombie.GetComponent<ZOmbieAI_Khoa>()?.SetTutorialForceVisible(true);
+            SetTutorialZombieVisible(firstTutorialZombie, true);
             if (FogVisionController.Instance != null)
                 FogVisionController.Instance.SetTutorialCinematicReveal(firstTutorialZombie.transform);
             introCamera ??= FindFirstObjectByType<IntroCameraFollow>();
@@ -603,7 +603,7 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
         if (introCamera != null && introCamera.IsTutorialFocusPlaying) return;
 
         if (FogVisionController.Instance != null) FogVisionController.Instance.ClearTutorialCinematicReveal();
-        firstTutorialZombie.GetComponent<ZOmbieAI_Khoa>()?.SetTutorialForceVisible(false);
+        SetTutorialZombieVisible(firstTutorialZombie, false);
         ShowModal(Step.NoiseBrief, tutorialText.noiseTitle, tutorialText.noiseBrief);
     }
 
@@ -648,7 +648,7 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
             rangedCinematicStarted = true;
             SetTutorialMovement(true);
             TutorialInputGate.SetFireLocked(true);
-            secondTutorialZombie.GetComponent<ZOmbieAI_Khoa>()?.SetTutorialForceVisible(true);
+            SetTutorialZombieVisible(secondTutorialZombie, true);
             if (FogVisionController.Instance != null)
                 FogVisionController.Instance.SetTutorialCinematicReveal(secondTutorialZombie.transform);
             introCamera ??= FindFirstObjectByType<IntroCameraFollow>();
@@ -704,10 +704,10 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
             NetworkObject spawned = runner.Spawn(tutorialZombiePrefab, spawnPosition,
                 Quaternion.identity, null, (_, obj) =>
                 {
-                    obj.GetComponent<ZOmbieAI_Khoa>()?.ConfigureTutorialSpawn(facing, 100f, false);
+                    ConfigureTutorialZombie(obj, facing, 100f, false);
                 });
 
-            spawned?.GetComponent<ZOmbieAI_Khoa>()?.ReleaseTutorialStationary(playerPosition);
+            ReleaseTutorialZombie(spawned, playerPosition);
         }
     }
 
@@ -776,13 +776,53 @@ public sealed class TutorialPhaseOneController : MonoBehaviour
 
     private bool IsFirstTutorialZombieDead()
     {
-        return firstTutorialZombie != null && firstTutorialZombie.TryGetComponent(out ZOmbieAI_Khoa zombie) && zombie.NetIsDead;
+        return IsTutorialZombieDead(firstTutorialZombie);
     }
 
     private bool IsSecondTutorialZombieDead()
     {
-        return secondTutorialZombie != null &&
-               secondTutorialZombie.TryGetComponent(out ZOmbieAI_Khoa zombie) && zombie.NetIsDead;
+        return IsTutorialZombieDead(secondTutorialZombie);
+    }
+
+    private static void ConfigureTutorialZombie(NetworkObject zombie, Vector2 facing, float health, bool stationary)
+    {
+        if (zombie == null) return;
+        ZOmbieAI_Khoa oldAI = zombie.GetComponent<ZOmbieAI_Khoa>();
+        if (oldAI != null) oldAI.ConfigureTutorialSpawn(facing, health, stationary);
+        else zombie.GetComponent<ZombieAIKhoaRebuilt>()?.ConfigureTutorialSpawn(facing, health, stationary);
+    }
+
+    private static void SetTutorialZombieVisible(NetworkObject zombie, bool visible)
+    {
+        if (zombie == null) return;
+        ZOmbieAI_Khoa oldAI = zombie.GetComponent<ZOmbieAI_Khoa>();
+        if (oldAI != null) oldAI.SetTutorialForceVisible(visible);
+        else zombie.GetComponent<ZombieAIKhoaRebuilt>()?.SetTutorialForceVisible(visible);
+    }
+
+    private static void ReleaseTutorialZombie(NetworkObject zombie)
+    {
+        if (zombie == null) return;
+        ZOmbieAI_Khoa oldAI = zombie.GetComponent<ZOmbieAI_Khoa>();
+        if (oldAI != null) oldAI.ReleaseTutorialStationary();
+        else zombie.GetComponent<ZombieAIKhoaRebuilt>()?.ReleaseTutorialStationary();
+    }
+
+    private static void ReleaseTutorialZombie(NetworkObject zombie, Vector2 alertPosition)
+    {
+        if (zombie == null) return;
+        ZOmbieAI_Khoa oldAI = zombie.GetComponent<ZOmbieAI_Khoa>();
+        if (oldAI != null) oldAI.ReleaseTutorialStationary(alertPosition);
+        else zombie.GetComponent<ZombieAIKhoaRebuilt>()?.ReleaseTutorialStationary(alertPosition);
+    }
+
+    private static bool IsTutorialZombieDead(NetworkObject zombie)
+    {
+        if (zombie == null) return false;
+        ZOmbieAI_Khoa oldAI = zombie.GetComponent<ZOmbieAI_Khoa>();
+        if (oldAI != null) return oldAI.NetIsDead;
+        ZombieAIKhoaRebuilt rebuiltAI = zombie.GetComponent<ZombieAIKhoaRebuilt>();
+        return rebuiltAI != null && rebuiltAI.NetIsDead;
     }
 
     private void ShowModal(Step nextStep, string title, string body, bool lockMovement = true)

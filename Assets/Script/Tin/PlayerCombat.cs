@@ -330,6 +330,13 @@ public class PlayerCombat : NetworkBehaviour
                 // ========================================================
 
                 // XỬ LÝ SÁT THƯƠNG ZOMBIE THƯỜNG
+                ZombieAIKhoaRebuilt rebuiltEnemy = hit.collider.GetComponentInParent<ZombieAIKhoaRebuilt>();
+                if (rebuiltEnemy != null)
+                {
+                    rebuiltEnemy.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
+                    break;
+                }
+
                 ZOmbieAI_Khoa enemy = hit.collider.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemy != null)
                 {
@@ -404,6 +411,14 @@ public class PlayerCombat : NetworkBehaviour
                 // ========================================================
 
                 // XỬ LÝ ĐẬP ZOMBIE THƯỜNG
+                ZombieAIKhoaRebuilt rebuiltStats = enemy.GetComponentInParent<ZombieAIKhoaRebuilt>();
+                if (rebuiltStats != null && !alreadyHitIDs.Contains(rebuiltStats.GetInstanceID()))
+                {
+                    rebuiltStats.RPC_TakeDamage(finalBashDamage, Object.InputAuthority);
+                    alreadyHitIDs.Add(rebuiltStats.GetInstanceID());
+                    RPC_PlayMeleeHitFleshSFX();
+                }
+
                 ZOmbieAI_Khoa enemyStats = enemy.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemyStats != null && !alreadyHitIDs.Contains(enemyStats.GetInstanceID()))
                 {

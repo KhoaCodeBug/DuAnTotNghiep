@@ -7,7 +7,7 @@ public sealed class SleepInteractable : MonoBehaviour
     private static readonly Dictionary<int, SleepInteractable> Registry = new Dictionary<int, SleepInteractable>();
 
     [Header("Tương tác giường")]
-    [Min(0.5f)] public float interactionDistance = 1.6f;
+    [Min(0.3f)] public float interactionDistance = 0.7f;
     public string prompt = "NHẤN [E] ĐỂ NGỦ";
 
     private Collider2D bedCollider;
