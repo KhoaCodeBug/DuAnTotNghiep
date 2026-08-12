@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections;
 using Fusion;
 using UnityEngine;
 using UnityEngine.UI;
@@ -25,6 +26,9 @@ public sealed class IntroTutorialDirector : MonoBehaviour
     [SerializeField, Min(0f)] private float eyeClosedHoldDuration = 0.7f;
     [SerializeField, Min(0.1f)] private float eyeOpeningDuration = 2.2f;
     [SerializeField] private AudioClip eyeOpeningVoice;
+    [SerializeField, Min(0f)] private float eyeOpeningAudioDelay = 2f;
+    [SerializeField, Range(0f, 1f)] private float eyeOpeningVoiceVolume = 0.72f;
+    [SerializeField, Min(0.05f)] private float radioIntroDuration = 1.1f;
 
     [Header("Trailer road sequence")]
     [SerializeField, Min(1f)] private float trailerLoopDuration = 14f;
@@ -34,6 +38,15 @@ public sealed class IntroTutorialDirector : MonoBehaviour
     [SerializeField, Min(0.1f)] private float troubleFadeInDuration = 1.4f;
     [SerializeField, Range(0f, 1f)] private float trailerRadioVolume = 1f;
 
+    [Header("Vehicle audio sequence")]
+    [SerializeField] private AudioClip carDrivingClip;
+    [SerializeField] private AudioClip carMalfunctionClip;
+    [SerializeField] private AudioClip engineStartAttemptClip;
+    [SerializeField] private AudioClip carOpenDoorClip;
+    [SerializeField] private AudioClip carCloseDoorClip;
+    [SerializeField, Range(0f, 1f)] private float vehicleAudioVolume = 0.82f;
+    [SerializeField, Min(0f)] private float engineAttemptStartDelay = 0.55f;
+
     private enum State
     {
         EyeOpening,
@@ -42,6 +55,7 @@ public sealed class IntroTutorialDirector : MonoBehaviour
         BlackTransition,
         FadeIntoTrouble,
         TroubleDriving,
+        EngineStartAttempts,
         Dialogue,
         FadingOut,
         WaitingForPlayer,
@@ -55,6 +69,18 @@ public sealed class IntroTutorialDirector : MonoBehaviour
     private IntroDialogueSequence dialogueSequence;
     private int dialogueLineIndex;
     private AudioSource eyeOpeningAudioSource;
+    private AudioSource vehicleAudioSource;
+    private AudioSource doorAudioSource;
+    private AudioLowPassFilter radioLowPassFilter;
+    private AudioHighPassFilter radioHighPassFilter;
+    private AudioDistortionFilter radioDistortionFilter;
+    private Coroutine eyeOpeningAudioRoutine;
+    private Coroutine engineAttemptRoutine;
+    private Coroutine doorAudioRoutine;
+    private IntroCarDriveSetup.DrivePhase observedDrivePhase = IntroCarDriveSetup.DrivePhase.Idle;
+    private int observedMalfunctionPulse = -1;
+    private bool finalMalfunctionHitPlayed;
+    public int MalfunctionAudioPlayCount { get; private set; }
     private bool eyeOpeningTimerStarted;
     private bool trailerDriveStarted;
     private GameObject eyeOpeningOverlay;
@@ -62,6 +88,11 @@ public sealed class IntroTutorialDirector : MonoBehaviour
     private RectTransform lowerEyelid;
     private readonly Dictionary<Canvas, bool> cinematicCanvasStates = new Dictionary<Canvas, bool>();
     private bool gameplayUiHidden;
+
+    private void OnEnable()
+    {
+        EnsureAudioClipsLoaded();
+    }
 
     private void Awake()
     {
@@ -73,12 +104,22 @@ public sealed class IntroTutorialDirector : MonoBehaviour
         if (roadLooper == null) roadLooper = gameObject.AddComponent<IntroRoadLooper>();
         roadLooper.Prepare();
         dialogueSequence = Resources.Load<IntroDialogueSequence>("IntroDialogue/IntroOpeningDialogue");
-        eyeOpeningVoice ??= Resources.Load<AudioClip>("Intro/EyeOpeningVoice");
+        EnsureAudioClipsLoaded();
 
-        eyeOpeningAudioSource = GetComponent<AudioSource>();
-        if (eyeOpeningAudioSource == null) eyeOpeningAudioSource = gameObject.AddComponent<AudioSource>();
-        eyeOpeningAudioSource.playOnAwake = false;
-        eyeOpeningAudioSource.spatialBlend = 0f;
+        GameObject radioAudioObject = new GameObject("IntroRadioAudio");
+        radioAudioObject.transform.SetParent(transform, false);
+        eyeOpeningAudioSource = radioAudioObject.AddComponent<AudioSource>();
+        Configure2DAudioSource(eyeOpeningAudioSource);
+        vehicleAudioSource = gameObject.AddComponent<AudioSource>();
+        Configure2DAudioSource(vehicleAudioSource);
+        doorAudioSource = gameObject.AddComponent<AudioSource>();
+        Configure2DAudioSource(doorAudioSource);
+        radioLowPassFilter = radioAudioObject.AddComponent<AudioLowPassFilter>();
+        radioHighPassFilter = radioAudioObject.AddComponent<AudioHighPassFilter>();
+        radioDistortionFilter = radioAudioObject.AddComponent<AudioDistortionFilter>();
+        radioLowPassFilter.cutoffFrequency = 22000f;
+        radioHighPassFilter.cutoffFrequency = 10f;
+        radioDistortionFilter.distortionLevel = 0f;
         if (eyeOpeningVoice != null) eyeOpeningVoice.LoadAudioData();
         else Debug.LogError("Intro eye-opening voice was not found at Resources/Intro/EyeOpeningVoice.", this);
         stateStartedAt = Time.unscaledTime;
@@ -124,7 +165,7 @@ public sealed class IntroTutorialDirector : MonoBehaviour
                 fadeAlpha = Mathf.SmoothStep(0f, 1f,
                     Mathf.InverseLerp(exitFadeDelay, carExitShotDuration, exitElapsed));
                 if (eyeOpeningAudioSource != null)
-                    eyeOpeningAudioSource.volume = trailerRadioVolume * (1f - fadeAlpha);
+                    eyeOpeningAudioSource.volume = eyeOpeningVoiceVolume * (1f - fadeAlpha);
                 if (roadLooper != null && roadLooper.IsExitComplete && fadeAlpha >= 1f)
                 {
                     roadLooper.SwitchToTroubleRoad();
@@ -152,8 +193,12 @@ public sealed class IntroTutorialDirector : MonoBehaviour
                 break;
 
             case State.TroubleDriving:
+                UpdateTroubleVehicleAudio();
                 if (carDrive != null && carDrive.IsComplete)
-                    EnterState(State.Dialogue);
+                    EnterState(State.EngineStartAttempts);
+                break;
+
+            case State.EngineStartAttempts:
                 break;
 
             case State.Dialogue:
@@ -170,6 +215,8 @@ public sealed class IntroTutorialDirector : MonoBehaviour
                 fadeAlpha = Mathf.Clamp01((Time.unscaledTime - stateStartedAt) / fadeDuration);
                 if (fadeAlpha >= 1f)
                 {
+                    // Restore gameplay UI only while the screen is fully black.
+                    EndCinematicUIGate();
                     if (playerSpawner == null)
                     {
                         Debug.LogError("IntroTutorialDirector needs a HostModeSpawner configured for the Intro scene.", this);
@@ -215,7 +262,10 @@ public sealed class IntroTutorialDirector : MonoBehaviour
         }
 
         if (nextState == State.FadingOut)
-            EndCinematicUIGate();
+        {
+            if (doorAudioRoutine != null) StopCoroutine(doorAudioRoutine);
+            doorAudioRoutine = StartCoroutine(PlayDoorSequence());
+        }
 
         if (nextState == State.LoopDriving)
         {
@@ -232,6 +282,11 @@ public sealed class IntroTutorialDirector : MonoBehaviour
         if (nextState == State.BlackTransition)
         {
             fadeAlpha = 1f;
+            if (eyeOpeningAudioRoutine != null)
+            {
+                StopCoroutine(eyeOpeningAudioRoutine);
+                eyeOpeningAudioRoutine = null;
+            }
             if (eyeOpeningAudioSource != null)
             {
                 eyeOpeningAudioSource.volume = 0f;
@@ -240,12 +295,26 @@ public sealed class IntroTutorialDirector : MonoBehaviour
         }
 
         if (nextState == State.TroubleDriving)
+        {
             fadeAlpha = 0f;
+            observedDrivePhase = IntroCarDriveSetup.DrivePhase.Idle;
+            observedMalfunctionPulse = -1;
+            finalMalfunctionHitPlayed = false;
+            MalfunctionAudioPlayCount = 0;
+            PlayVehicleLoop(carDrivingClip);
+        }
+
+        if (nextState == State.EngineStartAttempts)
+        {
+            if (engineAttemptRoutine != null) StopCoroutine(engineAttemptRoutine);
+            engineAttemptRoutine = StartCoroutine(PlayEngineAttemptsThenDialogue());
+        }
 
         if (nextState == State.Dialogue)
         {
             if (eyeOpeningOverlay != null) eyeOpeningOverlay.SetActive(false);
             eyeOpeningAudioSource?.Stop();
+            StopVehicleAudio();
         }
     }
 
@@ -259,14 +328,171 @@ public sealed class IntroTutorialDirector : MonoBehaviour
 
     private void StartTrailerLoop()
     {
+        EnsureAudioClipsLoaded();
         trailerDriveStarted = true;
         roadLooper?.BeginLoop();
+        PlayVehicleLoop(carDrivingClip);
 
-        if (eyeOpeningVoice == null || eyeOpeningAudioSource == null) return;
+        if (eyeOpeningAudioRoutine != null) StopCoroutine(eyeOpeningAudioRoutine);
+        eyeOpeningAudioRoutine = StartCoroutine(PlayDelayedRadioVoice());
+    }
+
+    private static void Configure2DAudioSource(AudioSource source)
+    {
+        source.playOnAwake = false;
+        source.spatialBlend = 0f;
+        source.loop = false;
+    }
+
+    private void EnsureAudioClipsLoaded()
+    {
+        // Unity assets may be "fake null" after a domain/scene reload, so use
+        // Unity's overloaded == instead of the CLR-only ??= null check.
+        if (eyeOpeningVoice == null) eyeOpeningVoice = Resources.Load<AudioClip>("Intro/EyeOpeningVoice");
+        if (carDrivingClip == null) carDrivingClip = Resources.Load<AudioClip>("Intro/VehicleAudio/CarDriving");
+        if (carMalfunctionClip == null) carMalfunctionClip = Resources.Load<AudioClip>("Intro/VehicleAudio/CarTrucTrac");
+        if (engineStartAttemptClip == null) engineStartAttemptClip = Resources.Load<AudioClip>("Intro/VehicleAudio/DeMayXe");
+        if (carOpenDoorClip == null) carOpenDoorClip = Resources.Load<AudioClip>("Intro/VehicleAudio/CarOpenDoor");
+        if (carCloseDoorClip == null) carCloseDoorClip = Resources.Load<AudioClip>("Intro/VehicleAudio/CarCloseDoor");
+    }
+
+    private IEnumerator PlayDelayedRadioVoice()
+    {
+        yield return new WaitForSecondsRealtime(eyeOpeningAudioDelay);
+        if (eyeOpeningVoice == null || eyeOpeningAudioSource == null) yield break;
+
         eyeOpeningAudioSource.clip = eyeOpeningVoice;
         eyeOpeningAudioSource.loop = true;
-        eyeOpeningAudioSource.volume = trailerRadioVolume;
+        eyeOpeningAudioSource.volume = eyeOpeningVoiceVolume;
         eyeOpeningAudioSource.Play();
+
+        float duration = Mathf.Max(0.05f, radioIntroDuration);
+        for (float elapsed = 0f; elapsed < duration; elapsed += Time.unscaledDeltaTime)
+        {
+            float t = Mathf.Clamp01(elapsed / duration);
+            float crackle = Mathf.Sin(elapsed * 95f) * (1f - t);
+            radioLowPassFilter.cutoffFrequency = Mathf.Lerp(1350f, 5200f, t) + crackle * 180f;
+            radioHighPassFilter.cutoffFrequency = Mathf.Lerp(950f, 180f, t);
+            radioDistortionFilter.distortionLevel = Mathf.Lerp(0.42f, 0.06f, t)
+                + Mathf.Abs(crackle) * 0.00035f;
+            eyeOpeningAudioSource.volume = eyeOpeningVoiceVolume * Mathf.Lerp(0.58f, 1f, t);
+            yield return null;
+        }
+        radioLowPassFilter.cutoffFrequency = 5200f;
+        radioHighPassFilter.cutoffFrequency = 180f;
+        radioDistortionFilter.distortionLevel = 0.06f;
+    }
+
+    private void UpdateTroubleVehicleAudio()
+    {
+        EnsureAudioClipsLoaded();
+        if (carDrive == null) return;
+
+        if (carDrive.CurrentPhase != observedDrivePhase)
+        {
+            observedDrivePhase = carDrive.CurrentPhase;
+            if (observedDrivePhase == IntroCarDriveSetup.DrivePhase.Malfunctioning)
+            {
+                StopVehicleAudio();
+                observedMalfunctionPulse = -1;
+            }
+            else if (observedDrivePhase == IntroCarDriveSetup.DrivePhase.Braking)
+            {
+                // End the three wobble hits before the short coast to CarStop.
+                StopVehicleAudio();
+            }
+            else if (observedDrivePhase == IntroCarDriveSetup.DrivePhase.FinalShake
+                && !finalMalfunctionHitPlayed)
+            {
+                // One last mechanical hit exactly as the car shudders to a stop.
+                finalMalfunctionHitPlayed = true;
+                PlayVehicleOneShot(carMalfunctionClip);
+                MalfunctionAudioPlayCount++;
+            }
+        }
+
+        if (observedDrivePhase == IntroCarDriveSetup.DrivePhase.Malfunctioning
+            && carDrive.CurrentMalfunctionPulse > observedMalfunctionPulse)
+        {
+            observedMalfunctionPulse = carDrive.CurrentMalfunctionPulse;
+            PlayVehicleOneShot(carMalfunctionClip);
+            MalfunctionAudioPlayCount++;
+        }
+    }
+
+    private void PlayVehicleOneShot(AudioClip clip)
+    {
+        EnsureAudioClipsLoaded();
+        if (vehicleAudioSource == null || clip == null) return;
+        vehicleAudioSource.Stop();
+        vehicleAudioSource.clip = clip;
+        vehicleAudioSource.loop = false;
+        vehicleAudioSource.volume = vehicleAudioVolume;
+        vehicleAudioSource.Play();
+    }
+
+    private void PlayVehicleLoop(AudioClip clip)
+    {
+        EnsureAudioClipsLoaded();
+        if (vehicleAudioSource == null || clip == null) return;
+        if (vehicleAudioSource.clip == clip && vehicleAudioSource.isPlaying) return;
+        vehicleAudioSource.Stop();
+        vehicleAudioSource.clip = clip;
+        vehicleAudioSource.loop = true;
+        vehicleAudioSource.volume = vehicleAudioVolume;
+        vehicleAudioSource.Play();
+    }
+
+    private void StopVehicleAudio()
+    {
+        if (vehicleAudioSource == null) return;
+        vehicleAudioSource.Stop();
+        vehicleAudioSource.clip = null;
+    }
+
+    private IEnumerator PlayEngineAttemptsThenDialogue()
+    {
+        EnsureAudioClipsLoaded();
+        // Let the final CarTrucTrac hit finish completely before the quiet beat.
+        if (vehicleAudioSource != null && vehicleAudioSource.clip == carMalfunctionClip)
+            yield return new WaitWhile(() => vehicleAudioSource != null && vehicleAudioSource.isPlaying);
+        StopVehicleAudio();
+        yield return new WaitForSecondsRealtime(engineAttemptStartDelay);
+        if (vehicleAudioSource != null && engineStartAttemptClip != null)
+        {
+            vehicleAudioSource.loop = false;
+            vehicleAudioSource.volume = vehicleAudioVolume;
+            for (int attempt = 0; attempt < 2; attempt++)
+            {
+                vehicleAudioSource.clip = engineStartAttemptClip;
+                vehicleAudioSource.Play();
+                yield return new WaitWhile(() => vehicleAudioSource != null && vehicleAudioSource.isPlaying);
+                if (attempt == 0) yield return new WaitForSecondsRealtime(0.18f);
+            }
+        }
+        StopVehicleAudio();
+        EnterState(State.Dialogue);
+    }
+
+    private IEnumerator PlayDoorSequence()
+    {
+        EnsureAudioClipsLoaded();
+        if (doorAudioSource == null) yield break;
+        doorAudioSource.Stop();
+        doorAudioSource.loop = false;
+        doorAudioSource.volume = vehicleAudioVolume;
+        if (carOpenDoorClip != null)
+        {
+            doorAudioSource.clip = carOpenDoorClip;
+            doorAudioSource.Play();
+            yield return new WaitWhile(() => doorAudioSource != null && doorAudioSource.isPlaying);
+        }
+        if (carCloseDoorClip != null)
+        {
+            doorAudioSource.clip = carCloseDoorClip;
+            doorAudioSource.Play();
+            yield return new WaitWhile(() => doorAudioSource != null && doorAudioSource.isPlaying);
+        }
     }
 
     private void OnGUI()
@@ -373,7 +599,8 @@ public sealed class IntroTutorialDirector : MonoBehaviour
         Canvas[] canvases = Resources.FindObjectsOfTypeAll<Canvas>();
         foreach (Canvas canvas in canvases)
         {
-            if (canvas == null || canvas == introCanvas || !canvas.gameObject.scene.IsValid())
+            if (canvas == null || canvas == introCanvas || !canvas.gameObject.scene.IsValid()
+                || IsSettingsCanvas(canvas))
                 continue;
 
             if (!cinematicCanvasStates.ContainsKey(canvas))
@@ -381,6 +608,19 @@ public sealed class IntroTutorialDirector : MonoBehaviour
 
             canvas.enabled = false;
         }
+    }
+
+    private static bool IsSettingsCanvas(Canvas canvas)
+    {
+        // Settings-owned overlays (especially the FPS counter) always obey the
+        // player's Options choice and are never part of the cinematic HUD gate.
+        if (canvas.GetComponentInParent<GlobalSettingsManager>() != null)
+            return true;
+
+        string canvasName = canvas.name.ToLowerInvariant();
+        return canvasName.Contains("fps")
+            || canvasName.Contains("option")
+            || canvasName.Contains("setting");
     }
 
     private void EndCinematicUIGate()
