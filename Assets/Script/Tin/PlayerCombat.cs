@@ -22,12 +22,14 @@ public class PlayerCombat : NetworkBehaviour
     private float lastDryFireTime = 0f;
 
     [Networked] public int currentAmmo { get; set; } = 30;
+    [Networked] public NetworkString<_64> EquippedWeaponId { get; private set; }
     private bool isReloading = false;
 
     // 🔥 HỆ THỐNG BĂNG ĐẠN RIÊNG CHO TỪNG SÚNG
     // Cache đạn cho từng súng (key = itemName, value = số đạn hiện tại trong băng)
     private Dictionary<string, int> weaponAmmoCache = new Dictionary<string, int>();
     private string lastEquippedWeaponName = "";
+    private string lastLocalRequestedWeaponName = "";
 
     [Header("--- Cận Chiến (Gun Bash) ---")]
     public float bashDamage = 10f;
@@ -59,19 +61,7 @@ public class PlayerCombat : NetworkBehaviour
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
 
-        // Khởi tạo đạn cho súng đang cầm đầu tiên
-        ItemData equipped = GetEquippedWeapon();
-        if (equipped != null)
-        {
-            int mag = (equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
-            weaponAmmoCache[equipped.itemName] = mag;
-            lastEquippedWeaponName = equipped.itemName;
-            if (HasStateAuthority) currentAmmo = mag;
-        }
-        else
-        {
-            if (HasStateAuthority) currentAmmo = 0;
-        }
+        if (HasStateAuthority) currentAmmo = 0;
 
         AutoAssignAK47AudioClips();
     }
@@ -131,6 +121,13 @@ public class PlayerCombat : NetworkBehaviour
         }
 
         if (survivalSystem != null && survivalSystem.IsSleepInputLocked) return;
+
+        PlayerInteraction vehicleInteraction = GetComponent<PlayerInteraction>();
+        if (vehicleInteraction != null && vehicleInteraction.IsInVehicle)
+        {
+            if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
+            return;
+        }
 
         if (GetInput(out PlayerNetworkInput input))
         {
@@ -226,27 +223,35 @@ public class PlayerCombat : NetworkBehaviour
 
         int maxMag = (equipped != null && equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30;
         int ammoNeeded = maxMag - currentAmmo;
-        int ammoExtracted = invSys.ConsumeItem(requiredAmmo, ammoNeeded);
-
         if (HasStateAuthority)
         {
-            currentAmmo += ammoExtracted;
+            int ammoExtracted = invSys.ConsumeItem(requiredAmmo, ammoNeeded);
+            currentAmmo = Mathf.Min(maxMag, currentAmmo + ammoExtracted);
+            SyncAmmoCache();
         }
         else
         {
-            RPC_RequestReload(ammoExtracted);
+            RPC_RequestReload(equipped.name);
         }
 
         isReloading = false;
-        SyncAmmoCache();
         Debug.Log("Nạp đạn xong!");
         UpdateAmmoHUD();
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    public void RPC_RequestReload(int amountAdded)
+    public void RPC_RequestReload(string weaponId)
     {
-        currentAmmo += amountAdded;
+        if (string.IsNullOrWhiteSpace(weaponId) || EquippedWeaponId.ToString() != weaponId) return;
+        ItemData weapon = ItemDataLoader.LoadItem(weaponId);
+        ItemData requiredAmmo = weapon != null ? weapon.ammoTypeRequired : null;
+        if (weapon == null || requiredAmmo == null || invSys == null) return;
+
+        int maxMag = Mathf.Max(1, weapon.magazineCapacity);
+        int ammoNeeded = Mathf.Max(0, maxMag - currentAmmo);
+        int ammoExtracted = invSys.ConsumeItem(requiredAmmo, ammoNeeded);
+        currentAmmo = Mathf.Min(maxMag, currentAmmo + ammoExtracted);
+        SyncAmmoCache();
     }
 
     private void Shoot(Vector2 mouseWorldPos)
@@ -496,11 +501,11 @@ public class PlayerCombat : NetworkBehaviour
     public ItemData GetEquippedWeapon()
     {
         if (!Application.isPlaying) return null;
-        if (HotbarHUDManager.Instance != null)
-        {
+        if (HasInputAuthority && HotbarHUDManager.Instance != null)
             return HotbarHUDManager.Instance.GetSelectedWeapon();
-        }
-        return null;
+
+        string weaponId = EquippedWeaponId.ToString();
+        return string.IsNullOrWhiteSpace(weaponId) ? null : ItemDataLoader.LoadItem(weaponId);
     }
 
     // =========================================================
@@ -508,11 +513,43 @@ public class PlayerCombat : NetworkBehaviour
     // =========================================================
     private void CheckWeaponSwitch()
     {
-        ItemData equipped = GetEquippedWeapon();
-        string currentWeaponName = (equipped != null) ? equipped.itemName : "";
+        ItemData equipped = HotbarHUDManager.Instance != null
+            ? HotbarHUDManager.Instance.GetSelectedWeapon()
+            : null;
+        string currentWeaponId = equipped != null ? equipped.name : string.Empty;
+        if (currentWeaponId == lastLocalRequestedWeaponName) return;
+        lastLocalRequestedWeaponName = currentWeaponId;
 
-        // Không có gì thay đổi → bỏ qua
-        if (currentWeaponName == lastEquippedWeaponName) return;
+        if (HasStateAuthority) ApplyAuthoritativeWeaponSwitch(currentWeaponId);
+        else RPC_RequestEquipWeapon(currentWeaponId);
+
+        // Hủy reload cục bộ nếu đổi súng giữa chừng.
+        if (isReloading)
+        {
+            isReloading = false;
+            StopAllCoroutines();
+            RPC_StopReloadSFX();
+            if (AutoUIManager.Instance != null) AutoUIManager.Instance.HideReloadUI();
+        }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestEquipWeapon(string weaponId)
+    {
+        ApplyAuthoritativeWeaponSwitch(weaponId);
+    }
+
+    private void ApplyAuthoritativeWeaponSwitch(string weaponId)
+    {
+        ItemData equipped = string.IsNullOrWhiteSpace(weaponId) ? null : ItemDataLoader.LoadItem(weaponId);
+        if (equipped != null)
+        {
+            if (equipped.category != ItemCategory.Weapon || invSys == null || !invSys.HasItemNamed(weaponId))
+                return;
+            weaponId = equipped.name;
+        }
+
+        if (weaponId == lastEquippedWeaponName) return;
 
         // 1. SAVE đạn cho súng CŨ vào cache
         if (!string.IsNullOrEmpty(lastEquippedWeaponName))
@@ -521,12 +558,12 @@ public class PlayerCombat : NetworkBehaviour
         }
 
         // 2. LOAD đạn cho súng MỚI từ cache
-        if (equipped != null && !string.IsNullOrEmpty(currentWeaponName))
+        if (equipped != null && !string.IsNullOrEmpty(weaponId))
         {
-            if (weaponAmmoCache.ContainsKey(currentWeaponName))
+            if (weaponAmmoCache.ContainsKey(weaponId))
             {
                 // Súng này đã bắn trước đó → khôi phục đạn còn lại
-                if (HasStateAuthority) currentAmmo = weaponAmmoCache[currentWeaponName];
+                currentAmmo = weaponAmmoCache[weaponId];
             }
             else
             {
@@ -535,26 +572,18 @@ public class PlayerCombat : NetworkBehaviour
                 // so the player has to learn the reload step before firing.
                 int fullMag = TutorialSession.IsActive ? 0 :
                     ((equipped.magazineCapacity > 0) ? equipped.magazineCapacity : 30);
-                weaponAmmoCache[currentWeaponName] = fullMag;
-                if (HasStateAuthority) currentAmmo = fullMag;
+                weaponAmmoCache[weaponId] = fullMag;
+                currentAmmo = fullMag;
             }
         }
         else
         {
             // Không cầm súng nào → ammo = 0
-            if (HasStateAuthority) currentAmmo = 0;
+            currentAmmo = 0;
         }
 
-        lastEquippedWeaponName = currentWeaponName;
-
-        // Hủy reload nếu đang nạp đạn mà chuyển súng giữa chừng
-        if (isReloading)
-        {
-            isReloading = false;
-            StopAllCoroutines();
-            RPC_StopReloadSFX();
-            if (AutoUIManager.Instance != null) AutoUIManager.Instance.HideReloadUI();
-        }
+        lastEquippedWeaponName = weaponId;
+        EquippedWeaponId = weaponId;
     }
 
     // Đồng bộ cache sau mỗi lần bắn hoặc nạp đạn
@@ -615,8 +644,7 @@ public class PlayerCombat : NetworkBehaviour
 
         if (weaponAudioSource != null)
         {
-            weaponAudioSource.spatialBlend = 0f; // 2D Sound (Phát 100% âm lượng Max, không bị suy hao)
-            weaponAudioSource.playOnAwake = false;
+            GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Gunshot);
         }
 
         if (swingSFX == null) swingSFX = Resources.Load<AudioClip>("Sound/Melee/melee_swing");
@@ -630,6 +658,7 @@ public class PlayerCombat : NetworkBehaviour
         AudioClip shootClip = (equipped != null && equipped.customSingleShootSFX != null) ? equipped.customSingleShootSFX : null;
         if (shootClip == null) shootClip = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_single");
         if (shootClip == null || weaponAudioSource == null) return;
+        GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Gunshot);
 
         float volMultiplier = (equipped != null && equipped.soundVolumeMultiplier > 0) ? equipped.soundVolumeMultiplier : 1.0f;
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
@@ -647,6 +676,7 @@ public class PlayerCombat : NetworkBehaviour
         AudioClip dryClip = (equipped != null && equipped.customDryFireSFX != null) ? equipped.customDryFireSFX : null;
         if (dryClip == null) dryClip = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_dry_fire");
         if (dryClip == null || weaponAudioSource == null) return;
+        GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Melee);
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
         weaponAudioSource.pitch = 1.0f;
@@ -662,6 +692,7 @@ public class PlayerCombat : NetworkBehaviour
         AudioClip customReload = (equipped != null && equipped.customReloadSFX != null) ? equipped.customReloadSFX : null;
         if (customReload == null) customReload = Resources.Load<AudioClip>("Sound/Weapons/AK47/ak47_reload");
         if (customReload == null || weaponAudioSource == null) return;
+        GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Melee);
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
         weaponAudioSource.pitch = 1.0f;
@@ -677,18 +708,20 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
-    public void OnMeleeSwing()
+    public void BroadcastMeleeSwingSFX()
     {
+        if (!HasStateAuthority) return;
         RPC_PlayMeleeSwingSFX();
     }
 
-    [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayMeleeSwingSFX()
     {
         if (!gameObject.activeInHierarchy) return;
         AutoAssignAK47AudioClips();
         if (swingSFX == null) swingSFX = Resources.Load<AudioClip>("Sound/Melee/melee_swing");
         if (swingSFX == null || weaponAudioSource == null) return;
+        GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Melee);
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
         weaponAudioSource.pitch = Random.Range(0.97f, 1.03f);
@@ -702,6 +735,7 @@ public class PlayerCombat : NetworkBehaviour
         AutoAssignAK47AudioClips();
         if (hitFleshSFX == null) hitFleshSFX = Resources.Load<AudioClip>("Sound/Melee/melee_hit_flesh");
         if (hitFleshSFX == null || weaponAudioSource == null) return;
+        GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Melee);
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
         weaponAudioSource.pitch = Random.Range(0.97f, 1.03f);

@@ -97,14 +97,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private float tempZoomSensitivity = 1.0f; // 0.5f đến 2.0f
 
     // Đối tượng Tab area và Text hiển thị
-    private int activeTab = 0; // 0 = Display, 1 = Controls, 2 = Audio
+    private int activeTab = 0; // 0 = Display, 1 = Controls, 2 = Audio, 3 = General
     private GameObject displayTabArea;
     private GameObject controlsTabArea;
     private GameObject audioTabArea;
+    private GameObject generalTabArea;
 
     private TextMeshProUGUI displayTabBtnText;
     private TextMeshProUGUI controlsTabBtnText;
     private TextMeshProUGUI audioTabBtnText;
+    private TextMeshProUGUI generalTabBtnText;
 
     private TextMeshProUGUI qualityValText;
     private TextMeshProUGUI shadowValText;
@@ -171,6 +173,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private TextMeshProUGUI diffTitleText;
     private TextMeshProUGUI diffDescText;
     private TextMeshProUGUI diffStatsText;
+    private int visibleDifficultyInfo = 1;
+    private TextMeshProUGUI loadingTitleText;
     
     // Biến cho danh sách người chơi trong Waiting Room
     private RectTransform waitingRoomPlayerListContent;
@@ -188,6 +192,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private string[] characterStats = {
         "<color=#ff5555>SKILL: TERMINAL FRENZY</color>\nExtreme survival instinct. Killing 5 mutants triggers an adrenaline rush. Removes weapon recoil and grants infinite ammo for 10 seconds.\n<color=#aaaaaa>[Cooldown: 50s]</color>",
         "<color=#55ffff>SKILL: SILENT SHADOW</color>\nBorn to hide. Lowering your stance synchronizes your heartbeat with the environment. Completely fools mutant senses for 5 seconds.\n<color=#aaaaaa>[Cooldown: 30s]</color>"
+    };
+    private readonly string[] characterNamesVi = { "Người sống sót: Vô danh", "Người sống sót: Bóng ma" };
+    private readonly string[] characterStatsVi = {
+        "<color=#ff5555>KỸ NĂNG: CUỒNG NỘ CUỐI CÙNG</color>\nBản năng sinh tồn cực hạn. Tiêu diệt 5 dị thể sẽ kích hoạt adrenaline, loại bỏ độ giật và cho đạn vô hạn trong 10 giây.\n<color=#aaaaaa>[Hồi chiêu: 50 giây]</color>",
+        "<color=#55ffff>KỸ NĂNG: BÓNG TỐI IM LẶNG</color>\nSinh ra để ẩn nấp. Khi hạ thấp tư thế, nhịp tim hòa vào môi trường và đánh lừa hoàn toàn giác quan dị thể trong 5 giây.\n<color=#aaaaaa>[Hồi chiêu: 30 giây]</color>"
     };
 
     private TextMeshProUGUI charNameText;
@@ -453,6 +462,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         paRt.anchorMin = Vector2.zero; paRt.anchorMax = new Vector2(1f, 0.92f);
         paRt.offsetMin = Vector2.zero; paRt.offsetMax = Vector2.zero;
 
+        GameObject pGeneralTab = new GameObject("PGeneralTab");
+        pGeneralTab.transform.SetParent(settingsArea.transform, false);
+        RectTransform pgRt = pGeneralTab.AddComponent<RectTransform>();
+        pgRt.anchorMin = Vector2.zero; pgRt.anchorMax = new Vector2(1f, 0.92f);
+        pgRt.offsetMin = Vector2.zero; pgRt.offsetMax = Vector2.zero;
+
         // Tab bar
         GameObject pTabBar = new GameObject("PTabBar");
         pTabBar.transform.SetParent(settingsArea.transform, false);
@@ -462,7 +477,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         pTabBar.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.04f, 1f);
 
         // Biến local cho tab switching
-        TextMeshProUGUI pDispBtnTxt, pCtrlBtnTxt, pAudBtnTxt;
+        TextMeshProUGUI pDispBtnTxt, pCtrlBtnTxt, pAudBtnTxt, pGeneralBtnTxt;
         int pauseTabIndex = 0;
 
         System.Action<int> showPauseTab = null;
@@ -471,11 +486,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             pDisplayTab.SetActive(idx == 0);
             pControlsTab.SetActive(idx == 1);
             pAudioTab.SetActive(idx == 2);
+            pGeneralTab.SetActive(idx == 3);
         };
 
-        CreateTabButton(pTabBar, "DISPLAY", () => showPauseTab(0), new Vector2(0.22f, 0.1f), new Vector2(0.38f, 0.9f), out pDispBtnTxt);
-        CreateTabButton(pTabBar, "CONTROLS", () => showPauseTab(1), new Vector2(0.42f, 0.1f), new Vector2(0.58f, 0.9f), out pCtrlBtnTxt);
-        CreateTabButton(pTabBar, "AUDIO", () => showPauseTab(2), new Vector2(0.62f, 0.1f), new Vector2(0.78f, 0.9f), out pAudBtnTxt);
+        CreateTabButton(pTabBar, "DISPLAY", () => showPauseTab(0), new Vector2(0.02f, 0.1f), new Vector2(0.24f, 0.9f), out pDispBtnTxt);
+        CreateTabButton(pTabBar, "CONTROLS", () => showPauseTab(1), new Vector2(0.26f, 0.1f), new Vector2(0.48f, 0.9f), out pCtrlBtnTxt);
+        CreateTabButton(pTabBar, "AUDIO", () => showPauseTab(2), new Vector2(0.50f, 0.1f), new Vector2(0.72f, 0.9f), out pAudBtnTxt);
+        CreateTabButton(pTabBar, "GENERAL", () => showPauseTab(3), new Vector2(0.74f, 0.1f), new Vector2(0.98f, 0.9f), out pGeneralBtnTxt);
 
         // === DISPLAY TAB (không có Resolution và Display Mode) ===
         float pStartY = 0.85f;
@@ -614,13 +631,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         pSliderSFXVolume = pSfxSliderObj.GetComponent<Slider>();
 
         string[] pLanguageLabels = new string[] { "ENGLISH", "TIẾNG VIỆT" };
-        CreateDropdown(pAudioTab, GameLocalization.Get("settings.language"),
-            new Vector2(0.05f, pStartYAud - pSpacingAud*3 - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud*3 + 0.02f),
-            new Vector2(0.45f, pStartYAud - pSpacingAud*3 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*3 + 0.03f),
+        CreateDropdown(pGeneralTab, GameLocalization.Get("settings.language"),
+            new Vector2(0.05f, 0.66f), new Vector2(0.4f, 0.72f),
+            new Vector2(0.45f, 0.65f), new Vector2(0.95f, 0.73f),
             pLanguageLabels, () => tempLanguage, (idx) => {
                 tempLanguage = idx;
                 GameLocalization.SetLanguage((GameLocalization.Language)idx, false);
                 UpdateDropdownTexts();
+                RefreshLocalizedDynamicTexts();
             }, out pLanguageText);
 
         // Nút BACK + SAVE
@@ -704,7 +722,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         loadingScreenPanel.SetActive(true);
         if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg)) cg.alpha = 1f;
 
-        loadingPercentText.text = "ESCAPING FROM REALITY...";
+        loadingPercentText.text = GameLocalization.Get("menu.loading_escape_reality");
         loadingFillBar.anchorMax = new Vector2(1, 1);
 
         // Rút dây mạng, tự động kích hoạt OnShutdown để về sảnh
@@ -884,6 +902,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     public void ShowDifficultyInfo(int id)
     {
         if (diffInfoPanel == null || diffTitleText == null || diffDescText == null || diffStatsText == null) return;
+        visibleDifficultyInfo = Mathf.Clamp(id, 0, 2);
 
         string title = "";
         string desc = "";
@@ -893,37 +912,22 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         switch (id)
         {
             case 0:
-                title = "★ EASY MODE ★";
+                title = GameLocalization.Get("difficulty.easy.title");
                 themeColor = new Color(0.2f, 0.8f, 0.2f);
-                stats = "<color=#99FF99>ZOMBIE DENSITY:</color> Low (-50% Spawn Rate)\n" +
-                        "<color=#99FF99>RESOURCES:</color> Abundant (Loot rate 150%)\n" +
-                        "<color=#99FF99>DAMAGE TAKEN:</color> Reduced (-30% Damage)\n" +
-                        "<color=#99FF99>STARTING GEAR:</color> Pistol + Ammo & Canned Food\n" +
-                        "<color=#99FF99>SURVIVAL RATE:</color> Very High (90%)";
-                desc = "<b>OVERVIEW:</b>\n" +
-                       "Zombie spawn count is reduced. Ideal for exploring, gathering resources, and learning basic survival mechanics without heavy pressure.";
+                stats = GameLocalization.Get("difficulty.easy.stats");
+                desc = GameLocalization.Get("difficulty.easy.desc");
                 break;
             case 1:
-                title = "✦ SURVIVAL MODE ✦";
+                title = GameLocalization.Get("difficulty.normal.title");
                 themeColor = new Color(1f, 0.8f, 0.2f);
-                stats = "<color=#FFFF99>ZOMBIE DENSITY:</color> Standard (100% Spawn Rate)\n" +
-                        "<color=#FFFF99>RESOURCES:</color> Balanced distribution\n" +
-                        "<color=#FFFF99>DAMAGE TAKEN:</color> Normal (100% Damage)\n" +
-                        "<color=#FFFF99>STARTING GEAR:</color> Flashlight & Bandage\n" +
-                        "<color=#FFFF99>SURVIVAL RATE:</color> Balanced (50%)";
-                desc = "<b>OVERVIEW:</b>\n" +
-                       "The standard zombie survival experience. Spawn rates and cooldown values are set to their default balanced values. Requires strategic thinking.";
+                stats = GameLocalization.Get("difficulty.normal.stats");
+                desc = GameLocalization.Get("difficulty.normal.desc");
                 break;
             case 2:
-                title = "☠ HARDCORE MODE ☠";
+                title = GameLocalization.Get("difficulty.hard.title");
                 themeColor = new Color(0.9f, 0.15f, 0.15f);
-                stats = "<color=#FF9999>ZOMBIE DENSITY:</color> Extreme (+150% Spawn Rate)\n" +
-                        "<color=#FF9999>RESOURCES:</color> Scarce & Depleted (Loot rate 40%)\n" +
-                        "<color=#FF9999>DAMAGE TAKEN:</color> Increased (+50% Damage)\n" +
-                        "<color=#FF9999>STARTING GEAR:</color> None (Empty hands)\n" +
-                        "<color=#FF9999>SURVIVAL RATE:</color> Near Zero (<10%)";
-                desc = "<b>OVERVIEW:</b>\n" +
-                       "A relentless nightmare. Zombies are extremely numerous and spawn very quickly. Demands maximum skill and tactical planning.";
+                stats = GameLocalization.Get("difficulty.hard.stats");
+                desc = GameLocalization.Get("difficulty.hard.desc");
                 break;
         }
 
@@ -992,7 +996,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         CreateMenuButton(hostArea, "SELECT SURVIVOR", () =>
         {
-            if (string.IsNullOrWhiteSpace(roomInput.text)) { roomInput.placeholder.GetComponent<TextMeshProUGUI>().text = "<color=red>YOU MUST ENTER THE BASE NAME!</color>"; PlayClickSFX(); return; }
+            if (string.IsNullOrWhiteSpace(roomInput.text)) { roomInput.placeholder.GetComponent<TextMeshProUGUI>().text = $"<color=red>{GameLocalization.Get("menu.enter_base_name")}</color>"; PlayClickSFX(); return; }
             pendingRoomName = roomInput.text;
             if (hostHasPassword) hostPassword = passwordInputObj.GetComponent<TMP_InputField>().text; else hostPassword = "";
             pendingIsHost = true; OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
@@ -1036,12 +1040,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             }
             bool isFull = currentPlayers >= maxPlayers;
 
-            string statusString = "<color=white>WAITING</color>";
-            if (isFull) statusString = "<color=red>FULL</color>"; else if (gameState == 1) statusString = "<color=orange>IN COMBAT</color>";
-            string lockText = hasPassword ? "<color=red>[LOCKED]</color>" : "<color=green>[OPEN]</color>";
-            if (isFull) lockText = "<color=gray>[FULL]</color>";
+            string statusString = $"<color=white>{GameLocalization.Get("server.waiting")}</color>";
+            if (isFull) statusString = $"<color=red>{GameLocalization.Get("server.full")}</color>";
+            else if (gameState == 1) statusString = $"<color=orange>{GameLocalization.Get("server.combat")}</color>";
+            string lockText = hasPassword
+                ? $"<color=red>[{GameLocalization.Get("server.locked")}]</color>"
+                : $"<color=green>[{GameLocalization.Get("server.open")}]</color>";
+            if (isFull) lockText = $"<color=gray>[{GameLocalization.Get("server.full")}]</color>";
 
-            string finalDisplayString = $"{lockText} Base: {roomName} | Players: {currentPlayers}/{maxPlayers} | Status: {statusString}";
+            string finalDisplayString = string.Format(GameLocalization.Get("server.row"), lockText, roomName, currentPlayers, maxPlayers, statusString);
 
             CreateDynamicServerItem(finalDisplayString, () =>
             {
@@ -1071,9 +1078,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         GameObject customArea = new GameObject("CustomArea"); customArea.transform.SetParent(characterSelectPanel.transform, false); RectTransform customRect = customArea.AddComponent<RectTransform>(); customRect.anchorMin = new Vector2(0.2f, 0.1f); customRect.anchorMax = new Vector2(0.8f, 0.85f); customRect.offsetMin = Vector2.zero; customRect.offsetMax = Vector2.zero; customArea.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.05f, 0.9f);
         CreateMenuButton(customArea, "<", () => ChangeCharacter(-1), new Vector2(0.1f, 0.92f), true, new Vector2(60, 60)); CreateMenuButton(customArea, ">", () => ChangeCharacter(1), new Vector2(0.9f, 0.92f), true, new Vector2(60, 60));
         GameObject nameObj = new GameObject("CharNameText"); nameObj.transform.SetParent(customArea.transform, false); charNameText = nameObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) charNameText.font = gameFont;
-        charNameText.text = characterNames[0]; charNameText.fontSize = 30; charNameText.fontStyle = FontStyles.Bold; charNameText.color = Color.yellow; charNameText.alignment = TextAlignmentOptions.Center; charNameText.enableAutoSizing = true; charNameText.fontSizeMin = 20; charNameText.fontSizeMax = 40; RectTransform nameRect = nameObj.GetComponent<RectTransform>(); nameRect.anchorMin = new Vector2(0.2f, 0.85f); nameRect.anchorMax = new Vector2(0.8f, 1f); nameRect.offsetMin = Vector2.zero; nameRect.offsetMax = Vector2.zero;
+        charNameText.text = GetCharacterNames()[0]; charNameText.fontSize = 30; charNameText.fontStyle = FontStyles.Bold; charNameText.color = Color.yellow; charNameText.alignment = TextAlignmentOptions.Center; charNameText.enableAutoSizing = true; charNameText.fontSizeMin = 20; charNameText.fontSizeMax = 40; RectTransform nameRect = nameObj.GetComponent<RectTransform>(); nameRect.anchorMin = new Vector2(0.2f, 0.85f); nameRect.anchorMax = new Vector2(0.8f, 1f); nameRect.offsetMin = Vector2.zero; nameRect.offsetMax = Vector2.zero;
         GameObject previewBox = new GameObject("PreviewContainer"); previewBox.transform.SetParent(customArea.transform, false); previewContainer = previewBox.AddComponent<RectTransform>(); previewContainer.anchorMin = new Vector2(0.3f, 0.55f); previewContainer.anchorMax = new Vector2(0.7f, 0.85f); previewContainer.offsetMin = Vector2.zero; previewContainer.offsetMax = Vector2.zero;
-        GameObject statsObj = new GameObject("CharStatsText"); statsObj.transform.SetParent(customArea.transform, false); charStatsText = statsObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) charStatsText.font = gameFont; charStatsText.text = characterStats[0]; charStatsText.fontSize = 25; charStatsText.alignment = TextAlignmentOptions.Top; charStatsText.richText = true; charStatsText.enableAutoSizing = true; charStatsText.fontSizeMin = 14; charStatsText.fontSizeMax = 30; RectTransform statsRect = statsObj.GetComponent<RectTransform>(); statsRect.anchorMin = new Vector2(0.1f, 0.35f); statsRect.anchorMax = new Vector2(0.9f, 0.52f); statsRect.offsetMin = Vector2.zero; statsRect.offsetMax = Vector2.zero;
+        GameObject statsObj = new GameObject("CharStatsText"); statsObj.transform.SetParent(customArea.transform, false); charStatsText = statsObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) charStatsText.font = gameFont; charStatsText.text = GetCharacterStats()[0]; charStatsText.fontSize = 25; charStatsText.alignment = TextAlignmentOptions.Top; charStatsText.richText = true; charStatsText.enableAutoSizing = true; charStatsText.fontSizeMin = 14; charStatsText.fontSizeMax = 30; RectTransform statsRect = statsObj.GetComponent<RectTransform>(); statsRect.anchorMin = new Vector2(0.1f, 0.35f); statsRect.anchorMax = new Vector2(0.9f, 0.52f); statsRect.offsetMin = Vector2.zero; statsRect.offsetMax = Vector2.zero;
         CreateLabel(customArea, "SURVIVOR IDENTITY", new Vector2(0.2f, 0.26f), new Vector2(0.8f, 0.32f));
         GameObject inputObj = CreateInputField(customArea, "PlayerNameInput", "Enter name...", new Vector2(0.3f, 0.15f), new Vector2(0.7f, 0.25f)); playerNameInput = inputObj.GetComponent<TMP_InputField>(); playerNameInput.text = PlayerPrefs.GetString("MyPlayerName", "Survivor_" + Random.Range(100, 999));
 
@@ -1150,7 +1157,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             cg.interactable = true;
         }
 
-        connectionPopupText.text = initialMsg;
+        connectionPopupText.text = GameLocalization.TranslateLiteral(initialMsg);
 
         if (connectionAnimRoutine != null)
             StopCoroutine(connectionAnimRoutine);
@@ -1163,11 +1170,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private IEnumerator ConnectionTextAnimation()
     {
         yield return new WaitForSeconds(0.4f);
-        connectionPopupText.text = "SCANNING RADIO FREQUENCIES...";
+        connectionPopupText.text = GameLocalization.TranslateLiteral("SCANNING RADIO FREQUENCIES...");
         yield return new WaitForSeconds(0.4f);
-        connectionPopupText.text = "ONLY STATIC NOISE REMAINS...";
+        connectionPopupText.text = GameLocalization.TranslateLiteral("ONLY STATIC NOISE REMAINS...");
         yield return new WaitForSeconds(0.4f);
-        connectionPopupText.text = "ENTERING THE DEAD ZONE...";
+        connectionPopupText.text = GameLocalization.TranslateLiteral("ENTERING THE DEAD ZONE...");
     }
 
     private void GenerateErrorPopup(GameObject canvasGO)
@@ -1181,7 +1188,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void ShowError(string msg)
     {
-        if (errorPopupText != null) errorPopupText.text = msg;
+        if (errorPopupText != null) errorPopupText.text = GameLocalization.TranslateLiteral(msg);
         if (errorPopupPanel != null) { errorPopupPanel.transform.SetAsLastSibling(); errorPopupPanel.SetActive(true); }
         isConnecting = false; // Phải nhả biến kết nối ra khi bị lỗi
     }
@@ -1258,7 +1265,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         loadingScreenPanel = CreateBasePanel("LoadingScreenPanel", canvasGO);
         loadingScreenPanel.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.05f, 1f);
 
-        CreateTitleText(loadingScreenPanel, "<color=#990000>THIS IS HOW YOU DIED...</color>", 0.6f);
+        loadingTitleText = CreateTitleText(loadingScreenPanel, GameLocalization.Get("menu.death_loading"), 0.6f);
 
         GameObject borderBar = new GameObject("BorderBar"); borderBar.transform.SetParent(loadingScreenPanel.transform, false);
         RectTransform borderRt = borderBar.AddComponent<RectTransform>(); borderRt.anchorMin = new Vector2(0.19f, 0.38f); borderRt.anchorMax = new Vector2(0.81f, 0.47f); borderRt.offsetMin = Vector2.zero; borderRt.offsetMax = Vector2.zero;
@@ -1310,6 +1317,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             fallbackSpeaker.transform.SetParent(runner.transform, false);
             var audioSource = fallbackSpeaker.AddComponent<AudioSource>();
             audioSource.playOnAwake = false;
+            // Unlinked fallback has no player transform, so it must remain 2D.
+            // Once Photon links a real Speaker to a player, it is configured as 3D below.
             audioSource.spatialBlend = 0f;
             audioSource.volume = 1f;
             fallbackSpeaker.AddComponent<Speaker>();
@@ -1319,7 +1328,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         voiceClient.RemoteVoiceAdded += remoteVoice =>
             Debug.Log($"[VOICE RECEIVE] Remote stream received: {remoteVoice}");
         voiceClient.SpeakerLinked += speaker =>
-            Debug.Log($"[VOICE RECEIVE] Speaker linked: {speaker.name} | SpeakerVolume: {speaker.GetComponent<AudioSource>()?.volume} | MasterVolume: {AudioListener.volume} | ListenerPaused: {AudioListener.pause}");
+        {
+            AudioSource linkedSource = speaker.GetComponent<AudioSource>();
+            GameplayAudioSpatializer.Configure(linkedSource, GameplayAudioSpatializer.Profile.Voice);
+            Debug.Log($"[VOICE RECEIVE] Speaker linked: {speaker.name} | SpeakerVolume: {linkedSource?.volume} | MasterVolume: {AudioListener.volume} | ListenerPaused: {AudioListener.pause}");
+        };
 
         var recorder = runner.GetComponent<Recorder>();
         if (recorder == null)
@@ -1438,7 +1451,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             }
             else if (mode == GameMode.Host)
             {
-                waitingRoomHostStatusText.text = "You are the Host. Wait for your team and press START!";
+                waitingRoomHostStatusText.text = GameLocalization.Get("lobby.host_wait");
                 OpenPanel(waitingRoomPanel.GetComponent<CanvasGroup>());
             }
             else // Client
@@ -1452,7 +1465,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
                 if (currentState == 0)
                 {
-                    waitingRoomHostStatusText.text = "Waiting for the Host to START...";
+                    waitingRoomHostStatusText.text = GameLocalization.Get("lobby.wait_start");
                     OpenPanel(waitingRoomPanel.GetComponent<CanvasGroup>());
 
                     if (activeRunner != null)
@@ -1467,7 +1480,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         else
         {
             connectionPopupPanel.SetActive(false);
-            string errorMsg = $"CONNECTION FAILED! ({result.ShutdownReason}))";
+            string errorMsg = string.Format(GameLocalization.Get("menu.connection_failed"), $"({result.ShutdownReason})");
             ShowError(errorMsg);
             OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
         }
@@ -1554,7 +1567,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             yield return null;
         }
 
-        loadingPercentText.text = "<color=#777777>No hope left. Waiting for other doomed souls...</color>";
+        loadingPercentText.text = $"<color=#777777>{GameLocalization.Get("menu.loading_wait_players")}</color>";
 
         // Chờ Host báo hiệu tất cả sẵn sàng
         while (!isHostSignaledGo)
@@ -1705,7 +1718,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             loadingScreenPanel.transform.SetAsLastSibling();
             loadingScreenPanel.SetActive(true);
             if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg)) cg.alpha = 1f;
-            loadingPercentText.text = "FINDING A WAY BACK TO SHELTER...";
+            loadingPercentText.text = GameLocalization.Get("menu.loading_shelter");
 
             // Đợi 0.5s cho UI loading hiện lên rõ ràng rồi mới load scene
             yield return new WaitForSecondsRealtime(0.5f);
@@ -1715,7 +1728,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             while (!asyncLoad.isDone)
             {
                 loadingFillBar.anchorMax = new Vector2(asyncLoad.progress, 1);
-                loadingPercentText.text = "ESCAPING..." + Mathf.RoundToInt(asyncLoad.progress * 100) + "%";
+                loadingPercentText.text = string.Format(GameLocalization.Get("menu.loading_escape"), Mathf.RoundToInt(asyncLoad.progress * 100));
                 yield return null;
             }
         }
@@ -1745,7 +1758,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
         else
         {
-            ShowError($"CONNECTION FAILED! {reason}");
+            ShowError(string.Format(GameLocalization.Get("menu.connection_failed"), reason));
         }
 
         // Mở lại bảng Multiplayer để tìm phòng khác
@@ -1765,7 +1778,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // Hiển thị lỗi nếu rớt mạng bất thường (Không phải do mình tự bấm Quit)
         if (reason != NetDisconnectReason.Requested)
         {
-            ShowError($"Lost connection to server: {reason}");
+            ShowError(string.Format(GameLocalization.Get("menu.connection_lost"), reason));
         }
 
         // Trở về menu chính hoặc bảng Multiplayer
@@ -1890,12 +1903,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 if (isHostSlot)
                 {
                     roleBg.color = new Color(0.6f, 0.4f, 0.1f, 1f); // Vàng đất cho Host
-                    roleTxt.text = "HOST";
+                    roleTxt.text = GameLocalization.TranslateLiteral("HOST");
                 }
                 else
                 {
                     roleBg.color = new Color(0.2f, 0.3f, 0.4f, 1f); // Xanh biển tối cho Thành viên
-                    roleTxt.text = "TEAMMATE";
+                    roleTxt.text = GameLocalization.TranslateLiteral("TEAMMATE");
                 }
 
                 roleTxt.color = Color.white;
@@ -1903,30 +1916,30 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 if (isLocal)
                 {
                     string myName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
-                    nameTxt.text = $"<color=#ffffff>YOU</color>\n<size=16><color=#aaaaaa>({myName})</color></size>";
+                    nameTxt.text = $"<color=#ffffff>{GameLocalization.Get("lobby.you")}</color>\n<size=16><color=#aaaaaa>({myName})</color></size>";
                 }
                 else
                 {
-                    nameTxt.text = $"<color=#dddddd>SURVIVOR {i + 1}</color>\n<size=16><color=#55ff55>CONNECTED</color></size>";
+                    nameTxt.text = $"<color=#dddddd>{string.Format(GameLocalization.Get("lobby.survivor"), i + 1)}</color>\n<size=16><color=#55ff55>{GameLocalization.Get("lobby.connected")}</color></size>";
                 }
             }
             else
             {
                 roleBg.color = new Color(0.1f, 0.1f, 0.1f, 1f);
-                roleTxt.text = "EMPTY SLOT";
+                roleTxt.text = GameLocalization.TranslateLiteral("EMPTY SLOT");
                 roleTxt.color = new Color(0.4f, 0.4f, 0.4f, 1f);
-                nameTxt.text = "<color=#333333>Waiting for signal...</color>";
+                nameTxt.text = $"<color=#333333>{GameLocalization.Get("lobby.wait_signal")}</color>";
             }
         }
 
         // Cập nhật trạng thái góc dưới
         if (!activeRunner.IsServer)
         {
-            waitingRoomHostStatusText.text = "Device connected. Waiting for Host's orders...";
+            waitingRoomHostStatusText.text = GameLocalization.Get("lobby.client_wait");
         }
         else
         {
-            waitingRoomHostStatusText.text = $"Outpost report: {playerCount}/{maxSlots} personnel in sector.";
+            waitingRoomHostStatusText.text = string.Format(GameLocalization.Get("lobby.host_report"), playerCount, maxSlots);
         }
     }
     public void OnUserSimulationMessage(NetworkRunner runner, SimulationMessagePtr message) { }
@@ -1940,10 +1953,23 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     #endregion
 
     // Các hàm tạo UI rút gọn
-    private TextMeshProUGUI CreateTitleText(GameObject parent, string text, float height = 0.9f, int fontSize = 40, TextAlignmentOptions align = TextAlignmentOptions.Center, Vector2? aMin = null, Vector2? aMax = null) { GameObject txtObj = new GameObject("Title"); txtObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = text; txt.fontSize = fontSize; txt.fontStyle = FontStyles.Bold; txt.alignment = align; txt.color = new Color(0.8f, 0.8f, 0.8f, 1f); RectTransform rect = txtObj.GetComponent<RectTransform>(); rect.anchorMin = aMin ?? new Vector2(0, height); rect.anchorMax = aMax ?? new Vector2(1, height); rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; return txt; }
+    private TextMeshProUGUI CreateTitleText(GameObject parent, string text, float height = 0.9f, int fontSize = 40, TextAlignmentOptions align = TextAlignmentOptions.Center, Vector2? aMin = null, Vector2? aMax = null) { GameObject txtObj = new GameObject("Title"); txtObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = GameLocalization.TranslateLiteral(text); txt.fontSize = fontSize; txt.fontStyle = FontStyles.Bold; txt.alignment = align; txt.color = new Color(0.8f, 0.8f, 0.8f, 1f); RectTransform rect = txtObj.GetComponent<RectTransform>(); rect.anchorMin = aMin ?? new Vector2(0, height); rect.anchorMax = aMax ?? new Vector2(1, height); rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; return txt; }
     private void SetDifficulty(int id) { hostDifficulty = id; PlayerPrefs.SetInt("GameDifficulty", id); PlayerPrefs.Save(); for (int i = 0; i < diffTexts.Length; i++) { if (i == id) { diffTexts[i].color = Color.yellow; diffTexts[i].fontStyle = FontStyles.Bold; } else { diffTexts[i].color = Color.gray; diffTexts[i].fontStyle = FontStyles.Normal; } } }
-    private void TogglePassword() { hostHasPassword = !hostHasPassword; if (hostHasPassword) { toggleText.text = "[ YES ]"; toggleText.color = Color.red; passwordInputObj.SetActive(true); } else { toggleText.text = "[ NO ]"; toggleText.color = Color.gray; passwordInputObj.SetActive(false); } }
-    private void ChangeCharacter(int direction) { previewID = (previewID + direction + characterNames.Length) % characterNames.Length; charNameText.text = characterNames[previewID]; charStatsText.text = characterStats[previewID]; UpdatePreview(); }
+    private void TogglePassword() { hostHasPassword = !hostHasPassword; if (hostHasPassword) { toggleText.text = GameLocalization.TranslateLiteral("[ YES ]"); toggleText.color = Color.red; passwordInputObj.SetActive(true); } else { toggleText.text = GameLocalization.TranslateLiteral("[ NO ]"); toggleText.color = Color.gray; passwordInputObj.SetActive(false); } }
+    private string[] GetCharacterNames() => GameLocalization.IsVietnamese ? characterNamesVi : characterNames;
+    private string[] GetCharacterStats() => GameLocalization.IsVietnamese ? characterStatsVi : characterStats;
+    private void RefreshCharacterLanguage()
+    {
+        if (charNameText != null) charNameText.text = GetCharacterNames()[previewID];
+        if (charStatsText != null) charStatsText.text = GetCharacterStats()[previewID];
+    }
+    private void RefreshLocalizedDynamicTexts()
+    {
+        RefreshCharacterLanguage();
+        ShowDifficultyInfo(visibleDifficultyInfo);
+        if (loadingTitleText != null) loadingTitleText.text = GameLocalization.Get("menu.death_loading");
+    }
+    private void ChangeCharacter(int direction) { previewID = (previewID + direction + characterNames.Length) % characterNames.Length; RefreshCharacterLanguage(); UpdatePreview(); }
     private void UpdatePreview()
     {
         if (previewImages == null || previewContainer == null) return;
@@ -1998,10 +2024,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void EnableGameplayUI() { foreach (var obj in temporarilyDisabledObjects) { if (obj != null) obj.SetActive(true); } temporarilyDisabledObjects.Clear(); }
     private void OnDestroy() { EnableGameplayUI(); isMenuDestroyed = true; }
     private GameObject CreateBasePanel(string name, GameObject parent) { GameObject p = new GameObject(name); p.transform.SetParent(parent.transform, false); RectTransform r = p.AddComponent<RectTransform>(); r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero; return p; }
-    private void CreateLabel(GameObject parent, string text, Vector2 anchorMin, Vector2 anchorMax) { GameObject labelObj = new GameObject("Label"); labelObj.transform.SetParent(parent.transform, false); TextMeshProUGUI labelTxt = labelObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) labelTxt.font = gameFont; labelTxt.text = text; labelTxt.color = new Color(0.8f, 0.8f, 0.8f, 1f); labelTxt.alignment = TextAlignmentOptions.Center; labelTxt.enableAutoSizing = true; labelTxt.fontSizeMin = 14; labelTxt.fontSizeMax = 20; RectTransform labelRect = labelObj.GetComponent<RectTransform>(); labelRect.anchorMin = anchorMin; labelRect.anchorMax = anchorMax; labelRect.offsetMin = Vector2.zero; labelRect.offsetMax = Vector2.zero; }
-    private GameObject CreateInputField(GameObject parent, string name, string placeholderTxt, Vector2 anchorMin, Vector2 anchorMax) { GameObject inputObj = new GameObject(name); inputObj.transform.SetParent(parent.transform, false); RectTransform rect = inputObj.AddComponent<RectTransform>(); rect.anchorMin = anchorMin; rect.anchorMax = anchorMax; rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; Image bg = inputObj.AddComponent<Image>(); bg.color = new Color(0.05f, 0.05f, 0.05f, 1f); TMP_InputField inputField = inputObj.AddComponent<TMP_InputField>(); inputField.targetGraphic = bg; inputField.characterLimit = 20; GameObject viewportObj = new GameObject("Viewport"); viewportObj.transform.SetParent(inputObj.transform, false); RectTransform vpRect = viewportObj.AddComponent<RectTransform>(); vpRect.anchorMin = Vector2.zero; vpRect.anchorMax = Vector2.one; vpRect.offsetMin = new Vector2(15, 0); vpRect.offsetMax = new Vector2(-15, 0); viewportObj.AddComponent<RectMask2D>(); GameObject textObj = new GameObject("Text"); textObj.transform.SetParent(viewportObj.transform, false); TextMeshProUGUI txt = textObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.color = Color.white; txt.alignment = TextAlignmentOptions.Left; txt.enableAutoSizing = true; txt.fontSizeMin = 15; txt.fontSizeMax = 30; txt.textWrappingMode = TextWrappingModes.NoWrap; txt.overflowMode = TextOverflowModes.Truncate; RectTransform txtRect = textObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; GameObject phObj = new GameObject("Placeholder"); phObj.transform.SetParent(viewportObj.transform, false); TextMeshProUGUI pTxt = phObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) pTxt.font = gameFont; pTxt.text = placeholderTxt; pTxt.color = Color.gray; pTxt.alignment = TextAlignmentOptions.Left; pTxt.enableAutoSizing = true; pTxt.fontSizeMin = 15; pTxt.fontSizeMax = 30; pTxt.textWrappingMode = TextWrappingModes.NoWrap; pTxt.overflowMode = TextOverflowModes.Truncate; RectTransform phRect = phObj.GetComponent<RectTransform>(); phRect.anchorMin = Vector2.zero; phRect.anchorMax = Vector2.one; phRect.offsetMin = Vector2.zero; phRect.offsetMax = Vector2.zero; inputField.textViewport = vpRect; inputField.textComponent = txt; inputField.placeholder = pTxt; return inputObj; }
-    private void CreateMenuButton(GameObject parent, string text, UnityEngine.Events.UnityAction action, Vector2? customAnchor = null, bool isCenter = false, Vector2? customSize = null, float customFontSize = 35f) { GameObject btnObj = new GameObject("Btn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); if (customAnchor.HasValue) { rect.anchorMin = customAnchor.Value; rect.anchorMax = customAnchor.Value; if (isCenter) { rect.pivot = new Vector2(0.5f, 0.5f); } else { rect.pivot = (customAnchor.Value.x > 0.5f) ? new Vector2(1f, 0.5f) : new Vector2(0f, 0.5f); } } rect.sizeDelta = customSize.HasValue ? customSize.Value : new Vector2(300, 50); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = text; bool isRightAligned = !isCenter && customAnchor.HasValue && customAnchor.Value.x > 0.5f; tmpText.alignment = isCenter ? TextAlignmentOptions.Center : (isRightAligned ? TextAlignmentOptions.Right : TextAlignmentOptions.Left); tmpText.color = new Color(0.7f, 0.7f, 0.7f, 1f); tmpText.textWrappingMode = TextWrappingModes.NoWrap; tmpText.enableAutoSizing = false; tmpText.fontSize = customFontSize; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, isCenter || isRightAligned); }
-    private TextMeshProUGUI CreateTextBtn(GameObject parent, string text, Vector2 anchorValue, UnityEngine.Events.UnityAction action) { GameObject btnObj = new GameObject("TextBtn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); rect.anchorMin = anchorValue; rect.anchorMax = anchorValue; rect.pivot = new Vector2(0.5f, 0.5f); rect.sizeDelta = new Vector2(150, 40); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = text; tmpText.alignment = TextAlignmentOptions.Center; tmpText.color = Color.gray; tmpText.enableAutoSizing = true; tmpText.fontSizeMin = 14; tmpText.fontSizeMax = 20; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, true); return tmpText; }
+    private void CreateLabel(GameObject parent, string text, Vector2 anchorMin, Vector2 anchorMax) { GameObject labelObj = new GameObject("Label"); labelObj.transform.SetParent(parent.transform, false); TextMeshProUGUI labelTxt = labelObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) labelTxt.font = gameFont; labelTxt.text = GameLocalization.TranslateLiteral(text); labelTxt.color = new Color(0.8f, 0.8f, 0.8f, 1f); labelTxt.alignment = TextAlignmentOptions.Center; labelTxt.enableAutoSizing = true; labelTxt.fontSizeMin = 14; labelTxt.fontSizeMax = 20; RectTransform labelRect = labelObj.GetComponent<RectTransform>(); labelRect.anchorMin = anchorMin; labelRect.anchorMax = anchorMax; labelRect.offsetMin = Vector2.zero; labelRect.offsetMax = Vector2.zero; }
+    private GameObject CreateInputField(GameObject parent, string name, string placeholderTxt, Vector2 anchorMin, Vector2 anchorMax) { GameObject inputObj = new GameObject(name); inputObj.transform.SetParent(parent.transform, false); RectTransform rect = inputObj.AddComponent<RectTransform>(); rect.anchorMin = anchorMin; rect.anchorMax = anchorMax; rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; Image bg = inputObj.AddComponent<Image>(); bg.color = new Color(0.05f, 0.05f, 0.05f, 1f); TMP_InputField inputField = inputObj.AddComponent<TMP_InputField>(); inputField.targetGraphic = bg; inputField.characterLimit = 20; GameObject viewportObj = new GameObject("Viewport"); viewportObj.transform.SetParent(inputObj.transform, false); RectTransform vpRect = viewportObj.AddComponent<RectTransform>(); vpRect.anchorMin = Vector2.zero; vpRect.anchorMax = Vector2.one; vpRect.offsetMin = new Vector2(15, 0); vpRect.offsetMax = new Vector2(-15, 0); viewportObj.AddComponent<RectMask2D>(); GameObject textObj = new GameObject("Text"); textObj.transform.SetParent(viewportObj.transform, false); TextMeshProUGUI txt = textObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.color = Color.white; txt.alignment = TextAlignmentOptions.Left; txt.enableAutoSizing = true; txt.fontSizeMin = 15; txt.fontSizeMax = 30; txt.textWrappingMode = TextWrappingModes.NoWrap; txt.overflowMode = TextOverflowModes.Truncate; RectTransform txtRect = textObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; GameObject phObj = new GameObject("Placeholder"); phObj.transform.SetParent(viewportObj.transform, false); TextMeshProUGUI pTxt = phObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) pTxt.font = gameFont; pTxt.text = GameLocalization.TranslateLiteral(placeholderTxt); pTxt.color = Color.gray; pTxt.alignment = TextAlignmentOptions.Left; pTxt.enableAutoSizing = true; pTxt.fontSizeMin = 15; pTxt.fontSizeMax = 30; pTxt.textWrappingMode = TextWrappingModes.NoWrap; pTxt.overflowMode = TextOverflowModes.Truncate; RectTransform phRect = phObj.GetComponent<RectTransform>(); phRect.anchorMin = Vector2.zero; phRect.anchorMax = Vector2.one; phRect.offsetMin = Vector2.zero; phRect.offsetMax = Vector2.zero; inputField.textViewport = vpRect; inputField.textComponent = txt; inputField.placeholder = pTxt; return inputObj; }
+    private void CreateMenuButton(GameObject parent, string text, UnityEngine.Events.UnityAction action, Vector2? customAnchor = null, bool isCenter = false, Vector2? customSize = null, float customFontSize = 35f) { GameObject btnObj = new GameObject("Btn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); if (customAnchor.HasValue) { rect.anchorMin = customAnchor.Value; rect.anchorMax = customAnchor.Value; if (isCenter) { rect.pivot = new Vector2(0.5f, 0.5f); } else { rect.pivot = (customAnchor.Value.x > 0.5f) ? new Vector2(1f, 0.5f) : new Vector2(0f, 0.5f); } } rect.sizeDelta = customSize.HasValue ? customSize.Value : new Vector2(300, 50); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = GameLocalization.TranslateLiteral(text); bool isRightAligned = !isCenter && customAnchor.HasValue && customAnchor.Value.x > 0.5f; tmpText.alignment = isCenter ? TextAlignmentOptions.Center : (isRightAligned ? TextAlignmentOptions.Right : TextAlignmentOptions.Left); tmpText.color = new Color(0.7f, 0.7f, 0.7f, 1f); tmpText.textWrappingMode = TextWrappingModes.NoWrap; tmpText.enableAutoSizing = false; tmpText.fontSize = customFontSize; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, isCenter || isRightAligned); }
+    private TextMeshProUGUI CreateTextBtn(GameObject parent, string text, Vector2 anchorValue, UnityEngine.Events.UnityAction action) { GameObject btnObj = new GameObject("TextBtn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); rect.anchorMin = anchorValue; rect.anchorMax = anchorValue; rect.pivot = new Vector2(0.5f, 0.5f); rect.sizeDelta = new Vector2(150, 40); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = GameLocalization.TranslateLiteral(text); tmpText.alignment = TextAlignmentOptions.Center; tmpText.color = Color.gray; tmpText.enableAutoSizing = true; tmpText.fontSizeMin = 14; tmpText.fontSizeMax = 20; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, true); return tmpText; }
 
     private void GenerateOptionsPanel(GameObject canvasGO)
     {
@@ -2045,6 +2071,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         aRt.offsetMin = Vector2.zero;
         aRt.offsetMax = Vector2.zero;
 
+        generalTabArea = new GameObject("GeneralTabArea");
+        generalTabArea.transform.SetParent(settingsArea.transform, false);
+        RectTransform gRt = generalTabArea.AddComponent<RectTransform>();
+        gRt.anchorMin = new Vector2(0f, 0f);
+        gRt.anchorMax = new Vector2(1f, 0.92f);
+        gRt.offsetMin = Vector2.zero;
+        gRt.offsetMax = Vector2.zero;
+
         // Khởi tạo Tab Bar ở trên đầu
         GameObject tabBar = new GameObject("TabBar");
         tabBar.transform.SetParent(settingsArea.transform, false);
@@ -2055,9 +2089,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         tbRt.offsetMax = Vector2.zero;
         tabBar.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.04f, 1.5f);
 
-        CreateTabButton(tabBar, "DISPLAY", () => ShowTab(0), new Vector2(0.22f, 0.1f), new Vector2(0.38f, 0.9f), out displayTabBtnText);
-        CreateTabButton(tabBar, "CONTROLS", () => ShowTab(1), new Vector2(0.42f, 0.1f), new Vector2(0.58f, 0.9f), out controlsTabBtnText);
-        CreateTabButton(tabBar, "AUDIO", () => ShowTab(2), new Vector2(0.62f, 0.1f), new Vector2(0.78f, 0.9f), out audioTabBtnText);
+        CreateTabButton(tabBar, "DISPLAY", () => ShowTab(0), new Vector2(0.02f, 0.1f), new Vector2(0.24f, 0.9f), out displayTabBtnText);
+        CreateTabButton(tabBar, "CONTROLS", () => ShowTab(1), new Vector2(0.26f, 0.1f), new Vector2(0.48f, 0.9f), out controlsTabBtnText);
+        CreateTabButton(tabBar, "AUDIO", () => ShowTab(2), new Vector2(0.50f, 0.1f), new Vector2(0.72f, 0.9f), out audioTabBtnText);
+        CreateTabButton(tabBar, "GENERAL", () => ShowTab(3), new Vector2(0.74f, 0.1f), new Vector2(0.98f, 0.9f), out generalTabBtnText);
 
         // POPULATE TAB 1: DISPLAY (startY = 0.88f, spacingY = 0.095f)
         float startY = 0.88f;
@@ -2221,13 +2256,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         sliderSFXVolume = sfxSliderObj.GetComponent<Slider>();
 
         string[] languageLabels = new string[] { "ENGLISH", "TIẾNG VIỆT" };
-        CreateDropdown(audioTabArea, GameLocalization.Get("settings.language"),
-            new Vector2(0.05f, startYAud - spacingYAud*3 - 0.04f), new Vector2(0.4f, startYAud - spacingYAud*3 + 0.02f),
-            new Vector2(0.45f, startYAud - spacingYAud*3 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*3 + 0.03f),
+        CreateDropdown(generalTabArea, GameLocalization.Get("settings.language"),
+            new Vector2(0.05f, 0.66f), new Vector2(0.4f, 0.72f),
+            new Vector2(0.45f, 0.65f), new Vector2(0.95f, 0.73f),
             languageLabels, () => tempLanguage, (idx) => {
                 tempLanguage = idx;
                 GameLocalization.SetLanguage((GameLocalization.Language)idx, false);
                 UpdateDropdownTexts();
+                RefreshLocalizedDynamicTexts();
             }, out languageValText);
 
 
@@ -2281,7 +2317,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         textMesh = txtObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) textMesh.font = gameFont;
-        textMesh.text = text;
+        textMesh.text = GameLocalization.TranslateLiteral(text);
         textMesh.fontSize = 18f;
         textMesh.alignment = TextAlignmentOptions.Center;
         textMesh.color = new Color(0.7f, 0.7f, 0.7f);
@@ -2313,7 +2349,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         txtObj.transform.SetParent(btnObj.transform, false);
         TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) tmpText.font = gameFont;
-        tmpText.text = $"{options[getCurrentIndex()]}  ▼";
+        tmpText.text = $"{GameLocalization.TranslateLiteral(options[getCurrentIndex()])}  ▼";
         tmpText.alignment = TextAlignmentOptions.Center;
         tmpText.color = Color.yellow;
         tmpText.fontSize = 22;
@@ -2406,7 +2442,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 itemTxtObj.transform.SetParent(itemObj.transform, false);
                 TextMeshProUGUI itemTmpText = itemTxtObj.AddComponent<TextMeshProUGUI>();
                 if (gameFont != null) itemTmpText.font = gameFont;
-                itemTmpText.text = options[index];
+                itemTmpText.text = GameLocalization.TranslateLiteral(options[index]);
                 itemTmpText.alignment = TextAlignmentOptions.Center;
                 itemTmpText.fontSize = 20;
                 itemTmpText.color = (index == currentIndex) ? Color.yellow : Color.white; // Text highlighted in yellow
@@ -2418,7 +2454,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
                 itemBtn.onClick.AddListener(() =>
                 {
-                    tmpText.text = $"{options[index]}  ▼";
+                    tmpText.text = $"{GameLocalization.TranslateLiteral(options[index])}  ▼";
                     onSelect(index);
                     Destroy(activeDropdownOverlay);
                     activeDropdownOverlay = null;
@@ -3056,15 +3092,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
         if (modeDropdownText != null)
         {
-            modeDropdownText.text = $"{windowModeLabels[tempWindowMode]}  ▼";
+            modeDropdownText.text = $"{GameLocalization.TranslateLiteral(windowModeLabels[tempWindowMode])}  ▼";
         }
         if (qualityValText != null)
         {
-            qualityValText.text = $"{new string[] { "LOW", "MEDIUM", "HIGH" }[tempQualityLevel]}  ▼";
+            qualityValText.text = $"{GameLocalization.TranslateLiteral(new string[] { "LOW", "MEDIUM", "HIGH" }[tempQualityLevel])}  ▼";
         }
         if (shadowValText != null)
         {
-            shadowValText.text = $"{new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" }[tempShadowQuality]}  ▼";
+            shadowValText.text = $"{GameLocalization.TranslateLiteral(new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" }[tempShadowQuality])}  ▼";
         }
         if (aaValText != null)
         {
@@ -3076,21 +3112,21 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
         if (fpsShowValText != null)
         {
-            fpsShowValText.text = $"{new string[] { "OFF", "ON" }[tempShowFPS]}  ▼";
+            fpsShowValText.text = $"{GameLocalization.TranslateLiteral(new string[] { "OFF", "ON" }[tempShowFPS])}  ▼";
         }
         if (fpsPosDropdownText != null)
         {
-            fpsPosDropdownText.text = $"{new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "TOP CENTER", "BOTTOM CENTER" }[tempFPSPosition]}  ▼";
+            fpsPosDropdownText.text = $"{GameLocalization.TranslateLiteral(new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "TOP CENTER", "BOTTOM CENTER" }[tempFPSPosition])}  ▼";
         }
 
         // --- PAUSE MENU DROPDOWNS ---
         if (pQualText != null)
         {
-            pQualText.text = $"{new string[] { "LOW", "MEDIUM", "HIGH" }[tempQualityLevel]}  ▼";
+            pQualText.text = $"{GameLocalization.TranslateLiteral(new string[] { "LOW", "MEDIUM", "HIGH" }[tempQualityLevel])}  ▼";
         }
         if (pShadText != null)
         {
-            pShadText.text = $"{new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" }[tempShadowQuality]}  ▼";
+            pShadText.text = $"{GameLocalization.TranslateLiteral(new string[] { "DISABLED", "HARD ONLY", "ALL SHADOWS" }[tempShadowQuality])}  ▼";
         }
         if (pAAText != null)
         {
@@ -3102,11 +3138,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
         if (pFpsShowText != null)
         {
-            pFpsShowText.text = $"{new string[] { "OFF", "ON" }[tempShowFPS]}  ▼";
+            pFpsShowText.text = $"{GameLocalization.TranslateLiteral(new string[] { "OFF", "ON" }[tempShowFPS])}  ▼";
         }
         if (pFpsPosDropdownText != null)
         {
-            pFpsPosDropdownText.text = $"{new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "TOP CENTER", "BOTTOM CENTER" }[tempFPSPosition]}  ▼";
+            pFpsPosDropdownText.text = $"{GameLocalization.TranslateLiteral(new string[] { "TOP RIGHT", "TOP LEFT", "BOTTOM RIGHT", "BOTTOM LEFT", "TOP CENTER", "BOTTOM CENTER" }[tempFPSPosition])}  ▼";
         }
     }
 
@@ -3117,10 +3153,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         if (displayTabArea != null) displayTabArea.SetActive(activeTab == 0);
         if (controlsTabArea != null) controlsTabArea.SetActive(activeTab == 1);
         if (audioTabArea != null) audioTabArea.SetActive(activeTab == 2);
+        if (generalTabArea != null) generalTabArea.SetActive(activeTab == 3);
 
         if (displayTabBtnText != null) displayTabBtnText.color = (activeTab == 0) ? Color.yellow : new Color(0.7f, 0.7f, 0.7f);
         if (controlsTabBtnText != null) controlsTabBtnText.color = (activeTab == 1) ? Color.yellow : new Color(0.7f, 0.7f, 0.7f);
         if (audioTabBtnText != null) audioTabBtnText.color = (activeTab == 2) ? Color.yellow : new Color(0.7f, 0.7f, 0.7f);
+        if (generalTabBtnText != null) generalTabBtnText.color = (activeTab == 3) ? Color.yellow : new Color(0.7f, 0.7f, 0.7f);
 
         if (activeDropdownOverlay != null)
         {
@@ -3191,7 +3229,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         txtObj.transform.SetParent(innerBox.transform, false);
         TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) tmpText.font = gameFont;
-        tmpText.text = "UNSAVED CHANGES\n\nDo you want to save changes before exiting?";
+        tmpText.text = GameLocalization.Get("settings.unsaved");
         tmpText.alignment = TextAlignmentOptions.Center;
         tmpText.color = Color.white;
         tmpText.fontSize = 24;

@@ -61,7 +61,6 @@ public class PlayerStamina : NetworkBehaviour
             activeStaminaBoost = 0f;
         }
 
-        UpdateBreathingAudio();
     }
 
     public void UpdateStamina(bool isRunning, bool isMovingNow)
@@ -145,8 +144,6 @@ public class PlayerStamina : NetworkBehaviour
 
     private void UpdateBreathingAudio()
     {
-        if (!HasInputAuthority) return;
-
         PlayerHealth health = GetComponent<PlayerHealth>();
         bool isDead = health != null && health.isDead;
 
@@ -157,6 +154,7 @@ public class PlayerStamina : NetworkBehaviour
             breathingAudioSource = gameObject.AddComponent<AudioSource>();
             breathingAudioSource.playOnAwake = false;
             breathingAudioSource.loop = true;
+            GameplayAudioSpatializer.Configure(breathingAudioSource, GameplayAudioSpatializer.Profile.Body);
         }
 
         if (heavyBreathingSFX == null)
@@ -234,22 +232,22 @@ public class PlayerStamina : NetworkBehaviour
         if (staminaRatio > 0.40f)
         {
             style.normal.textColor = red1;
-            statusText = "Moderate Exertion";
+            statusText = GameLocalization.TranslateLiteral("Moderate Exertion");
         }
         else if (staminaRatio > 0.25f)
         {
             style.normal.textColor = red2;
-            statusText = "High Exertion";
+            statusText = GameLocalization.TranslateLiteral("High Exertion");
         }
         else if (staminaRatio > 0f)
         {
             style.normal.textColor = red3;
-            statusText = "Excessive Exertion";
+            statusText = GameLocalization.TranslateLiteral("Excessive Exertion");
         }
         else
         {
             style.normal.textColor = red4;
-            statusText = "Exhausted";
+            statusText = GameLocalization.TranslateLiteral("Exhausted");
         }
 
         // --- VẼ: CHỈ ICON, HOVER MỚI HIỆN CHỮ ---

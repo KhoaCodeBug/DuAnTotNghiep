@@ -38,6 +38,7 @@ public class PlayerVision : NetworkBehaviour
     private Collider2D[] zombiesInRadius = new Collider2D[100];
     private ContactFilter2D zombieFilter;
     private PlayerMovement pMove;
+    private PlayerInteraction playerInteraction;
     private RoofDetector roofDetector;
     private SpriteRenderer playerBodyRenderer;
     private Material originalPlayerMaterial;
@@ -46,7 +47,25 @@ public class PlayerVision : NetworkBehaviour
 
     public float CurrentVisionRadius { get; private set; }
     public float CurrentVisionAngle { get; private set; }
-    public Collider2D ActiveIndoorCollider => roofDetector != null ? roofDetector.CurrentIndoorCollider : null;
+    public VehicleControllerFusion CurrentVisionVehicle => playerInteraction != null && playerInteraction.IsInVehicle
+        ? playerInteraction.CurrentVehicleController
+        : null;
+    public bool IsUsingVehicleVision => CurrentVisionVehicle != null;
+    public Vector2 VisionWorldPosition => IsUsingVehicleVision
+        ? CurrentVisionVehicle.VisionOrigin
+        : (Vector2)transform.position;
+    public Vector2 VisionWorldDirection
+    {
+        get
+        {
+            if (IsUsingVehicleVision) return CurrentVisionVehicle.VisionDirection;
+            Vector2 direction = pMove != null ? pMove.NetLastLookDir : (Vector2)transform.up;
+            return direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.up;
+        }
+    }
+    public Collider2D ActiveIndoorCollider => !IsUsingVehicleVision && roofDetector != null
+        ? roofDetector.CurrentIndoorCollider
+        : null;
 
     private void Awake()
     {
@@ -57,6 +76,7 @@ public class PlayerVision : NetworkBehaviour
         zombieFilter.SetLayerMask(zombieLayer);
 
         pMove = GetComponent<PlayerMovement>();
+        playerInteraction = GetComponent<PlayerInteraction>();
         roofDetector = GetComponentInChildren<RoofDetector>();
         SetupLocalPlayerReadability();
     }
@@ -118,11 +138,12 @@ public class PlayerVision : NetworkBehaviour
             isTarget = HasInputAuthority;
         }
 
-        SetLocalPlayerReadability(isTarget);
+        bool useVehicleVision = IsUsingVehicleVision;
+        SetLocalPlayerReadability(isTarget && !useVehicleVision);
 
         if (playerLight != null)
         {
-            playerLight.gameObject.SetActive(isTarget);
+            playerLight.gameObject.SetActive(isTarget && !useVehicleVision);
         }
 
         if (!isTarget)
@@ -130,7 +151,17 @@ public class PlayerVision : NetworkBehaviour
             return;
         }
 
-        if (playerLight == null || pMove == null) return;
+        if (pMove == null) return;
+
+        if (useVehicleVision)
+        {
+            CurrentVisionRadius = CurrentVisionVehicle.VisionRadius;
+            CurrentVisionAngle = CurrentVisionVehicle.VisionAngle;
+            UpdateZombieVisibility(CurrentVisionAngle);
+            return;
+        }
+
+        if (playerLight == null) return;
 
         // 1. ÁNH SÁNG NGÀY ĐÊM
         if (DayNightManager.Instance != null)
@@ -216,14 +247,11 @@ public class PlayerVision : NetworkBehaviour
 
     private void UpdateZombieVisibility(float currentLogicAngle)
     {
-        Vector2 lookDir = pMove.NetLastLookDir;
-        if (lookDir.sqrMagnitude == 0)
-        {
-            lookDir = transform.up;
-        }
-        lookDir.Normalize();
+        Vector2 visionOrigin = VisionWorldPosition;
+        Vector2 lookDir = VisionWorldDirection;
+        float visionRadius = CurrentVisionRadius;
 
-        int zombieCount = Physics2D.OverlapCircle(transform.position, 40f, zombieFilter, zombiesInRadius);
+        int zombieCount = Physics2D.OverlapCircle(visionOrigin, 40f, zombieFilter, zombiesInRadius);
         Collider2D indoorCollider = ActiveIndoorCollider;
         bool isInside = indoorCollider != null;
 
@@ -233,7 +261,7 @@ public class PlayerVision : NetworkBehaviour
             if (zCollider == null) continue;
 
             SpriteRenderer[] srs = zCollider.GetComponentsInChildren<SpriteRenderer>();
-            Vector2 dirToZombie = (zCollider.bounds.center - transform.position);
+            Vector2 dirToZombie = (Vector2)zCollider.bounds.center - visionOrigin;
             float dstToZombie = dirToZombie.magnitude;
             dirToZombie.Normalize();
 
@@ -260,14 +288,14 @@ public class PlayerVision : NetworkBehaviour
                 isVisible = true;
             }
             // B. NHÌN TRỰC TIẾP TRONG BÁN KÍNH ĐÈN PIN
-            else if (dstToZombie <= playerLight.pointLightOuterRadius)
+            else if (dstToZombie <= visionRadius)
             {
                 float angleToZombie = Vector2.Angle(lookDir, dirToZombie);
 
                 if (angleToZombie <= currentLogicAngle / 2f)
                 {
                     // Bắn tia Raycast kiểm tra xem có kẹt tường không
-                    RaycastHit2D hit = Physics2D.Raycast(transform.position, dirToZombie, dstToZombie, obstacleLayer);
+                    RaycastHit2D hit = Physics2D.Raycast(visionOrigin, dirToZombie, dstToZombie, obstacleLayer);
                     if (hit.collider == null)
                     {
                         isVisible = true;

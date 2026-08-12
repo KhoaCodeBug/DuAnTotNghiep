@@ -36,6 +36,7 @@ public class AutoHealthPanel : MonoBehaviour
     // --- UI ELEMENTS ---
     private Text fixedHeaderText;
     private RectTransform textContentRect;
+    private ScrollRect injuryScrollRect;
     
     // --- Graphical Health Bar ---
     private Image healthBarFill;
@@ -215,17 +216,29 @@ public class AutoHealthPanel : MonoBehaviour
         scrollRectTransform.sizeDelta = new Vector2(250, 300); // Rộng 250, Cao 300
         scrollRectTransform.anchoredPosition = new Vector2(10, -75); // Nằm ngay bên dưới tiêu đề Status (cao lên đúng vị trí hình 2)
 
-        ScrollRect scrollRect = scrollViewObj.AddComponent<ScrollRect>();
-        scrollRect.horizontal = false;
-        scrollRect.vertical = true;
-        scrollRect.scrollSensitivity = 25f;
+        // A transparent raycast surface on the ScrollRect root makes both
+        // dragging and wheel input reliable even when the pointer is between
+        // text lines.
+        Image scrollInputSurface = scrollViewObj.AddComponent<Image>();
+        scrollInputSurface.color = new Color(0f, 0f, 0f, 0.001f);
+        scrollInputSurface.raycastTarget = true;
+
+        injuryScrollRect = scrollViewObj.AddComponent<ScrollRect>();
+        injuryScrollRect.horizontal = false;
+        injuryScrollRect.vertical = true;
+        injuryScrollRect.movementType = ScrollRect.MovementType.Clamped;
+        injuryScrollRect.inertia = true;
+        injuryScrollRect.decelerationRate = 0.12f;
+        // Wheel motion is applied explicitly in Update so it cannot leak into
+        // camera zoom and behaves consistently with the legacy input system.
+        injuryScrollRect.scrollSensitivity = 0f;
 
         GameObject viewportObj = new GameObject("Viewport");
         viewportObj.transform.SetParent(scrollViewObj.transform, false);
         RectTransform viewportRect = viewportObj.AddComponent<RectTransform>();
         viewportRect.anchorMin = Vector2.zero; viewportRect.anchorMax = Vector2.one;
         viewportRect.sizeDelta = Vector2.zero;
-        viewportRect.offsetMin = Vector2.zero; viewportRect.offsetMax = Vector2.zero;
+        viewportRect.offsetMin = Vector2.zero; viewportRect.offsetMax = new Vector2(-14f, 0f);
 
         Image viewportBg = viewportObj.AddComponent<Image>();
         viewportBg.color = new Color(0, 0, 0, 0.01f);
@@ -249,8 +262,37 @@ public class AutoHealthPanel : MonoBehaviour
         ContentSizeFitter fitter = contentObj.AddComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        scrollRect.viewport = viewportRect;
-        scrollRect.content = textContentRect;
+        GameObject scrollbarObj = new GameObject("Vertical Scrollbar");
+        scrollbarObj.transform.SetParent(scrollViewObj.transform, false);
+        RectTransform scrollbarRect = scrollbarObj.AddComponent<RectTransform>();
+        scrollbarRect.anchorMin = new Vector2(1f, 0f);
+        scrollbarRect.anchorMax = Vector2.one;
+        scrollbarRect.pivot = new Vector2(1f, 0.5f);
+        scrollbarRect.sizeDelta = new Vector2(10f, 0f);
+        scrollbarRect.anchoredPosition = Vector2.zero;
+        Image scrollbarTrack = scrollbarObj.AddComponent<Image>();
+        scrollbarTrack.color = new Color(0.2f, 0.2f, 0.2f, 0.8f);
+
+        GameObject handleObj = new GameObject("Handle");
+        handleObj.transform.SetParent(scrollbarObj.transform, false);
+        RectTransform handleRect = handleObj.AddComponent<RectTransform>();
+        handleRect.anchorMin = Vector2.zero;
+        handleRect.anchorMax = Vector2.one;
+        handleRect.offsetMin = new Vector2(1f, 1f);
+        handleRect.offsetMax = new Vector2(-1f, -1f);
+        Image handleImage = handleObj.AddComponent<Image>();
+        handleImage.color = new Color(0.72f, 0.72f, 0.72f, 0.95f);
+
+        Scrollbar scrollbar = scrollbarObj.AddComponent<Scrollbar>();
+        scrollbar.handleRect = handleRect;
+        scrollbar.targetGraphic = handleImage;
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+
+        injuryScrollRect.viewport = viewportRect;
+        injuryScrollRect.content = textContentRect;
+        injuryScrollRect.verticalScrollbar = scrollbar;
+        injuryScrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+        injuryScrollRect.verticalScrollbarSpacing = 2f;
 
         contextMenuPanel = new GameObject("ContextMenuPanel");
         contextMenuPanel.transform.SetParent(panelObj.transform, false);
@@ -333,7 +375,7 @@ public class AutoHealthPanel : MonoBehaviour
         txt.fontStyle = style;
         txt.color = color;
         txt.alignment = align;
-        txt.text = text;
+        txt.text = GameLocalization.TranslateLiteral(text);
         return txt;
     }
 
@@ -522,7 +564,7 @@ public class AutoHealthPanel : MonoBehaviour
         }
 
         // 🔥 LOGIC CHUẨN: CHỈ HIỆN MỨC ĐỘ MÁU VÀ MỨC ĐỘ ĐAU
-        headerText.AppendLine("Overall Body Status");
+        headerText.AppendLine(GameLocalization.TranslateLiteral("Overall Body Status"));
         string overallStatus = "";
         string statusColor = "<color=#ffaaaa>";
 
@@ -537,10 +579,10 @@ public class AutoHealthPanel : MonoBehaviour
         else if (displayHP > 0f) { overallStatus = "Terminal Damage"; statusColor = "<color=red>"; }
         else { overallStatus = "Deceased"; statusColor = "<color=black>"; }
 
-        headerText.AppendLine($"{statusColor}{overallStatus}</color>");
+        headerText.AppendLine($"{statusColor}{GameLocalization.TranslateLiteral(overallStatus)}</color>");
 
         // Nếu đau thì hiện chữ Pain màu xám nhạt dưới dòng máu (Giống ảnh)
-        if (isPainReal) headerText.AppendLine("<color=#cccccc>Minor Pain</color>");
+        if (isPainReal) headerText.AppendLine($"<color=#cccccc>{GameLocalization.TranslateLiteral("Minor Pain")}</color>");
 
         fixedHeaderText.text = headerText.ToString();
 
@@ -582,30 +624,30 @@ public class AutoHealthPanel : MonoBehaviour
         trigger.triggers.Add(rightClickEntry);
 
         List<string> lines = new List<string>();
-        lines.Add($"<color=white>{part.Name}</color>");
+        lines.Add($"<color=white>{GameLocalization.TranslateLiteral(part.Name)}</color>");
 
         // 🔥 BĂNG BÓ: Đổi thành chữ xanh, MẤT chữ Bleeding đỏ
         if (part.IsBandaged)
         {
-            lines.Add("<color=#4ade80>  - Bandaged</color>");
+            lines.Add($"<color=#4ade80>  - {GameLocalization.TranslateLiteral("Bandaged")}</color>");
 
             // Nếu bị cắn thì dù băng lại, nó vẫn là vết cắn (nhưng ngưng chảy máu)
             if (part.Injuries.Contains(InjuryType.Bitten))
             {
-                lines.Add("<color=#ff4444>  - Bitten</color>");
+                lines.Add($"<color=#ff4444>  - {GameLocalization.TranslateLiteral("Bitten")}</color>");
             }
         }
         else
         {
             foreach (var inj in part.Injuries)
             {
-                lines.Add($"<color=#ff4444>  - {inj.ToString()}</color>");
+                lines.Add($"<color=#ff4444>  - {GameLocalization.TranslateLiteral(inj.ToString())}</color>");
             }
 
             // Nếu chưa băng bó, thêm dòng Bleeding y chang ảnh
             if (part.Injuries.Count > 0)
             {
-                lines.Add("<color=#ff4444>  - Bleeding</color>");
+                lines.Add($"<color=#ff4444>  - {GameLocalization.TranslateLiteral("Bleeding")}</color>");
             }
         }
 
@@ -624,6 +666,19 @@ public class AutoHealthPanel : MonoBehaviour
 
     void Update()
     {
+        if (isOpen && injuryScrollRect != null && injuryScrollRect.viewport != null &&
+            RectTransformUtility.RectangleContainsScreenPoint(injuryScrollRect.viewport, Input.mousePosition, null))
+        {
+            float wheel = Input.mouseScrollDelta.y;
+            if (Mathf.Abs(wheel) > 0.01f)
+            {
+                Canvas.ForceUpdateCanvases();
+                injuryScrollRect.StopMovement();
+                injuryScrollRect.verticalNormalizedPosition = Mathf.Clamp01(
+                    injuryScrollRect.verticalNormalizedPosition + wheel * 0.12f);
+            }
+        }
+
         // 🔥 ĐĂNG KÝ NGƯỜI CHƠI ĐỘNG NẾU CHƯA TÌM THẤY
         if (localPlayerHealth == null)
         {
@@ -701,7 +756,7 @@ public class AutoHealthPanel : MonoBehaviour
         float displayHP = localPlayerHealth.CurrentHealthSafe;
 
         StringBuilder headerText = new StringBuilder();
-        headerText.AppendLine("Overall Body Status");
+        headerText.AppendLine(GameLocalization.TranslateLiteral("Overall Body Status"));
         string overallStatus = "";
         string statusColor = "<color=#ffaaaa>";
 
@@ -716,9 +771,9 @@ public class AutoHealthPanel : MonoBehaviour
         else if (displayHP > 0f) { overallStatus = "Terminal Damage"; statusColor = "<color=red>"; }
         else { overallStatus = "Deceased"; statusColor = "<color=black>"; }
 
-        headerText.AppendLine($"{statusColor}{overallStatus}</color>");
+        headerText.AppendLine($"{statusColor}{GameLocalization.TranslateLiteral(overallStatus)}</color>");
 
-        if (localPlayerHealth.isInPain) headerText.AppendLine("<color=#cccccc>Minor Pain</color>");
+        if (localPlayerHealth.isInPain) headerText.AppendLine($"<color=#cccccc>{GameLocalization.TranslateLiteral("Minor Pain")}</color>");
 
         fixedHeaderText.text = headerText.ToString();
     }
@@ -749,7 +804,7 @@ public class AutoHealthPanel : MonoBehaviour
 
         if (part.IsBandaged)
         {
-            CreateContextMenuButton("Remove Bandage", () => StartCoroutine(HealActionRoutine(part, "Remove")), ctxContent);
+            CreateContextMenuButton(GameLocalization.TranslateLiteral("Remove Bandage"), () => StartCoroutine(HealActionRoutine(part, "Remove")), ctxContent);
         }
         else if (part.Injuries.Count > 0)
         {
@@ -775,11 +830,11 @@ public class AutoHealthPanel : MonoBehaviour
 
             if (hasBandage)
             {
-                CreateContextMenuButton("Apply Bandage", () => StartCoroutine(HealActionRoutine(part, "Apply", bandageData)), ctxContent);
+                CreateContextMenuButton(GameLocalization.TranslateLiteral("Apply Bandage"), () => StartCoroutine(HealActionRoutine(part, "Apply", bandageData)), ctxContent);
             }
             else
             {
-                CreateContextMenuButton("<color=gray>No Bandages</color>", null, ctxContent);
+                CreateContextMenuButton($"<color=gray>{GameLocalization.TranslateLiteral("No Bandages")}</color>", null, ctxContent);
             }
         }
     }
@@ -847,7 +902,8 @@ public class AutoHealthPanel : MonoBehaviour
         }
 
         // 👇 THÊM ĐOẠN NÀY: Xác định chữ sẽ hiển thị dựa vào hành động
-        string actionText = (actionType == "Apply") ? "Applying Bandage..." : "Removing Bandage...";
+        string actionText = GameLocalization.TranslateLiteral(
+            actionType == "Apply" ? "Applying Bandage..." : "Removing Bandage...");
 
         if (AutoUIManager.Instance != null)
         {

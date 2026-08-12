@@ -216,8 +216,9 @@ public class HotbarHUDManager : MonoBehaviour
 
         if (isTyping || isMenuOpen) return;
 
-        // Phím số 1 đến 5
-        for (int i = 0; i < hotbarSize; i++)
+        // Ctrl+1..4 is reserved for multiplayer vehicle seat switching.
+        bool controlHeld = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
+        for (int i = 0; i < hotbarSize && !controlHeld; i++)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i)) selectedSlotIndex = i;
         }
@@ -322,7 +323,7 @@ public class HotbarHUDManager : MonoBehaviour
                     var slot = localInventory.slots[selectedSlotIndex];
                     if (slot != null && slot.item != null && slot.amount > 0)
                     {
-                        itemNameText.text = slot.item.itemName;
+                        itemNameText.text = GameLocalization.TranslateLiteral(slot.item.itemName);
                         itemNameText.gameObject.SetActive(true);
                     }
                     else

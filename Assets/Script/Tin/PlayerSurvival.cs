@@ -106,20 +106,20 @@ public class PlayerSurvival : NetworkBehaviour
         DayNightManager manager = DayNightManager.Instance;
         if (manager == null)
         {
-            RPC_ShowSleepMessage("Không tìm thấy hệ thống ngày và đêm.");
+            RPC_ShowSleepMessage("sleep.no_system");
             return;
         }
 
         if (!manager.CanUseBedNow())
         {
-            RPC_ShowSleepMessage("Chỉ có thể ngủ từ 20:00 đến 03:00.");
+            RPC_ShowSleepMessage("sleep.invalid_hours");
             return;
         }
 
         if (!SleepInteractable.TryGetBed(bedId, out SleepInteractable bed) ||
             bed.DistanceTo(transform.position) > bed.interactionDistance + 0.4f)
         {
-            RPC_ShowSleepMessage("Bạn đang đứng quá xa giường.");
+            RPC_ShowSleepMessage("sleep.too_far");
             return;
         }
 
@@ -129,7 +129,7 @@ public class PlayerSurvival : NetworkBehaviour
             if (players[i] == null || players[i] == this) continue;
             if (players[i].IsWaitingForSleep && players[i].SleepBedId == bedId)
             {
-                RPC_ShowSleepMessage("Giường này đã có người sử dụng.");
+                RPC_ShowSleepMessage("sleep.bed_used");
                 return;
             }
         }
@@ -139,14 +139,14 @@ public class PlayerSurvival : NetworkBehaviour
         PlayerInteraction interaction = GetComponent<PlayerInteraction>();
         if (interaction != null && interaction.IsInVehicle)
         {
-            RPC_ShowSleepMessage("Hãy xuống xe trước khi sử dụng giường.");
+            RPC_ShowSleepMessage("sleep.leave_vehicle");
             return;
         }
 
         IsWaitingForSleep = true;
         SleepBedId = bedId;
         SleepRequestedAtHour = manager.CurrentTime;
-        RPC_ShowSleepMessage("Đã nằm xuống. Đang đợi những người chơi khác...");
+        RPC_ShowSleepMessage("sleep.wait_started");
     }
 
     private void ServerCancelSleep()
@@ -156,7 +156,7 @@ public class PlayerSurvival : NetworkBehaviour
 
         IsWaitingForSleep = false;
         SleepBedId = 0;
-        RPC_ShowSleepMessage("Bạn đã rời khỏi giường.");
+        RPC_ShowSleepMessage("sleep.left");
     }
 
     public void ServerFinishSleep()
@@ -175,9 +175,9 @@ public class PlayerSurvival : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-    public void RPC_ShowSleepMessage(string message)
+    public void RPC_ShowSleepMessage(string messageKey)
     {
-        sleepStatusMessage = message;
+        sleepStatusMessage = GameLocalization.Get(messageKey, messageKey);
         sleepStatusMessageUntil = Time.unscaledTime + 3.5f;
     }
 
@@ -427,8 +427,8 @@ public class PlayerSurvival : NetworkBehaviour
                 int total = 0;
                 if (manager != null) manager.GetSleepCounts(out sleeping, out total);
                 GUI.Label(new Rect(0f, Screen.height * 0.42f, Screen.width, 48f),
-                    $"ĐANG ĐỢI NGƯỜI CHƠI KHÁC  ({sleeping}/{total})", titleStyle);
-                if (GUI.Button(new Rect(Screen.width * 0.5f - 90f, Screen.height * 0.54f, 180f, 44f), "RỜI KHỎI GIƯỜNG"))
+                    string.Format(GameLocalization.Get("sleep.wait_count"), sleeping, total), titleStyle);
+                if (GUI.Button(new Rect(Screen.width * 0.5f - 90f, Screen.height * 0.54f, 180f, 44f), GameLocalization.TranslateLiteral("LEAVE BED")))
                     CancelWaitingForSleep();
             }
             else if (alpha > 0.08f)
@@ -436,12 +436,12 @@ public class PlayerSurvival : NetworkBehaviour
                 if (manager.ShouldShowFastForwardClock())
                 {
                     DrawFastForwardClock(manager.CurrentTime);
-                    GUI.Label(new Rect(0f, Screen.height * 0.65f, Screen.width, 48f), "ĐANG NGỦ...", titleStyle);
+                    GUI.Label(new Rect(0f, Screen.height * 0.65f, Screen.width, 48f), GameLocalization.TranslateLiteral("SLEEPING..."), titleStyle);
                 }
                 else
                 {
                     GUI.Label(new Rect(0f, Screen.height * 0.46f, Screen.width, 48f),
-                        "BẠN ĐÃ KIỆT SỨC...", titleStyle);
+                        GameLocalization.Get("sleep.exhausted"), titleStyle);
                 }
             }
 
