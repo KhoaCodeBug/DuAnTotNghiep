@@ -712,7 +712,7 @@ CircleCollider2D:
   m_CompositeOperation: 0
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
-  m_Radius: 0.08
+  m_Radius: 0.06
 --- !u!114 &6414714532000791797
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -793,7 +793,17 @@ MonoBehaviour:
     m_Bits: 8
   walkNoiseRadius: 1
   runNoiseRadius: 2
+  thaiZombieWalkNoiseRadius: 2
+  thaiZombieWalkResponderLimit: 1
+  thaiZombieRunResponderLimit: 3
+  thaiZombieLoudResponderLimit: 5
+  thaiZombieWalkNoiseUrgency: 0.35
+  thaiZombieRunNoiseUrgency: 0.85
+  thaiZombieLoudNoiseUrgency: 1
   anim: {fileID: 362121797192676483}
+  footstepAudioSource: {fileID: 1498809934397654418}
+  walkSFX: {fileID: 8300000, guid: 77444b185fd16b846916bc5ced9a7455, type: 3}
+  runSFX: {fileID: 8300000, guid: 8bf2b8b2b4297124fb91362e5d8daadd, type: 3}
   isParanoiaZombie: 0
   _NetMoveInput: {x: 0, y: 0}
   _NetLastLookDir: {x: 0, y: 0}
@@ -807,6 +817,7 @@ MonoBehaviour:
     _value: 0
   _NetIsUsingItem:
     _value: 0
+  _NetCameraZoom: 0
   _NetStunTimer: 0
   _NetAttackLockTimer: 0
 --- !u!114 &4607367790620067967
@@ -824,15 +835,12 @@ MonoBehaviour:
   muzzleAnimator: {fileID: 4563747685043692148}
   muzzleFlashRenderer: {fileID: 7426856373905042478}
   muzzleFlashDuration: 0.1
-  gunDamage: 20
-  fireRate: 0.1
-  weaponRange: 15
   enemyLayer:
     serializedVersion: 2
     m_Bits: 520
-  shootNoiseRadius: 5
-  ammoType: {fileID: 11400000, guid: a7620000000000000000000000007620, type: 2}
-  magazineSize: 30
+  weaponAudioSource: {fileID: 0}
+  swingSFX: {fileID: 0}
+  hitFleshSFX: {fileID: 0}
   _currentAmmo: 30
   bashDamage: 50
   bashRange: 1
@@ -864,6 +872,7 @@ MonoBehaviour:
   _HasEnergyBuff:
     _value: 0
   _CurrentSpeedMultiplier: 0
+  heavyBreathingSFX: {fileID: 0}
 --- !u!114 &711266853615203227
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -891,7 +900,7 @@ MonoBehaviour:
   _infectionTimer: 600
   _isBitten:
     _value: 0
-  traitorBossPrefab:
+  zombieTurnPrefab:
     RawGuidValue: cbd4c523a4a6ca740b518d37b43be7b1
   _isTransforming:
     _value: 0
@@ -902,6 +911,13 @@ MonoBehaviour:
   paramSpeed: Speed
   _isDead:
     _value: 0
+  deathSFX: {fileID: 0}
+  hurtGruntSFXs:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
 --- !u!114 &6927009196520788567
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -935,6 +951,12 @@ MonoBehaviour:
   _currentThirst: 0
   thirstDrainRate: 0.5
   damageOverTime: 1
+  _IsWaitingForSleep:
+    _value: 0
+  _RestedThisNight:
+    _value: 0
+  _SleepBedId: 0
+  _SleepRequestedAtHour: 0
 --- !u!114 &3222159378441335876
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -952,6 +974,8 @@ MonoBehaviour:
   slots: []
   droppedItemPrefab: {fileID: 4808553861604040599, guid: dcd50cc0af7b9e9439fa8a85c2f495ac, type: 3}
   dropLifeTime: 30
+  equippedBackpack: {fileID: 0}
+  currentBackpackLevel: 0
 --- !u!114 &7209633798576921473
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -991,6 +1015,7 @@ MonoBehaviour:
   voiceIcon: {fileID: 3620109694547668066}
   _IsSpeaking:
     _value: 0
+  uiVoiceHearDistance: 12
 --- !u!114 &4843099494297100640
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1006,6 +1031,7 @@ MonoBehaviour:
   inventory: {fileID: 3222159378441335876}
   itemToPickup: {fileID: 11400000, guid: fae581eeb7321c5489edd85a61c3a320, type: 2}
   amount: 1
+  enableLegacyPickupHotkey: 0
 --- !u!114 &7524047742441646299
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1274,6 +1300,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   interactRange: 0.5
+  _CurrentVehicle: {fileID: 0}
 --- !u!1 &6651938154531201759
 GameObject:
   m_ObjectHideFlags: 0
