@@ -630,7 +630,7 @@ public class PlayerMovement : NetworkBehaviour
         {
             if (thaiCandidates[i].ai != null)
             {
-                thaiCandidates[i].ai.RPC_HearSoundWithUrgency(transform.position, urgency);
+                thaiCandidates[i].ai.RPC_HearSoundWithUrgency(transform.position, urgency, Object.InputAuthority);
             }
         }
 
