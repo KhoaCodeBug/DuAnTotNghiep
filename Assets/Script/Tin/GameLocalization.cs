@@ -37,6 +37,67 @@ public static class GameLocalization
         { "trade.choosing", new[] { "Choosing...", "Đang chọn..." } },
         { "trade.lock", new[] { "LOCK", "KHÓA LẠI" } },
         { "trade.unlock", new[] { "UNLOCK", "MỞ KHÓA" } },
+        { "chat.placeholder", new[] { "Press Enter to chat...", "Nhấn Enter để chat..." } },
+        { "trade.confirmed", new[] { "DEAL CONFIRMED!", "ĐÃ CHỐT KÈO!" } },
+        { "trade.locked", new[] { "LOCKED!", "ĐÃ KHÓA!" } },
+        { "trade.incoming", new[] { "INCOMING TRADE!\nAnother player wants to trade items with you.", "GIAO DỊCH ĐANG TỚI!\nMột người chơi khác muốn trao đổi đồ với bạn." } },
+        { "item.type", new[] { "Type", "Loại" } },
+        { "item.using", new[] { "Using", "Đang dùng" } },
+        { "lobby.you", new[] { "YOU", "BẠN" } },
+        { "lobby.survivor", new[] { "SURVIVOR {0}", "NGƯỜI SỐNG SÓT {0}" } },
+        { "lobby.connected", new[] { "CONNECTED", "ĐÃ KẾT NỐI" } },
+        { "lobby.wait_signal", new[] { "Waiting for signal...", "Đang chờ tín hiệu..." } },
+        { "lobby.client_wait", new[] { "Device connected. Waiting for Host's orders...", "Đã kết nối. Đang chờ Chủ phòng..." } },
+        { "lobby.host_report", new[] { "Outpost report: {0}/{1} personnel in sector.", "Báo cáo tiền đồn: {0}/{1} người trong khu vực." } },
+        { "settings.unsaved", new[] { "UNSAVED CHANGES\n\nDo you want to save changes before exiting?", "THAY ĐỔI CHƯA LƯU\n\nBạn có muốn lưu trước khi thoát không?" } },
+        { "lobby.host_wait", new[] { "You are the Host. Wait for your team and press START!", "Bạn là Chủ phòng. Hãy chờ đồng đội rồi nhấn BẮT ĐẦU!" } },
+        { "lobby.wait_start", new[] { "Waiting for the Host to START...", "Đang chờ Chủ phòng BẮT ĐẦU..." } },
+        { "server.waiting", new[] { "WAITING", "ĐANG CHỜ" } },
+        { "server.full", new[] { "FULL", "ĐẦY" } },
+        { "server.combat", new[] { "IN COMBAT", "ĐANG CHƠI" } },
+        { "server.locked", new[] { "LOCKED", "CÓ KHÓA" } },
+        { "server.open", new[] { "OPEN", "MỞ" } },
+        { "server.row", new[] { "{0} Base: {1} | Players: {2}/{3} | Status: {4}", "{0} Phòng: {1} | Người chơi: {2}/{3} | Trạng thái: {4}" } },
+        { "sleep.no_system", new[] { "Day/night system was not found.", "Không tìm thấy hệ thống ngày và đêm." } },
+        { "sleep.invalid_hours", new[] { "You can only sleep from 20:00 to 03:00.", "Chỉ có thể ngủ từ 20:00 đến 03:00." } },
+        { "sleep.too_far", new[] { "You are too far from the bed.", "Bạn đang đứng quá xa giường." } },
+        { "sleep.bed_used", new[] { "This bed is already occupied.", "Giường này đã có người sử dụng." } },
+        { "sleep.leave_vehicle", new[] { "Leave the vehicle before using a bed.", "Hãy xuống xe trước khi sử dụng giường." } },
+        { "sleep.wait_started", new[] { "Lying down. Waiting for other players...", "Đã nằm xuống. Đang đợi những người chơi khác..." } },
+        { "sleep.left", new[] { "You left the bed.", "Bạn đã rời khỏi giường." } },
+        { "sleep.wait_count", new[] { "WAITING FOR OTHER PLAYERS  ({0}/{1})", "ĐANG ĐỢI NGƯỜI CHƠI KHÁC  ({0}/{1})" } },
+        { "sleep.exhausted", new[] { "YOU ARE EXHAUSTED...", "BẠN ĐÃ KIỆT SỨC..." } },
+        { "quest.find_map", new[] { "OBJECTIVE: Find the city map in the office.", "NHIỆM VỤ: Tìm bản đồ thành phố trong văn phòng." } },
+        { "quest.reach_military", new[] { "OBJECTIVE: Reach the military zone marked on the map.", "NHIỆM VỤ: Đến khu quân sự được đánh dấu trên bản đồ." } },
+        { "menu.enter_base_name", new[] { "YOU MUST ENTER THE BASE NAME!", "BẠN PHẢI NHẬP TÊN PHÒNG!" } },
+        { "menu.connection_failed", new[] { "CONNECTION FAILED! {0}", "KẾT NỐI THẤT BẠI! {0}" } },
+        { "menu.connection_lost", new[] { "Lost connection to server: {0}", "Đã mất kết nối tới máy chủ: {0}" } },
+        { "menu.loading_escape_reality", new[] { "ESCAPING FROM REALITY...", "ĐANG THOÁT KHỎI HIỆN THỰC..." } },
+        { "menu.loading_wait_players", new[] { "No hope left. Waiting for other doomed souls...", "Hy vọng đã cạn. Đang chờ những linh hồn lạc lối khác..." } },
+        { "menu.loading_shelter", new[] { "FINDING A WAY BACK TO SHELTER...", "ĐANG TÌM ĐƯỜNG VỀ NƠI TRÚ ẨN..." } },
+        { "menu.loading_escape", new[] { "ESCAPING...{0}%", "ĐANG THOÁT...{0}%" } },
+        { "menu.death_loading", new[] { "<color=#990000>THIS IS HOW YOU DIED...</color>", "<color=#990000>ĐÂY LÀ CÁCH BẠN ĐÃ CHẾT...</color>" } },
+        { "difficulty.easy.title", new[] { "★ EASY MODE ★", "★ CHẾ ĐỘ DỄ ★" } },
+        { "difficulty.easy.stats", new[] {
+            "<color=#99FF99>ZOMBIE DENSITY:</color> Low (-50% Spawn Rate)\n<color=#99FF99>RESOURCES:</color> Abundant (Loot rate 150%)\n<color=#99FF99>DAMAGE TAKEN:</color> Reduced (-30% Damage)\n<color=#99FF99>STARTING GEAR:</color> Pistol + Ammo & Canned Food\n<color=#99FF99>SURVIVAL RATE:</color> Very High (90%)",
+            "<color=#99FF99>MẬT ĐỘ ZOMBIE:</color> Thấp (-50% tần suất xuất hiện)\n<color=#99FF99>TÀI NGUYÊN:</color> Dồi dào (tỉ lệ loot 150%)\n<color=#99FF99>SÁT THƯƠNG NHẬN:</color> Giảm (-30% sát thương)\n<color=#99FF99>TRANG BỊ ĐẦU:</color> Súng lục + đạn và đồ hộp\n<color=#99FF99>TỈ LỆ SINH TỒN:</color> Rất cao (90%)" } },
+        { "difficulty.easy.desc", new[] {
+            "<b>OVERVIEW:</b>\nZombie spawn count is reduced. Ideal for exploring, gathering resources, and learning basic survival mechanics without heavy pressure.",
+            "<b>TỔNG QUAN:</b>\nSố zombie xuất hiện được giảm. Phù hợp để khám phá, thu thập tài nguyên và làm quen cơ chế sinh tồn mà không chịu quá nhiều áp lực." } },
+        { "difficulty.normal.title", new[] { "✦ SURVIVAL MODE ✦", "✦ CHẾ ĐỘ SINH TỒN ✦" } },
+        { "difficulty.normal.stats", new[] {
+            "<color=#FFFF99>ZOMBIE DENSITY:</color> Standard (100% Spawn Rate)\n<color=#FFFF99>RESOURCES:</color> Balanced distribution\n<color=#FFFF99>DAMAGE TAKEN:</color> Normal (100% Damage)\n<color=#FFFF99>STARTING GEAR:</color> Flashlight & Bandage\n<color=#FFFF99>SURVIVAL RATE:</color> Balanced (50%)",
+            "<color=#FFFF99>MẬT ĐỘ ZOMBIE:</color> Tiêu chuẩn (100% tần suất)\n<color=#FFFF99>TÀI NGUYÊN:</color> Phân bố cân bằng\n<color=#FFFF99>SÁT THƯƠNG NHẬN:</color> Bình thường (100%)\n<color=#FFFF99>TRANG BỊ ĐẦU:</color> Đèn pin và băng gạc\n<color=#FFFF99>TỈ LỆ SINH TỒN:</color> Cân bằng (50%)" } },
+        { "difficulty.normal.desc", new[] {
+            "<b>OVERVIEW:</b>\nThe standard zombie survival experience. Spawn rates and cooldown values use their balanced defaults. Requires strategic thinking.",
+            "<b>TỔNG QUAN:</b>\nTrải nghiệm sinh tồn zombie tiêu chuẩn. Tần suất xuất hiện và thời gian hồi dùng các giá trị cân bằng mặc định. Người chơi cần suy nghĩ chiến thuật." } },
+        { "difficulty.hard.title", new[] { "☠ HARDCORE MODE ☠", "☠ CHẾ ĐỘ KHẮC NGHIỆT ☠" } },
+        { "difficulty.hard.stats", new[] {
+            "<color=#FF9999>ZOMBIE DENSITY:</color> Extreme (+150% Spawn Rate)\n<color=#FF9999>RESOURCES:</color> Scarce & Depleted (Loot rate 40%)\n<color=#FF9999>DAMAGE TAKEN:</color> Increased (+50% Damage)\n<color=#FF9999>STARTING GEAR:</color> None (Empty hands)\n<color=#FF9999>SURVIVAL RATE:</color> Near Zero (<10%)",
+            "<color=#FF9999>MẬT ĐỘ ZOMBIE:</color> Cực cao (+150% tần suất)\n<color=#FF9999>TÀI NGUYÊN:</color> Khan hiếm (tỉ lệ loot 40%)\n<color=#FF9999>SÁT THƯƠNG NHẬN:</color> Tăng (+50% sát thương)\n<color=#FF9999>TRANG BỊ ĐẦU:</color> Không có (tay không)\n<color=#FF9999>TỈ LỆ SINH TỒN:</color> Gần bằng không (<10%)" } },
+        { "difficulty.hard.desc", new[] {
+            "<b>OVERVIEW:</b>\nA relentless nightmare. Zombies are extremely numerous and spawn very quickly. Demands maximum skill and tactical planning.",
+            "<b>TỔNG QUAN:</b>\nMột cơn ác mộng không ngừng nghỉ. Zombie cực kỳ đông và xuất hiện rất nhanh. Đòi hỏi kỹ năng cao nhất cùng kế hoạch chiến thuật chặt chẽ." } },
     };
 
     private static readonly Dictionary<string, string[]> LiteralText = CreateLiteralTable();
@@ -57,10 +118,25 @@ public static class GameLocalization
             ? value.Substring(0, value.Length - dropdownSuffix.Length)
             : value;
 
+        // Serialized scene labels sometimes contain a trailing newline or
+        // layout spaces. Match the visible content while preserving those
+        // characters so localization does not disturb the UI layout.
+        int contentStart = 0;
+        while (contentStart < coreValue.Length && char.IsWhiteSpace(coreValue[contentStart])) contentStart++;
+        int contentEnd = coreValue.Length - 1;
+        while (contentEnd >= contentStart && char.IsWhiteSpace(coreValue[contentEnd])) contentEnd--;
+        string prefix = coreValue.Substring(0, contentStart);
+        string matchValue = contentEnd >= contentStart
+            ? coreValue.Substring(contentStart, contentEnd - contentStart + 1)
+            : coreValue;
+        string suffix = contentEnd + 1 < coreValue.Length
+            ? coreValue.Substring(contentEnd + 1)
+            : string.Empty;
+
         foreach (KeyValuePair<string, string[]> pair in LiteralText)
         {
-            if (coreValue == pair.Value[0] || coreValue == pair.Value[1])
-                return pair.Value[(int)Current] + (hasDropdownSuffix ? dropdownSuffix : string.Empty);
+            if (matchValue == pair.Value[0] || matchValue == pair.Value[1])
+                return prefix + pair.Value[(int)Current] + suffix + (hasDropdownSuffix ? dropdownSuffix : string.Empty);
         }
         return value;
     }
@@ -100,6 +176,7 @@ public static class GameLocalization
         return new Dictionary<string, string[]>
         {
             { "new_game", new[] { "NEW GAME", "CHƠI MỚI" } },
+            { "select_difficulty", new[] { "SELECT DIFFICULTY", "CHỌN ĐỘ KHÓ" } },
             { "tutorial", new[] { "TUTORIAL", "HƯỚNG DẪN" } },
             { "multiplayer", new[] { "MULTIPLAYER", "NHIỀU NGƯỜI CHƠI" } },
             { "options", new[] { "OPTIONS", "TÙY CHỌN" } },
@@ -109,6 +186,7 @@ public static class GameLocalization
             { "save", new[] { "SAVE", "LƯU" } },
             { "display", new[] { "DISPLAY", "HIỂN THỊ" } },
             { "controls", new[] { "CONTROLS", "ĐIỀU KHIỂN" } },
+            { "general", new[] { "GENERAL", "CHUNG" } },
             { "audio", new[] { "AUDIO", "ÂM THANH" } },
             { "resolution", new[] { "RESOLUTION:", "ĐỘ PHÂN GIẢI:" } },
             { "display_mode", new[] { "DISPLAY MODE:", "CHẾ ĐỘ MÀN HÌNH:" } },
@@ -147,6 +225,133 @@ public static class GameLocalization
             { "borderless", new[] { "BORDERLESS", "KHÔNG VIỀN" } },
             { "windowed", new[] { "WINDOWED", "CỬA SỔ" } },
             { "unlimited", new[] { "UNLIMITED", "KHÔNG GIỚI HẠN" } },
+            { "solo", new[] { "SOLO", "CHƠI ĐƠN" } },
+            { "easy", new[] { "EASY", "DỄ" } },
+            { "normal", new[] { "NORMAL", "THƯỜNG" } },
+            { "hard", new[] { "HARD", "KHÓ" } },
+            { "hardcore", new[] { "HARDCORE", "SINH TỒN" } },
+            { "host_game", new[] { "HOST GAME", "TẠO PHÒNG" } },
+            { "join_game", new[] { "JOIN GAME", "VÀO PHÒNG" } },
+            { "host_settings", new[] { "HOST SETTINGS", "CÀI ĐẶT PHÒNG" } },
+            { "room_name", new[] { "ROOM NAME:", "TÊN PHÒNG:" } },
+            { "max_players", new[] { "MAX PLAYERS:", "SỐ NGƯỜI TỐI ĐA:" } },
+            { "difficulty", new[] { "DIFFICULTY:", "ĐỘ KHÓ:" } },
+            { "password", new[] { "PASSWORD:", "MẬT KHẨU:" } },
+            { "select_survivor", new[] { "SELECT SURVIVOR", "CHỌN NHÂN VẬT" } },
+            { "server_list", new[] { "SERVER LIST", "DANH SÁCH PHÒNG" } },
+            { "enter_password", new[] { "ENTER PASSWORD", "NHẬP MẬT KHẨU" } },
+            { "close", new[] { "CLOSE", "ĐÓNG" } },
+            { "confirm", new[] { "CONFIRM", "XÁC NHẬN" } },
+            { "refresh_list", new[] { "REFRESH LIST", "LÀM MỚI DANH SÁCH" } },
+            { "survivor_identity", new[] { "SURVIVOR IDENTITY", "HỒ SƠ NHÂN VẬT" } },
+            { "enter_dead_zone", new[] { "ENTER THE DEAD ZONE", "TIẾN VÀO VÙNG CHẾT" } },
+            { "start_campaign", new[] { "START CAMPAIGN", "BẮT ĐẦU CHIẾN DỊCH" } },
+            { "waiting_room", new[] { "WAITING ROOM", "PHÒNG CHỜ" } },
+            { "room", new[] { "ROOM:", "PHÒNG:" } },
+            { "players", new[] { "PLAYERS", "NGƯỜI CHƠI" } },
+            { "ready", new[] { "READY", "SẴN SÀNG" } },
+            { "not_ready", new[] { "NOT READY", "CHƯA SẴN SÀNG" } },
+            { "connecting", new[] { "CONNECTING...", "ĐANG KẾT NỐI..." } },
+            { "entering", new[] { "ENTERING THE DEAD ZONE...", "ĐANG TIẾN VÀO VÙNG CHẾT..." } },
+            { "room_placeholder", new[] { "E.g. Refugee Camp...", "VD: Trại tị nạn..." } },
+            { "password_placeholder", new[] { "Enter password...", "Nhập mật khẩu..." } },
+            { "hard_only", new[] { "HARD ONLY", "CHỈ BÓNG CỨNG" } },
+            { "all_shadows", new[] { "ALL SHADOWS", "TẤT CẢ BÓNG" } },
+            { "top_right", new[] { "TOP RIGHT", "TRÊN PHẢI" } },
+            { "top_left", new[] { "TOP LEFT", "TRÊN TRÁI" } },
+            { "bottom_right", new[] { "BOTTOM RIGHT", "DƯỚI PHẢI" } },
+            { "bottom_left", new[] { "BOTTOM LEFT", "DƯỚI TRÁI" } },
+            { "top_center", new[] { "TOP CENTER", "TRÊN GIỮA" } },
+            { "bottom_center", new[] { "BOTTOM CENTER", "DƯỚI GIỮA" } },
+            { "anti_aliasing", new[] { "ANTI-ALIASING:", "KHỬ RĂNG CƯA:" } },
+            { "credits_team", new[] { "SURVIVAL TEAM", "ĐỘI NGŨ PHÁT TRIỂN" } },
+            { "english_option", new[] { "ENGLISH", "TIẾNG ANH" } },
+            { "vietnamese_option", new[] { "VIETNAMESE", "TIẾNG VIỆT" } },
+            { "drop", new[] { "Drop", "Vứt" } },
+            { "use", new[] { "Use", "Dùng" } },
+            { "bandage", new[] { "Bandage", "Băng gạc" } },
+            { "painkiller", new[] { "PainKiller", "Thuốc giảm đau" } },
+            { "water", new[] { "Water", "Nước" } },
+            { "energy_water", new[] { "EnergyWater", "Nước tăng lực" } },
+            { "meat", new[] { "Meat", "Thịt" } },
+            { "ammo_762", new[] { "7.62mm Ammo", "Đạn 7.62mm" } },
+            { "ammo_12g", new[] { "12 Gauge Ammo", "Đạn 12 Gauge" } },
+            { "ammunition", new[] { "Ammunition", "Đạn dược" } },
+            { "medical", new[] { "Medical", "Y tế" } },
+            { "consumable", new[] { "Consumable", "Nhu yếu phẩm" } },
+            { "weapon", new[] { "Weapon", "Vũ khí" } },
+            { "backpack", new[] { "Backpack", "Ba lô" } },
+            { "moderate_exertion", new[] { "Moderate Exertion", "Hơi mệt" } },
+            { "high_exertion", new[] { "High Exertion", "Khá mệt" } },
+            { "excessive_exertion", new[] { "Excessive Exertion", "Rất mệt" } },
+            { "exhausted", new[] { "Exhausted", "Kiệt sức" } },
+            { "leave_bed", new[] { "LEAVE BED", "RỜI KHỎI GIƯỜNG" } },
+            { "sleeping", new[] { "SLEEPING...", "ĐANG NGỦ..." } },
+            { "sleep_prompt", new[] { "PRESS [E] TO SLEEP", "NHẤN [E] ĐỂ NGỦ" } },
+            { "sleep_hours", new[] { "YOU CAN ONLY SLEEP FROM 20:00 TO 03:00", "CHỈ CÓ THỂ NGỦ TỪ 20:00 ĐẾN 03:00" } },
+            { "quest_search", new[] { "PRESS [E] TO SEARCH CABINET", "NHẤN [E] ĐỂ KIỂM TRA TỦ" } },
+            { "survivor_identity_label", new[] { "SURVIVOR IDENTITY:", "ĐỊNH DANH KẺ SỐNG SÓT:" } },
+            { "accept", new[] { "ACCEPT", "ĐỒNG Ý" } },
+            { "decline", new[] { "DECLINE", "TỪ CHỐI" } },
+            { "item", new[] { "Item", "Vật phẩm" } },
+            { "campaign_lobby", new[] { "CAMPAIGN LOBBY", "SẢNH CHIẾN DỊCH" } },
+            { "you", new[] { "YOU", "BẠN" } },
+            { "connected", new[] { "CONNECTED", "ĐÃ KẾT NỐI" } },
+            { "dont_save", new[] { "DON'T SAVE", "KHÔNG LƯU" } },
+            { "cancel", new[] { "CANCEL", "HỦY" } },
+            { "scan_radio", new[] { "SCANNING RADIO FREQUENCIES...", "ĐANG QUÉT TẦN SỐ RADIO..." } },
+            { "static_noise", new[] { "ONLY STATIC NOISE REMAINS...", "CHỈ CÒN LẠI TIẾNG NHIỄU..." } },
+            { "base_full", new[] { "BASE IS FULL! CANNOT JOIN.", "PHÒNG ĐÃ ĐẦY! KHÔNG THỂ THAM GIA." } },
+            { "wrong_password", new[] { "WRONG PASSWORD!", "SAI MẬT KHẨU!" } },
+            { "enter_name", new[] { "Enter name...", "Nhập tên..." } },
+            { "health_help", new[] { "Right click on injuries: Apply/Remove Bandage | Scroll: View details", "Nhấp chuột phải vào vết thương: Băng/Tháo băng | Cuộn: Xem chi tiết" } },
+            { "overall_body_status", new[] { "Overall Body Status", "Tình trạng cơ thể" } },
+            { "minor_pain", new[] { "Minor Pain", "Đau nhẹ" } },
+            { "slight_damage", new[] { "Slight Damage", "Tổn thương rất nhẹ" } },
+            { "minor_damage", new[] { "Minor Damage", "Tổn thương nhẹ" } },
+            { "moderate_damage", new[] { "Moderate Damage", "Tổn thương vừa" } },
+            { "severe_damage", new[] { "Severe Damage", "Tổn thương nặng" } },
+            { "very_severe_damage", new[] { "Very Severe Damage", "Tổn thương rất nặng" } },
+            { "critical_damage", new[] { "Critical Damage", "Tổn thương nguy kịch" } },
+            { "highly_critical_damage", new[] { "Highly Critical Damage", "Tổn thương cực kỳ nguy kịch" } },
+            { "terminal_damage", new[] { "Terminal Damage", "Tổn thương chí mạng" } },
+            { "deceased", new[] { "Deceased", "Đã tử vong" } },
+            { "bandaged", new[] { "Bandaged", "Đã băng bó" } },
+            { "bitten", new[] { "Bitten", "Bị cắn" } },
+            { "bleeding", new[] { "Bleeding", "Đang chảy máu" } },
+            { "scratched", new[] { "Scratched", "Bị trầy xước" } },
+            { "laceration", new[] { "Laceration", "Vết rách" } },
+            { "remove_bandage", new[] { "Remove Bandage", "Tháo băng" } },
+            { "apply_bandage", new[] { "Apply Bandage", "Băng bó" } },
+            { "no_bandages", new[] { "No Bandages", "Không có băng gạc" } },
+            { "applying_bandage", new[] { "Applying Bandage...", "Đang băng bó..." } },
+            { "removing_bandage", new[] { "Removing Bandage...", "Đang tháo băng..." } },
+            { "head", new[] { "Head", "Đầu" } },
+            { "neck", new[] { "Neck", "Cổ" } },
+            { "upper_torso", new[] { "Upper Torso", "Thân trên" } },
+            { "lower_torso", new[] { "Lower Torso", "Thân dưới" } },
+            { "left_thigh", new[] { "Left Thigh", "Đùi trái" } },
+            { "left_calf", new[] { "Left Calf", "Bắp chân trái" } },
+            { "left_foot", new[] { "Left Foot", "Bàn chân trái" } },
+            { "right_thigh", new[] { "Right Thigh", "Đùi phải" } },
+            { "right_calf", new[] { "Right Calf", "Bắp chân phải" } },
+            { "right_foot", new[] { "Right Foot", "Bàn chân phải" } },
+            { "left_upper_arm", new[] { "Left Upper Arm", "Bắp tay trái" } },
+            { "left_forearm", new[] { "Left Forearm", "Cẳng tay trái" } },
+            { "left_hand", new[] { "Left Hand", "Bàn tay trái" } },
+            { "right_upper_arm", new[] { "Right Upper Arm", "Bắp tay phải" } },
+            { "right_forearm", new[] { "Right Forearm", "Cẳng tay phải" } },
+            { "right_hand", new[] { "Right Hand", "Bàn tay phải" } },
+            { "bash", new[] { "Bash", "Đập" } },
+            { "game_over", new[] { "GAME OVER", "TRÒ CHƠI KẾT THÚC" } },
+            { "kill_count", new[] { "KILL COUNT:", "SỐ KẺ ĐỊCH ĐÃ HẠ:" } },
+            { "prison", new[] { "Prison", "Nhà tù" } },
+            { "survival_fragments", new[] { "FRAGMENTS OF SURVIVAL", "NHỮNG MẢNH VỠ SINH TỒN" } },
+            { "your_offer", new[] { "YOUR OFFER", "ĐỒ CỦA BẠN" } },
+            { "pick_item", new[] { "PICK ITEM", "CHỌN ĐỒ" } },
+            { "partner_offer", new[] { "PARTNER'S OFFER", "ĐỒ ĐỐI TÁC" } },
+            { "confirm_trade", new[] { "CONFIRM TRADE", "XÁC NHẬN TRADE" } },
+            { "cancel_trade", new[] { "CANCEL", "HỦY BỎ" } },
         };
     }
 }
@@ -155,7 +360,7 @@ public sealed class RuntimeLocalizationDriver : MonoBehaviour
 {
     private float nextRefresh;
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
     {
         if (FindFirstObjectByType<RuntimeLocalizationDriver>() != null) return;
@@ -166,6 +371,8 @@ public sealed class RuntimeLocalizationDriver : MonoBehaviour
 
     private void OnEnable() => GameLocalization.LanguageChanged += RefreshAll;
     private void OnDisable() => GameLocalization.LanguageChanged -= RefreshAll;
+
+    private void Awake() => RefreshAll();
 
     private void Update()
     {

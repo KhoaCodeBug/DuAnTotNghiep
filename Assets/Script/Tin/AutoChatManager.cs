@@ -197,7 +197,7 @@ public class AutoChatManager : MonoBehaviour
         phText.font         = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         phText.fontSize     = 13;
         phText.color        = new Color(0.75f, 0.75f, 0.75f, 0.6f);
-        phText.text         = "Nhấn Enter để chat...";
+        phText.text         = GameLocalization.Get("chat.placeholder");
         phText.fontStyle    = FontStyle.Italic;
         phText.raycastTarget = false;
         chatInput.placeholder = phText;

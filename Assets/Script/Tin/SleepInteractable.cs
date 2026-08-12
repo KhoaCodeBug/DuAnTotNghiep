@@ -61,8 +61,8 @@ public sealed class SleepInteractable : MonoBehaviour
         if (survival == null || survival.IsSleepInputLocked) return;
 
         string text = DayNightManager.Instance != null && !DayNightManager.Instance.CanUseBedNow()
-            ? "CHỈ CÓ THỂ NGỦ TỪ 20:00 ĐẾN 03:00"
-            : prompt;
+            ? GameLocalization.TranslateLiteral("YOU CAN ONLY SLEEP FROM 20:00 TO 03:00")
+            : GameLocalization.TranslateLiteral("PRESS [E] TO SLEEP");
 
         GUIStyle style = new GUIStyle(GUI.skin.box)
         {
@@ -70,7 +70,9 @@ public sealed class SleepInteractable : MonoBehaviour
             fontSize = 16,
             fontStyle = FontStyle.Bold
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 180f, Screen.height - 105f, 360f, 42f), text, style);
+        // Keep the bed hint below the top HUD/FPS area. At the bottom it was
+        // obscured by hotbar/minimap and was easy to miss.
+        GUI.Box(new Rect(Screen.width * 0.5f - 220f, 62f, 440f, 44f), text, style);
     }
 
     private bool IsClosestUsableBed(Transform player)

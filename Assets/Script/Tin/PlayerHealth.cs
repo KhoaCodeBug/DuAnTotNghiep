@@ -442,6 +442,7 @@ public class PlayerHealth : NetworkBehaviour
             bodyStateAudioSource = gameObject.AddComponent<AudioSource>();
             bodyStateAudioSource.playOnAwake = false;
             bodyStateAudioSource.loop = false;
+            GameplayAudioSpatializer.Configure(bodyStateAudioSource, GameplayAudioSpatializer.Profile.Body);
         }
     }
 
@@ -494,7 +495,7 @@ public class PlayerHealth : NetworkBehaviour
             AudioSource aSrc = soundObj.AddComponent<AudioSource>();
             aSrc.clip = deathSFX;
             aSrc.volume = sfxVol;
-            aSrc.spatialBlend = 0f;
+            GameplayAudioSpatializer.Configure(aSrc, GameplayAudioSpatializer.Profile.Body);
             aSrc.playOnAwake = false;
             aSrc.Play();
             Destroy(soundObj, deathSFX.length + 0.2f);
@@ -527,11 +528,17 @@ public class PlayerHealth : NetworkBehaviour
         if (anim != null) anim.SetBool("IsDead", true);
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
-        if (rb != null) rb.linearVelocity = Vector2.zero;
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            rb.constraints = RigidbodyConstraints2D.FreezeAll;
+        }
         if (movementScript != null) movementScript.enabled = false;
 
-        Collider2D coll = GetComponent<Collider2D>();
-        if (coll != null) coll.enabled = false;
+        foreach (Collider2D coll in GetComponentsInChildren<Collider2D>(true))
+            coll.enabled = false;
 
         StopAllCoroutines();
         if (spriteRend != null) spriteRend.color = originalColor;

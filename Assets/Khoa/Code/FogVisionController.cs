@@ -219,20 +219,27 @@ public class FogVisionController : MonoBehaviour
         if (targetVision == null) targetVision = cameraTarget.GetComponentInChildren<PlayerVision>();
         targetMovement = cameraTarget.GetComponentInParent<PlayerMovement>();
         if (targetMovement == null) targetMovement = cameraTarget.GetComponentInChildren<PlayerMovement>();
+
+        // While riding, the camera follows the vehicle. Keep the local
+        // player's vision service as the fog source, but let that service
+        // publish the vehicle's origin/direction/radius instead of the body.
+        if (targetVision == null && cameraTarget.GetComponentInParent<VehicleControllerFusion>() != null &&
+            PlayerMovement.LocalPlayerInstance != null)
+        {
+            targetMovement = PlayerMovement.LocalPlayerInstance;
+            targetVision = targetMovement.GetComponent<PlayerVision>();
+        }
     }
 
     private void UpdateMaterial()
     {
-        Vector3 playerPosition = targetVision.transform.position;
+        Vector3 playerPosition = targetVision.VisionWorldPosition;
         float fogPlaneDistance = Mathf.Abs(playerPosition.z - worldCamera.transform.position.z);
         Vector3 fogWorldBottomLeft = worldCamera.ViewportToWorldPoint(new Vector3(0f, 0f, fogPlaneDistance));
         Vector3 fogWorldRight = worldCamera.ViewportToWorldPoint(new Vector3(1f, 0f, fogPlaneDistance)) - fogWorldBottomLeft;
         Vector3 fogWorldUp = worldCamera.ViewportToWorldPoint(new Vector3(0f, 1f, fogPlaneDistance)) - fogWorldBottomLeft;
 
-        Vector2 lookDirection = targetMovement.NetLastLookDir;
-        if (lookDirection.sqrMagnitude < 0.0001f)
-            lookDirection = targetVision.transform.up;
-        lookDirection.Normalize();
+        Vector2 lookDirection = targetVision.VisionWorldDirection;
 
         bool isTutorialReveal = tutorialRevealTarget != null;
         Vector3 visionCenter = isTutorialReveal ? tutorialRevealTarget.position : playerPosition;

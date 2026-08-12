@@ -74,7 +74,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
             fontStyle = FontStyle.Bold
         };
         GUI.Box(new Rect(Screen.width * 0.5f - 185f, Screen.height - 105f, 370f, 42f),
-            "NHẤN [E] ĐỂ KIỂM TRA TỦ", promptStyle);
+            GameLocalization.TranslateLiteral("PRESS [E] TO SEARCH CABINET"), promptStyle);
     }
 
     private bool IsClosestCabinetForLocalPlayer(out PlayerMovement localPlayer)

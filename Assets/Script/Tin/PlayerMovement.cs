@@ -158,11 +158,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (footstepAudioSource != null)
         {
-            footstepAudioSource.spatialBlend = 1f; // 3D Spatial Sound
-            footstepAudioSource.minDistance = 10f; // Khớp khoảng cách Camera Z = -10 để giữ 100% âm lượng bản thân
-            footstepAudioSource.maxDistance = 25f;
-            footstepAudioSource.rolloffMode = AudioRolloffMode.Logarithmic;
-            footstepAudioSource.playOnAwake = false;
+            GameplayAudioSpatializer.Configure(footstepAudioSource, GameplayAudioSpatializer.Profile.Footstep);
         }
 
 #if UNITY_EDITOR
@@ -496,9 +492,13 @@ public class PlayerMovement : NetworkBehaviour
     /// </summary>
     public void OnMeleeSwing()
     {
+        // Animation events also run on predicted/local proxy animators. Only
+        // State Authority may fan this sound out, otherwise Fusion rejects the
+        // RPC and Host/Client can each emit a duplicate swing.
+        if (!HasStateAuthority) return;
         if (TryGetComponent(out PlayerCombat combat))
         {
-            combat.OnMeleeSwing();
+            combat.BroadcastMeleeSwingSFX();
         }
     }
 
@@ -512,8 +512,6 @@ public class PlayerMovement : NetworkBehaviour
     private void PlaySpecificFootstep(AudioClip clip, float baseVol)
     {
         // 🔥 CHỈ PHÁT ÂM THANH CHO PLAYER BẢN THÂN (Tránh máy khách/proxy phát đúp 2 lần)
-        if (!HasInputAuthority) return;
-
         if (footstepAudioSource == null) footstepAudioSource = GetComponent<AudioSource>();
         if (footstepAudioSource == null) return;
 

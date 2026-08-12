@@ -15,6 +15,12 @@ public class CharacterSelectionMenu : MonoBehaviour
         "<color=#55ffff>KỸ NĂNG: BÓNG ĐÊM TĨNH LẶNG</color>\nSinh ra để lẩn khuất. Khi hạ thấp trọng tâm , nhịp tim và hơi thở đồng bộ với môi trường xung quanh. Đánh lừa hoàn toàn giác quan của lũ thây ma trong 5 giây.\n<color=#aaaaaa>[Thời gian hồi phục: 30s]</color>"
     };
 
+    private readonly string[] englishCharacterNames = { "Survivor: Nameless", "Survivor: Ghost" };
+    private readonly string[] englishCharacterStats = {
+        "<color=#ff5555>SKILL: LAST STAND FRENZY</color>\nExtreme survival instinct. After killing 5 mutants, adrenaline removes recoil and ammunition consumption for 10 seconds.\n<color=#aaaaaa>[Cooldown: 50s]</color>",
+        "<color=#55ffff>SKILL: SILENT NIGHT</color>\nBorn to disappear. While crouching, heartbeat and breathing blend into the environment, hiding you from zombies for 5 seconds.\n<color=#aaaaaa>[Cooldown: 30s]</color>"
+    };
+
     public static int LocalSelectedCharacterID = 0;
     public static string FinalSelectedName = "";
 
@@ -111,7 +117,7 @@ public class CharacterSelectionMenu : MonoBehaviour
         GUIStyle inputStyle = new GUIStyle(GUI.skin.textField) { fontSize = 26, alignment = TextAnchor.MiddleCenter };
 
         // TIÊU ĐỀ
-        GUI.Label(new Rect(0, 40, 1920, 80), "FRAGMENTS OF SURVIVAL", gameTitleStyle);
+        GUI.Label(new Rect(0, 40, 1920, 80), GameLocalization.TranslateLiteral("FRAGMENTS OF SURVIVAL"), gameTitleStyle);
 
         // KHUNG CHÍNH (Đã được thu gọn)
         GUI.Box(new Rect(startX, startY, boxWidth, boxHeight), "", boxStyle);
@@ -121,7 +127,7 @@ public class CharacterSelectionMenu : MonoBehaviour
         // ==========================================
         // KHU VỰC 1: TÊN NHÂN VẬT
         // ==========================================
-        GUI.Label(new Rect(startX, startY + 0, boxWidth, 60), characterNames[previewID], nameStyle);
+        GUI.Label(new Rect(startX, startY + 0, boxWidth, 60), GameLocalization.IsVietnamese ? characterNames[previewID] : englishCharacterNames[previewID], nameStyle);
 
 
         // ==========================================
@@ -152,7 +158,7 @@ public class CharacterSelectionMenu : MonoBehaviour
         // ==========================================
         // KHU VỰC 3: CHỈ SỐ KỸ NĂNG (Kéo xích lên sát hình)
         // ==========================================
-        GUI.Label(new Rect(startX + 50, startY + 380, boxWidth - 100, 150), characterStats[previewID], statsStyle);
+        GUI.Label(new Rect(startX + 50, startY + 380, boxWidth - 100, 150), GameLocalization.IsVietnamese ? characterStats[previewID] : englishCharacterStats[previewID], statsStyle);
 
 
         // ==========================================
@@ -161,13 +167,13 @@ public class CharacterSelectionMenu : MonoBehaviour
         float inputWidth = 350;
         float inputX = startX + (boxWidth - inputWidth) / 2f;
 
-        GUI.Label(new Rect(startX + 50, startY + 540, boxWidth - 100, 30), "ĐỊNH DANH KẺ SỐNG SÓT:", new GUIStyle(statsStyle) { fontSize = 18 });
+        GUI.Label(new Rect(startX + 50, startY + 540, boxWidth - 100, 30), GameLocalization.TranslateLiteral("SURVIVOR IDENTITY:"), new GUIStyle(statsStyle) { fontSize = 18 });
         inputName = GUI.TextField(new Rect(inputX, startY + 580, inputWidth, 45), inputName, 15, inputStyle);
 
         Rect confirmRect = new Rect(startX + 120, startY + 660, boxWidth - 240, 65);
         GUI.color = confirmRect.Contains(mousePos) ? new Color(1f, 0.4f, 0.4f) : Color.white;
 
-        if (GUI.Button(confirmRect, "TIẾN VÀO VÙNG ĐẤT CHẾT", new GUIStyle(GUI.skin.button) { fontSize = 26, fontStyle = FontStyle.Bold }))
+        if (GUI.Button(confirmRect, GameLocalization.TranslateLiteral("ENTER THE DEAD ZONE"), new GUIStyle(GUI.skin.button) { fontSize = 26, fontStyle = FontStyle.Bold }))
         {
             ConfirmSelection();
         }

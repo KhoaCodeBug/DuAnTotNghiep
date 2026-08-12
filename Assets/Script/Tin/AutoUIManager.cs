@@ -803,7 +803,7 @@ public class AutoUIManager : MonoBehaviour
 
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
         if (gameFont != null) txt.font = gameFont;
-        txt.text = text;
+        txt.text = GameLocalization.TranslateLiteral(text);
         txt.fontSize = 15;
         txt.fontStyle = FontStyles.Bold;
         txt.alignment = TextAlignmentOptions.Center;
@@ -1213,7 +1213,7 @@ public class AutoUIManager : MonoBehaviour
         tObj.transform.SetParent(area.transform, false);
 
         TextMeshProUGUI tTxt = tObj.AddComponent<TextMeshProUGUI>();
-        tTxt.font = font; tTxt.text = title; tTxt.fontSize = 20;
+        tTxt.font = font; tTxt.text = GameLocalization.TranslateLiteral(title); tTxt.fontSize = 20;
         tTxt.fontStyle = FontStyles.Bold; tTxt.alignment = TextAlignmentOptions.Center; tTxt.color = Color.white;
 
         RectTransform tRect = tObj.GetComponent<RectTransform>();
@@ -1278,7 +1278,7 @@ public class AutoUIManager : MonoBehaviour
         txtObj.transform.SetParent(btnObj.transform, false);
 
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
-        txt.font = font; txt.text = text; txt.fontSize = 18;
+        txt.font = font; txt.text = GameLocalization.TranslateLiteral(text); txt.fontSize = 18;
         txt.fontStyle = FontStyles.Bold; txt.alignment = TextAlignmentOptions.Center; txt.color = Color.white;
 
         RectTransform tRect = txtObj.GetComponent<RectTransform>();
@@ -1336,15 +1336,15 @@ public class AutoUIManager : MonoBehaviour
 
         if (partnerTrade.IsConfirmed)
         {
-            partnerStatusTxt.text = "ĐÃ CHỐT KÈO!"; partnerStatusTxt.color = Color.green;
+            partnerStatusTxt.text = GameLocalization.Get("trade.confirmed"); partnerStatusTxt.color = Color.green;
         }
         else if (partnerTrade.IsReady)
         {
-            partnerStatusTxt.text = "ĐÃ KHÓA!"; partnerStatusTxt.color = Color.yellow;
+            partnerStatusTxt.text = GameLocalization.Get("trade.locked"); partnerStatusTxt.color = Color.yellow;
         }
         else
         {
-            partnerStatusTxt.text = "Đang chọn..."; partnerStatusTxt.color = Color.gray;
+            partnerStatusTxt.text = GameLocalization.Get("trade.choosing"); partnerStatusTxt.color = Color.gray;
         }
 
         btnConfirm.interactable = myTrade.IsReady && partnerTrade.IsReady;
@@ -1554,7 +1554,7 @@ public class AutoUIManager : MonoBehaviour
 
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
         txt.font = activeFont;
-        txt.text = "GIAO DỊCH ĐANG TỚI!\nMột người chơi khác muốn trao đổi đồ với bạn.";
+        txt.text = GameLocalization.Get("trade.incoming");
         txt.alignment = TextAlignmentOptions.Center;
         txt.color = Color.white;
         txt.enableAutoSizing = true;
@@ -1590,7 +1590,7 @@ public class AutoUIManager : MonoBehaviour
         txtObj.transform.SetParent(btnObj.transform, false);
 
         TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>();
-        txt.font = font; txt.text = text; txt.fontSize = 18;
+        txt.font = font; txt.text = GameLocalization.TranslateLiteral(text); txt.fontSize = 18;
         txt.alignment = TextAlignmentOptions.Center; txt.color = Color.white; txt.fontStyle = FontStyles.Bold;
 
         RectTransform tRect = txtObj.GetComponent<RectTransform>();
@@ -1739,7 +1739,7 @@ public class AutoUIManager : MonoBehaviour
             {
                 edgeGlowRt.anchoredPosition = new Vector2(2f + pct * 246f, 0f);
             }
-            actionBarText.text = $"Using {itemToUse.itemName}... {(duration - timer):F1}s";
+            actionBarText.text = $"{GameLocalization.Get("item.using")} {GameLocalization.TranslateLiteral(itemToUse.itemName)}... {(duration - timer):F1}s";
 
             if (Input.GetKey(KeyCode.LeftShift) || Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f || Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.1f)
             {
@@ -1843,9 +1843,9 @@ public class AutoUIManager : MonoBehaviour
 
         if (currentSlots != null && index < currentSlots.Count && currentSlots[index] != null && currentSlots[index].amount > 0)
         {
-            tooltipTitleText.text = currentSlots[index].item.itemName;
+            tooltipTitleText.text = GameLocalization.TranslateLiteral(currentSlots[index].item.itemName);
             string cat = GetCategoryString(currentSlots[index].item.category);
-            tooltipDescText.text = "Type: " + cat;
+            tooltipDescText.text = GameLocalization.Get("item.type") + ": " + cat;
             tooltipPanel.SetActive(true);
         }
     }
@@ -1854,12 +1854,12 @@ public class AutoUIManager : MonoBehaviour
     {
         switch (category)
         {
-            case ItemCategory.Ammunition: return "Ammunition";
-            case ItemCategory.Medical: return "Medical";
-            case ItemCategory.Consumable: return "Consumable";
-            case ItemCategory.Weapon: return "Weapon";
-            case ItemCategory.Backpack: return "Backpack";
-            default: return "Item";
+            case ItemCategory.Ammunition: return GameLocalization.TranslateLiteral("Ammunition");
+            case ItemCategory.Medical: return GameLocalization.TranslateLiteral("Medical");
+            case ItemCategory.Consumable: return GameLocalization.TranslateLiteral("Consumable");
+            case ItemCategory.Weapon: return GameLocalization.TranslateLiteral("Weapon");
+            case ItemCategory.Backpack: return GameLocalization.TranslateLiteral("Backpack");
+            default: return GameLocalization.TranslateLiteral("Item");
         }
     }
 

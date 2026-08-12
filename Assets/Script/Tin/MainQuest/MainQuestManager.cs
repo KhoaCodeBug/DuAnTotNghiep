@@ -220,8 +220,8 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         string objective = CurrentStage switch
         {
-            QuestStage.FindCityMap => "NHIỆM VỤ: Tìm bản đồ thành phố trong văn phòng.",
-            QuestStage.CityMapFound => "NHIỆM VỤ: Đến khu quân sự được đánh dấu trên bản đồ.",
+            QuestStage.FindCityMap => GameLocalization.Get("quest.find_map"),
+            QuestStage.CityMapFound => GameLocalization.Get("quest.reach_military"),
             _ => string.Empty
         };
         if (string.IsNullOrEmpty(objective)) return;

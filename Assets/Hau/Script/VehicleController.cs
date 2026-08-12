@@ -1,5 +1,8 @@
+using System.Collections;
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 [RequireComponent(typeof(Rigidbody2D))]
 public class VehicleControllerFusion : NetworkBehaviour
@@ -42,32 +45,71 @@ public class VehicleControllerFusion : NetworkBehaviour
     [SerializeField] private Animator animator;
     [SerializeField] private Camera vehicleCamera;
 
+    [Header("Collision")]
+    [SerializeField] private PolygonCollider2D bodyCollider;
+    [SerializeField] private CircleCollider2D interactionCollider;
+
+    [Header("Headlights and vehicle vision")]
+    [SerializeField] private Light2D headlights;
+    [SerializeField, Min(1f)] private float headlightVisionRadius = 12f;
+    [SerializeField, Range(20f, 180f)] private float headlightVisionAngle = 85f;
+    [SerializeField, Min(0.5f)] private float lightsOffVisionRadius = 2.5f;
+
+    [Header("Zombie collision")]
+    [SerializeField, Min(0.1f)] private float minimumImpactSpeed = 2.5f;
+    [SerializeField, Min(1f)] private float maximumImpactDamage = 100f;
+    [SerializeField, Min(0f)] private float impactForce = 7f;
+
+    [Header("Door audio")]
+    [SerializeField] private AudioSource doorAudioSource;
+    [SerializeField] private AudioClip doorOpenClip;
+    [SerializeField] private AudioClip doorCloseClip;
+
     [Networked] public NetworkObject Driver { get; private set; }
     [Networked] public NetworkObject FrontPassenger { get; private set; }
     [Networked] public NetworkObject RearLeftPassenger { get; private set; }
     [Networked] public NetworkObject RearRightPassenger { get; private set; }
     [Networked] public NetworkBool IsMoving { get; private set; }
+    [Networked] public NetworkBool HeadlightsOn { get; private set; }
     [Networked] public int DirectionIndex { get; private set; }
     [Networked] private float HeadingDegrees { get; set; }
 
     private const int DirectionCount = 25;
     private Rigidbody2D rb;
     private int displayedDirection = -1;
+    private Coroutine doorSequence;
+    private readonly Dictionary<int, float> zombieImpactCooldown = new();
+
+    public Vector2 VisionOrigin => transform.position;
+    public Vector2 VisionDirection => GridIndexToVector(DirectionIndex);
+    public float VisionRadius => HeadlightsOn ? headlightVisionRadius : lightsOffVisionRadius;
+    public float VisionAngle => HeadlightsOn ? headlightVisionAngle : 360f;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         rb.gravityScale = 0f;
         rb.freezeRotation = true;
+        rb.mass = Mathf.Max(300f, rb.mass);
         spriteRenderer ??= GetComponent<SpriteRenderer>();
+        bodyCollider ??= GetComponent<PolygonCollider2D>();
+        interactionCollider ??= GetComponent<CircleCollider2D>();
+        ConfigureColliders();
+        ConfigureHeadlights();
+        ConfigureDoorAudio();
+        UpdateBodyCollider(initialDirectionIndex);
+        SetVehicleMotionLocked(true);
         if (vehicleCamera != null) vehicleCamera.gameObject.SetActive(false);
     }
 
     public override void Spawned()
     {
         if (!HasStateAuthority) return;
+        rb.bodyType = RigidbodyType2D.Dynamic;
         DirectionIndex = Mathf.Clamp(initialDirectionIndex, 0, DirectionCount - 1);
         HeadingDegrees = VectorToHeading(GridIndexToVector(DirectionIndex));
+        HeadlightsOn = false;
+        UpdateBodyCollider(DirectionIndex);
     }
 
     public void RequestEnter(NetworkObject player)
@@ -75,16 +117,23 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (player != null) RPC_RequestEnter(player);
     }
 
+    public bool AuthorityTryEnter(NetworkObject player)
+    {
+        if (!HasStateAuthority || player == null) return false;
+        PlayerInteraction interaction = player.GetComponent<PlayerInteraction>();
+        if (interaction == null || interaction.IsInVehicle) return false;
+
+        SeatSlot slot = FindDoorNear(player.transform.position);
+        if (slot == SeatSlot.None) return false;
+        AssignSeat(slot, player);
+        return true;
+    }
+
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_RequestEnter(NetworkObject player, RpcInfo info = default)
     {
         if (player == null || player.InputAuthority != info.Source) return;
-        PlayerInteraction interaction = player.GetComponent<PlayerInteraction>();
-        if (interaction == null || interaction.IsInVehicle) return;
-
-        SeatSlot slot = FindDoorNear(player.transform.position);
-        if (slot == SeatSlot.None || GetOccupant(slot) != null) return;
-        AssignSeat(slot, player);
+        AuthorityTryEnter(player);
     }
 
     public void RequestExit(NetworkObject player)
@@ -92,17 +141,87 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (player != null) RPC_RequestExit(player);
     }
 
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestExit(NetworkObject player, RpcInfo info = default)
+    public bool AuthorityTryExit(NetworkObject player)
     {
-        if (player == null || player.InputAuthority != info.Source) return;
+        if (!HasStateAuthority || player == null) return false;
         SeatSlot slot = FindOccupiedSeat(player);
-        if (slot == SeatSlot.None) return;
+        if (slot == SeatSlot.None) return false;
 
         SetOccupant(slot, null);
         SetPlayerVehicleState(player, false, false);
         PlaceAtExit(player, slot);
         if (slot == SeatSlot.Driver) StopVehicle();
+        RPC_PlayDoorSequence();
+        return true;
+    }
+
+    public void RequestSeatChange(NetworkObject player, int seatNumber)
+    {
+        if (player != null && seatNumber >= 1 && seatNumber <= 4)
+            RPC_RequestSeatChange(player, seatNumber);
+    }
+
+    public bool AuthorityTryChangeSeat(NetworkObject player, int seatNumber)
+    {
+        if (!HasStateAuthority || player == null || seatNumber < 1 || seatNumber > 4) return false;
+        return TryChangeSeat(player, SeatFromNumber(seatNumber));
+    }
+
+    public void RequestToggleHeadlights(NetworkObject player)
+    {
+        if (player != null) RPC_RequestToggleHeadlights(player);
+    }
+
+    public bool AuthorityTryToggleHeadlights(NetworkObject player)
+    {
+        return HasStateAuthority && TryToggleHeadlights(player);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestToggleHeadlights(NetworkObject player, RpcInfo info = default)
+    {
+        if (player == null || player.InputAuthority != info.Source) return;
+        TryToggleHeadlights(player);
+    }
+
+    private bool TryToggleHeadlights(NetworkObject player)
+    {
+        if (Driver != player) return false;
+        HeadlightsOn = !HeadlightsOn;
+        return true;
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestSeatChange(NetworkObject player, int seatNumber, RpcInfo info = default)
+    {
+        if (player == null || player.InputAuthority != info.Source) return;
+        SeatSlot target = SeatFromNumber(seatNumber);
+        TryChangeSeat(player, target);
+    }
+
+    private bool TryChangeSeat(NetworkObject player, SeatSlot target)
+    {
+        SeatSlot current = FindOccupiedSeat(player);
+        if (current == SeatSlot.None || target == SeatSlot.None || current == target) return false;
+        if (GetOccupant(target) != null) return false;
+
+        SetOccupant(current, null);
+        SetOccupant(target, player);
+        SetPlayerVehicleState(player, true, target == SeatSlot.Driver);
+        MoveToSeat(player, GetAnchorWorldPosition(GetSeatAnchor(target)));
+
+        if (current == SeatSlot.Driver && target != SeatSlot.Driver)
+            StopVehicle();
+        if (target == SeatSlot.Driver)
+            SetVehicleMotionLocked(false);
+        return true;
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestExit(NetworkObject player, RpcInfo info = default)
+    {
+        if (player == null || player.InputAuthority != info.Source) return;
+        AuthorityTryExit(player);
     }
 
     public override void FixedUpdateNetwork()
@@ -111,15 +230,21 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (Driver == null)
         {
             StopVehicle();
+            SetVehicleMotionLocked(true);
             return;
         }
 
+        SetVehicleMotionLocked(false);
         PlayerMovement driverMovement = Driver.GetComponent<PlayerMovement>();
         SimulateDrive(driverMovement != null ? driverMovement.NetMoveInput : Vector2.zero);
         SyncOccupants();
     }
 
-    public override void Render() => ApplyDirectionalVisual();
+    public override void Render()
+    {
+        ApplyDirectionalVisual();
+        ApplyHeadlightVisual();
+    }
 
     public void SetCamera(bool enable)
     {
@@ -137,9 +262,29 @@ public class VehicleControllerFusion : NetworkBehaviour
         {
             Transform point = GetEnterPoint(slot);
             if (point == null) continue;
-            float distance = Vector2.Distance(playerPosition, point.position);
+            if (GetOccupant(slot) != null) continue;
+            float distance = Vector2.Distance(playerPosition, GetAnchorWorldPosition(point));
             if (distance <= enterDistance && distance < closestDistance)
             {
+                closest = slot;
+                closestDistance = distance;
+            }
+        }
+
+
+        // The CircleCollider2D is the single source of truth for interaction.
+        // Door markers only decide which free seat is closest; they must not
+        // reject a player who is visibly standing inside the trigger.
+        if (closest == SeatSlot.None && interactionCollider != null &&
+            interactionCollider.OverlapPoint((Vector2)playerPosition))
+        {
+            foreach (SeatSlot slot in new[] { SeatSlot.Driver, SeatSlot.FrontPassenger, SeatSlot.RearLeftPassenger, SeatSlot.RearRightPassenger })
+            {
+                if (GetOccupant(slot) != null) continue;
+                Transform point = GetEnterPoint(slot);
+                if (point == null) continue;
+                float distance = Vector2.Distance(playerPosition, GetAnchorWorldPosition(point));
+                if (distance >= closestDistance) continue;
                 closest = slot;
                 closestDistance = distance;
             }
@@ -151,7 +296,9 @@ public class VehicleControllerFusion : NetworkBehaviour
     {
         SetOccupant(slot, player);
         SetPlayerVehicleState(player, true, slot == SeatSlot.Driver);
-        MoveToSeat(player, GetSeatAnchor(slot));
+        MoveToSeat(player, GetAnchorWorldPosition(GetSeatAnchor(slot)));
+        if (slot == SeatSlot.Driver) SetVehicleMotionLocked(false);
+        RPC_PlayDoorSequence();
     }
 
     private void SetPlayerVehicleState(NetworkObject player, bool inVehicle, bool isDriver)
@@ -162,26 +309,27 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     private void SyncOccupants()
     {
-        MoveToSeat(Driver, driverSeat);
-        MoveToSeat(FrontPassenger, frontPassengerSeat);
-        MoveToSeat(RearLeftPassenger, rearLeftSeat);
-        MoveToSeat(RearRightPassenger, rearRightSeat);
+        MoveToSeat(Driver, GetAnchorWorldPosition(driverSeat));
+        MoveToSeat(FrontPassenger, GetAnchorWorldPosition(frontPassengerSeat));
+        MoveToSeat(RearLeftPassenger, GetAnchorWorldPosition(rearLeftSeat));
+        MoveToSeat(RearRightPassenger, GetAnchorWorldPosition(rearRightSeat));
     }
 
-    private static void MoveToSeat(NetworkObject player, Transform seat)
+    private static void MoveToSeat(NetworkObject player, Vector2 seatPosition)
     {
-        if (player == null || seat == null) return;
+        if (player == null) return;
         Rigidbody2D playerBody = player.GetComponent<Rigidbody2D>();
-        if (playerBody != null) playerBody.position = seat.position;
-        else player.transform.position = seat.position;
+        if (playerBody != null) playerBody.position = seatPosition;
+        else player.transform.position = seatPosition;
     }
 
     private void PlaceAtExit(NetworkObject player, SeatSlot slot)
     {
         Transform point = GetExitPoint(slot) ?? GetEnterPoint(slot) ?? transform;
+        Vector2 exitPosition = GetAnchorWorldPosition(point);
         Rigidbody2D playerBody = player.GetComponent<Rigidbody2D>();
-        if (playerBody != null) playerBody.position = point.position;
-        else player.transform.position = point.position;
+        if (playerBody != null) playerBody.position = exitPosition;
+        else player.transform.position = exitPosition;
     }
 
     private NetworkObject GetOccupant(SeatSlot slot) => slot switch
@@ -210,6 +358,15 @@ public class VehicleControllerFusion : NetworkBehaviour
             if (GetOccupant(slot) == player) return slot;
         return SeatSlot.None;
     }
+
+    private static SeatSlot SeatFromNumber(int seatNumber) => seatNumber switch
+    {
+        1 => SeatSlot.Driver,
+        2 => SeatSlot.FrontPassenger,
+        3 => SeatSlot.RearLeftPassenger,
+        4 => SeatSlot.RearRightPassenger,
+        _ => SeatSlot.None
+    };
 
     private Transform GetSeatAnchor(SeatSlot slot) => slot switch
     {
@@ -252,6 +409,7 @@ public class VehicleControllerFusion : NetworkBehaviour
         float speedFactor = Mathf.Lerp(steeringAtLowSpeed, 1f, Mathf.Clamp01(Mathf.Abs(forwardSpeed) / maxForwardSpeed));
         HeadingDegrees = Mathf.Repeat(HeadingDegrees + input.x * turnSpeed * speedFactor * (forwardSpeed < -0.01f ? -1f : 1f) * Runner.DeltaTime, 360f);
         DirectionIndex = HeadingToGridIndex(HeadingToVector(HeadingDegrees));
+        UpdateBodyCollider(DirectionIndex);
         IsMoving = Mathf.Abs(forwardSpeed) > 0.05f;
     }
 
@@ -271,6 +429,167 @@ public class VehicleControllerFusion : NetworkBehaviour
             if (animator != null) animator.enabled = false;
             if (spriteRenderer != null) spriteRenderer.sprite = directionSprites[DirectionIndex];
         }
+        UpdateBodyCollider(DirectionIndex);
+    }
+
+    private void ConfigureColliders()
+    {
+        if (interactionCollider != null)
+        {
+            interactionCollider.isTrigger = true;
+            interactionCollider.offset = Vector2.zero;
+            interactionCollider.radius = Mathf.Max(1.35f, interactionCollider.radius);
+        }
+
+        if (bodyCollider != null)
+        {
+            bodyCollider.isTrigger = false;
+            bodyCollider.offset = Vector2.zero;
+        }
+    }
+
+    private void UpdateBodyCollider(int directionIndex)
+    {
+        if (bodyCollider == null) return;
+        int index = Mathf.Clamp(directionIndex, 0, DirectionCount - 1);
+        Sprite sprite = directionSprites != null && index < directionSprites.Length
+            ? directionSprites[index]
+            : null;
+        if (sprite == null || sprite.GetPhysicsShapeCount() == 0) return;
+
+        int shapeCount = sprite.GetPhysicsShapeCount();
+        bodyCollider.pathCount = shapeCount;
+        List<Vector2> points = new(20);
+        for (int path = 0; path < shapeCount; path++)
+        {
+            points.Clear();
+            sprite.GetPhysicsShape(path, points);
+            bodyCollider.SetPath(path, points);
+        }
+    }
+
+    private void ConfigureHeadlights()
+    {
+        if (headlights == null)
+        {
+            GameObject lightObject = new("Vehicle Headlights");
+            lightObject.transform.SetParent(transform, false);
+            headlights = lightObject.AddComponent<Light2D>();
+        }
+
+        headlights.lightType = Light2D.LightType.Point;
+        headlights.pointLightInnerRadius = 0.25f;
+        headlights.pointLightOuterRadius = headlightVisionRadius;
+        headlights.pointLightInnerAngle = Mathf.Max(10f, headlightVisionAngle - 20f);
+        headlights.pointLightOuterAngle = headlightVisionAngle;
+        headlights.intensity = 1.15f;
+        headlights.color = new Color(1f, 0.91f, 0.68f, 1f);
+        headlights.gameObject.SetActive(false);
+    }
+
+    private void ApplyHeadlightVisual()
+    {
+        if (headlights == null) return;
+        bool enabled = HeadlightsOn;
+        if (headlights.gameObject.activeSelf != enabled)
+            headlights.gameObject.SetActive(enabled);
+
+        Vector2 forward = VisionDirection;
+        float angle = Mathf.Atan2(forward.y, forward.x) * Mathf.Rad2Deg;
+        headlights.transform.localPosition = forward * 0.48f;
+        headlights.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+    }
+
+    private void ConfigureDoorAudio()
+    {
+        doorAudioSource ??= GetComponent<AudioSource>();
+        if (doorAudioSource == null) doorAudioSource = gameObject.AddComponent<AudioSource>();
+        GameplayAudioSpatializer.Configure(doorAudioSource, GameplayAudioSpatializer.Profile.Body);
+        // Serialized UnityEngine.Object references can be Unity "fake null",
+        // therefore use Unity's == null operator instead of ??= here.
+        if (doorOpenClip == null)
+            doorOpenClip = Resources.Load<AudioClip>("Intro/VehicleAudio/CarOpenDoor");
+        if (doorCloseClip == null)
+            doorCloseClip = Resources.Load<AudioClip>("Intro/VehicleAudio/CarCloseDoor");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayDoorSequence()
+    {
+        if (doorSequence != null) StopCoroutine(doorSequence);
+        doorSequence = StartCoroutine(PlayDoorSequence());
+    }
+
+    private IEnumerator PlayDoorSequence()
+    {
+        ConfigureDoorAudio();
+        doorAudioSource.Stop();
+        if (doorOpenClip != null)
+        {
+            doorAudioSource.PlayOneShot(doorOpenClip);
+            yield return new WaitForSeconds(doorOpenClip.length);
+        }
+        if (doorCloseClip != null) doorAudioSource.PlayOneShot(doorCloseClip);
+        doorSequence = null;
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if (!HasStateAuthority || rb == null) return;
+        float speed = rb.linearVelocity.magnitude;
+        if (speed < minimumImpactSpeed) return;
+
+        GameObject target = collision.collider.gameObject;
+        NetworkObject zombieObject = target.GetComponentInParent<NetworkObject>();
+        if (zombieObject == null) return;
+        int id = zombieObject.GetInstanceID();
+        if (zombieImpactCooldown.TryGetValue(id, out float allowedAt) && Time.time < allowedAt) return;
+
+        float damage = Mathf.Lerp(15f, maximumImpactDamage,
+            Mathf.InverseLerp(minimumImpactSpeed, maxForwardSpeed, speed));
+        PlayerRef driverRef = Driver != null ? Driver.InputAuthority : PlayerRef.None;
+        bool hitZombie = false;
+
+        if (target.GetComponentInParent<ZombieAIKhoaRebuilt>() is { } rebuilt)
+        {
+            rebuilt.RPC_TakeDamage(damage, driverRef);
+            hitZombie = true;
+        }
+        else if (target.GetComponentInParent<ZOmbieAI_Khoa>() is { } legacyKhoa)
+        {
+            legacyKhoa.RPC_TakeDamage(damage, driverRef);
+            hitZombie = true;
+        }
+        else if (target.GetComponentInParent<ZombieHealth>() is { } thaiZombie)
+        {
+            thaiZombie.RPC_TakeDamage(damage, driverRef, false);
+            hitZombie = true;
+        }
+
+        if (!hitZombie) return;
+        zombieImpactCooldown[id] = Time.time + 0.45f;
+        Rigidbody2D zombieBody = zombieObject.GetComponent<Rigidbody2D>();
+        if (zombieBody != null)
+            zombieBody.AddForce(VisionDirection * impactForce, ForceMode2D.Impulse);
+    }
+
+    private Vector2 GetAnchorWorldPosition(Transform anchor)
+    {
+        if (anchor == null) return transform.position;
+        Vector2 referenceForward = GridIndexToVector(Mathf.Clamp(initialDirectionIndex, 0, DirectionCount - 1));
+        Vector2 currentForward = GridIndexToVector(Mathf.Clamp(DirectionIndex, 0, DirectionCount - 1));
+        float delta = Vector2.SignedAngle(referenceForward, currentForward);
+        Vector2 rotatedLocal = Quaternion.Euler(0f, 0f, delta) * (Vector2)anchor.localPosition;
+        return transform.TransformPoint(rotatedLocal);
+    }
+
+    private void SetVehicleMotionLocked(bool locked)
+    {
+        if (rb == null) return;
+        RigidbodyConstraints2D target = locked
+            ? RigidbodyConstraints2D.FreezeAll
+            : RigidbodyConstraints2D.FreezeRotation;
+        if (rb.constraints != target) rb.constraints = target;
     }
 
     private static Vector2 HeadingToVector(float degrees)

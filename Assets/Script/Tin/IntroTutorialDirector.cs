@@ -78,6 +78,7 @@ public sealed class IntroTutorialDirector : MonoBehaviour
     private Coroutine engineAttemptRoutine;
     private Coroutine doorAudioRoutine;
     private IntroCarDriveSetup.DrivePhase observedDrivePhase = IntroCarDriveSetup.DrivePhase.Idle;
+    private float RadioTargetVolume => eyeOpeningVoiceVolume * trailerRadioVolume;
     private int observedMalfunctionPulse = -1;
     private bool finalMalfunctionHitPlayed;
     public int MalfunctionAudioPlayCount { get; private set; }
@@ -165,7 +166,7 @@ public sealed class IntroTutorialDirector : MonoBehaviour
                 fadeAlpha = Mathf.SmoothStep(0f, 1f,
                     Mathf.InverseLerp(exitFadeDelay, carExitShotDuration, exitElapsed));
                 if (eyeOpeningAudioSource != null)
-                    eyeOpeningAudioSource.volume = eyeOpeningVoiceVolume * (1f - fadeAlpha);
+                    eyeOpeningAudioSource.volume = RadioTargetVolume * (1f - fadeAlpha);
                 if (roadLooper != null && roadLooper.IsExitComplete && fadeAlpha >= 1f)
                 {
                     roadLooper.SwitchToTroubleRoad();
@@ -363,7 +364,7 @@ public sealed class IntroTutorialDirector : MonoBehaviour
 
         eyeOpeningAudioSource.clip = eyeOpeningVoice;
         eyeOpeningAudioSource.loop = true;
-        eyeOpeningAudioSource.volume = eyeOpeningVoiceVolume;
+        eyeOpeningAudioSource.volume = RadioTargetVolume;
         eyeOpeningAudioSource.Play();
 
         float duration = Mathf.Max(0.05f, radioIntroDuration);
@@ -375,7 +376,7 @@ public sealed class IntroTutorialDirector : MonoBehaviour
             radioHighPassFilter.cutoffFrequency = Mathf.Lerp(950f, 180f, t);
             radioDistortionFilter.distortionLevel = Mathf.Lerp(0.42f, 0.06f, t)
                 + Mathf.Abs(crackle) * 0.00035f;
-            eyeOpeningAudioSource.volume = eyeOpeningVoiceVolume * Mathf.Lerp(0.58f, 1f, t);
+            eyeOpeningAudioSource.volume = RadioTargetVolume * Mathf.Lerp(0.58f, 1f, t);
             yield return null;
         }
         radioLowPassFilter.cutoffFrequency = 5200f;
