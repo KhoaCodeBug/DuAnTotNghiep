@@ -72,8 +72,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   m_UiScaleMode: 0
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
@@ -547,6 +547,7 @@ GameObject:
   - component: {fileID: 7144230315189483852}
   - component: {fileID: 3952259690615374297}
   - component: {fileID: 439164608495678969}
+  - component: {fileID: 7138400065112945722}
   m_Layer: 9
   m_Name: Player2
   m_TagString: Player
@@ -744,6 +745,7 @@ MonoBehaviour:
   - {fileID: 7144230315189483852}
   - {fileID: 3952259690615374297}
   - {fileID: 439164608495678969}
+  - {fileID: 7138400065112945722}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &2519491336483240416
 MonoBehaviour:
@@ -842,6 +844,10 @@ MonoBehaviour:
   swingSFX: {fileID: 0}
   hitFleshSFX: {fileID: 0}
   _currentAmmo: 30
+  _EquippedWeaponId:
+    _length: 0
+    _data:
+      Data: 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
   bashDamage: 50
   bashRange: 1
   bashCooldown: 1
@@ -1273,6 +1279,11 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  flashlightWorldIntensity: 0.85
+  flashlightFalloffIntensity: 0.82
+  flashlightInnerRadiusRatio: 0.16
+  flashlightLightTransitionSpeed: 10
+  flashlightWorldColor: {r: 1, g: 0.91, b: 0.72, a: 1}
   normalInnerAngle: 100
   normalOuterAngle: 140
   aimInnerAngle: 40
@@ -1301,6 +1312,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   interactRange: 0.5
   _CurrentVehicle: {fileID: 0}
+--- !u!114 &7138400065112945722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4040414594068316635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71c09a77f06b4ab3a9516d7f3c1e9a42, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  _IsFlashlightOn:
+    _value: 0
+  _IsEquippedInHotbar:
+    _value: 0
+  _Battery01: 0
 --- !u!1 &6651938154531201759
 GameObject:
   m_ObjectHideFlags: 0
@@ -1348,12 +1376,12 @@ MonoBehaviour:
   m_ComponentVersion: 2
   m_LightType: 3
   m_BlendStyleIndex: 0
-  m_FalloffIntensity: 0
+  m_FalloffIntensity: 0.55
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 0.5
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 0000000057aa24bf
+  m_ApplyToSortingLayers: 7317d14b0000000057aa24bfa301beedcfe4697d9b8f8de7
   m_LightCookieSprite: {fileID: 0}
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0

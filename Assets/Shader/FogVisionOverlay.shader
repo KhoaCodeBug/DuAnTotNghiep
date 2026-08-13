@@ -41,11 +41,18 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float2 _VisionDirection;
                 float _VisionCosHalfAngle;
                 float _VisionEdgeSoftness;
+                float _FlashlightActive;
+                float _FlashlightClearance;
+                float _FlashlightRadius;
+                float _FlashlightIllumination;
                 float _IndoorActive;
                 float _IndoorPointCount;
                 float4 _IndoorPoints[16];
                 float _IndoorAmbientOpacity;
                 float _IndoorExteriorOpacity;
+                float _IndoorExitAwarenessClearance;
+                float _IndoorExitAwarenessRadius;
+                float _IndoorExteriorFlashlightClearance;
                 float2 _FogWorldBottomLeft;
                 float2 _FogWorldRight;
                 float2 _FogWorldUp;
@@ -118,24 +125,53 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float2 directionToPixel = distanceFromPlayer > 0.0001 ? offsetFromPlayer / distanceFromPlayer : _VisionDirection;
 
                 float angleDot = dot(directionToPixel, normalize(_VisionDirection));
-                float coneVisibility = smoothstep(_VisionCosHalfAngle - _VisionEdgeSoftness,
-                                                  _VisionCosHalfAngle + _VisionEdgeSoftness,
-                                                  angleDot);
+                // A deliberately broad angular feather prevents the hard, fake
+                // vision border that is most visible at night.
+                float coneFeather = max(_VisionEdgeSoftness, 0.20);
+                float rawConeVisibility = smoothstep(_VisionCosHalfAngle - coneFeather,
+                                                     _VisionCosHalfAngle + coneFeather,
+                                                     angleDot);
+                float coneVisibility = rawConeVisibility;
                 coneVisibility *= 1.0 - smoothstep(_PlayerBubbleRadius * 0.55, _PlayerBubbleRadius, distanceFromPlayer);
+
+                float flashlightReach = 1.0 - smoothstep(_FlashlightRadius * 0.34,
+                                                          _FlashlightRadius * 1.08,
+                                                          distanceFromPlayer);
+                float flashlightVisibility = rawConeVisibility * flashlightReach * _FlashlightActive;
 
                 float insideIndoor = IsInsideIndoorPolygon(worldPosition);
                 if (_IndoorActive > 0.5)
                 {
                     float indoorOpacity = lerp(_IndoorExteriorOpacity, _IndoorAmbientOpacity, insideIndoor);
                     float3 indoorColor = lerp(_IndoorExteriorColor.rgb, _IndoorAmbientColor.rgb, insideIndoor);
-                    // Only indoor direct sight opens the darker room slightly. Outdoor
-                    // weather fog is never sampled while the Player is indoors.
-                    indoorOpacity *= 1.0 - coneVisibility * insideIndoor;
+                    // Do not turn the exterior into a 96%-opaque black wall as
+                    // soon as the player crosses an indoor trigger. A small soft
+                    // area around the player keeps doorways and exits navigable.
+                    float exitAwareness = 1.0 - smoothstep(_IndoorExitAwarenessRadius * 0.28,
+                                                            _IndoorExitAwarenessRadius,
+                                                            distanceFromPlayer);
+                    float exteriorMask = 1.0 - insideIndoor;
+                    indoorOpacity *= 1.0 - exitAwareness * exteriorMask * _IndoorExitAwarenessClearance;
+
+                    // The real illumination is a URP Light2D. This mask only lets
+                    // that light remain visible through doors by opening the dark
+                    // indoor-exterior cover along the same softly feathered cone.
+                    float indoorFlashlight = flashlightVisibility * insideIndoor;
+                    float exteriorFlashlight = flashlightVisibility * exteriorMask;
+                    indoorOpacity *= 1.0 - coneVisibility * insideIndoor * 0.16;
+                    indoorOpacity *= 1.0 - indoorFlashlight * _FlashlightClearance;
+                    indoorOpacity *= 1.0 - exteriorFlashlight * _IndoorExteriorFlashlightClearance;
+
+                    // A tiny warm tint blends fog color with the Light2D, but is
+                    // intentionally too weak to act as a fake light overlay.
+                    float3 flashlightFogTint = float3(0.22, 0.20, 0.15);
+                    indoorColor = lerp(indoorColor, flashlightFogTint,
+                                       flashlightVisibility * _FlashlightIllumination);
                     return half4(indoorColor, saturate(indoorOpacity));
                 }
 
-                float bubbleVisibility = 1.0 - smoothstep(_PlayerBubbleRadius * 0.48,
-                                                           _PlayerBubbleRadius * 1.14,
+                float bubbleVisibility = 1.0 - smoothstep(_PlayerBubbleRadius * 0.30,
+                                                           _PlayerBubbleRadius * 1.28,
                                                            distanceFromPlayer);
                 float localDensity = FogField(worldPosition);
                 float opacity = _FogDensity * localDensity;
@@ -143,7 +179,15 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 // directional wedge, so looking around cannot erase weather.
                 opacity *= 1.0 - bubbleVisibility * _PlayerBubbleClearance;
 
+                // Flashlight does not cut a perfectly clean wedge through the
+                // weather. Both the cone and its reach fade gradually, leaving
+                // a believable thin haze at the edge.
+                opacity *= 1.0 - flashlightVisibility * _FlashlightClearance;
+
                 float3 fogColor = _FogColor.rgb * lerp(0.90, 1.05, localDensity);
+                float3 outdoorFlashlightTint = float3(0.42, 0.45, 0.43);
+                fogColor = lerp(fogColor, outdoorFlashlightTint,
+                                flashlightVisibility * _FlashlightIllumination * 0.48);
                 return half4(fogColor, saturate(opacity));
             }
             ENDHLSL

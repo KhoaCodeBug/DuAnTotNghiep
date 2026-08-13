@@ -275,10 +275,16 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
             bool current = target == candidate.transform;
             PlayerMovement movement = candidate.GetComponent<PlayerMovement>();
             bool crouching = movement != null && movement.NetIsCrouching;
-            float effectiveRange = !current && crouching
-                ? detectionRange * crouchDetectionMultiplier
-                : detectionRange;
-            if (!CanSee(distance, origin, candidatePosition, current ? alertViewAngle : viewAngle, health, effectiveRange)) continue;
+            float activeCone = current ? alertViewAngle : viewAngle;
+            Vector2 forward = facing.sqrMagnitude > 0.001f ? facing : Vector2.up;
+            float angleFromFacing = Vector2.Angle(forward, (candidatePosition - origin).normalized);
+
+            // Crouching directly behind this sight cone has exactly zero visual
+            // detection. Standing players keep the normal rear/alert behaviour.
+            if (crouching && angleFromFacing > activeCone * 0.5f) continue;
+
+            float effectiveRange = crouching ? detectionRange * crouchDetectionMultiplier : detectionRange;
+            if (!CanSee(distance, origin, candidatePosition, activeCone, health, effectiveRange)) continue;
 
             float score = -distance + (current ? 0.25f : 0f);
             if (score > bestScore)
@@ -406,13 +412,15 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
             return;
         }
 
+        float remainingDistance = desired.magnitude;
         desired = GetSteeredDirection(desired.normalized);
         facing = Vector2.MoveTowards(facing, desired, turnResponsiveness * Delta).normalized;
         if (facing.sqrMagnitude < 0.001f) facing = desired;
 
         float moveSpeed = speed * speedMultiplier;
-        body.MovePosition(body.position + facing * moveSpeed * Delta);
-        NetSpeed = moveSpeed;
+        float moveDistance = Mathf.Min(moveSpeed * Delta, remainingDistance);
+        body.MovePosition(body.position + facing * moveDistance);
+        NetSpeed = Delta > 0f ? moveDistance / Delta : 0f;
         CheckProgress(goal);
     }
 

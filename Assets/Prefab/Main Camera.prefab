@@ -287,7 +287,10 @@ MonoBehaviour:
   playerBubbleClearance: 0.58
   playerBubbleRadiusMultiplier: 1.08
   indoorAmbientOpacity: 0.1
-  indoorExteriorOpacity: 0.96
+  indoorExteriorOpacity: 0.88
+  indoorExitAwarenessClearance: 0.32
+  indoorExitAwarenessRadius: 2.4
+  indoorExteriorFlashlightClearance: 0.68
   visionEdgeSoftness: 0.12
   fogColor: {r: 0.72, g: 0.75, b: 0.77, a: 1}
   indoorAmbientColor: {r: 0.025, g: 0.03, b: 0.04, a: 1}

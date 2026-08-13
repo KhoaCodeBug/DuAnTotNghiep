@@ -447,8 +447,9 @@ public class PlayerHealth : NetworkBehaviour
             bodyStateAudioSource = gameObject.AddComponent<AudioSource>();
             bodyStateAudioSource.playOnAwake = false;
             bodyStateAudioSource.loop = false;
-            GameplayAudioSpatializer.Configure(bodyStateAudioSource, GameplayAudioSpatializer.Profile.Body);
         }
+
+        GameplayAudioSpatializer.Configure(bodyStateAudioSource, GameplayAudioSpatializer.Profile.Body);
     }
 
     private void PlayHurtGruntSFX()
@@ -484,7 +485,12 @@ public class PlayerHealth : NetworkBehaviour
             int pick = validIndices[Random.Range(0, validIndices.Count)];
             lastHurtIndex = pick;
             lastHurtSoundTime = Time.time;
-            bodyStateAudioSource.PlayOneShot(hurtGruntSFXs[pick], GetSFXVolume());
+            float finalVolume = GameplayAudioSpatializer.GetAttenuatedVolume(
+                bodyStateAudioSource,
+                GameplayAudioSpatializer.Profile.Body,
+                GetSFXVolume(),
+                HasInputAuthority);
+            bodyStateAudioSource.PlayOneShot(hurtGruntSFXs[pick], finalVolume);
         }
     }
 
@@ -499,8 +505,12 @@ public class PlayerHealth : NetworkBehaviour
             soundObj.transform.position = transform.position;
             AudioSource aSrc = soundObj.AddComponent<AudioSource>();
             aSrc.clip = deathSFX;
-            aSrc.volume = sfxVol;
             GameplayAudioSpatializer.Configure(aSrc, GameplayAudioSpatializer.Profile.Body);
+            aSrc.volume = GameplayAudioSpatializer.GetAttenuatedVolume(
+                aSrc,
+                GameplayAudioSpatializer.Profile.Body,
+                sfxVol,
+                HasInputAuthority);
             aSrc.playOnAwake = false;
             aSrc.Play();
             Destroy(soundObj, deathSFX.length + 0.2f);

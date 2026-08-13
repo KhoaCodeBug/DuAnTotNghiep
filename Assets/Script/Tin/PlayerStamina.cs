@@ -179,7 +179,11 @@ public class PlayerStamina : NetworkBehaviour
             float factor = Mathf.Clamp01((0.40f - staminaRatio) / 0.40f); // 0.0 (bắt đầu mệt) -> 1.0 (kiệt sức)
             float masterSFX = GetSFXVolume();
 
-            float targetVolume = Mathf.Lerp(0.20f, 0.95f, factor) * masterSFX;
+            float targetVolume = GameplayAudioSpatializer.GetAttenuatedVolume(
+                breathingAudioSource,
+                GameplayAudioSpatializer.Profile.Body,
+                Mathf.Lerp(0.20f, 0.95f, factor) * masterSFX,
+                HasInputAuthority);
             float targetPitch = Mathf.Lerp(0.92f, 1.10f, factor);
 
             if (!breathingAudioSource.isPlaying)

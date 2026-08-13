@@ -662,9 +662,14 @@ public class PlayerCombat : NetworkBehaviour
 
         float volMultiplier = (equipped != null && equipped.soundVolumeMultiplier > 0) ? equipped.soundVolumeMultiplier : 1.0f;
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        float finalVolume = GameplayAudioSpatializer.GetAttenuatedVolume(
+            weaponAudioSource,
+            GameplayAudioSpatializer.Profile.Gunshot,
+            volMultiplier * sfxVol,
+            HasInputAuthority);
 
         weaponAudioSource.pitch = Random.Range(0.98f, 1.02f);
-        weaponAudioSource.PlayOneShot(shootClip, volMultiplier * sfxVol);
+        weaponAudioSource.PlayOneShot(shootClip, finalVolume);
     }
 
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
@@ -679,8 +684,13 @@ public class PlayerCombat : NetworkBehaviour
         GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Melee);
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        float finalVolume = GameplayAudioSpatializer.GetAttenuatedVolume(
+            weaponAudioSource,
+            GameplayAudioSpatializer.Profile.Melee,
+            1.80f * sfxVol,
+            HasInputAuthority);
         weaponAudioSource.pitch = 1.0f;
-        weaponAudioSource.PlayOneShot(dryClip, 1.80f * sfxVol);
+        weaponAudioSource.PlayOneShot(dryClip, finalVolume);
     }
 
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
@@ -695,8 +705,13 @@ public class PlayerCombat : NetworkBehaviour
         GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Melee);
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        float finalVolume = GameplayAudioSpatializer.GetAttenuatedVolume(
+            weaponAudioSource,
+            GameplayAudioSpatializer.Profile.Melee,
+            1.50f * sfxVol,
+            HasInputAuthority);
         weaponAudioSource.pitch = 1.0f;
-        weaponAudioSource.PlayOneShot(customReload, 1.50f * sfxVol);
+        weaponAudioSource.PlayOneShot(customReload, finalVolume);
     }
 
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
@@ -724,8 +739,13 @@ public class PlayerCombat : NetworkBehaviour
         GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Melee);
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        float finalVolume = GameplayAudioSpatializer.GetAttenuatedVolume(
+            weaponAudioSource,
+            GameplayAudioSpatializer.Profile.Melee,
+            0.90f * sfxVol,
+            HasInputAuthority);
         weaponAudioSource.pitch = Random.Range(0.97f, 1.03f);
-        weaponAudioSource.PlayOneShot(swingSFX, 0.90f * sfxVol);
+        weaponAudioSource.PlayOneShot(swingSFX, finalVolume);
     }
 
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
@@ -738,8 +758,13 @@ public class PlayerCombat : NetworkBehaviour
         GameplayAudioSpatializer.Configure(weaponAudioSource, GameplayAudioSpatializer.Profile.Melee);
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        float finalVolume = GameplayAudioSpatializer.GetAttenuatedVolume(
+            weaponAudioSource,
+            GameplayAudioSpatializer.Profile.Melee,
+            1.00f * sfxVol,
+            HasInputAuthority);
         weaponAudioSource.pitch = Random.Range(0.97f, 1.03f);
-        weaponAudioSource.PlayOneShot(hitFleshSFX, 1.00f * sfxVol);
+        weaponAudioSource.PlayOneShot(hitFleshSFX, finalVolume);
     }
 
     private void OnDrawGizmos()
