@@ -1014,7 +1014,7 @@ GameObject:
   - component: {fileID: 8340110906649057490}
   - component: {fileID: 7541585154685980467}
   - component: {fileID: 4603282890651849024}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: tuongnha
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2477,7 +2477,7 @@ GameObject:
   - component: {fileID: 4451162232512255838}
   - component: {fileID: 4212308179616535340}
   - component: {fileID: 3058628075579093488}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: tuongnha1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -3129,7 +3129,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3548049213389787876, guid: 7d83b730300eca540bfc969f3aa74566, type: 3}
       propertyPath: SortKey
-      value: 3123662519
+      value: 3905925397
       objectReference: {fileID: 0}
     - target: {fileID: 9104084093693402427, guid: 7d83b730300eca540bfc969f3aa74566, type: 3}
       propertyPath: m_Name

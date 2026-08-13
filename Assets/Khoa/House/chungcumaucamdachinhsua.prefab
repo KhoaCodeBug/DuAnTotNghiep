@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8792933464431058609}
   - component: {fileID: 6012039733814875124}
   - component: {fileID: 3019677667680367628}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: tuongnha
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2673,7 +2673,7 @@ GameObject:
   - component: {fileID: 5570189680117680814}
   - component: {fileID: 3857866511970621098}
   - component: {fileID: 4312199378928786643}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: tuongnha3
   m_TagString: Untagged
   m_Icon: {fileID: 0}

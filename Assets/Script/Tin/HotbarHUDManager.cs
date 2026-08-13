@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Fusion;
 using TMPro;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 public class HotbarHUDManager : MonoBehaviour
 {
@@ -44,6 +45,7 @@ public class HotbarHUDManager : MonoBehaviour
     private InventorySystem localInventory;
     private PlayerHealth localPlayerHealth;
     private PlayerSurvival localSurvival;
+    private bool hudShouldBeVisible = true;
     
     // Config
     private int hotbarSize = 5;
@@ -57,14 +59,19 @@ public class HotbarHUDManager : MonoBehaviour
     void Awake()
     {
         if (instance == null) instance = this;
-        else { Destroy(gameObject); return; }
+        else if (instance != this) { Destroy(gameObject); return; }
 
+        DontDestroyOnLoad(transform.root.gameObject);
         GenerateHUD();
+        SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void GenerateHUD()
     {
+        ClearHUDReferences();
+
         hudCanvas = new GameObject("HotbarCanvas");
+        hudCanvas.transform.SetParent(transform, false);
         Canvas canvas = hudCanvas.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 120; // Cao hơn Canvas kho đồ (100) để kéo thả Hotbar mượt mà ngay cả khi mở Inventory!
@@ -74,7 +81,6 @@ public class HotbarHUDManager : MonoBehaviour
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
         hudCanvas.AddComponent<GraphicRaycaster>();
-        DontDestroyOnLoad(hudCanvas);
 
         // --- HOTBAR PANEL (Dành cho 5 ô size 80x80: 5*80 + 4*8 spacing + 16 padding = 448px width, 80 + 16 = 96px height) ---
         hotbarPanel = new GameObject("HotbarPanel");
@@ -188,6 +194,66 @@ public class HotbarHUDManager : MonoBehaviour
         CreateBorderLine(selectionHighlight, "BottomBorder", new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0f), new Vector2(0, 3f));
         CreateBorderLine(selectionHighlight, "LeftBorder", new Vector2(0, 0), new Vector2(0, 1), new Vector2(0f, 0.5f), new Vector2(3f, 0));
         CreateBorderLine(selectionHighlight, "RightBorder", new Vector2(1, 0), new Vector2(1, 1), new Vector2(1f, 0.5f), new Vector2(3f, 0));
+
+        hudCanvas.SetActive(hudShouldBeVisible);
+    }
+
+    private void ClearHUDReferences()
+    {
+        slotBackgrounds.Clear();
+        slotIcons.Clear();
+        slotAmounts.Clear();
+        slotBatteryFills.Clear();
+        hotbarPanel = null;
+        selectionHighlight = null;
+        itemNameText = null;
+    }
+
+    private bool IsHUDComplete()
+    {
+        if (hudCanvas == null || hotbarPanel == null || selectionHighlight == null || itemNameText == null)
+            return false;
+
+        if (slotBackgrounds.Count != hotbarSize || slotIcons.Count != hotbarSize ||
+            slotAmounts.Count != hotbarSize || slotBatteryFills.Count != hotbarSize)
+            return false;
+
+        for (int i = 0; i < hotbarSize; i++)
+        {
+            if (slotBackgrounds[i] == null || slotIcons[i] == null ||
+                slotAmounts[i] == null || slotBatteryFills[i] == null)
+                return false;
+        }
+
+        return true;
+    }
+
+    private void EnsureHUDIntegrity()
+    {
+        if (!IsHUDComplete())
+        {
+            if (hudCanvas != null) Destroy(hudCanvas);
+            GenerateHUD();
+            return;
+        }
+
+        // Recover from an accidental/stale deactivation while respecting an
+        // intentional hide requested by the spectator UI.
+        if (hudCanvas.activeSelf != hudShouldBeVisible)
+        {
+            hudCanvas.SetActive(hudShouldBeVisible);
+        }
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        EnsureHUDIntegrity();
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+        if (instance == this) instance = null;
     }
 
     private void CreateBorderLine(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 size)
@@ -229,6 +295,7 @@ public class HotbarHUDManager : MonoBehaviour
 
     private void Update()
     {
+        EnsureHUDIntegrity();
         FindLocalPlayerCache();
         HandleInput();
         UpdateUI();
@@ -405,6 +472,8 @@ public class HotbarHUDManager : MonoBehaviour
 
     public void SetHUDVisible(bool visible)
     {
+        hudShouldBeVisible = visible;
+        EnsureHUDIntegrity();
         if (hudCanvas != null)
         {
             hudCanvas.SetActive(visible);
