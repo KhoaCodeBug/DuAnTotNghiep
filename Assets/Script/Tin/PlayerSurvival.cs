@@ -42,7 +42,8 @@ public class PlayerSurvival : NetworkBehaviour
     private float sleepStatusMessageUntil;
 
     public bool IsSleepInputLocked => IsWaitingForSleep ||
-                                      (DayNightManager.Instance != null && DayNightManager.Instance.IsSleepTransitionActive);
+                                      (DayNightManager.Instance != null && DayNightManager.Instance.IsSleepTransitionActive) ||
+                                      (MainQuestManager.Instance != null && MainQuestManager.Instance.IsQuestCutsceneActive);
 
     public override void Spawned()
     {

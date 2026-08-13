@@ -174,6 +174,9 @@ public class AutoUIManager : MonoBehaviour
 
         if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
 
+        // Cutscene Main là bắt buộc cho cả đội; không cho mở UI che camera trong lúc này.
+        if (MainQuestManager.Instance != null && MainQuestManager.Instance.IsQuestCutsceneActive) return;
+
         if (localPlayer == null)
         {
             EnsureLocalPlayer();

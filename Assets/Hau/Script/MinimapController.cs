@@ -1,6 +1,7 @@
-using UnityEngine;
-using Fusion;
 using System.Collections.Generic;
+using Fusion;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class MinimapController : MonoBehaviour
 {
@@ -17,95 +18,101 @@ public class MinimapController : MonoBehaviour
     public float mapRadius = 90f;
 
     private Transform localPlayer;
-    private Dictionary<Transform, RectTransform> iconMap = new Dictionary<Transform, RectTransform>();
+    private readonly Dictionary<Transform, RectTransform> iconMap = new Dictionary<Transform, RectTransform>();
+    private Canvas minimapCanvas;
+    private Camera minimapCamera;
+    private bool isUnlocked = true;
 
-    void Start()
+    private void Awake()
     {
-        // Ẩn icon của mình lúc đầu, sẽ hiện khi tìm thấy nhân vật
+        minimapCanvas = GetComponent<Canvas>();
+        minimapCamera = GetComponentInParent<Camera>();
+        // Khóa ngay từ Awake để minimap không lóe lên trước khi state quest được spawn.
+        if (SceneManager.GetActiveScene().name == "Main") SetMapUnlocked(false);
+    }
+
+    private void Start()
+    {
         if (localPlayerIcon != null) localPlayerIcon.gameObject.SetActive(false);
     }
 
-    void Update()
+    public void SetMapUnlocked(bool unlocked)
     {
+        if (isUnlocked == unlocked && minimapCanvas != null && minimapCanvas.enabled == unlocked) return;
+
+        isUnlocked = unlocked;
+        if (minimapCanvas != null) minimapCanvas.enabled = unlocked;
+        if (minimapCamera != null) minimapCamera.enabled = unlocked;
+
+        if (!unlocked)
+        {
+            if (localPlayerIcon != null) localPlayerIcon.gameObject.SetActive(false);
+            foreach (RectTransform icon in iconMap.Values)
+                if (icon != null) icon.gameObject.SetActive(false);
+        }
+        else
+        {
+            foreach (RectTransform icon in iconMap.Values)
+                if (icon != null) icon.gameObject.SetActive(true);
+        }
+    }
+
+    private void Update()
+    {
+        if (!isUnlocked) return;
+
         AutoRegisterObjects();
-
         if (localPlayer == null) return;
-
         UpdateLocalPlayer();
         UpdateAllIcons();
     }
 
-    void AutoRegisterObjects()
+    private void AutoRegisterObjects()
     {
-        // 1. QUÉT TÌM MỌI THỨ CÓ TAG "Player"
         GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
-
-        // 2. IN RA BÁO CÁO (Để xem Unity có bị mù không)
-        Debug.Log("🔍 Đã quét Tag 'Player' trên map. Tìm thấy: " + players.Length + " người!");
-
-        foreach (GameObject pObj in players)
+        foreach (GameObject playerObject in players)
         {
-            NetworkObject netObj = pObj.GetComponent<NetworkObject>();
-            if (netObj == null || !netObj.IsValid || netObj.Runner == null) continue;
+            NetworkObject networkObject = playerObject.GetComponent<NetworkObject>();
+            if (networkObject == null || !networkObject.IsValid || networkObject.Runner == null) continue;
 
-            // 3. Phân loại Mình và Người Khác
-            // (Thêm HasStateAuthority để phòng trường hợp bạn dùng Fusion Shared Mode)
-            bool isMe = netObj.HasInputAuthority || (netObj.Runner.Topology == Topologies.Shared && netObj.HasStateAuthority);
-
-            if (isMe)
-            {
-                localPlayer = pObj.transform;
-            }
-            else
-            {
-                CreateIconIfMissing(pObj.transform, otherPlayerPrefab);
-            }
+            bool isMe = networkObject.HasInputAuthority ||
+                        (networkObject.Runner.Topology == Topologies.Shared && networkObject.HasStateAuthority);
+            if (isMe) localPlayer = playerObject.transform;
+            else CreateIconIfMissing(playerObject.transform, otherPlayerPrefab);
         }
 
-        // Quét Quái (Enemy) - Giữ nguyên
         GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        foreach (var e in enemies)
-        {
-            CreateIconIfMissing(e.transform, enemyPrefab);
-        }
+        foreach (GameObject enemy in enemies)
+            CreateIconIfMissing(enemy.transform, enemyPrefab);
     }
-    void CreateIconIfMissing(Transform target, RectTransform prefab)
-    {
-        if (target == null || iconMap.ContainsKey(target)) return;
 
-        Debug.Log("✅ Đang tạo icon cho đối tượng: " + target.gameObject.name);
+    private void CreateIconIfMissing(Transform target, RectTransform prefab)
+    {
+        if (target == null || prefab == null || mapRect == null || iconMap.ContainsKey(target)) return;
 
         RectTransform newIcon = Instantiate(prefab, mapRect);
         newIcon.gameObject.SetActive(true);
-        newIcon.localScale = Vector3.one; // Chống lỗi teo nhỏ
-        newIcon.anchoredPosition3D = Vector3.zero; // Chống lỗi rớt trục Z
-
+        newIcon.localScale = Vector3.one;
+        newIcon.anchoredPosition3D = Vector3.zero;
         iconMap.Add(target, newIcon);
     }
 
-    void UpdateLocalPlayer()
+    private void UpdateLocalPlayer()
     {
-        if (localPlayerIcon == null)
-        {
-            Debug.LogError("⚠️ BẠN CHƯA KÉO LOCAL PLAYER ICON VÀO SCRIPT!");
-            return;
-        }
-
+        if (localPlayerIcon == null) return;
         localPlayerIcon.gameObject.SetActive(true);
         localPlayerIcon.anchoredPosition = Vector2.zero;
         localPlayerIcon.localScale = Vector3.one;
-        localPlayerIcon.SetAsLastSibling(); // Ép nổi lên trên cùng nền map
+        localPlayerIcon.SetAsLastSibling();
     }
 
-    void UpdateAllIcons()
+    private void UpdateAllIcons()
     {
         List<Transform> toRemove = new List<Transform>();
-
-        foreach (var item in iconMap)
+        foreach (KeyValuePair<Transform, RectTransform> item in iconMap)
         {
             Transform target = item.Key;
             RectTransform icon = item.Value;
-
             if (target == null)
             {
                 if (icon != null) Destroy(icon.gameObject);
@@ -115,19 +122,13 @@ public class MinimapController : MonoBehaviour
 
             Vector2 offset = new Vector2(
                 target.position.x - localPlayer.position.x,
-                target.position.y - localPlayer.position.y
-            );
-
-            Vector2 mapPos = offset * mapScale;
-
-            if (mapPos.magnitude > mapRadius)
-            {
-                mapPos = mapPos.normalized * mapRadius;
-            }
-
-            icon.anchoredPosition = mapPos;
+                target.position.y - localPlayer.position.y);
+            Vector2 mapPosition = offset * mapScale;
+            if (mapPosition.magnitude > mapRadius)
+                mapPosition = mapPosition.normalized * mapRadius;
+            icon.anchoredPosition = mapPosition;
         }
 
-        foreach (var t in toRemove) iconMap.Remove(t);
+        foreach (Transform target in toRemove) iconMap.Remove(target);
     }
 }

@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>Put this trigger around KhuVucBatDau to begin the office-map objective.</summary>
-[RequireComponent(typeof(BoxCollider2D))]
+/// <summary>Put this on KhuVucNhiemVu to begin the office-map objective.</summary>
+[DisallowMultipleComponent]
 public sealed class MainQuestStartTrigger : MonoBehaviour
 {
     private static readonly Dictionary<int, MainQuestStartTrigger> Registry = new Dictionary<int, MainQuestStartTrigger>();
@@ -15,13 +15,15 @@ public sealed class MainQuestStartTrigger : MonoBehaviour
 
     private void Reset()
     {
-        BoxCollider2D box = GetComponent<BoxCollider2D>();
-        if (box != null) box.isTrigger = true;
+        Collider2D area = GetComponent<Collider2D>();
+        if (area != null) area.isTrigger = true;
     }
 
     private void Awake()
     {
         triggerCollider = GetComponent<Collider2D>();
+        if (triggerCollider == null)
+            Debug.LogError("[MAIN QUEST] KhuVucNhiemVu cần một Collider2D bật Is Trigger.", this);
         TriggerId = BuildStableId();
     }
 
@@ -39,8 +41,9 @@ public sealed class MainQuestStartTrigger : MonoBehaviour
 
     private void Update()
     {
-        if (localRequestSent || MainQuestManager.Instance == null ||
-            MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.NotStarted)
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (localRequestSent || manager == null || !manager.IsNetworkReady ||
+            manager.CurrentStage != MainQuestManager.QuestStage.NotStarted)
             return;
 
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
@@ -56,8 +59,13 @@ public sealed class MainQuestStartTrigger : MonoBehaviour
     private void RequestStart()
     {
         if (localRequestSent) return;
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady) return;
+
+        // Only consume the local request after Fusion has actually spawned the
+        // manager. If the player entered early, Update will retry next frame.
         localRequestSent = true;
-        MainQuestManager.Instance?.RequestStartMapSearch(TriggerId);
+        manager.RequestStartMapSearch(TriggerId);
     }
 
     public bool Contains(Vector3 worldPosition)
