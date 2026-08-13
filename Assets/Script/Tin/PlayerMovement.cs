@@ -536,7 +536,11 @@ public class PlayerMovement : NetworkBehaviour
         if (clip == null) return;
 
         float sfxVol = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
-        float finalVol = baseVol * sfxVol;
+        float finalVol = GameplayAudioSpatializer.GetAttenuatedVolume(
+            footstepAudioSource,
+            GameplayAudioSpatializer.Profile.Footstep,
+            baseVol * sfxVol,
+            HasInputAuthority);
 
         // 🔥 TRIỆT TIÊU 100% LỖI TRỒNG TẦNG SOUND: Dừng ngay âm đuôi bước cũ trước khi phát bước mới!
         // Không dùng PlayOneShot vì PlayOneShot làm các âm đuôi chồng lên nhau thành 3-4 tầng sound.
@@ -582,7 +586,13 @@ public class PlayerMovement : NetworkBehaviour
             if (aiNew != null)
             {
                 int id = aiNew.GetInstanceID();
-                float hearingRadius = useThaiEnhancedHearing ? thaiBaseRadius * aiNew.HearingRangeMultiplier : thaiBaseRadius;
+                // ZombieThai2 has its own deliberately tuned hearing profile.
+                // Keep legacy Thai zombies and rebuilt Khoa zombies at the
+                // shared base radius when walking, while V2 can be adjusted
+                // independently without changing the player's audible SFX.
+                float hearingRadius = aiNew.UsesBlindV2Rules
+                    ? thaiBaseRadius * aiNew.HearingRangeMultiplier
+                    : (useThaiEnhancedHearing ? thaiBaseRadius * aiNew.HearingRangeMultiplier : thaiBaseRadius);
                 float distance = Vector2.Distance(transform.position, aiNew.transform.position);
                 if (!notifiedZombies.Contains(id) && distance <= hearingRadius)
                 {

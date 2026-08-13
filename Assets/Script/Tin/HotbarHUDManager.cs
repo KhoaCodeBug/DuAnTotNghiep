@@ -33,6 +33,7 @@ public class HotbarHUDManager : MonoBehaviour
     private List<Image> slotBackgrounds = new List<Image>();
     private List<Image> slotIcons = new List<Image>();
     private List<TextMeshProUGUI> slotAmounts = new List<TextMeshProUGUI>();
+    private List<Image> slotBatteryFills = new List<Image>();
     private RectTransform selectionHighlight;
     private TextMeshProUGUI itemNameText;
 
@@ -147,6 +148,22 @@ public class HotbarHUDManager : MonoBehaviour
             iconObj.SetActive(false);
             slotIcons.Add(icon);
 
+            GameObject batteryObj = new GameObject("BatteryFill");
+            batteryObj.transform.SetParent(slotObj.transform, false);
+            RectTransform batteryRt = batteryObj.AddComponent<RectTransform>();
+            batteryRt.anchorMin = new Vector2(0f, 0f); batteryRt.anchorMax = new Vector2(1f, 0f);
+            batteryRt.pivot = new Vector2(0f, 0f);
+            batteryRt.anchoredPosition = new Vector2(5f, 5f);
+            batteryRt.sizeDelta = new Vector2(-10f, 5f);
+            Image battery = batteryObj.AddComponent<Image>();
+            battery.type = Image.Type.Filled;
+            battery.fillMethod = Image.FillMethod.Horizontal;
+            battery.fillOrigin = 0;
+            battery.color = new Color(0.35f, 0.95f, 0.45f, 0.95f);
+            battery.raycastTarget = false;
+            batteryObj.SetActive(false);
+            slotBatteryFills.Add(battery);
+
             GameObject txtObj = new GameObject("Amount");
             txtObj.transform.SetParent(slotObj.transform, false);
             RectTransform txtRt = txtObj.AddComponent<RectTransform>();
@@ -188,6 +205,14 @@ public class HotbarHUDManager : MonoBehaviour
 
     private void FindLocalPlayerCache()
     {
+        if (localInventory != null &&
+            (localInventory.Object == null || !localInventory.Object.IsValid || !localInventory.HasInputAuthority))
+        {
+            localInventory = null;
+            localSurvival = null;
+            localPlayerHealth = null;
+        }
+
         if (localInventory == null || localSurvival == null)
         {
             foreach (var ph in FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None))
@@ -251,6 +276,8 @@ public class HotbarHUDManager : MonoBehaviour
         // Chuột trái: CHỈ dùng nhanh Nhu yếu phẩm ĐỒ ĂN / NƯỚC UỐNG (Không dùng Bandage, Y tế hay Đạn!)
         if (Input.GetMouseButtonDown(0) && EventSystem.current != null && !EventSystem.current.IsPointerOverGameObject())
         {
+            FlashlightController flashlight = localInventory != null ? localInventory.GetComponent<FlashlightController>() : null;
+            if (flashlight != null && flashlight.TryToggleFromHotbar(selectedSlotIndex)) return;
             if (localInventory != null && selectedSlotIndex < localInventory.slots.Count)
             {
                 var slot = localInventory.slots[selectedSlotIndex];
@@ -276,6 +303,7 @@ public class HotbarHUDManager : MonoBehaviour
         // Update Slots
         if (localInventory != null)
         {
+            FlashlightController flashlight = localInventory.GetComponent<FlashlightController>();
             for (int i = 0; i < hotbarSize; i++)
             {
                 if (i < localInventory.slots.Count && localInventory.slots[i].item != null && localInventory.slots[i].amount > 0)
@@ -288,11 +316,24 @@ public class HotbarHUDManager : MonoBehaviour
                         slotAmounts[i].text = localInventory.slots[i].amount.ToString();
                     }
                     else slotAmounts[i].gameObject.SetActive(false);
+
+                    bool isFlashlight = localInventory.slots[i].item.name == FlashlightController.ItemId ||
+                                       localInventory.slots[i].item.itemName == FlashlightController.ItemId;
+                    slotBatteryFills[i].gameObject.SetActive(isFlashlight && flashlight != null);
+                    if (isFlashlight && flashlight != null)
+                    {
+                        float battery01 = flashlight.DisplayBattery01;
+                        slotBatteryFills[i].fillAmount = battery01;
+                        slotBatteryFills[i].color = battery01 > 0.25f
+                            ? new Color(0.35f, 0.95f, 0.45f, 0.95f)
+                            : new Color(1f, 0.35f, 0.2f, 0.95f);
+                    }
                 }
                 else
                 {
                     slotIcons[i].gameObject.SetActive(false);
                     slotAmounts[i].gameObject.SetActive(false);
+                    slotBatteryFills[i].gameObject.SetActive(false);
                 }
             }
         }

@@ -11,6 +11,13 @@ public class PlayerVision : NetworkBehaviour
     public AnimationCurve radiusCurve;
     public AnimationCurve intensityCurve;
 
+    [Header("=== ĐÈN PIN: NGUỒN SÁNG THẬT ===")]
+    [Range(0.1f, 2f)] public float flashlightWorldIntensity = 0.85f;
+    [Range(0f, 1f)] public float flashlightFalloffIntensity = 0.82f;
+    [Range(0f, 0.5f)] public float flashlightInnerRadiusRatio = 0.16f;
+    [Range(1f, 20f)] public float flashlightLightTransitionSpeed = 10f;
+    public Color flashlightWorldColor = new Color(1f, 0.91f, 0.72f, 1f);
+
     [Header("=== Cài đặt Ngắm Bắn (Chuột Phải) ===")]
     public float normalInnerAngle = 100f;
     public float normalOuterAngle = 140f;
@@ -40,12 +47,14 @@ public class PlayerVision : NetworkBehaviour
     private PlayerMovement pMove;
     private PlayerInteraction playerInteraction;
     private RoofDetector roofDetector;
+    private FlashlightController flashlightController;
     private SpriteRenderer playerBodyRenderer;
     private Material originalPlayerMaterial;
     private Color originalPlayerColor;
     private Material localPlayerUnlitMaterial;
 
     public float CurrentVisionRadius { get; private set; }
+    public float AmbientVisionRadius { get; private set; }
     public float CurrentVisionAngle { get; private set; }
     public VehicleControllerFusion CurrentVisionVehicle => playerInteraction != null && playerInteraction.IsInVehicle
         ? playerInteraction.CurrentVehicleController
@@ -66,6 +75,7 @@ public class PlayerVision : NetworkBehaviour
     public Collider2D ActiveIndoorCollider => !IsUsingVehicleVision && roofDetector != null
         ? roofDetector.CurrentIndoorCollider
         : null;
+    public bool IsFlashlightActive => flashlightController != null && flashlightController.IsFlashlightActive;
 
     private void Awake()
     {
@@ -78,7 +88,26 @@ public class PlayerVision : NetworkBehaviour
         pMove = GetComponent<PlayerMovement>();
         playerInteraction = GetComponent<PlayerInteraction>();
         roofDetector = GetComponentInChildren<RoofDetector>();
+        flashlightController = GetComponent<FlashlightController>();
+        ConfigureLightForWorldEnvironment();
         SetupLocalPlayerReadability();
+    }
+
+    private void ConfigureLightForWorldEnvironment()
+    {
+        if (playerLight == null) return;
+
+        // The old prefab only targeted Default + Player, so most map and prop
+        // sprites on Gameplay/Foreground/Background could never receive this
+        // light. Keep the list future-proof when new sorting layers are added.
+        SortingLayer[] sortingLayers = SortingLayer.layers;
+        int[] sortingLayerIds = new int[sortingLayers.Length];
+        for (int i = 0; i < sortingLayers.Length; i++)
+            sortingLayerIds[i] = sortingLayers[i].id;
+
+        playerLight.targetSortingLayers = sortingLayerIds;
+        playerLight.shadowsEnabled = true;
+        playerLight.shadowSoftness = 0.82f;
     }
 
     private void SetupLocalPlayerReadability()
@@ -156,6 +185,7 @@ public class PlayerVision : NetworkBehaviour
         if (useVehicleVision)
         {
             CurrentVisionRadius = CurrentVisionVehicle.VisionRadius;
+            AmbientVisionRadius = CurrentVisionRadius;
             CurrentVisionAngle = CurrentVisionVehicle.VisionAngle;
             UpdateZombieVisibility(CurrentVisionAngle);
             return;
@@ -173,20 +203,51 @@ public class PlayerVision : NetworkBehaviour
                 ? FogVisionController.Instance.GetOutdoorVisionMultiplier()
                 : 1f;
 
-            CurrentVisionRadius = baseRadius * fogMultiplier;
-            playerLight.pointLightOuterRadius = CurrentVisionRadius;
+            // The flashlight brings practical visibility back to the 10:00 AM
+            // radius, while the fog renderer still leaves a soft haze in front.
+            float flashlightDayRadius = radiusCurve.Evaluate(10f / 24f);
+            float naturalVisionRadius = baseRadius * fogMultiplier;
+            AmbientVisionRadius = naturalVisionRadius;
+            CurrentVisionRadius = IsFlashlightActive
+                ? Mathf.Max(naturalVisionRadius, flashlightDayRadius)
+                : naturalVisionRadius;
             float baseIntensity = intensityCurve.Evaluate(timePercent);
-            playerLight.intensity = baseIntensity * (isInside ? indoorLightIntensityMultiplier : 1f);
+            float naturalIntensity = baseIntensity * (isInside ? indoorLightIntensityMultiplier : 1f);
+            float targetLightRadius = IsFlashlightActive ? CurrentVisionRadius : naturalVisionRadius;
+            float targetLightIntensity = IsFlashlightActive
+                ? Mathf.Max(naturalIntensity, flashlightWorldIntensity)
+                : naturalIntensity;
+            Color targetLightColor = IsFlashlightActive ? flashlightWorldColor : Color.white;
+            float transition = 1f - Mathf.Exp(-flashlightLightTransitionSpeed * Time.deltaTime);
+
+            // This is the actual URP 2D light. It illuminates lit tiles/sprites,
+            // respects ShadowCaster2D walls, and softly falls off before the fog
+            // shader reaches its own feathered edge.
+            playerLight.pointLightOuterRadius = Mathf.Lerp(playerLight.pointLightOuterRadius, targetLightRadius, transition);
+            playerLight.pointLightInnerRadius = Mathf.Lerp(playerLight.pointLightInnerRadius,
+                IsFlashlightActive ? targetLightRadius * flashlightInnerRadiusRatio : 0f, transition);
+            playerLight.intensity = Mathf.Lerp(playerLight.intensity, targetLightIntensity, transition);
+            playerLight.falloffIntensity = Mathf.Lerp(playerLight.falloffIntensity,
+                IsFlashlightActive ? flashlightFalloffIntensity : 0.55f, transition);
+            playerLight.color = Color.Lerp(playerLight.color, targetLightColor, transition);
         }
         else
         {
             CurrentVisionRadius = playerLight.pointLightOuterRadius;
+            AmbientVisionRadius = CurrentVisionRadius;
         }
 
         // 2. BÓP GÓC KHI NGẮM BẮN
         bool isAiming = HasInputAuthority ? Input.GetMouseButton(1) : pMove.NetIsAiming;
-        float targetInner = isAiming ? aimInnerAngle : normalInnerAngle;
-        float targetOuter = isAiming ? aimOuterAngle : normalOuterAngle;
+        float physicalInner = isAiming ? aimInnerAngle : normalInnerAngle;
+        float physicalOuter = isAiming ? aimOuterAngle : normalOuterAngle;
+        float targetInner = physicalInner;
+        float targetOuter = physicalOuter;
+        if (IsFlashlightActive)
+        {
+            targetInner = Mathf.Max(targetInner, 105f);
+            targetOuter = Mathf.Max(targetOuter, 145f);
+        }
         CurrentVisionAngle = targetOuter;
 
         playerLight.pointLightInnerAngle = Mathf.Lerp(playerLight.pointLightInnerAngle, targetInner, Time.deltaTime * aimTransitionSpeed);
@@ -276,9 +337,9 @@ public class PlayerVision : NetworkBehaviour
                 isVisible = true;
             }
 
-            // While indoors, the dim ambient view shows the room but not zombie silhouettes.
-            // A zombie must be inside this same indoor area and inside the direct cone to render.
-            else if (isInside && !indoorCollider.OverlapPoint(zCollider.bounds.center))
+            // Without a flashlight, indoor vision cannot reveal exterior zombie silhouettes.
+            // With one, the regular radius/cone/LOS checks below may see through an open doorway.
+            else if (isInside && !indoorCollider.OverlapPoint(zCollider.bounds.center) && !IsFlashlightActive)
             {
                 isVisible = false;
             }

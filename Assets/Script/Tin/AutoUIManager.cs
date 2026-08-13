@@ -35,6 +35,7 @@ public class AutoUIManager : MonoBehaviour
     public AudioClip playerEatSFX;
     public AudioClip playerDrinkSFX;
     private AudioSource itemSFXAudioSource;
+    private AudioSource uiSFXAudioSource;
     #endregion
 
     #region Biến UI - Spectator
@@ -506,22 +507,31 @@ public class AutoUIManager : MonoBehaviour
     public void PlayInventoryOpenSound()
     {
         AudioClip clip = Resources.Load<AudioClip>("Sound/Actions/inventory_open");
-        Vector3 pos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
-        if (clip != null) AudioSource.PlayClipAtPoint(clip, pos, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
+        PlayUiSFX(clip);
     }
 
     public void PlayInventoryCloseSound()
     {
         AudioClip clip = Resources.Load<AudioClip>("Sound/Actions/inventory_close");
-        Vector3 pos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
-        if (clip != null) AudioSource.PlayClipAtPoint(clip, pos, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
+        PlayUiSFX(clip);
     }
 
     public void PlayItemPickupSound()
     {
         AudioClip clip = Resources.Load<AudioClip>("Sound/Actions/item_pickup");
-        Vector3 pos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
-        if (clip != null) AudioSource.PlayClipAtPoint(clip, pos, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
+        PlayUiSFX(clip);
+    }
+
+    private void PlayUiSFX(AudioClip clip)
+    {
+        if (clip == null) return;
+        if (uiSFXAudioSource == null)
+        {
+            uiSFXAudioSource = gameObject.AddComponent<AudioSource>();
+            uiSFXAudioSource.playOnAwake = false;
+            uiSFXAudioSource.spatialBlend = 0f;
+        }
+        uiSFXAudioSource.PlayOneShot(clip, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
     }
 
     private void GenerateEntireUI()

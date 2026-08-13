@@ -26,6 +26,7 @@ public class ZombieSpawnZone : NetworkBehaviour
 
     private List<ZOmbieAI_Khoa> aliveZombies = new List<ZOmbieAI_Khoa>();
     private List<ZombieAIKhoaRebuilt> aliveRebuiltZombies = new List<ZombieAIKhoaRebuilt>();
+    private List<ZombieHealth> aliveThaiZombies = new List<ZombieHealth>();
     private float currentCooldown;
     private float checkPlayerTimer = 0f;
     private bool isSpawning = false;
@@ -51,8 +52,9 @@ public class ZombieSpawnZone : NetworkBehaviour
 
         aliveZombies.RemoveAll(z => z == null || z.NetIsDead);
         aliveRebuiltZombies.RemoveAll(z => z == null || z.NetIsDead);
+        aliveThaiZombies.RemoveAll(z => z == null || z.isDead);
 
-        if (aliveZombies.Count == 0 && aliveRebuiltZombies.Count == 0)
+        if (aliveZombies.Count == 0 && aliveRebuiltZombies.Count == 0 && aliveThaiZombies.Count == 0)
         {
             // Chỉ bắt đầu đếm Cooldown và Check Player nếu KHÔNG PHẢI lần đẻ đầu tiên
             if (!isFirstWave)
@@ -129,6 +131,10 @@ public class ZombieSpawnZone : NetworkBehaviour
                     else if (spawnedObj.TryGetComponent(out ZombieAIKhoaRebuilt rebuiltScript))
                     {
                         aliveRebuiltZombies.Add(rebuiltScript);
+                    }
+                    else if (spawnedObj.TryGetComponent(out ZombieHealth thaiHealth))
+                    {
+                        aliveThaiZombies.Add(thaiHealth);
                     }
 
                     hasSpawnedThisZombie = true;

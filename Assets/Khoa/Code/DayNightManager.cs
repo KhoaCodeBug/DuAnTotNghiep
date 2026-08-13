@@ -75,7 +75,7 @@ public class DayNightManager : NetworkBehaviour
 #if UNITY_EDITOR
         if (ambushZombiePrefab == null)
         {
-            GameObject zombiePrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Khoa/Zombie2Khoa.prefab");
+            GameObject zombiePrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Khoa/ZombieKhoaRebuilt.prefab");
             if (zombiePrefab != null) ambushZombiePrefab = zombiePrefab.GetComponent<NetworkObject>();
         }
 

@@ -26,7 +26,7 @@ public class ItemPickup : MonoBehaviour // 🔥 ĐÃ ĐỔI: Trở lại làm Mo
                     AudioClip pickupSFX = Resources.Load<AudioClip>("Sound/Actions/item_pickup");
                     if (pickupSFX != null)
                     {
-                        AudioSource.PlayClipAtPoint(pickupSFX, transform.position, PlayerPrefs.GetFloat("GameSFXVolume", 0.8f));
+                        if (AutoUIManager.Instance != null) AutoUIManager.Instance.PlayItemPickupSound();
                     }
 
                     // 1. Tắt hình ảnh và va chạm ngay lập tức trên máy mình để tạo cảm giác mượt mà (Không bị lag delay)

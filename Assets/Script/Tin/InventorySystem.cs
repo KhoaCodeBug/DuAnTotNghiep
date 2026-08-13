@@ -44,6 +44,8 @@ public class InventorySystem : NetworkBehaviour
     [Networked] private NetworkBool HasStartingWeapon { get; set; }
     [Networked] private NetworkString<_64> StartingWeaponId { get; set; }
     private bool hasAppliedStartingWeaponLocally;
+    [Networked] private NetworkBool HasStartingFlashlight { get; set; }
+    private bool hasAppliedStartingFlashlightLocally;
 
     private void Awake()
     {
@@ -103,7 +105,15 @@ public class InventorySystem : NetworkBehaviour
                 GrantRandomStartingWeapon();
         }
 
+        if (HasStateAuthority && !HasStartingFlashlight)
+        {
+            HasStartingFlashlight = true;
+            PlaceStartingFlashlightInBackpack();
+            hasAppliedStartingFlashlightLocally = true;
+        }
+
         ApplyReplicatedStartingWeapon();
+        ApplyReplicatedStartingFlashlight();
     }
 
     public override void Render()
@@ -111,6 +121,7 @@ public class InventorySystem : NetworkBehaviour
         // Late-join/input-authority clients receive the Networked values after
         // Spawned, so retry here until their single starting weapon is applied.
         ApplyReplicatedStartingWeapon();
+        ApplyReplicatedStartingFlashlight();
     }
 
     private void GrantRandomStartingWeapon()
@@ -227,6 +238,31 @@ public class InventorySystem : NetworkBehaviour
         }
 
         UpdateUI();
+    }
+
+    private void ApplyReplicatedStartingFlashlight()
+    {
+        if (!HasInputAuthority || hasAppliedStartingFlashlightLocally || !HasStartingFlashlight) return;
+        PlaceStartingFlashlightInBackpack();
+        hasAppliedStartingFlashlightLocally = true;
+    }
+
+    private void PlaceStartingFlashlightInBackpack()
+    {
+        ItemData flashlight = ItemDataLoader.LoadItem(FlashlightController.ItemId);
+        if (flashlight == null || HasItemNamed(FlashlightController.ItemId)) return;
+
+        while (slots.Count < maxSlots) slots.Add(new InventorySlot(null, 0));
+        for (int i = 5; i < maxSlots; i++)
+        {
+            if (slots[i] != null && slots[i].item != null && slots[i].amount > 0) continue;
+            if (slots[i] == null) slots[i] = new InventorySlot(flashlight, 1);
+            else { slots[i].item = flashlight; slots[i].amount = 1; }
+            UpdateUI();
+            return;
+        }
+
+        Debug.LogWarning("[FLASHLIGHT] Backpack is full; starting flashlight could not be placed.");
     }
 
     public int GetWeaponItemCount()
@@ -413,6 +449,13 @@ public class InventorySystem : NetworkBehaviour
         InventorySlot slot = slots[index];
         ItemData item = slot.item;
         if (item == null) return;
+
+        // A flashlight is equipped by moving it into Hotbar, never consumed.
+        if (item.name == FlashlightController.ItemId || item.itemName == FlashlightController.ItemId)
+        {
+            if (index >= 5) EquipFlashlightToHotbar(index);
+            return;
+        }
         bool itemUsed = false;
 
         PlayerHealth health = GetComponent<PlayerHealth>();
@@ -526,6 +569,23 @@ public class InventorySystem : NetworkBehaviour
 
             Destroy(droppedGO, dropLifeTime);
         }
+    }
+
+    private void EquipFlashlightToHotbar(int inventoryIndex)
+    {
+        for (int i = 0; i < Mathf.Min(5, slots.Count); i++)
+        {
+            if (slots[i] != null && slots[i].item != null && slots[i].amount > 0) continue;
+            InventorySlot source = slots[inventoryIndex];
+            if (slots[i] == null) slots[i] = new InventorySlot(source.item, source.amount);
+            else { slots[i].item = source.item; slots[i].amount = source.amount; }
+            source.item = null;
+            source.amount = 0;
+            UpdateUI();
+            return;
+        }
+
+        Debug.Log("[FLASHLIGHT] Hotbar is full. Drag the flashlight to a Hotbar slot to equip it.");
     }
 
     public void SwapSlots(int fromIndex, int toIndex)

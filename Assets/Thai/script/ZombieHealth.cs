@@ -22,6 +22,7 @@ public class ZombieHealth : NetworkBehaviour
     // Đã xóa biến aiScript vì Health không cần biết AI là ai nữa
     private SpriteRenderer spriteRend;
     private Color originalColor;
+    private ZombieAI aiScript;
 
     public override void Spawned()
     {
@@ -30,6 +31,7 @@ public class ZombieHealth : NetworkBehaviour
 
         anim = GetComponent<Animator>();
         coll = GetComponent<Collider2D>();
+        aiScript = GetComponent<ZombieAI>();
 
         spriteRend = GetComponentInChildren<SpriteRenderer>(); //hieu ung trung dan
         if (spriteRend != null) originalColor = spriteRend.color;
@@ -44,17 +46,26 @@ public class ZombieHealth : NetworkBehaviour
     {
         if (isDead) return;
 
+        // ZombieThai2 thưởng cho một cú đánh lén khi nó chưa hề khóa được mục tiêu.
+        // Prefab Zombie cũ không bật luật V2 nên vẫn nhận damage y như trước.
+        bool assassination = isMelee && aiScript != null && aiScript.ShouldAssassinationKill();
+        float appliedDamage = assassination ? currentHealth : damage;
+
         // Trừ máu và khóa không cho tụt số âm
-        currentHealth -= damage;
+        currentHealth -= appliedDamage;
         currentHealth = Mathf.Clamp(currentHealth, 0f, maxHealth);
 
-        Debug.Log($"<color=red><b>[TRÚNG ĐÒN] Zombie mất {damage} máu! Máu còn: {currentHealth}</b></color>");
+        Debug.Log($"<color=red><b>[TRÚNG ĐÒN] Zombie mất {appliedDamage} máu! Máu còn: {currentHealth}</b></color>");
 
         if (currentHealth <= 0f)
         {
             Die(shooter);
             return;
         }
+
+        // Bị đánh trực tiếp cung cấp một ảnh chụp vị trí người tấn công. AI mù
+        // chạy tới điểm đó, không theo dõi transform của Player xuyên bản đồ.
+        aiScript?.NotifyDamagedBy(shooter);
 
         // 💡 KIỂM TRA CHOÁNG: Nếu là cận chiến (isMelee) thì choáng 1.5s, nếu súng thì 0.5s
         float currentStunTime = isMelee ? meleeStunDuration : stunDuration;

@@ -41,10 +41,19 @@ public class FogVisionController : MonoBehaviour
     [Range(0.5f, 2f)]
     [Tooltip("Visual bubble size relative to the Player's true vision radius.")]
     public float playerBubbleRadiusMultiplier = 1.08f;
+    [Range(0f, 1f), Tooltip("How strongly an active flashlight thins the night fog inside its soft cone.")]
+    public float flashlightFogClearance = 0.11f;
+    [Range(0f, 1f), Tooltip("Very subtle fog tint only. Actual environment illumination comes from the Player Light2D.")]
+    public float flashlightIllumination = 0.06f;
 
     [Header("Indoor visibility")]
     [Range(0f, 1f)] public float indoorAmbientOpacity = 0.10f;
-    [Range(0f, 1f)] public float indoorExteriorOpacity = 0.96f;
+    [Range(0f, 1f)] public float indoorExteriorOpacity = 0.88f;
+    [Range(0f, 1f), Tooltip("Softly reveals the immediate exterior near an indoor Player so doors and exits remain navigable.")]
+    public float indoorExitAwarenessClearance = 0.32f;
+    [Min(0.25f)] public float indoorExitAwarenessRadius = 2.4f;
+    [Range(0f, 1f), Tooltip("How much a flashlight can open the indoor exterior mask through a doorway.")]
+    public float indoorExteriorFlashlightClearance = 0.68f;
     [Range(0f, 0.25f)] public float visionEdgeSoftness = 0.12f;
     public Color fogColor = new Color(0.72f, 0.75f, 0.77f, 1f);
     public Color indoorAmbientColor = new Color(0.025f, 0.03f, 0.04f, 1f);
@@ -70,10 +79,17 @@ public class FogVisionController : MonoBehaviour
     private static readonly int IndoorExteriorOpacityId = Shader.PropertyToID("_IndoorExteriorOpacity");
     private static readonly int IndoorAmbientColorId = Shader.PropertyToID("_IndoorAmbientColor");
     private static readonly int IndoorExteriorColorId = Shader.PropertyToID("_IndoorExteriorColor");
+    private static readonly int IndoorExitAwarenessClearanceId = Shader.PropertyToID("_IndoorExitAwarenessClearance");
+    private static readonly int IndoorExitAwarenessRadiusId = Shader.PropertyToID("_IndoorExitAwarenessRadius");
+    private static readonly int IndoorExteriorFlashlightClearanceId = Shader.PropertyToID("_IndoorExteriorFlashlightClearance");
     private static readonly int FogWorldBottomLeftId = Shader.PropertyToID("_FogWorldBottomLeft");
     private static readonly int FogWorldRightId = Shader.PropertyToID("_FogWorldRight");
     private static readonly int FogWorldUpId = Shader.PropertyToID("_FogWorldUp");
     private static readonly int FogBankTextureId = Shader.PropertyToID("_FogBankTex");
+    private static readonly int FlashlightActiveId = Shader.PropertyToID("_FlashlightActive");
+    private static readonly int FlashlightClearanceId = Shader.PropertyToID("_FlashlightClearance");
+    private static readonly int FlashlightRadiusId = Shader.PropertyToID("_FlashlightRadius");
+    private static readonly int FlashlightIlluminationId = Shader.PropertyToID("_FlashlightIllumination");
 
     private Camera worldCamera;
     private GameObject overlayRoot;
@@ -257,11 +273,15 @@ public class FogVisionController : MonoBehaviour
         overlayMaterial.SetFloat(FogDayPhaseId, GetDayPhase());
         overlayMaterial.SetVector(FogSeedId, fogSeed);
         overlayMaterial.SetFloat(PlayerBubbleClearanceId, isTutorialReveal ? 0.92f : playerBubbleClearance);
-        overlayMaterial.SetFloat(PlayerBubbleRadiusId, isTutorialReveal ? tutorialRevealRadius : Mathf.Max(targetVision.CurrentVisionRadius * playerBubbleRadiusMultiplier, 0.05f));
+        overlayMaterial.SetFloat(PlayerBubbleRadiusId, isTutorialReveal ? tutorialRevealRadius : Mathf.Max(targetVision.AmbientVisionRadius * playerBubbleRadiusMultiplier, 0.05f));
         overlayMaterial.SetVector(VisionWorldCenterId, new Vector2(visionCenter.x, visionCenter.y));
         overlayMaterial.SetVector(VisionDirectionId, lookDirection);
         overlayMaterial.SetFloat(VisionCosHalfAngleId, Mathf.Cos(targetVision.CurrentVisionAngle * 0.5f * Mathf.Deg2Rad));
         overlayMaterial.SetFloat(VisionEdgeSoftnessId, visionEdgeSoftness);
+        overlayMaterial.SetFloat(FlashlightActiveId, !isTutorialReveal && targetVision.IsFlashlightActive ? 1f : 0f);
+        overlayMaterial.SetFloat(FlashlightClearanceId, flashlightFogClearance);
+        overlayMaterial.SetFloat(FlashlightRadiusId, Mathf.Max(targetVision.CurrentVisionRadius, 0.05f));
+        overlayMaterial.SetFloat(FlashlightIlluminationId, flashlightIllumination);
         overlayMaterial.SetFloat(IndoorActiveId, isIndoor ? 1f : 0f);
         overlayMaterial.SetFloat(IndoorPointCountId, indoorPointCount);
         overlayMaterial.SetVectorArray(IndoorPointsId, indoorPoints);
@@ -269,6 +289,9 @@ public class FogVisionController : MonoBehaviour
         overlayMaterial.SetFloat(IndoorExteriorOpacityId, indoorExteriorOpacity);
         overlayMaterial.SetColor(IndoorAmbientColorId, indoorAmbientColor);
         overlayMaterial.SetColor(IndoorExteriorColorId, indoorExteriorColor);
+        overlayMaterial.SetFloat(IndoorExitAwarenessClearanceId, indoorExitAwarenessClearance);
+        overlayMaterial.SetFloat(IndoorExitAwarenessRadiusId, indoorExitAwarenessRadius);
+        overlayMaterial.SetFloat(IndoorExteriorFlashlightClearanceId, indoorExteriorFlashlightClearance);
         overlayMaterial.SetVector(FogWorldBottomLeftId, fogWorldBottomLeft);
         overlayMaterial.SetVector(FogWorldRightId, fogWorldRight);
         overlayMaterial.SetVector(FogWorldUpId, fogWorldUp);
