@@ -310,7 +310,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1567532758916115651}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 35.67, y: -23.62, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -693,7 +693,7 @@ GameObject:
   - component: {fileID: 6009336085769254059}
   - component: {fileID: 511847275106851494}
   - component: {fileID: 8897395832405444278}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: tuongnha1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2846,7 +2846,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3548049213389787876, guid: 7d83b730300eca540bfc969f3aa74566, type: 3}
       propertyPath: SortKey
-      value: 2146885572
+      value: 674427651
       objectReference: {fileID: 0}
     - target: {fileID: 9104084093693402427, guid: 7d83b730300eca540bfc969f3aa74566, type: 3}
       propertyPath: m_Name

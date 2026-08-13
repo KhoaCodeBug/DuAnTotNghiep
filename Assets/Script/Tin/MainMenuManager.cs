@@ -1970,9 +1970,73 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         if (loadingTitleText != null) loadingTitleText.text = GameLocalization.Get("menu.death_loading");
     }
     private void ChangeCharacter(int direction) { previewID = (previewID + direction + characterNames.Length) % characterNames.Length; RefreshCharacterLanguage(); UpdatePreview(); }
+
+    private void EnsurePreviewImages()
+    {
+        if (previewContainer == null) return;
+
+        int requiredPreviewCount = characterResourcePaths.Length;
+        if (previewImages == null || previewImages.Length != requiredPreviewCount)
+        {
+            GameObject[] repairedPreviews = new GameObject[requiredPreviewCount];
+            if (previewImages != null)
+            {
+                System.Array.Copy(previewImages, repairedPreviews, Mathf.Min(previewImages.Length, repairedPreviews.Length));
+            }
+            previewImages = repairedPreviews;
+        }
+
+        for (int i = 0; i < previewImages.Length; i++)
+        {
+            // The original preview objects belong to MainMenu scene. The menu
+            // manager and its generated canvas survive scene changes, so any
+            // preview that was not selected before leaving the scene used to be
+            // destroyed. Recreate missing entries from Resources when needed.
+            if (previewImages[i] == null)
+            {
+                previewImages[i] = new GameObject(
+                    $"RuntimeCharacterPreview_{i + 1}",
+                    typeof(RectTransform),
+                    typeof(CanvasRenderer),
+                    typeof(Image));
+            }
+
+            GameObject preview = previewImages[i];
+            preview.layer = previewContainer.gameObject.layer;
+
+            // Parent every preview, including inactive ones, to the persistent
+            // menu canvas. Previously only the active entry was moved, leaving
+            // the other character behind to be destroyed with MainMenu scene.
+            if (preview.transform.parent != previewContainer)
+            {
+                preview.transform.SetParent(previewContainer, false);
+            }
+
+            RectTransform rt = preview.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.offsetMin = Vector2.zero;
+                rt.offsetMax = Vector2.zero;
+                rt.localScale = Vector3.one;
+            }
+
+            Image image = preview.GetComponent<Image>();
+            if (image == null) image = preview.AddComponent<Image>();
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+        }
+    }
+
     private void UpdatePreview()
     {
-        if (previewImages == null || previewContainer == null) return;
+        if (previewContainer == null) return;
+
+        EnsurePreviewImages();
+        if (previewImages == null || previewImages.Length == 0) return;
+
+        previewID = Mathf.Clamp(previewID, 0, previewImages.Length - 1);
         for (int i = 0; i < previewImages.Length; i++)
         {
             if (previewImages[i] != null)
@@ -1981,16 +2045,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 previewImages[i].SetActive(isActive);
                 if (isActive)
                 {
-                    previewImages[i].transform.SetParent(previewContainer, false);
-                    RectTransform rt = previewImages[i].GetComponent<RectTransform>();
-                    if (rt != null)
-                    {
-                        rt.anchorMin = Vector2.zero;
-                        rt.anchorMax = Vector2.one;
-                        rt.offsetMin = Vector2.zero;
-                        rt.offsetMax = Vector2.zero;
-                    }
-
                     // Đảm bảo có Image component
                     Image img = previewImages[i].GetComponent<Image>();
                     if (img == null) img = previewImages[i].AddComponent<Image>();
