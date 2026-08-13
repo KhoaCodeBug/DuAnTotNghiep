@@ -212,6 +212,7 @@ public class PlayerHealth : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
+        if (MainQuestManager.Instance != null && MainQuestManager.Instance.IsQuestCutsceneActive) return;
 
         if (isTransforming)
         {
@@ -303,6 +304,7 @@ public class PlayerHealth : NetworkBehaviour
     public void TakeDamage(float damage, bool isStarving = false, bool isZombieAttack = false)
     {
         if (!HasStateAuthority) return;
+        if (MainQuestManager.Instance != null && MainQuestManager.Instance.IsQuestCutsceneActive) return;
 
         // The vehicle body, not an invisible seated player body, receives
         // zombie contact. This authority-side guard also covers attacks that

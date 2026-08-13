@@ -2,15 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// A clue-search interaction that sits beside a normal LootContainer.  It
-/// never changes the container's normal inventory/loot behaviour.
+/// A clue-search interaction for a quest point. It can sit on an empty marker
+/// GameObject or beside a normal LootContainer without changing normal loot.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class MainQuestSearchCabinet : MonoBehaviour
 {
     private static readonly Dictionary<int, MainQuestSearchCabinet> Registry = new Dictionary<int, MainQuestSearchCabinet>();
 
-    [Header("Tủ nhiệm vụ: tìm bản đồ")]
+    [Header("Điểm nhiệm vụ: tìm bản đồ")]
     [Min(0.2f)] public float interactionDistance = 0.7f;
     public LayerMask obstacleMask = 1 << 6;
     public Vector3 markerOffset = new Vector3(0f, 0.7f, 0f);
@@ -21,8 +21,6 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
     private void Awake()
     {
         cabinetCollider = GetComponent<Collider2D>();
-        if (cabinetCollider == null)
-            Debug.LogError($"[MAIN QUEST] {name} cần Collider2D để làm tủ nhiệm vụ.", this);
         CabinetId = BuildStableId();
     }
 
@@ -50,7 +48,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
     private void OnGUI()
     {
         MainQuestManager manager = MainQuestManager.Instance;
-        if (manager == null || !manager.IsMapSearchActive) return;
+        if (manager == null || !manager.IsMapSearchActive || manager.IsQuestCutsceneActive) return;
 
         Camera camera = Camera.main;
         if (camera == null) return;
@@ -74,7 +72,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
             fontStyle = FontStyle.Bold
         };
         GUI.Box(new Rect(Screen.width * 0.5f - 185f, Screen.height - 105f, 370f, 42f),
-            GameLocalization.TranslateLiteral("PRESS [E] TO SEARCH CABINET"), promptStyle);
+            GameLocalization.TranslateLiteral("PRESS [E] TO SEARCH AREA"), promptStyle);
     }
 
     private bool IsClosestCabinetForLocalPlayer(out PlayerMovement localPlayer)
@@ -102,9 +100,11 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
 
     public bool CanPlayerSearch(Vector3 playerPosition)
     {
-        if (cabinetCollider == null || DistanceTo(playerPosition) > interactionDistance) return false;
-        Vector2 closest = cabinetCollider.ClosestPoint(playerPosition);
-        return obstacleMask.value == 0 || !Physics2D.Linecast(playerPosition, closest, obstacleMask);
+        if (DistanceTo(playerPosition) > interactionDistance) return false;
+        Vector2 searchPoint = cabinetCollider != null
+            ? cabinetCollider.ClosestPoint(playerPosition)
+            : (Vector2)transform.position;
+        return obstacleMask.value == 0 || !Physics2D.Linecast(playerPosition, searchPoint, obstacleMask);
     }
 
     private float DistanceTo(Vector3 worldPosition)
