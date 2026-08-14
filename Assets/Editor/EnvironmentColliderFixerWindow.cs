@@ -17,6 +17,7 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
 {
     private const string PatchObjectName = "__ColliderPatches";
     private const string ProxyPrefix = "__ColliderProxy_";
+    private const string BroadWallPatchPrefix = "__BroadWallFootPatches_";
     private const string ExternalObjectsName = "__ExternalEnvironment";
 
     private sealed class TilemapAudit
@@ -45,6 +46,18 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         public bool Included;
         public int PhysicsShapeCount;
         public bool HasCollider;
+    }
+
+    private sealed class MergedFootprintBuild
+    {
+        public GameObject GroupObject;
+        public int AcceptedCells;
+        public int FallbackCells;
+        public int RejectedCells;
+        public int ClusterCount;
+        public readonly List<string> AcceptedSprites = new List<string>();
+        public readonly List<Vector2[]> Paths = new List<Vector2[]>();
+        public readonly HashSet<Tilemap> Sources = new HashSet<Tilemap>();
     }
 
     private GameObject root;
@@ -283,7 +296,8 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
                 renderer.sortingOrder = 11;
                 changed++;
             }
-            else if (isGameplay && renderer.sortingLayerName != "Gameplay")
+            else if (isGameplay &&
+                     (renderer.sortingLayerName != "Gameplay" || renderer.sortingOrder != 0))
             {
                 Undo.RecordObject(renderer, "Normalize gameplay sorting");
                 renderer.sortingLayerName = "Gameplay";
@@ -312,6 +326,462 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         EditorSceneManager.MarkSceneDirty(selected.scene);
         Debug.Log($"[Environment Fixer] Safe Normalize '{selected.name}' hoàn tất: {changed} thay đổi có Undo. " +
                   "Tool không tự di chuyển cell, chỉ bỏ collider rỗng 0 shape, và không tách loot.", selected);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Decor Collider Review (No Auto Generation)")]
+    public static void ReviewDecorColliders()
+    {
+        GameObject selected = ResolveEnvironmentRoot(Selection.activeGameObject);
+        if (selected == null)
+        {
+            Debug.LogWarning("[Environment Fixer] Hãy chọn root căn nhà/công trình cần kiểm tra.");
+            return;
+        }
+
+        Collider2D[] suspicious = selected.GetComponentsInChildren<Collider2D>(true)
+            .Where(collider => !collider.isTrigger)
+            .Where(collider =>
+            {
+                string path = GetRelativePath(selected.transform, collider.transform).ToLowerInvariant();
+                return ContainsAny(path, "decor", "decord") &&
+                       !IsScriptedSolidObject(collider.gameObject);
+            })
+            .ToArray();
+
+        Debug.Log($"[Environment Fixer] DECOR REVIEW '{selected.name}': {suspicious.Length} collider cần xem thủ công. " +
+                  "Lệnh review không thay đổi dữ liệu; collider 2.5D phải là footprint nhỏ ở chân vật thể. " +
+                  "Giường/tủ loot và object có script tương tác được giữ riêng.", selected);
+        foreach (Collider2D collider in suspicious)
+        {
+            string pathStats = collider is PolygonCollider2D polygon
+                ? $", {polygon.pathCount} path, max path height {GetMaximumPathHeight(polygon):0.###}"
+                : string.Empty;
+            Debug.Log($"[Environment Fixer] REVIEW FOOTPRINT: {GetRelativePath(selected.transform, collider.transform)} " +
+                      $"({collider.GetType().Name}, bounds {collider.bounds.size}{pathStats}).", collider);
+        }
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Create Conservative Decor Footprints")]
+    public static void CreateConservativeDecorFootprints()
+    {
+        GameObject selected = ResolveEnvironmentRoot(Selection.activeGameObject);
+        if (selected == null)
+        {
+            Debug.LogWarning("[Environment Fixer] Hãy chọn root công trình trước khi tạo footprint.");
+            return;
+        }
+
+        Transform generated = selected.transform.Find("__AutoDecorFootColliders");
+        if (generated != null)
+            Undo.DestroyObjectImmediate(generated.gameObject);
+        EditorSceneManager.MarkSceneDirty(selected.scene);
+        Debug.LogWarning($"[Environment Fixer] AUTO DECOR COLLIDER ĐÃ NGỪNG cho '{selected.name}'. " +
+                         "Đã xóa nhóm sinh tự động nếu có; decor thường chỉ sửa sorting/layer. " +
+                         "Collider chỉ giữ cho object tương tác có collider riêng (loot/bed...).", selected);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Rebuild Authored Wall Collider Network")]
+    public static void RebuildMergedWallFootprints()
+    {
+        GameObject selected = ResolveEnvironmentRoot(Selection.activeGameObject);
+        if (selected == null)
+        {
+            Debug.LogWarning("[Environment Fixer] Hãy chọn root công trình trước khi dựng lại chân tường.");
+            return;
+        }
+
+        int obstacleLayer = LayerMask.NameToLayer("Obstacle");
+        if (obstacleLayer < 0)
+        {
+            Debug.LogError("[Environment Fixer] Project chưa có layer Obstacle.");
+            return;
+        }
+
+        foreach (string generatedName in new[] { "__StructuralFootColliders", "__AutoDecorFootColliders" })
+        {
+            Transform generated = selected.transform.Find(generatedName);
+            if (generated != null)
+                Undo.DestroyObjectImmediate(generated.gameObject);
+        }
+
+        Tilemap[] wallSources = selected.GetComponentsInChildren<Tilemap>(true)
+            .Where(source =>
+            {
+                string path = GetRelativePath(selected.transform, source.transform).ToLowerInvariant();
+                return !source.name.StartsWith(ProxyPrefix, StringComparison.Ordinal) &&
+                       ContainsAny(path, "wall", "tuong") && !ContainsAny(path, "roof", "nocnha");
+            }).ToArray();
+        int rebuiltTilemaps = 0;
+        int authoredShapes = 0;
+        int repairedBroadTilemaps = 0;
+        foreach (Tilemap source in wallSources)
+        {
+            List<Vector2[]> paths = ExtractAuthoredTilePhysicsPaths(source);
+            if (paths.Count == 0)
+            {
+                Debug.LogWarning($"[Environment Fixer] Wall '{GetRelativePath(selected.transform, source.transform)}' " +
+                                 "không có authored physics shape; giữ collider hiện tại để review tay.", source);
+                continue;
+            }
+
+            foreach (Collider2D oldCollider in source.GetComponents<Collider2D>()
+                         .Where(collider => !collider.isTrigger).ToArray())
+                Undo.DestroyObjectImmediate(oldCollider);
+
+            source.gameObject.layer = obstacleLayer;
+            TilemapCollider2D tilemapCollider = Undo.AddComponent<TilemapCollider2D>(source.gameObject);
+            tilemapCollider.ProcessTilemapChanges();
+            EditorUtility.SetDirty(source);
+            EditorUtility.SetDirty(tilemapCollider);
+            rebuiltTilemaps++;
+            authoredShapes += tilemapCollider.shapeCount;
+        }
+
+        foreach (Tilemap source in wallSources)
+        {
+            TilemapCollider2D sourceCollider = source.GetComponent<TilemapCollider2D>();
+            if (sourceCollider == null || !sourceCollider.enabled || AuditTilemap(source).FullBoundsShapeCells.Count == 0)
+                continue;
+            if (RepairBroadColliderCellsUsingDonor(source))
+                repairedBroadTilemaps++;
+        }
+
+        EditorSceneManager.MarkSceneDirty(selected.scene);
+        Debug.Log($"[Environment Fixer] AUTHORED WALL NETWORK '{selected.name}': " +
+                  $"{rebuiltTilemaps} TilemapCollider2D, {authoredShapes} shape lấy nguyên vẹn từ asset. " +
+                  $"{repairedBroadTilemaps} Tilemap có broad cell đã tự chuyển sang donor proxy. " +
+                  "Không ép sang Polygon, không convex hull, không nối chéo, không collider decor; " +
+                  "cửa/ô trống được giữ nguyên.", selected);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Validate Wall Collider Flow")]
+    public static void ValidateMergedFootprints()
+    {
+        GameObject selected = ResolveEnvironmentRoot(Selection.activeGameObject);
+        if (selected == null)
+        {
+            Debug.LogWarning("[Environment Fixer] Hãy chọn root công trình cần kiểm tra.");
+            return;
+        }
+
+        List<string> lines = new List<string>();
+        bool valid = true;
+        bool generatedStructuralExists = selected.transform.Find("__StructuralFootColliders") != null;
+        bool generatedDecorExists = selected.transform.Find("__AutoDecorFootColliders") != null;
+        valid &= !generatedStructuralExists && !generatedDecorExists;
+        lines.Add($"- Generated groups removed: wall={!generatedStructuralExists}, decor={!generatedDecorExists}");
+
+        Tilemap[] wallSources = selected.GetComponentsInChildren<Tilemap>(true)
+            .Where(source =>
+            {
+                string path = GetRelativePath(selected.transform, source.transform).ToLowerInvariant();
+                return !source.name.StartsWith(ProxyPrefix, StringComparison.Ordinal) &&
+                       ContainsAny(path, "wall", "tuong") && !ContainsAny(path, "roof", "nocnha");
+            }).ToArray();
+        Dictionary<string, int> wallSprites = new Dictionary<string, int>();
+        Dictionary<string, int> missingShapeSprites = new Dictionary<string, int>();
+        int totalWallCells = 0;
+        int shapedWallCells = 0;
+        int doorCells = 0;
+        foreach (Tilemap source in wallSources)
+        {
+            foreach (Vector3Int cell in source.cellBounds.allPositionsWithin)
+            {
+                if (!source.HasTile(cell)) continue;
+                Sprite sprite = source.GetSprite(cell);
+                if (sprite == null) continue;
+                totalWallCells++;
+                string lowerName = sprite.name.ToLowerInvariant();
+                if (ContainsAny(lowerName, "door", "cua"))
+                {
+                    doorCells++;
+                    continue;
+                }
+                if (sprite.GetPhysicsShapeCount() <= 0)
+                {
+                    missingShapeSprites[sprite.name] = missingShapeSprites.TryGetValue(sprite.name, out int missingCount)
+                        ? missingCount + 1
+                        : 1;
+                    continue;
+                }
+                shapedWallCells++;
+                wallSprites[sprite.name] = wallSprites.TryGetValue(sprite.name, out int count) ? count + 1 : 1;
+            }
+        }
+
+        int enabledSourceColliders = 0;
+        int enabledProxyColliders = 0;
+        int effectiveShapeCount = 0;
+        int repairedBroadCells = 0;
+        bool colliderError = false;
+        bool wrongWallLayer = false;
+        bool invalidEffectiveNetwork = false;
+        foreach (Tilemap source in wallSources)
+        {
+            TilemapCollider2D sourceCollider = source.GetComponent<TilemapCollider2D>();
+            Transform proxyTransform = source.transform.parent?.Find(ProxyPrefix + source.name);
+            Tilemap proxy = proxyTransform != null ? proxyTransform.GetComponent<Tilemap>() : null;
+            TilemapCollider2D proxyCollider = proxy != null ? proxy.GetComponent<TilemapCollider2D>() : null;
+            bool sourceEnabled = sourceCollider != null && sourceCollider.enabled && !sourceCollider.isTrigger;
+            bool proxyEnabled = proxyCollider != null && proxyCollider.enabled && !proxyCollider.isTrigger;
+            if (sourceEnabled) enabledSourceColliders++;
+            if (proxyEnabled) enabledProxyColliders++;
+            if (sourceEnabled == proxyEnabled)
+            {
+                invalidEffectiveNetwork = true;
+                continue;
+            }
+
+            Tilemap effectiveMap = proxyEnabled ? proxy : source;
+            TilemapCollider2D effectiveCollider = proxyEnabled ? proxyCollider : sourceCollider;
+            effectiveShapeCount += effectiveCollider.shapeCount;
+            colliderError |= effectiveCollider.errorState != ColliderErrorState2D.None;
+            wrongWallLayer |= effectiveCollider.gameObject.layer != LayerMask.NameToLayer("Obstacle");
+            int effectiveBroad = AuditTilemap(effectiveMap).FullBoundsShapeCells.Count;
+            invalidEffectiveNetwork |= effectiveBroad > 0;
+            if (proxyEnabled)
+            {
+                int sourceBroadCells = AuditTilemap(source).FullBoundsShapeCells.Count;
+                repairedBroadCells += sourceBroadCells;
+                TilemapRenderer proxyRenderer = proxy.GetComponent<TilemapRenderer>();
+                invalidEffectiveNetwork |= proxyRenderer == null || proxyRenderer.enabled;
+                Transform patchTransform = source.transform.parent?.Find(BroadWallPatchPrefix + source.name);
+                PolygonCollider2D footPatch = patchTransform != null
+                    ? patchTransform.GetComponent<PolygonCollider2D>()
+                    : null;
+                invalidEffectiveNetwork |= sourceBroadCells > 0 &&
+                                           (footPatch == null || !footPatch.enabled || footPatch.isTrigger ||
+                                            footPatch.pathCount < sourceBroadCells ||
+                                            footPatch.gameObject.layer != LayerMask.NameToLayer("Obstacle") ||
+                                            GetMaximumPathHeight(footPatch) > 0.16f);
+            }
+        }
+        bool strayWallPolygon = wallSources.Any(source => source.GetComponents<PolygonCollider2D>()
+            .Any(collider => !collider.isTrigger));
+        valid &= shapedWallCells > 0 &&
+                 enabledSourceColliders + enabledProxyColliders == wallSources.Length &&
+                 effectiveShapeCount > 0 && !colliderError && !wrongWallLayer &&
+                 !strayWallPolygon && !invalidEffectiveNetwork;
+        lines.Add($"- Wall sources: {wallSources.Length} Tilemap, {totalWallCells} cell tổng, " +
+                  $"{shapedWallCells} cell có physics shape, " +
+                  $"{doorCells} cell cửa được chừa, source collider ON={enabledSourceColliders}, " +
+                  $"proxy collider ON={enabledProxyColliders}, repaired broad={repairedBroadCells}, " +
+                  $"effective shapes={effectiveShapeCount}, Obstacle={!wrongWallLayer}, " +
+                  $"errorStateNone={!colliderError}, noBroadEffective={!invalidEffectiveNetwork}, " +
+                  $"noStrayPolygon={!strayWallPolygon}");
+        lines.Add("- Wall sprites: " + string.Join(", ", wallSprites.OrderBy(pair => pair.Key)
+            .Select(pair => $"{pair.Key} x{pair.Value}")));
+        lines.Add("- Missing-shape wall sprites: " + (missingShapeSprites.Count == 0
+            ? "none"
+            : string.Join(", ", missingShapeSprites.OrderBy(pair => pair.Key)
+                .Select(pair => $"{pair.Key} x{pair.Value}"))));
+        lines.Add("- Passage rule: dùng nguyên authored physics shape từng tile; không convex hull, " +
+                  "không nối qua cell trống/cửa và không sinh collider decor.");
+
+        string verdict = valid ? "PASS" : "FAIL";
+        Debug.Log($"[Environment Fixer] WALL COLLIDER FLOW VALIDATION '{selected.name}': {verdict}\n" +
+                  string.Join("\n", lines), selected);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Small Houses/Remove Unsafe Decor Proxies (Preserve Manual Polygons)")]
+    public static void RemoveUnsafeSmallHouseDecorProxies()
+    {
+        string[] acceptedPaths =
+        {
+            "Assets/Khoa/House/nhamauxam_FIXED.prefab",
+            "Assets/Khoa/House/cannhasieuvipprodachinhsua_FIXED.prefab"
+        };
+
+        int preserved = 0;
+        int sceneProxies = 0;
+        GameObject[] roots = FindObjectsByType<RoofVisibility>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .Select(component => component.gameObject)
+            .Where(gameObject => PrefabUtility.IsPartOfPrefabInstance(gameObject))
+            .Where(gameObject =>
+            {
+                UnityEngine.Object source = PrefabUtility.GetCorrespondingObjectFromSource(gameObject);
+                string path = source != null ? AssetDatabase.GetAssetPath(source) : string.Empty;
+                return acceptedPaths.Contains(path, StringComparer.OrdinalIgnoreCase);
+            })
+            .Distinct()
+            .ToArray();
+
+        foreach (GameObject rootObject in roots)
+        {
+            Transform manualGroup = null;
+            Transform[] proxies = rootObject.GetComponentsInChildren<Transform>(true)
+                .Where(transform => transform.name.StartsWith(ProxyPrefix + "decor", StringComparison.OrdinalIgnoreCase) ||
+                                    transform.name.StartsWith(ProxyPrefix + "decord", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            sceneProxies += proxies.Length;
+            foreach (Transform proxy in proxies)
+            {
+                foreach (PolygonCollider2D polygon in proxy.GetComponents<PolygonCollider2D>())
+                {
+                    if (manualGroup == null)
+                    {
+                        manualGroup = rootObject.transform.Find("__ManualDecorFootColliders");
+                        if (manualGroup == null)
+                        {
+                            GameObject groupObject = new GameObject("__ManualDecorFootColliders");
+                            Undo.RegisterCreatedObjectUndo(groupObject, "Preserve manual decor footprints");
+                            Undo.SetTransformParent(groupObject.transform, rootObject.transform, "Parent manual decor footprints");
+                            groupObject.transform.localPosition = Vector3.zero;
+                            groupObject.transform.localRotation = Quaternion.identity;
+                            groupObject.transform.localScale = Vector3.one;
+                            manualGroup = groupObject.transform;
+                        }
+                    }
+
+                    GameObject footprintObject = new GameObject($"Footprint_{proxy.parent.name}_{preserved + 1}");
+                    Undo.RegisterCreatedObjectUndo(footprintObject, "Preserve manual decor footprint");
+                    Undo.SetTransformParent(footprintObject.transform, manualGroup, "Parent manual decor footprint");
+                    footprintObject.transform.localPosition = Vector3.zero;
+                    footprintObject.transform.localRotation = Quaternion.identity;
+                    footprintObject.transform.localScale = Vector3.one;
+                    footprintObject.layer = proxy.gameObject.layer;
+                    PolygonCollider2D copy = Undo.AddComponent<PolygonCollider2D>(footprintObject);
+                    copy.isTrigger = polygon.isTrigger;
+                    copy.sharedMaterial = polygon.sharedMaterial;
+                    copy.pathCount = polygon.pathCount;
+                    for (int pathIndex = 0; pathIndex < polygon.pathCount; pathIndex++)
+                    {
+                        Vector2[] sourcePath = polygon.GetPath(pathIndex);
+                        Vector2[] destinationPath = sourcePath.Select(point =>
+                        {
+                            Vector3 world = polygon.transform.TransformPoint(point + polygon.offset);
+                            return (Vector2)footprintObject.transform.InverseTransformPoint(world);
+                        }).ToArray();
+                        copy.SetPath(pathIndex, destinationPath);
+                    }
+                    preserved++;
+                }
+            }
+        }
+
+        int assetProxies = 0;
+        foreach (string path in acceptedPaths)
+        {
+            GameObject contents = PrefabUtility.LoadPrefabContents(path);
+            try
+            {
+                Transform[] proxies = contents.GetComponentsInChildren<Transform>(true)
+                    .Where(transform => transform.name.StartsWith(ProxyPrefix + "decor", StringComparison.OrdinalIgnoreCase) ||
+                                        transform.name.StartsWith(ProxyPrefix + "decord", StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
+                foreach (Transform proxy in proxies)
+                {
+                    DestroyImmediate(proxy.gameObject);
+                    assetProxies++;
+                }
+                if (proxies.Length > 0) PrefabUtility.SaveAsPrefabAsset(contents, path);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(contents);
+            }
+        }
+
+        AssetDatabase.SaveAssets();
+        EditorSceneManager.MarkSceneDirty(UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+        Debug.Log($"[Environment Fixer] DECOR PROXY CLEANUP: bảo toàn {preserved} Polygon footprint thủ công; " +
+                  $"gỡ {assetProxies} proxy khỏi prefab ({sceneProxies} proxy instance sẽ cập nhật theo prefab). " +
+                  "Collider của object có code/giường/tủ loot không bị thay đổi.");
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Remove Verified Redundant Solid Polygons")]
+    public static void RemoveVerifiedRedundantSolidPolygons()
+    {
+        GameObject selected = ResolveEnvironmentRoot(Selection.activeGameObject);
+        if (selected == null)
+        {
+            Debug.LogWarning("[Environment Fixer] Hãy chọn root cần kiểm tra collider trùng.");
+            return;
+        }
+
+        TilemapCollider2D[] tilemapColliders = selected.GetComponentsInChildren<TilemapCollider2D>(true)
+            .Where(collider => collider.enabled && !collider.isTrigger && collider.shapeCount > 0)
+            .ToArray();
+        PolygonCollider2D[] polygons = selected.GetComponentsInChildren<PolygonCollider2D>(true)
+            .Where(collider => collider.enabled && !collider.isTrigger && collider.pathCount > 0)
+            .ToArray();
+        int removed = 0;
+        List<string> kept = new List<string>();
+
+        foreach (PolygonCollider2D polygon in polygons)
+        {
+            TilemapCollider2D match = null;
+            float bestJaccard = 0f;
+            float bestPolygonCoverage = 0f;
+            float bestTilemapCoverage = 0f;
+            foreach (TilemapCollider2D tilemapCollider in tilemapColliders)
+            {
+                if (BoundsCoverageRatio2D(polygon.bounds, tilemapCollider.bounds) < 0.90f) continue;
+                float jaccard = SampleColliderAgreement(
+                    polygon, tilemapCollider, out float polygonCoverage, out float tilemapCoverage);
+                if (jaccard <= bestJaccard) continue;
+                bestJaccard = jaccard;
+                bestPolygonCoverage = polygonCoverage;
+                bestTilemapCoverage = tilemapCoverage;
+                match = tilemapCollider;
+            }
+
+            if (match == null || bestJaccard < 0.94f ||
+                bestPolygonCoverage < 0.96f || bestTilemapCoverage < 0.96f)
+            {
+                kept.Add($"{GetRelativePath(selected.transform, polygon.transform)} " +
+                         $"(best J={bestJaccard:0.000}, P={bestPolygonCoverage:0.000}, T={bestTilemapCoverage:0.000})");
+                continue;
+            }
+
+            GameObject owner = polygon.gameObject;
+            string polygonPath = GetRelativePath(selected.transform, polygon.transform);
+            Undo.DestroyObjectImmediate(polygon);
+            removed++;
+            if (owner != selected && owner.transform.childCount == 0 &&
+                owner.GetComponents<Component>().All(component => component == null || component is Transform))
+                Undo.DestroyObjectImmediate(owner);
+            Debug.Log($"[Environment Fixer] Bỏ Polygon trùng '{polygonPath}' sau kiểm tra hình học " +
+                      $"J={bestJaccard:0.000}, P={bestPolygonCoverage:0.000}, T={bestTilemapCoverage:0.000}; " +
+                      $"giữ TilemapCollider '{GetRelativePath(selected.transform, match.transform)}'.", selected);
+        }
+
+        if (removed > 0) EditorSceneManager.MarkSceneDirty(selected.scene);
+        Debug.Log($"[Environment Fixer] Redundant collider check '{selected.name}': bỏ {removed} Polygon đã xác minh; " +
+                  $"giữ {kept.Count}" + (kept.Count > 0 ? $" [{string.Join(" | ", kept)}]" : string.Empty) + ".", selected);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Small Houses/Select nhamauxam In Main")]
+    public static void SelectNhaMauXamInMain()
+    {
+        SelectExactSceneRoot("nhamauxam", "nhamauxam_FIXED");
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Small Houses/Select cannhasieuvipprodachinhsua In Main")]
+    public static void SelectCanNhaSieuVipInMain()
+    {
+        SelectExactSceneRoot("cannhasieuvipprodachinhsua", "cannhasieuvipprodachinhsua_FIXED");
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/Select cuahang_FIX In Main")]
+    public static void SelectCuaHangFixInMain()
+    {
+        SelectExactSceneRoot("cuahang_FIX");
+    }
+
+    private static void SelectExactSceneRoot(params string[] acceptedNames)
+    {
+        GameObject target = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(gameObject => gameObject.scene == UnityEngine.SceneManagement.SceneManager.GetActiveScene() &&
+                                          acceptedNames.Any(name => gameObject.name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+        if (target == null)
+        {
+            Debug.LogError($"[Environment Fixer] Không tìm thấy scene root: {string.Join(" / ", acceptedNames)}.");
+            return;
+        }
+        Selection.activeGameObject = target;
+        EditorGUIUtility.PingObject(target);
+        Debug.Log($"[Environment Fixer] Selected '{target.name}' in Main.", target);
     }
 
     [MenuItem("Tools/Environment/Quick House Pipeline/Normalize cuahang In Main")]
@@ -997,8 +1467,7 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             return;
         }
 
-        RoofVisibility roofVisibility = selected.GetComponentInParent<RoofVisibility>(true);
-        Transform searchRoot = roofVisibility != null ? roofVisibility.transform : selected.transform.root;
+        Transform searchRoot = ResolveEnvironmentRoot(selected).transform;
         TilemapCollider2D collider = searchRoot.GetComponentInChildren<TilemapCollider2D>(true);
         if (collider == null)
         {
@@ -1063,8 +1532,7 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             return;
         }
 
-        RoofVisibility roofOwner = selected.GetComponentInParent<RoofVisibility>(true);
-        Transform searchRoot = roofOwner != null ? roofOwner.transform : selected.transform.root;
+        Transform searchRoot = ResolveEnvironmentRoot(selected).transform;
         Tilemap source = searchRoot.GetComponentsInChildren<Tilemap>(true)
             .FirstOrDefault(tilemap => tilemap.GetComponent<TilemapCollider2D>() != null &&
                                        !tilemap.name.StartsWith(ProxyPrefix, StringComparison.Ordinal));
@@ -1074,12 +1542,17 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             return;
         }
 
+        RepairBroadColliderCellsUsingDonor(source);
+    }
+
+    private static bool RepairBroadColliderCellsUsingDonor(Tilemap source)
+    {
         TilemapAudit audit = AuditTilemap(source);
         HashSet<Vector3Int> broadCells = new HashSet<Vector3Int>(audit.FullBoundsShapeCells);
         if (broadCells.Count == 0)
         {
             Debug.Log($"[Environment Fixer] '{source.name}' không có broad collider cell cần donor.");
-            return;
+            return false;
         }
 
         Dictionary<Vector3Int, Vector3Int> replacements = new Dictionary<Vector3Int, Vector3Int>();
@@ -1092,27 +1565,52 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         }
 
         if (replacements.Count == 0)
-            return;
+            return false;
 
         Tilemap proxy = BuildCollisionProxy(source, replacements.Keys.ToHashSet(), source.gameObject.layer, true, out int copied);
         if (proxy == null)
-            return;
+            return false;
 
-        Undo.RecordObject(proxy, "Apply donor collider cells");
+        Transform parent = source.transform.parent;
+        Transform oldPatch = parent != null ? parent.Find(BroadWallPatchPrefix + source.name) : null;
+        if (oldPatch != null)
+            Undo.DestroyObjectImmediate(oldPatch.gameObject);
+        GameObject patchObject = new GameObject(BroadWallPatchPrefix + source.name);
+        Undo.RegisterCreatedObjectUndo(patchObject, "Create broad wall foot patches");
+        if (parent != null)
+            Undo.SetTransformParent(patchObject.transform, parent, "Parent broad wall foot patches");
+        patchObject.transform.localPosition = Vector3.zero;
+        patchObject.transform.localRotation = Quaternion.identity;
+        patchObject.transform.localScale = Vector3.one;
+        patchObject.layer = source.gameObject.layer;
+        PolygonCollider2D patchCollider = Undo.AddComponent<PolygonCollider2D>(patchObject);
+        patchCollider.pathCount = 0;
+
         List<string> mapping = new List<string>();
         foreach (KeyValuePair<Vector3Int, Vector3Int> pair in replacements)
         {
-            proxy.SetTile(pair.Key, source.GetTile(pair.Value));
-            proxy.SetTransformMatrix(pair.Key, source.GetTransformMatrix(pair.Value));
-            copied++;
+            Vector2[] footPath = ExtractBottomFootPathAtCell(source, pair.Key, pair.Value, patchObject.transform);
+            if (footPath == null || footPath.Length < 3)
+            {
+                Debug.LogWarning($"[Environment Fixer] Không trích được chân tường cho cell {pair.Key}; " +
+                                 "cell được để trống collider thay vì dùng full-body shape.", source);
+                continue;
+            }
+            int pathIndex = patchCollider.pathCount;
+            patchCollider.pathCount++;
+            patchCollider.SetPath(pathIndex, footPath);
             mapping.Add($"{pair.Key}:{source.GetSprite(pair.Key)?.name} <- {pair.Value}:{source.GetSprite(pair.Value)?.name}");
         }
         proxy.GetComponent<TilemapCollider2D>()?.ProcessTilemapChanges();
         EditorUtility.SetDirty(proxy);
+        EditorUtility.SetDirty(patchCollider);
+        EditorUtility.SetDirty(patchObject);
         Selection.activeGameObject = proxy.gameObject;
         Debug.Log(
-            $"[Environment Fixer] Donor repair hoàn tất trên '{source.name}': proxy {copied} cell. " +
+            $"[Environment Fixer] Donor repair hoàn tất trên '{source.name}': proxy {copied} cell tốt + " +
+            $"{patchCollider.pathCount} Polygon chân tường; donor chỉ cung cấp dải thấp nhất, không copy shape lơ lửng. " +
             string.Join(" | ", mapping), proxy);
+        return true;
     }
 
     [MenuItem("Tools/Environment/Validate All Collider Proxies In Scene")]
@@ -1134,8 +1632,7 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             return;
         }
 
-        RoofVisibility roofOwner = selected.GetComponentInParent<RoofVisibility>(true);
-        Transform rootTransform = roofOwner != null ? roofOwner.transform : selected.transform.root;
+        Transform rootTransform = ResolveEnvironmentRoot(selected).transform;
         Tilemap[] proxies = rootTransform.GetComponentsInChildren<Tilemap>(true)
             .Where(tilemap => tilemap.name.StartsWith(ProxyPrefix, StringComparison.Ordinal))
             .ToArray();
@@ -1166,13 +1663,35 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             TilemapCollider2D proxyCollider = proxy.GetComponent<TilemapCollider2D>();
             TilemapCollider2D sourceCollider = source != null ? source.GetComponent<TilemapCollider2D>() : null;
             TilemapAudit proxyAudit = AuditTilemap(proxy);
+            string lowerSourceName = source != null ? source.name.ToLowerInvariant() : string.Empty;
+            bool isDecorSubset = source != null && ContainsAny(lowerSourceName, "decor", "decord");
 
             List<string> issues = new List<string>();
             if (source == null) issues.Add("missing source");
             if (renderer == null || renderer.enabled) issues.Add("renderer must be disabled");
-            if (proxyCollider == null || !proxyCollider.enabled) issues.Add("proxy collider inactive");
-            if (sourceCollider != null && sourceCollider.enabled) issues.Add("source collider still active");
-            if (source != null && CountCollidableCells(proxy) != CountCollidableCells(source)) issues.Add("collidable cell count differs");
+            if (proxyCollider == null || !proxyCollider.enabled || proxyCollider.shapeCount == 0) issues.Add("proxy collider inactive/empty");
+            if (proxy.gameObject.layer != LayerMask.NameToLayer("Obstacle")) issues.Add("proxy is not on Obstacle");
+            if (isDecorSubset)
+                issues.Add("unsafe decor proxy: use a small authored foot Polygon or no collider");
+            else
+            {
+                if (sourceCollider != null && sourceCollider.enabled) issues.Add("source collider still active");
+                if (source != null)
+                {
+                    int missingCells = CountCollidableCells(source) - CountCollidableCells(proxy);
+                    Transform patchTransform = parent.Find(BroadWallPatchPrefix + source.name);
+                    PolygonCollider2D footPatch = patchTransform != null
+                        ? patchTransform.GetComponent<PolygonCollider2D>()
+                        : null;
+                    if (missingCells < 0)
+                        issues.Add("proxy has unexpected extra collider cells");
+                    else if (missingCells > 0 &&
+                             (footPatch == null || !footPatch.enabled || footPatch.isTrigger ||
+                              footPatch.pathCount < missingCells ||
+                              footPatch.gameObject.layer != LayerMask.NameToLayer("Obstacle")))
+                        issues.Add($"{missingCells} excluded cells lack valid foot patches");
+                }
+            }
             if (proxyAudit.FullBoundsShapeCells.Count > 0) issues.Add($"{proxyAudit.FullBoundsShapeCells.Count} broad cells remain");
 
             if (issues.Count == 0)
@@ -1202,30 +1721,31 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         donorCell = default;
         Sprite badSprite = tilemap.GetSprite(badCell);
         string direction = GetSpriteDirectionSuffix(badSprite != null ? badSprite.name : string.Empty);
-        int bestDistance = int.MaxValue;
-        bool found = false;
-
+        List<Vector3Int> candidates = new List<Vector3Int>();
         foreach (Vector3Int candidate in tilemap.cellBounds.allPositionsWithin)
         {
-            if (candidate == badCell || rejectedCells.Contains(candidate) || !tilemap.HasTile(candidate))
+            if (candidate == badCell || rejectedCells.Contains(candidate) || !tilemap.HasTile(candidate) ||
+                tilemap.GetColliderType(candidate) == Tile.ColliderType.None)
                 continue;
-            if (tilemap.GetColliderType(candidate) == Tile.ColliderType.None)
-                continue;
-
             Sprite sprite = tilemap.GetSprite(candidate);
-            if (sprite == null || IsBroadPhysicsShape(sprite))
+            if (sprite == null || IsBroadPhysicsShape(sprite) ||
+                (!string.IsNullOrEmpty(direction) && GetSpriteDirectionSuffix(sprite.name) != direction))
                 continue;
-            if (!string.IsNullOrEmpty(direction) && GetSpriteDirectionSuffix(sprite.name) != direction)
-                continue;
-
-            int distance = Mathf.Abs(candidate.x - badCell.x) + Mathf.Abs(candidate.y - badCell.y);
-            if (distance >= bestDistance)
-                continue;
-            bestDistance = distance;
-            donorCell = candidate;
-            found = true;
+            candidates.Add(candidate);
         }
-        return found;
+        if (candidates.Count == 0)
+            return false;
+
+        string preferredSprite = candidates
+            .GroupBy(candidate => tilemap.GetSprite(candidate).name)
+            .OrderByDescending(group => group.Count())
+            .ThenBy(group => group.Key, StringComparer.Ordinal)
+            .First().Key;
+        donorCell = candidates
+            .Where(candidate => tilemap.GetSprite(candidate).name == preferredSprite)
+            .OrderBy(candidate => Mathf.Abs(candidate.x - badCell.x) + Mathf.Abs(candidate.y - badCell.y))
+            .First();
+        return true;
     }
 
     private static string GetSpriteDirectionSuffix(string spriteName)
@@ -1966,6 +2486,532 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         EditorUtility.SetDirty(proxyCollider);
         EditorUtility.SetDirty(proxyObject);
         return proxy;
+    }
+
+    private static bool IsScriptedSolidObject(GameObject gameObject)
+    {
+        string lowerName = gameObject.name.ToLowerInvariant();
+        if (ContainsAny(lowerName, "bed", "giuong", "loot", "cabinet", "tu_do", "tudo"))
+            return true;
+        return gameObject.GetComponentsInParent<MonoBehaviour>(true)
+            .Any(behaviour => behaviour != null && !(behaviour is RoofVisibility));
+    }
+
+    private static List<Vector2[]> ExtractAuthoredTilePhysicsPaths(Tilemap source)
+    {
+        List<Vector2[]> result = new List<Vector2[]>();
+        GameObject temporary = new GameObject("__TEMP_AuthoredWallSource",
+            typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
+        temporary.hideFlags = HideFlags.HideAndDontSave;
+        temporary.transform.SetParent(source.transform.parent, false);
+        temporary.transform.localPosition = source.transform.localPosition;
+        temporary.transform.localRotation = source.transform.localRotation;
+        temporary.transform.localScale = source.transform.localScale;
+
+        try
+        {
+            Tilemap temporaryMap = temporary.GetComponent<Tilemap>();
+            temporaryMap.animationFrameRate = source.animationFrameRate;
+            temporaryMap.tileAnchor = source.tileAnchor;
+            temporaryMap.orientation = source.orientation;
+            temporaryMap.orientationMatrix = source.orientationMatrix;
+            foreach (Vector3Int cell in source.cellBounds.allPositionsWithin)
+            {
+                if (!source.HasTile(cell)) continue;
+                temporaryMap.SetTile(cell, source.GetTile(cell));
+                temporaryMap.SetTransformMatrix(cell, source.GetTransformMatrix(cell));
+            }
+            temporaryMap.CompressBounds();
+            temporary.GetComponent<TilemapRenderer>().enabled = false;
+
+            TilemapCollider2D temporaryCollider = temporary.GetComponent<TilemapCollider2D>();
+            temporaryCollider.ProcessTilemapChanges();
+            PhysicsShapeGroup2D shapes = new PhysicsShapeGroup2D();
+            temporaryCollider.GetShapes(shapes);
+            List<Vector2> vertices = new List<Vector2>();
+            for (int shapeIndex = 0; shapeIndex < shapes.shapeCount; shapeIndex++)
+            {
+                vertices.Clear();
+                shapes.GetShapeVertices(shapeIndex, vertices);
+                if (vertices.Count < 3 || Mathf.Abs(SignedPolygonArea(vertices)) < 0.003f)
+                    continue;
+                Vector2[] sourceLocalPath = vertices.Select(point =>
+                {
+                    Vector3 world = temporary.transform.TransformPoint(point);
+                    return (Vector2)source.transform.InverseTransformPoint(world);
+                }).ToArray();
+                result.Add(sourceLocalPath);
+            }
+        }
+        finally
+        {
+            DestroyImmediate(temporary);
+        }
+        return result;
+    }
+
+    private static Vector2[] ExtractBottomFootPathAtCell(
+        Tilemap source,
+        Vector3Int targetCell,
+        Vector3Int donorCell,
+        Transform outputTransform)
+    {
+        GameObject temporary = new GameObject("__TEMP_BroadWallFootSource",
+            typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
+        temporary.hideFlags = HideFlags.HideAndDontSave;
+        temporary.transform.SetParent(source.transform.parent, false);
+        temporary.transform.localPosition = source.transform.localPosition;
+        temporary.transform.localRotation = source.transform.localRotation;
+        temporary.transform.localScale = source.transform.localScale;
+
+        try
+        {
+            Tilemap temporaryMap = temporary.GetComponent<Tilemap>();
+            temporaryMap.animationFrameRate = source.animationFrameRate;
+            temporaryMap.tileAnchor = source.tileAnchor;
+            temporaryMap.orientation = source.orientation;
+            temporaryMap.orientationMatrix = source.orientationMatrix;
+            temporaryMap.SetTile(targetCell, source.GetTile(donorCell));
+            temporaryMap.SetTransformMatrix(targetCell, source.GetTransformMatrix(donorCell));
+            temporaryMap.CompressBounds();
+            temporary.GetComponent<TilemapRenderer>().enabled = false;
+
+            TilemapCollider2D temporaryCollider = temporary.GetComponent<TilemapCollider2D>();
+            temporaryCollider.ProcessTilemapChanges();
+            PhysicsShapeGroup2D shapes = new PhysicsShapeGroup2D();
+            temporaryCollider.GetShapes(shapes);
+            List<List<Vector2>> allShapes = new List<List<Vector2>>();
+            List<Vector2> vertices = new List<Vector2>();
+            for (int shapeIndex = 0; shapeIndex < shapes.shapeCount; shapeIndex++)
+            {
+                vertices.Clear();
+                shapes.GetShapeVertices(shapeIndex, vertices);
+                if (vertices.Count < 3) continue;
+                allShapes.Add(vertices.Select(point =>
+                {
+                    Vector3 world = temporary.transform.TransformPoint(point);
+                    return (Vector2)outputTransform.InverseTransformPoint(world);
+                }).ToList());
+            }
+            if (allShapes.Count == 0)
+                return null;
+
+            float globalMinY = allShapes.SelectMany(shape => shape).Min(point => point.y);
+            float globalMaxY = allShapes.SelectMany(shape => shape).Max(point => point.y);
+            float bandHeight = Mathf.Clamp((globalMaxY - globalMinY) * 0.06f, 0.055f, 0.11f);
+            List<Vector2> bottomPoints = new List<Vector2>();
+            foreach (List<Vector2> shape in allShapes)
+            {
+                if (shape.Min(point => point.y) > globalMinY + 0.01f)
+                    continue;
+                List<Vector2> clipped = ClipPolygonBelow(shape, globalMinY + bandHeight);
+                if (clipped.Count >= 3 && Mathf.Abs(SignedPolygonArea(clipped)) >= 0.002f)
+                    bottomPoints.AddRange(clipped);
+            }
+            List<Vector2> hull = BuildConvexHull(bottomPoints);
+            return hull.Count >= 3 && Mathf.Abs(SignedPolygonArea(hull)) >= 0.003f
+                ? hull.ToArray()
+                : null;
+        }
+        finally
+        {
+            DestroyImmediate(temporary);
+        }
+    }
+
+    private static MergedFootprintBuild BuildMergedFootprintGroup(
+        GameObject rootObject,
+        string groupName,
+        int layer,
+        Func<Tilemap, bool> sourceFilter,
+        Func<Tilemap, Sprite, bool> cellFilter,
+        float bandRatio,
+        float minimumBandHeight,
+        float maximumBandHeight,
+        bool useCellFootprintFallback)
+    {
+        Transform oldGroup = rootObject.transform.Find(groupName);
+        if (oldGroup != null)
+            Undo.DestroyObjectImmediate(oldGroup.gameObject);
+
+        MergedFootprintBuild result = new MergedFootprintBuild();
+        GameObject groupObject = new GameObject(groupName);
+        Undo.RegisterCreatedObjectUndo(groupObject, $"Create {groupName}");
+        Undo.SetTransformParent(groupObject.transform, rootObject.transform, $"Parent {groupName}");
+        groupObject.transform.localPosition = Vector3.zero;
+        groupObject.transform.localRotation = Quaternion.identity;
+        groupObject.transform.localScale = Vector3.one;
+        groupObject.layer = layer;
+        result.GroupObject = groupObject;
+
+        foreach (Tilemap source in rootObject.GetComponentsInChildren<Tilemap>(true))
+        {
+            if (source.name.StartsWith(ProxyPrefix, StringComparison.Ordinal) ||
+                source.transform.IsChildOf(groupObject.transform) ||
+                !sourceFilter(source))
+                continue;
+
+            List<Vector3Int> accepted = new List<Vector3Int>();
+            foreach (Vector3Int cell in source.cellBounds.allPositionsWithin)
+            {
+                if (!source.HasTile(cell)) continue;
+                Sprite sprite = source.GetSprite(cell);
+                if (sprite != null && cellFilter(source, sprite))
+                {
+                    accepted.Add(cell);
+                    result.AcceptedSprites.Add(sprite.name);
+                }
+                else
+                {
+                    result.RejectedCells++;
+                }
+            }
+            if (accepted.Count == 0) continue;
+
+            List<Vector2[]> sourcePaths = new List<Vector2[]>();
+            foreach (List<Vector3Int> cluster in ClusterCellsByOrientation(source, accepted))
+            {
+                Vector2[] path = BuildMergedClusterPath(
+                    rootObject, source, cluster, bandRatio, minimumBandHeight, maximumBandHeight,
+                    useCellFootprintFallback);
+                if (path == null || path.Length < 3) continue;
+                sourcePaths.Add(path);
+                result.Paths.Add(path);
+                result.ClusterCount++;
+                result.AcceptedCells += cluster.Count;
+                if (useCellFootprintFallback)
+                    result.FallbackCells += cluster.Count(cell => source.GetSprite(cell)?.GetPhysicsShapeCount() <= 0);
+            }
+            if (sourcePaths.Count == 0) continue;
+
+            result.Sources.Add(source);
+            GameObject colliderObject = new GameObject($"Merged_{source.name}");
+            Undo.RegisterCreatedObjectUndo(colliderObject, $"Create merged footprint for {source.name}");
+            Undo.SetTransformParent(colliderObject.transform, groupObject.transform, "Parent merged footprint");
+            colliderObject.transform.localPosition = Vector3.zero;
+            colliderObject.transform.localRotation = Quaternion.identity;
+            colliderObject.transform.localScale = Vector3.one;
+            colliderObject.layer = layer;
+            PolygonCollider2D polygon = Undo.AddComponent<PolygonCollider2D>(colliderObject);
+            polygon.pathCount = sourcePaths.Count;
+            for (int pathIndex = 0; pathIndex < sourcePaths.Count; pathIndex++)
+                polygon.SetPath(pathIndex, sourcePaths[pathIndex]);
+        }
+
+        if (result.ClusterCount == 0)
+        {
+            Undo.DestroyObjectImmediate(groupObject);
+            result.GroupObject = null;
+        }
+        return result;
+    }
+
+    private static List<List<Vector3Int>> ClusterCellsByOrientation(
+        Tilemap source,
+        IReadOnlyCollection<Vector3Int> cells)
+    {
+        Dictionary<char, HashSet<Vector3Int>> byOrientation = cells
+            .GroupBy(cell => GetSpriteOrientation(source.GetSprite(cell)?.name))
+            .ToDictionary(group => group.Key, group => new HashSet<Vector3Int>(group));
+        Vector3Int[] steps =
+        {
+            Vector3Int.right, Vector3Int.left, Vector3Int.up, Vector3Int.down
+        };
+        List<List<Vector3Int>> clusters = new List<List<Vector3Int>>();
+        foreach (HashSet<Vector3Int> remaining in byOrientation.Values)
+        {
+            while (remaining.Count > 0)
+            {
+                Vector3Int seed = remaining.First();
+                remaining.Remove(seed);
+                Queue<Vector3Int> queue = new Queue<Vector3Int>();
+                queue.Enqueue(seed);
+                List<Vector3Int> cluster = new List<Vector3Int>();
+                while (queue.Count > 0)
+                {
+                    Vector3Int current = queue.Dequeue();
+                    cluster.Add(current);
+                    foreach (Vector3Int step in steps)
+                    {
+                        Vector3Int neighbour = current + step;
+                        if (!remaining.Remove(neighbour)) continue;
+                        queue.Enqueue(neighbour);
+                    }
+                }
+                clusters.Add(cluster);
+            }
+        }
+        return clusters;
+    }
+
+    private static Vector2[] BuildMergedClusterPath(
+        GameObject rootObject,
+        Tilemap source,
+        IReadOnlyCollection<Vector3Int> cells,
+        float bandRatio,
+        float minimumBandHeight,
+        float maximumBandHeight,
+        bool useCellFootprintFallback)
+    {
+        GameObject temporary = new GameObject("__TEMP_MergedFootprintSource",
+            typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
+        temporary.hideFlags = HideFlags.HideAndDontSave;
+        temporary.transform.SetParent(source.transform.parent, false);
+        temporary.transform.localPosition = source.transform.localPosition;
+        temporary.transform.localRotation = source.transform.localRotation;
+        temporary.transform.localScale = source.transform.localScale;
+
+        try
+        {
+            Tilemap temporaryMap = temporary.GetComponent<Tilemap>();
+            temporaryMap.animationFrameRate = source.animationFrameRate;
+            temporaryMap.tileAnchor = source.tileAnchor;
+            temporaryMap.orientation = source.orientation;
+            temporaryMap.orientationMatrix = source.orientationMatrix;
+            foreach (Vector3Int cell in cells)
+            {
+                temporaryMap.SetTile(cell, source.GetTile(cell));
+                temporaryMap.SetTransformMatrix(cell, source.GetTransformMatrix(cell));
+            }
+            temporaryMap.CompressBounds();
+            temporary.GetComponent<TilemapRenderer>().enabled = false;
+
+            TilemapCollider2D temporaryCollider = temporary.GetComponent<TilemapCollider2D>();
+            temporaryCollider.ProcessTilemapChanges();
+            PhysicsShapeGroup2D shapes = new PhysicsShapeGroup2D();
+            temporaryCollider.GetShapes(shapes);
+            List<Vector2> clippedPoints = new List<Vector2>();
+            List<Vector2> vertices = new List<Vector2>();
+            for (int shapeIndex = 0; shapeIndex < shapes.shapeCount; shapeIndex++)
+            {
+                vertices.Clear();
+                shapes.GetShapeVertices(shapeIndex, vertices);
+                if (vertices.Count < 3) continue;
+                List<Vector2> rootPoints = vertices.Select(point =>
+                {
+                    Vector3 world = temporary.transform.TransformPoint(point);
+                    return (Vector2)rootObject.transform.InverseTransformPoint(world);
+                }).ToList();
+                float minY = rootPoints.Min(point => point.y);
+                float maxY = rootPoints.Max(point => point.y);
+                float bandHeight = Mathf.Clamp(
+                    (maxY - minY) * bandRatio, minimumBandHeight, maximumBandHeight);
+                List<Vector2> clipped = ClipPolygonBelow(rootPoints, minY + bandHeight);
+                if (clipped.Count < 3 || Mathf.Abs(SignedPolygonArea(clipped)) < 0.003f)
+                    continue;
+                clippedPoints.AddRange(clipped);
+            }
+
+            if (useCellFootprintFallback)
+            {
+                foreach (Vector3Int cell in cells)
+                {
+                    Sprite sprite = source.GetSprite(cell);
+                    if (sprite == null || sprite.GetPhysicsShapeCount() > 0) continue;
+                    Vector3Int right = cell + Vector3Int.right;
+                    Vector3Int up = cell + Vector3Int.up;
+                    Vector3Int rightUp = cell + Vector3Int.right + Vector3Int.up;
+                    List<Vector2> cellShape = new List<Vector2>
+                    {
+                        ToRootPoint(rootObject, source, source.CellToLocal(cell)),
+                        ToRootPoint(rootObject, source, source.CellToLocal(right)),
+                        ToRootPoint(rootObject, source, source.CellToLocal(rightUp)),
+                        ToRootPoint(rootObject, source, source.CellToLocal(up))
+                    };
+                    float minY = cellShape.Min(point => point.y);
+                    float maxY = cellShape.Max(point => point.y);
+                    float bandHeight = Mathf.Clamp(
+                        (maxY - minY) * bandRatio, minimumBandHeight, maximumBandHeight);
+                    List<Vector2> clipped = ClipPolygonBelow(cellShape, minY + bandHeight);
+                    if (clipped.Count >= 3)
+                        clippedPoints.AddRange(clipped);
+                }
+            }
+
+            List<Vector2> hull = BuildConvexHull(clippedPoints);
+            return hull.Count >= 3 && Mathf.Abs(SignedPolygonArea(hull)) >= 0.006f
+                ? hull.ToArray()
+                : null;
+        }
+        finally
+        {
+            DestroyImmediate(temporary);
+        }
+    }
+
+    private static Vector2 ToRootPoint(GameObject rootObject, Tilemap source, Vector3 sourceLocalPoint)
+    {
+        Vector3 world = source.transform.TransformPoint(sourceLocalPoint);
+        return rootObject.transform.InverseTransformPoint(world);
+    }
+
+    private static char GetSpriteOrientation(string spriteName)
+    {
+        if (string.IsNullOrWhiteSpace(spriteName)) return '?';
+        for (int index = spriteName.Length - 1; index >= 0; index--)
+        {
+            char value = char.ToUpperInvariant(spriteName[index]);
+            if (value == 'N' || value == 'S' || value == 'E' || value == 'W')
+                return value;
+            if (char.IsLetter(value)) break;
+        }
+        return '?';
+    }
+
+    private static List<Vector2> BuildConvexHull(IEnumerable<Vector2> input)
+    {
+        List<Vector2> points = input
+            .OrderBy(point => point.x)
+            .ThenBy(point => point.y)
+            .ToList();
+        List<Vector2> unique = new List<Vector2>();
+        foreach (Vector2 point in points)
+        {
+            if (unique.Count == 0 || (point - unique[unique.Count - 1]).sqrMagnitude > 0.000001f)
+                unique.Add(point);
+        }
+        if (unique.Count <= 2) return unique;
+
+        List<Vector2> lower = new List<Vector2>();
+        foreach (Vector2 point in unique)
+        {
+            while (lower.Count >= 2 &&
+                   Cross(lower[lower.Count - 2], lower[lower.Count - 1], point) <= 0f)
+                lower.RemoveAt(lower.Count - 1);
+            lower.Add(point);
+        }
+        List<Vector2> upper = new List<Vector2>();
+        for (int index = unique.Count - 1; index >= 0; index--)
+        {
+            Vector2 point = unique[index];
+            while (upper.Count >= 2 &&
+                   Cross(upper[upper.Count - 2], upper[upper.Count - 1], point) <= 0f)
+                upper.RemoveAt(upper.Count - 1);
+            upper.Add(point);
+        }
+        lower.RemoveAt(lower.Count - 1);
+        upper.RemoveAt(upper.Count - 1);
+        lower.AddRange(upper);
+        return lower;
+    }
+
+    private static float Cross(Vector2 origin, Vector2 first, Vector2 second)
+    {
+        Vector2 a = first - origin;
+        Vector2 b = second - origin;
+        return a.x * b.y - a.y * b.x;
+    }
+
+    private static bool IsObviousRigidDecorSprite(string spriteName)
+    {
+        if (string.IsNullOrWhiteSpace(spriteName)) return false;
+        string lower = spriteName.ToLowerInvariant();
+        if (ContainsAny(lower, "debris", "corpse", "body", "mannequin", "human", "chair",
+            "plant", "tree", "cart", "trolley", "painting", "rug", "carpet"))
+            return false;
+        if (ContainsAny(lower, "shelf", "bookcase", "bookshelf", "cabinet", "cupboard",
+            "counter", "locker", "vending", "freezer"))
+            return true;
+
+        // Zombie Interior Store 9-14 are rigid counters/cabinets; 17-29 are
+        // shelving, checkout desks and vending/freezer blocks. Store 1-8 and
+        // 15-16 are clothes, mannequins, carts or debris and stay review-only.
+        if (!lower.StartsWith("store", StringComparison.Ordinal)) return false;
+        int indexStart = "store".Length;
+        int indexEnd = indexStart;
+        while (indexEnd < lower.Length && char.IsDigit(lower[indexEnd])) indexEnd++;
+        if (indexEnd == indexStart ||
+            !int.TryParse(lower.Substring(indexStart, indexEnd - indexStart), out int storeIndex))
+            return false;
+        return (storeIndex >= 9 && storeIndex <= 14) ||
+               (storeIndex >= 17 && storeIndex <= 29);
+    }
+
+    private static List<Vector2> ClipPolygonBelow(IReadOnlyList<Vector2> polygon, float maximumY)
+    {
+        List<Vector2> output = polygon.ToList();
+        if (output.Count == 0) return output;
+        List<Vector2> input = output;
+        output = new List<Vector2>();
+        Vector2 previous = input[input.Count - 1];
+        bool previousInside = previous.y <= maximumY;
+        foreach (Vector2 current in input)
+        {
+            bool currentInside = current.y <= maximumY;
+            if (currentInside != previousInside)
+            {
+                float denominator = current.y - previous.y;
+                float t = Mathf.Abs(denominator) <= Mathf.Epsilon
+                    ? 0f
+                    : (maximumY - previous.y) / denominator;
+                output.Add(Vector2.Lerp(previous, current, Mathf.Clamp01(t)));
+            }
+            if (currentInside) output.Add(current);
+            previous = current;
+            previousInside = currentInside;
+        }
+        return output;
+    }
+
+    private static float SignedPolygonArea(IReadOnlyList<Vector2> points)
+    {
+        float twiceArea = 0f;
+        for (int index = 0; index < points.Count; index++)
+        {
+            Vector2 current = points[index];
+            Vector2 next = points[(index + 1) % points.Count];
+            twiceArea += current.x * next.y - next.x * current.y;
+        }
+        return twiceArea * 0.5f;
+    }
+
+    private static float GetMaximumPathHeight(PolygonCollider2D polygon)
+    {
+        float maximum = 0f;
+        for (int pathIndex = 0; pathIndex < polygon.pathCount; pathIndex++)
+        {
+            Vector2[] path = polygon.GetPath(pathIndex);
+            if (path.Length == 0) continue;
+            maximum = Mathf.Max(maximum,
+                path.Max(point => point.y) - path.Min(point => point.y));
+        }
+        return maximum;
+    }
+
+    private static float SampleColliderAgreement(
+        Collider2D first,
+        Collider2D second,
+        out float firstCoverage,
+        out float secondCoverage)
+    {
+        firstCoverage = 0f;
+        secondCoverage = 0f;
+        Bounds sampleBounds = first.bounds;
+        sampleBounds.Encapsulate(second.bounds);
+        const int resolution = 96;
+        int insideFirst = 0;
+        int insideSecond = 0;
+        int insideBoth = 0;
+        for (int y = 0; y < resolution; y++)
+        {
+            float sampleY = Mathf.Lerp(sampleBounds.min.y, sampleBounds.max.y, (y + 0.5f) / resolution);
+            for (int x = 0; x < resolution; x++)
+            {
+                float sampleX = Mathf.Lerp(sampleBounds.min.x, sampleBounds.max.x, (x + 0.5f) / resolution);
+                Vector2 point = new Vector2(sampleX, sampleY);
+                bool inFirst = first.OverlapPoint(point);
+                bool inSecond = second.OverlapPoint(point);
+                if (inFirst) insideFirst++;
+                if (inSecond) insideSecond++;
+                if (inFirst && inSecond) insideBoth++;
+            }
+        }
+
+        if (insideFirst < 16 || insideSecond < 16) return 0f;
+        firstCoverage = (float)insideBoth / insideFirst;
+        secondCoverage = (float)insideBoth / insideSecond;
+        int union = insideFirst + insideSecond - insideBoth;
+        return union > 0 ? (float)insideBoth / union : 0f;
     }
 
     private static int CountCollidableCells(Tilemap tilemap)
