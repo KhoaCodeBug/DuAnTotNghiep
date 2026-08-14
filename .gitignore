@@ -101,3 +101,7 @@ Assets/UnityAsset.meta
 
 # MCP for Unity personal settings
 ProjectSettings/McpUnitySettings.json
+
+# Environment fixer generated preview images
+/Assets/Khoa/House/Preview/
+/Assets/Khoa/House/Preview.meta
