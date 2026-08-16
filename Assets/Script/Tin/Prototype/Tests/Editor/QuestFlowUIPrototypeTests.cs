@@ -356,4 +356,33 @@ public sealed class QuestFlowUIPrototypeTests
         }
     }
 
+    [Test]
+    public void MilitaryRepairRequiresAllThreeDistinctParts()
+    {
+        Assert.That(MilitaryQuestRules.HasAllParts(true, true, true), Is.True);
+        Assert.That(MilitaryQuestRules.HasAllParts(true, true, false), Is.False);
+        Assert.That(MilitaryQuestRules.HasAllParts(false, true, true), Is.False);
+    }
+
+    [Test]
+    public void MilitaryGeneratorRaisesGateCapacityToOneHundredFiftyPercent()
+    {
+        Assert.That(MilitaryQuestRules.GetElectrifiedGateHealth(1000f), Is.EqualTo(1500f));
+    }
+
+    [Test]
+    public void MilitaryGateDamageNeverCreatesNegativeHealth()
+    {
+        Assert.That(MilitaryQuestRules.ApplyGateDamage(25f, 40f), Is.Zero);
+        Assert.That(MilitaryQuestRules.ApplyGateDamage(25f, -10f), Is.EqualTo(25f));
+    }
+
+    [Test]
+    public void MilitaryRepairProgressIsTimeBasedAndClampedAtCompletion()
+    {
+        float halfway = MilitaryQuestRules.ApplyRepairProgress(0f, 6f, 12f);
+        Assert.That(halfway, Is.EqualTo(50f).Within(0.001f));
+        Assert.That(MilitaryQuestRules.ApplyRepairProgress(halfway, 30f, 12f), Is.EqualTo(100f));
+    }
+
 }

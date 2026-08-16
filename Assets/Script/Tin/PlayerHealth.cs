@@ -317,6 +317,11 @@ public class PlayerHealth : NetworkBehaviour
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         ApplyTutorialHealthFloor();
 
+        // Repair interruption is decided by the same State Authority that
+        // accepted this damage, so a client cannot hide a zombie hit locally.
+        if (Object != null && Object.IsValid)
+            MilitaryBaseQuestManager.Instance?.NotifyPlayerDamaged(Object.InputAuthority, isZombieAttack);
+
         if (isTransforming)
         {
             RPC_PlayHitEffect();
