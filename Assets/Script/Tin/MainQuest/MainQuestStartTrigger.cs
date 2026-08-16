@@ -53,7 +53,11 @@ public sealed class MainQuestStartTrigger : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D other)
     {
         PlayerMovement player = other.GetComponentInParent<PlayerMovement>();
-        if (player != null && player.HasInputAuthority) RequestStart();
+        if (player != null && player.HasInputAuthority)
+        {
+            PreMilitaryQuestRuntimeBridge.NotifyOfficeEntered(this);
+            RequestStart();
+        }
     }
 
     private void RequestStart()

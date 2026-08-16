@@ -1388,6 +1388,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         await CleanupOldRunnersAsync();
 
         activeRunner = Instantiate(runnerPrefab);
+        // The gameplay scene is loaded by this runner. It must survive the
+        // MainMenu scene unload or Fusion loses the session before spawning
+        // the local Player in Main.
+        DontDestroyOnLoad(activeRunner.gameObject);
         ConfigureVoiceForRunner(activeRunner);
         activeRunner.AddCallbacks(this);
 

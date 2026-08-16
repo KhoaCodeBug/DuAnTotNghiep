@@ -1,0 +1,21 @@
+{
+  "name": "ProjectZomboiNhai.QuestUI.Tests.Editor",
+  "rootNamespace": "",
+  "references": [
+    "ProjectZomboiNhai.QuestUI"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}
