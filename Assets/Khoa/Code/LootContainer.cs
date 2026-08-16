@@ -87,6 +87,28 @@ public class LootContainer : NetworkBehaviour
         hasGeneratedLoot = true;
     }
 
+    /// <summary>
+    /// Adds one guaranteed, visible quest clue to this real container. Only
+    /// State Authority mutates the canonical contents; normal synchronization
+    /// sends the generated item to clients by its stable display name.
+    /// </summary>
+    public bool EnsureQuestClueItem(QuestRouteClueKind kind)
+    {
+        if (!HasStateAuthority) return false;
+
+        ItemData clue = QuestRouteClueItemCatalog.GetOrCreate(kind);
+        foreach (InventorySlot slot in itemsInContainer)
+        {
+            if (slot != null && QuestRouteClueItemCatalog.TryGetKind(slot.item, out QuestRouteClueKind existing) && existing == kind)
+                return true;
+        }
+
+        if (itemsInContainer.Count >= 20) itemsInContainer.RemoveAt(itemsInContainer.Count - 1);
+        StoreItemLocal(clue, 1);
+        RPC_SyncAddItem(clue.itemName, 1, false);
+        return true;
+    }
+
     private void TryGenerateBonusWeapon()
     {
         if (Random.Range(0f, 100f) > bonusWeaponDropChance) return;
@@ -217,6 +239,7 @@ public class LootContainer : NetworkBehaviour
         lastOpenFrame = Time.frameCount;
         RPC_RequestSyncContainerStatus(Runner.LocalPlayer);
         AutoUIManager.Instance.OpenContainerUI(this);
+        PreMilitaryQuestRuntimeBridge.NotifyContainerOpened(this);
         return true;
     }
 
@@ -328,9 +351,25 @@ public class LootContainer : NetworkBehaviour
             return;
         }
 
+        bool isRouteClue = QuestRouteClueItemCatalog.TryGetKind(slot.item, out QuestRouteClueKind routeClueKind);
+
         itemsInContainer.RemoveAt(slotIndex);
         RPC_SyncRemoveItem(slotIndex);
+        if (isRouteClue)
+        {
+            RPC_NotifyQuestClueLooted(playerTryingToLoot, (int)routeClueKind,
+                QuestRouteClueItemCatalog.GetClueId(routeClueKind),
+                QuestRouteClueItemCatalog.GetDisplayName(routeClueKind));
+        }
         Debug.Log($"[LOOT SERVER] Granted {amount}x {slot.item.itemName} to {playerTryingToLoot}.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_NotifyQuestClueLooted([RpcTarget] PlayerRef targetPlayer, int kindValue,
+        string clueId, string displayName)
+    {
+        if (Runner.LocalPlayer != targetPlayer) return;
+        PreMilitaryQuestRuntimeBridge.NotifyRouteClueLooted(clueId, displayName);
     }
 
     private bool TryGetServerInventory(PlayerRef player, out InventorySystem inventory)

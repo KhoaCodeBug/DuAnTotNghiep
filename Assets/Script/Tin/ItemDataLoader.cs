@@ -24,6 +24,9 @@ public static class ItemDataLoader
             }
         }
 
+        if (QuestRouteClueItemCatalog.TryLoad(itemIdentifier, out ItemData questItem))
+            return questItem;
+
         Debug.LogWarning($"[ItemDataLoader] Không thể tìm thấy ItemData có tên hoặc ID '{itemIdentifier}' trong Assets/Resources/Items/");
         return null;
     }

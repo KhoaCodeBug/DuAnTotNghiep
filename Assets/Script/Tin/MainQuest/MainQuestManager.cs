@@ -399,6 +399,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayMilitaryZoneReveal()
     {
+        PreMilitaryQuestRuntimeBridge.NotifyMapFragment2Found();
         if (khuVucQuanSuFocus == null || PZ_CameraController.Instance == null) return;
 
         // Dọn các bảng phủ màn hình để mọi client đều thực sự nhìn thấy cùng cutscene.

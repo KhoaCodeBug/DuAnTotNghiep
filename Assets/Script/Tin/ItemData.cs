@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum ItemCategory { Ammunition, Medical, Consumable, Weapon, Backpack }
+public enum ItemCategory { Ammunition, Medical, Consumable, Weapon, Backpack, QuestItem }
 
 [CreateAssetMenu(fileName = "New Item", menuName = "Inventory/Item")]
 public class ItemData : ScriptableObject

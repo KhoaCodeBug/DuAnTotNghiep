@@ -18,6 +18,8 @@ public class AutoUIManager : MonoBehaviour
     private Sprite generatedBorderSprite;
     public TextMeshProUGUI clockText { get; private set; }
     private Canvas mainCanvas;
+    private bool questOverlayOpen;
+    public bool IsQuestOverlayOpen => questOverlayOpen;
     #endregion
 
     #region Biến UI - Inventory & Action
@@ -72,8 +74,10 @@ public class AutoUIManager : MonoBehaviour
 
     private class SlotUIElements
     {
+        public Image slotBackground;
         public Image iconImage;
         public TextMeshProUGUI amountText;
+        public TextMeshProUGUI itemNameText;
         public Button slotButton;
     }
 
@@ -86,6 +90,8 @@ public class AutoUIManager : MonoBehaviour
         }
 
         Instance = this;
+        if (transform.parent != null)
+            transform.SetParent(null, true);
         DontDestroyOnLoad(gameObject);
 
         generatedBorderSprite = GenerateGreenBorderSprite();
@@ -151,6 +157,10 @@ public class AutoUIManager : MonoBehaviour
 
     private void Update()
     {
+        // The quest journal/map is a full-screen modal owned by another canvas.
+        // Do not let inventory/trade input reopen hidden panels underneath it.
+        if (questOverlayOpen) return;
+
         // DevCheatManager is modal: its input, especially Escape, must not
         // also open/close inventory, trade, or another UI underneath it.
         DevCheatManager cheatManager = FindFirstObjectByType<DevCheatManager>();
@@ -926,7 +936,34 @@ public class AutoUIManager : MonoBehaviour
             textRect.offsetMin = new Vector2(0, 0); textRect.offsetMax = new Vector2(-1, 1);
             textObj.SetActive(false);
 
-            containerSlotUIList.Add(new SlotUIElements { iconImage = iconImg, amountText = amountTxt, slotButton = btn });
+            GameObject nameObj = new GameObject("QuestItemName");
+            nameObj.transform.SetParent(slotObj.transform, false);
+            TextMeshProUGUI nameTxt = nameObj.AddComponent<TextMeshProUGUI>();
+            if (gameFont != null) nameTxt.font = gameFont;
+            nameTxt.fontSize = 9;
+            nameTxt.fontStyle = FontStyles.Bold;
+            nameTxt.alignment = TextAlignmentOptions.Center;
+            nameTxt.color = new Color(0.1f, 0.16f, 0.13f, 1f);
+            nameTxt.enableAutoSizing = true;
+            nameTxt.fontSizeMin = 7;
+            nameTxt.fontSizeMax = 9;
+            nameTxt.raycastTarget = false;
+            RectTransform nameRect = nameObj.GetComponent<RectTransform>();
+            nameRect.anchorMin = new Vector2(0f, 0f);
+            nameRect.anchorMax = new Vector2(1f, 0f);
+            nameRect.pivot = new Vector2(0.5f, 0f);
+            nameRect.sizeDelta = new Vector2(-6f, 22f);
+            nameRect.anchoredPosition = new Vector2(0f, 3f);
+            nameObj.SetActive(false);
+
+            containerSlotUIList.Add(new SlotUIElements
+            {
+                slotBackground = slotBg,
+                iconImage = iconImg,
+                amountText = amountTxt,
+                itemNameText = nameTxt,
+                slotButton = btn
+            });
         }
     }
     #endregion
@@ -974,6 +1011,18 @@ public class AutoUIManager : MonoBehaviour
             {
                 ui.iconImage.gameObject.SetActive(true);
                 ui.iconImage.sprite = cSlots[i].item.icon;
+                bool questItem = cSlots[i].item.category == ItemCategory.QuestItem;
+                if (ui.slotBackground != null)
+                    ui.slotBackground.color = questItem
+                        ? new Color(0.88f, 0.74f, 0.32f, 1f)
+                        : new Color(0.2f, 0.25f, 0.3f, 1f);
+                if (ui.itemNameText != null)
+                {
+                    ui.itemNameText.gameObject.SetActive(questItem);
+                    ui.itemNameText.text = questItem ? QuestRouteClueItemCatalog.GetShortLabel(cSlots[i].item) : string.Empty;
+                }
+                RectTransform iconRect = ui.iconImage.rectTransform;
+                iconRect.offsetMin = questItem ? new Vector2(10f, 25f) : new Vector2(10f, 10f);
                 // Weapon slots are disabled locally when this player already
                 // owns two weapons (or the same weapon).  LootContainer
                 // validates the identical rule again on the server.
@@ -990,6 +1039,8 @@ public class AutoUIManager : MonoBehaviour
             {
                 ui.iconImage.gameObject.SetActive(false);
                 ui.amountText.gameObject.SetActive(false);
+                if (ui.itemNameText != null) ui.itemNameText.gameObject.SetActive(false);
+                if (ui.slotBackground != null) ui.slotBackground.color = new Color(0.2f, 0.25f, 0.3f, 1f);
                 ui.slotButton.interactable = false;
             }
         }
@@ -1876,6 +1927,7 @@ public class AutoUIManager : MonoBehaviour
             case ItemCategory.Consumable: return GameLocalization.TranslateLiteral("Consumable");
             case ItemCategory.Weapon: return GameLocalization.TranslateLiteral("Weapon");
             case ItemCategory.Backpack: return GameLocalization.TranslateLiteral("Backpack");
+            case ItemCategory.QuestItem: return "Vật phẩm nhiệm vụ";
             default: return GameLocalization.TranslateLiteral("Item");
         }
     }
@@ -2231,6 +2283,46 @@ public class AutoUIManager : MonoBehaviour
         {
             inventoryPanel.SetActive(false);
             CloseContainerUI();
+        }
+    }
+
+    /// <summary>
+    /// Makes the journal/map mutually exclusive with inventory, containers,
+    /// trading and gameplay HUD. The quest UI lives on its own Canvas, so the
+    /// generated AutoCanvas can be disabled without affecting the overlay.
+    /// </summary>
+    public void SetQuestOverlayOpen(bool open)
+    {
+        if (questOverlayOpen == open)
+            return;
+
+        questOverlayOpen = open;
+        if (open)
+        {
+            ForceHideInventoryOnly();
+            CloseContainerUI();
+            HideTradeWindow();
+            HideContextMenu();
+            HideTooltip();
+            if (AutoHealthPanel.Instance != null)
+                AutoHealthPanel.Instance.SetOpenState(false);
+            if (AutoTabManager.Instance != null)
+                AutoTabManager.Instance.ShowTabs(false);
+            if (HotbarHUDManager.Instance != null)
+                HotbarHUDManager.Instance.SetHUDVisible(false);
+            AutoNoiseMeter.SetHUDVisible(false);
+            if (ammoContainer != null)
+                ammoContainer.SetActive(false);
+            if (mainCanvas != null)
+                mainCanvas.enabled = false;
+        }
+        else
+        {
+            if (mainCanvas != null)
+                mainCanvas.enabled = true;
+            if (HotbarHUDManager.Instance != null)
+                HotbarHUDManager.Instance.SetHUDVisible(true);
+            AutoNoiseMeter.SetHUDVisible(true);
         }
     }
     #endregion
