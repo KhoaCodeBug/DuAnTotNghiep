@@ -56,6 +56,8 @@ public class PlayerInteraction : NetworkBehaviour
         if (!Object.HasInputAuthority) return;
         PlayerSurvival survival = GetComponent<PlayerSurvival>();
         if (survival != null && survival.IsSleepInputLocked) return;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return;
+        if (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) return;
         CheckNearbyVehicle();
 
         if (NetworkIsInVehicle && NetworkIsVehicleDriver && Input.GetKeyDown(KeyCode.L))

@@ -11,22 +11,22 @@ public enum OfficeKnowledgeLevel
 
 /// <summary>
 /// Pure progress model for the complete pre-military quest demo.
-/// Main-quest clues always reveal an approximate office search area, while the
-/// optional route clues reward Map Fragment 1 and the exact office position.
+/// The opening objective has one source of truth: three physical route-clue
+/// documents taken from residential LootContainers.
 /// </summary>
 public sealed class PreMilitaryQuestProgress
 {
     public const int RequiredDistinctHouses = 3;
     public const int RequiredRouteClues = 3;
+    public const int MaximumSearchHouses = 6;
 
-    private readonly HashSet<string> searchedHouseIds = new HashSet<string>(StringComparer.Ordinal);
     private readonly HashSet<string> routeClueIds = new HashSet<string>(StringComparer.Ordinal);
 
-    public int SearchedHouseCount => searchedHouseIds.Count;
+    public int SearchedHouseCount => 0;
     public int RouteClueCount => routeClueIds.Count;
-    public bool HouseSearchComplete => SearchedHouseCount >= RequiredDistinctHouses;
+    public bool HouseSearchComplete => false;
     public bool MainOfficeClueFound { get; private set; }
-    public bool ApproximateOfficeAreaRevealed => HouseSearchComplete && MainOfficeClueFound;
+    public bool ApproximateOfficeAreaRevealed => false;
     public bool HasMapFragment1 { get; private set; }
     public bool OfficeDiscovered { get; private set; }
     public bool SideQuestSkipped => OfficeDiscovered && !HasMapFragment1;
@@ -34,6 +34,29 @@ public sealed class PreMilitaryQuestProgress
     public bool OfficeInvestigationComplete { get; private set; }
     public bool HasMapFragment2 { get; private set; }
     public bool MainQuestComplete => HasMapFragment2;
+
+    /// <summary>
+    /// Rebuilds the presentation model from Fusion's authoritative bitmasks.
+    /// Synthetic keys are sufficient here because the journal only needs
+    /// distinct counts; the actual stable house IDs remain in MainQuestManager.
+    /// </summary>
+    public void ApplyAuthoritativeSnapshot(int searchedHouseMask, int routeClueMask,
+        bool officeDiscovered, bool officeInvestigationComplete, bool hasMapFragment2)
+    {
+        routeClueIds.Clear();
+        _ = searchedHouseMask; // Legacy replicated field; no longer quest progress.
+        for (int i = 0; i < RequiredRouteClues; i++)
+        {
+            if ((routeClueMask & (1 << i)) != 0)
+                routeClueIds.Add("NETWORK_CLUE_" + i);
+        }
+
+        HasMapFragment1 = RouteClueCount >= RequiredRouteClues;
+        MainOfficeClueFound = HasMapFragment1;
+        OfficeDiscovered = officeDiscovered;
+        OfficeInvestigationComplete = officeInvestigationComplete;
+        HasMapFragment2 = hasMapFragment2;
+    }
 
     public OfficeKnowledgeLevel OfficeKnowledge
     {
@@ -46,20 +69,11 @@ public sealed class PreMilitaryQuestProgress
         }
     }
 
-    /// <summary>
-    /// A house counts after at least one LootContainer inside it is opened.
-    /// The third distinct house guarantees the main office clue, preventing RNG stalls.
-    /// </summary>
+    /// <summary>Legacy preview hook. Opening a house no longer advances anything.</summary>
     public bool RegisterLootContainerOpenedInHouse(string houseId)
     {
-        if (HouseSearchComplete || string.IsNullOrWhiteSpace(houseId))
-            return false;
-
-        bool added = searchedHouseIds.Add(houseId);
-        if (added && HouseSearchComplete)
-            MainOfficeClueFound = true;
-
-        return added;
+        _ = houseId;
+        return false;
     }
 
     /// <summary>

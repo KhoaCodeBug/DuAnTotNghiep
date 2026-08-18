@@ -28,9 +28,12 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.HasBuiltElement("Side Quest Header"), Is.True);
         Assert.That(prototype.HasBuiltElement("Main Quest Card"), Is.True);
         Assert.That(prototype.HasBuiltElement("Side Quest Card"), Is.True);
-        Assert.That(prototype.HasBuiltElement("Map Fragment Slot 1"), Is.True);
-        Assert.That(prototype.HasBuiltElement("Map Fragment Slot 2"), Is.True);
-        Assert.That(prototype.HasBuiltElement("Side Objective Segment 1"), Is.True);
+        Assert.That(prototype.HasBuiltElement("Current Objective"), Is.True);
+        Assert.That(prototype.HasBuiltElement("Current Objective Progress Bar"), Is.True);
+        Assert.That(prototype.HasBuiltElement("Tracking Button"), Is.True);
+        Assert.That(prototype.HasBuiltElement("Open Map Button"), Is.True);
+        Assert.That(prototype.HasBuiltElement("Map Close Hint"), Is.True);
+        Assert.That(prototype.HasBuiltElement("Footer"), Is.False);
         Assert.That(prototype.HasBuiltElement("Quest Map"), Is.True);
         Assert.That(prototype.HasBuiltElement("Approximate Office Area"), Is.True);
         Assert.That(prototype.HasBuiltElement("Exact Office Marker"), Is.True);
@@ -41,6 +44,49 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.HasBuiltElement("Reward Sparkle 1"), Is.True);
         Assert.That(prototype.HasBuiltElement("Tab 2"), Is.False);
         Assert.That(prototype.ValidatePrototype(), Is.Empty);
+    }
+
+    [Test]
+    public void MapCloseHintIsAClickableButtonThatClosesTheMap()
+    {
+        prototype.SetMapOpenForPreview(true);
+        GameObject closeObject = GameObject.Find("Map Close Hint");
+
+        Assert.That(closeObject, Is.Not.Null);
+        Button closeButton = closeObject.GetComponent<Button>();
+        Assert.That(closeButton, Is.Not.Null);
+
+        closeButton.onClick.Invoke();
+        Assert.That(prototype.IsMapOpen, Is.False);
+    }
+
+    [Test]
+    public void TrackingButtonChangesVisualStateAndBecomesCancelTracking()
+    {
+        prototype.SelectQuestForPreview(0);
+        prototype.SetJournalOpenForPreview(true);
+        GameObject buttonObject = GameObject.Find("Tracking Button");
+        Image buttonImage = buttonObject.GetComponent<Image>();
+        Button trackingButton = buttonObject.GetComponent<Button>();
+        Color idleColor = buttonImage.color;
+
+        Assert.That(prototype.TrackedQuestIndex, Is.EqualTo(-1));
+        Assert.That(prototype.TrackingButtonText, Is.EqualTo("[V]  THEO DÕI"));
+
+        trackingButton.onClick.Invoke();
+
+        Assert.That(prototype.TrackedQuestIndex, Is.EqualTo(0));
+        Assert.That(prototype.IsSelectedQuestTracked, Is.True);
+        Assert.That(prototype.TrackingButtonText, Is.EqualTo("[V]  HỦY THEO DÕI"));
+        Assert.That(buttonImage.color, Is.Not.EqualTo(idleColor));
+        Assert.That(prototype.TryGetTrackedObjectiveText(out string objective), Is.True);
+        Assert.That(objective, Does.Contain("0/3"));
+
+        trackingButton.onClick.Invoke();
+
+        Assert.That(prototype.TrackedQuestIndex, Is.EqualTo(-1));
+        Assert.That(prototype.TrackingButtonText, Is.EqualTo("[V]  THEO DÕI"));
+        Assert.That(prototype.TryGetTrackedObjectiveText(out _), Is.False);
     }
 
     [Test]
@@ -86,25 +132,101 @@ public sealed class QuestFlowUIPrototypeTests
 
         prototype.SelectQuestForPreview(0);
         Assert.That(prototype.CurrentDetailTitle, Does.Contain("TÌM THÊM THÔNG TIN"));
-        Assert.That(prototype.CurrentContextPanelTitle, Is.EqualTo("VẬT PHẨM NHIỆM VỤ"));
+        Assert.That(prototype.CurrentContextPanelTitle, Is.EqualTo("MANH MỐI NHIỆM VỤ"));
     }
 
     [Test]
-    public void ThreeDistinctHousesGuaranteeApproximateOfficeSearchArea()
+    public void OpeningHousesNeverAdvancesTheClueObjective()
     {
         prototype.RegisterHouseLootContainerOpenedForPreview("House-A");
         prototype.RegisterHouseLootContainerOpenedForPreview("House-A");
         prototype.RegisterHouseLootContainerOpenedForPreview("House-B");
-
-        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("2 / 3 NHÀ"));
-
         prototype.RegisterHouseLootContainerOpenedForPreview("House-C");
+
+        Assert.That(prototype.GetObjectiveStatusForPreview(0),
+            Is.EqualTo("ĐÃ TÌM THẤY  0 / 3 MANH MỐI"));
+        Assert.That(prototype.HasMapFragment1, Is.False);
+    }
+
+    [Test]
+    public void AuthoritativeSnapshotRestoresSharedProgressForLateJoiner()
+    {
+        int searchedHouseMask = (1 << 0) | (1 << 2) | (1 << 5);
+        int routeClueMask = (1 << 0) | (1 << 1) | (1 << 2);
+
+        prototype.ApplyAuthoritativeSnapshot(searchedHouseMask, routeClueMask,
+            officeDiscovered: true, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false);
+
         Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("HOÀN THÀNH"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("VÙNG TƯƠNG ĐỐI"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐÃ TÌM THẤY"));
+        Assert.That(prototype.HasMapFragment1, Is.True);
+
+        prototype.SelectTabForPreview(1);
+        prototype.SelectQuestForPreview(1);
+        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("3 / 3"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐÃ GHÉP"));
+    }
+
+    [Test]
+    public void MainTrackerUsesOnlyActuallyCollectedRouteClues()
+    {
+        prototype.ApplyAuthoritativeSnapshot(
+            searchedHouseMask: (1 << 0) | (1 << 1) | (1 << 2),
+            routeClueMask: 1 << 0,
+            officeDiscovered: false, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false);
+        prototype.SelectQuestForPreview(0);
+        GameObject.Find("Tracking Button").GetComponent<Button>().onClick.Invoke();
+
+        Assert.That(prototype.TryGetTrackedObjectiveText(out string objective), Is.True);
+        Assert.That(objective, Does.Contain("1/3"));
+        Assert.That(objective, Does.Not.Contain("3/3"));
+    }
+
+    [Test]
+    public void CompletedCluesCanQueueUnlockForTheNextManualMapOpen()
+    {
+        prototype.QueueMapUnlockReveal();
+
+        Assert.That(prototype.HasPendingMapUnlockReveal, Is.True);
+        Assert.That(prototype.HasBuiltElement("Map Unlock Reveal"), Is.True);
+    }
+
+    [Test]
+    public void CompletedAuthoritativeCluesPreserveExactMapStateWithoutDependingOnRpcOrder()
+    {
+        prototype.ApplyAuthoritativeSnapshot(
+            searchedHouseMask: (1 << 0) | (1 << 1) | (1 << 2),
+            routeClueMask: (1 << 0) | (1 << 1) | (1 << 2),
+            officeDiscovered: false, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false);
 
         prototype.SetMapOpenForPreview(true);
-        Assert.That(prototype.IsMapOpen, Is.True);
-        Assert.That(prototype.CurrentMapKnowledgeLabel, Is.EqualTo("ĐÃ KHOANH VÙNG TÌM KIẾM"));
+
+        Assert.That(prototype.HasMapFragment1, Is.True);
+        Assert.That(prototype.CurrentMapKnowledgeLabel, Is.EqualTo("MẢNH 1  •  VỊ TRÍ CHÍNH XÁC"));
+        Assert.That(prototype.HasBuiltElement("Map Unlock Reveal"), Is.True);
+    }
+
+    [Test]
+    public void CompletingClueSearchHidesBorderAndKeepsUnrevealedMapFogged()
+    {
+        prototype.ConfigureSearchZone(new Vector2(0.2f, 0.2f), new Vector2(0.45f, 0.45f), 6);
+        prototype.ApplyAuthoritativeSnapshot(
+            searchedHouseMask: 0,
+            routeClueMask: (1 << 0) | (1 << 1) | (1 << 2),
+            officeDiscovered: false, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false);
+
+        GameObject searchBorder = GameObject.Find("Quest Search Zone");
+        GameObject westFog = GameObject.Find("Restricted Fog West");
+
+        Assert.That(searchBorder, Is.Null,
+            "The completed 3-clue objective should remove its amber search border.");
+        Assert.That(westFog, Is.Not.Null,
+            "Completing clues must not reveal the entire city map.");
+        Assert.That(westFog.activeInHierarchy, Is.True);
     }
 
     [Test]
@@ -191,7 +313,7 @@ public sealed class QuestFlowUIPrototypeTests
     public void ProgressStopsAtRequiredCountsAndNeverShowsSevenOfThree()
     {
         for (int i = 0; i < 7; i++)
-            prototype.RegisterHouseLootContainerOpenedForPreview("House-" + i);
+            prototype.RegisterRouteClueForPreview("Clue-" + i);
 
         prototype.SetMapOpenForPreview(true);
         Assert.That(prototype.CurrentMapClueSummary, Does.Contain("3/3"));
@@ -348,7 +470,29 @@ public sealed class QuestFlowUIPrototypeTests
             Assert.That(prototype.HasBuiltElement("Restricted Fog South"), Is.True);
             Assert.That(prototype.HasBuiltElement("Restricted Fog North"), Is.True);
             Assert.That(prototype.CurrentMapSearchZoneHouseCount, Is.EqualTo(6));
-            Assert.That(prototype.CurrentMapClueSummary, Does.Contain("6 nhà"));
+            Assert.That(prototype.CurrentMapClueSummary, Does.Contain("Các ngôi nhà xung quanh"));
+        }
+        finally
+        {
+            Object.DestroyImmediate(texture);
+        }
+    }
+
+    [Test]
+    public void ThreeCluesRevealTheConfiguredOfficeMarker()
+    {
+        Texture2D texture = new Texture2D(100, 100, TextureFormat.RGBA32, false);
+        try
+        {
+            prototype.ConfigureRasterMap(texture, new Vector2(0.7f, 0.7f), new Vector2(0.2f, 0.2f));
+            prototype.ConfigureOfficeSearchArea(new Vector2(0.55f, 0.55f), new Vector2(0.85f, 0.85f));
+            prototype.RegisterRouteClueForPreview("Invoice");
+            prototype.RegisterRouteClueForPreview("BusRoute");
+            prototype.RegisterRouteClueForPreview("AddressNote");
+            prototype.SetMapOpenForPreview(true);
+
+            Assert.That(GameObject.Find("Exact Office Marker"), Is.Not.Null);
+            Assert.That(prototype.CurrentMapKnowledgeLabel, Is.EqualTo("MẢNH 1  •  VỊ TRÍ CHÍNH XÁC"));
         }
         finally
         {

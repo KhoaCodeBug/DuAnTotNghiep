@@ -369,6 +369,11 @@ public class AutoUIManager : MonoBehaviour
 
     private void HandleInput()
     {
+        // Quest journal/map is modal. Do not let Tab/I/Escape open or mutate
+        // inventory state behind the overlay while it owns player input.
+        if (questOverlayOpen)
+            return;
+
         // 🔥 KIỂM TRA TRADE (CÓ BẢO VỆ MẠNG)
         EnsureLocalPlayer();
         PlayerTrade pt = localPlayer != null ? localPlayer.GetComponent<PlayerTrade>() : null;
@@ -2088,7 +2093,7 @@ public class AutoUIManager : MonoBehaviour
         bool isLoot = containerPanel != null && containerPanel.activeSelf;
         bool isTrade = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
 
-        return isInv || isLoot || isTrade;
+        return isInv || isLoot || isTrade || questOverlayOpen;
     }
 
     private void GenerateSpectatorUI(GameObject canvasGO)

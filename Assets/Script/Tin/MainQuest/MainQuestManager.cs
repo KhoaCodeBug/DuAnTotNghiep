@@ -13,9 +13,14 @@ public sealed class MainQuestManager : NetworkBehaviour
     public enum QuestStage
     {
         NotStarted,
+        SearchNeighborhood,
+        LocateOffice,
         FindCityMap,
         CityMapFound
     }
+
+    public const int MaximumSearchHouses = PreMilitaryQuestProgress.MaximumSearchHouses;
+    private const int MaximumCabinetSearchPoints = 32;
 
     public static MainQuestManager Instance { get; private set; }
 
@@ -48,11 +53,32 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     [Header("Quest HUD")]
     [SerializeField] private bool showBuiltInQuestHud = true;
+    [SerializeField, Min(0.05f)] private float questEventFadeInSeconds = 0.45f;
+    [SerializeField, Min(0.1f)] private float questEventHoldSeconds = 2.8f;
+    [SerializeField, Min(0.05f)] private float questEventFadeOutSeconds = 0.65f;
+
+    [Header("Route clue loot insurance")]
+    [Tooltip("Cơ hội tủ hợp lệ đầu tiên sinh manh mối. Sau một lần trượt, tủ hợp lệ kế tiếp luôn được bảo hiểm.")]
+    [SerializeField, Range(0f, 1f)] private float routeClueBaseDropChance = 0.7f;
 
     [Networked] public int NetworkQuestStage { get; set; }
     [Networked] public int MapCabinetId { get; set; }
     [Networked] public NetworkBool IsCityMapUnlocked { get; set; }
     [Networked] public NetworkBool IsMilitaryRevealPlaying { get; set; }
+    [Networked] public NetworkBool IsNeighborhoodConfigured { get; set; }
+    [Networked] public int SearchHouseCount { get; set; }
+    [Networked] public NetworkString<_64> SearchHouseId0 { get; set; }
+    [Networked] public NetworkString<_64> SearchHouseId1 { get; set; }
+    [Networked] public NetworkString<_64> SearchHouseId2 { get; set; }
+    [Networked] public NetworkString<_64> SearchHouseId3 { get; set; }
+    [Networked] public NetworkString<_64> SearchHouseId4 { get; set; }
+    [Networked] public NetworkString<_64> SearchHouseId5 { get; set; }
+    [Networked] public int SearchedHouseMask { get; set; }
+    [Networked] public int RouteClueMask { get; set; }
+    [Networked] public int InsuredRouteClueMask { get; set; }
+    [Networked] public int RouteClueDryOpenCount { get; set; }
+    [Networked] public NetworkBool IsOfficeDiscovered { get; set; }
+    [Networked] public int CheckedCabinetMask { get; set; }
 
     private MapController cachedMapController;
     private MinimapController cachedMinimapController;
@@ -61,6 +87,11 @@ public sealed class MainQuestManager : NetworkBehaviour
     private float localFadeAlpha;
     private float localClueNoticeAlpha;
     private float localLocationTitleAlpha;
+    private float localQuestEventAlpha;
+    private string localQuestEventTitle = string.Empty;
+    private string localQuestEventBody = string.Empty;
+    private Coroutine questEventRoutine;
+    private readonly Dictionary<int, int> cabinetIndexById = new Dictionary<int, int>();
     private bool hasSpawned;
 
     /// <summary>
@@ -75,6 +106,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         : QuestStage.NotStarted;
     public bool IsMapSearchActive => IsNetworkReady && CurrentStage == QuestStage.FindCityMap;
     public bool IsQuestCutsceneActive => IsNetworkReady && IsMilitaryRevealPlaying;
+    public bool IsNeighborhoodSearchActive => IsNetworkReady && CurrentStage == QuestStage.SearchNeighborhood;
+    public int SearchedHouseCount => CountBits(SearchedHouseMask);
+    public int RouteClueCount => CountBits(RouteClueMask);
+    public bool HasMapFragment1 => RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues;
 
     private void Awake()
     {
@@ -98,6 +133,20 @@ public sealed class MainQuestManager : NetworkBehaviour
             MapCabinetId = 0;
             IsCityMapUnlocked = false;
             IsMilitaryRevealPlaying = false;
+            IsNeighborhoodConfigured = false;
+            SearchHouseCount = 0;
+            SearchHouseId0 = default;
+            SearchHouseId1 = default;
+            SearchHouseId2 = default;
+            SearchHouseId3 = default;
+            SearchHouseId4 = default;
+            SearchHouseId5 = default;
+            SearchedHouseMask = 0;
+            RouteClueMask = 0;
+            InsuredRouteClueMask = 0;
+            RouteClueDryOpenCount = 0;
+            IsOfficeDiscovered = false;
+            CheckedCabinetMask = 0;
         }
 
         ApplyMapAccess();
@@ -113,12 +162,227 @@ public sealed class MainQuestManager : NetworkBehaviour
         localFadeAlpha = 0f;
         localClueNoticeAlpha = 0f;
         localLocationTitleAlpha = 0f;
+        localQuestEventAlpha = 0f;
+        if (questEventRoutine != null) StopCoroutine(questEventRoutine);
+        questEventRoutine = null;
         ApplyMapAccess();
     }
 
     private void Update()
     {
         ApplyMapAccess();
+    }
+
+    /// <summary>
+    /// State Authority chooses the opening neighborhood exactly once. The six
+    /// stable scene IDs are replicated so every client and late joiner uses the
+    /// same quest area regardless of its random spawn point.
+    /// </summary>
+    public bool TryInitializeNeighborhood(IReadOnlyList<string> houseIds)
+    {
+        if (!IsNetworkReady || !HasStateAuthority || IsNeighborhoodConfigured ||
+            CurrentStage != QuestStage.NotStarted || houseIds == null)
+            return false;
+
+        int count = Mathf.Min(MaximumSearchHouses, houseIds.Count);
+        if (count < PreMilitaryQuestProgress.RequiredDistinctHouses)
+        {
+            Debug.LogError($"[MAIN QUEST] Cần ít nhất {PreMilitaryQuestProgress.RequiredDistinctHouses} nhà hợp lệ để bắt đầu nhiệm vụ.");
+            return false;
+        }
+
+        HashSet<string> uniqueIds = new HashSet<string>(System.StringComparer.Ordinal);
+        for (int i = 0; i < count; i++)
+        {
+            string id = houseIds[i];
+            if (string.IsNullOrWhiteSpace(id) || !uniqueIds.Add(id))
+            {
+                Debug.LogError("[MAIN QUEST] Danh sách nhà khởi tạo có ID rỗng hoặc trùng.");
+                return false;
+            }
+        }
+
+        SearchHouseCount = count;
+        for (int i = 0; i < MaximumSearchHouses; i++)
+            SetSearchHouseId(i, i < count ? houseIds[i] : string.Empty);
+        SearchedHouseMask = 0;
+        RouteClueMask = 0;
+        InsuredRouteClueMask = 0;
+        RouteClueDryOpenCount = 0;
+        IsOfficeDiscovered = false;
+        IsNeighborhoodConfigured = true;
+        NetworkQuestStage = (int)QuestStage.SearchNeighborhood;
+        RPC_ShowQuestMessage($"MỤC TIÊU MỚI: Tìm kiếm {PreMilitaryQuestProgress.RequiredRouteClues} manh mối ở các ngôi nhà xung quanh.");
+        return true;
+    }
+
+    public string GetSearchHouseId(int index)
+    {
+        if (!IsNetworkReady || index < 0 || index >= SearchHouseCount) return string.Empty;
+        return index switch
+        {
+            0 => SearchHouseId0.ToString(),
+            1 => SearchHouseId1.ToString(),
+            2 => SearchHouseId2.ToString(),
+            3 => SearchHouseId3.ToString(),
+            4 => SearchHouseId4.ToString(),
+            5 => SearchHouseId5.ToString(),
+            _ => string.Empty
+        };
+    }
+
+    private void SetSearchHouseId(int index, string value)
+    {
+        switch (index)
+        {
+            case 0: SearchHouseId0 = value; break;
+            case 1: SearchHouseId1 = value; break;
+            case 2: SearchHouseId2 = value; break;
+            case 3: SearchHouseId3 = value; break;
+            case 4: SearchHouseId4 = value; break;
+            case 5: SearchHouseId5 = value; break;
+        }
+    }
+
+    /// <summary>
+    /// Called inside LootContainer's authoritative open/sync RPC. Pity is
+    /// therefore resolved before this exact container's slots are sent back.
+    /// </summary>
+    public void AuthorityRegisterOpenedContainer(LootContainer openedContainer, PlayerRef requester)
+    {
+        if (!IsNetworkReady || !HasStateAuthority || openedContainer == null ||
+            !QuestLocationIdentity.TryResolve(openedContainer, out QuestLocationIdentity location) ||
+            location.LocationType != QuestLocationType.ResidentialHouse)
+            return;
+
+        ServerRollContainerRouteClue(requester, openedContainer, location.LocationId);
+    }
+
+    private void ServerRollContainerRouteClue(PlayerRef requester, LootContainer openedContainer, string houseId)
+    {
+        if (!HasStateAuthority || CurrentStage != QuestStage.SearchNeighborhood) return;
+        if (!TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            !openedContainer.CanPlayerOpenFrom(player.transform.position))
+            return;
+
+        RecoverMissingInsuredRouteClue(openedContainer);
+        if (!openedContainer.AuthorityTryBeginRouteClueRoll()) return;
+        TryPlaceInsuredRouteClue(openedContainer, houseId);
+    }
+
+    /// <summary>Called only by the authoritative loot transaction.</summary>
+    public void AuthorityRegisterRouteClue(QuestRouteClueKind kind)
+    {
+        if (!IsNetworkReady || !HasStateAuthority || CurrentStage == QuestStage.CityMapFound) return;
+        int bit = 1 << (int)kind;
+        if ((RouteClueMask & bit) != 0) return;
+        RouteClueMask |= bit;
+        RPC_ShowQuestMessage($"Manh mối tuyến đường: {RouteClueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}.");
+        if (RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues)
+        {
+            NetworkQuestStage = (int)QuestStage.LocateOffice;
+            RPC_ShowAllRouteCluesFound();
+        }
+    }
+
+    private void TryPlaceInsuredRouteClue(LootContainer openedContainer, string houseId)
+    {
+        if (openedContainer == null || !openedContainer.HasStateAuthority ||
+            !QuestLocationIdentity.TryResolve(openedContainer, out QuestLocationIdentity location) ||
+            !string.Equals(location.LocationId, houseId, System.StringComparison.Ordinal))
+            return;
+
+        int unavailableClueMask = InsuredRouteClueMask | RouteClueMask;
+        int completeMask = (1 << PreMilitaryQuestProgress.RequiredRouteClues) - 1;
+        if ((unavailableClueMask & completeMask) == completeMask) return;
+
+        // Every new residential cabinet gets one authoritative roll. If it
+        // misses, the next new cabinet is guaranteed. The result remains a real
+        // paper item; merely opening the cabinet never advances the quest.
+        bool guaranteed = RouteClueDryOpenCount >= 1;
+        if (!guaranteed && Random.value > routeClueBaseDropChance)
+        {
+            RouteClueDryOpenCount++;
+            Debug.Log($"[QUEST LOOT] Cabinet '{openedContainer.name}' in '{houseId}' rolled no clue. " +
+                      "The next new residential cabinet is guaranteed.");
+            return;
+        }
+
+        for (int clueIndex = 0; clueIndex < PreMilitaryQuestProgress.RequiredRouteClues; clueIndex++)
+        {
+            int clueBit = 1 << clueIndex;
+            if ((InsuredRouteClueMask & clueBit) != 0 || (RouteClueMask & clueBit) != 0)
+                continue;
+
+            if (openedContainer.EnsureQuestClueItem((QuestRouteClueKind)clueIndex))
+            {
+                InsuredRouteClueMask |= clueBit;
+                RouteClueDryOpenCount = 0;
+                Debug.Log($"[QUEST LOOT] Placed '{QuestRouteClueItemCatalog.GetDisplayName((QuestRouteClueKind)clueIndex)}' " +
+                          $"inside opened container '{openedContainer.name}' in house '{houseId}'.");
+            }
+
+            return;
+        }
+    }
+
+    private void RecoverMissingInsuredRouteClue(LootContainer openedContainer)
+    {
+        if (openedContainer == null || !openedContainer.HasStateAuthority)
+            return;
+
+        for (int clueIndex = 0; clueIndex < PreMilitaryQuestProgress.RequiredRouteClues; clueIndex++)
+        {
+            int clueBit = 1 << clueIndex;
+            bool spawnedButNotCollected = (InsuredRouteClueMask & clueBit) != 0 &&
+                                          (RouteClueMask & clueBit) == 0;
+            if (!spawnedButNotCollected || RouteClueExistsInResidentialContainers((QuestRouteClueKind)clueIndex))
+                continue;
+
+            // A destroyed/reset container must not permanently soft-lock the
+            // side route. Reinsert that exact document on the next valid open.
+            openedContainer.EnsureQuestClueItem((QuestRouteClueKind)clueIndex);
+            return;
+        }
+    }
+
+    private static bool RouteClueExistsInResidentialContainers(QuestRouteClueKind kind)
+    {
+        QuestLocationIdentity[] locations = FindObjectsByType<QuestLocationIdentity>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int locationIndex = 0; locationIndex < locations.Length; locationIndex++)
+        {
+            QuestLocationIdentity location = locations[locationIndex];
+            if (location == null || location.LocationType != QuestLocationType.ResidentialHouse)
+                continue;
+
+            LootContainer[] containers = location.GetComponentsInChildren<LootContainer>(true);
+            for (int containerIndex = 0; containerIndex < containers.Length; containerIndex++)
+            {
+                LootContainer container = containers[containerIndex];
+                if (container == null) continue;
+                for (int slotIndex = 0; slotIndex < container.itemsInContainer.Count; slotIndex++)
+                {
+                    InventorySlot slot = container.itemsInContainer[slotIndex];
+                    if (slot != null && QuestRouteClueItemCatalog.TryGetKind(slot.item,
+                            out QuestRouteClueKind existingKind) && existingKind == kind)
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static int CountBits(int value)
+    {
+        int count = 0;
+        uint remaining = unchecked((uint)value);
+        while (remaining != 0)
+        {
+            remaining &= remaining - 1;
+            count++;
+        }
+        return count;
     }
 
     /// <summary>Called when the local player reaches KhuVucNhiemVu.</summary>
@@ -151,7 +415,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void ServerStartMapSearch(int triggerId, PlayerRef requester)
     {
-        if (!HasStateAuthority || CurrentStage != QuestStage.NotStarted) return;
+        if (!HasStateAuthority || CurrentStage != QuestStage.LocateOffice) return;
         if (!MainQuestStartTrigger.TryGet(triggerId, out MainQuestStartTrigger trigger) || trigger == null) return;
         if (!TryGetRequestingPlayer(requester, out PlayerMovement player) || !trigger.Contains(player.transform.position)) return;
 
@@ -171,10 +435,19 @@ public sealed class MainQuestManager : NetworkBehaviour
             return;
         }
 
+        validCabinets.Sort((left, right) => left.CabinetId.CompareTo(right.CabinetId));
+        if (validCabinets.Count > MaximumCabinetSearchPoints)
+            validCabinets.RemoveRange(MaximumCabinetSearchPoints,
+                validCabinets.Count - MaximumCabinetSearchPoints);
+        RebuildCabinetIndexCache(validCabinets);
+        CheckedCabinetMask = 0;
+
         // Random.Range(int, int) phân phối đều: mỗi điểm có đúng xác suất 1/N.
         MapCabinetId = validCabinets[Random.Range(0, validCabinets.Count)].CabinetId;
+        IsOfficeDiscovered = true;
         NetworkQuestStage = (int)QuestStage.FindCityMap;
         RPC_ShowQuestMessage("MỤC TIÊU MỚI: Kiểm tra các vị trí màu vàng bên trong văn phòng để tìm bản đồ thành phố.");
+        RPC_ShowOfficeSearchStarted();
     }
 
     private void ServerSearchCabinet(int cabinetId, PlayerRef requester)
@@ -183,10 +456,14 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (!MainQuestSearchCabinet.TryGet(cabinetId, out MainQuestSearchCabinet cabinet) || cabinet == null) return;
         if (!TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             !cabinet.CanPlayerSearch(player.transform.position)) return;
+        int cabinetIndex = GetCabinetIndex(cabinetId);
+        if (cabinetIndex >= 0 && (CheckedCabinetMask & (1 << cabinetIndex)) != 0) return;
 
         if (cabinetId != MapCabinetId)
         {
-            RPC_ShowQuestMessage("Không tìm thấy bản đồ ở vị trí này. Hãy kiểm tra chỗ khác.");
+            if (cabinetIndex >= 0)
+                CheckedCabinetMask |= 1 << cabinetIndex;
+            RPC_ShowCabinetSearchResult(requester, false);
             return;
         }
 
@@ -195,11 +472,48 @@ public sealed class MainQuestManager : NetworkBehaviour
         NetworkQuestStage = (int)QuestStage.CityMapFound;
         IsMilitaryRevealPlaying = true;
 
+        RPC_ShowCabinetSearchResult(requester, true);
         RPC_ShowLocalizedQuestMessage("quest.map_clue_chat");
         RPC_PlayMilitaryZoneReveal();
 
         if (authoritySafetyRoutine != null) StopCoroutine(authoritySafetyRoutine);
         authoritySafetyRoutine = StartCoroutine(AuthorityRevealSequence(requester, player.transform.position));
+    }
+
+    public bool IsCabinetChecked(int cabinetId)
+    {
+        if (!IsNetworkReady || cabinetId == 0)
+            return false;
+
+        int cabinetIndex = GetCabinetIndex(cabinetId);
+        return cabinetIndex >= 0 && (CheckedCabinetMask & (1 << cabinetIndex)) != 0;
+    }
+
+    private int GetCabinetIndex(int cabinetId)
+    {
+        if (cabinetIndexById.TryGetValue(cabinetId, out int index))
+            return index;
+
+        MainQuestSearchCabinet[] cabinets = FindObjectsByType<MainQuestSearchCabinet>(
+            FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        List<MainQuestSearchCabinet> sorted = new List<MainQuestSearchCabinet>(cabinets.Length);
+        for (int i = 0; i < cabinets.Length; i++)
+        {
+            if (cabinets[i] != null && cabinets[i].CabinetId != 0)
+                sorted.Add(cabinets[i]);
+        }
+        sorted.Sort((left, right) => left.CabinetId.CompareTo(right.CabinetId));
+        if (sorted.Count > MaximumCabinetSearchPoints)
+            sorted.RemoveRange(MaximumCabinetSearchPoints, sorted.Count - MaximumCabinetSearchPoints);
+        RebuildCabinetIndexCache(sorted);
+        return cabinetIndexById.TryGetValue(cabinetId, out index) ? index : -1;
+    }
+
+    private void RebuildCabinetIndexCache(IReadOnlyList<MainQuestSearchCabinet> sortedCabinets)
+    {
+        cabinetIndexById.Clear();
+        for (int i = 0; i < sortedCabinets.Count && i < MaximumCabinetSearchPoints; i++)
+            cabinetIndexById[sortedCabinets[i].CabinetId] = i;
     }
 
     private IEnumerator AuthorityRevealSequence(PlayerRef mapFinder, Vector2 gatherPosition)
@@ -389,6 +703,64 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowOfficeSearchStarted()
+    {
+        ShowLocalQuestEvent(
+            "KHU VỰC NHIỆM VỤ MỚI",
+            "VĂN PHÒNG MÀU TÍM  •  Kiểm tra các điểm vàng để tìm bản đồ thành phố.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowAllRouteCluesFound()
+    {
+        const string message = "Dữ liệu mới đã được giải mã. Mở bản đồ [M] để kiểm tra vị trí vừa phát hiện.";
+        AutoChatManager.Instance?.AddMessage("MANH MỐI", message);
+        ShowLocalQuestEvent("ĐÃ PHÁT HIỆN ĐỦ MANH MỐI", message);
+        QuestFlowUIPrototype.Instance?.QueueMapUnlockReveal();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowCabinetSearchResult(PlayerRef requester, bool found)
+    {
+        if (!IsNetworkReady || Runner.LocalPlayer != requester)
+            return;
+
+        string message = found
+            ? "Đã tìm thấy manh mối quan trọng."
+            : "Chẳng có manh mối gì ở đây cả. Hãy kiểm tra vị trí khác.";
+        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", message);
+        ShowLocalQuestEvent(found ? "ĐÃ TÌM THẤY MANH MỐI" : "KHÔNG CÓ MANH MỐI", message);
+    }
+
+    private void ShowLocalQuestEvent(string title, string body)
+    {
+        localQuestEventTitle = title;
+        localQuestEventBody = body;
+        if (questEventRoutine != null)
+            StopCoroutine(questEventRoutine);
+        questEventRoutine = StartCoroutine(QuestEventNoticeRoutine());
+    }
+
+    private IEnumerator QuestEventNoticeRoutine()
+    {
+        localQuestEventAlpha = 0f;
+        for (float elapsed = 0f; elapsed < questEventFadeInSeconds; elapsed += Time.unscaledDeltaTime)
+        {
+            localQuestEventAlpha = CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeInSeconds));
+            yield return null;
+        }
+        localQuestEventAlpha = 1f;
+        yield return new WaitForSecondsRealtime(questEventHoldSeconds);
+        for (float elapsed = 0f; elapsed < questEventFadeOutSeconds; elapsed += Time.unscaledDeltaTime)
+        {
+            localQuestEventAlpha = 1f - CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeOutSeconds));
+            yield return null;
+        }
+        localQuestEventAlpha = 0f;
+        questEventRoutine = null;
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowLocalizedQuestMessage(string localizationKey)
     {
         AutoChatManager.Instance?.AddMessage(
@@ -535,6 +907,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void OnGUI()
     {
+        if (localQuestEventAlpha > 0.001f) DrawQuestEventNotice();
         if (localClueNoticeAlpha > 0.001f) DrawClueNotice();
         if (localLocationTitleAlpha > 0.001f) DrawMilitaryLocationTitle();
 
@@ -554,12 +927,30 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (CurrentStage == QuestStage.CityMapFound && !IsQuestCutsceneActive && localFadeAlpha < 0.001f)
             DrawMilitaryDirectionMarker();
 
-        string objective = CurrentStage switch
+        bool isPreMilitaryObjective = CurrentStage == QuestStage.SearchNeighborhood ||
+                                      CurrentStage == QuestStage.LocateOffice ||
+                                      CurrentStage == QuestStage.FindCityMap;
+        string objective;
+        QuestFlowUIPrototype journal = QuestFlowUIPrototype.Instance;
+        if (isPreMilitaryObjective && journal != null)
         {
-            QuestStage.FindCityMap => GameLocalization.Get("quest.find_map"),
-            QuestStage.CityMapFound => GameLocalization.Get("quest.reach_military"),
-            _ => string.Empty
-        };
+            // The journal's Follow button owns HUD visibility. This gives the
+            // click an immediate gameplay effect instead of being cosmetic only.
+            if (!journal.TryGetTrackedObjectiveText(out objective))
+                return;
+        }
+        else
+        {
+            objective = CurrentStage switch
+            {
+                QuestStage.SearchNeighborhood =>
+                    $"Tìm kiếm manh mối trong các ngôi nhà  •  {RouteClueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}",
+                QuestStage.LocateOffice => "Tìm văn phòng màu tím trong khu vực đã xác định",
+                QuestStage.FindCityMap => GameLocalization.Get("quest.find_map"),
+                QuestStage.CityMapFound => GameLocalization.Get("quest.reach_military"),
+                _ => string.Empty
+            };
+        }
         if (string.IsNullOrEmpty(objective)) return;
 
         GUIStyle style = new GUIStyle(GUI.skin.box)
@@ -569,6 +960,41 @@ public sealed class MainQuestManager : NetworkBehaviour
             alignment = TextAnchor.MiddleCenter
         };
         GUI.Box(new Rect(Screen.width * 0.5f - 260f, 24f, 520f, 38f), objective, style);
+    }
+
+    private void DrawQuestEventNotice()
+    {
+        int previousDepth = GUI.depth;
+        Color previousColor = GUI.color;
+        GUI.depth = -1450;
+
+        float width = Mathf.Min(760f, Screen.width - 40f);
+        float height = 88f;
+        Rect panel = new Rect((Screen.width - width) * 0.5f, 78f, width, height);
+        GUI.color = new Color(0.015f, 0.02f, 0.02f, localQuestEventAlpha * 0.9f);
+        GUI.DrawTexture(panel, Texture2D.whiteTexture);
+        GUI.color = new Color(1f, 0.67f, 0.14f, localQuestEventAlpha);
+        GUI.DrawTexture(new Rect(panel.x, panel.y, 4f, panel.height), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 2f), Texture2D.whiteTexture);
+
+        GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.025f), 18, 28),
+            fontStyle = FontStyle.Bold
+        };
+        GUIStyle bodyStyle = new GUIStyle(titleStyle)
+        {
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.016f), 13, 18),
+            fontStyle = FontStyle.Normal
+        };
+        DrawShadowedLabel(new Rect(panel.x + 14f, panel.y + 8f, panel.width - 28f, 34f),
+            localQuestEventTitle, titleStyle, new Color(1f, 0.76f, 0.27f), localQuestEventAlpha, 2f);
+        DrawShadowedLabel(new Rect(panel.x + 14f, panel.y + 43f, panel.width - 28f, 30f),
+            localQuestEventBody, bodyStyle, new Color(0.94f, 0.95f, 0.94f), localQuestEventAlpha, 1f);
+
+        GUI.color = previousColor;
+        GUI.depth = previousDepth;
     }
 
     private void DrawClueNotice()

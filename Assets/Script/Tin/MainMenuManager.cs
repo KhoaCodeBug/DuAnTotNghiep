@@ -347,6 +347,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         {
             if (isLocalSceneLoaded && !isLoadingScreenActive)
             {
+                if (QuestMapUIPrototype.ConsumeEscapeCloseRequest())
+                {
+                    EscapeConsumedThisFrame = true;
+                    return;
+                }
+
                 // Safety net for modal cheat UI.  This LateUpdate runs after
                 // most gameplay UI handlers, so Pause must never appear under
                 // an open developer console.

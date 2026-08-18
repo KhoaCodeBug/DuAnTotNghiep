@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -53,8 +55,11 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private Vector2 rasterPlayerNormalized;
     private Vector2 rasterSearchZoneMin;
     private Vector2 rasterSearchZoneMax;
+    private Vector2 rasterOfficeAreaMin;
+    private Vector2 rasterOfficeAreaMax;
     private int searchZoneHouseCount;
     private bool hasSearchZone;
+    private bool hasOfficeSearchArea;
     // Main is tall in Grid space, so the readable cartographic default is the
     // 90-degree landscape orientation used by the reference town maps.
     private int rasterRotationQuarterTurns = 1;
@@ -69,6 +74,16 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private float zoom = 1f;
     private bool dragging;
     private Vector3 lastMousePosition;
+    private GameObject unlockRevealRoot;
+    private CanvasGroup unlockRevealGroup;
+    private RectTransform unlockRevealPulse;
+    private RectTransform unlockRevealCore;
+    private TextMeshProUGUI unlockRevealTitle;
+    private TextMeshProUGUI unlockRevealBody;
+    private Coroutine unlockRevealRoutine;
+    private bool unlockRevealPending;
+    private bool unlockRevealCompleted;
+    private static bool escapeClosePending;
 
     public bool IsOpen => root != null && root.activeSelf;
     public string CurrentKnowledgeLabel => stateLabel == null ? string.Empty : stateLabel.text;
@@ -77,6 +92,14 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     public Vector2 CurrentRasterPlayerNormalized => rasterPlayerNormalized;
     public Vector2 CurrentRasterPlayerPoint => rasterPlayerMarker == null ? Vector2.zero : rasterPlayerMarker.anchoredPosition;
     public int SearchZoneHouseCount => searchZoneHouseCount;
+    public bool HasPendingUnlockReveal => unlockRevealPending;
+
+    public static bool ConsumeEscapeCloseRequest()
+    {
+        bool consumed = escapeClosePending;
+        escapeClosePending = false;
+        return consumed;
+    }
 
     /// <summary>
     /// Switches the prototype from its schematic fallback to a live render of
@@ -141,6 +164,15 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Refresh();
     }
 
+    public void ConfigureOfficeSearchArea(Vector2 minimumNormalized, Vector2 maximumNormalized)
+    {
+        rasterOfficeAreaMin = Vector2.Min(minimumNormalized, maximumNormalized);
+        rasterOfficeAreaMax = Vector2.Max(minimumNormalized, maximumNormalized);
+        hasOfficeSearchArea = true;
+        UpdateRasterMapMarkers();
+        Refresh();
+    }
+
     public void RotateRasterMap(int quarterTurnDelta)
     {
         SetRasterMapRotation(rasterRotationQuarterTurns + quarterTurnDelta);
@@ -169,6 +201,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         if (root == null)
             return;
 
+        dragging = false;
         root.SetActive(open);
         if (worldMapCamera != null)
             worldMapCamera.enabled = open;
@@ -177,7 +210,130 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             root.transform.SetAsLastSibling();
             Refresh();
             ResetView();
+            // The replicated 3/3 state is the durable source of truth. Even if
+            // an RPC was received before this UI existed (or its queue was lost
+            // during a scene transition), the first manual map open must still
+            // play the reveal exactly once.
+            bool completedCluesNeedReveal = progress != null && progress.HasMapFragment1 &&
+                                            !unlockRevealCompleted;
+            if ((unlockRevealPending || completedCluesNeedReveal) && Application.isPlaying)
+            {
+                unlockRevealPending = true;
+                StartUnlockReveal();
+            }
         }
+    }
+
+    public void QueueUnlockReveal()
+    {
+        if (unlockRevealCompleted || unlockRevealPending || unlockRevealRoutine != null)
+            return;
+        unlockRevealPending = true;
+        Debug.Log("[QUEST MAP] Unlock reveal queued for the next map open.");
+        if (IsOpen && Application.isPlaying)
+            StartUnlockReveal();
+    }
+
+    private void StartUnlockReveal()
+    {
+        unlockRevealPending = false;
+        if (unlockRevealRoot == null) return;
+        unlockRevealCompleted = true;
+        Debug.Log("[QUEST MAP] Unlock reveal started.");
+        if (unlockRevealRoutine != null) StopCoroutine(unlockRevealRoutine);
+        unlockRevealRoutine = StartCoroutine(UnlockRevealRoutine());
+    }
+
+    private IEnumerator UnlockRevealRoutine()
+    {
+        unlockRevealRoot.SetActive(true);
+        unlockRevealRoot.transform.SetAsLastSibling();
+        unlockRevealGroup.alpha = 1f;
+        unlockRevealTitle.text = "ĐANG GIẢI MÃ DỮ LIỆU BẢN ĐỒ";
+        unlockRevealBody.text = "Đối chiếu ba manh mối tuyến đường...";
+        unlockRevealPulse.localScale = Vector3.one * 0.3f;
+        unlockRevealCore.localScale = Vector3.one * 0.7f;
+
+        Vector2 startContentPosition = mapContent != null ? mapContent.anchoredPosition : Vector2.zero;
+        float startZoom = mapContent != null ? mapContent.localScale.x : 1f;
+        const float targetZoom = 1.58f;
+        Vector2 targetContentPosition = startContentPosition;
+        if (mapContent != null && viewport != null && officeMarker != null)
+        {
+            Vector2 officeInViewport = viewport.InverseTransformPoint(officeMarker.transform.position);
+            Vector2 unscaledOfficePoint = (officeInViewport - startContentPosition) /
+                                          Mathf.Max(0.001f, startZoom);
+            targetContentPosition = -unscaledOfficePoint * targetZoom;
+
+            // Reuse the normal pan limits so the camera focuses as close to the
+            // office as the map edges allow without exposing empty space.
+            zoom = targetZoom;
+            mapContent.localScale = Vector3.one * targetZoom;
+            mapContent.anchoredPosition = targetContentPosition;
+            ClampPan();
+            targetContentPosition = mapContent.anchoredPosition;
+            zoom = startZoom;
+            mapContent.localScale = Vector3.one * startZoom;
+            mapContent.anchoredPosition = startContentPosition;
+        }
+
+        if (exactRoute != null) exactRoute.SetActive(false);
+        if (officeMarker != null) officeMarker.SetActive(false);
+
+        float elapsed = 0f;
+        const float scanDuration = 0.65f;
+        while (elapsed < scanDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / scanDuration);
+            float eased = t * t * (3f - 2f * t);
+            unlockRevealPulse.localScale = Vector3.one * Mathf.Lerp(0.3f, 1.18f, eased);
+            unlockRevealPulse.localRotation = Quaternion.Euler(0f, 0f, elapsed * 55f);
+            unlockRevealCore.localRotation = Quaternion.Euler(0f, 0f, -elapsed * 80f);
+            yield return null;
+        }
+
+        // The destination becomes visible at the visual impact, not before the
+        // player chooses to inspect the map.
+        if (exactRoute != null) exactRoute.SetActive(true);
+        if (officeMarker != null) officeMarker.SetActive(true);
+        unlockRevealTitle.text = "ĐÃ MỞ KHÓA VỊ TRÍ MỚI";
+        unlockRevealBody.text = "Văn phòng màu tím đã được đánh dấu trên bản đồ.";
+
+        elapsed = 0f;
+        const float impactDuration = 1.2f;
+        while (elapsed < impactDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / impactDuration);
+            float eased = t * t * (3f - 2f * t);
+            float pulse = 1f + Mathf.Sin(t * Mathf.PI) * 0.28f;
+            unlockRevealPulse.localScale = Vector3.one * Mathf.Lerp(1.18f, 1.55f, t);
+            unlockRevealCore.localScale = Vector3.one * pulse;
+            unlockRevealPulse.localRotation = Quaternion.Euler(0f, 0f, 50f + elapsed * 90f);
+            unlockRevealGroup.alpha = Mathf.Lerp(1f, 0.18f, eased);
+            if (mapContent != null)
+            {
+                zoom = Mathf.Lerp(startZoom, targetZoom, eased);
+                mapContent.localScale = Vector3.one * zoom;
+                mapContent.anchoredPosition = Vector2.Lerp(startContentPosition, targetContentPosition, eased);
+            }
+            yield return null;
+        }
+
+        yield return new WaitForSecondsRealtime(0.45f);
+        elapsed = 0f;
+        const float fadeDuration = 0.35f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            unlockRevealGroup.alpha = Mathf.Lerp(0.18f, 0f, Mathf.Clamp01(elapsed / fadeDuration));
+            yield return null;
+        }
+
+        unlockRevealRoot.SetActive(false);
+        unlockRevealGroup.alpha = 0f;
+        unlockRevealRoutine = null;
     }
 
     public void Refresh()
@@ -196,7 +352,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         if (worldApproximateArea != null) worldApproximateArea.gameObject.SetActive(approximate);
         if (worldOfficeMarker != null) worldOfficeMarker.gameObject.SetActive(exact);
         if (worldRoute != null) worldRoute.gameObject.SetActive(exact);
-        UpdateSearchRestrictionVisibility();
+        UpdateRasterMapMarkers();
 
         switch (knowledge)
         {
@@ -222,18 +378,23 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
                 break;
         }
 
-        int houseCount = Mathf.Min(progress.SearchedHouseCount, PreMilitaryQuestProgress.RequiredDistinctHouses);
         int clueCount = Mathf.Min(progress.RouteClueCount, PreMilitaryQuestProgress.RequiredRouteClues);
         clueSummaryText.text =
-            $"Nhà đã lục soát  {houseCount}/{PreMilitaryQuestProgress.RequiredDistinctHouses}\n" +
-            $"Dấu vết tuyến đường  {clueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}" +
-            (searchZoneHouseCount > 0 ? $"\nPhạm vi nhiệm vụ  {searchZoneHouseCount} nhà" : string.Empty);
+            $"Manh mối đã thu thập  {clueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}" +
+            (searchZoneHouseCount > 0 ? "\nPhạm vi  •  Các ngôi nhà xung quanh" : string.Empty);
     }
 
     private void Update()
     {
         if (!IsOpen || viewport == null || mapContent == null)
             return;
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            SetOpen(false);
+            escapeClosePending = true;
+            return;
+        }
 
         if (useWorldMap && worldMapCamera != null)
         {
@@ -476,6 +637,16 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         rasterPlayerMarker.anchoredPosition = playerPoint;
         officeMarker.GetComponent<RectTransform>().anchoredPosition = officePoint;
         approximateArea.GetComponent<RectTransform>().anchoredPosition = officePoint;
+        if (hasOfficeSearchArea)
+        {
+            Vector2 areaMin = NormalizedToRasterPoint(rasterOfficeAreaMin);
+            Vector2 areaMax = NormalizedToRasterPoint(rasterOfficeAreaMax);
+            RectTransform areaRect = approximateArea.GetComponent<RectTransform>();
+            areaRect.anchoredPosition = (areaMin + areaMax) * 0.5f;
+            areaRect.sizeDelta = new Vector2(
+                Mathf.Max(56f, Mathf.Abs(areaMax.x - areaMin.x)),
+                Mathf.Max(56f, Mathf.Abs(areaMax.y - areaMin.y)));
+        }
         exactRoute.GetComponent<RectTransform>().anchoredPosition = officePoint;
         if (rasterSearchZone != null)
         {
@@ -485,7 +656,33 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             rasterSearchZone.sizeDelta = new Vector2(
                 Mathf.Max(56f, Mathf.Abs(maxPoint.x - minPoint.x)),
                 Mathf.Max(56f, Mathf.Abs(maxPoint.y - minPoint.y)));
-            UpdateRasterRestrictionFog(minPoint, maxPoint);
+            Vector2 revealedMin = Vector2.Min(minPoint, maxPoint);
+            Vector2 revealedMax = Vector2.Max(minPoint, maxPoint);
+
+            // Fragment 1 reveals the route toward the office, not the entire
+            // city. Expand the original bright rectangle just enough to include
+            // the configured office search area; all remaining map space stays
+            // under fog.
+            if (progress != null && progress.HasMapFragment1)
+            {
+                Vector2 officeMin;
+                Vector2 officeMax;
+                if (hasOfficeSearchArea)
+                {
+                    officeMin = NormalizedToRasterPoint(rasterOfficeAreaMin);
+                    officeMax = NormalizedToRasterPoint(rasterOfficeAreaMax);
+                }
+                else
+                {
+                    const float officeRevealPadding = 52f;
+                    officeMin = officePoint - Vector2.one * officeRevealPadding;
+                    officeMax = officePoint + Vector2.one * officeRevealPadding;
+                }
+                revealedMin = Vector2.Min(revealedMin, Vector2.Min(officeMin, officeMax));
+                revealedMax = Vector2.Max(revealedMax, Vector2.Max(officeMin, officeMax));
+            }
+
+            UpdateRasterRestrictionFog(revealedMin, revealedMax);
             UpdateSearchRestrictionVisibility();
         }
     }
@@ -505,7 +702,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             new Color(0f, 0f, 0f, 0f));
         Border(rasterSearchZone, new Color(Amber.r, Amber.g, Amber.b, 0.9f));
         rasterSearchZoneLabel = Text(rasterSearchZone, "Quest Search Zone Label",
-            $"KHU VỰC NHIỆM VỤ  •  {searchZoneHouseCount} NHÀ", 11f, Amber, FontStyles.Bold,
+            "KHU VỰC TÌM MANH MỐI", 11f, Amber, FontStyles.Bold,
             TextAlignmentOptions.Top, new Vector2(0.5f, 1f), new Vector2(210f, 28f), new Vector2(0f, -8f));
         rasterSearchZoneLabel.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         rasterSearchZone.SetSiblingIndex(Mathf.Min(5, rasterArtRoot.childCount - 1));
@@ -540,10 +737,15 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
 
     private void UpdateSearchRestrictionVisibility()
     {
-        bool visible = hasSearchZone && (progress == null || !progress.HouseSearchComplete);
-        if (rasterSearchZone != null) rasterSearchZone.gameObject.SetActive(visible);
+        bool borderVisible = hasSearchZone && (progress == null || !progress.HasMapFragment1);
+        if (rasterSearchZone != null) rasterSearchZone.gameObject.SetActive(borderVisible);
+
+        // Completing the 3-house objective removes only its amber border. Fog
+        // remains active and is resized by UpdateRasterMapMarkers as regions are
+        // actually discovered.
+        bool fogVisible = hasSearchZone;
         for (int i = 0; i < rasterRestrictedFog.Length; i++)
-            if (rasterRestrictedFog[i] != null) rasterRestrictedFog[i].gameObject.SetActive(visible);
+            if (rasterRestrictedFog[i] != null) rasterRestrictedFog[i].gameObject.SetActive(fogVisible);
     }
 
     private Vector2 NormalizedToRasterPoint(Vector2 normalized)
@@ -802,6 +1004,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Border(close, new Color(0.28f, 0.36f, 0.34f, 0.8f));
         Text(close, "Map Close Text", "[M]  ĐÓNG", 14f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(150f, 38f), Vector2.zero);
+        MakeClickable(close, () => SetOpen(false));
 
         viewport = Box("Map Viewport", shell, new Vector2(1120f, 700f), new Vector2(-185f, -45f),
             new Color(0.03f, 0.055f, 0.052f, 1f));
@@ -810,6 +1013,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
 
         mapContent = Box("Map Content", viewport, new Vector2(1120f, 700f), Vector2.zero,
             new Color(0.045f, 0.075f, 0.07f, 1f));
+        BuildUnlockReveal(viewport);
         schematicRoot = new GameObject("Schematic Map Fallback", typeof(RectTransform));
         schematicRoot.transform.SetParent(mapContent, false);
         Stretch(schematicRoot.GetComponent<RectTransform>());
@@ -850,6 +1054,46 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             FontStyles.Bold, TextAlignmentOptions.BottomLeft, new Vector2(0f, 0f),
             new Vector2(285f, 66f), new Vector2(22f, 10f));
         UpdateRotationLabel();
+    }
+
+    private void BuildUnlockReveal(Transform parent)
+    {
+        unlockRevealRoot = new GameObject(
+            "Map Unlock Reveal", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+        unlockRevealRoot.transform.SetParent(parent, false);
+        RectTransform revealRect = unlockRevealRoot.GetComponent<RectTransform>();
+        Stretch(revealRect);
+        Image dimmer = unlockRevealRoot.GetComponent<Image>();
+        dimmer.color = new Color(0.015f, 0.012f, 0.028f, 0.82f);
+        dimmer.raycastTarget = true;
+        unlockRevealGroup = unlockRevealRoot.GetComponent<CanvasGroup>();
+        unlockRevealGroup.alpha = 0f;
+        unlockRevealGroup.interactable = false;
+        unlockRevealGroup.blocksRaycasts = true;
+
+        unlockRevealPulse = Box("Unlock Scan Pulse", revealRect, new Vector2(260f, 260f),
+            new Vector2(0f, 18f), new Color(Purple.r, Purple.g, Purple.b, 0.035f));
+        Border(unlockRevealPulse, new Color(0.86f, 0.68f, 1f, 0.96f));
+        Box("Pulse Horizontal", unlockRevealPulse, new Vector2(330f, 2f), Vector2.zero,
+            new Color(Purple.r, Purple.g, Purple.b, 0.62f));
+        Box("Pulse Vertical", unlockRevealPulse, new Vector2(2f, 330f), Vector2.zero,
+            new Color(Purple.r, Purple.g, Purple.b, 0.62f));
+
+        unlockRevealCore = Box("Unlock Core", revealRect, new Vector2(82f, 82f),
+            new Vector2(0f, 18f), new Color(Purple.r, Purple.g, Purple.b, 0.22f));
+        Border(unlockRevealCore, Color.white);
+        RectTransform diamond = Box("Unlock Diamond", unlockRevealCore, new Vector2(34f, 34f),
+            Vector2.zero, Purple);
+        diamond.localRotation = Quaternion.Euler(0f, 0f, 45f);
+
+        unlockRevealTitle = Text(revealRect, "Unlock Reveal Title", "ĐANG GIẢI MÃ DỮ LIỆU BẢN ĐỒ",
+            24f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center,
+            new Vector2(0.5f, 0.5f), new Vector2(700f, 44f), new Vector2(0f, -166f));
+        unlockRevealBody = Text(revealRect, "Unlock Reveal Body", "Đối chiếu ba manh mối tuyến đường...",
+            14f, new Color(0.86f, 0.78f, 0.96f, 1f), FontStyles.Normal, TextAlignmentOptions.Center,
+            new Vector2(0.5f, 0.5f), new Vector2(720f, 34f), new Vector2(0f, -205f));
+
+        unlockRevealRoot.SetActive(false);
     }
 
     private void BuildMapGeometry(Transform parent)
@@ -965,6 +1209,24 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         RectTransform rect = Box(name, parent, Vector2.zero, Vector2.zero, color);
         Stretch(rect);
         return rect;
+    }
+
+    private static Button MakeClickable(RectTransform target, Action action)
+    {
+        Image image = target.GetComponent<Image>();
+        image.raycastTarget = true;
+        Button button = target.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.ColorTint;
+        ColorBlock colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1f, 1f, 1f, 0.82f);
+        colors.pressedColor = new Color(0.68f, 0.68f, 0.68f, 1f);
+        colors.selectedColor = Color.white;
+        colors.fadeDuration = 0.08f;
+        button.colors = colors;
+        button.onClick.AddListener(() => action?.Invoke());
+        return button;
     }
 
     private static void SetRect(RectTransform rect, Vector2 size, Vector2 position)

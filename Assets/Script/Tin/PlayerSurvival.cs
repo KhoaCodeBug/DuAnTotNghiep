@@ -21,15 +21,20 @@ public class PlayerSurvival : NetworkBehaviour
     [Header("--- Chỉ số Đói (Hunger) ---")]
     public float maxHunger = 100f;
     [Networked] public float currentHunger { get; set; }
-    public float hungerDrainRate = 0.5f;
+    public float hungerDrainRate = SurvivalBalanceRules.NormalHungerDrainRate;
 
     [Header("--- Chỉ số Khát (Thirst) ---")]
     public float maxThirst = 100f;
     [Networked] public float currentThirst { get; set; }
-    public float thirstDrainRate = 0.8f;
+    public float thirstDrainRate = SurvivalBalanceRules.NormalThirstDrainRate;
 
     [Header("--- Sức khỏe ---")]
-    public float damageOverTime = 2f;
+    public float damageOverTime = SurvivalBalanceRules.NormalDamagePerSecond;
+    [Min(0f)] public float zeroNeedGraceSeconds = 25f;
+    [Networked] public float EffectiveHungerDrainRate { get; private set; }
+    [Networked] public float EffectiveThirstDrainRate { get; private set; }
+    [Networked] public float EffectiveDamageOverTime { get; private set; }
+    [Networked] public float CriticalNeedGraceRemaining { get; private set; }
     private PlayerHealth healthScript;
 
     [Header("--- Ngủ & Mệt mỏi ---")]
@@ -49,6 +54,13 @@ public class PlayerSurvival : NetworkBehaviour
     {
         if (HasStateAuthority)
         {
+            SurvivalBalanceProfile balance = SurvivalBalanceSettings.GetActiveProfile(
+                PlayerPrefs.GetInt("GameDifficulty", 1));
+            EffectiveHungerDrainRate = balance.HungerDrainRate;
+            EffectiveThirstDrainRate = balance.ThirstDrainRate;
+            EffectiveDamageOverTime = balance.DamagePerSecond;
+            zeroNeedGraceSeconds = balance.ZeroNeedGraceSeconds;
+            CriticalNeedGraceRemaining = zeroNeedGraceSeconds;
             currentHunger = maxHunger;
             currentThirst = maxThirst;
             IsWaitingForSleep = false;
@@ -65,13 +77,16 @@ public class PlayerSurvival : NetworkBehaviour
         if (healthScript != null && healthScript.isDead) return;
         if (TutorialSession.IsActive && TutorialInputGate.SurvivalFrozen) return;
 
-        currentHunger = Mathf.Max(currentHunger - hungerDrainRate * Runner.DeltaTime, 0f);
-        currentThirst = Mathf.Max(currentThirst - thirstDrainRate * Runner.DeltaTime, 0f);
+        currentHunger = Mathf.Max(currentHunger - EffectiveHungerDrainRate * Runner.DeltaTime, 0f);
+        currentThirst = Mathf.Max(currentThirst - EffectiveThirstDrainRate * Runner.DeltaTime, 0f);
 
         if (currentHunger <= 0f || currentThirst <= 0f)
         {
-            healthScript?.TakeDamage(damageOverTime * Runner.DeltaTime, true);
+            CriticalNeedGraceRemaining = Mathf.Max(0f, CriticalNeedGraceRemaining - Runner.DeltaTime);
+            if (CriticalNeedGraceRemaining <= 0f)
+                healthScript?.TakeDamage(EffectiveDamageOverTime * Runner.DeltaTime, true);
         }
+        else CriticalNeedGraceRemaining = zeroNeedGraceSeconds;
     }
 
     public void TrySleepAtBed(SleepInteractable bed)
@@ -240,7 +255,8 @@ public class PlayerSurvival : NetworkBehaviour
 
     private void PerformRestoreHunger(float amount)
     {
-        currentHunger = Mathf.Min(currentHunger + amount, maxHunger);
+        currentHunger = SurvivalBalanceRules.RestoreNeed(currentHunger, maxHunger, amount);
+        RefreshCriticalNeedGraceIfRecovered();
     }
 
     public void RestoreThirst(float amount)
@@ -254,7 +270,14 @@ public class PlayerSurvival : NetworkBehaviour
 
     private void PerformRestoreThirst(float amount)
     {
-        currentThirst = Mathf.Min(currentThirst + amount, maxThirst);
+        currentThirst = SurvivalBalanceRules.RestoreNeed(currentThirst, maxThirst, amount);
+        RefreshCriticalNeedGraceIfRecovered();
+    }
+
+    private void RefreshCriticalNeedGraceIfRecovered()
+    {
+        if (currentHunger > 0f && currentThirst > 0f)
+            CriticalNeedGraceRemaining = zeroNeedGraceSeconds;
     }
 
     public void SetTutorialNeeds(float hungerRatio, float thirstRatio)
@@ -275,6 +298,7 @@ public class PlayerSurvival : NetworkBehaviour
     {
         currentHunger = maxHunger * hungerRatio;
         currentThirst = maxThirst * thirstRatio;
+        RefreshCriticalNeedGraceIfRecovered();
     }
 
     /// <summary>
@@ -285,17 +309,21 @@ public class PlayerSurvival : NetworkBehaviour
     {
         float hungerRatio = SafeRatio(currentHunger, maxHunger);
         float thirstRatio = SafeRatio(currentThirst, maxThirst);
-        if (hungerRatio < 0.8f || thirstRatio < 0.8f) return 0;
-
-        if (hungerRatio < 0.85f) return 1;
-        if (hungerRatio < 0.90f) return 2;
-        if (hungerRatio < 0.95f) return 3;
-        return 4;
+        return SurvivalBalanceRules.GetWellFedTier(hungerRatio, thirstRatio);
     }
 
     private static float SafeRatio(float current, float maximum)
     {
         return maximum > 0f ? Mathf.Clamp01(current / maximum) : 0f;
+    }
+
+    private string GetCriticalNeedTooltip(string action)
+    {
+        if (CriticalNeedGraceRemaining > 0.05f)
+            return $"Còn {Mathf.CeilToInt(CriticalNeedGraceRemaining)} giây trước khi mất máu. Hãy {action} ngay.";
+
+        float damageRate = EffectiveDamageOverTime > 0f ? EffectiveDamageOverTime : damageOverTime;
+        return $"Đang mất {damageRate:0.##} HP/giây. Hãy {action} ngay.";
     }
 
     private void OnGUI()
@@ -323,10 +351,10 @@ public class PlayerSurvival : NetworkBehaviour
         }
         else if (hungerRatio < 0.4f)
         {
-            int tier = GetBadTier(hungerRatio);
+            int tier = SurvivalBalanceRules.GetBadNeedTier(hungerRatio);
             string[] names = { "", "Hơi đói", "Đói", "Rất đói", "Đói kiệt sức" };
             string effect = tier == 4
-                ? $"Đang mất {damageOverTime:0.#} HP/giây. Hãy ăn ngay."
+                ? GetCriticalNeedTooltip("ăn")
                 : "Mức nguy hiểm sẽ tăng nếu không ăn.";
             string tooltip = $"<b>{names[tier]}</b> — {Mathf.RoundToInt(hungerRatio * 100f)}%\n{effect}";
             DrawMoodle(iconHunger, GetBackground(badBackgrounds, tier),
@@ -336,10 +364,10 @@ public class PlayerSurvival : NetworkBehaviour
 
         if (thirstRatio < 0.4f)
         {
-            int tier = GetBadTier(thirstRatio);
+            int tier = SurvivalBalanceRules.GetBadNeedTier(thirstRatio);
             string[] names = { "", "Hơi khát", "Khát", "Khát nghiêm trọng", "Khát kiệt sức" };
             string effect = tier == 4
-                ? $"Đang mất {damageOverTime:0.#} HP/giây. Hãy uống ngay."
+                ? GetCriticalNeedTooltip("uống")
                 : "Mức nguy hiểm sẽ tăng nếu không uống nước.";
             string tooltip = $"<b>{names[tier]}</b> — {Mathf.RoundToInt(thirstRatio * 100f)}%\n{effect}";
             DrawMoodle(iconThirst, GetBackground(badBackgrounds, tier),
@@ -507,14 +535,6 @@ public class PlayerSurvival : NetworkBehaviour
         GUIUtility.RotateAroundPivot(clockwiseDegrees, center);
         GUI.DrawTexture(new Rect(center.x - width * 0.5f, center.y - length, width, length), Texture2D.whiteTexture);
         GUI.matrix = oldMatrix;
-    }
-
-    private static int GetBadTier(float ratio)
-    {
-        if (ratio > 0.25f) return 1;
-        if (ratio > 0.15f) return 2;
-        if (ratio > 0f) return 3;
-        return 4;
     }
 
     private static Texture2D GetBackground(Texture2D[] backgrounds, int tier)

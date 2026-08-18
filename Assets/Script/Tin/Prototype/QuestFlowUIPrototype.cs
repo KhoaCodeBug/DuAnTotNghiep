@@ -11,6 +11,7 @@ using UnityEngine.UI;
 /// </summary>
 public sealed class QuestFlowUIPrototype : MonoBehaviour
 {
+    public static QuestFlowUIPrototype Instance { get; private set; }
     public event Action MapFragment1Acquired;
     private static readonly Color Ink = new Color(0.025f, 0.045f, 0.043f, 0.98f);
     private static readonly Color Panel = new Color(0.055f, 0.082f, 0.078f, 0.98f);
@@ -44,6 +45,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private GameObject noticeRoot;
     private GameObject journalRoot;
     private GameObject activeContentRoot;
+    private GameObject questListRoot;
+    private GameObject questDetailsRoot;
     private GameObject emptyStateRoot;
     private TextMeshProUGUI emptyStateTitle;
     private TextMeshProUGUI emptyStateBody;
@@ -91,6 +94,14 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private TextMeshProUGUI statusBadgeText;
     private TextMeshProUGUI rewardLabel;
     private TextMeshProUGUI rewardText;
+    private Button trackingButton;
+    private Image trackingButtonImage;
+    private TextMeshProUGUI trackingButtonText;
+    private Image objectiveProgressFill;
+    private TextMeshProUGUI currentObjectiveText;
+    private TextMeshProUGUI currentObjectiveProgressText;
+    private GameObject mainQuestTrackedMarker;
+    private GameObject sideQuestTrackedMarker;
     private TextMeshProUGUI mapLabel;
     private TextMeshProUGUI mapFooter;
     private GameObject miniMapApproximateArea;
@@ -106,12 +117,16 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private bool journalOpen;
     private int selectedQuestIndex;
     private int selectedTabIndex;
+    private int trackedQuestIndex = -1;
     private int demoHouseSequence;
     private int demoClueSequence;
 
     public bool IsJournalOpen => journalOpen;
     public int SelectedQuestIndex => selectedQuestIndex;
     public int SelectedTabIndex => selectedTabIndex;
+    public int TrackedQuestIndex => trackedQuestIndex;
+    public bool IsSelectedQuestTracked => trackedQuestIndex == selectedQuestIndex;
+    public string TrackingButtonText => trackingButtonText == null ? string.Empty : trackingButtonText.text;
     public string CurrentDetailTitle => detailTitle == null ? string.Empty : detailTitle.text;
     public string CurrentContextPanelTitle => contextPanelTitle == null ? string.Empty : contextPanelTitle.text;
     public bool IsEmptyStateVisible => emptyStateRoot != null && emptyStateRoot.activeSelf;
@@ -126,6 +141,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     public string CurrentMapClueSummary => mapPrototype == null ? string.Empty : mapPrototype.CurrentClueSummary;
     public int CurrentMapRotationQuarterTurns => mapPrototype == null ? 0 : mapPrototype.CurrentRasterRotationQuarterTurns;
     public int CurrentMapSearchZoneHouseCount => mapPrototype == null ? 0 : mapPrototype.SearchZoneHouseCount;
+    public bool HasPendingMapUnlockReveal => mapPrototype != null && mapPrototype.HasPendingUnlockReveal;
     public string CurrentRewardLabel => rewardLabel == null ? string.Empty : rewardLabel.text;
     public string CurrentRewardText => rewardText == null ? string.Empty : rewardText.text;
     public bool IsQuestOverlayOpen => IsJournalOpen || IsMapOpen || IsClueReadingOpen ||
@@ -133,6 +149,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
     private void Awake()
     {
+        Instance = this;
         Application.targetFrameRate = 60;
         EnsureBuiltForTests();
 
@@ -142,6 +159,11 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             ShowNoticeImmediately();
         else
             HideNoticeImmediately();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 
     private void Update()
@@ -218,6 +240,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             SelectTab(Wrap(selectedTabIndex - 1, 2));
         if (Input.GetKeyDown(KeyCode.E))
             SelectTab(Wrap(selectedTabIndex + 1, 2));
+        if (Input.GetKeyDown(KeyCode.V))
+            ToggleSelectedQuestTracking();
     }
 
     /// <summary>Builds the hierarchy when called from EditMode tests.</summary>
@@ -261,6 +285,12 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         SelectTab(index);
     }
 
+    public void ToggleSelectedQuestTrackingForPreview()
+    {
+        EnsureBuiltForTests();
+        ToggleSelectedQuestTracking();
+    }
+
     public string GetObjectiveStatusForPreview(int index)
     {
         EnsureBuiltForTests();
@@ -278,6 +308,39 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         EnsureBuiltForTests();
         mainQuestProgress.RegisterLootContainerOpenedInHouse(houseId);
         RefreshQuestPresentation();
+    }
+
+    /// <summary>
+    /// Keeps the current prototype presentation, but replaces its local source
+    /// of truth with the replicated team snapshot. Late joiners apply the first
+    /// snapshot silently; subsequent transitions may play the existing feedback.
+    /// </summary>
+    public void ApplyAuthoritativeSnapshot(int searchedHouseMask, int routeClueMask,
+        bool officeDiscovered, bool officeInvestigationComplete, bool hasMapFragment2,
+        bool playTransitions)
+    {
+        EnsureBuiltForTests();
+        bool hadFragment1 = mainQuestProgress.HasMapFragment1;
+        bool wasMainQuestComplete = mainQuestProgress.MainQuestComplete;
+
+        mainQuestProgress.ApplyAuthoritativeSnapshot(searchedHouseMask, routeClueMask,
+            officeDiscovered, officeInvestigationComplete, hasMapFragment2);
+        RefreshQuestPresentation();
+
+        if (!playTransitions || !Application.isPlaying) return;
+        if (!hadFragment1 && mainQuestProgress.HasMapFragment1)
+        {
+            // Queue independently of the completion popup. If the RPC arrived
+            // before this UI existed, the replicated snapshot still guarantees
+            // that opening the map will play the reveal once.
+            mapPrototype?.QueueUnlockReveal();
+            if (IsClueReadingOpen)
+                fragmentCompletionPending = true;
+            else
+                PlayMapFragmentOneCompletion();
+        }
+        if (!wasMainQuestComplete && mainQuestProgress.MainQuestComplete)
+            PlayQuestCompletion("NHIỆM VỤ HOÀN THÀNH", "Tìm thêm thông tin về thành phố", "Mảnh bản đồ 2", null);
     }
 
     private void SimulateNextHouseSearch()
@@ -342,7 +405,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
     private void PlayMapFragmentOneCompletion()
     {
-        PlayQuestCompletion("NHIỆM VỤ PHỤ HOÀN THÀNH", "Ghép lại tuyến đường", "Mảnh bản đồ 1",
+        PlayQuestCompletion("ĐÃ PHÁT HIỆN ĐỦ MANH MỐI", "Dữ liệu tuyến đường đã hoàn chỉnh",
+            "MỞ BẢN ĐỒ [M] ĐỂ KIỂM TRA",
             ContinueMapFragmentOneFlow);
     }
 
@@ -388,6 +452,12 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         mapPrototype.SetOpen(open);
     }
 
+    public void QueueMapUnlockReveal()
+    {
+        EnsureBuiltForTests();
+        mapPrototype?.QueueUnlockReveal();
+    }
+
     public void ConfigureWorldMap(Camera mapCameraTemplate, Transform officeTarget, Transform playerTarget = null)
     {
         EnsureBuiltForTests();
@@ -410,6 +480,12 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     {
         EnsureBuiltForTests();
         mapPrototype.ConfigureSearchZone(minimumNormalized, maximumNormalized, houseCount);
+    }
+
+    public void ConfigureOfficeSearchArea(Vector2 minimumNormalized, Vector2 maximumNormalized)
+    {
+        EnsureBuiltForTests();
+        mapPrototype.ConfigureOfficeSearchArea(minimumNormalized, maximumNormalized);
     }
 
     public void SetRasterMapPlayerPosition(Vector2 playerNormalized)
@@ -456,9 +532,10 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         RequireElement(errors, "Main Quest Card");
         RequireElement(errors, "Side Quest Card");
         RequireElement(errors, "Active Empty State");
-        RequireElement(errors, "Map Fragment Slot 1");
-        RequireElement(errors, "Map Fragment Slot 2");
-        RequireElement(errors, "Side Objective Segment 1");
+        RequireElement(errors, "Current Objective");
+        RequireElement(errors, "Current Objective Progress Bar");
+        RequireElement(errors, "Tracking Button");
+        RequireElement(errors, "Open Map Button");
         RequireElement(errors, "Quest Map");
         RequireElement(errors, "Approximate Office Area");
         RequireElement(errors, "Exact Office Marker");
@@ -468,8 +545,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             errors.Add("Gợi ý mở nhật ký phải có kích thước chuẩn 430 x 66.");
 
         RectTransform shell = FindChild(transform, "Journal Shell") as RectTransform;
-        if (shell == null || !Approximately(shell.sizeDelta, new Vector2(1640f, 884f)))
-            errors.Add("Khung nhật ký phải có kích thước chuẩn 1640 x 884.");
+        if (shell == null || !Approximately(shell.sizeDelta, new Vector2(1400f, 760f)))
+            errors.Add("Khung nhật ký phải có kích thước chuẩn 1400 x 760.");
 
         if (RectsOverlap(mainQuestNameRect, mainQuestMetaRect))
             errors.Add("Tên và trạng thái nhiệm vụ chính đang chồng nhau.");
@@ -482,7 +559,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         for (int i = 1; i < tabRects.Length; i++)
         {
             if (!Mathf.Approximately(tabRects[i].sizeDelta.x, tabWidth))
-                errors.Add("Ba tab nhật ký phải có cùng chiều rộng.");
+                errors.Add("Hai tab nhật ký phải có cùng chiều rộng.");
         }
 
         if (selectedQuestIndex < 0 || selectedQuestIndex > 1)
@@ -492,6 +569,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         if (FindChild(transform, "Fragment Progress") != null)
             errors.Add("Không được dùng thanh phần trăm cho hai mảnh bản đồ riêng biệt.");
+        if (FindChild(transform, "Footer") != null)
+            errors.Add("Không được lặp nút đóng ở chân trang nhật ký.");
         if (FindChild(transform, "Badge Dot") != null || FindChild(transform, "Empty State Icon") != null ||
             FindChild(transform, "Side Quest Icon") != null)
             errors.Add("Vẫn còn icon hình vuông placeholder không có ý nghĩa.");
@@ -828,42 +907,35 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         RectTransform root = journalRoot.GetComponent<RectTransform>();
         Stretch(root);
 
-        StretchBox("Dimmer", root, new Color(0f, 0f, 0f, 0.78f));
+        StretchBox("Dimmer", root, new Color(0f, 0f, 0f, 0.72f));
         RectTransform shellShadow = Box("Journal Shadow", root, new Vector2(0.5f, 0.5f),
-            new Vector2(1640f, 884f), new Vector2(14f, -16f), new Color(0f, 0f, 0f, 0.58f));
+            new Vector2(1400f, 760f), new Vector2(12f, -14f), new Color(0f, 0f, 0f, 0.56f));
         shellShadow.SetAsFirstSibling();
         RectTransform shell = Box("Journal Shell", root, new Vector2(0.5f, 0.5f),
-            new Vector2(1640f, 884f), Vector2.zero, Ink);
-        AddBorder(shell, new Color(0.4f, 0.49f, 0.46f, 0.8f));
+            new Vector2(1400f, 760f), Vector2.zero, new Color(0.035f, 0.04f, 0.04f, 0.985f));
+        AddBorder(shell, new Color(0.34f, 0.36f, 0.35f, 0.9f));
 
-        Box("Top Accent", shell, new Vector2(0.5f, 1f), new Vector2(1640f, 5f), new Vector2(0f, -2.5f), Amber);
-        Box("Header", shell, new Vector2(0.5f, 1f), new Vector2(1640f, 92f), new Vector2(0f, -48f), Panel);
-        Text(shell, "Journal Title", "NHẬT KÝ SINH TỒN", 29f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(600f, 44f), new Vector2(38f, -35f));
-        Text(shell, "Journal Subtitle", "DỮ LIỆU NHIỆM VỤ  //  NGÀY 01", 12f, Muted, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(520f, 24f), new Vector2(40f, -68f));
+        Text(shell, "Journal Title", "NHẬT KÝ NHIỆM VỤ", 27f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(520f, 42f), new Vector2(44f, -38f));
+        Text(shell, "Journal Subtitle", "Ngày 01", 13f, Muted, FontStyles.Normal,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(200f, 24f), new Vector2(44f, -72f));
 
-        RectTransform closeHint = Box("Close Hint", shell, new Vector2(1f, 1f), new Vector2(154f, 44f),
-            new Vector2(-98f, -44f), PanelLight);
-        AddBorder(closeHint, new Color(0.28f, 0.36f, 0.34f, 0.7f));
+        RectTransform closeHint = Box("Close Hint", shell, new Vector2(1f, 1f), new Vector2(112f, 40f),
+            new Vector2(-42f, -38f), Color.clear);
         Text(closeHint, "Close Text", "[J]  ĐÓNG", 14f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(150f, 40f), Vector2.zero);
+            TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(108f, 36f), Vector2.zero);
+        MakeClickable(closeHint, () => SetJournalOpen(false));
 
-        BuildTabs(shell);
-
-        RectTransform content = Box("Content", shell, new Vector2(0.5f, 0.5f), new Vector2(1580f, 686f),
-            new Vector2(0f, -103f), new Color(0.032f, 0.057f, 0.054f, 1f));
+        RectTransform content = Box("Content", shell, new Vector2(0.5f, 0.5f), new Vector2(1328f, 590f),
+            new Vector2(0f, -64f), Color.clear);
         activeContentRoot = new GameObject("Active Quest Content", typeof(RectTransform));
         activeContentRoot.transform.SetParent(content, false);
         Stretch(activeContentRoot.GetComponent<RectTransform>());
 
+        BuildTabs(activeContentRoot.transform);
         BuildQuestList(activeContentRoot.transform);
         BuildQuestDetails(activeContentRoot.transform);
         BuildEmptyState(content);
-
-        Text(shell, "Footer", "[W/S] CHỌN NHIỆM VỤ  •  [Q/E] ĐỔI TAB  •  [M] BẢN ĐỒ  •  [J] ĐÓNG",
-            12f, Muted, FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0f),
-            new Vector2(1000f, 26f), new Vector2(0f, 17f));
 
         SelectQuest(0);
         SelectTab(0);
@@ -872,160 +944,152 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
     private void BuildTabs(Transform shell)
     {
-        const float tabWidth = 790f;
-        string[] labels = { "ĐANG HOẠT ĐỘNG     02", "HOÀN THÀNH     00", "THẤT BẠI     00" };
-        RectTransform tabs = Box("Tabs", shell, new Vector2(0.5f, 1f), new Vector2(1580f, 72f),
-            new Vector2(0f, -130f), new Color(0.036f, 0.062f, 0.059f, 1f));
+        const float tabWidth = 190f;
+        string[] labels = { "ĐANG LÀM  02", "HOÀN THÀNH  00" };
+        RectTransform tabs = Box("Tabs", shell, new Vector2(0f, 1f), new Vector2(410f, 48f),
+            Vector2.zero, Color.clear);
 
         for (int i = 0; i < tabRects.Length; i++)
         {
-            RectTransform tab = Box("Tab " + i, tabs, new Vector2(0f, 0.5f), new Vector2(tabWidth, 52f),
-                new Vector2(tabWidth * i, 0f), Color.clear);
+            int capturedIndex = i;
+            RectTransform tab = Box("Tab " + i, tabs, new Vector2(0f, 0.5f), new Vector2(tabWidth, 44f),
+                new Vector2((tabWidth + 18f) * i, 0f), Color.clear);
             tabRects[i] = tab;
-            RectTransform underline = Box("Tab Underline " + i, tab, new Vector2(0.5f, 0f),
-                new Vector2(tabWidth, 4f), new Vector2(0f, 2f), Amber);
+            RectTransform underline = Box("Tab Underline " + i, tab, new Vector2(0f, 0f),
+                new Vector2(112f, 2f), Vector2.zero, Amber);
             tabUnderlines[i] = underline.gameObject;
-            tabTexts[i] = Text(tab, "Tab Text " + i, labels[i], 16f, Muted, FontStyles.Bold,
-                TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(tabWidth - 10f, 48f), Vector2.zero);
+            tabTexts[i] = Text(tab, "Tab Text " + i, labels[i], 13f, Muted, FontStyles.Bold,
+                TextAlignmentOptions.Left, new Vector2(0f, 0.5f), new Vector2(tabWidth - 4f, 40f), Vector2.zero);
+            MakeClickable(tab, () => SelectTab(capturedIndex));
         }
-
-        Box("Tab Divider A", tabs, new Vector2(0f, 0.5f), new Vector2(1f, 36f),
-            new Vector2(tabWidth, 0f), new Color(0.32f, 0.39f, 0.37f, 0.7f));
     }
 
     private void BuildQuestList(Transform content)
     {
-        RectTransform left = Box("Quest List", content, new Vector2(0f, 0.5f), new Vector2(485f, 650f),
-            Vector2.zero, Panel);
-        AddBorder(left, Border);
-        Box("List Right Rule", left, new Vector2(1f, 0.5f), new Vector2(2f, 650f), new Vector2(-1f, 0f),
-            new Color(0.35f, 0.43f, 0.4f, 0.65f));
+        RectTransform left = Box("Quest List", content, new Vector2(0f, 0.5f), new Vector2(410f, 520f),
+            new Vector2(0f, -35f), Color.clear);
+        questListRoot = left.gameObject;
+        Box("List Right Rule", content, new Vector2(0f, 0.5f), new Vector2(1f, 540f),
+            new Vector2(438f, -25f), new Color(0.32f, 0.34f, 0.33f, 0.55f));
 
-        Text(left, "Chapter", "CHƯƠNG I", 12f, Amber, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(420f, 22f), new Vector2(26f, -28f));
-        Text(left, "Chapter Name", "TÍN HIỆU CUỐI CÙNG", 23f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(420f, 36f), new Vector2(26f, -60f));
-        Text(left, "Chapter Meta", "KHU DÂN CƯ  •  2 NHIỆM VỤ", 12f, Muted, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(420f, 22f), new Vector2(26f, -94f));
+        mainQuestHeader = Text(left, "Main Quest Header", "NHIỆM VỤ CHÍNH", 11f, Amber, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(180f, 20f), new Vector2(18f, -22f)).gameObject;
 
-        mainQuestHeader = Text(left, "Main Quest Header", "NHIỆM VỤ CHÍNH", 13f, Muted, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(420f, 24f), new Vector2(26f, -148f)).gameObject;
-
-        mainQuestCard = Box("Main Quest Card", left, new Vector2(0.5f, 1f), new Vector2(433f, 92f),
-            new Vector2(0f, -184f), new Color(0.15f, 0.17f, 0.14f, 1f));
+        mainQuestCard = Box("Main Quest Card", left, new Vector2(0f, 1f), new Vector2(410f, 96f),
+            new Vector2(0f, -50f), new Color(0.105f, 0.11f, 0.105f, 1f));
         mainQuestCardImage = mainQuestCard.GetComponent<Image>();
         mainQuestAccent = Box("Main Quest Accent", mainQuestCard, new Vector2(0f, 0.5f),
-            new Vector2(6f, 92f), new Vector2(3f, 0f), Amber).GetComponent<Image>();
+            new Vector2(4f, 96f), new Vector2(2f, 0f), Amber).GetComponent<Image>();
         RectTransform questIcon = Box("Main Quest Icon", mainQuestCard, new Vector2(0f, 0.5f),
-            new Vector2(30f, 30f), new Vector2(36f, 0f), new Color(0.35f, 0.18f, 0.42f, 1f));
+            new Vector2(22f, 22f), new Vector2(28f, 0f), new Color(0.35f, 0.18f, 0.42f, 1f));
         questIcon.localRotation = Quaternion.Euler(0f, 0f, 45f);
         Box("Main Quest Icon Core", questIcon, new Vector2(0.5f, 0.5f), new Vector2(11f, 11f),
             Vector2.zero, new Color(0.95f, 0.82f, 0.24f));
         TextMeshProUGUI mainName = Text(mainQuestCard, "Main Quest Name", "Tìm thêm thông tin về thành phố", 16f,
             Color.white, FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f),
-            new Vector2(350f, 26f), new Vector2(66f, -19f));
+            new Vector2(260f, 30f), new Vector2(54f, -20f));
         mainQuestNameRect = mainName.rectTransform;
-        mainQuestMetaText = Text(mainQuestCard, "Main Quest Meta", "Khu dân cư  •  0 / 3 nhà", 12f,
-            Muted, FontStyles.Normal, TextAlignmentOptions.Left, new Vector2(0f, 1f),
-            new Vector2(350f, 20f), new Vector2(66f, -55f));
+        mainQuestMetaText = Text(mainQuestCard, "Main Quest Meta", "0 / 3", 12f,
+            Muted, FontStyles.Bold, TextAlignmentOptions.Right, new Vector2(1f, 1f),
+            new Vector2(64f, 22f), new Vector2(-18f, -20f));
         mainQuestMetaRect = mainQuestMetaText.rectTransform;
+        mainQuestTrackedMarker = Text(mainQuestCard, "Main Quest Tracked Marker", "●  ĐANG THEO DÕI", 10f,
+            Amber, FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 0f),
+            new Vector2(180f, 20f), new Vector2(54f, 15f)).gameObject;
+        MakeClickable(mainQuestCard, () => SelectQuest(0));
 
         sideQuestHeader = Text(left, "Side Quest Header", "NHIỆM VỤ PHỤ", 13f, Mint, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(420f, 24f), new Vector2(26f, -302f)).gameObject;
-        sideQuestCard = Box("Side Quest Card", left, new Vector2(0.5f, 1f), new Vector2(433f, 78f),
-            new Vector2(0f, -338f), new Color(0.075f, 0.1f, 0.094f, 1f));
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(180f, 20f), new Vector2(18f, -186f)).gameObject;
+        sideQuestCard = Box("Side Quest Card", left, new Vector2(0f, 1f), new Vector2(410f, 84f),
+            new Vector2(0f, -214f), new Color(0.065f, 0.075f, 0.072f, 1f));
         sideQuestCardImage = sideQuestCard.GetComponent<Image>();
         sideQuestAccent = Box("Side Quest Accent", sideQuestCard, new Vector2(0f, 0.5f),
-            new Vector2(5f, 78f), new Vector2(2.5f, 0f), new Color(Mint.r, Mint.g, Mint.b, 0.35f)).GetComponent<Image>();
+            new Vector2(4f, 84f), new Vector2(2f, 0f), new Color(Mint.r, Mint.g, Mint.b, 0.35f)).GetComponent<Image>();
         TextMeshProUGUI sideName = Text(sideQuestCard, "Side Quest Name", "Ghép lại tuyến đường", 15f,
             Color.white, FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f),
-            new Vector2(380f, 24f), new Vector2(26f, -16f));
+            new Vector2(290f, 26f), new Vector2(24f, -17f));
         sideQuestNameRect = sideName.rectTransform;
-        sideQuestMetaText = Text(sideQuestCard, "Side Quest Meta", "Tùy chọn  •  0 / 3 dấu vết", 12f,
-            Muted, FontStyles.Normal, TextAlignmentOptions.Left, new Vector2(0f, 1f),
-            new Vector2(380f, 20f), new Vector2(26f, -48f));
+        sideQuestMetaText = Text(sideQuestCard, "Side Quest Meta", "0 / 3", 12f,
+            Muted, FontStyles.Bold, TextAlignmentOptions.Right, new Vector2(1f, 1f),
+            new Vector2(64f, 22f), new Vector2(-18f, -17f));
         sideQuestMetaRect = sideQuestMetaText.rectTransform;
+        sideQuestTrackedMarker = Text(sideQuestCard, "Side Quest Tracked Marker", "●  ĐANG THEO DÕI", 10f,
+            Mint, FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 0f),
+            new Vector2(180f, 20f), new Vector2(24f, 13f)).gameObject;
+        MakeClickable(sideQuestCard, () => SelectQuest(1));
 
-        RectTransform context = Box("Quest Context Panel", left, new Vector2(0.5f, 0f), new Vector2(433f, 118f),
-            new Vector2(0f, 82f), new Color(0.045f, 0.07f, 0.065f, 1f));
-        AddBorder(context, new Color(0.2f, 0.31f, 0.28f, 0.8f));
-        contextPanelTitle = Text(context, "Context Panel Title", string.Empty, 12f, Muted, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(380f, 22f), new Vector2(20f, -20f));
-        contextPanelCount = Text(context, "Context Panel Count", string.Empty, 18f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.Right, new Vector2(1f, 1f), new Vector2(100f, 28f), new Vector2(-66f, -20f));
-
-        mapFragmentSlotsRoot = new GameObject("Map Fragment Slots", typeof(RectTransform));
-        mapFragmentSlotsRoot.transform.SetParent(context, false);
-        Stretch(mapFragmentSlotsRoot.GetComponent<RectTransform>());
-        RectTransform slot1 = Box("Map Fragment Slot 1", mapFragmentSlotsRoot.transform, new Vector2(0f, 0f),
-            new Vector2(188f, 42f), new Vector2(20f, 16f), new Color(Amber.r, Amber.g, Amber.b, 0.16f));
-        AddBorder(slot1, new Color(Amber.r, Amber.g, Amber.b, 0.72f));
-        mapFragment1SlotText = Text(slot1, "Map Fragment Slot 1 Text", "MẢNH 1  •  CHƯA CÓ", 12f, Muted, FontStyles.Bold,
-            TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(180f, 34f), Vector2.zero);
-        RectTransform slot2 = Box("Map Fragment Slot 2", mapFragmentSlotsRoot.transform, new Vector2(1f, 0f),
-            new Vector2(188f, 42f), new Vector2(-20f, 16f), new Color(0.08f, 0.105f, 0.1f, 1f));
-        AddBorder(slot2, new Color(0.25f, 0.32f, 0.3f, 0.85f));
-        mapFragment2SlotText = Text(slot2, "Map Fragment Slot 2 Text", "MẢNH 2  •  CHƯA CÓ", 12f, Muted,
-            FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f),
-            new Vector2(180f, 34f), Vector2.zero);
-
-        sideQuestProgressRoot = new GameObject("Side Quest Objective Progress", typeof(RectTransform));
-        sideQuestProgressRoot.transform.SetParent(context, false);
-        Stretch(sideQuestProgressRoot.GetComponent<RectTransform>());
-        for (int i = 0; i < 3; i++)
-        {
-            RectTransform segment = Box("Side Objective Segment " + (i + 1), sideQuestProgressRoot.transform,
-                new Vector2(0f, 0f), new Vector2(123f, 42f), new Vector2(20f + i * 135f, 16f),
-                new Color(0.08f, 0.105f, 0.1f, 1f));
-            sideClueSegmentImages[i] = segment.GetComponent<Image>();
-            AddBorder(segment, new Color(Mint.r, Mint.g, Mint.b, 0.3f));
-            sideClueSegmentTexts[i] = Text(segment, "Side Segment Text " + (i + 1),
-                (i + 1).ToString("00") + "  CHƯA CÓ", 10f,
-                Muted, FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f),
-                new Vector2(116f, 34f), Vector2.zero);
-        }
+        // These hidden values preserve the preview/debug API without putting the old
+        // inventory-heavy context panel back into the simplified layout.
+        RectTransform stateCache = Box("Quest Context State", left, new Vector2(0f, 0f),
+            new Vector2(1f, 1f), Vector2.zero, Color.clear);
+        contextPanelTitle = Text(stateCache, "Context Panel Title", string.Empty, 1f, Color.clear,
+            FontStyles.Normal, TextAlignmentOptions.Left, Vector2.zero, Vector2.one, Vector2.zero);
+        contextPanelCount = Text(stateCache, "Context Panel Count", string.Empty, 1f, Color.clear,
+            FontStyles.Normal, TextAlignmentOptions.Left, Vector2.zero, Vector2.one, Vector2.zero);
     }
 
     private void BuildQuestDetails(Transform content)
     {
-        RectTransform right = Box("Quest Details", content, new Vector2(1f, 0.5f), new Vector2(1065f, 650f),
-            Vector2.zero, new Color(0.042f, 0.067f, 0.063f, 1f));
-        AddBorder(right, Border);
+        RectTransform right = Box("Quest Details", content, new Vector2(1f, 0.5f), new Vector2(855f, 540f),
+            new Vector2(0f, -25f), Color.clear);
+        questDetailsRoot = right.gameObject;
 
-        detailEyebrow = Text(right, "Detail Eyebrow", string.Empty, 12f, Amber, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(650f, 24f), new Vector2(32f, -30f));
-        detailTitle = Text(right, "Detail Title", string.Empty, 32f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.TopLeft, new Vector2(0f, 1f), new Vector2(690f, 86f), new Vector2(32f, -67f));
+        detailEyebrow = Text(right, "Detail Eyebrow", string.Empty, 11f, Amber, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(620f, 22f), new Vector2(0f, -4f));
+        detailTitle = Text(right, "Detail Title", string.Empty, 31f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.TopLeft, new Vector2(0f, 1f), new Vector2(820f, 58f), new Vector2(0f, -38f));
 
-        statusBadge = Box("Status Badge", right, new Vector2(1f, 1f), new Vector2(186f, 38f),
-            new Vector2(-120f, -44f), new Color(Amber.r, Amber.g, Amber.b, 0.16f));
-        statusBadgeImage = statusBadge.GetComponent<Image>();
-        statusBadgeText = Text(statusBadge, "Badge Text", string.Empty, 12f, Amber, FontStyles.Bold,
-            TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(176f, 34f), Vector2.zero);
-
-        Box("Title Rule", right, new Vector2(0.5f, 1f), new Vector2(1000f, 1f), new Vector2(0f, -164f),
-            new Color(0.34f, 0.42f, 0.39f, 0.68f));
-        storyText = Text(right, "Story", string.Empty, 16f, new Color(0.8f, 0.85f, 0.83f),
+        storyText = Text(right, "Story", string.Empty, 14f, new Color(0.75f, 0.78f, 0.77f),
             FontStyles.Normal, TextAlignmentOptions.TopLeft, new Vector2(0f, 1f),
-            new Vector2(995f, 72f), new Vector2(32f, -208f));
+            new Vector2(820f, 52f), new Vector2(0f, -108f));
 
-        Text(right, "Objectives Header", "MỤC TIÊU VÀ ĐIỀU KIỆN", 14f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(570f, 26f), new Vector2(32f, -302f));
+        Text(right, "Objectives Header", "MỤC TIÊU HIỆN TẠI", 11f, Muted, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(260f, 22f), new Vector2(0f, -184f));
+        currentObjectiveText = Text(right, "Current Objective", string.Empty, 18f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(680f, 34f), new Vector2(0f, -216f));
+        currentObjectiveProgressText = Text(right, "Current Objective Progress", string.Empty, 13f, Amber,
+            FontStyles.Bold, TextAlignmentOptions.Right, new Vector2(1f, 1f),
+            new Vector2(125f, 30f), new Vector2(0f, -216f));
 
-        BuildObjectiveRow(right, 0, new Vector2(32f, -351f));
-        BuildObjectiveRow(right, 1, new Vector2(32f, -409f));
-        BuildObjectiveRow(right, 2, new Vector2(32f, -467f));
-        BuildMapCard(right);
+        RectTransform progressBar = Box("Current Objective Progress Bar", right, new Vector2(0f, 1f),
+            new Vector2(855f, 5f), new Vector2(0f, -264f), new Color(0.16f, 0.17f, 0.17f, 1f));
+        objectiveProgressFill = Box("Current Objective Progress Fill", progressBar, new Vector2(0f, 0.5f),
+            new Vector2(0f, 5f), Vector2.zero, Amber).GetComponent<Image>();
+        objectiveProgressFill.rectTransform.pivot = new Vector2(0f, 0.5f);
 
-        RectTransform reward = Box("Progress Reward", right, new Vector2(0f, 0f), new Vector2(630f, 92f),
-            new Vector2(32f, 32f), PanelLight);
-        AddBorder(reward, new Color(0.2f, 0.31f, 0.28f, 0.75f));
-        Box("Reward Accent", reward, new Vector2(0f, 0.5f), new Vector2(5f, 92f),
-            new Vector2(2.5f, 0f), Mint);
-        rewardLabel = Text(reward, "Reward Label", string.Empty, 11f, Muted, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(570f, 18f), new Vector2(20f, -12f));
-        rewardText = Text(reward, "Reward Text", string.Empty, 17f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(570f, 34f), new Vector2(20f, -43f));
+        RectTransform reward = Box("Progress Reward", right, new Vector2(0f, 1f), new Vector2(855f, 68f),
+            new Vector2(0f, -306f), new Color(0.065f, 0.07f, 0.068f, 1f));
+        AddBorder(reward, new Color(0.23f, 0.25f, 0.24f, 0.65f));
+        rewardLabel = Text(reward, "Reward Label", string.Empty, 10f, Muted, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(180f, 18f), new Vector2(18f, -10f));
+        rewardText = Text(reward, "Reward Text", string.Empty, 15f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(520f, 28f), new Vector2(18f, -34f));
+
+        const float actionWidth = 188f;
+        const float actionHeight = 48f;
+        RectTransform tracking = Box("Tracking Button", right, new Vector2(1f, 0f),
+            new Vector2(actionWidth, actionHeight), new Vector2(-206f, 0f), new Color(0.93f, 0.93f, 0.9f, 1f));
+        trackingButtonImage = tracking.GetComponent<Image>();
+        trackingButtonText = Text(tracking, "Tracking Button Text", "[V]  THEO DÕI", 13f,
+            new Color(0.05f, 0.055f, 0.053f, 1f), FontStyles.Bold, TextAlignmentOptions.Center,
+            new Vector2(0.5f, 0.5f), new Vector2(actionWidth - 12f, actionHeight - 8f), Vector2.zero);
+        trackingButton = MakeClickable(tracking, ToggleSelectedQuestTracking);
+
+        RectTransform openMap = Box("Open Map Button", right, new Vector2(1f, 0f),
+            new Vector2(actionWidth, actionHeight), Vector2.zero, new Color(0.045f, 0.05f, 0.048f, 1f));
+        AddBorder(openMap, new Color(0.54f, 0.56f, 0.55f, 0.9f));
+        Text(openMap, "Open Map Button Text", "[M]  MỞ BẢN ĐỒ", 13f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f),
+            new Vector2(actionWidth - 12f, actionHeight - 8f), Vector2.zero);
+        MakeClickable(openMap, OpenMapFromJournal);
+
+        // Objective state cache keeps quest-flow tests and data inspection useful,
+        // while only the current objective is rendered in the player-facing screen.
+        RectTransform objectiveCache = Box("Objective State Cache", right, Vector2.zero,
+            Vector2.one, Vector2.zero, Color.clear);
+        for (int i = 0; i < 3; i++)
+            BuildObjectiveRow(objectiveCache, i, new Vector2(0f, -60f * i));
+        objectiveCache.gameObject.SetActive(false);
     }
 
     private void BuildObjectiveRow(Transform parent, int index, Vector2 topLeft)
@@ -1116,8 +1180,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             return;
 
         bool main = selectedQuestIndex == 0;
-        mainQuestCardImage.color = main ? new Color(0.15f, 0.17f, 0.14f, 1f) : new Color(0.075f, 0.1f, 0.094f, 1f);
-        sideQuestCardImage.color = main ? new Color(0.075f, 0.1f, 0.094f, 1f) : new Color(0.11f, 0.16f, 0.14f, 1f);
+        mainQuestCardImage.color = main ? new Color(0.105f, 0.11f, 0.105f, 1f) : new Color(0.055f, 0.06f, 0.058f, 1f);
+        sideQuestCardImage.color = main ? new Color(0.065f, 0.075f, 0.072f, 1f) : new Color(0.085f, 0.105f, 0.098f, 1f);
         mainQuestAccent.color = main ? Amber : new Color(Amber.r, Amber.g, Amber.b, 0.28f);
         sideQuestAccent.color = main ? new Color(Mint.r, Mint.g, Mint.b, 0.35f) : Mint;
 
@@ -1129,28 +1193,26 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
     private void ShowMainQuestDetails()
     {
-        detailEyebrow.text = "NHIỆM VỤ CHÍNH  //  GIAI ĐOẠN 01";
+        detailEyebrow.text = "NHIỆM VỤ CHÍNH  /  GIAI ĐOẠN 01";
         detailEyebrow.color = Amber;
-        detailTitle.text = "TÌM THÊM THÔNG TIN\nVỀ THÀNH PHỐ";
-        storyText.text = "Phần bản đồ chưa an toàn bị phủ đen và tạm thời không thể đi vào. Hãy lục soát ba trong sáu căn nhà thuộc khu mở để nhận manh mối chính; ba vật phẩm nhiệm vụ trong tủ loot có thể ghép thành Mảnh bản đồ 1.";
-        SetBadge(mainQuestProgress.MainQuestComplete ? "HOÀN THÀNH" : "ĐANG HOẠT ĐỘNG",
-            mainQuestProgress.MainQuestComplete ? Mint : Amber);
+        detailTitle.text = "TÌM THÊM THÔNG TIN VỀ THÀNH PHỐ";
+        storyText.text = "Tìm các mảnh giấy manh mối trong tủ đồ ở những ngôi nhà xung quanh.";
 
-        bool searchingHouses = !mainQuestProgress.HouseSearchComplete;
-        SetObjective(0, "Lục soát 3 căn nhà trong khu tìm kiếm",
-            mainQuestProgress.HouseSearchComplete
+        bool searchingClues = !mainQuestProgress.HasMapFragment1;
+        SetObjective(0, "Tìm kiếm 3 manh mối ở các ngôi nhà xung quanh",
+            mainQuestProgress.HasMapFragment1
                 ? "HOÀN THÀNH"
-                : mainQuestProgress.SearchedHouseCount + " / " + PreMilitaryQuestProgress.RequiredDistinctHouses + " NHÀ",
-            searchingHouses, mainQuestProgress.HouseSearchComplete ? Mint : Amber);
+                : "ĐÃ TÌM THẤY  " + mainQuestProgress.RouteClueCount + " / " +
+                  PreMilitaryQuestProgress.RequiredRouteClues + " MANH MỐI",
+            searchingClues, mainQuestProgress.HasMapFragment1 ? Mint : Amber);
 
         string officeLocationStatus;
         if (mainQuestProgress.OfficeDiscovered) officeLocationStatus = "ĐÃ TÌM THẤY";
         else if (mainQuestProgress.HasMapFragment1) officeLocationStatus = "VỊ TRÍ CHÍNH XÁC";
-        else if (mainQuestProgress.ApproximateOfficeAreaRevealed) officeLocationStatus = "VÙNG TƯƠNG ĐỐI";
         else officeLocationStatus = "ĐANG KHÓA";
-        bool locatingOffice = mainQuestProgress.HouseSearchComplete && !mainQuestProgress.OfficeDiscovered;
+        bool locatingOffice = mainQuestProgress.HasMapFragment1 && !mainQuestProgress.OfficeDiscovered;
         SetObjective(1, "Xác định và tìm đến văn phòng màu tím", officeLocationStatus, locatingOffice,
-            mainQuestProgress.OfficeDiscovered ? Mint : mainQuestProgress.HouseSearchComplete ? Purple : Muted);
+            mainQuestProgress.OfficeDiscovered ? Mint : mainQuestProgress.HasMapFragment1 ? Purple : Muted);
 
         string investigationStatus = mainQuestProgress.HasMapFragment2
             ? "ĐÃ CÓ MẢNH 2"
@@ -1163,37 +1225,33 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         rewardLabel.text = mainQuestProgress.MainQuestComplete ? "PHẦN THƯỞNG ĐÃ NHẬN" : "PHẦN THƯỞNG";
         rewardText.text = mainQuestProgress.MainQuestComplete ? "Mảnh bản đồ 2" : "Chưa xác định";
 
-        contextPanelTitle.text = "VẬT PHẨM NHIỆM VỤ";
-        int fragmentCount = (mainQuestProgress.HasMapFragment1 ? 1 : 0) +
-                            (mainQuestProgress.HasMapFragment2 ? 1 : 0);
-        contextPanelCount.text = fragmentCount.ToString("00") + " / 02";
-        mapFragmentSlotsRoot.SetActive(true);
-        sideQuestProgressRoot.SetActive(false);
-        Image firstSlot = mapFragment1SlotText.transform.parent.GetComponent<Image>();
-        firstSlot.color = mainQuestProgress.HasMapFragment1
-            ? new Color(Purple.r, Purple.g, Purple.b, 0.16f)
-            : new Color(0.08f, 0.105f, 0.1f, 1f);
-        mapFragment1SlotText.text = mainQuestProgress.HasMapFragment1 ? "MẢNH 1  •  ĐÃ CÓ" : "MẢNH 1  •  CHƯA CÓ";
-        mapFragment1SlotText.color = mainQuestProgress.HasMapFragment1 ? Purple : Muted;
-        Image secondSlot = mapFragment2SlotText.transform.parent.GetComponent<Image>();
-        secondSlot.color = mainQuestProgress.HasMapFragment2
-            ? new Color(Mint.r, Mint.g, Mint.b, 0.16f)
-            : new Color(0.08f, 0.105f, 0.1f, 1f);
-        mapFragment2SlotText.text = mainQuestProgress.HasMapFragment2 ? "MẢNH 2  •  ĐÃ CÓ" : "MẢNH 2  •  CHƯA CÓ";
-        mapFragment2SlotText.color = mainQuestProgress.HasMapFragment2 ? Mint : Muted;
-        UpdateMiniMapPreview();
+        contextPanelTitle.text = "MANH MỐI NHIỆM VỤ";
+        contextPanelCount.text = mainQuestProgress.RouteClueCount + " / " +
+                                 PreMilitaryQuestProgress.RequiredRouteClues;
+
+        if (!mainQuestProgress.HasMapFragment1)
+            SetCurrentObjective("Tìm kiếm 3 manh mối ở các ngôi nhà xung quanh",
+                "ĐÃ TÌM THẤY  " + mainQuestProgress.RouteClueCount + " / " +
+                PreMilitaryQuestProgress.RequiredRouteClues,
+                mainQuestProgress.RouteClueCount / (float)PreMilitaryQuestProgress.RequiredRouteClues, Amber);
+        else if (!mainQuestProgress.OfficeDiscovered)
+            SetCurrentObjective("Tìm văn phòng màu tím trong khu vực đã xác định",
+                mainQuestProgress.HasMapFragment1 ? "ĐÃ XÁC ĐỊNH" : "ĐANG TÌM", 0f, Purple);
+        else if (!mainQuestProgress.HasMapFragment2)
+            SetCurrentObjective("Điều tra các điểm khả nghi trong văn phòng", "ĐANG ĐIỀU TRA", 0f, Purple);
+        else
+            SetCurrentObjective("Nhiệm vụ đã hoàn thành", "HOÀN THÀNH", 1f, Mint);
+
+        UpdateTrackingPresentation();
     }
 
     private void ShowSideQuestDetails()
     {
-        detailEyebrow.text = "NHIỆM VỤ PHỤ  //  TÙY CHỌN";
+        detailEyebrow.text = "NHIỆM VỤ PHỤ  /  TÙY CHỌN";
         detailEyebrow.color = Mint;
-        detailTitle.text = "GHÉP LẠI\nTUYẾN ĐƯỜNG";
-        storyText.text = "Ba dấu vết phụ nằm trong các căn nhà đang lục soát: hóa đơn giao hàng, sơ đồ tuyến xe và ghi chú địa chỉ. Ghép đủ chúng sẽ tạo Mảnh bản đồ 1.";
+        detailTitle.text = "GHÉP LẠI TUYẾN ĐƯỜNG";
+        storyText.text = "Thu thập ba dấu vết trong các căn nhà để ghép thành Mảnh bản đồ 1.";
 
-        string sideBadge = mainQuestProgress.SideQuestSkipped ? "ĐÃ BỎ QUA" :
-            mainQuestProgress.HasMapFragment1 ? "HOÀN THÀNH" : "TÙY CHỌN";
-        SetBadge(sideBadge, mainQuestProgress.SideQuestSkipped ? Muted : Mint);
         SetObjective(0, "Thu thập 3 dấu vết tuyến đường",
             mainQuestProgress.RouteClueCount + " / " + PreMilitaryQuestProgress.RequiredRouteClues,
             !mainQuestProgress.SideQuestResolved, mainQuestProgress.HasMapFragment1 ? Mint : Amber);
@@ -1210,19 +1268,17 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         contextPanelTitle.text = "DẤU VẾT ĐÃ THU THẬP";
         contextPanelCount.text = mainQuestProgress.RouteClueCount + " / 3";
-        mapFragmentSlotsRoot.SetActive(false);
-        sideQuestProgressRoot.SetActive(true);
-        string[] clueNames = { "HÓA ĐƠN", "TUYẾN XE", "GHI CHÚ" };
-        for (int i = 0; i < sideClueSegmentImages.Length; i++)
-        {
-            bool acquired = i < mainQuestProgress.RouteClueCount;
-            sideClueSegmentImages[i].color = acquired
-                ? new Color(Mint.r, Mint.g, Mint.b, 0.16f)
-                : new Color(0.08f, 0.105f, 0.1f, 1f);
-            sideClueSegmentTexts[i].text = acquired ? clueNames[i] : (i + 1).ToString("00") + "  CHƯA CÓ";
-            sideClueSegmentTexts[i].color = acquired ? Mint : Muted;
-        }
-        UpdateMiniMapPreview();
+
+        if (mainQuestProgress.HasMapFragment1)
+            SetCurrentObjective("Mảnh bản đồ 1 đã được ghép", "HOÀN THÀNH", 1f, Mint);
+        else if (mainQuestProgress.SideQuestSkipped)
+            SetCurrentObjective("Tuyến đường đã được tìm theo cách khác", "ĐÃ BỎ QUA", 1f, Muted);
+        else
+            SetCurrentObjective("Thu thập 3 dấu vết tuyến đường",
+                mainQuestProgress.RouteClueCount + " / " + PreMilitaryQuestProgress.RequiredRouteClues,
+                mainQuestProgress.RouteClueCount / (float)PreMilitaryQuestProgress.RequiredRouteClues, Mint);
+
+        UpdateTrackingPresentation();
     }
 
     private void RefreshQuestPresentation()
@@ -1230,18 +1286,21 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         if (mainQuestMetaText != null)
         {
             mainQuestMetaText.text = mainQuestProgress.MainQuestComplete
-                ? "Khu dân cư  •  Hoàn thành"
-                : "Khu dân cư  •  " + mainQuestProgress.SearchedHouseCount + " / 3 nhà";
+                ? "XONG"
+                : mainQuestProgress.RouteClueCount + " / 3";
         }
 
         if (sideQuestMetaText != null)
         {
             sideQuestMetaText.text = mainQuestProgress.SideQuestSkipped
-                ? "Tùy chọn  •  Đã tự tìm văn phòng"
+                ? "BỎ QUA"
                 : mainQuestProgress.HasMapFragment1
-                    ? "Tùy chọn  •  Đã nhận Mảnh 1"
-                    : "Tùy chọn  •  " + mainQuestProgress.RouteClueCount + " / 3 dấu vết";
+                    ? "XONG"
+                    : mainQuestProgress.RouteClueCount + " / 3";
         }
+
+        if (trackedQuestIndex >= 0 && !QuestBelongsToTab(trackedQuestIndex, 0))
+            trackedQuestIndex = -1;
 
         UpdateTabCounts();
         SelectTab(selectedTabIndex);
@@ -1292,9 +1351,85 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
     private void SetBadge(string value, Color color)
     {
+        if (statusBadgeImage == null || statusBadgeText == null)
+            return;
+
         statusBadgeImage.color = new Color(color.r, color.g, color.b, 0.16f);
         statusBadgeText.text = value;
         statusBadgeText.color = color;
+    }
+
+    private void SetCurrentObjective(string value, string progress, float normalizedProgress, Color accent)
+    {
+        currentObjectiveText.text = value;
+        currentObjectiveProgressText.text = progress;
+        currentObjectiveProgressText.color = accent;
+        objectiveProgressFill.color = accent;
+        objectiveProgressFill.rectTransform.sizeDelta = new Vector2(855f * Mathf.Clamp01(normalizedProgress), 5f);
+    }
+
+    private void ToggleSelectedQuestTracking()
+    {
+        if (!QuestBelongsToTab(selectedQuestIndex, 0))
+            return;
+
+        trackedQuestIndex = trackedQuestIndex == selectedQuestIndex ? -1 : selectedQuestIndex;
+        UpdateTrackingPresentation();
+    }
+
+    private void UpdateTrackingPresentation()
+    {
+        if (trackingButtonImage == null || trackingButtonText == null)
+            return;
+
+        bool selectedIsTracked = trackedQuestIndex == selectedQuestIndex;
+        trackingButtonText.text = selectedIsTracked ? "[V]  HỦY THEO DÕI" : "[V]  THEO DÕI";
+        trackingButtonImage.color = selectedIsTracked
+            ? new Color(1f, 0.67f, 0.14f, 1f)
+            : new Color(0.93f, 0.93f, 0.9f, 1f);
+        trackingButtonText.color = new Color(0.05f, 0.055f, 0.053f, 1f);
+
+        if (mainQuestTrackedMarker != null)
+            mainQuestTrackedMarker.SetActive(trackedQuestIndex == 0);
+        if (sideQuestTrackedMarker != null)
+            sideQuestTrackedMarker.SetActive(trackedQuestIndex == 1);
+    }
+
+    public bool TryGetTrackedObjectiveText(out string objective)
+    {
+        objective = string.Empty;
+        if (trackedQuestIndex < 0)
+            return false;
+
+        if (trackedQuestIndex == 0)
+        {
+            if (!mainQuestProgress.HasMapFragment1)
+                objective = "Tìm kiếm manh mối trong các ngôi nhà  •  " +
+                            mainQuestProgress.RouteClueCount + "/" + PreMilitaryQuestProgress.RequiredRouteClues;
+            else if (!mainQuestProgress.OfficeDiscovered)
+                objective = "Tìm văn phòng màu tím trong khu vực đã xác định";
+            else if (!mainQuestProgress.HasMapFragment2)
+                objective = "Điều tra các điểm khả nghi trong văn phòng";
+            else
+                return false;
+        }
+        else
+        {
+            if (mainQuestProgress.SideQuestResolved)
+                return false;
+            objective = "Thu thập dấu vết tuyến đường  •  " +
+                        mainQuestProgress.RouteClueCount + "/" + PreMilitaryQuestProgress.RequiredRouteClues;
+        }
+
+        return true;
+    }
+
+    private void OpenMapFromJournal()
+    {
+        SetJournalOpen(false);
+        DismissQuestNotice();
+        if (mapPrototype != null)
+            mapPrototype.SetOpen(true);
     }
 
     private void SetObjective(int index, string value, string status, bool highlighted, Color accent)
@@ -1323,7 +1458,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         for (int i = 0; i < tabRects.Length; i++)
         {
             bool active = i == selectedTabIndex;
-            tabRects[i].GetComponent<Image>().color = active ? new Color(0.12f, 0.16f, 0.15f, 1f) : Color.clear;
+            tabRects[i].GetComponent<Image>().color = Color.clear;
             tabUnderlines[i].SetActive(active);
             tabTexts[i].color = active ? Color.white : Muted;
         }
@@ -1331,20 +1466,14 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         bool mainVisible = QuestBelongsToTab(0, selectedTabIndex);
         bool sideVisible = QuestBelongsToTab(1, selectedTabIndex);
         bool showQuestContent = mainVisible || sideVisible;
-        activeContentRoot.SetActive(showQuestContent);
+        activeContentRoot.SetActive(true);
         emptyStateRoot.SetActive(!showQuestContent);
+        questListRoot.SetActive(showQuestContent);
+        questDetailsRoot.SetActive(showQuestContent);
         mainQuestHeader.SetActive(mainVisible);
         mainQuestCard.gameObject.SetActive(mainVisible);
         sideQuestHeader.SetActive(sideVisible);
         sideQuestCard.gameObject.SetActive(sideVisible);
-
-        RectTransform sideHeaderRect = sideQuestHeader.GetComponent<RectTransform>();
-        sideHeaderRect.anchoredPosition = sideVisible && !mainVisible
-            ? new Vector2(26f, -148f)
-            : new Vector2(26f, -302f);
-        sideQuestCard.anchoredPosition = sideVisible && !mainVisible
-            ? new Vector2(0f, -184f)
-            : new Vector2(0f, -338f);
 
         if (showQuestContent)
         {
@@ -1367,9 +1496,9 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         if (tabTexts[0] == null)
             return;
 
-        string[] labels = { "ĐANG HOẠT ĐỘNG", "HOÀN THÀNH", "THẤT BẠI" };
+        string[] labels = { "ĐANG LÀM", "HOÀN THÀNH" };
         for (int i = 0; i < tabTexts.Length; i++)
-            tabTexts[i].text = labels[i] + "     " + GetQuestCountForTab(i).ToString("00");
+            tabTexts[i].text = labels[i] + "  " + GetQuestCountForTab(i).ToString("00");
     }
 
     private int GetQuestCountForTab(int tabIndex)
@@ -1547,6 +1676,27 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         image.color = color;
         image.raycastTarget = false;
         return rect;
+    }
+
+    private static Button MakeClickable(RectTransform target, Action action)
+    {
+        Image image = target.GetComponent<Image>();
+        image.raycastTarget = true;
+
+        Button button = target.gameObject.AddComponent<Button>();
+        button.targetGraphic = image;
+        button.transition = Selectable.Transition.ColorTint;
+        ColorBlock colors = button.colors;
+        colors.normalColor = Color.white;
+        colors.highlightedColor = new Color(1f, 1f, 1f, 0.88f);
+        colors.pressedColor = new Color(0.72f, 0.72f, 0.72f, 1f);
+        colors.selectedColor = Color.white;
+        colors.disabledColor = new Color(0.5f, 0.5f, 0.5f, 0.55f);
+        colors.colorMultiplier = 1f;
+        colors.fadeDuration = 0.08f;
+        button.colors = colors;
+        button.onClick.AddListener(() => action?.Invoke());
+        return button;
     }
 
     private static void AddBorder(RectTransform target, Color color, float distance = 1f)

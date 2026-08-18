@@ -24,6 +24,16 @@ public static class ProjectZomboidMapRasterizer
                 Mathf.InverseLerp(MinCell.x, MinCell.x + Size.x - 1, cell.x),
                 Mathf.InverseLerp(MinCell.y, MinCell.y + Size.y - 1, cell.y));
         }
+
+        public Vector3 NormalizedToWorld(Vector2 normalizedPosition)
+        {
+            Vector3 cellPosition = new Vector3(
+                Mathf.Lerp(MinCell.x, MinCell.x + Size.x - 1, normalizedPosition.x),
+                Mathf.Lerp(MinCell.y, MinCell.y + Size.y - 1, normalizedPosition.y),
+                0f);
+            Vector3 localPosition = Grid.CellToLocalInterpolated(cellPosition);
+            return Grid.transform.TransformPoint(localPosition);
+        }
     }
 
     private static readonly Color32 Outside = new Color32(61, 105, 48, 255);

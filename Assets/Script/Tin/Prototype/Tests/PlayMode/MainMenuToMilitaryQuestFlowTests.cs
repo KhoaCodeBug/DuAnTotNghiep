@@ -64,6 +64,80 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         }
         Assert.That(localPlayer, Is.Not.Null, "Local player did not spawn.");
 
+        Type mainQuestType = Type.GetType("MainQuestManager, Assembly-CSharp");
+        Assert.That(mainQuestType, Is.Not.Null);
+        Component mainQuest = null;
+        float mainQuestDeadline = Time.realtimeSinceStartup + 15f;
+        while (Time.realtimeSinceStartup < mainQuestDeadline)
+        {
+            mainQuest = UnityEngine.Object.FindFirstObjectByType(mainQuestType) as Component;
+            if (mainQuest != null && ReadBool(mainQuest, "IsNetworkReady") &&
+                ReadBool(mainQuest, "IsNeighborhoodConfigured")) break;
+            yield return null;
+        }
+        Assert.That(mainQuest, Is.Not.Null, "MainQuestManager was not present in Main.");
+        Assert.That(ReadBool(mainQuest, "IsNeighborhoodConfigured"), Is.True,
+            "State Authority did not replicate the shared opening neighborhood.");
+        Assert.That(ReadProperty(mainQuest, "CurrentStage").ToString(), Is.EqualTo("SearchNeighborhood"));
+        int searchHouseCount = (int)ReadProperty(mainQuest, "SearchHouseCount");
+        Assert.That(searchHouseCount, Is.EqualTo(6));
+
+        Type bridgeType = Type.GetType("PreMilitaryQuestRuntimeBridge, Assembly-CSharp");
+        Assert.That(bridgeType, Is.Not.Null);
+        Component bridge = UnityEngine.Object.FindFirstObjectByType(bridgeType) as Component;
+        Assert.That(bridge, Is.Not.Null);
+        Assert.That((int)ReadProperty(bridge, "ActiveSearchHouseCount"), Is.EqualTo(searchHouseCount));
+        Assert.That(GameObject.Find("Quest Search Area Restriction"), Is.Null,
+            "The opening quest must not recreate a solid world restriction.");
+        Type blockerType = Type.GetType("QuestSearchBoundaryBlocker, Assembly-CSharp");
+        Assert.That(blockerType, Is.Not.Null);
+        Assert.That(UnityEngine.Object.FindFirstObjectByType(blockerType), Is.Null);
+
+        Type survivalType = Type.GetType("PlayerSurvival, Assembly-CSharp");
+        Component survival = ((Component)localPlayer).GetComponent(survivalType);
+        Assert.That(survival, Is.Not.Null);
+        Assert.That((float)ReadProperty(survival, "EffectiveHungerDrainRate"),
+            Is.EqualTo(0.15f).Within(0.001f));
+        Assert.That((float)ReadProperty(survival, "EffectiveThirstDrainRate"),
+            Is.EqualTo(0.1875f).Within(0.001f));
+        Assert.That((float)ReadProperty(survival, "EffectiveDamageOverTime"),
+            Is.EqualTo(0.225f).Within(0.001f));
+        Assert.That((float)ReadProperty(survival, "CriticalNeedGraceRemaining"),
+            Is.EqualTo(35f).Within(0.1f));
+
+        // Real solo-player regression: consumables cap both needs, restore the
+        // full grace period and reactivate the existing well-fed buff.
+        survivalType.GetMethod("SetTutorialNeeds")?.Invoke(survival, new object[] { 0.1f, 0.1f });
+        survivalType.GetMethod("RestoreHunger")?.Invoke(survival, new object[] { 999f });
+        survivalType.GetMethod("RestoreThirst")?.Invoke(survival, new object[] { 999f });
+        Assert.That((float)ReadProperty(survival, "currentHunger"), Is.EqualTo(100f).Within(0.01f));
+        Assert.That((float)ReadProperty(survival, "currentThirst"), Is.EqualTo(100f).Within(0.01f));
+        Assert.That((int)survivalType.GetMethod("GetWellFedTier")?.Invoke(survival, null), Is.EqualTo(4));
+        Assert.That((float)ReadProperty(survival, "CriticalNeedGraceRemaining"),
+            Is.EqualTo(35f).Within(0.1f));
+
+        Type healthType = Type.GetType("PlayerHealth, Assembly-CSharp");
+        Component health = ((Component)localPlayer).GetComponent(healthType);
+        Assert.That(health, Is.Not.Null);
+        MethodInfo passiveHealRate = healthType.GetMethod("GetPassiveHealRate");
+        float tierOneHeal = (float)passiveHealRate.Invoke(health, new object[] { 1 });
+        float tierFourHeal = (float)passiveHealRate.Invoke(health, new object[] { 4 });
+        Assert.That(tierFourHeal, Is.GreaterThan(tierOneHeal),
+            "Higher well-fed tiers must preserve the stronger passive-heal buff.");
+
+        // Reproduce the reported screenshot state: neighborhood complete,
+        // player outside the bright office-search area.
+        SetProperty(mainQuest, "NetworkQuestStage", 2); // LocateOffice
+        SetPrivateField(bridge, "outsideSince", Time.unscaledTime - 2f);
+        SetPrivateField(bridge, "nextOutsideWarningTime", 0f);
+        MethodInfo updateWarning = bridgeType.GetMethod("UpdateOutsideSearchZoneWarning",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(updateWarning, Is.Not.Null);
+        updateWarning.Invoke(bridge, new object[] { new Vector2(100000f, 100000f), mainQuest });
+        Assert.That((bool)ReadPrivateField(bridge, "guidanceTargetsOffice"), Is.True);
+        Assert.That((float)ReadPrivateField(bridge, "outsideWarningVisibleUntil"),
+            Is.GreaterThan(Time.unscaledTime));
+
         QuestFlowUIPrototype questUI = UnityEngine.Object.FindFirstObjectByType<QuestFlowUIPrototype>(
             FindObjectsInactive.Include);
         Assert.That(questUI == null || !questUI.IsQuestOverlayOpen, Is.True,
@@ -90,9 +164,40 @@ public sealed class MainMenuToMilitaryQuestFlowTests
 
     private static bool ReadBool(object target, string propertyName)
     {
+        object value = ReadProperty(target, propertyName);
+        if (value is bool boolean) return boolean;
+        return string.Equals(value?.ToString(), bool.TrueString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static object ReadProperty(object target, string propertyName)
+    {
         PropertyInfo property = target.GetType().GetProperty(propertyName,
             BindingFlags.Public | BindingFlags.Instance);
         Assert.That(property, Is.Not.Null, "Missing property: " + propertyName);
-        return (bool)property.GetValue(target);
+        return property.GetValue(target);
+    }
+
+    private static void SetProperty(object target, string propertyName, object value)
+    {
+        PropertyInfo property = target.GetType().GetProperty(propertyName,
+            BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(property, Is.Not.Null, "Missing property: " + propertyName);
+        property.SetValue(target, value);
+    }
+
+    private static object ReadPrivateField(object target, string fieldName)
+    {
+        FieldInfo field = target.GetType().GetField(fieldName,
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(field, Is.Not.Null, "Missing field: " + fieldName);
+        return field.GetValue(target);
+    }
+
+    private static void SetPrivateField(object target, string fieldName, object value)
+    {
+        FieldInfo field = target.GetType().GetField(fieldName,
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(field, Is.Not.Null, "Missing field: " + fieldName);
+        field.SetValue(target, value);
     }
 }

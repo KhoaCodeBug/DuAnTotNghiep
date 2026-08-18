@@ -952,11 +952,12 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 704f39b505ac41798e0cf6dd7880c0f0, type: 3}
   maxHunger: 100
   _currentHunger: 0
-  hungerDrainRate: 0.5
+  hungerDrainRate: 0.2
   maxThirst: 100
   _currentThirst: 0
-  thirstDrainRate: 0.5
-  damageOverTime: 1
+  thirstDrainRate: 0.25
+  damageOverTime: 0.3
+  zeroNeedGraceSeconds: 25
   _IsWaitingForSleep:
     _value: 0
   _RestedThisNight:
