@@ -295,6 +295,7 @@ GameObject:
   - component: {fileID: 649353276717190922}
   - component: {fileID: 6901333764323582915}
   - component: {fileID: 8416112644717840080}
+  - component: {fileID: 2231187111796900271}
   m_Layer: 0
   m_Name: cannhamauxamhoanchinh
   m_TagString: Untagged
@@ -431,6 +432,21 @@ MonoBehaviour:
   - {fileID: 4815216460874797113}
   fadeDuration: 0.3
   targetAlpha: 0
+--- !u!114 &2231187111796900271
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1567532758916115651}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95fd1479611eec74faae3ec184a4aa50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  locationType: 0
+  locationId: HOUSE_MAIN_041
+  displayName: "Nh\xE0 d\xE2n c\u01B0 041 (cannhamauxamhoanchinh)"
 --- !u!1 &5875909022991740475
 GameObject:
   m_ObjectHideFlags: 0
@@ -477,7 +493,7 @@ Tilemap:
     second:
       serializedVersion: 2
       m_TileIndex: 7
-      m_TileSpriteIndex: 4
+      m_TileSpriteIndex: 8
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -487,7 +503,7 @@ Tilemap:
     second:
       serializedVersion: 2
       m_TileIndex: 5
-      m_TileSpriteIndex: 3
+      m_TileSpriteIndex: 7
       m_TileMatrixIndex: 0
       m_TileColorIndex: 0
       m_TileObjectToInstantiateIndex: 65535
@@ -520,18 +536,18 @@ Tilemap:
     m_Data: {fileID: 0}
   - m_RefCount: 0
     m_Data: {fileID: 0}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
   - m_RefCount: 1
     m_Data: {fileID: 21300000, guid: ff2d1bc5ae2447f4fa0945fc1b360d2f, type: 3}
   - m_RefCount: 1
     m_Data: {fileID: 21300000, guid: 66194fda356fe9b4bbe4f81bf3dd1bc1, type: 3}
-  - m_RefCount: 0
-    m_Data: {fileID: 0}
-  - m_RefCount: 0
-    m_Data: {fileID: 0}
-  - m_RefCount: 0
-    m_Data: {fileID: 0}
-  - m_RefCount: 0
-    m_Data: {fileID: 0}
   m_TileMatrixArray:
   - m_RefCount: 2
     m_Data:
@@ -659,7 +675,7 @@ Transform:
   m_GameObject: {fileID: 6057372961931712459}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0.04, y: 0.11, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1213,7 +1229,7 @@ Transform:
   m_GameObject: {fileID: 6085263561317949713}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0.09, y: 0.11, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

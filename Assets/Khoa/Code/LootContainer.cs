@@ -30,6 +30,10 @@ public class LootContainer : NetworkBehaviour
     [Header("Danh sách đồ hiện tại (Realtime)")]
     public List<InventorySlot> itemsInContainer = new List<InventorySlot>();
 
+    // Each physical cabinet rolls quest loot at most once on State Authority.
+    // Opening a house or an ordinary cabinet never advances quest progress.
+    [Networked] private NetworkBool RouteClueRollResolved { get; set; }
+
     private bool hasGeneratedLoot = false;
     private PlayerMovement cachedLocalPlayer;
     private InventorySystem cachedLocalInventory;
@@ -106,6 +110,15 @@ public class LootContainer : NetworkBehaviour
         if (itemsInContainer.Count >= 20) itemsInContainer.RemoveAt(itemsInContainer.Count - 1);
         StoreItemLocal(clue, 1);
         RPC_SyncAddItem(clue.itemName, 1, false);
+        return true;
+    }
+
+    public bool AuthorityTryBeginRouteClueRoll()
+    {
+        if (!HasStateAuthority || RouteClueRollResolved)
+            return false;
+
+        RouteClueRollResolved = true;
         return true;
     }
 
@@ -227,7 +240,7 @@ public class LootContainer : NetworkBehaviour
         Vector2 closestPoint = myCollider.ClosestPoint(playerPos);
         float distance = Vector2.Distance(playerPos, closestPoint);
         bool blockedByWall = obstacleLayer.value != 0 && Physics2D.Linecast(playerPos, closestPoint, obstacleLayer);
-        if (distance > interactDistance || blockedByWall)
+        if (!CanPlayerOpenFrom(playerPos))
         {
             Debug.Log(distance > interactDistance
                 ? "Đứng xa quá không với tới tủ đồ!"
@@ -239,8 +252,23 @@ public class LootContainer : NetworkBehaviour
         lastOpenFrame = Time.frameCount;
         RPC_RequestSyncContainerStatus(Runner.LocalPlayer);
         AutoUIManager.Instance.OpenContainerUI(this);
-        PreMilitaryQuestRuntimeBridge.NotifyContainerOpened(this);
         return true;
+    }
+
+    /// <summary>
+    /// Shared interaction validation used by both the local click path and the
+    /// authoritative quest request. Keeping these checks identical prevents a
+    /// client from advancing a house while standing too far away or behind a wall.
+    /// </summary>
+    public bool CanPlayerOpenFrom(Vector3 playerPosition)
+    {
+        Collider2D containerCollider = GetComponent<Collider2D>();
+        if (containerCollider == null) return false;
+
+        Vector2 playerPoint = playerPosition;
+        Vector2 closestPoint = containerCollider.ClosestPoint(playerPoint);
+        if (Vector2.Distance(playerPoint, closestPoint) > interactDistance) return false;
+        return obstacleLayer.value == 0 || !Physics2D.Linecast(playerPoint, closestPoint, obstacleLayer);
     }
 
     private void OnDrawGizmosSelected()
@@ -254,8 +282,19 @@ public class LootContainer : NetworkBehaviour
     // =========================================================
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_RequestSyncContainerStatus(PlayerRef requestingPlayer)
+    public void RPC_RequestSyncContainerStatus(PlayerRef requestingPlayer, RpcInfo info = default)
     {
+        // Resolve quest loot on State Authority before this container's
+        // canonical slots are sent to the opener.  Keeping both operations in
+        // one RPC removes the race where the UI could render first and the pity
+        // clue was inserted by a second request afterwards.
+        if (info.Source != PlayerRef.None && info.Source != requestingPlayer)
+        {
+            Debug.LogWarning($"[LOOT SERVER] Rejected spoofed container sync: source={info.Source}, requested={requestingPlayer}.");
+            return;
+        }
+        MainQuestManager.Instance?.AuthorityRegisterOpenedContainer(this, requestingPlayer);
+
         RPC_ClearClientContainer(requestingPlayer);
 
         foreach (var slot in itemsInContainer)
@@ -357,6 +396,7 @@ public class LootContainer : NetworkBehaviour
         RPC_SyncRemoveItem(slotIndex);
         if (isRouteClue)
         {
+            MainQuestManager.Instance?.AuthorityRegisterRouteClue(routeClueKind);
             RPC_NotifyQuestClueLooted(playerTryingToLoot, (int)routeClueKind,
                 QuestRouteClueItemCatalog.GetClueId(routeClueKind),
                 QuestRouteClueItemCatalog.GetDisplayName(routeClueKind));

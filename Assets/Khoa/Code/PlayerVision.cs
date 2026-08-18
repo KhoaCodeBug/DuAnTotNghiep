@@ -238,7 +238,9 @@ public class PlayerVision : NetworkBehaviour
         }
 
         // 2. BÓP GÓC KHI NGẮM BẮN
-        bool isAiming = HasInputAuthority ? Input.GetMouseButton(1) : pMove.NetIsAiming;
+        bool questOverlayOpen = QuestFlowUIPrototype.Instance != null &&
+                                QuestFlowUIPrototype.Instance.IsQuestOverlayOpen;
+        bool isAiming = HasInputAuthority ? !questOverlayOpen && Input.GetMouseButton(1) : pMove.NetIsAiming;
         float physicalInner = isAiming ? aimInnerAngle : normalInnerAngle;
         float physicalOuter = isAiming ? aimOuterAngle : normalOuterAngle;
         float targetInner = physicalInner;

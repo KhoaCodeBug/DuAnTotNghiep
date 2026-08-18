@@ -125,7 +125,8 @@ public class PZ_CameraController : MonoBehaviour
     private bool IsPlayerBusyWithUI()
     {
         if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return true;
-        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()) return true;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return true;
+        if (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) return true;
         if (AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen) return true;
         if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return true;
         return false;

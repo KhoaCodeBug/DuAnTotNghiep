@@ -276,6 +276,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
         // 🔥 SỬ DỤNG CẦU DAO TỔNG Ở ĐÂY: Bao gồm Balo, Bảng Trade, Tủ Đồ Loot
         bool isUIMenuOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen();
+        bool isQuestOverlayOpen = QuestFlowUIPrototype.Instance != null &&
+                                  QuestFlowUIPrototype.Instance.IsQuestOverlayOpen;
 
         bool isHealthOpen = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsOpen;
 
@@ -291,7 +293,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
         // 🔥 CHẶN TẤT CẢ INPUT NẾU ĐANG MỞ UI HOẶC ĐÃ CHẾT
         // Khi trả về 1 input rỗng, nhân vật sẽ đứng im, không bấm chuột phải bắn súng được luôn!
-        if (isTyping || isUIMenuOpen || isHealthOpen || isDead || isSleepLocked)
+        if (isTyping || isUIMenuOpen || isQuestOverlayOpen || isHealthOpen || isDead || isSleepLocked ||
+            MainQuestSearchCabinet.IsLocalSearchInProgress)
         {
             input.Set(new PlayerNetworkInput());
             return;
@@ -343,9 +346,18 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             if (Camera.main != null)
             {
                 Vector3 mousePos = Input.mousePosition;
-                mousePos.z = Mathf.Abs(Camera.main.transform.position.z);
-                data.mouseWorldPos = Camera.main.ScreenToWorldPoint(mousePos);
+                if (IsFinite(mousePos))
+                {
+                    mousePos.z = Mathf.Abs(Camera.main.transform.position.z);
+                    Vector3 mouseWorld = Camera.main.ScreenToWorldPoint(mousePos);
+                    data.mouseWorldPos = IsFinite(mouseWorld) ? mouseWorld : transform.position;
+                }
+                else
+                {
+                    data.mouseWorldPos = transform.position;
+                }
             }
+            else data.mouseWorldPos = transform.position;
 
             bool pointerOnUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
 
@@ -362,6 +374,13 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         }
 
         input.Set(data);
+    }
+
+    private static bool IsFinite(Vector3 value)
+    {
+        return !float.IsNaN(value.x) && !float.IsInfinity(value.x) &&
+               !float.IsNaN(value.y) && !float.IsInfinity(value.y) &&
+               !float.IsNaN(value.z) && !float.IsInfinity(value.z);
     }
 
     private void HandleSendMessage(string msg)

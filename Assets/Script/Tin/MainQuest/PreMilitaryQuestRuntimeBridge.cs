@@ -18,8 +18,17 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     [SerializeField] private float revealHoldDuration = 1.65f;
     [SerializeField] private float revealReturnDuration = 0.9f;
     [SerializeField, Range(4, 12)] private int maxSearchZoneHouses = 6;
-    [SerializeField, Range(0.005f, 0.08f)] private float searchZoneMapPadding = 0.025f;
     [SerializeField, Range(3f, 15f)] private float searchZoneWorldPadding = 7f;
+    [SerializeField, Range(0, 48)] private int searchZoneVisualDownCells = 24;
+    [SerializeField, Range(6f, 24f)] private float officeSearchWorldRadius = 12f;
+
+    [Header("Soft search-zone guidance")]
+    [SerializeField, Min(0f)] private float outsideWarningDistance = 2f;
+    [SerializeField, Min(0f)] private float outsideWarningDelay = 1.25f;
+    [SerializeField, Min(0.05f)] private float outsideWarningFadeIn = 0.65f;
+    [SerializeField, Min(0.1f)] private float outsideWarningHold = 2.4f;
+    [SerializeField, Min(0.05f)] private float outsideWarningFadeOut = 0.9f;
+    [SerializeField, Min(0f)] private float outsideWarningCooldown = 9f;
 
     private Transform officeTarget;
     private Transform configuredPlayerTarget;
@@ -30,7 +39,18 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private bool searchZoneConfigured;
     private bool routeClueConsumptionScheduled;
     private readonly HashSet<string> activeSearchHouseIds = new HashSet<string>();
-    private GameObject worldRestrictionRoot;
+    private Rect searchZoneMapRect;
+    private bool hasSearchZoneMapRect;
+    private string configuredZoneSignature;
+    private int lastAuthoritativeSnapshotSignature = int.MinValue;
+    private bool hasAppliedInitialAuthoritativeSnapshot;
+    private float outsideSince = -1f;
+    private float outsideWarningAlpha;
+    private float outsideWarningVisibleUntil;
+    private float nextOutsideWarningTime;
+    private Vector2 outsideGuidanceWorldTarget;
+    private bool hasOutsideGuidanceTarget;
+    private bool guidanceTargetsOffice;
 
     public int ActiveSearchHouseCount => activeSearchHouseIds.Count;
     public Transform ConfiguredPlayerTarget => configuredPlayerTarget;
@@ -71,15 +91,28 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         Transform player = GetLocalPlayerTarget();
         if (player != null && player != configuredPlayerTarget)
             ConfigureLiveMap();
-        if (player != null && !searchZoneConfigured)
-            ConfigureSearchZone(player);
+
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (player != null && manager != null && manager.IsNetworkReady)
+        {
+            if (!manager.IsNeighborhoodConfigured && manager.HasStateAuthority)
+                TryInitializeAuthoritativeSearchZone(player, manager);
+            if (manager.IsNeighborhoodConfigured)
+            {
+                ConfigureSearchZoneFromAuthority(manager);
+                SyncAuthoritativeQuestSnapshot(manager);
+            }
+        }
+        else if (player != null && manager == null && !searchZoneConfigured)
+        {
+            // Isolated preview/test scenes without Fusion keep a local fallback.
+            ConfigureLocalFallbackSearchZone(player);
+        }
+
         if (rasterMap != null && player != null)
             questUI?.SetRasterMapPlayerPosition(rasterMap.WorldToNormalized(player.position));
-        if (worldRestrictionRoot != null && questUI != null && questUI.IsHouseSearchComplete)
-        {
-            Destroy(worldRestrictionRoot);
-            worldRestrictionRoot = null;
-        }
+        if (player != null)
+            UpdateOutsideSearchZoneWarning(player.position, manager);
 
         SyncModalUI(false);
     }
@@ -112,7 +145,10 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             return;
         }
 
-        bool completedNow = Instance.questUI.RegisterRouteClueForPreview(clueId, deferCompletion: true);
+        MainQuestManager manager = MainQuestManager.Instance;
+        bool usesAuthoritativeProgress = manager != null && manager.IsNetworkReady && manager.IsNeighborhoodConfigured;
+        bool completedNow = !usesAuthoritativeProgress &&
+                            Instance.questUI.RegisterRouteClueForPreview(clueId, deferCompletion: true);
         Instance.questUI.ShowRouteClueReading(
             QuestRouteClueItemCatalog.GetDisplayName(kind),
             QuestRouteClueItemCatalog.GetReadingText(kind),
@@ -160,12 +196,18 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             identity.LocationType != QuestLocationType.PurpleOffice)
             return;
 
-        Instance.questUI?.RegisterOfficeDiscoveredForPreview();
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady)
+            Instance.questUI?.RegisterOfficeDiscoveredForPreview();
     }
 
     public static void NotifyMapFragment2Found()
     {
         if (Instance == null || Instance.questUI == null)
+            return;
+
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager != null && manager.IsNetworkReady)
             return;
 
         Instance.questUI.RegisterOfficeDiscoveredForPreview();
@@ -202,15 +244,70 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             Vector2 officePosition = rasterMap.WorldToNormalized(officeTarget != null ? officeTarget.position : Vector3.zero);
             Vector2 playerPosition = rasterMap.WorldToNormalized(configuredPlayerTarget != null ? configuredPlayerTarget.position : Vector3.zero);
             questUI.ConfigureRasterMap(rasterMap.Texture, officePosition, playerPosition);
+            if (officeTarget != null)
+            {
+                Vector2 radius = Vector2.one * officeSearchWorldRadius;
+                questUI.ConfigureOfficeSearchArea(
+                    rasterMap.WorldToNormalized((Vector2)officeTarget.position - radius),
+                    rasterMap.WorldToNormalized((Vector2)officeTarget.position + radius));
+            }
         }
     }
 
-    private void ConfigureSearchZone(Transform player)
+    private void TryInitializeAuthoritativeSearchZone(Transform player, MainQuestManager manager)
     {
-        if (player == null || rasterMap == null || questUI == null) return;
+        Vector2 anchor = GetSharedQuestAnchor(player.position);
+        List<QuestLocationIdentity> candidates = FindSearchHouseCandidates(anchor);
+        int count = Mathf.Min(Mathf.Min(maxSearchZoneHouses, MainQuestManager.MaximumSearchHouses), candidates.Count);
+        if (count < PreMilitaryQuestProgress.RequiredDistinctHouses) return;
 
+        List<string> ids = new List<string>(count);
+        for (int i = 0; i < count; i++) ids.Add(candidates[i].LocationId);
+        manager.TryInitializeNeighborhood(ids);
+    }
+
+    private void ConfigureSearchZoneFromAuthority(MainQuestManager manager)
+    {
+        List<string> ids = new List<string>(manager.SearchHouseCount);
+        for (int i = 0; i < manager.SearchHouseCount; i++) ids.Add(manager.GetSearchHouseId(i));
+        string signature = string.Join("|", ids);
+        if (searchZoneConfigured && configuredZoneSignature == signature) return;
+
+        Dictionary<string, QuestLocationIdentity> locationsById = new Dictionary<string, QuestLocationIdentity>();
+        foreach (QuestLocationIdentity location in FindObjectsByType<QuestLocationIdentity>(
+                     FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (location != null && location.HasValidId)
+                locationsById[location.LocationId] = location;
+        }
+
+        List<QuestLocationIdentity> selected = new List<QuestLocationIdentity>(ids.Count);
+        for (int i = 0; i < ids.Count; i++)
+        {
+            if (locationsById.TryGetValue(ids[i], out QuestLocationIdentity location) && location != null)
+                selected.Add(location);
+        }
+        if (selected.Count != ids.Count) return;
+
+        ConfigureSelectedSearchHouses(selected);
+        configuredZoneSignature = signature;
+    }
+
+    private void ConfigureLocalFallbackSearchZone(Transform player)
+    {
+        List<QuestLocationIdentity> candidates = FindSearchHouseCandidates(GetSharedQuestAnchor(player.position));
+        int count = Mathf.Min(Mathf.Min(maxSearchZoneHouses, MainQuestManager.MaximumSearchHouses), candidates.Count);
+        if (count < PreMilitaryQuestProgress.RequiredDistinctHouses) return;
+        ConfigureSelectedSearchHouses(candidates.GetRange(0, count));
+        configuredZoneSignature = "LOCAL_FALLBACK";
+        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", $"Đã khoanh vùng tìm kiếm gồm {count} căn nhà.");
+    }
+
+    private static List<QuestLocationIdentity> FindSearchHouseCandidates(Vector2 anchor)
+    {
         List<QuestLocationIdentity> candidates = new List<QuestLocationIdentity>();
-        foreach (QuestLocationIdentity identity in FindObjectsByType<QuestLocationIdentity>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (QuestLocationIdentity identity in FindObjectsByType<QuestLocationIdentity>(
+                     FindObjectsInactive.Include, FindObjectsSortMode.None))
         {
             if (identity.LocationType == QuestLocationType.ResidentialHouse && identity.HasValidId &&
                 identity.GetComponentInChildren<LootContainer>(true) != null)
@@ -218,80 +315,308 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         }
         candidates.Sort((a, b) =>
         {
-            float aDistance = ((Vector2)a.transform.position - (Vector2)player.position).sqrMagnitude;
-            float bDistance = ((Vector2)b.transform.position - (Vector2)player.position).sqrMagnitude;
+            float aDistance = ((Vector2)a.transform.position - anchor).sqrMagnitude;
+            float bDistance = ((Vector2)b.transform.position - anchor).sqrMagnitude;
             int distanceOrder = aDistance.CompareTo(bDistance);
             return distanceOrder != 0 ? distanceOrder : string.CompareOrdinal(a.LocationId, b.LocationId);
         });
-        if (candidates.Count == 0) return;
+        return candidates;
+    }
 
-        int count = Mathf.Min(maxSearchZoneHouses, candidates.Count);
-        List<QuestLocationIdentity> selected = candidates.GetRange(0, count);
-        activeSearchHouseIds.Clear();
-        Vector2 min = Vector2.one;
-        Vector2 max = Vector2.zero;
-        Vector2 worldMin = player.position;
-        Vector2 worldMax = player.position;
-        foreach (QuestLocationIdentity house in selected)
+    private static Vector2 GetSharedQuestAnchor(Vector3 fallback)
+    {
+        Transform[] spawnPoints = HostModeSpawner.Instance != null ? HostModeSpawner.Instance.spawnPoints : null;
+        if (spawnPoints == null || spawnPoints.Length == 0) return fallback;
+
+        Vector2 total = Vector2.zero;
+        int validCount = 0;
+        for (int i = 0; i < spawnPoints.Length; i++)
         {
+            if (spawnPoints[i] == null) continue;
+            total += (Vector2)spawnPoints[i].position;
+            validCount++;
+        }
+        return validCount > 0 ? total / validCount : fallback;
+    }
+
+    private void ConfigureSelectedSearchHouses(List<QuestLocationIdentity> selected)
+    {
+        if (selected == null || selected.Count == 0 || rasterMap == null || questUI == null) return;
+
+        activeSearchHouseIds.Clear();
+        Vector2 worldMin = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+        Vector2 worldMax = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+        for (int i = 0; i < selected.Count; i++)
+        {
+            QuestLocationIdentity house = selected[i];
             activeSearchHouseIds.Add(house.LocationId);
-            Vector2 point = rasterMap.WorldToNormalized(house.transform.position);
-            min = Vector2.Min(min, point);
-            max = Vector2.Max(max, point);
             worldMin = Vector2.Min(worldMin, house.transform.position);
             worldMax = Vector2.Max(worldMax, house.transform.position);
         }
-        min = Vector2.Max(Vector2.zero, min - Vector2.one * searchZoneMapPadding);
-        max = Vector2.Min(Vector2.one, max + Vector2.one * searchZoneMapPadding);
-        questUI.ConfigureSearchZone(min, max, count);
-        CreateWorldRestriction(worldMin - Vector2.one * searchZoneWorldPadding,
-            worldMax + Vector2.one * searchZoneWorldPadding);
 
-        int[] clueHouseIndices = count >= 7
-            ? new[] { 1, count / 2, count - 2 }
-            : new[] { 0, Mathf.Min(1, count - 1), count - 1 };
-        for (int i = 0; i < 3 && i < count; i++)
+        // All configured spawn points belong to the opening search district so
+        // a teammate never receives an outside-area warning immediately on spawn.
+        Transform[] spawnPoints = HostModeSpawner.Instance != null ? HostModeSpawner.Instance.spawnPoints : null;
+        if (spawnPoints != null)
         {
-            QuestLocationIdentity house = selected[clueHouseIndices[i]];
-            LootContainer container = house.GetComponentInChildren<LootContainer>(true);
-            if (container == null) continue;
-            QuestRouteClueKind kind = (QuestRouteClueKind)i;
-            QuestRouteClueSource source = container.GetComponent<QuestRouteClueSource>();
-            if (source == null) source = container.gameObject.AddComponent<QuestRouteClueSource>();
-            source.Configure(kind);
-            container.EnsureQuestClueItem(kind);
+            for (int i = 0; i < spawnPoints.Length; i++)
+            {
+                if (spawnPoints[i] == null) continue;
+                Vector2 spawnPosition = spawnPoints[i].position;
+                worldMin = Vector2.Min(worldMin, spawnPosition);
+                worldMax = Vector2.Max(worldMax, spawnPosition);
+            }
         }
 
+        worldMin -= Vector2.one * searchZoneWorldPadding;
+        worldMax += Vector2.one * searchZoneWorldPadding;
+        Vector2 normalizedA = rasterMap.WorldToNormalized(worldMin);
+        Vector2 normalizedB = rasterMap.WorldToNormalized(worldMax);
+        Vector2 mapMin = Vector2.Min(normalizedA, normalizedB);
+        Vector2 mapMax = Vector2.Max(normalizedA, normalizedB);
+        ExpandSearchZoneMapBoundsTowardRoad(ref mapMin, ref mapMax, rasterMap.Size);
+        ShiftSearchZoneDownToRoad(ref mapMin, ref mapMax, rasterMap.Size, searchZoneVisualDownCells);
+        searchZoneMapRect = Rect.MinMaxRect(mapMin.x, mapMin.y, mapMax.x, mapMax.y);
+        hasSearchZoneMapRect = true;
+        questUI.ConfigureSearchZone(mapMin, mapMax, selected.Count);
+
         searchZoneConfigured = true;
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", $"Đã khoanh khu tìm kiếm: {count} căn nhà gần điểm xuất phát.");
     }
 
-    private void CreateWorldRestriction(Vector2 minimum, Vector2 maximum)
+    private static void ExpandSearchZoneMapBoundsTowardRoad(
+        ref Vector2 mapMin, ref Vector2 mapMax, Vector2Int rasterSize)
     {
-        if (worldRestrictionRoot != null) Destroy(worldRestrictionRoot);
-        worldRestrictionRoot = new GameObject("Quest Search Area Restriction");
-        float width = Mathf.Max(12f, maximum.x - minimum.x);
-        float height = Mathf.Max(12f, maximum.y - minimum.y);
-        const float thickness = 2f;
-        CreateBoundary("North", new Vector2((minimum.x + maximum.x) * 0.5f, maximum.y + thickness * 0.5f),
-            new Vector2(width + thickness * 2f, thickness));
-        CreateBoundary("South", new Vector2((minimum.x + maximum.x) * 0.5f, minimum.y - thickness * 0.5f),
-            new Vector2(width + thickness * 2f, thickness));
-        CreateBoundary("West", new Vector2(minimum.x - thickness * 0.5f, (minimum.y + maximum.y) * 0.5f),
-            new Vector2(thickness, height));
-        CreateBoundary("East", new Vector2(maximum.x + thickness * 0.5f, (minimum.y + maximum.y) * 0.5f),
-            new Vector2(thickness, height));
+        float horizontalCells = (mapMax.x - mapMin.x) * Mathf.Max(1, rasterSize.x - 1);
+        float verticalCells = (mapMax.y - mapMin.y) * Mathf.Max(1, rasterSize.y - 1);
+        float sideLength = Mathf.Max(horizontalCells, verticalCells);
+
+        // The map starts at a 90-degree rotation, so positive map Y is its visual
+        // right side. Preserve the spawn-side edge and extend toward the road in
+        // front of the yellow house. Cell counts (rather than normalized values)
+        // keep the highlighted area visually square on non-square map textures.
+        if (verticalCells < sideLength)
+        {
+            float targetHeight = sideLength / Mathf.Max(1, rasterSize.y - 1);
+            mapMax.y = Mathf.Min(1f, mapMin.y + targetHeight);
+            mapMin.y = Mathf.Max(0f, mapMax.y - targetHeight);
+        }
+
+        // Defensive fallback for alternate layouts: keep the quest anchor centred
+        // on the other axis if it ever becomes the shorter dimension.
+        if (horizontalCells < sideLength)
+        {
+            float targetWidth = sideLength / Mathf.Max(1, rasterSize.x - 1);
+            float centre = (mapMin.x + mapMax.x) * 0.5f;
+            mapMin.x = Mathf.Max(0f, centre - targetWidth * 0.5f);
+            mapMax.x = Mathf.Min(1f, mapMin.x + targetWidth);
+            mapMin.x = Mathf.Max(0f, mapMax.x - targetWidth);
+        }
     }
 
-    private void CreateBoundary(string suffix, Vector2 position, Vector2 size)
+    private static void ShiftSearchZoneDownToRoad(
+        ref Vector2 mapMin, ref Vector2 mapMax, Vector2Int rasterSize, int cellOffset)
     {
-        GameObject boundary = new GameObject("Restricted Boundary " + suffix,
-            typeof(BoxCollider2D), typeof(QuestSearchBoundaryBlocker));
-        boundary.transform.SetParent(worldRestrictionRoot.transform, false);
-        boundary.transform.position = position;
-        boundary.GetComponent<BoxCollider2D>().size = size;
-        int obstacleLayer = LayerMask.NameToLayer("Obstacle");
-        if (obstacleLayer >= 0) boundary.layer = obstacleLayer;
+        if (cellOffset <= 0) return;
+
+        // At the default quarter-turn, decreasing map X moves the highlighted
+        // square visually downward. Preserve its size while aligning its lower
+        // edge with the road visible beneath the opening neighborhood.
+        float height = mapMax.x - mapMin.x;
+        float normalizedOffset = cellOffset / (float)Mathf.Max(1, rasterSize.x - 1);
+        mapMin.x = Mathf.Max(0f, mapMin.x - normalizedOffset);
+        mapMax.x = Mathf.Min(1f, mapMin.x + height);
+        mapMin.x = Mathf.Max(0f, mapMax.x - height);
+    }
+
+    private void SyncAuthoritativeQuestSnapshot(MainQuestManager manager)
+    {
+        bool mapFragment2Found = manager.CurrentStage == MainQuestManager.QuestStage.CityMapFound;
+        int signature = manager.SearchedHouseMask;
+        signature = signature * 397 ^ manager.RouteClueMask;
+        signature = signature * 397 ^ (manager.IsOfficeDiscovered ? 1 : 0);
+        signature = signature * 397 ^ (mapFragment2Found ? 1 : 0);
+        if (signature == lastAuthoritativeSnapshotSignature) return;
+
+        questUI?.ApplyAuthoritativeSnapshot(manager.SearchedHouseMask, manager.RouteClueMask,
+            manager.IsOfficeDiscovered, mapFragment2Found, mapFragment2Found,
+            hasAppliedInitialAuthoritativeSnapshot);
+        lastAuthoritativeSnapshotSignature = signature;
+        hasAppliedInitialAuthoritativeSnapshot = true;
+    }
+
+    private void UpdateOutsideSearchZoneWarning(Vector2 playerPosition, MainQuestManager manager)
+    {
+        bool searchNeighborhood = manager != null && manager.IsNetworkReady
+            ? manager.CurrentStage == MainQuestManager.QuestStage.SearchNeighborhood
+            : questUI != null && !questUI.IsHouseSearchComplete;
+        bool locateOffice = manager != null && manager.IsNetworkReady &&
+                            manager.CurrentStage == MainQuestManager.QuestStage.LocateOffice;
+        bool outside = false;
+
+        if (searchNeighborhood && hasSearchZoneMapRect && rasterMap != null)
+        {
+            Vector2 playerMapPosition = rasterMap.WorldToNormalized(playerPosition);
+            Vector2 closestMapPosition = ClosestPointInRect(playerMapPosition, searchZoneMapRect);
+            outsideGuidanceWorldTarget = rasterMap.NormalizedToWorld(closestMapPosition);
+            hasOutsideGuidanceTarget = true;
+            guidanceTargetsOffice = false;
+            outside = Vector2.Distance(playerPosition, outsideGuidanceWorldTarget) >= outsideWarningDistance;
+        }
+        else if (locateOffice && officeTarget != null)
+        {
+            outsideGuidanceWorldTarget = officeTarget.position;
+            hasOutsideGuidanceTarget = true;
+            guidanceTargetsOffice = true;
+            float distanceBeyondArea = Vector2.Distance(playerPosition, outsideGuidanceWorldTarget) -
+                                       officeSearchWorldRadius;
+            outside = distanceBeyondArea >= outsideWarningDistance;
+        }
+        else if (outsideWarningAlpha <= 0.001f)
+        {
+            hasOutsideGuidanceTarget = false;
+        }
+
+        float now = Time.unscaledTime;
+
+        if (!outside)
+        {
+            outsideSince = -1f;
+            outsideWarningVisibleUntil = 0f;
+        }
+        else
+        {
+            if (outsideSince < 0f) outsideSince = now;
+            if (now - outsideSince >= outsideWarningDelay && now >= nextOutsideWarningTime)
+            {
+                outsideWarningVisibleUntil = now + outsideWarningHold;
+                nextOutsideWarningTime = outsideWarningVisibleUntil + outsideWarningCooldown;
+            }
+        }
+
+        float targetAlpha = outside && now < outsideWarningVisibleUntil ? 1f : 0f;
+        float duration = targetAlpha > outsideWarningAlpha ? outsideWarningFadeIn : outsideWarningFadeOut;
+        outsideWarningAlpha = Mathf.MoveTowards(outsideWarningAlpha, targetAlpha,
+            Time.unscaledDeltaTime / Mathf.Max(0.05f, duration));
+    }
+
+    private static Vector2 ClosestPointInRect(Vector2 point, Rect rect)
+    {
+        return new Vector2(Mathf.Clamp(point.x, rect.xMin, rect.xMax),
+            Mathf.Clamp(point.y, rect.yMin, rect.yMax));
+    }
+
+    private void OnGUI()
+    {
+        if (outsideWarningAlpha <= 0.001f || cinematicActive || TutorialSession.IsActive) return;
+
+        int previousDepth = GUI.depth;
+        Color previousColor = GUI.color;
+        GUI.depth = -850;
+        float width = Mathf.Min(390f, Screen.width - 32f);
+        Rect panel = new Rect(18f, 92f, width, 66f);
+
+        GUI.color = new Color(0.025f, 0.035f, 0.04f, outsideWarningAlpha * 0.88f);
+        GUI.DrawTexture(panel, Texture2D.whiteTexture);
+        GUI.color = new Color(1f, 0.68f, 0.16f, outsideWarningAlpha);
+        GUI.DrawTexture(new Rect(panel.x, panel.y, 4f, panel.height), Texture2D.whiteTexture);
+
+        GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 15,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleLeft
+        };
+        GUIStyle detailStyle = new GUIStyle(titleStyle)
+        {
+            fontSize = 12,
+            fontStyle = FontStyle.Normal
+        };
+        GUI.color = Color.white;
+        titleStyle.normal.textColor = new Color(1f, 0.78f, 0.31f, outsideWarningAlpha);
+        detailStyle.normal.textColor = new Color(0.9f, 0.93f, 0.92f, outsideWarningAlpha);
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 7f, panel.width - 28f, 25f),
+            guidanceTargetsOffice ? "NGOÀI VÙNG NGHI VẤN" : "NGOÀI VÙNG TÌM KIẾM", titleStyle);
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 31f, panel.width - 28f, 27f),
+            "Đi theo marker để quay lại mục tiêu • Bản đồ [M].", detailStyle);
+
+        if (hasOutsideGuidanceTarget)
+            DrawReturnDirectionMarker(outsideGuidanceWorldTarget);
+
+        GUI.color = previousColor;
+        GUI.depth = previousDepth;
+    }
+
+    private void DrawReturnDirectionMarker(Vector2 worldTarget)
+    {
+        Camera sceneCamera = Camera.main;
+        if (sceneCamera == null) return;
+
+        Vector3 screen3 = sceneCamera.WorldToScreenPoint(worldTarget);
+        Vector2 targetGui = new Vector2(screen3.x, Screen.height - screen3.y);
+        const float horizontalMargin = 58f;
+        const float topMargin = 78f;
+        const float bottomMargin = 58f;
+        bool onScreen = screen3.z > 0f && targetGui.x >= horizontalMargin &&
+                        targetGui.x <= Screen.width - horizontalMargin && targetGui.y >= topMargin &&
+                        targetGui.y <= Screen.height - bottomMargin;
+
+        Vector2 markerPosition;
+        Vector2 center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+        Vector2 direction = targetGui - center;
+        if (screen3.z < 0f) direction = -direction;
+        if (direction.sqrMagnitude < 0.001f) direction = Vector2.up;
+
+        if (onScreen)
+        {
+            markerPosition = targetGui;
+        }
+        else
+        {
+            float availableX = Screen.width * 0.5f - horizontalMargin;
+            float availableY = Screen.height * 0.5f - bottomMargin;
+            float scaleX = availableX / Mathf.Max(0.001f, Mathf.Abs(direction.x));
+            float scaleY = availableY / Mathf.Max(0.001f, Mathf.Abs(direction.y));
+            markerPosition = center + direction * Mathf.Min(scaleX, scaleY);
+            markerPosition.y = Mathf.Clamp(markerPosition.y, topMargin, Screen.height - bottomMargin);
+        }
+
+        Matrix4x4 previousMatrix = GUI.matrix;
+        GUIStyle arrowStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 34,
+            fontStyle = FontStyle.Bold
+        };
+        arrowStyle.normal.textColor = new Color(1f, 0.72f, 0.18f, outsideWarningAlpha);
+        if (onScreen)
+        {
+            GUI.Label(new Rect(markerPosition.x - 24f, markerPosition.y - 24f, 48f, 48f), "◆", arrowStyle);
+        }
+        else
+        {
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            GUIUtility.RotateAroundPivot(angle, markerPosition);
+            GUI.Label(new Rect(markerPosition.x - 24f, markerPosition.y - 24f, 48f, 48f), "▶", arrowStyle);
+            GUI.matrix = previousMatrix;
+        }
+
+        float distance = PlayerMovement.LocalPlayerInstance != null
+            ? Vector2.Distance(PlayerMovement.LocalPlayerInstance.transform.position, worldTarget)
+            : 0f;
+        GUIStyle labelStyle = new GUIStyle(GUI.skin.box)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 12,
+            fontStyle = FontStyle.Bold
+        };
+        labelStyle.normal.textColor = new Color(1f, 0.9f, 0.63f, outsideWarningAlpha);
+        float labelX = Mathf.Clamp(markerPosition.x - 92f, 8f, Screen.width - 192f);
+        float labelY = Mathf.Clamp(markerPosition.y + 27f, 48f, Screen.height - 36f);
+        GUI.color = new Color(1f, 1f, 1f, outsideWarningAlpha);
+        GUI.Box(new Rect(labelX, labelY, 184f, 28f),
+            $"QUAY LẠI MỤC TIÊU  •  {distance:0} m", labelStyle);
+        GUI.matrix = previousMatrix;
+        GUI.color = Color.white;
     }
 
     private Transform GetLocalPlayerTarget()
@@ -313,8 +638,9 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
     private void HandleMapFragment1Acquired()
     {
-        if (officeRevealRoutine == null)
-            officeRevealRoutine = StartCoroutine(PlayOfficeRevealRoutine());
+        questUI?.QueueMapUnlockReveal();
+        AutoChatManager.Instance?.AddMessage(
+            "MANH MỐI", "Đã ghép đủ dữ liệu tuyến đường. Mở bản đồ [M] để xem khu vực vừa mở khóa.");
     }
 
     private IEnumerator PlayOfficeRevealRoutine()
@@ -386,18 +712,9 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
     private void HandleContainerOpened(LootContainer container)
     {
-        if (container == null || questUI == null)
-            return;
-
-        if (!QuestLocationIdentity.TryResolve(container, out QuestLocationIdentity location) ||
-            location.LocationType != QuestLocationType.ResidentialHouse)
-            return;
-
-        // Only the compact neighborhood highlighted on the quest map counts.
-        // Opening a cabinet outside it cannot silently advance the objective.
-        if (!searchZoneConfigured || !activeSearchHouseIds.Contains(location.LocationId))
-            return;
-
-        questUI.RegisterHouseLootContainerOpenedForPreview(location.LocationId);
+        // Intentionally empty. Container opening is not quest progress. The
+        // authoritative LootContainer sync RPC performs only the one-time clue
+        // roll; progress changes later, when a paper item is actually taken.
+        _ = container;
     }
 }

@@ -9,7 +9,7 @@ public sealed class MainQuestStartTrigger : MonoBehaviour
 
     [SerializeField, Min(0f)] private float insidePadding = 0.15f;
     private Collider2D triggerCollider;
-    private bool localRequestSent;
+    private float nextLocalRequestTime;
 
     public int TriggerId { get; private set; }
 
@@ -42,8 +42,8 @@ public sealed class MainQuestStartTrigger : MonoBehaviour
     private void Update()
     {
         MainQuestManager manager = MainQuestManager.Instance;
-        if (localRequestSent || manager == null || !manager.IsNetworkReady ||
-            manager.CurrentStage != MainQuestManager.QuestStage.NotStarted)
+        if (Time.unscaledTime < nextLocalRequestTime || manager == null || !manager.IsNetworkReady ||
+            manager.CurrentStage != MainQuestManager.QuestStage.LocateOffice)
             return;
 
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
@@ -62,13 +62,14 @@ public sealed class MainQuestStartTrigger : MonoBehaviour
 
     private void RequestStart()
     {
-        if (localRequestSent) return;
         MainQuestManager manager = MainQuestManager.Instance;
-        if (manager == null || !manager.IsNetworkReady) return;
+        if (manager == null || !manager.IsNetworkReady ||
+            manager.CurrentStage != MainQuestManager.QuestStage.LocateOffice)
+            return;
 
-        // Only consume the local request after Fusion has actually spawned the
-        // manager. If the player entered early, Update will retry next frame.
-        localRequestSent = true;
+        // A short retry cooldown handles a request arriving while the Host is
+        // still resolving the player's authoritative transform.
+        nextLocalRequestTime = Time.unscaledTime + 1f;
         manager.RequestStartMapSearch(TriggerId);
     }
 

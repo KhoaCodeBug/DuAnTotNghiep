@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -12,11 +13,14 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
 
     [Header("Điểm nhiệm vụ: tìm bản đồ")]
     [Min(0.2f)] public float interactionDistance = 0.7f;
+    [Min(0.2f)] public float searchDuration = 1.8f;
     public LayerMask obstacleMask = 1 << 6;
     public Vector3 markerOffset = new Vector3(0f, 0.7f, 0f);
 
     private Collider2D cabinetCollider;
+    private Coroutine searchRoutine;
     public int CabinetId { get; private set; }
+    public static bool IsLocalSearchInProgress { get; private set; }
 
     private void Awake()
     {
@@ -34,21 +38,34 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
 
     private void OnDisable()
     {
+        CancelLocalSearch();
         if (Registry.TryGetValue(CabinetId, out MainQuestSearchCabinet current) && current == this)
             Registry.Remove(CabinetId);
     }
 
     private void Update()
     {
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || manager.IsCabinetChecked(CabinetId))
+        {
+            CancelLocalSearch();
+            return;
+        }
+
+        if (searchRoutine != null)
+            return;
         if (!IsClosestCabinetForLocalPlayer(out PlayerMovement localPlayer)) return;
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return;
-        if (Input.GetKeyDown(KeyCode.E)) MainQuestManager.Instance.RequestSearchCabinet(CabinetId);
+        if (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) return;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.isDoingAction) return;
+        if (Input.GetKeyDown(KeyCode.E)) searchRoutine = StartCoroutine(SearchRoutine(localPlayer));
     }
 
     private void OnGUI()
     {
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsMapSearchActive || manager.IsQuestCutsceneActive) return;
+        if (manager.IsCabinetChecked(CabinetId)) return;
 
         Camera camera = Camera.main;
         if (camera == null) return;
@@ -64,7 +81,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
         markerStyle.normal.textColor = new Color(1f, 0.88f, 0.1f, 1f);
         GUI.Label(new Rect(screenPoint.x - 18f, Screen.height - screenPoint.y - 18f, 36f, 36f), "●", markerStyle);
 
-        if (!IsClosestCabinetForLocalPlayer(out _)) return;
+        if (searchRoutine != null || !IsClosestCabinetForLocalPlayer(out _)) return;
         GUIStyle promptStyle = new GUIStyle(GUI.skin.box)
         {
             alignment = TextAnchor.MiddleCenter,
@@ -75,11 +92,60 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
             GameLocalization.TranslateLiteral("PRESS [E] TO SEARCH AREA"), promptStyle);
     }
 
+    private IEnumerator SearchRoutine(PlayerMovement localPlayer)
+    {
+        IsLocalSearchInProgress = true;
+        if (AutoUIManager.Instance != null)
+            AutoUIManager.Instance.isDoingAction = true;
+
+        float elapsed = 0f;
+        while (elapsed < searchDuration)
+        {
+            MainQuestManager manager = MainQuestManager.Instance;
+            if (localPlayer == null || manager == null || !manager.IsMapSearchActive ||
+                manager.IsCabinetChecked(CabinetId) || !CanPlayerSearch(localPlayer.transform.position))
+            {
+                EndLocalSearchPresentation();
+                searchRoutine = null;
+                yield break;
+            }
+
+            elapsed = Mathf.Min(searchDuration, elapsed + Time.unscaledDeltaTime);
+            AutoUIManager.Instance?.ShowReloadUI(elapsed, searchDuration, "ĐANG KIỂM TRA...");
+            yield return null;
+        }
+
+        EndLocalSearchPresentation();
+        searchRoutine = null;
+        MainQuestManager.Instance?.RequestSearchCabinet(CabinetId);
+    }
+
+    private void CancelLocalSearch()
+    {
+        if (searchRoutine == null)
+            return;
+
+        StopCoroutine(searchRoutine);
+        searchRoutine = null;
+        EndLocalSearchPresentation();
+    }
+
+    private static void EndLocalSearchPresentation()
+    {
+        IsLocalSearchInProgress = false;
+        if (AutoUIManager.Instance != null)
+        {
+            AutoUIManager.Instance.HideReloadUI();
+            AutoUIManager.Instance.isDoingAction = false;
+        }
+    }
+
     private bool IsClosestCabinetForLocalPlayer(out PlayerMovement localPlayer)
     {
         localPlayer = PlayerMovement.LocalPlayerInstance;
         MainQuestManager manager = MainQuestManager.Instance;
         if (localPlayer == null || manager == null || !manager.IsMapSearchActive ||
+            manager.IsCabinetChecked(CabinetId) ||
             !CanPlayerSearch(localPlayer.transform.position))
             return false;
 

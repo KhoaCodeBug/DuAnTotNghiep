@@ -89,7 +89,9 @@ public class PlayerCombat : NetworkBehaviour
 
         UpdateAmmoHUD();
 
-        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsInventoryOpen()) return;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return;
+        if (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) return;
+        if (MainQuestSearchCabinet.IsLocalSearchInProgress) return;
 
         bool hasWeapon = HotbarHUDManager.Instance != null && HotbarHUDManager.Instance.HasGunEquipped();
 
