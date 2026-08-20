@@ -51,6 +51,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private RectTransform rasterPlayerMarker;
     private RectTransform rasterSearchZone;
     private TextMeshProUGUI rasterSearchZoneLabel;
+    private RectTransform rasterSearchZoneLabelPlate;
     private readonly List<RectTransform> rasterRestrictedFog = new List<RectTransform>();
     private int activeRasterFogCount;
     private Vector2 rasterOfficeNormalized;
@@ -618,8 +619,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             unknownOfficeMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         if (rasterPlayerMarker != null)
             rasterPlayerMarker.localRotation = Quaternion.Euler(0f, 0f, 45f + 90f * rasterRotationQuarterTurns);
-        if (rasterSearchZoneLabel != null)
-            rasterSearchZoneLabel.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
+        if (rasterSearchZoneLabelPlate != null)
+            rasterSearchZoneLabelPlate.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
 
         UpdateRasterMapMarkers();
         UpdateRotationLabel();
@@ -696,10 +697,18 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         rasterSearchZone = Box("Quest Search Zone", rasterArtRoot, new Vector2(120f, 100f), Vector2.zero,
             new Color(0f, 0f, 0f, 0f));
         Border(rasterSearchZone, new Color(Amber.r, Amber.g, Amber.b, 0.9f));
-        rasterSearchZoneLabel = Text(rasterSearchZone, "Quest Search Zone Label",
-            "KHU VỰC TÌM MANH MỐI", 11f, Amber, FontStyles.Bold,
-            TextAlignmentOptions.Top, new Vector2(0.5f, 1f), new Vector2(210f, 28f), new Vector2(0f, -8f));
-        rasterSearchZoneLabel.rectTransform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
+        rasterSearchZoneLabelPlate = Box("Quest Search Zone Label Plate", rasterSearchZone,
+            new Vector2(220f, 30f), Vector2.zero, new Color(0.015f, 0.025f, 0.022f, 0.92f));
+        rasterSearchZoneLabelPlate.anchorMin = new Vector2(0.5f, 1f);
+        rasterSearchZoneLabelPlate.anchorMax = new Vector2(0.5f, 1f);
+        rasterSearchZoneLabelPlate.pivot = new Vector2(0.5f, 1f);
+        rasterSearchZoneLabelPlate.anchoredPosition = new Vector2(0f, -8f);
+        Border(rasterSearchZoneLabelPlate, new Color(Amber.r, Amber.g, Amber.b, 0.95f));
+        rasterSearchZoneLabel = Text(rasterSearchZoneLabelPlate, "Quest Search Zone Label",
+            "KHU VỰC TÌM MANH MỐI", 11f, new Color(1f, 0.94f, 0.76f, 1f), FontStyles.Bold,
+            TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(204f, 24f), Vector2.zero);
+        rasterSearchZoneLabel.textWrappingMode = TextWrappingModes.NoWrap;
+        rasterSearchZoneLabelPlate.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         rasterSearchZone.SetSiblingIndex(Mathf.Min(5, rasterArtRoot.childCount - 1));
         UpdateSearchRestrictionVisibility();
     }

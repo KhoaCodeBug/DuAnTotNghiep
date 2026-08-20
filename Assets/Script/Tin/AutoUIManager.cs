@@ -1120,7 +1120,9 @@ public class AutoUIManager : MonoBehaviour
         actRect.anchorMin = new Vector2(0.5f, 0.2f);
         actRect.anchorMax = new Vector2(0.5f, 0.2f);
         actRect.pivot = new Vector2(0.5f, 0.5f);
-        actRect.sizeDelta = new Vector2(250, 25);
+        // Long contextual actions (vehicle inspection, cabinet searches, healing)
+        // must remain on one readable row at every supported canvas scale.
+        actRect.sizeDelta = new Vector2(420f, 34f);
         actRect.anchoredPosition = Vector2.zero;
 
         Image bg = actionBarPanel.AddComponent<Image>();
@@ -1148,7 +1150,7 @@ public class AutoUIManager : MonoBehaviour
         edgeGlowRt.anchorMin = new Vector2(0f, 0.5f);
         edgeGlowRt.anchorMax = new Vector2(0f, 0.5f);
         edgeGlowRt.pivot = new Vector2(0.5f, 0.5f);
-        edgeGlowRt.sizeDelta = new Vector2(8, 21);
+        edgeGlowRt.sizeDelta = new Vector2(8f, 30f);
         edgeGlowRt.anchoredPosition = new Vector2(2, 0);
         
         Image glowImg = glowObj.AddComponent<Image>();
@@ -1164,12 +1166,17 @@ public class AutoUIManager : MonoBehaviour
         actionBarText.fontStyle = FontStyles.Bold;
         actionBarText.alignment = TextAlignmentOptions.Center;
         actionBarText.color = Color.white;
+        actionBarText.textWrappingMode = TextWrappingModes.NoWrap;
+        actionBarText.overflowMode = TextOverflowModes.Ellipsis;
+        actionBarText.enableAutoSizing = true;
+        actionBarText.fontSizeMin = 10f;
+        actionBarText.fontSizeMax = 14f;
 
         RectTransform txtRect = txtObj.GetComponent<RectTransform>();
         txtRect.anchorMin = Vector2.zero;
         txtRect.anchorMax = Vector2.one;
-        txtRect.offsetMin = Vector2.zero;
-        txtRect.offsetMax = Vector2.zero;
+        txtRect.offsetMin = new Vector2(10f, 2f);
+        txtRect.offsetMax = new Vector2(-10f, -2f);
         txtObj.AddComponent<Shadow>().effectColor = Color.black;
 
         actionBarPanel.SetActive(false);
@@ -1810,7 +1817,7 @@ public class AutoUIManager : MonoBehaviour
             actionBarFill.fillAmount = pct;
             if (edgeGlowRt != null)
             {
-                edgeGlowRt.anchoredPosition = new Vector2(2f + pct * 246f, 0f);
+                edgeGlowRt.anchoredPosition = new Vector2(2f + pct * GetActionBarInnerWidth(), 0f);
             }
             actionBarText.text = $"{GameLocalization.Get("item.using")} {GameLocalization.TranslateLiteral(itemToUse.itemName)}... {(duration - timer):F1}s";
 
@@ -2031,12 +2038,16 @@ public class AutoUIManager : MonoBehaviour
         float pct = maxDuration > 0 ? currentTimer / maxDuration : 0f;
         if (actionBarFill != null) actionBarFill.fillAmount = pct;
         if (edgeGlowRt != null)
-        {
-            edgeGlowRt.anchoredPosition = new Vector2(2f + pct * 246f, 0f);
-        }
+            edgeGlowRt.anchoredPosition = new Vector2(2f + pct * GetActionBarInnerWidth(), 0f);
 
         // Dùng biến actionName thay vì chữ "Reloading" cứng ngắc
         if (actionBarText != null) actionBarText.text = $"{actionName} {(maxDuration - currentTimer):F1}s";
+    }
+
+    private float GetActionBarInnerWidth()
+    {
+        RectTransform rect = actionBarPanel != null ? actionBarPanel.GetComponent<RectTransform>() : null;
+        return rect != null ? Mathf.Max(0f, rect.rect.width - 4f) : 416f;
     }
 
     public void HideReloadUI()

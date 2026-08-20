@@ -29,7 +29,10 @@ public sealed class BrokenArrivalCar : MonoBehaviour
     private Coroutine inspectionRoutine;
     private ArrivalCarInspectionUI inspectionUI;
     private LineRenderer frontZoneLine;
+    private SpriteRenderer carRenderer;
+    private BoxCollider2D bodyCollider;
     private float nextInspectionAllowedAt;
+    private bool driveVehicleActivated;
 
     public Vector3 InspectionZoneWorldCenter => inspectionPolygon != null
         ? inspectionPolygon.bounds.center
@@ -44,12 +47,13 @@ public sealed class BrokenArrivalCar : MonoBehaviour
             return;
         }
 
-        BoxCollider2D body = GetComponent<BoxCollider2D>();
-        if (body == null) body = gameObject.AddComponent<BoxCollider2D>();
-        body.size = new Vector2(9.2f, 4.5f);
-        body.offset = new Vector2(0f, -0.35f);
+        bodyCollider = GetComponent<BoxCollider2D>();
+        if (bodyCollider == null) bodyCollider = gameObject.AddComponent<BoxCollider2D>();
+        bodyCollider.size = new Vector2(9.2f, 4.5f);
+        bodyCollider.offset = new Vector2(0f, -0.35f);
 
         ResolveInspectionPolygon();
+        carRenderer = GetComponent<SpriteRenderer>();
         inspectionUI = GetComponent<ArrivalCarInspectionUI>();
         if (inspectionUI == null) inspectionUI = gameObject.AddComponent<ArrivalCarInspectionUI>();
         BuildFrontZonePresentation();
@@ -63,6 +67,9 @@ public sealed class BrokenArrivalCar : MonoBehaviour
     private void Update()
     {
         MainQuestManager manager = MainQuestManager.Instance;
+        ApplyRepairedVehiclePresentation(manager);
+        if (driveVehicleActivated) return;
+
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         if (manager == null || !manager.IsNetworkReady || player == null)
         {
@@ -141,6 +148,22 @@ public sealed class BrokenArrivalCar : MonoBehaviour
             manager.RequestInspectArrivalCar();
     }
 
+    private void ApplyRepairedVehiclePresentation(MainQuestManager manager)
+    {
+        bool shouldActivate = manager != null && manager.IsNetworkReady &&
+                              manager.RepairedArrivalCarObject != null;
+        if (driveVehicleActivated == shouldActivate) return;
+
+        driveVehicleActivated = shouldActivate;
+        if (!shouldActivate) return;
+        CancelInspection();
+        inspectionUI?.Close();
+        SetFrontZoneVisible(false);
+        if (inspectionPolygon != null) inspectionPolygon.enabled = false;
+        if (bodyCollider != null) bodyCollider.enabled = false;
+        if (carRenderer != null) carRenderer.enabled = false;
+    }
+
     private void BuildFrontZonePresentation()
     {
         GameObject lineObject = new GameObject("Front Inspection Zone");
@@ -184,6 +207,7 @@ public sealed class BrokenArrivalCar : MonoBehaviour
 
     private void OnGUI()
     {
+        if (driveVehicleActivated) return;
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady || inspectionUI == null || inspectionUI.IsOpen) return;
         Camera camera = Camera.main;

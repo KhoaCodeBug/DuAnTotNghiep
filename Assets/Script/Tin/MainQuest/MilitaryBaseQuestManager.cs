@@ -131,11 +131,13 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             SurvivalSeconds += Runner.DeltaTime;
 
         if (CurrentPhase == Phase.NotReached && MainQuestManager.Instance != null &&
+            MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.CivilianCar &&
             MainQuestManager.Instance.CurrentStage == MainQuestManager.QuestStage.CityMapFound &&
             AnyLivingPlayerNear(GetInteractionPosition(InteractionKind.Vehicle), 7f))
         {
             MilitaryPhase = (int)Phase.Investigating;
             RPC_ShowQuestMessage("Đã tới căn cứ quân sự. Kiểm tra chiếc xe thoát hiểm.");
+            RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.MilitaryBaseApproach);
         }
 
         if ((CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape) && !AnyLivingPlayer())
@@ -267,11 +269,17 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             !IsNear(player.transform.position, InteractionKind.Vehicle)) return;
         if (MainQuestManager.Instance == null ||
             MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound) return;
+        if (!MainQuestManager.Instance.AuthorityTryLockEscapeRoute(EscapeEndingRoute.MilitaryEvacuation))
+        {
+            RPC_ShowQuestMessage("Không thể kích hoạt: toàn đội đã khóa ending bằng chiếc xe dân sự.");
+            return;
+        }
 
         MilitaryPhase = (int)Phase.SiegeAndRepair;
         GateCurrentHealth = Mathf.Max(GateCurrentHealth, GateMaxHealth);
         ActiveRepairer = PlayerRef.None;
         RPC_StartSiegePresentation();
+        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SiegeStarted);
         RPC_ShowQuestMessage("BÁO ĐỘNG! Cổng đã đóng. Thu thập 3 phụ tùng và bảo vệ xe thoát hiểm.");
     }
 
@@ -286,6 +294,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GateMaxHealth = MilitaryQuestRules.GetElectrifiedGateHealth(baseGateHealth);
         GateCurrentHealth = Mathf.Max(GateCurrentHealth, GateMaxHealth * ratio);
         IsGeneratorActive = true;
+        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.GeneratorOnline);
         RPC_ShowQuestMessage("Máy phát điện đã hoạt động: cổng đạt 150% HP và làm choáng zombie tiếp xúc.");
     }
 
@@ -378,6 +387,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private void ServerEscape(PlayerRef requester)
     {
         if (!HasStateAuthority || CurrentPhase != Phase.ReadyToEscape) return;
+        if (MainQuestManager.Instance == null ||
+            MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.MilitaryEvacuation) return;
         if (!TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             !IsNear(player.transform.position, InteractionKind.Vehicle)) return;
 
@@ -408,6 +419,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     public void RPC_BroadcastVehicleReady()
     {
         vehicleRepair?.SetVehicleReadyPresentation(true);
+        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.EscapeVehicleReady);
         AutoChatManager.Instance?.AddMessage("NHIỆM VỤ",
             "Xe đã sửa xong. Tập hợp tại xe và nhấn E để thoát khỏi khu vực.");
     }
@@ -415,11 +427,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_TriggerVictoryCutscene()
     {
+        EscapeRouteDecisionUI.CloseIfOpen();
+        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryEvacuationComplete);
         hordeDirector?.StopSiege();
         if (vehicleRepair != null)
-            vehicleRepair.PlayEscapeCutscene(() => VictorySummaryUI.ShowForCurrentMatch(SurvivalSeconds));
+            vehicleRepair.PlayEscapeCutscene(() => VictorySummaryUI.ShowForCurrentMatch(
+                SurvivalSeconds, EscapeEndingRoute.MilitaryEvacuation));
         else
-            VictorySummaryUI.ShowForCurrentMatch(SurvivalSeconds);
+            VictorySummaryUI.ShowForCurrentMatch(SurvivalSeconds, EscapeEndingRoute.MilitaryEvacuation);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -441,6 +456,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowQuestMessage(string message) =>
         AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", message);
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowRouteBAudioCue(int cueId) =>
+        RouteBRadioBroadcastUI.ShowCue((RouteBAudioCueId)cueId);
 
     private void BuildPresentation()
     {

@@ -113,6 +113,25 @@ public class LootContainer : NetworkBehaviour
         return true;
     }
 
+    /// <summary>Adds one stable arrival-car quest item to authoritative loot.</summary>
+    public bool EnsureArrivalCarItem(ArrivalCarItemKind kind)
+    {
+        if (!HasStateAuthority) return false;
+
+        ItemData item = ArrivalCarItemCatalog.GetOrCreate(kind);
+        foreach (InventorySlot slot in itemsInContainer)
+        {
+            if (slot != null && ArrivalCarItemCatalog.TryGetKind(slot.item, out ArrivalCarItemKind existing) &&
+                existing == kind)
+                return true;
+        }
+
+        if (itemsInContainer.Count >= 20) itemsInContainer.RemoveAt(itemsInContainer.Count - 1);
+        StoreItemLocal(item, 1);
+        RPC_SyncAddItem(item.itemName, 1, false);
+        return true;
+    }
+
     public bool AuthorityTryBeginRouteClueRoll()
     {
         if (!HasStateAuthority || RouteClueRollResolved)

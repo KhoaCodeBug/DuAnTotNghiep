@@ -27,6 +27,9 @@ public static class ItemDataLoader
         if (QuestRouteClueItemCatalog.TryLoad(itemIdentifier, out ItemData questItem))
             return questItem;
 
+        if (ArrivalCarItemCatalog.TryLoad(itemIdentifier, out ItemData arrivalCarItem))
+            return arrivalCarItem;
+
         if (MilitaryQuestItemCatalog.TryLoad(itemIdentifier, out ItemData militaryItem))
             return militaryItem;
 

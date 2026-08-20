@@ -16,8 +16,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         SearchNeighborhood,
         LocateOffice,
         FindCityMap,
-        CityMapFound,
-        RepairArrivalCar
+        CityMapFound
     }
 
     public const int MaximumSearchHouses = PreMilitaryQuestProgress.MaximumSearchHouses;
@@ -62,11 +61,26 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Tooltip("Cơ hội tủ hợp lệ đầu tiên sinh manh mối. Sau một lần trượt, tủ hợp lệ kế tiếp luôn được bảo hiểm.")]
     [SerializeField, Range(0f, 1f)] private float routeClueBaseDropChance = 0.7f;
 
+    [Header("Arrival car completion")]
+    [Tooltip("Fusion vehicle spawned over the broken story car after the required repair is complete.")]
+    [SerializeField] private NetworkPrefabRef repairedArrivalCarPrefab;
+
+    [Header("Civilian escape finale")]
+    [Tooltip("Điểm bắt đầu finale tuyến A. Nếu bỏ trống, code tìm GameObject tên CivilianEscapeExit.")]
+    [SerializeField] private Transform civilianEscapeExit;
+    [SerializeField] private Vector2 civilianEscapeFallbackOffset = new Vector2(30f, 0f);
+    [SerializeField, Min(1f)] private float civilianEscapeTriggerRadius = 2.75f;
+
     [Networked] public int NetworkQuestStage { get; set; }
     [Networked] public int MapCabinetId { get; set; }
     [Networked] public NetworkBool IsCityMapUnlocked { get; set; }
     [Networked] public NetworkBool IsMilitaryRevealPlaying { get; set; }
     [Networked] public NetworkBool IsArrivalCarInspected { get; set; }
+    [Networked] public int ArrivalCarRepairMask { get; set; }
+    [Networked] public NetworkBool IsArrivalCarRepaired { get; set; }
+    [Networked] public NetworkObject RepairedArrivalCarObject { get; set; }
+    [Networked] public int LockedEscapeRouteValue { get; private set; }
+    [Networked] public NetworkBool IsCivilianEscapeComplete { get; private set; }
     [Networked] public NetworkBool IsNeighborhoodConfigured { get; set; }
     [Networked] public int SearchHouseCount { get; set; }
     [Networked] public NetworkString<_64> SearchHouseId0 { get; set; }
@@ -112,6 +126,11 @@ public sealed class MainQuestManager : NetworkBehaviour
     public int SearchedHouseCount => CountBits(SearchedHouseMask);
     public int RouteClueCount => CountBits(RouteClueMask);
     public bool HasMapFragment1 => RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues;
+    public EscapeEndingRoute LockedEscapeRoute => IsNetworkReady
+        ? (EscapeEndingRoute)LockedEscapeRouteValue
+        : EscapeEndingRoute.None;
+    public Vector2 CivilianEscapePosition => ResolveCivilianEscapeExit().position;
+    public float CivilianEscapeTriggerRadius => civilianEscapeTriggerRadius;
 
     private void Awake()
     {
@@ -136,6 +155,11 @@ public sealed class MainQuestManager : NetworkBehaviour
             IsCityMapUnlocked = false;
             IsMilitaryRevealPlaying = false;
             IsArrivalCarInspected = false;
+            ArrivalCarRepairMask = 0;
+            IsArrivalCarRepaired = false;
+            RepairedArrivalCarObject = null;
+            LockedEscapeRouteValue = (int)EscapeEndingRoute.None;
+            IsCivilianEscapeComplete = false;
             IsNeighborhoodConfigured = false;
             SearchHouseCount = 0;
             SearchHouseId0 = default;
@@ -153,6 +177,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         }
 
         ApplyMapAccess();
+        CivilianEscapeRouteController.Attach(this);
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -215,7 +240,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         IsOfficeDiscovered = false;
         IsNeighborhoodConfigured = true;
         NetworkQuestStage = (int)QuestStage.SearchNeighborhood;
-        RPC_ShowQuestMessage($"MỤC TIÊU MỚI: Tìm {PreMilitaryQuestProgress.RequiredRouteClues} tài liệu về tuyến tiếp tế và sơ tán trong các ngôi nhà xung quanh.");
+        DistributeArrivalCarRepairItems(houseIds, count);
+        RPC_ShowQuestMessage($"TUYẾN B — MỤC TIÊU MỚI: Tìm {PreMilitaryQuestProgress.RequiredRouteClues} tài liệu về tuyến tiếp tế và sơ tán trong các ngôi nhà xung quanh.");
         return true;
     }
 
@@ -242,6 +268,119 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         IsArrivalCarInspected = true;
         RPC_ShowArrivalCarInspected();
+    }
+
+    public void RequestRepairArrivalCarPart(string partId)
+    {
+        if (!IsNetworkReady || !ArrivalCarRepairRules.TryGetAction(partId, out ArrivalCarRepairAction action))
+            return;
+        if (HasStateAuthority) ServerRepairArrivalCarPart(Runner.LocalPlayer, action);
+        else RPC_RequestRepairArrivalCarPart((int)action);
+    }
+
+    public void RequestCivilianEscape()
+    {
+        if (!IsNetworkReady || !IsArrivalCarRepaired || IsCivilianEscapeComplete) return;
+        if (HasStateAuthority) ServerBeginCivilianEscape(Runner.LocalPlayer);
+        else RPC_RequestCivilianEscape();
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestCivilianEscape(RpcInfo info = default)
+    {
+        ServerBeginCivilianEscape(info.Source);
+    }
+
+    public bool AuthorityTryLockEscapeRoute(EscapeEndingRoute requestedRoute)
+    {
+        if (!HasStateAuthority || !EscapeEndingRules.CanLock(LockedEscapeRoute, requestedRoute))
+            return false;
+        LockedEscapeRouteValue = (int)requestedRoute;
+        return true;
+    }
+
+    private void ServerBeginCivilianEscape(PlayerRef requester)
+    {
+        if (!HasStateAuthority || !IsArrivalCarRepaired || IsCivilianEscapeComplete ||
+            !EscapeEndingRules.CanLock(LockedEscapeRoute, EscapeEndingRoute.CivilianCar))
+            return;
+
+        if (!TryGetRequestingPlayer(requester, out PlayerMovement player)) return;
+        PlayerInteraction interaction = player.GetComponent<PlayerInteraction>();
+        if (interaction == null || !interaction.IsInVehicle || !interaction.IsVehicleDriver ||
+            interaction.CurrentVehicle == null || RepairedArrivalCarObject == null ||
+            interaction.CurrentVehicle != RepairedArrivalCarObject)
+            return;
+
+        if (Vector2.Distance(RepairedArrivalCarObject.transform.position, CivilianEscapePosition) >
+            civilianEscapeTriggerRadius)
+            return;
+
+        if (!AuthorityTryLockEscapeRoute(EscapeEndingRoute.CivilianCar)) return;
+        IsCivilianEscapeComplete = true;
+        RPC_ShowQuestMessage("ENDING ĐÃ KHÓA: Toàn đội chọn vượt vòng phong tỏa bằng chiếc xe dân sự.");
+        RPC_TriggerCivilianVictory(Time.timeSinceLevelLoad);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_TriggerCivilianVictory(float survivalSeconds)
+    {
+        EscapeRouteDecisionUI.CloseIfOpen();
+        VictorySummaryUI.ShowForCurrentMatch(survivalSeconds, EscapeEndingRoute.CivilianCar);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestRepairArrivalCarPart(int actionValue, RpcInfo info = default)
+    {
+        if (!System.Enum.IsDefined(typeof(ArrivalCarRepairAction), actionValue)) return;
+        ServerRepairArrivalCarPart(info.Source, (ArrivalCarRepairAction)actionValue);
+    }
+
+    private void ServerRepairArrivalCarPart(PlayerRef requester, ArrivalCarRepairAction action)
+    {
+        if (!HasStateAuthority || !IsArrivalCarInspected ||
+            ArrivalCarRepairRules.IsApplied(ArrivalCarRepairMask, action))
+            return;
+
+        BrokenArrivalCar car = BrokenArrivalCar.Instance;
+        if (car == null || !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            !car.CanInspect(player.transform.position))
+            return;
+
+        InventorySystem inventory = player.GetComponent<InventorySystem>();
+        ArrivalCarItemKind[] requirements = ArrivalCarItemCatalog.GetRequiredItems(action);
+        if (inventory == null || !HasEveryArrivalCarItem(inventory, requirements))
+        {
+            RPC_ShowArrivalCarRepairResult(requester, false, (int)action,
+                "Thiếu vật phẩm phù hợp. Mở nhật ký [J] để xem checklist.");
+            return;
+        }
+
+        if (ArrivalCarRepairRules.ConsumesInstalledPart(action))
+        {
+            ItemData consumable = FindArrivalCarItem(inventory, requirements[0]);
+            if (consumable == null || inventory.ConsumeItem(consumable, 1) != 1)
+            {
+                RPC_ShowArrivalCarRepairResult(requester, false, (int)action,
+                    "Vật phẩm vừa thay đổi trong túi đồ. Hãy kiểm tra lại [J].");
+                return;
+            }
+        }
+
+        ArrivalCarRepairMask |= (int)ArrivalCarRepairRules.GetStateBit(action);
+        bool completedNow = !IsArrivalCarRepaired &&
+                            ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask);
+        if (completedNow)
+        {
+            IsArrivalCarRepaired = true;
+            SpawnRepairedArrivalCar(car);
+        }
+
+        RPC_ShowArrivalCarRepairResult(requester, true, (int)action,
+            completedNow
+                ? "Xe đã có thể hoạt động. Tuyến A đã sẵn sàng cho giai đoạn khám phá."
+                : GetArrivalCarActionSuccessMessage(action));
+        if (completedNow) RPC_ShowQuestMessage("TUYẾN A — XE ĐÃ HOẠT ĐỘNG: Có thể tiếp tục khám phá các lối thoát dân sự.");
     }
 
     public string GetSearchHouseId(int index)
@@ -308,6 +447,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         RPC_ShowQuestMessage($"Manh mối tuyến đường: {RouteClueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}.");
         if (RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues)
         {
+            ConsumeCollectedRouteCluesAuthoritatively();
             NetworkQuestStage = (int)QuestStage.LocateOffice;
             RPC_ShowAllRouteCluesFound();
         }
@@ -516,8 +656,8 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         RPC_ShowOfficeInvestigationProgress(2);
         RPC_ShowCabinetSearchResult(requester, true);
-        RPC_ShowQuestMessage("MỤC TIÊU MỚI: Đi đến khu quân sự theo tuyến đường vừa tìm thấy. " +
-                             "Sửa chiếc xe dân dụng vẫn là lựa chọn không bắt buộc.");
+        RPC_ShowQuestMessage("TUYẾN B — MỤC TIÊU MỚI: Đi đến khu quân sự theo tuyến đường vừa tìm thấy. " +
+                             "Tuyến A vẫn khả dụng cho tới điểm không thể quay lại.");
     }
 
     public bool IsCabinetChecked(int cabinetId)
@@ -772,6 +912,155 @@ public sealed class MainQuestManager : NetworkBehaviour
                target.GetComponent<ZombieAIKhoaRebuilt>() != null;
     }
 
+    private void DistributeArrivalCarRepairItems(IReadOnlyList<string> houseIds, int count)
+    {
+        List<LootContainer> containers = new List<LootContainer>();
+        QuestLocationIdentity[] locations = FindObjectsByType<QuestLocationIdentity>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int idIndex = 0; idIndex < count; idIndex++)
+        {
+            string houseId = houseIds[idIndex];
+            for (int locationIndex = 0; locationIndex < locations.Length; locationIndex++)
+            {
+                QuestLocationIdentity location = locations[locationIndex];
+                if (location == null || location.LocationType != QuestLocationType.ResidentialHouse ||
+                    !string.Equals(location.LocationId, houseId, System.StringComparison.Ordinal))
+                    continue;
+                containers.AddRange(location.GetComponentsInChildren<LootContainer>(true));
+                break;
+            }
+        }
+
+        containers.RemoveAll(container => container == null || container.Object == null ||
+                                          !container.Object.IsValid || !container.HasStateAuthority);
+        containers.Sort((left, right) => left.GetInstanceID().CompareTo(right.GetInstanceID()));
+        if (containers.Count == 0)
+        {
+            Debug.LogError("[ARRIVAL CAR] Không tìm thấy container authoritative để đặt vật phẩm sửa xe.");
+            return;
+        }
+
+        ArrivalCarItemKind[] items =
+        {
+            ArrivalCarItemKind.Toolbox,
+            ArrivalCarItemKind.Hammer,
+            ArrivalCarItemKind.FuelCan,
+            ArrivalCarItemKind.Battery,
+            ArrivalCarItemKind.Tire
+        };
+        for (int i = 0; i < items.Length; i++)
+            containers[i % containers.Count].EnsureArrivalCarItem(items[i]);
+    }
+
+    private void ConsumeCollectedRouteCluesAuthoritatively()
+    {
+        InventorySystem[] inventories = FindObjectsByType<InventorySystem>(FindObjectsSortMode.None);
+        int removed = 0;
+        for (int clueIndex = 0; clueIndex < PreMilitaryQuestProgress.RequiredRouteClues; clueIndex++)
+        {
+            QuestRouteClueKind kind = (QuestRouteClueKind)clueIndex;
+            for (int inventoryIndex = 0; inventoryIndex < inventories.Length; inventoryIndex++)
+            {
+                InventorySystem inventory = inventories[inventoryIndex];
+                if (inventory == null || inventory.Object == null || !inventory.Object.IsValid ||
+                    !inventory.HasStateAuthority)
+                    continue;
+                ItemData clue = FindRouteClueItem(inventory, kind);
+                if (clue == null) continue;
+                removed += inventory.ConsumeItem(clue, 1);
+                break;
+            }
+        }
+
+        if (removed != PreMilitaryQuestProgress.RequiredRouteClues)
+            Debug.LogWarning($"[MAIN QUEST] State Authority assembled Mảnh 1 but removed {removed}/3 route documents. " +
+                             "A collected clue may have been moved out of all player inventories.");
+    }
+
+    private static ItemData FindRouteClueItem(InventorySystem inventory, QuestRouteClueKind kind)
+    {
+        if (inventory == null) return null;
+        for (int i = 0; i < inventory.slots.Count; i++)
+        {
+            InventorySlot slot = inventory.slots[i];
+            if (slot != null && slot.amount > 0 &&
+                QuestRouteClueItemCatalog.TryGetKind(slot.item, out QuestRouteClueKind existing) &&
+                existing == kind)
+                return slot.item;
+        }
+        return null;
+    }
+
+    private static bool HasEveryArrivalCarItem(InventorySystem inventory, ArrivalCarItemKind[] kinds)
+    {
+        for (int i = 0; i < kinds.Length; i++)
+            if (FindArrivalCarItem(inventory, kinds[i]) == null) return false;
+        return true;
+    }
+
+    private static ItemData FindArrivalCarItem(InventorySystem inventory, ArrivalCarItemKind kind)
+    {
+        if (inventory == null) return null;
+        for (int i = 0; i < inventory.slots.Count; i++)
+        {
+            InventorySlot slot = inventory.slots[i];
+            if (slot != null && slot.amount > 0 &&
+                ArrivalCarItemCatalog.TryGetKind(slot.item, out ArrivalCarItemKind existing) && existing == kind)
+                return slot.item;
+        }
+        return null;
+    }
+
+    private static string GetArrivalCarActionSuccessMessage(ArrivalCarRepairAction action) => action switch
+    {
+        ArrivalCarRepairAction.RepairCore => "Đã xử lý nắp capo, bộ đề và động cơ. Búa và bộ dụng cụ được giữ lại.",
+        ArrivalCarRepairAction.AddFuel => "Đã đổ can nhiên liệu vào bình.",
+        ArrivalCarRepairAction.ReplaceBattery => "Đã lắp ắc quy mới (nâng cấp tùy chọn).",
+        ArrivalCarRepairAction.ReplaceTire => "Đã thay lốp xuống cấp (nâng cấp tùy chọn).",
+        _ => "Đã cập nhật tình trạng xe."
+    };
+
+    private Transform ResolveCivilianEscapeExit()
+    {
+        if (civilianEscapeExit != null) return civilianEscapeExit;
+        GameObject configured = GameObject.Find("CivilianEscapeExit");
+        if (configured != null)
+        {
+            civilianEscapeExit = configured.transform;
+            return civilianEscapeExit;
+        }
+
+        GameObject anchor = new GameObject("CivilianEscapeExit");
+        GameObject carSpawn = GameObject.Find("ViTriXeChetMay");
+        Vector3 origin = carSpawn != null
+            ? carSpawn.transform.position
+            : BrokenArrivalCar.Instance != null ? BrokenArrivalCar.Instance.transform.position : Vector3.zero;
+        anchor.transform.position = origin + (Vector3)civilianEscapeFallbackOffset;
+        civilianEscapeExit = anchor.transform;
+        return civilianEscapeExit;
+    }
+
+    private void SpawnRepairedArrivalCar(BrokenArrivalCar brokenCar)
+    {
+        if (!HasStateAuthority || brokenCar == null || RepairedArrivalCarObject != null) return;
+        try
+        {
+            NetworkObject spawned = Runner.Spawn(repairedArrivalCarPrefab, brokenCar.transform.position,
+                brokenCar.transform.rotation);
+            if (spawned == null)
+            {
+                Debug.LogError("[ARRIVAL CAR] Fusion không thể spawn prefab xe chạy được.");
+                return;
+            }
+            spawned.name = "Repaired Arrival Car";
+            RepairedArrivalCarObject = spawned;
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogError("[ARRIVAL CAR] Không thể kích hoạt xe sau sửa chữa: " + exception.Message);
+        }
+    }
+
     private static bool TryGetRequestingPlayer(PlayerRef requester, out PlayerMovement player)
     {
         PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
@@ -808,6 +1097,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowOfficeSearchStarted()
     {
+        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.OfficeLocated);
         ShowLocalQuestEvent(
             "KHU VỰC NHIỆM VỤ MỚI",
             "VĂN PHÒNG ĐIỀU PHỐI  •  Trước tiên hãy tìm chìa khóa tại bàn điều phối.");
@@ -816,11 +1106,28 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowArrivalCarInspected()
     {
-        const string body = "TÙY CHỌN: Sửa chiếc xe để có thể rời khỏi khu vực. " +
-                            "Đang thiếu bộ dụng cụ, búa sửa chữa và can nhiên liệu; " +
-                            "ắc quy và lốp có thể được thay thêm.";
-        AutoChatManager.Instance?.AddMessage("CHIẾC XE", body);
-        ShowLocalQuestEvent("NHIỆM VỤ PHỤ MỚI", body);
+        ArrivalCarInspectionUI.ActiveInstance?.Close();
+        StartCoroutine(ShowArrivalCarInspectedNoticeNextFrame());
+    }
+
+    private IEnumerator ShowArrivalCarInspectedNoticeNextFrame()
+    {
+        // The modal canvas must finish closing before the global quest notice is
+        // drawn, including when another client was still inspecting the car.
+        yield return null;
+        AutoChatManager.Instance?.AddMessage("CHIẾC XE",
+            "Xe vẫn có thể sửa. Tần số khẩn cấp vừa bắt được một tín hiệu mới.");
+        RouteBRadioBroadcastUI.ShowOpeningSequence(EscapeRouteDecisionUI.ShowInitialChoice);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowArrivalCarRepairResult([RpcTarget] PlayerRef targetPlayer, bool success,
+        int actionValue, string message)
+    {
+        if (Runner.LocalPlayer != targetPlayer) return;
+        AutoChatManager.Instance?.AddMessage(success ? "SỬA XE" : "KHÔNG THỂ SỬA", message);
+        ArrivalCarInspectionUI.ActiveInstance?.NotifyRepairResult(
+            (ArrivalCarRepairAction)actionValue, success, message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -844,6 +1151,12 @@ public sealed class MainQuestManager : NetworkBehaviour
                 break;
         }
         AutoChatManager.Instance?.AddMessage("ĐIỀU TRA", body);
+        RouteBRadioBroadcastUI.ShowCue(completedStep switch
+        {
+            0 => RouteBAudioCueId.DispatchDeskLog,
+            1 => RouteBAudioCueId.OfficeRadioRecording,
+            _ => RouteBAudioCueId.MilitaryRouteRevealed
+        });
         ShowLocalQuestEvent(title, body);
     }
 
@@ -852,6 +1165,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         const string message = "Ba tài liệu cùng dẫn tới Văn phòng Điều phối. Mở bản đồ [M] để kiểm tra vị trí vừa xác định.";
         AutoChatManager.Instance?.AddMessage("MANH MỐI", message);
+        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.ThirdCoordinationDocument);
         ShowLocalQuestEvent("ĐÃ PHÁT HIỆN ĐỦ MANH MỐI", message);
         QuestFlowUIPrototype.Instance?.QueueMapUnlockReveal();
     }
@@ -1086,7 +1400,6 @@ public sealed class MainQuestManager : NetworkBehaviour
                     $"Tìm tài liệu về tuyến tiếp tế và sơ tán  •  {RouteClueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}",
                 QuestStage.LocateOffice => "Tìm văn phòng màu tím trong khu vực đã xác định",
                 QuestStage.FindCityMap => GameLocalization.Get("quest.find_map"),
-                QuestStage.RepairArrivalCar => "Quay lại chiếc xe và tìm cách sửa động cơ",
                 QuestStage.CityMapFound => GameLocalization.Get("quest.reach_military"),
                 _ => string.Empty
             };
@@ -1109,7 +1422,25 @@ public sealed class MainQuestManager : NetworkBehaviour
         GUI.depth = -1450;
 
         float width = Mathf.Min(760f, Screen.width - 40f);
-        float height = 88f;
+        float bodyWidth = width - 44f;
+        GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.025f), 18, 28),
+            fontStyle = FontStyle.Bold,
+            wordWrap = false,
+            clipping = TextClipping.Overflow
+        };
+        GUIStyle bodyStyle = new GUIStyle(titleStyle)
+        {
+            alignment = TextAnchor.UpperCenter,
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.016f), 13, 18),
+            fontStyle = FontStyle.Normal,
+            wordWrap = true,
+            clipping = TextClipping.Overflow
+        };
+        float bodyHeight = Mathf.Max(34f, bodyStyle.CalcHeight(new GUIContent(localQuestEventBody), bodyWidth));
+        float height = 56f + bodyHeight + 16f;
         Rect panel = new Rect((Screen.width - width) * 0.5f, 78f, width, height);
         GUI.color = new Color(0.015f, 0.02f, 0.02f, localQuestEventAlpha * 0.9f);
         GUI.DrawTexture(panel, Texture2D.whiteTexture);
@@ -1117,20 +1448,9 @@ public sealed class MainQuestManager : NetworkBehaviour
         GUI.DrawTexture(new Rect(panel.x, panel.y, 4f, panel.height), Texture2D.whiteTexture);
         GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 2f), Texture2D.whiteTexture);
 
-        GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.025f), 18, 28),
-            fontStyle = FontStyle.Bold
-        };
-        GUIStyle bodyStyle = new GUIStyle(titleStyle)
-        {
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.016f), 13, 18),
-            fontStyle = FontStyle.Normal
-        };
         DrawShadowedLabel(new Rect(panel.x + 14f, panel.y + 8f, panel.width - 28f, 34f),
             localQuestEventTitle, titleStyle, new Color(1f, 0.76f, 0.27f), localQuestEventAlpha, 2f);
-        DrawShadowedLabel(new Rect(panel.x + 14f, panel.y + 43f, panel.width - 28f, 30f),
+        DrawShadowedLabel(new Rect(panel.x + 22f, panel.y + 48f, bodyWidth, bodyHeight),
             localQuestEventBody, bodyStyle, new Color(0.94f, 0.95f, 0.94f), localQuestEventAlpha, 1f);
 
         GUI.color = previousColor;
