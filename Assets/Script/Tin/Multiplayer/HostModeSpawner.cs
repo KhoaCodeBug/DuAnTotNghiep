@@ -18,6 +18,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     [SerializeField] private bool deferInitialSpawn;
 
     private Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new Dictionary<PlayerRef, NetworkObject>();
+    // A player receives the story-arrival position only once per connection.
+    // Death respawns continue to use the scene's original, dispersed house points.
+    private HashSet<PlayerRef> playersGivenArrivalSpawn = new HashSet<PlayerRef>();
     // Lives for the current room/session.  A respawn creates a new player
     // NetworkObject, but the same PlayerRef keeps its original starting gun.
     private Dictionary<PlayerRef, string> startingWeaponByPlayer = new Dictionary<PlayerRef, string>();
@@ -30,6 +33,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     public override void Spawned()
     {
         Instance = this;
+        MainArrivalStoryBootstrap.EnsureMainSceneSetup(this);
         if (!deferInitialSpawn)
             BeginInitialSpawn();
     }
@@ -128,7 +132,12 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         Vector3 safeSpawnPos = Vector3.zero;
         Quaternion safeSpawnRot = Quaternion.identity;
 
-        if (spawnPoints != null && spawnPoints.Length > 0)
+        bool isFirstSpawn = !playersGivenArrivalSpawn.Contains(player);
+        bool useArrivalSpawn = isFirstSpawn &&
+            MainArrivalStoryBootstrap.TryGetInitialSpawnPose(playersGivenArrivalSpawn.Count,
+                out safeSpawnPos, out safeSpawnRot);
+
+        if (!useArrivalSpawn && spawnPoints != null && spawnPoints.Length > 0)
         {
             int randomIndex = Random.Range(0, spawnPoints.Length);
             safeSpawnPos = spawnPoints[randomIndex].position;
@@ -139,6 +148,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
         // 🔥 FIX LỖI 2: Dùng chép đè để tránh Crash nếu người chơi gửi lệnh đẻ 2 lần do lag
         spawnedPlayers[player] = netObj;
+        if (isFirstSpawn) playersGivenArrivalSpawn.Add(player);
         Runner.SetPlayerObject(player, netObj);
 
         // 🔥 LOGIC LATE JOIN (NGƯỜI CHƠI NHẢY DÙ VÀO SAU)
@@ -312,6 +322,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
                 spawnedPlayers.Remove(player);
             }
             startingWeaponByPlayer.Remove(player);
+            playersGivenArrivalSpawn.Remove(player);
 
             // 🔥 FIX LỖI 1: Kẹt Loading. Nếu có đứa rớt mạng lúc đang ở sảnh chờ load, tự động check và cho những người còn lại vào game!
             if (!IsMatchStarted)

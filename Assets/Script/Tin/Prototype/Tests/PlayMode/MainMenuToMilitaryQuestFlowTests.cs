@@ -71,11 +71,50 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         while (Time.realtimeSinceStartup < mainQuestDeadline)
         {
             mainQuest = UnityEngine.Object.FindFirstObjectByType(mainQuestType) as Component;
-            if (mainQuest != null && ReadBool(mainQuest, "IsNetworkReady") &&
-                ReadBool(mainQuest, "IsNeighborhoodConfigured")) break;
+            if (mainQuest != null && ReadBool(mainQuest, "IsNetworkReady")) break;
             yield return null;
         }
         Assert.That(mainQuest, Is.Not.Null, "MainQuestManager was not present in Main.");
+        GameObject arrivalCar = GameObject.Find("Broken Arrival Car (from Intro)");
+        Assert.That(arrivalCar, Is.Not.Null,
+            "Main must continue the Intro scene with the same broken car beside the player spawn cluster.");
+        Assert.That(ReadBool(mainQuest, "IsArrivalCarInspected"), Is.False);
+        Assert.That(ReadBool(mainQuest, "IsNeighborhoodConfigured"), Is.False,
+            "The neighborhood investigation must wait until the broken engine is inspected.");
+
+        Type arrivalCarType = Type.GetType("BrokenArrivalCar, Assembly-CSharp");
+        Assert.That(arrivalCarType, Is.Not.Null);
+        Component arrivalCarComponent = arrivalCar.GetComponent(arrivalCarType);
+        Type inspectionUIType = Type.GetType("ArrivalCarInspectionUI, Assembly-CSharp");
+        Component inspectionUI = arrivalCar.GetComponent(inspectionUIType);
+        Assert.That(inspectionUI, Is.Not.Null);
+        Assert.That(ReadProperty(inspectionUI, "SelectedPartId").ToString(), Is.EqualTo("engine"));
+        Button leftTireHotspot = FindInactiveButton("Vehicle Part Hotspot front_left");
+        Assert.That(leftTireHotspot, Is.Not.Null, "The vehicle diagram must expose clickable part hotspots.");
+        leftTireHotspot.onClick.Invoke();
+        Assert.That(ReadProperty(inspectionUI, "SelectedPartId").ToString(), Is.EqualTo("front_left"));
+        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("THAY LINH KIỆN"));
+        Assert.That(FindInactiveButton("Selected Part Action Button"), Is.Not.Null,
+            "The selected part detail must preserve the approved contextual action button.");
+        Button exhaustHotspot = FindInactiveButton("Vehicle Part Hotspot exhaust");
+        Assert.That(exhaustHotspot, Is.Not.Null);
+        exhaustHotspot.onClick.Invoke();
+        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("KIỂM TRA"));
+        Assert.That(FindInactiveTransform("Damaged Hood Polygon"), Is.Not.Null,
+            "The damaged hood should use an irregular translucent polygon, not a square label.");
+        Assert.That(FindInactiveTransform("Repair Requirements Panel"), Is.Null,
+            "Repair inventory belongs in the J journal, not in the inspection modal.");
+        Vector3 inspectionPoint = (Vector3)ReadProperty(arrivalCarComponent, "InspectionZoneWorldCenter");
+        ((Component)localPlayer).transform.position = inspectionPoint;
+        yield return null;
+        mainQuestType.GetMethod("RequestInspectArrivalCar")?.Invoke(mainQuest, null);
+        float investigationDeadline = Time.realtimeSinceStartup + 15f;
+        while (Time.realtimeSinceStartup < investigationDeadline &&
+               !ReadBool(mainQuest, "IsNeighborhoodConfigured"))
+            yield return null;
+
+        Assert.That(ReadBool(mainQuest, "IsArrivalCarInspected"), Is.True,
+            "Inspecting the arrival car did not advance the story hand-off.");
         Assert.That(ReadBool(mainQuest, "IsNeighborhoodConfigured"), Is.True,
             "State Authority did not replicate the shared opening neighborhood.");
         Assert.That(ReadProperty(mainQuest, "CurrentStage").ToString(), Is.EqualTo("SearchNeighborhood"));
@@ -160,6 +199,24 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(button, Is.Not.Null);
         Assert.That(button.interactable, Is.True);
         button.onClick.Invoke();
+    }
+
+    private static Button FindInactiveButton(string objectName)
+    {
+        Transform transform = FindInactiveTransform(objectName);
+        return transform != null ? transform.GetComponent<Button>() : null;
+    }
+
+    private static Transform FindInactiveTransform(string objectName)
+    {
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform candidate = transforms[i];
+            if (candidate != null && candidate.name == objectName && candidate.gameObject.scene.IsValid())
+                return candidate;
+        }
+        return null;
     }
 
     private static bool ReadBool(object target, string propertyName)

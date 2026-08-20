@@ -62,29 +62,30 @@ public static class QuestRouteClueItemCatalog
 
     public static string GetDisplayName(QuestRouteClueKind kind) => kind switch
     {
-        QuestRouteClueKind.DeliveryInvoice => "Hóa đơn giao hàng",
-        QuestRouteClueKind.TransitDiagram => "Sơ đồ tuyến xe",
-        _ => "Ghi chú địa chỉ"
+        QuestRouteClueKind.DeliveryInvoice => "Phiếu điều chuyển vật tư",
+        QuestRouteClueKind.TransitDiagram => "Thông báo đổi tuyến sơ tán",
+        _ => "Ghi chú của nhân viên trực"
     };
 
     public static string GetReadingText(QuestRouteClueKind kind) => kind switch
     {
         QuestRouteClueKind.DeliveryInvoice =>
-            "Phiếu giao hàng đã ố vàng. Nơi nhận ghi: “Văn phòng dịch vụ đô thị”. " +
-            "Người giao khoanh một đoạn đường phía đông khu dân cư và ghi thêm: “cổng màu tím, giao trước 17 giờ”.",
+            "Phiếu điều chuyển khẩn: “Toàn bộ thuốc, nhiên liệu dự phòng và dụng cụ sửa chữa còn lại " +
+            "được chuyển về Văn phòng Điều phối Khu Dân Cư trước 18:00. Không giao trực tiếp tại điểm sơ tán.” " +
+            "Người giao khoanh một đoạn đường phía đông và ghi thêm: “cổng màu tím”.",
         QuestRouteClueKind.TransitDiagram =>
-            "Một sơ đồ tuyến xe buýt cũ, tuyến số 04 bị gạch đỏ ở chặng cuối. " +
-            "Điểm dừng cuối nằm cạnh một bãi xe bỏ hoang, trên trục đường chạy chéo qua khu nhà.",
+            "Thông báo vận hành: “Tuyến sơ tán dân sự đã bị hủy. Các chuyến xe còn hoạt động phải chuyển " +
+            "qua trạm kiểm soát khu quân sự. Sơ đồ tuyến mới được lưu tại Văn phòng Điều phối.”",
         _ =>
-            "Mảnh giấy ghi vội: “Qua ngã ba có biển cong, đi theo hàng rào sắt. " +
-            "Tòa nhà hai tầng có cửa tím nằm đối diện bãi xe; lối chính đã bị chặn”."
+            "Mảnh giấy viết vội: “Tôi đã khóa hồ sơ tuyến cuối trong tủ lưu trữ. Chìa khóa vẫn ở bàn điều phối; " +
+            "bản ghi liên lạc còn trong radio. Nếu không còn ai quay lại, hãy mang bản đồ đến trạm quân sự.”"
     };
 
     public static string GetInferenceText(QuestRouteClueKind kind) => kind switch
     {
-        QuestRouteClueKind.DeliveryInvoice => "SUY LUẬN: Văn phòng nằm về phía đông và có cổng màu tím.",
-        QuestRouteClueKind.TransitDiagram => "SUY LUẬN: Có thể lần theo tuyến 04 đến bãi xe bỏ hoang.",
-        _ => "SUY LUẬN: Đã có mô tả nhận dạng chính xác của tòa nhà."
+        QuestRouteClueKind.DeliveryInvoice => "SUY LUẬN: Nhiên liệu và dụng cụ sửa xe từng được tập kết tại văn phòng cổng tím.",
+        QuestRouteClueKind.TransitDiagram => "SUY LUẬN: Muốn đến điểm sơ tán phải tìm sơ đồ tuyến nằm trong văn phòng.",
+        _ => "SUY LUẬN: Trong văn phòng cần kiểm tra bàn điều phối, radio rồi tủ lưu trữ."
     };
 
     public static string GetShortLabel(ItemData item)
@@ -92,9 +93,9 @@ public static class QuestRouteClueItemCatalog
         if (!TryGetKind(item, out QuestRouteClueKind kind)) return string.Empty;
         return kind switch
         {
-            QuestRouteClueKind.DeliveryInvoice => "HÓA ĐƠN",
-            QuestRouteClueKind.TransitDiagram => "TUYẾN XE",
-            _ => "ĐỊA CHỈ"
+            QuestRouteClueKind.DeliveryInvoice => "VẬT TƯ",
+            QuestRouteClueKind.TransitDiagram => "SƠ TÁN",
+            _ => "NHÂN VIÊN TRỰC"
         };
     }
 

@@ -51,6 +51,8 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private Vector2 outsideGuidanceWorldTarget;
     private bool hasOutsideGuidanceTarget;
     private bool guidanceTargetsOffice;
+    private QuestMapRevealTuningTool revealTuningTool;
+    private int lastRevealTuningSignature = int.MinValue;
 
     public int ActiveSearchHouseCount => activeSearchHouseIds.Count;
     public Transform ConfiguredPlayerTarget => configuredPlayerTarget;
@@ -68,6 +70,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             questUI = GetComponent<QuestFlowUIPrototype>();
         if (questUI == null)
             questUI = FindFirstObjectByType<QuestFlowUIPrototype>(FindObjectsInactive.Include);
+        questUI?.SetCarRepairInventoryQuery(HasArrivalCarRepairItem);
 
         ResolveMainSceneReferences();
         ConfigureLiveMap();
@@ -95,7 +98,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         MainQuestManager manager = MainQuestManager.Instance;
         if (player != null && manager != null && manager.IsNetworkReady)
         {
-            if (!manager.IsNeighborhoodConfigured && manager.HasStateAuthority)
+            if (!manager.IsNeighborhoodConfigured && manager.HasStateAuthority && manager.IsArrivalCarInspected)
                 TryInitializeAuthoritativeSearchZone(player, manager);
             if (manager.IsNeighborhoodConfigured)
             {
@@ -111,6 +114,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
         if (rasterMap != null && player != null)
             questUI?.SetRasterMapPlayerPosition(rasterMap.WorldToNormalized(player.position));
+        ApplyLiveRevealTuning();
         if (player != null)
             UpdateOutsideSearchZoneWarning(player.position, manager);
 
@@ -126,9 +130,23 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
     private void OnDestroy()
     {
+        questUI?.SetCarRepairInventoryQuery(null);
         if (rasterMap != null && rasterMap.Texture != null)
             Destroy(rasterMap.Texture);
         if (Instance == this) Instance = null;
+    }
+
+    private bool HasArrivalCarRepairItem(string[] inventoryNames)
+    {
+        if (inventoryNames == null) return false;
+        Transform player = GetLocalPlayerTarget();
+        InventorySystem inventory = player != null ? player.GetComponent<InventorySystem>() : null;
+        if (inventory == null) return false;
+
+        for (int i = 0; i < inventoryNames.Length; i++)
+            if (!string.IsNullOrWhiteSpace(inventoryNames[i]) && inventory.HasItemNamed(inventoryNames[i]))
+                return true;
+        return false;
     }
 
     public static void NotifyContainerOpened(LootContainer container)
@@ -228,6 +246,20 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             GameObject mapRoot = GameObject.Find("Map");
             rasterMap = ProjectZomboidMapRasterizer.Build(mapRoot);
         }
+
+        EnsureRevealTuningTool();
+    }
+
+    private void EnsureRevealTuningTool()
+    {
+        if (revealTuningTool != null) return;
+
+        revealTuningTool = GetComponentInChildren<QuestMapRevealTuningTool>(true);
+        if (revealTuningTool != null) return;
+
+        GameObject tuningObject = new GameObject("Quest Map Reveal Tuning Tool [PLAY MODE]");
+        tuningObject.transform.SetParent(transform, false);
+        revealTuningTool = tuningObject.AddComponent<QuestMapRevealTuningTool>();
     }
 
     private void ConfigureLiveMap()
@@ -246,10 +278,18 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             questUI.ConfigureRasterMap(rasterMap.Texture, officePosition, playerPosition);
             if (officeTarget != null)
             {
-                Vector2 radius = Vector2.one * officeSearchWorldRadius;
-                questUI.ConfigureOfficeSearchArea(
-                    rasterMap.WorldToNormalized((Vector2)officeTarget.position - radius),
-                    rasterMap.WorldToNormalized((Vector2)officeTarget.position + radius));
+                if (revealTuningTool != null)
+                {
+                    Rect officeReveal = revealTuningTool.AfterQuestRect;
+                    questUI.ConfigureOfficeSearchArea(officeReveal.min, officeReveal.max);
+                }
+                else
+                {
+                    Vector2 radius = Vector2.one * officeSearchWorldRadius;
+                    questUI.ConfigureOfficeSearchArea(
+                        rasterMap.WorldToNormalized((Vector2)officeTarget.position - radius),
+                        rasterMap.WorldToNormalized((Vector2)officeTarget.position + radius));
+                }
             }
         }
     }
@@ -374,13 +414,43 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         Vector2 normalizedB = rasterMap.WorldToNormalized(worldMax);
         Vector2 mapMin = Vector2.Min(normalizedA, normalizedB);
         Vector2 mapMax = Vector2.Max(normalizedA, normalizedB);
-        ExpandSearchZoneMapBoundsTowardRoad(ref mapMin, ref mapMax, rasterMap.Size);
-        ShiftSearchZoneDownToRoad(ref mapMin, ref mapMax, rasterMap.Size, searchZoneVisualDownCells);
+        if (revealTuningTool != null)
+        {
+            Rect neighborhoodReveal = revealTuningTool.BeforeQuestRect;
+            mapMin = neighborhoodReveal.min;
+            mapMax = neighborhoodReveal.max;
+        }
+        else
+        {
+            ExpandSearchZoneMapBoundsTowardRoad(ref mapMin, ref mapMax, rasterMap.Size);
+            ShiftSearchZoneDownToRoad(ref mapMin, ref mapMax, rasterMap.Size, searchZoneVisualDownCells);
+        }
         searchZoneMapRect = Rect.MinMaxRect(mapMin.x, mapMin.y, mapMax.x, mapMax.y);
         hasSearchZoneMapRect = true;
         questUI.ConfigureSearchZone(mapMin, mapMax, selected.Count);
 
         searchZoneConfigured = true;
+        lastRevealTuningSignature = revealTuningTool != null
+            ? revealTuningTool.LayoutSignature
+            : int.MinValue;
+    }
+
+    private void ApplyLiveRevealTuning()
+    {
+        if (revealTuningTool == null || questUI == null) return;
+
+        int signature = revealTuningTool.LayoutSignature;
+        if (signature == lastRevealTuningSignature) return;
+        lastRevealTuningSignature = signature;
+
+        Rect officeReveal = revealTuningTool.AfterQuestRect;
+        questUI.ConfigureOfficeSearchArea(officeReveal.min, officeReveal.max);
+
+        if (!searchZoneConfigured || activeSearchHouseIds.Count == 0) return;
+        Rect neighborhoodReveal = revealTuningTool.BeforeQuestRect;
+        searchZoneMapRect = neighborhoodReveal;
+        hasSearchZoneMapRect = true;
+        questUI.ConfigureSearchZone(neighborhoodReveal.min, neighborhoodReveal.max, activeSearchHouseIds.Count);
     }
 
     private static void ExpandSearchZoneMapBoundsTowardRoad(
@@ -430,16 +500,17 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
     private void SyncAuthoritativeQuestSnapshot(MainQuestManager manager)
     {
-        bool mapFragment2Found = manager.CurrentStage == MainQuestManager.QuestStage.CityMapFound;
+        bool mapFragment2Found = manager.IsCityMapUnlocked;
         int signature = manager.SearchedHouseMask;
         signature = signature * 397 ^ manager.RouteClueMask;
         signature = signature * 397 ^ (manager.IsOfficeDiscovered ? 1 : 0);
         signature = signature * 397 ^ (mapFragment2Found ? 1 : 0);
+        signature = signature * 397 ^ (manager.IsArrivalCarInspected ? 1 : 0);
         if (signature == lastAuthoritativeSnapshotSignature) return;
 
         questUI?.ApplyAuthoritativeSnapshot(manager.SearchedHouseMask, manager.RouteClueMask,
             manager.IsOfficeDiscovered, mapFragment2Found, mapFragment2Found,
-            hasAppliedInitialAuthoritativeSnapshot);
+            hasAppliedInitialAuthoritativeSnapshot, manager.IsArrivalCarInspected, false);
         lastAuthoritativeSnapshotSignature = signature;
         hasAppliedInitialAuthoritativeSnapshot = true;
     }

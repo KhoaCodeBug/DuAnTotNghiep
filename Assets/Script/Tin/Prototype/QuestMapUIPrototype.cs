@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -50,7 +51,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private RectTransform rasterPlayerMarker;
     private RectTransform rasterSearchZone;
     private TextMeshProUGUI rasterSearchZoneLabel;
-    private readonly RectTransform[] rasterRestrictedFog = new RectTransform[4];
+    private readonly List<RectTransform> rasterRestrictedFog = new List<RectTransform>();
+    private int activeRasterFogCount;
     private Vector2 rasterOfficeNormalized;
     private Vector2 rasterPlayerNormalized;
     private Vector2 rasterSearchZoneMin;
@@ -93,6 +95,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     public Vector2 CurrentRasterPlayerPoint => rasterPlayerMarker == null ? Vector2.zero : rasterPlayerMarker.anchoredPosition;
     public int SearchZoneHouseCount => searchZoneHouseCount;
     public bool HasPendingUnlockReveal => unlockRevealPending;
+    public int ActiveRestrictedFogCount => activeRasterFogCount;
 
     public static bool ConsumeEscapeCloseRequest()
     {
@@ -250,7 +253,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         unlockRevealRoot.transform.SetAsLastSibling();
         unlockRevealGroup.alpha = 1f;
         unlockRevealTitle.text = "ĐANG GIẢI MÃ DỮ LIỆU BẢN ĐỒ";
-        unlockRevealBody.text = "Đối chiếu ba manh mối tuyến đường...";
+        unlockRevealBody.text = "Đối chiếu ba tài liệu về vật tư và tuyến sơ tán...";
         unlockRevealPulse.localScale = Vector3.one * 0.3f;
         unlockRevealCore.localScale = Vector3.one * 0.7f;
 
@@ -656,13 +659,12 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             rasterSearchZone.sizeDelta = new Vector2(
                 Mathf.Max(56f, Mathf.Abs(maxPoint.x - minPoint.x)),
                 Mathf.Max(56f, Mathf.Abs(maxPoint.y - minPoint.y)));
-            Vector2 revealedMin = Vector2.Min(minPoint, maxPoint);
-            Vector2 revealedMax = Vector2.Max(minPoint, maxPoint);
+            Rect neighborhoodOpening = RectFromPoints(minPoint, maxPoint);
+            Rect? officeOpening = null;
 
-            // Fragment 1 reveals the route toward the office, not the entire
-            // city. Expand the original bright rectangle just enough to include
-            // the configured office search area; all remaining map space stays
-            // under fog.
+            // Fragment 1 opens a second landmark-aligned rectangle around the
+            // office. It deliberately stays independent from the neighborhood
+            // opening so the space above/below the route remains under fog.
             if (progress != null && progress.HasMapFragment1)
             {
                 Vector2 officeMin;
@@ -678,11 +680,10 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
                     officeMin = officePoint - Vector2.one * officeRevealPadding;
                     officeMax = officePoint + Vector2.one * officeRevealPadding;
                 }
-                revealedMin = Vector2.Min(revealedMin, Vector2.Min(officeMin, officeMax));
-                revealedMax = Vector2.Max(revealedMax, Vector2.Max(officeMin, officeMax));
+                officeOpening = RectFromPoints(officeMin, officeMax);
             }
 
-            UpdateRasterRestrictionFog(revealedMin, revealedMax);
+            UpdateRasterRestrictionFog(neighborhoodOpening, officeOpening);
             UpdateSearchRestrictionVisibility();
         }
     }
@@ -690,13 +691,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private void BuildRasterSearchZoneIfNeeded()
     {
         if (!useRasterMap || rasterArtRoot == null || rasterSearchZone != null) return;
-        string[] fogNames = { "Restricted Fog West", "Restricted Fog East", "Restricted Fog South", "Restricted Fog North" };
-        for (int i = 0; i < rasterRestrictedFog.Length; i++)
-        {
-            rasterRestrictedFog[i] = Box(fogNames[i], rasterArtRoot, Vector2.zero, Vector2.zero,
-                new Color(0f, 0f, 0f, 0.82f));
-            rasterRestrictedFog[i].SetSiblingIndex(Mathf.Min(i + 1, rasterArtRoot.childCount - 1));
-        }
+        EnsureRasterFogCount(8);
 
         rasterSearchZone = Box("Quest Search Zone", rasterArtRoot, new Vector2(120f, 100f), Vector2.zero,
             new Color(0f, 0f, 0f, 0f));
@@ -709,24 +704,82 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         UpdateSearchRestrictionVisibility();
     }
 
-    private void UpdateRasterRestrictionFog(Vector2 minimum, Vector2 maximum)
+    private void UpdateRasterRestrictionFog(Rect neighborhoodOpening, Rect? officeOpening)
     {
-        if (rasterArtRoot == null || rasterRestrictedFog[0] == null) return;
+        if (rasterArtRoot == null) return;
         float halfWidth = rasterArtRoot.rect.width * 0.5f;
         float halfHeight = rasterArtRoot.rect.height * 0.5f;
-        float leftWidth = Mathf.Max(0f, minimum.x + halfWidth);
-        float rightWidth = Mathf.Max(0f, halfWidth - maximum.x);
-        float bottomHeight = Mathf.Max(0f, minimum.y + halfHeight);
-        float topHeight = Mathf.Max(0f, halfHeight - maximum.y);
-        float openingWidth = Mathf.Max(0f, maximum.x - minimum.x);
-        SetFogRect(rasterRestrictedFog[0], new Vector2(leftWidth, halfHeight * 2f),
-            new Vector2(-halfWidth + leftWidth * 0.5f, 0f));
-        SetFogRect(rasterRestrictedFog[1], new Vector2(rightWidth, halfHeight * 2f),
-            new Vector2(maximum.x + rightWidth * 0.5f, 0f));
-        SetFogRect(rasterRestrictedFog[2], new Vector2(openingWidth, bottomHeight),
-            new Vector2((minimum.x + maximum.x) * 0.5f, -halfHeight + bottomHeight * 0.5f));
-        SetFogRect(rasterRestrictedFog[3], new Vector2(openingWidth, topHeight),
-            new Vector2((minimum.x + maximum.x) * 0.5f, maximum.y + topHeight * 0.5f));
+        Rect mapRect = Rect.MinMaxRect(-halfWidth, -halfHeight, halfWidth, halfHeight);
+        var fogRects = new List<Rect> { mapRect };
+        SubtractOpening(fogRects, ClampRect(neighborhoodOpening, mapRect));
+        if (officeOpening.HasValue)
+            SubtractOpening(fogRects, ClampRect(officeOpening.Value, mapRect));
+
+        EnsureRasterFogCount(Mathf.Max(8, fogRects.Count));
+        activeRasterFogCount = fogRects.Count;
+        for (int i = 0; i < fogRects.Count; i++)
+            SetFogRect(rasterRestrictedFog[i], fogRects[i].size, fogRects[i].center);
+    }
+
+    private void EnsureRasterFogCount(int count)
+    {
+        if (rasterArtRoot == null) return;
+        string[] names =
+        {
+            "Restricted Fog West", "Restricted Fog East", "Restricted Fog South", "Restricted Fog North"
+        };
+        while (rasterRestrictedFog.Count < count)
+        {
+            int index = rasterRestrictedFog.Count;
+            string name = index < names.Length ? names[index] : $"Restricted Fog Segment {index + 1}";
+            RectTransform fog = Box(name, rasterArtRoot, Vector2.zero, Vector2.zero,
+                new Color(0f, 0f, 0f, 0.82f));
+            fog.SetSiblingIndex(Mathf.Min(index + 1, rasterArtRoot.childCount - 1));
+            rasterRestrictedFog.Add(fog);
+        }
+    }
+
+    private static Rect RectFromPoints(Vector2 first, Vector2 second)
+    {
+        Vector2 minimum = Vector2.Min(first, second);
+        Vector2 maximum = Vector2.Max(first, second);
+        return Rect.MinMaxRect(minimum.x, minimum.y, maximum.x, maximum.y);
+    }
+
+    private static Rect ClampRect(Rect value, Rect limits)
+    {
+        return Rect.MinMaxRect(
+            Mathf.Clamp(value.xMin, limits.xMin, limits.xMax),
+            Mathf.Clamp(value.yMin, limits.yMin, limits.yMax),
+            Mathf.Clamp(value.xMax, limits.xMin, limits.xMax),
+            Mathf.Clamp(value.yMax, limits.yMin, limits.yMax));
+    }
+
+    private static void SubtractOpening(List<Rect> fogRects, Rect opening)
+    {
+        const float epsilon = 0.01f;
+        for (int i = fogRects.Count - 1; i >= 0; i--)
+        {
+            Rect fog = fogRects[i];
+            float xMin = Mathf.Max(fog.xMin, opening.xMin);
+            float yMin = Mathf.Max(fog.yMin, opening.yMin);
+            float xMax = Mathf.Min(fog.xMax, opening.xMax);
+            float yMax = Mathf.Min(fog.yMax, opening.yMax);
+            if (xMax - xMin <= epsilon || yMax - yMin <= epsilon)
+                continue;
+
+            fogRects.RemoveAt(i);
+            AddFogRect(fogRects, Rect.MinMaxRect(fog.xMin, fog.yMin, xMin, fog.yMax), epsilon);
+            AddFogRect(fogRects, Rect.MinMaxRect(xMax, fog.yMin, fog.xMax, fog.yMax), epsilon);
+            AddFogRect(fogRects, Rect.MinMaxRect(xMin, fog.yMin, xMax, yMin), epsilon);
+            AddFogRect(fogRects, Rect.MinMaxRect(xMin, yMax, xMax, fog.yMax), epsilon);
+        }
+    }
+
+    private static void AddFogRect(List<Rect> fogRects, Rect value, float epsilon)
+    {
+        if (value.width > epsilon && value.height > epsilon)
+            fogRects.Add(value);
     }
 
     private static void SetFogRect(RectTransform rect, Vector2 size, Vector2 position)
@@ -740,12 +793,12 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         bool borderVisible = hasSearchZone && (progress == null || !progress.HasMapFragment1);
         if (rasterSearchZone != null) rasterSearchZone.gameObject.SetActive(borderVisible);
 
-        // Completing the 3-house objective removes only its amber border. Fog
-        // remains active and is resized by UpdateRasterMapMarkers as regions are
-        // actually discovered.
+        // Fog remains active and is cut into independent neighborhood/office
+        // segments by UpdateRasterMapMarkers as regions are discovered.
         bool fogVisible = hasSearchZone;
-        for (int i = 0; i < rasterRestrictedFog.Length; i++)
-            if (rasterRestrictedFog[i] != null) rasterRestrictedFog[i].gameObject.SetActive(fogVisible);
+        for (int i = 0; i < rasterRestrictedFog.Count; i++)
+            if (rasterRestrictedFog[i] != null)
+                rasterRestrictedFog[i].gameObject.SetActive(fogVisible && i < activeRasterFogCount);
     }
 
     private Vector2 NormalizedToRasterPoint(Vector2 normalized)
@@ -1089,7 +1142,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         unlockRevealTitle = Text(revealRect, "Unlock Reveal Title", "ĐANG GIẢI MÃ DỮ LIỆU BẢN ĐỒ",
             24f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center,
             new Vector2(0.5f, 0.5f), new Vector2(700f, 44f), new Vector2(0f, -166f));
-        unlockRevealBody = Text(revealRect, "Unlock Reveal Body", "Đối chiếu ba manh mối tuyến đường...",
+        unlockRevealBody = Text(revealRect, "Unlock Reveal Body", "Đối chiếu ba tài liệu về vật tư và tuyến sơ tán...",
             14f, new Color(0.86f, 0.78f, 0.96f, 1f), FontStyles.Normal, TextAlignmentOptions.Center,
             new Vector2(0.5f, 0.5f), new Vector2(720f, 34f), new Vector2(0f, -205f));
 
