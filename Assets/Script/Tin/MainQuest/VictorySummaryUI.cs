@@ -15,11 +15,18 @@ public sealed class VictorySummaryUI : MonoBehaviour
     private Canvas canvas;
     private CanvasGroup canvasGroup;
     private TMP_Text summaryText;
+    private TMP_Text titleText;
+    private TMP_Text subtitleText;
     private Button mainMenuButton;
 
     public bool IsVisible => canvas != null && canvas.enabled && gameObject.activeSelf;
 
     public static void ShowForCurrentMatch(float survivalSeconds)
+    {
+        ShowForCurrentMatch(survivalSeconds, EscapeEndingRoute.MilitaryEvacuation);
+    }
+
+    public static void ShowForCurrentMatch(float survivalSeconds, EscapeEndingRoute route)
     {
         if (instance == null)
         {
@@ -28,7 +35,7 @@ public sealed class VictorySummaryUI : MonoBehaviour
             instance = host.AddComponent<VictorySummaryUI>();
             instance.Build();
         }
-        instance.Show(survivalSeconds);
+        instance.Show(survivalSeconds, route);
     }
 
     private void Awake()
@@ -66,14 +73,14 @@ public sealed class VictorySummaryUI : MonoBehaviour
         panel.pivot = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(620f, 430f);
 
-        TMP_Text title = CreateText("Victory Title", panel, "NHIỆM VỤ HOÀN THÀNH", 40,
+        titleText = CreateText("Victory Title", panel, "NHIỆM VỤ HOÀN THÀNH", 40,
             new Color(0.35f, 1f, 0.55f));
-        SetRect(title.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -62f), new Vector2(560f, 70f));
-        title.fontStyle = FontStyles.Bold;
+        SetRect(titleText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -62f), new Vector2(560f, 70f));
+        titleText.fontStyle = FontStyles.Bold;
 
-        TMP_Text subtitle = CreateText("Victory Subtitle", panel, "ĐỘI SỐNG SÓT ĐÃ RỜI KHỎI THÀNH PHỐ", 18,
+        subtitleText = CreateText("Victory Subtitle", panel, "ĐỘI SỐNG SÓT ĐÃ RỜI KHỎI THÀNH PHỐ", 18,
             new Color(0.8f, 0.9f, 0.82f));
-        SetRect(subtitle.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -116f), new Vector2(560f, 36f));
+        SetRect(subtitleText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -116f), new Vector2(560f, 36f));
 
         summaryText = CreateText("Victory Statistics", panel, string.Empty, 22, Color.white);
         SetRect(summaryText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -5f), new Vector2(480f, 150f));
@@ -93,13 +100,19 @@ public sealed class VictorySummaryUI : MonoBehaviour
         canvas.enabled = false;
     }
 
-    private void Show(float survivalSeconds)
+    private void Show(float survivalSeconds, EscapeEndingRoute route)
     {
         CloseBlockingGameplayUI();
         gameObject.SetActive(true);
         canvas.enabled = true;
         canvasGroup.alpha = 0f;
         canvasGroup.blocksRaycasts = true;
+        titleText.text = route == EscapeEndingRoute.CivilianCar
+            ? "THOÁT HIỂM THÀNH CÔNG"
+            : "NHIỆM VỤ HOÀN THÀNH";
+        subtitleText.text = route == EscapeEndingRoute.CivilianCar
+            ? "ĐỘI SỐNG SÓT ĐÃ VƯỢT VÒNG PHONG TỎA BẰNG XE DÂN SỰ"
+            : "ĐỘI SỐNG SÓT ĐÃ RỜI THÀNH PHỐ QUA TUYẾN QUÂN SỰ";
 
         int killCount = 0;
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;

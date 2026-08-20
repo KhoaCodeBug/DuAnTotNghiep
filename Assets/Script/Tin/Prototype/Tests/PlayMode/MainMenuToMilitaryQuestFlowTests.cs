@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Reflection;
 using NUnit.Framework;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
@@ -64,6 +65,20 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         }
         Assert.That(localPlayer, Is.Not.Null, "Local player did not spawn.");
 
+        Type autoUIType = Type.GetType("AutoUIManager, Assembly-CSharp");
+        Component autoUI = UnityEngine.Object.FindFirstObjectByType(autoUIType) as Component;
+        Assert.That(autoUI, Is.Not.Null);
+        autoUIType.GetMethod("ShowReloadUI")?.Invoke(autoUI,
+            new object[] { 0.8f, 2f, "ĐANG KIỂM TRA ĐỘNG CƠ..." });
+        RectTransform actionBar = FindInactiveTransform("ActionBarPanel") as RectTransform;
+        TMP_Text actionBarLabel = actionBar != null ? actionBar.GetComponentInChildren<TMP_Text>(true) : null;
+        Assert.That(actionBar, Is.Not.Null);
+        Assert.That(actionBar.sizeDelta.x, Is.GreaterThanOrEqualTo(420f));
+        Assert.That(actionBarLabel, Is.Not.Null);
+        Assert.That(actionBarLabel.textWrappingMode, Is.EqualTo(TextWrappingModes.NoWrap),
+            "Hold-E progress text must never wrap below the action bar.");
+        autoUIType.GetMethod("HideReloadUI")?.Invoke(autoUI, null);
+
         Type mainQuestType = Type.GetType("MainQuestManager, Assembly-CSharp");
         Assert.That(mainQuestType, Is.Not.Null);
         Component mainQuest = null;
@@ -89,6 +104,29 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Component inspectionUI = arrivalCar.GetComponent(inspectionUIType);
         Assert.That(inspectionUI, Is.Not.Null);
         Assert.That(ReadProperty(inspectionUI, "SelectedPartId").ToString(), Is.EqualTo("engine"));
+        RectTransform engineHotspot = AssertHotspotLayout("engine",
+            new Vector2(47.09247f, 222.6873f), new Vector2(103f, 63f));
+        AssertHotspotLayout("battery", new Vector2(-47.5f, 218f), new Vector2(46f, 35f));
+        AssertHotspotLayout("exhaust", new Vector2(55f, -222f), new Vector2(38f, 69f));
+        AssertHotspotLayout("fuel", new Vector2(-48f, -224.5f), new Vector2(89f, 59f));
+        AssertHotspotLayout("front_left", new Vector2(-103f, 86.5f), new Vector2(41f, 73f));
+        AssertHotspotLayout("rear_left", new Vector2(-103f, -102f), new Vector2(41f, 73f));
+        AssertHotspotLayout("front_right", new Vector2(107f, 86.5f), new Vector2(41f, 73f));
+        AssertHotspotLayout("rear_right", new Vector2(107f, -102f), new Vector2(41f, 73f));
+        AssertHotspotLayout("hood", new Vector2(0f, 119f), new Vector2(110f, 85f));
+        AssertHotspotLayout("windshield", new Vector2(0f, 48f), new Vector2(107f, 52f));
+        RectTransform selectedPart = FindInactiveTransform("Selected Vehicle Part") as RectTransform;
+        Assert.That(selectedPart, Is.Not.Null);
+        Assert.That(selectedPart.sizeDelta.x, Is.EqualTo(engineHotspot.sizeDelta.x).Within(0.1f));
+        Assert.That(selectedPart.sizeDelta.y, Is.EqualTo(engineHotspot.sizeDelta.y).Within(0.1f),
+            "The active-part outline must match the white artwork frame exactly.");
+        RectTransform headerTitle = FindInactiveTransform("Header Title") as RectTransform;
+        RectTransform headerRule = FindInactiveTransform("Header Rule") as RectTransform;
+        Assert.That(headerTitle, Is.Not.Null);
+        Assert.That(headerRule, Is.Not.Null);
+        Assert.That(headerTitle.anchoredPosition.y - headerTitle.sizeDelta.y,
+            Is.GreaterThan(headerRule.anchoredPosition.y),
+            "The title must finish above the header rule instead of being clipped by it.");
         Button leftTireHotspot = FindInactiveButton("Vehicle Part Hotspot front_left");
         Assert.That(leftTireHotspot, Is.Not.Null, "The vehicle diagram must expose clickable part hotspots.");
         leftTireHotspot.onClick.Invoke();
@@ -107,6 +145,8 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Vector3 inspectionPoint = (Vector3)ReadProperty(arrivalCarComponent, "InspectionZoneWorldCenter");
         ((Component)localPlayer).transform.position = inspectionPoint;
         yield return null;
+        inspectionUIType.GetMethod("Open")?.Invoke(inspectionUI, new object[] { arrivalCarComponent });
+        Assert.That(ReadBool(inspectionUI, "IsOpen"), Is.True);
         mainQuestType.GetMethod("RequestInspectArrivalCar")?.Invoke(mainQuest, null);
         float investigationDeadline = Time.realtimeSinceStartup + 15f;
         while (Time.realtimeSinceStartup < investigationDeadline &&
@@ -115,11 +155,76 @@ public sealed class MainMenuToMilitaryQuestFlowTests
 
         Assert.That(ReadBool(mainQuest, "IsArrivalCarInspected"), Is.True,
             "Inspecting the arrival car did not advance the story hand-off.");
+        yield return null;
+        Assert.That(ReadBool(inspectionUI, "IsOpen"), Is.False,
+            "The inspection panel must close before the parts-search quest notice appears.");
+        Type radioBroadcastType = Type.GetType("RouteBRadioBroadcastUI, Assembly-CSharp");
+        Assert.That(radioBroadcastType, Is.Not.Null);
+        Assert.That(GameObject.Find("Route B Radio Broadcast UI"), Is.Not.Null,
+            "The emergency broadcast must introduce Route B before the tracking choice.");
+        Assert.That((bool)radioBroadcastType.GetProperty("IsVisible")?.GetValue(null), Is.True);
+        Assert.That(GameObject.Find("Escape Route Decision UI"), Is.Null,
+            "The tracking choice must wait until the opening radio sequence finishes.");
+        radioBroadcastType.GetMethod("SkipIfOpen", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        float routeChoiceDeadline = Time.realtimeSinceStartup + 5f;
+        while (GameObject.Find("Escape Route Decision UI") == null &&
+               Time.realtimeSinceStartup < routeChoiceDeadline)
+            yield return null;
+
+        Type routeDecisionType = Type.GetType("EscapeRouteDecisionUI, Assembly-CSharp");
+        Assert.That(routeDecisionType, Is.Not.Null);
+        Assert.That(GameObject.Find("Escape Route Decision UI"), Is.Not.Null,
+            "Closing the first inspection must introduce both escape routes.");
+        Assert.That(FindInactiveTransform("Tracking Does Not Lock Ending"), Is.Not.Null,
+            "The route choice must say that tracking does not lock an ending.");
+        Assert.That(FindInactiveTransform("Route Profile"), Is.Not.Null,
+            "Each tracking card must explain its experience and risk profile.");
+        Assert.That(ReadProperty(mainQuest, "LockedEscapeRoute").ToString(), Is.EqualTo("None"),
+            "Introducing or tracking a route must not lock an ending.");
+        routeDecisionType.GetMethod("CloseIfOpen", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
         Assert.That(ReadBool(mainQuest, "IsNeighborhoodConfigured"), Is.True,
             "State Authority did not replicate the shared opening neighborhood.");
         Assert.That(ReadProperty(mainQuest, "CurrentStage").ToString(), Is.EqualTo("SearchNeighborhood"));
         int searchHouseCount = (int)ReadProperty(mainQuest, "SearchHouseCount");
         Assert.That(searchHouseCount, Is.EqualTo(6));
+
+        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
+        Type itemLoaderType = Type.GetType("ItemDataLoader, Assembly-CSharp");
+        Component inventory = ((Component)localPlayer).GetComponent(inventoryType);
+        Assert.That(inventory, Is.Not.Null);
+        MethodInfo loadItem = itemLoaderType?.GetMethod("LoadItem", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo addItem = inventoryType?.GetMethod("AddItem");
+        MethodInfo hasItemNamed = inventoryType?.GetMethod("HasItemNamed");
+        Assert.That(loadItem, Is.Not.Null);
+        Assert.That(addItem, Is.Not.Null);
+        Assert.That(hasItemNamed, Is.Not.Null);
+        foreach (string itemId in new[] { "ArrivalCarToolbox", "ArrivalCarHammer", "ArrivalCarFuelCan" })
+        {
+            object item = loadItem.Invoke(null, new object[] { itemId });
+            Assert.That(item, Is.Not.Null, "Arrival-car item catalog did not resolve " + itemId);
+            Assert.That((bool)addItem.Invoke(inventory, new[] { item, (object)1 }), Is.True);
+        }
+
+        MethodInfo requestRepair = mainQuestType.GetMethod("RequestRepairArrivalCarPart");
+        Assert.That(requestRepair, Is.Not.Null);
+        requestRepair.Invoke(mainQuest, new object[] { "engine" });
+        yield return null;
+        Assert.That(ReadBool(mainQuest, "IsArrivalCarRepaired"), Is.False,
+            "Core repair alone must not complete the optional quest.");
+        requestRepair.Invoke(mainQuest, new object[] { "fuel" });
+        float repairDeadline = Time.realtimeSinceStartup + 10f;
+        while (!ReadBool(mainQuest, "IsArrivalCarRepaired") && Time.realtimeSinceStartup < repairDeadline)
+            yield return null;
+
+        Assert.That(ReadBool(mainQuest, "IsArrivalCarRepaired"), Is.True);
+        Assert.That((bool)hasItemNamed.Invoke(inventory, new object[] { "ArrivalCarToolbox" }), Is.True,
+            "Toolbox is a retained tool, not a consumed part.");
+        Assert.That((bool)hasItemNamed.Invoke(inventory, new object[] { "ArrivalCarHammer" }), Is.True,
+            "Hammer is a retained tool, not a consumed part.");
+        Assert.That((bool)hasItemNamed.Invoke(inventory, new object[] { "ArrivalCarFuelCan" }), Is.False,
+            "Fuel must be consumed by the authoritative transaction.");
+        Assert.That(GameObject.Find("Repaired Arrival Car"), Is.Not.Null,
+            "Completing the required repair must replace the broken prop with a drivable Fusion vehicle.");
 
         Type bridgeType = Type.GetType("PreMilitaryQuestRuntimeBridge, Assembly-CSharp");
         Assert.That(bridgeType, Is.Not.Null);
@@ -205,6 +310,19 @@ public sealed class MainMenuToMilitaryQuestFlowTests
     {
         Transform transform = FindInactiveTransform(objectName);
         return transform != null ? transform.GetComponent<Button>() : null;
+    }
+
+    private static RectTransform AssertHotspotLayout(string partId, Vector2 expectedPosition,
+        Vector2 expectedSize)
+    {
+        RectTransform hotspot = FindInactiveButton("Vehicle Part Hotspot " + partId)
+            ?.GetComponent<RectTransform>();
+        Assert.That(hotspot, Is.Not.Null, "Missing hotspot for " + partId + ".");
+        Assert.That(hotspot.anchoredPosition.x, Is.EqualTo(expectedPosition.x).Within(0.01f));
+        Assert.That(hotspot.anchoredPosition.y, Is.EqualTo(expectedPosition.y).Within(0.01f));
+        Assert.That(hotspot.sizeDelta.x, Is.EqualTo(expectedSize.x).Within(0.01f));
+        Assert.That(hotspot.sizeDelta.y, Is.EqualTo(expectedSize.y).Within(0.01f));
+        return hotspot;
     }
 
     private static Transform FindInactiveTransform(string objectName)

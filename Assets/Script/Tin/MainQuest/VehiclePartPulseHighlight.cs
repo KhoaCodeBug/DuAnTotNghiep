@@ -14,7 +14,9 @@ public sealed class VehiclePartPulseHighlight : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float minimumAlpha = 0.28f;
     [SerializeField, Range(0f, 1f)] private float maximumAlpha = 0.92f;
     [SerializeField, Min(0.1f)] private float pulsesPerSecond = 0.85f;
-    [SerializeField, Range(0f, 0.08f)] private float scaleAmount = 0.018f;
+    // Keep the highlight exactly on the source artwork frame. Only alpha pulses;
+    // scaling would make the outline spill outside the white component box.
+    [SerializeField, Range(0f, 0.08f)] private float scaleAmount;
 
     private readonly Image[] borderImages = new Image[4];
     private RectTransform rectTransform;

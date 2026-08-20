@@ -40,7 +40,9 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private TextMeshProUGUI selectedPartRecommendation;
     private Image selectedPartActionBackground;
     private TextMeshProUGUI selectedPartActionText;
+    private Button selectedPartActionButton;
     private string selectedPartId;
+    private int lastDisplayedRepairMask = int.MinValue;
 
     public static ArrivalCarInspectionUI ActiveInstance { get; private set; }
     public static bool IsAnyOpen => ActiveInstance != null && ActiveInstance.IsOpen;
@@ -73,6 +75,14 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private void Update()
     {
         if (!open) return;
+
+        MainQuestManager manager = MainQuestManager.Instance;
+        int repairMask = manager != null && manager.IsNetworkReady ? manager.ArrivalCarRepairMask : 0;
+        if (repairMask != lastDisplayedRepairMask)
+        {
+            lastDisplayedRepairMask = repairMask;
+            SelectVehiclePart(string.IsNullOrEmpty(selectedPartId) ? "engine" : selectedPartId);
+        }
 
         if (hoodDamageGraphic != null)
         {
@@ -115,6 +125,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
         owner = target;
         open = true;
+        lastDisplayedRepairMask = int.MinValue;
         ActiveInstance = this;
         waitForInteractionKeyRelease = true;
         previousCursorVisible = Cursor.visible;
@@ -187,12 +198,12 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         RectTransform shell = Box("Vehicle Condition Window", overlayRoot.transform, new Vector2(0.5f, 0.5f),
             new Vector2(1420f, 820f), Vector2.zero, Background);
         AddBorder(shell, new Color(0.7f, 0.72f, 0.7f, 0.9f), 2f);
-        Box("Header Rule", shell, new Vector2(0.5f, 1f), new Vector2(1420f, 3f), new Vector2(0f, -86f), Border);
+        Box("Header Rule", shell, new Vector2(0.5f, 1f), new Vector2(1420f, 3f), new Vector2(0f, -96f), Border);
         Text(shell, "Header Eyebrow", "KIỂM TRA PHƯƠNG TIỆN  //  XE DÂN DỤNG", 13f, Muted,
-            FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(700f, 26f),
-            new Vector2(36f, -26f));
-        Text(shell, "Header Title", "TÌNH TRẠNG XE", 30f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(760f, 44f), new Vector2(36f, -52f));
+            FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(700f, 22f),
+            new Vector2(36f, -18f));
+        Text(shell, "Header Title", "TÌNH TRẠNG XE", 28f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(760f, 38f), new Vector2(36f, -45f));
 
         RectTransform close = Box("Close Button", shell, new Vector2(1f, 1f), new Vector2(52f, 52f),
             new Vector2(-26f, -26f), new Color(0.12f, 0.125f, 0.12f, 1f));
@@ -247,8 +258,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             typeof(VehiclePartPulseHighlight));
         selection.transform.SetParent(imageRect, false);
         selectedPartHighlight = selection.GetComponent<RectTransform>();
-        SetRect(selectedPartHighlight, new Vector2(0.5f, 0.5f), new Vector2(91f, 61f),
-            new Vector2(46f, 221.5f));
+        SetRect(selectedPartHighlight, new Vector2(0.5f, 0.5f), new Vector2(103f, 63f),
+            new Vector2(47.09247f, 222.6873f));
         selectedPartPulse = selection.GetComponent<VehiclePartPulseHighlight>();
 
         for (int i = 0; i < vehicleParts.Count; i++)
@@ -304,7 +315,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         selectedPartActionText = Text(action, "Selected Part Action Text", string.Empty, 12f, Color.white,
             FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f),
             new Vector2(153f, 32f), Vector2.zero);
-        MakeClickable(action, InvokeSelectedPartAction);
+        selectedPartActionButton = MakeClickable(action, InvokeSelectedPartAction);
     }
 
     private void BuildPartGroup(Transform parent, string title, string[] partIds, float x, float y)
@@ -344,22 +355,33 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
         if (selectedPartHighlight != null)
         {
-            SetRect(selectedPartHighlight, new Vector2(0.5f, 0.5f), part.DiagramSize, part.DiagramPosition);
+            SetRect(selectedPartHighlight, new Vector2(0.5f, 0.5f),
+                part.DiagramSize, part.DiagramPosition);
             selectedPartHighlight.SetAsLastSibling();
             selectedPartPulse?.Configure(GetConditionColor(part.Condition), 2f);
         }
 
         Color conditionColor = GetConditionColor(part.Condition);
+        MainQuestManager manager = MainQuestManager.Instance;
+        bool actionApplied = manager != null && manager.IsNetworkReady &&
+                             ArrivalCarRepairRules.TryGetAction(part.Id, out ArrivalCarRepairAction action) &&
+                             ArrivalCarRepairRules.IsApplied(manager.ArrivalCarRepairMask, action);
         if (selectedPartTitle != null)
         {
-            selectedPartTitle.text = part.Label.ToUpperInvariant() + "  (" + part.Condition + "%)";
-            selectedPartTitle.color = conditionColor;
+            int displayedCondition = actionApplied ? 100 : part.Condition;
+            selectedPartTitle.text = part.Label.ToUpperInvariant() + "  (" + displayedCondition + "%)";
+            selectedPartTitle.color = actionApplied ? Green : conditionColor;
             selectedPartDescription.text = part.Description;
-            selectedPartRecommendation.text = "CHẨN ĐOÁN: " + part.Recommendation + "  •  VẬT PHẨM THEO DÕI TRONG [J]";
-            selectedPartActionText.text = part.Action.ToUpperInvariant();
-            selectedPartActionBackground.color = part.Action == "Kiểm tra"
+            selectedPartRecommendation.text = actionApplied
+                ? "TRẠNG THÁI: HẠNG MỤC ĐÃ HOÀN THÀNH VÀ ĐƯỢC SERVER XÁC NHẬN."
+                : "CHẨN ĐOÁN: " + part.Recommendation + "  •  VẬT PHẨM THEO DÕI TRONG [J]";
+            selectedPartActionText.text = actionApplied ? "ĐÃ HOÀN THÀNH" : part.Action.ToUpperInvariant();
+            selectedPartActionBackground.color = actionApplied
+                ? new Color(0.08f, 0.28f, 0.16f, 1f)
+                : part.Action == "Kiểm tra"
                 ? new Color(0.18f, 0.19f, 0.185f, 1f)
                 : new Color(0.28f, 0.16f, 0.075f, 1f);
+            if (selectedPartActionButton != null) selectedPartActionButton.interactable = !actionApplied;
         }
     }
 
@@ -375,11 +397,22 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             return;
         }
 
-        string message = part.Action + " " + part.Label.ToLowerInvariant() +
-                         " cần vật phẩm phù hợp. Mở nhật ký [J] để xem trạng thái đã có/đang thiếu.";
-        selectedPartRecommendation.text = "CHƯA THỂ " + part.Action.ToUpperInvariant() +
-                                          "  •  KIỂM TRA VẬT PHẨM TRONG [J]";
-        AutoChatManager.Instance?.AddMessage("CƠ KHÍ PHƯƠNG TIỆN", message);
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady)
+        {
+            selectedPartRecommendation.text = "CHƯA THỂ KẾT NỐI VỚI TRẠNG THÁI NHIỆM VỤ. HÃY THỬ LẠI.";
+            return;
+        }
+
+        selectedPartRecommendation.text = "ĐANG XÁC NHẬN VẬT PHẨM VỚI SERVER...";
+        manager.RequestRepairArrivalCarPart(part.Id);
+    }
+
+    public void NotifyRepairResult(ArrivalCarRepairAction action, bool success, string message)
+    {
+        if (!open || selectedPartRecommendation == null) return;
+        if (success) SelectVehiclePart(selectedPartId);
+        selectedPartRecommendation.text = (success ? "HOÀN TẤT: " : "KHÔNG THỂ THỰC HIỆN: ") + message;
     }
 
     private void EnsureVehiclePartDefinitions()
@@ -388,42 +421,42 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         AddPart("engine", "Động cơ", "KHOANG ĐỘNG CƠ", 18,
             "Động cơ bị quá nhiệt và bộ đề đang kẹt.",
             "Làm nguội động cơ, kiểm tra bộ đề và hệ thống đánh lửa.", "Sửa chữa",
-            new Vector2(46f, 221.5f), new Vector2(91f, 61f));
+            new Vector2(47.09247f, 222.6873f), new Vector2(103f, 63f));
         AddPart("battery", "Ắc quy", "KHOANG ĐỘNG CƠ", 82,
             "Ắc quy vẫn còn điện và các đầu cực chưa bị ăn mòn nặng.",
             "Có thể tiếp tục sử dụng; thay thế chỉ là nâng cấp tùy chọn.", "Thay linh kiện",
-            new Vector2(-45f, 218f), new Vector2(46f, 36f));
+            new Vector2(-47.5f, 218f), new Vector2(46f, 35f));
         AddPart("exhaust", "Ống xả", "KHOANG ĐỘNG CƠ", 76,
             "Ống xả còn nguyên, chưa phát hiện rò khí nghiêm trọng.",
-            "Chưa cần can thiệp ngay.", "Kiểm tra", new Vector2(66f, -223f), new Vector2(46f, 72f));
+            "Chưa cần can thiệp ngay.", "Kiểm tra", new Vector2(55f, -222f), new Vector2(38f, 69f));
         AddPart("fuel", "Bình xăng", "NHIÊN LIỆU", 4,
             "Bình gần như cạn và không còn nhiên liệu dự phòng trên xe.",
             "Bổ sung nhiên liệu trước khi thử khởi động.", "Đổ nhiên liệu",
-            new Vector2(-48f, -225f), new Vector2(92f, 62f));
+            new Vector2(-48f, -224.5f), new Vector2(89f, 59f));
         AddPart("front_left", "Lốp trước trái", "BÁNH XE", 46,
             "Lốp trước trái đã mòn rõ và áp suất thấp.",
             "Vẫn có thể di chuyển chậm; nên thay nếu tìm được lốp tốt.", "Thay linh kiện",
-            new Vector2(-100f, 87f), new Vector2(54f, 76f));
+            new Vector2(-103f, 86.5f), new Vector2(41f, 73f));
         AddPart("rear_left", "Lốp sau trái", "BÁNH XE", 73,
             "Lốp sau trái còn sử dụng được.",
             "Theo dõi áp suất sau khi xe hoạt động.", "Kiểm tra",
-            new Vector2(-100f, -106f), new Vector2(54f, 76f));
+            new Vector2(-103f, -102f), new Vector2(41f, 73f));
         AddPart("front_right", "Lốp trước phải", "BÁNH XE", 61,
             "Lốp trước phải có dấu hiệu chai bề mặt.",
             "Có thể sử dụng tạm thời, tránh tăng tốc gấp.", "Thay linh kiện",
-            new Vector2(100f, 87f), new Vector2(54f, 76f));
+            new Vector2(107f, 86.5f), new Vector2(41f, 73f));
         AddPart("rear_right", "Lốp sau phải", "BÁNH XE", 69,
             "Lốp sau phải mòn không đều nhưng chưa thủng.",
             "Có thể tiếp tục sử dụng trong quãng đường ngắn.", "Thay linh kiện",
-            new Vector2(100f, -106f), new Vector2(54f, 76f));
+            new Vector2(107f, -102f), new Vector2(41f, 73f));
         AddPart("hood", "Nắp capo", "THÂN XE", 23,
             "Nắp capo biến dạng do nhiệt và đang che khuất điểm kẹt của bộ đề.",
             "Mở nắp và xử lý cơ cấu khóa trước khi sửa động cơ.", "Sửa chữa",
-            new Vector2(0f, 119f), new Vector2(150f, 112f));
+            new Vector2(0f, 119f), new Vector2(110f, 85f));
         AddPart("windshield", "Kính chắn gió", "THÂN XE", 57,
             "Kính chắn gió có nhiều vết xước nhưng chưa vỡ.",
             "Tầm nhìn vẫn chấp nhận được trong điều kiện sáng.", "Kiểm tra",
-            new Vector2(0f, 48f), new Vector2(120f, 58f));
+            new Vector2(0f, 48f), new Vector2(107f, 52f));
         AddPart("front_door", "Cửa trước", "THÂN XE", 89,
             "Cửa trước, bản lề và khóa vẫn hoạt động bình thường.",
             "Không cần sửa chữa.", "Kiểm tra", new Vector2(0f, -30f), new Vector2(122f, 118f));

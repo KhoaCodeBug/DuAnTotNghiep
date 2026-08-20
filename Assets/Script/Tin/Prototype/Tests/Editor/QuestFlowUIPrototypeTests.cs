@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
@@ -39,7 +40,7 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.HasBuiltElement("Approximate Office Area"), Is.True);
         Assert.That(prototype.HasBuiltElement("Exact Office Marker"), Is.True);
         Assert.That(prototype.HasBuiltElement("Quest Completion Notice"), Is.True);
-        Assert.That(prototype.HasBuiltElement("Journal Hint Notice"), Is.True);
+        Assert.That(prototype.HasBuiltElement("Journal Hint Notice"), Is.False);
         Assert.That(prototype.HasBuiltElement("New Quest Notice"), Is.False);
         Assert.That(prototype.HasBuiltElement("Clue Reading Overlay"), Is.True);
         Assert.That(prototype.HasBuiltElement("Reward Sparkle 1"), Is.True);
@@ -121,19 +122,15 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
-    public void SelectingSideQuestShowsRouteCluesAndMapFragmentOneReward()
+    public void PlayerCanTrackEitherEscapeRouteWithoutLockingAnEnding()
     {
-        prototype.SelectQuestForPreview(1);
+        prototype.SetTrackedEscapeRoute(EscapeEndingRoute.CivilianCar);
+        Assert.That(prototype.TrackedEscapeRoute, Is.EqualTo(EscapeEndingRoute.CivilianCar));
+        Assert.That(prototype.LockedEscapeRoute, Is.EqualTo(EscapeEndingRoute.None));
 
-        Assert.That(prototype.SelectedQuestIndex, Is.EqualTo(1));
-        Assert.That(prototype.CurrentDetailTitle, Does.Contain("GHÉP LẠI"));
-        Assert.That(prototype.CurrentContextPanelTitle, Is.EqualTo("DẤU VẾT ĐÃ THU THẬP"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("0 / 3"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐANG KHÓA"));
-
-        prototype.SelectQuestForPreview(0);
-        Assert.That(prototype.CurrentDetailTitle, Does.Contain("TUYẾN SƠ TÁN"));
-        Assert.That(prototype.CurrentContextPanelTitle, Is.EqualTo("MANH MỐI NHIỆM VỤ"));
+        prototype.SetTrackedEscapeRoute(EscapeEndingRoute.MilitaryEvacuation);
+        Assert.That(prototype.TrackedEscapeRoute, Is.EqualTo(EscapeEndingRoute.MilitaryEvacuation));
+        Assert.That(prototype.LockedEscapeRoute, Is.EqualTo(EscapeEndingRoute.None));
     }
 
     [Test]
@@ -141,20 +138,39 @@ public sealed class QuestFlowUIPrototypeTests
     {
         prototype.ApplyAuthoritativeSnapshot(0, 0, false, false, false, false,
             arrivalCarRepairUnlocked: false, arrivalCarRepaired: false);
-        Assert.That(prototype.GetTabTextForPreview(0), Does.Contain("02"));
+        Assert.That(prototype.GetTabTextForPreview(0), Does.Contain("01"));
 
         prototype.ApplyAuthoritativeSnapshot(0, 0, false, false, false, false,
             arrivalCarRepairUnlocked: true, arrivalCarRepaired: false);
-        Assert.That(prototype.GetTabTextForPreview(0), Does.Contain("03"));
+        Assert.That(prototype.GetTabTextForPreview(0), Does.Contain("02"));
 
         prototype.SelectQuestForPreview(2);
         Assert.That(prototype.SelectedQuestIndex, Is.EqualTo(2));
-        Assert.That(prototype.CurrentDetailTitle, Does.Contain("SỬA CHIẾC XE"));
+        Assert.That(prototype.CurrentDetailTitle, Does.Contain("KHÔI PHỤC CHIẾC XE"));
         Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("ĐANG THIẾU"));
         Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐANG THIẾU"));
-        Assert.That(prototype.CurrentRewardText, Does.Contain("rời khỏi khu vực"));
+        Assert.That(prototype.CurrentRewardText, Does.Contain("khám phá"));
         Assert.That(prototype.GetCarRepairRequirementStateForPreview(0), Is.EqualTo("THIẾU"));
-        Assert.That(prototype.GetCarRepairRequirementStateForPreview(4), Is.EqualTo("THIẾU"));
+        Assert.That(prototype.GetCarRepairRequirementStateForPreview(4), Is.EqualTo("CHƯA LẮP"));
+
+        prototype.ApplyAuthoritativeSnapshot(0, 0, false, false, false, false,
+            arrivalCarRepairUnlocked: true, arrivalCarRepaired: false,
+            arrivalCarRepairMask: (int)ArrivalCarRepairState.CoreRepaired);
+        prototype.SelectQuestForPreview(2);
+        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("ĐÃ SỬA BỘ ĐỀ"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐANG THIẾU"));
+        Assert.That(prototype.CurrentObjectiveProgress, Is.EqualTo("2 / 3 BẮT BUỘC"));
+
+        prototype.ApplyAuthoritativeSnapshot(0, 0, false, false, false, false,
+            arrivalCarRepairUnlocked: true, arrivalCarRepaired: true,
+            arrivalCarRepairMask: (int)ArrivalCarRepairState.RequiredComplete);
+        prototype.SelectTabForPreview(1);
+        prototype.SelectQuestForPreview(2);
+        Assert.That(prototype.SelectedQuestIndex, Is.EqualTo(2));
+        Assert.That(prototype.CurrentDetailTitle, Does.Contain("KHÔI PHỤC CHIẾC XE"));
+        Assert.That(prototype.GetCarRepairRequirementStateForPreview(0), Is.EqualTo("GIỮ LẠI"));
+        Assert.That(prototype.GetCarRepairRequirementStateForPreview(2), Is.EqualTo("ĐÃ DÙNG"));
+        Assert.That(prototype.GetCarRepairRequirementStateForPreview(3), Is.EqualTo("CHƯA LẮP"));
     }
 
     [Test]
@@ -184,10 +200,7 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐÃ TÌM THẤY"));
         Assert.That(prototype.HasMapFragment1, Is.True);
 
-        prototype.SelectTabForPreview(1);
-        prototype.SelectQuestForPreview(1);
-        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("3 / 3"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐÃ GHÉP"));
+        Assert.That(prototype.HasMapFragment1, Is.True);
     }
 
     [Test]
@@ -204,6 +217,31 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.TryGetTrackedObjectiveText(out string objective), Is.True);
         Assert.That(objective, Does.Contain("1/3"));
         Assert.That(objective, Does.Not.Contain("3/3"));
+    }
+
+    [Test]
+    public void CurrentObjectiveProgressUsesOnlyTheCountSoItCannotOverlapTheRow()
+    {
+        prototype.ApplyAuthoritativeSnapshot(0, 1 << 0,
+            officeDiscovered: false, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false);
+        prototype.SelectQuestForPreview(0);
+
+        Assert.That(prototype.CurrentObjectiveProgress, Is.EqualTo("1 / 3"));
+        Assert.That(prototype.CurrentObjectiveProgress, Does.Not.Contain("ĐÃ TÌM THẤY"));
+    }
+
+    [Test]
+    public void ArrivalCarRepairRequiresCoreAndFuelWhileUpgradesRemainOptional()
+    {
+        int state = (int)ArrivalCarRepairState.CoreRepaired;
+        Assert.That(ArrivalCarRepairRules.IsRequiredRepairComplete(state), Is.False);
+
+        state |= (int)ArrivalCarRepairState.FuelAdded;
+        Assert.That(ArrivalCarRepairRules.IsRequiredRepairComplete(state), Is.True);
+        Assert.That(ArrivalCarRepairRules.IsApplied(state, ArrivalCarRepairAction.ReplaceBattery), Is.False);
+        Assert.That(ArrivalCarRepairRules.ConsumesInstalledPart(ArrivalCarRepairAction.RepairCore), Is.False);
+        Assert.That(ArrivalCarRepairRules.ConsumesInstalledPart(ArrivalCarRepairAction.AddFuel), Is.True);
     }
 
     [Test]
@@ -259,11 +297,7 @@ public sealed class QuestFlowUIPrototypeTests
         prototype.RegisterRouteClueForPreview("BusRoute");
         prototype.RegisterRouteClueForPreview("AddressNote");
 
-        prototype.SelectTabForPreview(1);
-        prototype.SelectQuestForPreview(1);
-        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("3 / 3"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐÃ GHÉP"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(2), Is.EqualTo("ĐÃ ĐÁNH DẤU"));
+        Assert.That(prototype.HasMapFragment1, Is.True);
 
         prototype.SetMapOpenForPreview(true);
         Assert.That(prototype.CurrentMapKnowledgeLabel, Is.EqualTo("MẢNH 1  •  VỊ TRÍ CHÍNH XÁC"));
@@ -279,10 +313,8 @@ public sealed class QuestFlowUIPrototypeTests
 
         Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐÃ TÌM THẤY"));
 
-        prototype.SelectTabForPreview(2);
-        prototype.SelectQuestForPreview(1);
-        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐÃ BỎ QUA"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(2), Is.EqualTo("ĐÃ TỰ TÌM"));
+        Assert.That(prototype.HasMapFragment1, Is.False,
+            "Finding the office directly must not pretend Map Fragment 1 was awarded.");
     }
 
     [Test]
@@ -308,6 +340,8 @@ public sealed class QuestFlowUIPrototypeTests
         prototype.SelectTabForPreview(1);
         Assert.That(prototype.SelectedTabIndex, Is.EqualTo(1));
         Assert.That(prototype.IsEmptyStateVisible, Is.True);
+        Assert.That(prototype.IsQuestListDividerVisible, Is.False,
+            "The list divider must not cut through the completed-tab empty state.");
 
         prototype.SelectTabForPreview(2);
         Assert.That(prototype.SelectedTabIndex, Is.EqualTo(2));
@@ -315,6 +349,7 @@ public sealed class QuestFlowUIPrototypeTests
 
         prototype.SelectTabForPreview(0);
         Assert.That(prototype.IsEmptyStateVisible, Is.False);
+        Assert.That(prototype.IsQuestListDividerVisible, Is.True);
     }
 
     [Test]
@@ -350,11 +385,11 @@ public sealed class QuestFlowUIPrototypeTests
         prototype.RegisterRouteClueForPreview("AddressNote");
 
         Assert.That(prototype.GetTabTextForPreview(0), Does.EndWith("01"));
-        Assert.That(prototype.GetTabTextForPreview(1), Does.EndWith("01"));
+        Assert.That(prototype.GetTabTextForPreview(1), Does.EndWith("00"));
 
         prototype.RegisterMapFragment2AddedToInventoryForPreview();
         Assert.That(prototype.GetTabTextForPreview(0), Does.EndWith("00"));
-        Assert.That(prototype.GetTabTextForPreview(1), Does.EndWith("02"));
+        Assert.That(prototype.GetTabTextForPreview(1), Does.EndWith("01"));
 
         prototype.SelectTabForPreview(1);
         Assert.That(prototype.IsEmptyStateVisible, Is.False);
@@ -487,6 +522,10 @@ public sealed class QuestFlowUIPrototypeTests
 
             Assert.That(prototype.HasBuiltElement("Quest Search Zone"), Is.True);
             Assert.That(prototype.HasBuiltElement("Quest Search Zone Label"), Is.True);
+            GameObject labelPlate = GameObject.Find("Quest Search Zone Label Plate");
+            Assert.That(labelPlate, Is.Not.Null);
+            Assert.That(labelPlate.GetComponent<Image>().color.a, Is.GreaterThan(0.85f),
+                "The clue-zone label needs an opaque dark plate over the map artwork.");
             Assert.That(prototype.HasBuiltElement("Restricted Fog West"), Is.True);
             Assert.That(prototype.HasBuiltElement("Restricted Fog East"), Is.True);
             Assert.That(prototype.HasBuiltElement("Restricted Fog South"), Is.True);
@@ -572,6 +611,44 @@ public sealed class QuestFlowUIPrototypeTests
         float halfway = MilitaryQuestRules.ApplyRepairProgress(0f, 6f, 12f);
         Assert.That(halfway, Is.EqualTo(50f).Within(0.001f));
         Assert.That(MilitaryQuestRules.ApplyRepairProgress(halfway, 30f, 12f), Is.EqualTo(100f));
+    }
+
+    [Test]
+    public void EscapeEndingLocksOnlyOnceAtPointOfNoReturn()
+    {
+        Assert.That(EscapeEndingRules.CanLock(EscapeEndingRoute.None, EscapeEndingRoute.CivilianCar), Is.True);
+        Assert.That(EscapeEndingRules.CanLock(EscapeEndingRoute.None, EscapeEndingRoute.MilitaryEvacuation), Is.True);
+        Assert.That(EscapeEndingRules.CanLock(EscapeEndingRoute.CivilianCar, EscapeEndingRoute.CivilianCar), Is.True);
+        Assert.That(EscapeEndingRules.CanLock(EscapeEndingRoute.CivilianCar, EscapeEndingRoute.MilitaryEvacuation), Is.False);
+        Assert.That(EscapeEndingRules.CanLock(EscapeEndingRoute.MilitaryEvacuation, EscapeEndingRoute.CivilianCar), Is.False);
+    }
+
+    [Test]
+    public void RouteBAudioSourceCoversTheFullStoryWithUniqueRecordingPaths()
+    {
+        Assert.That(RouteBAudioContent.All.Count, Is.EqualTo(15));
+        HashSet<RouteBAudioCueId> ids = new HashSet<RouteBAudioCueId>();
+        HashSet<string> paths = new HashSet<string>();
+        for (int i = 0; i < RouteBAudioContent.All.Count; i++)
+        {
+            RouteBAudioCue cue = RouteBAudioContent.All[i];
+            Assert.That(ids.Add(cue.Id), Is.True, "Route B cue IDs must be unique.");
+            Assert.That(paths.Add(cue.AudioResourcePath), Is.True, "Recording resource paths must be unique.");
+            Assert.That(cue.Vietnamese, Is.Not.Empty);
+            Assert.That(cue.English, Is.Not.Empty);
+            Assert.That(cue.FallbackDuration, Is.GreaterThan(0f));
+        }
+    }
+
+    [Test]
+    public void RouteBOpeningIntroducesBothRoutesBeforeTrackingChoice()
+    {
+        Assert.That(RouteBAudioContent.OpeningSequence.Count, Is.EqualTo(2));
+        Assert.That(RouteBAudioContent.OpeningSequence[0].Id,
+            Is.EqualTo(RouteBAudioCueId.OpeningEmergencyBroadcast));
+        Assert.That(RouteBAudioContent.OpeningSequence[1].Id,
+            Is.EqualTo(RouteBAudioCueId.PlayerRouteReaction));
+        Assert.That(RouteBAudioContent.OpeningSequence[1].Vietnamese, Does.Contain("cả hai hướng"));
     }
 
 }

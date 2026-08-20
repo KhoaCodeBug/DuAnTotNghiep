@@ -37,7 +37,6 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private bool lastModalState;
     private bool cinematicActive;
     private bool searchZoneConfigured;
-    private bool routeClueConsumptionScheduled;
     private readonly HashSet<string> activeSearchHouseIds = new HashSet<string>();
     private Rect searchZoneMapRect;
     private bool hasSearchZoneMapRect;
@@ -165,8 +164,8 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
         MainQuestManager manager = MainQuestManager.Instance;
         bool usesAuthoritativeProgress = manager != null && manager.IsNetworkReady && manager.IsNeighborhoodConfigured;
-        bool completedNow = !usesAuthoritativeProgress &&
-                            Instance.questUI.RegisterRouteClueForPreview(clueId, deferCompletion: true);
+        if (!usesAuthoritativeProgress)
+            Instance.questUI.RegisterRouteClueForPreview(clueId, deferCompletion: true);
         Instance.questUI.ShowRouteClueReading(
             QuestRouteClueItemCatalog.GetDisplayName(kind),
             QuestRouteClueItemCatalog.GetReadingText(kind),
@@ -174,35 +173,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         if (!Instance.showClueMessages)
             Instance.questUI.CloseRouteClueReading();
 
-        if (completedNow && !Instance.routeClueConsumptionScheduled)
-        {
-            Instance.routeClueConsumptionScheduled = true;
-            Instance.StartCoroutine(Instance.ConsumeRouteClueItemsNextFrame());
-        }
-
         Instance.SyncModalUI(true);
-    }
-
-    private IEnumerator ConsumeRouteClueItemsNextFrame()
-    {
-        // Let Fusion finish the loot add/sync transaction before consuming the
-        // three source documents that have just been assembled into Mảnh 1.
-        yield return null;
-
-        Transform player = GetLocalPlayerTarget();
-        InventorySystem inventory = player != null ? player.GetComponent<InventorySystem>() : null;
-        if (inventory == null)
-        {
-            Debug.LogWarning("[PRE-MILITARY QUEST] Could not remove route clues: local inventory was not found.");
-            yield break;
-        }
-
-        int removed = 0;
-        for (int i = 0; i < PreMilitaryQuestProgress.RequiredRouteClues; i++)
-            removed += inventory.ConsumeItem(QuestRouteClueItemCatalog.GetOrCreate((QuestRouteClueKind)i), 1);
-
-        if (removed != PreMilitaryQuestProgress.RequiredRouteClues)
-            Debug.LogWarning($"[PRE-MILITARY QUEST] Removed {removed}/3 route-clue items after assembling Mảnh 1.");
     }
 
     public static void NotifyOfficeEntered(Component officeChild)
@@ -506,11 +477,15 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         signature = signature * 397 ^ (manager.IsOfficeDiscovered ? 1 : 0);
         signature = signature * 397 ^ (mapFragment2Found ? 1 : 0);
         signature = signature * 397 ^ (manager.IsArrivalCarInspected ? 1 : 0);
+        signature = signature * 397 ^ manager.ArrivalCarRepairMask;
+        signature = signature * 397 ^ (manager.IsArrivalCarRepaired ? 1 : 0);
+        signature = signature * 397 ^ manager.LockedEscapeRouteValue;
         if (signature == lastAuthoritativeSnapshotSignature) return;
 
         questUI?.ApplyAuthoritativeSnapshot(manager.SearchedHouseMask, manager.RouteClueMask,
             manager.IsOfficeDiscovered, mapFragment2Found, mapFragment2Found,
-            hasAppliedInitialAuthoritativeSnapshot, manager.IsArrivalCarInspected, false);
+            hasAppliedInitialAuthoritativeSnapshot, manager.IsArrivalCarInspected, manager.IsArrivalCarRepaired,
+            manager.ArrivalCarRepairMask, manager.LockedEscapeRoute);
         lastAuthoritativeSnapshotSignature = signature;
         hasAppliedInitialAuthoritativeSnapshot = true;
     }
