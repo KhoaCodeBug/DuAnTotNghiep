@@ -46,7 +46,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
     private void Update()
     {
         MainQuestManager manager = MainQuestManager.Instance;
-        if (manager == null || manager.IsCabinetChecked(CabinetId))
+        if (manager == null || !manager.IsCurrentOfficeObjective(CabinetId) || manager.IsCabinetChecked(CabinetId))
         {
             CancelLocalSearch();
             return;
@@ -64,7 +64,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
     private void OnGUI()
     {
         MainQuestManager manager = MainQuestManager.Instance;
-        if (manager == null || !manager.IsMapSearchActive || manager.IsQuestCutsceneActive) return;
+        if (manager == null || !manager.IsCurrentOfficeObjective(CabinetId) || manager.IsQuestCutsceneActive) return;
         if (manager.IsCabinetChecked(CabinetId)) return;
 
         Camera camera = Camera.main;
@@ -89,7 +89,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
             fontStyle = FontStyle.Bold
         };
         GUI.Box(new Rect(Screen.width * 0.5f - 185f, Screen.height - 105f, 370f, 42f),
-            GameLocalization.TranslateLiteral("PRESS [E] TO SEARCH AREA"), promptStyle);
+            manager.GetCurrentOfficeInteractionLabel(), promptStyle);
     }
 
     private IEnumerator SearchRoutine(PlayerMovement localPlayer)
@@ -111,7 +111,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
             }
 
             elapsed = Mathf.Min(searchDuration, elapsed + Time.unscaledDeltaTime);
-            AutoUIManager.Instance?.ShowReloadUI(elapsed, searchDuration, "ĐANG KIỂM TRA...");
+            AutoUIManager.Instance?.ShowReloadUI(elapsed, searchDuration, manager.GetCurrentOfficeProgressLabel());
             yield return null;
         }
 
@@ -144,7 +144,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
     {
         localPlayer = PlayerMovement.LocalPlayerInstance;
         MainQuestManager manager = MainQuestManager.Instance;
-        if (localPlayer == null || manager == null || !manager.IsMapSearchActive ||
+        if (localPlayer == null || manager == null || !manager.IsCurrentOfficeObjective(CabinetId) ||
             manager.IsCabinetChecked(CabinetId) ||
             !CanPlayerSearch(localPlayer.transform.position))
             return false;

@@ -38,6 +38,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private readonly Image[] sideClueSegmentImages = new Image[3];
     private readonly TextMeshProUGUI[] sideClueSegmentTexts = new TextMeshProUGUI[3];
     private readonly PreMilitaryQuestProgress mainQuestProgress = new PreMilitaryQuestProgress();
+    private readonly List<CarRepairRequirementView> carRepairRequirementViews =
+        new List<CarRepairRequirementView>();
 
     private Canvas canvas;
     private TMP_FontAsset font;
@@ -102,6 +104,13 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private TextMeshProUGUI currentObjectiveProgressText;
     private GameObject mainQuestTrackedMarker;
     private GameObject sideQuestTrackedMarker;
+    private GameObject carQuestTrackedMarker;
+    private GameObject carQuestHeader;
+    private RectTransform carQuestCard;
+    private Image carQuestCardImage;
+    private Image carQuestAccent;
+    private TextMeshProUGUI carQuestMetaText;
+    private GameObject carRepairRequirementsRoot;
     private TextMeshProUGUI mapLabel;
     private TextMeshProUGUI mapFooter;
     private GameObject miniMapApproximateArea;
@@ -112,6 +121,16 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private GameObject cinematicRoot;
     private QuestMapUIPrototype mapPrototype;
     private Coroutine officeRevealRoutine;
+    private float nextCarInventoryRefreshAt;
+    private Func<string[], bool> carRepairInventoryQuery;
+
+    private sealed class CarRepairRequirementView
+    {
+        public bool Required;
+        public string[] InventoryNames;
+        public Image CardBackground;
+        public TextMeshProUGUI StateText;
+    }
 
     private bool built;
     private bool journalOpen;
@@ -142,6 +161,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     public int CurrentMapRotationQuarterTurns => mapPrototype == null ? 0 : mapPrototype.CurrentRasterRotationQuarterTurns;
     public int CurrentMapSearchZoneHouseCount => mapPrototype == null ? 0 : mapPrototype.SearchZoneHouseCount;
     public bool HasPendingMapUnlockReveal => mapPrototype != null && mapPrototype.HasPendingUnlockReveal;
+    public int ActiveMapRestrictedFogCount => mapPrototype == null ? 0 : mapPrototype.ActiveRestrictedFogCount;
     public string CurrentRewardLabel => rewardLabel == null ? string.Empty : rewardLabel.text;
     public string CurrentRewardText => rewardText == null ? string.Empty : rewardText.text;
     public bool IsQuestOverlayOpen => IsJournalOpen || IsMapOpen || IsClueReadingOpen ||
@@ -232,6 +252,12 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         if (!journalOpen)
             return;
 
+        if (selectedQuestIndex == 2 && Time.unscaledTime >= nextCarInventoryRefreshAt)
+        {
+            nextCarInventoryRefreshAt = Time.unscaledTime + 0.25f;
+            RefreshCarRepairRequirementStates();
+        }
+
         if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
             SelectQuest(selectedQuestIndex - 1);
         if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
@@ -303,6 +329,21 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         return index >= 0 && index < tabTexts.Length ? tabTexts[index].text : string.Empty;
     }
 
+    public string GetCarRepairRequirementStateForPreview(int index)
+    {
+        EnsureBuiltForTests();
+        return index >= 0 && index < carRepairRequirementViews.Count
+            ? carRepairRequirementViews[index].StateText.text
+            : string.Empty;
+    }
+
+    public void SetCarRepairInventoryQuery(Func<string[], bool> query)
+    {
+        carRepairInventoryQuery = query;
+        nextCarInventoryRefreshAt = 0f;
+        RefreshCarRepairRequirementStates();
+    }
+
     public void RegisterHouseLootContainerOpenedForPreview(string houseId)
     {
         EnsureBuiltForTests();
@@ -317,14 +358,15 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     /// </summary>
     public void ApplyAuthoritativeSnapshot(int searchedHouseMask, int routeClueMask,
         bool officeDiscovered, bool officeInvestigationComplete, bool hasMapFragment2,
-        bool playTransitions)
+        bool playTransitions, bool arrivalCarRepairUnlocked = false, bool arrivalCarRepaired = false)
     {
         EnsureBuiltForTests();
         bool hadFragment1 = mainQuestProgress.HasMapFragment1;
         bool wasMainQuestComplete = mainQuestProgress.MainQuestComplete;
 
         mainQuestProgress.ApplyAuthoritativeSnapshot(searchedHouseMask, routeClueMask,
-            officeDiscovered, officeInvestigationComplete, hasMapFragment2);
+            officeDiscovered, officeInvestigationComplete, hasMapFragment2,
+            arrivalCarRepairUnlocked, arrivalCarRepaired);
         RefreshQuestPresentation();
 
         if (!playTransitions || !Application.isPlaying) return;
@@ -531,6 +573,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         RequireElement(errors, "Quest Journal");
         RequireElement(errors, "Main Quest Card");
         RequireElement(errors, "Side Quest Card");
+        RequireElement(errors, "Car Repair Quest Card");
         RequireElement(errors, "Active Empty State");
         RequireElement(errors, "Current Objective");
         RequireElement(errors, "Current Objective Progress Bar");
@@ -1018,6 +1061,25 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             new Vector2(180f, 20f), new Vector2(24f, 13f)).gameObject;
         MakeClickable(sideQuestCard, () => SelectQuest(1));
 
+        carQuestHeader = Text(left, "Car Quest Header", "PHƯƠNG TIỆN TÙY CHỌN", 11f, Mint,
+            FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(240f, 20f),
+            new Vector2(18f, -315f)).gameObject;
+        carQuestCard = Box("Car Repair Quest Card", left, new Vector2(0f, 1f), new Vector2(410f, 84f),
+            new Vector2(0f, -343f), new Color(0.065f, 0.075f, 0.072f, 1f));
+        carQuestCardImage = carQuestCard.GetComponent<Image>();
+        carQuestAccent = Box("Car Repair Quest Accent", carQuestCard, new Vector2(0f, 0.5f),
+            new Vector2(4f, 84f), new Vector2(2f, 0f), new Color(Mint.r, Mint.g, Mint.b, 0.35f)).GetComponent<Image>();
+        Text(carQuestCard, "Car Repair Quest Name", "Sửa chiếc xe chết máy", 15f, Color.white,
+            FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(290f, 26f),
+            new Vector2(24f, -17f));
+        carQuestMetaText = Text(carQuestCard, "Car Repair Quest Meta", "TÙY CHỌN", 11f, Muted,
+            FontStyles.Bold, TextAlignmentOptions.Right, new Vector2(1f, 1f), new Vector2(90f, 22f),
+            new Vector2(-18f, -17f));
+        carQuestTrackedMarker = Text(carQuestCard, "Car Repair Quest Tracked Marker", "●  ĐANG THEO DÕI", 10f,
+            Mint, FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 0f),
+            new Vector2(180f, 20f), new Vector2(24f, 13f)).gameObject;
+        MakeClickable(carQuestCard, () => SelectQuest(2));
+
         // These hidden values preserve the preview/debug API without putting the old
         // inventory-heavy context panel back into the simplified layout.
         RectTransform stateCache = Box("Quest Context State", left, new Vector2(0f, 0f),
@@ -1065,6 +1127,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         rewardText = Text(reward, "Reward Text", string.Empty, 15f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(520f, 28f), new Vector2(18f, -34f));
 
+        BuildCarRepairRequirements(right);
+
         const float actionWidth = 188f;
         const float actionHeight = 48f;
         RectTransform tracking = Box("Tracking Button", right, new Vector2(1f, 0f),
@@ -1090,6 +1154,104 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         for (int i = 0; i < 3; i++)
             BuildObjectiveRow(objectiveCache, i, new Vector2(0f, -60f * i));
         objectiveCache.gameObject.SetActive(false);
+    }
+
+    private void BuildCarRepairRequirements(Transform parent)
+    {
+        carRepairRequirementsRoot = new GameObject("Car Repair Requirements", typeof(RectTransform));
+        carRepairRequirementsRoot.transform.SetParent(parent, false);
+        RectTransform root = carRepairRequirementsRoot.GetComponent<RectTransform>();
+        SetRect(root, new Vector2(0f, 1f), new Vector2(855f, 104f), new Vector2(0f, -384f));
+
+        Text(root, "Car Requirements Header", "VẬT PHẨM CẦN TÌM  •  CẬP NHẬT THEO TÚI ĐỒ", 10f,
+            Muted, FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f),
+            new Vector2(500f, 20f), Vector2.zero);
+
+        BuildCarRequirementCard(root, 0, "Story/CarUI/Toolbox", "BỘ DỤNG CỤ", true,
+            new[] { "Toolbox", "Bộ dụng cụ", "Bộ sửa chữa quân sự", "MilitaryRepairKit" });
+        BuildCarRequirementCard(root, 1, "Story/CarUI/Hammer", "BÚA SỬA", true,
+            new[] { "Hammer", "Búa", "Búa sửa chữa" });
+        BuildCarRequirementCard(root, 2, "Story/CarUI/GasCan", "NHIÊN LIỆU", true,
+            new[] { "FuelCanister", "Can nhiên liệu" });
+        BuildCarRequirementCard(root, 3, "Story/CarUI/CarBattery", "ẮC QUY", false,
+            new[] { "CarBattery", "Ắc quy", "MilitaryBattery" });
+        BuildCarRequirementCard(root, 4, "Story/CarUI/CarTire", "LỐP XE", false,
+            new[] { "CarTire", "Lốp xe", "Lốp" });
+        carRepairRequirementsRoot.SetActive(false);
+    }
+
+    private void BuildCarRequirementCard(Transform parent, int index, string texturePath, string label,
+        bool required, string[] inventoryNames)
+    {
+        const float width = 161f;
+        RectTransform card = Box("Car Requirement " + label, parent, new Vector2(0f, 1f),
+            new Vector2(width, 70f), new Vector2(index * 173.5f, -28f),
+            new Color(0.055f, 0.06f, 0.058f, 1f));
+        AddBorder(card, new Color(0.25f, 0.28f, 0.27f, 0.85f));
+
+        Texture2D texture = Resources.Load<Texture2D>(texturePath);
+        if (texture != null)
+        {
+            texture.filterMode = FilterMode.Point;
+            texture.wrapMode = TextureWrapMode.Clamp;
+        }
+        GameObject iconObject = new GameObject("Icon", typeof(RectTransform), typeof(RawImage));
+        iconObject.transform.SetParent(card, false);
+        RectTransform iconRect = iconObject.GetComponent<RectTransform>();
+        SetRect(iconRect, new Vector2(0f, 0.5f), new Vector2(38f, 38f), new Vector2(12f, 0f));
+        RawImage icon = iconObject.GetComponent<RawImage>();
+        icon.texture = texture;
+        icon.color = texture != null ? Color.white : Muted;
+        icon.raycastTarget = false;
+
+        Text(card, "Item Name", label, 10f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(101f, 22f), new Vector2(54f, -9f));
+        Text(card, "Requirement Type", required ? "BẮT BUỘC" : "TÙY CHỌN", 8f,
+            required ? Amber : Muted, FontStyles.Bold, TextAlignmentOptions.Left,
+            new Vector2(0f, 0.5f), new Vector2(101f, 18f), new Vector2(54f, 2f));
+        TextMeshProUGUI state = Text(card, "Inventory State", "THIẾU", 9f,
+            new Color(0.95f, 0.25f, 0.2f), FontStyles.Bold, TextAlignmentOptions.Left,
+            new Vector2(0f, 0f), new Vector2(101f, 20f), new Vector2(54f, 7f));
+
+        carRepairRequirementViews.Add(new CarRepairRequirementView
+        {
+            Required = required,
+            InventoryNames = inventoryNames,
+            CardBackground = card.GetComponent<Image>(),
+            StateText = state
+        });
+    }
+
+    private void RefreshCarRepairRequirementStates()
+    {
+        if (carRepairRequirementViews.Count == 0) return;
+        int requiredOwned = 0;
+        int requiredTotal = 0;
+
+        for (int i = 0; i < carRepairRequirementViews.Count; i++)
+        {
+            CarRepairRequirementView view = carRepairRequirementViews[i];
+            bool available = mainQuestProgress.ArrivalCarRepaired ||
+                             (carRepairInventoryQuery != null && carRepairInventoryQuery(view.InventoryNames));
+            if (view.Required)
+            {
+                requiredTotal++;
+                if (available) requiredOwned++;
+            }
+
+            view.StateText.text = mainQuestProgress.ArrivalCarRepaired ? "ĐÃ DÙNG" : available ? "ĐÃ CÓ" : "THIẾU";
+            view.StateText.color = available ? Mint : new Color(0.95f, 0.25f, 0.2f);
+            view.CardBackground.color = available
+                ? new Color(Mint.r, Mint.g, Mint.b, 0.11f)
+                : new Color(0.055f, 0.06f, 0.058f, 1f);
+        }
+
+        if (selectedQuestIndex == 2 && !mainQuestProgress.ArrivalCarRepaired && requiredTotal > 0)
+        {
+            SetCurrentObjective("Thu thập vật phẩm bắt buộc để sửa xe",
+                requiredOwned + " / " + requiredTotal + " BẮT BUỘC",
+                requiredOwned / (float)requiredTotal, requiredOwned == requiredTotal ? Mint : Amber);
+        }
     }
 
     private void BuildObjectiveRow(Transform parent, int index, Vector2 topLeft)
@@ -1167,12 +1329,15 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
     private void SelectQuest(int index)
     {
-        int candidate = Wrap(index, 2);
+        int candidate = Wrap(index, 3);
         if (activeContentRoot != null && !QuestBelongsToTab(candidate, selectedTabIndex))
         {
-            int other = candidate == 0 ? 1 : 0;
-            if (QuestBelongsToTab(other, selectedTabIndex))
-                candidate = other;
+            for (int questIndex = 0; questIndex < 3; questIndex++)
+            {
+                if (!QuestBelongsToTab(questIndex, selectedTabIndex)) continue;
+                candidate = questIndex;
+                break;
+            }
         }
 
         selectedQuestIndex = candidate;
@@ -1180,26 +1345,36 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             return;
 
         bool main = selectedQuestIndex == 0;
-        mainQuestCardImage.color = main ? new Color(0.105f, 0.11f, 0.105f, 1f) : new Color(0.055f, 0.06f, 0.058f, 1f);
-        sideQuestCardImage.color = main ? new Color(0.065f, 0.075f, 0.072f, 1f) : new Color(0.085f, 0.105f, 0.098f, 1f);
+        bool route = selectedQuestIndex == 1;
+        bool car = selectedQuestIndex == 2;
+        mainQuestCardImage.color = main
+            ? new Color(0.105f, 0.11f, 0.105f, 1f)
+            : new Color(0.055f, 0.06f, 0.058f, 1f);
+        sideQuestCardImage.color = route
+            ? new Color(0.085f, 0.105f, 0.098f, 1f)
+            : new Color(0.065f, 0.075f, 0.072f, 1f);
+        carQuestCardImage.color = car
+            ? new Color(0.085f, 0.105f, 0.098f, 1f)
+            : new Color(0.065f, 0.075f, 0.072f, 1f);
         mainQuestAccent.color = main ? Amber : new Color(Amber.r, Amber.g, Amber.b, 0.28f);
-        sideQuestAccent.color = main ? new Color(Mint.r, Mint.g, Mint.b, 0.35f) : Mint;
+        sideQuestAccent.color = route ? Mint : new Color(Mint.r, Mint.g, Mint.b, 0.35f);
+        carQuestAccent.color = car ? Mint : new Color(Mint.r, Mint.g, Mint.b, 0.35f);
 
-        if (main)
-            ShowMainQuestDetails();
-        else
-            ShowSideQuestDetails();
+        if (main) ShowMainQuestDetails();
+        else if (route) ShowSideQuestDetails();
+        else ShowCarRepairQuestDetails();
     }
 
     private void ShowMainQuestDetails()
     {
+        if (carRepairRequirementsRoot != null) carRepairRequirementsRoot.SetActive(false);
         detailEyebrow.text = "NHIỆM VỤ CHÍNH  /  GIAI ĐOẠN 01";
         detailEyebrow.color = Amber;
-        detailTitle.text = "TÌM THÊM THÔNG TIN VỀ THÀNH PHỐ";
-        storyText.text = "Tìm các mảnh giấy manh mối trong tủ đồ ở những ngôi nhà xung quanh.";
+        detailTitle.text = "LẦN THEO TUYẾN SƠ TÁN CUỐI CÙNG";
+        storyText.text = "Chiếc xe đã chết máy. Hãy tìm tài liệu về nguồn vật tư và tuyến sơ tán trong các ngôi nhà xung quanh.";
 
         bool searchingClues = !mainQuestProgress.HasMapFragment1;
-        SetObjective(0, "Tìm kiếm 3 manh mối ở các ngôi nhà xung quanh",
+        SetObjective(0, "Tìm 3 tài liệu về tuyến tiếp tế và sơ tán",
             mainQuestProgress.HasMapFragment1
                 ? "HOÀN THÀNH"
                 : "ĐÃ TÌM THẤY  " + mainQuestProgress.RouteClueCount + " / " +
@@ -1211,7 +1386,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         else if (mainQuestProgress.HasMapFragment1) officeLocationStatus = "VỊ TRÍ CHÍNH XÁC";
         else officeLocationStatus = "ĐANG KHÓA";
         bool locatingOffice = mainQuestProgress.HasMapFragment1 && !mainQuestProgress.OfficeDiscovered;
-        SetObjective(1, "Xác định và tìm đến văn phòng màu tím", officeLocationStatus, locatingOffice,
+        SetObjective(1, "Đối chiếu tài liệu và tìm Văn phòng Điều phối", officeLocationStatus, locatingOffice,
             mainQuestProgress.OfficeDiscovered ? Mint : mainQuestProgress.HasMapFragment1 ? Purple : Muted);
 
         string investigationStatus = mainQuestProgress.HasMapFragment2
@@ -1219,7 +1394,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             : mainQuestProgress.OfficeInvestigationComplete ? "ĐÃ KIỂM TRA" :
             mainQuestProgress.OfficeDiscovered ? "TÌM MẢNH 2" : "CHƯA MỞ";
         bool investigatingOffice = mainQuestProgress.OfficeDiscovered && !mainQuestProgress.HasMapFragment2;
-        SetObjective(2, "Điều tra các điểm khả nghi trong văn phòng", investigationStatus, investigatingOffice,
+        SetObjective(2, "Kiểm tra bàn điều phối, radio và tủ hồ sơ", investigationStatus, investigatingOffice,
             mainQuestProgress.HasMapFragment2 ? Mint : mainQuestProgress.OfficeDiscovered ? Purple : Muted);
 
         rewardLabel.text = mainQuestProgress.MainQuestComplete ? "PHẦN THƯỞNG ĐÃ NHẬN" : "PHẦN THƯỞNG";
@@ -1230,15 +1405,15 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
                                  PreMilitaryQuestProgress.RequiredRouteClues;
 
         if (!mainQuestProgress.HasMapFragment1)
-            SetCurrentObjective("Tìm kiếm 3 manh mối ở các ngôi nhà xung quanh",
+            SetCurrentObjective("Tìm 3 tài liệu về tuyến tiếp tế và sơ tán",
                 "ĐÃ TÌM THẤY  " + mainQuestProgress.RouteClueCount + " / " +
                 PreMilitaryQuestProgress.RequiredRouteClues,
                 mainQuestProgress.RouteClueCount / (float)PreMilitaryQuestProgress.RequiredRouteClues, Amber);
         else if (!mainQuestProgress.OfficeDiscovered)
-            SetCurrentObjective("Tìm văn phòng màu tím trong khu vực đã xác định",
+            SetCurrentObjective("Tìm Văn phòng Điều phối trong khu vực đã xác định",
                 mainQuestProgress.HasMapFragment1 ? "ĐÃ XÁC ĐỊNH" : "ĐANG TÌM", 0f, Purple);
         else if (!mainQuestProgress.HasMapFragment2)
-            SetCurrentObjective("Điều tra các điểm khả nghi trong văn phòng", "ĐANG ĐIỀU TRA", 0f, Purple);
+            SetCurrentObjective("Lần theo bàn điều phối → radio → tủ hồ sơ", "ĐANG ĐIỀU TRA", 0f, Purple);
         else
             SetCurrentObjective("Nhiệm vụ đã hoàn thành", "HOÀN THÀNH", 1f, Mint);
 
@@ -1247,6 +1422,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
     private void ShowSideQuestDetails()
     {
+        if (carRepairRequirementsRoot != null) carRepairRequirementsRoot.SetActive(false);
         detailEyebrow.text = "NHIỆM VỤ PHỤ  /  TÙY CHỌN";
         detailEyebrow.color = Mint;
         detailTitle.text = "GHÉP LẠI TUYẾN ĐƯỜNG";
@@ -1281,6 +1457,42 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         UpdateTrackingPresentation();
     }
 
+    private void ShowCarRepairQuestDetails()
+    {
+        if (carRepairRequirementsRoot != null) carRepairRequirementsRoot.SetActive(true);
+        detailEyebrow.text = "NHIỆM VỤ PHỤ  /  TÙY CHỌN";
+        detailEyebrow.color = Mint;
+        detailTitle.text = "SỬA CHIẾC XE CHẾT MÁY";
+        storyText.text = "Chiếc xe vẫn có thể hoạt động nếu sửa bộ đề và bổ sung nhiên liệu. " +
+                         "Nhiệm vụ này không chặn tuyến đường đến khu quân sự.";
+
+        SetObjective(0, "Tìm bộ dụng cụ và búa sửa chữa",
+            mainQuestProgress.ArrivalCarRepaired ? "HOÀN THÀNH" : "ĐANG THIẾU",
+            !mainQuestProgress.ArrivalCarRepaired, mainQuestProgress.ArrivalCarRepaired ? Mint : Amber);
+        SetObjective(1, "Tìm một can nhiên liệu",
+            mainQuestProgress.ArrivalCarRepaired ? "HOÀN THÀNH" : "ĐANG THIẾU",
+            false, mainQuestProgress.ArrivalCarRepaired ? Mint : Amber);
+        SetObjective(2, "Quay lại mũi xe để kiểm tra và sửa chữa",
+            mainQuestProgress.ArrivalCarRepaired ? "ĐÃ SỬA XONG" : "TÙY CHỌN",
+            false, mainQuestProgress.ArrivalCarRepaired ? Mint : Muted);
+
+        rewardLabel.text = mainQuestProgress.ArrivalCarRepaired ? "PHẦN THƯỞNG ĐÃ MỞ" : "PHẦN THƯỞNG";
+        rewardText.text = mainQuestProgress.ArrivalCarRepaired
+            ? "Có thể rời khỏi khu vực bằng xe"
+            : "Mở hướng rời khỏi khu vực";
+        contextPanelTitle.text = "TÌNH TRẠNG PHƯƠNG TIỆN";
+        contextPanelCount.text = mainQuestProgress.ArrivalCarRepaired ? "HOẠT ĐỘNG" : "HƯ HỎNG";
+
+        SetCurrentObjective(mainQuestProgress.ArrivalCarRepaired
+                ? "Chiếc xe đã sẵn sàng"
+                : "Tìm dụng cụ sửa chữa và can nhiên liệu",
+            mainQuestProgress.ArrivalCarRepaired ? "HOÀN THÀNH" : "TÙY CHỌN",
+            mainQuestProgress.ArrivalCarRepaired ? 1f : 0f,
+            mainQuestProgress.ArrivalCarRepaired ? Mint : Amber);
+        RefreshCarRepairRequirementStates();
+        UpdateTrackingPresentation();
+    }
+
     private void RefreshQuestPresentation()
     {
         if (mainQuestMetaText != null)
@@ -1298,6 +1510,9 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
                     ? "XONG"
                     : mainQuestProgress.RouteClueCount + " / 3";
         }
+
+        if (carQuestMetaText != null)
+            carQuestMetaText.text = mainQuestProgress.ArrivalCarRepaired ? "XONG" : "TÙY CHỌN";
 
         if (trackedQuestIndex >= 0 && !QuestBelongsToTab(trackedQuestIndex, 0))
             trackedQuestIndex = -1;
@@ -1393,6 +1608,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             mainQuestTrackedMarker.SetActive(trackedQuestIndex == 0);
         if (sideQuestTrackedMarker != null)
             sideQuestTrackedMarker.SetActive(trackedQuestIndex == 1);
+        if (carQuestTrackedMarker != null)
+            carQuestTrackedMarker.SetActive(trackedQuestIndex == 2);
     }
 
     public bool TryGetTrackedObjectiveText(out string objective)
@@ -1404,21 +1621,27 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         if (trackedQuestIndex == 0)
         {
             if (!mainQuestProgress.HasMapFragment1)
-                objective = "Tìm kiếm manh mối trong các ngôi nhà  •  " +
+                objective = "Tìm tài liệu về tuyến tiếp tế và sơ tán  •  " +
                             mainQuestProgress.RouteClueCount + "/" + PreMilitaryQuestProgress.RequiredRouteClues;
             else if (!mainQuestProgress.OfficeDiscovered)
-                objective = "Tìm văn phòng màu tím trong khu vực đã xác định";
+                objective = "Tìm Văn phòng Điều phối trong khu vực đã xác định";
             else if (!mainQuestProgress.HasMapFragment2)
-                objective = "Điều tra các điểm khả nghi trong văn phòng";
+                objective = "Lần theo bàn điều phối → radio → tủ hồ sơ";
             else
                 return false;
         }
-        else
+        else if (trackedQuestIndex == 1)
         {
             if (mainQuestProgress.SideQuestResolved)
                 return false;
             objective = "Thu thập dấu vết tuyến đường  •  " +
                         mainQuestProgress.RouteClueCount + "/" + PreMilitaryQuestProgress.RequiredRouteClues;
+        }
+        else
+        {
+            if (!mainQuestProgress.ArrivalCarRepairUnlocked || mainQuestProgress.ArrivalCarRepaired)
+                return false;
+            objective = "TÙY CHỌN: Tìm dụng cụ sửa chữa và can nhiên liệu";
         }
 
         return true;
@@ -1465,7 +1688,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         bool mainVisible = QuestBelongsToTab(0, selectedTabIndex);
         bool sideVisible = QuestBelongsToTab(1, selectedTabIndex);
-        bool showQuestContent = mainVisible || sideVisible;
+        bool carVisible = QuestBelongsToTab(2, selectedTabIndex);
+        bool showQuestContent = mainVisible || sideVisible || carVisible;
         activeContentRoot.SetActive(true);
         emptyStateRoot.SetActive(!showQuestContent);
         questListRoot.SetActive(showQuestContent);
@@ -1474,11 +1698,13 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         mainQuestCard.gameObject.SetActive(mainVisible);
         sideQuestHeader.SetActive(sideVisible);
         sideQuestCard.gameObject.SetActive(sideVisible);
+        carQuestHeader.SetActive(carVisible);
+        carQuestCard.gameObject.SetActive(carVisible);
 
         if (showQuestContent)
         {
             if (!QuestBelongsToTab(selectedQuestIndex, selectedTabIndex))
-                selectedQuestIndex = mainVisible ? 0 : 1;
+                selectedQuestIndex = mainVisible ? 0 : sideVisible ? 1 : 2;
             SelectQuest(selectedQuestIndex);
         }
         else
@@ -1506,6 +1732,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         int count = 0;
         if (QuestBelongsToTab(0, tabIndex)) count++;
         if (QuestBelongsToTab(1, tabIndex)) count++;
+        if (QuestBelongsToTab(2, tabIndex)) count++;
         return count;
     }
 
@@ -1518,9 +1745,17 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             return false;
         }
 
-        if (tabIndex == 0) return !mainQuestProgress.SideQuestResolved;
-        if (tabIndex == 1) return mainQuestProgress.HasMapFragment1;
-        return mainQuestProgress.SideQuestSkipped;
+        if (questIndex == 1)
+        {
+            if (tabIndex == 0) return !mainQuestProgress.SideQuestResolved;
+            if (tabIndex == 1) return mainQuestProgress.HasMapFragment1;
+            return mainQuestProgress.SideQuestSkipped;
+        }
+
+        if (!mainQuestProgress.ArrivalCarRepairUnlocked) return false;
+        if (tabIndex == 0) return !mainQuestProgress.ArrivalCarRepaired;
+        if (tabIndex == 1) return mainQuestProgress.ArrivalCarRepaired;
+        return false;
     }
 
     private void ReplayNotice()
@@ -1597,6 +1832,10 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         if (noticeRoot != null)
             noticeRoot.SetActive(false);
+
+        nextCarInventoryRefreshAt = 0f;
+        if (selectedQuestIndex == 2)
+            RefreshCarRepairRequirementStates();
     }
 
     private void RequireElement(List<string> errors, string elementName)

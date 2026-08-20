@@ -105,3 +105,8 @@ ProjectSettings/McpUnitySettings.json
 # Environment fixer generated preview images
 /Assets/Khoa/House/Preview/
 /Assets/Khoa/House/Preview.meta
+
+# Local Codex handoff/render artifacts (not required by the Unity project)
+/.codex-artifacts/
+/.codex-remote-attachments/
+/.docx_temp/

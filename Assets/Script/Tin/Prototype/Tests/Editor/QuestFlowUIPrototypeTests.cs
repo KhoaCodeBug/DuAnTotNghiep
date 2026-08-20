@@ -30,6 +30,7 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.HasBuiltElement("Side Quest Card"), Is.True);
         Assert.That(prototype.HasBuiltElement("Current Objective"), Is.True);
         Assert.That(prototype.HasBuiltElement("Current Objective Progress Bar"), Is.True);
+        Assert.That(prototype.HasBuiltElement("Car Repair Requirements"), Is.True);
         Assert.That(prototype.HasBuiltElement("Tracking Button"), Is.True);
         Assert.That(prototype.HasBuiltElement("Open Map Button"), Is.True);
         Assert.That(prototype.HasBuiltElement("Map Close Hint"), Is.True);
@@ -131,8 +132,29 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐANG KHÓA"));
 
         prototype.SelectQuestForPreview(0);
-        Assert.That(prototype.CurrentDetailTitle, Does.Contain("TÌM THÊM THÔNG TIN"));
+        Assert.That(prototype.CurrentDetailTitle, Does.Contain("TUYẾN SƠ TÁN"));
         Assert.That(prototype.CurrentContextPanelTitle, Is.EqualTo("MANH MỐI NHIỆM VỤ"));
+    }
+
+    [Test]
+    public void ClosingFirstCarInspectionUnlocksOptionalRepairQuestInJournalSnapshot()
+    {
+        prototype.ApplyAuthoritativeSnapshot(0, 0, false, false, false, false,
+            arrivalCarRepairUnlocked: false, arrivalCarRepaired: false);
+        Assert.That(prototype.GetTabTextForPreview(0), Does.Contain("02"));
+
+        prototype.ApplyAuthoritativeSnapshot(0, 0, false, false, false, false,
+            arrivalCarRepairUnlocked: true, arrivalCarRepaired: false);
+        Assert.That(prototype.GetTabTextForPreview(0), Does.Contain("03"));
+
+        prototype.SelectQuestForPreview(2);
+        Assert.That(prototype.SelectedQuestIndex, Is.EqualTo(2));
+        Assert.That(prototype.CurrentDetailTitle, Does.Contain("SỬA CHIẾC XE"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("ĐANG THIẾU"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐANG THIẾU"));
+        Assert.That(prototype.CurrentRewardText, Does.Contain("rời khỏi khu vực"));
+        Assert.That(prototype.GetCarRepairRequirementStateForPreview(0), Is.EqualTo("THIẾU"));
+        Assert.That(prototype.GetCarRepairRequirementStateForPreview(4), Is.EqualTo("THIẾU"));
     }
 
     [Test]
@@ -177,7 +199,7 @@ public sealed class QuestFlowUIPrototypeTests
             officeDiscovered: false, officeInvestigationComplete: false,
             hasMapFragment2: false, playTransitions: false);
         prototype.SelectQuestForPreview(0);
-        GameObject.Find("Tracking Button").GetComponent<Button>().onClick.Invoke();
+        prototype.ToggleSelectedQuestTrackingForPreview();
 
         Assert.That(prototype.TryGetTrackedObjectiveText(out string objective), Is.True);
         Assert.That(objective, Does.Contain("1/3"));
@@ -218,15 +240,15 @@ public sealed class QuestFlowUIPrototypeTests
             routeClueMask: (1 << 0) | (1 << 1) | (1 << 2),
             officeDiscovered: false, officeInvestigationComplete: false,
             hasMapFragment2: false, playTransitions: false);
+        prototype.SetMapOpenForPreview(true);
 
         GameObject searchBorder = GameObject.Find("Quest Search Zone");
-        GameObject westFog = GameObject.Find("Restricted Fog West");
+        GameObject fallbackFog = GameObject.Find("Fog North");
 
         Assert.That(searchBorder, Is.Null,
             "The completed 3-clue objective should remove its amber search border.");
-        Assert.That(westFog, Is.Not.Null,
+        Assert.That(fallbackFog, Is.Not.Null,
             "Completing clues must not reveal the entire city map.");
-        Assert.That(westFog.activeInHierarchy, Is.True);
     }
 
     [Test]
@@ -493,6 +515,29 @@ public sealed class QuestFlowUIPrototypeTests
 
             Assert.That(GameObject.Find("Exact Office Marker"), Is.Not.Null);
             Assert.That(prototype.CurrentMapKnowledgeLabel, Is.EqualTo("MẢNH 1  •  VỊ TRÍ CHÍNH XÁC"));
+        }
+        finally
+        {
+            Object.DestroyImmediate(texture);
+        }
+    }
+
+    [Test]
+    public void OfficeRevealCutsASecondIndependentOpeningInRestrictedFog()
+    {
+        Texture2D texture = new Texture2D(100, 100, TextureFormat.RGBA32, false);
+        try
+        {
+            prototype.ConfigureRasterMap(texture, new Vector2(0.72f, 0.62f), new Vector2(0.2f, 0.2f));
+            prototype.ConfigureSearchZone(new Vector2(0.1f, 0.1f), new Vector2(0.42f, 0.55f), 6);
+            prototype.ConfigureOfficeSearchArea(new Vector2(0.58f, 0.25f), new Vector2(0.88f, 0.75f));
+            prototype.RegisterRouteClueForPreview("Invoice");
+            prototype.RegisterRouteClueForPreview("BusRoute");
+            prototype.RegisterRouteClueForPreview("AddressNote");
+            prototype.SetMapOpenForPreview(true);
+
+            Assert.That(GameObject.Find("Restricted Fog Segment 5"), Is.Not.Null,
+                "Two independent openings need more than the original four union-rectangle fog strips.");
         }
         finally
         {

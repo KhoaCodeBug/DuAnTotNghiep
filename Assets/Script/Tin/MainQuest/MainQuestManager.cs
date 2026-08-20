@@ -16,7 +16,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         SearchNeighborhood,
         LocateOffice,
         FindCityMap,
-        CityMapFound
+        CityMapFound,
+        RepairArrivalCar
     }
 
     public const int MaximumSearchHouses = PreMilitaryQuestProgress.MaximumSearchHouses;
@@ -65,6 +66,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Networked] public int MapCabinetId { get; set; }
     [Networked] public NetworkBool IsCityMapUnlocked { get; set; }
     [Networked] public NetworkBool IsMilitaryRevealPlaying { get; set; }
+    [Networked] public NetworkBool IsArrivalCarInspected { get; set; }
     [Networked] public NetworkBool IsNeighborhoodConfigured { get; set; }
     [Networked] public int SearchHouseCount { get; set; }
     [Networked] public NetworkString<_64> SearchHouseId0 { get; set; }
@@ -133,6 +135,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             MapCabinetId = 0;
             IsCityMapUnlocked = false;
             IsMilitaryRevealPlaying = false;
+            IsArrivalCarInspected = false;
             IsNeighborhoodConfigured = false;
             SearchHouseCount = 0;
             SearchHouseId0 = default;
@@ -180,7 +183,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     /// </summary>
     public bool TryInitializeNeighborhood(IReadOnlyList<string> houseIds)
     {
-        if (!IsNetworkReady || !HasStateAuthority || IsNeighborhoodConfigured ||
+        if (!IsNetworkReady || !HasStateAuthority || !IsArrivalCarInspected || IsNeighborhoodConfigured ||
             CurrentStage != QuestStage.NotStarted || houseIds == null)
             return false;
 
@@ -212,8 +215,33 @@ public sealed class MainQuestManager : NetworkBehaviour
         IsOfficeDiscovered = false;
         IsNeighborhoodConfigured = true;
         NetworkQuestStage = (int)QuestStage.SearchNeighborhood;
-        RPC_ShowQuestMessage($"MỤC TIÊU MỚI: Tìm kiếm {PreMilitaryQuestProgress.RequiredRouteClues} manh mối ở các ngôi nhà xung quanh.");
+        RPC_ShowQuestMessage($"MỤC TIÊU MỚI: Tìm {PreMilitaryQuestProgress.RequiredRouteClues} tài liệu về tuyến tiếp tế và sơ tán trong các ngôi nhà xung quanh.");
         return true;
+    }
+
+    public void RequestInspectArrivalCar()
+    {
+        if (!IsNetworkReady || IsArrivalCarInspected) return;
+        if (HasStateAuthority) ServerInspectArrivalCar(Runner.LocalPlayer);
+        else RPC_RequestInspectArrivalCar();
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestInspectArrivalCar(RpcInfo info = default)
+    {
+        ServerInspectArrivalCar(info.Source);
+    }
+
+    private void ServerInspectArrivalCar(PlayerRef requester)
+    {
+        if (!HasStateAuthority || CurrentStage != QuestStage.NotStarted || IsArrivalCarInspected) return;
+        BrokenArrivalCar car = BrokenArrivalCar.Instance;
+        if (car == null || !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            !car.CanInspect(player.transform.position))
+            return;
+
+        IsArrivalCarInspected = true;
+        RPC_ShowArrivalCarInspected();
     }
 
     public string GetSearchHouseId(int index)
@@ -442,11 +470,18 @@ public sealed class MainQuestManager : NetworkBehaviour
         RebuildCabinetIndexCache(validCabinets);
         CheckedCabinetMask = 0;
 
-        // Random.Range(int, int) phân phối đều: mỗi điểm có đúng xác suất 1/N.
-        MapCabinetId = validCabinets[Random.Range(0, validCabinets.Count)].CabinetId;
+        List<MainQuestSearchCabinet> investigationOrder = BuildOfficeInvestigationOrder(validCabinets);
+        if (investigationOrder.Count < 3)
+        {
+            Debug.LogError("[MAIN QUEST] Cần ít nhất ba điểm để dựng chuỗi bàn điều phối → radio → tủ hồ sơ.");
+            RPC_ShowQuestMessage("Chưa thể bắt đầu: văn phòng thiếu điểm điều tra cốt truyện.");
+            return;
+        }
+
+        MapCabinetId = investigationOrder[0].CabinetId;
         IsOfficeDiscovered = true;
         NetworkQuestStage = (int)QuestStage.FindCityMap;
-        RPC_ShowQuestMessage("MỤC TIÊU MỚI: Kiểm tra các vị trí màu vàng bên trong văn phòng để tìm bản đồ thành phố.");
+        RPC_ShowQuestMessage("MỤC TIÊU MỚI: Kiểm tra bàn điều phối để tìm chìa khóa tủ hồ sơ.");
         RPC_ShowOfficeSearchStarted();
     }
 
@@ -459,25 +494,30 @@ public sealed class MainQuestManager : NetworkBehaviour
         int cabinetIndex = GetCabinetIndex(cabinetId);
         if (cabinetIndex >= 0 && (CheckedCabinetMask & (1 << cabinetIndex)) != 0) return;
 
-        if (cabinetId != MapCabinetId)
+        if (cabinetId != MapCabinetId) return;
+
+        List<MainQuestSearchCabinet> investigationOrder = BuildOfficeInvestigationOrder(
+            FindObjectsByType<MainQuestSearchCabinet>(FindObjectsInactive.Exclude, FindObjectsSortMode.None));
+        int investigationStep = investigationOrder.FindIndex(point => point.CabinetId == cabinetId);
+        if (investigationStep < 0 || investigationStep > 2) return;
+        if (cabinetIndex >= 0) CheckedCabinetMask |= 1 << cabinetIndex;
+
+        if (investigationStep < 2)
         {
-            if (cabinetIndex >= 0)
-                CheckedCabinetMask |= 1 << cabinetIndex;
-            RPC_ShowCabinetSearchResult(requester, false);
+            MapCabinetId = investigationOrder[investigationStep + 1].CabinetId;
+            RPC_ShowOfficeInvestigationProgress(investigationStep);
             return;
         }
 
         IsCityMapUnlocked = true;
         MapCabinetId = 0;
         NetworkQuestStage = (int)QuestStage.CityMapFound;
-        IsMilitaryRevealPlaying = true;
+        IsMilitaryRevealPlaying = false;
 
+        RPC_ShowOfficeInvestigationProgress(2);
         RPC_ShowCabinetSearchResult(requester, true);
-        RPC_ShowLocalizedQuestMessage("quest.map_clue_chat");
-        RPC_PlayMilitaryZoneReveal();
-
-        if (authoritySafetyRoutine != null) StopCoroutine(authoritySafetyRoutine);
-        authoritySafetyRoutine = StartCoroutine(AuthorityRevealSequence(requester, player.transform.position));
+        RPC_ShowQuestMessage("MỤC TIÊU MỚI: Đi đến khu quân sự theo tuyến đường vừa tìm thấy. " +
+                             "Sửa chiếc xe dân dụng vẫn là lựa chọn không bắt buộc.");
     }
 
     public bool IsCabinetChecked(int cabinetId)
@@ -487,6 +527,69 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         int cabinetIndex = GetCabinetIndex(cabinetId);
         return cabinetIndex >= 0 && (CheckedCabinetMask & (1 << cabinetIndex)) != 0;
+    }
+
+    public bool IsCurrentOfficeObjective(int cabinetId)
+    {
+        return IsNetworkReady && IsMapSearchActive && cabinetId != 0 && cabinetId == MapCabinetId;
+    }
+
+    public string GetCurrentOfficeInteractionLabel()
+    {
+        int step = GetCurrentOfficeInvestigationStep();
+        return step switch
+        {
+            0 => "GIỮ [E] ĐỂ KIỂM TRA BÀN ĐIỀU PHỐI",
+            1 => "GIỮ [E] ĐỂ KIỂM TRA RADIO",
+            2 => "GIỮ [E] ĐỂ MỞ TỦ HỒ SƠ",
+            _ => "GIỮ [E] ĐỂ KIỂM TRA"
+        };
+    }
+
+    public string GetCurrentOfficeProgressLabel()
+    {
+        int step = GetCurrentOfficeInvestigationStep();
+        return step switch
+        {
+            0 => "ĐANG KIỂM TRA BÀN ĐIỀU PHỐI...",
+            1 => "ĐANG KHÔI PHỤC BẢN GHI RADIO...",
+            2 => "ĐANG MỞ TỦ HỒ SƠ...",
+            _ => "ĐANG KIỂM TRA..."
+        };
+    }
+
+    private int GetCurrentOfficeInvestigationStep()
+    {
+        if (!IsNetworkReady || MapCabinetId == 0) return -1;
+        List<MainQuestSearchCabinet> order = BuildOfficeInvestigationOrder(
+            FindObjectsByType<MainQuestSearchCabinet>(FindObjectsInactive.Exclude, FindObjectsSortMode.None));
+        return order.FindIndex(point => point.CabinetId == MapCabinetId);
+    }
+
+    private static List<MainQuestSearchCabinet> BuildOfficeInvestigationOrder(
+        IEnumerable<MainQuestSearchCabinet> source)
+    {
+        List<MainQuestSearchCabinet> candidates = new List<MainQuestSearchCabinet>();
+        foreach (MainQuestSearchCabinet point in source)
+            if (point != null && point.CabinetId != 0)
+                candidates.Add(point);
+
+        List<MainQuestSearchCabinet> result = new List<MainQuestSearchCabinet>(3);
+        TakePoint(candidates, result, (left, right) => left.transform.position.x > right.transform.position.x);
+        TakePoint(candidates, result, (left, right) => left.transform.position.y < right.transform.position.y);
+        TakePoint(candidates, result, (left, right) => left.transform.position.y > right.transform.position.y);
+        return result;
+    }
+
+    private static void TakePoint(List<MainQuestSearchCabinet> candidates,
+        List<MainQuestSearchCabinet> result, System.Func<MainQuestSearchCabinet, MainQuestSearchCabinet, bool> prefer)
+    {
+        if (candidates.Count == 0) return;
+        MainQuestSearchCabinet selected = candidates[0];
+        for (int i = 1; i < candidates.Count; i++)
+            if (prefer(candidates[i], selected)) selected = candidates[i];
+        result.Add(selected);
+        candidates.Remove(selected);
     }
 
     private int GetCabinetIndex(int cabinetId)
@@ -707,13 +810,47 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         ShowLocalQuestEvent(
             "KHU VỰC NHIỆM VỤ MỚI",
-            "VĂN PHÒNG MÀU TÍM  •  Kiểm tra các điểm vàng để tìm bản đồ thành phố.");
+            "VĂN PHÒNG ĐIỀU PHỐI  •  Trước tiên hãy tìm chìa khóa tại bàn điều phối.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowArrivalCarInspected()
+    {
+        const string body = "TÙY CHỌN: Sửa chiếc xe để có thể rời khỏi khu vực. " +
+                            "Đang thiếu bộ dụng cụ, búa sửa chữa và can nhiên liệu; " +
+                            "ắc quy và lốp có thể được thay thêm.";
+        AutoChatManager.Instance?.AddMessage("CHIẾC XE", body);
+        ShowLocalQuestEvent("NHIỆM VỤ PHỤ MỚI", body);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowOfficeInvestigationProgress(int completedStep)
+    {
+        string title;
+        string body;
+        switch (completedStep)
+        {
+            case 0:
+                title = "ĐÃ TÌM THẤY CHÌA KHÓA";
+                body = "Sổ trực ghi rằng bản liên lạc cuối vẫn còn trong radio. Hãy kiểm tra thiết bị liên lạc.";
+                break;
+            case 1:
+                title = "ĐÃ KHÔI PHỤC BẢN GHI RADIO";
+                body = "Tuyến sơ tán đã chuyển qua trạm quân sự. Sơ đồ tuyến và hồ sơ bảo trì được khóa trong tủ lưu trữ.";
+                break;
+            default:
+                title = "ĐÃ TÌM THẤY HỒ SƠ TUYẾN CUỐI";
+                body = "Bản đồ xác nhận đường đến khu quân sự, nhưng quãng đường không an toàn nếu di chuyển bằng chân.";
+                break;
+        }
+        AutoChatManager.Instance?.AddMessage("ĐIỀU TRA", body);
+        ShowLocalQuestEvent(title, body);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowAllRouteCluesFound()
     {
-        const string message = "Dữ liệu mới đã được giải mã. Mở bản đồ [M] để kiểm tra vị trí vừa phát hiện.";
+        const string message = "Ba tài liệu cùng dẫn tới Văn phòng Điều phối. Mở bản đồ [M] để kiểm tra vị trí vừa xác định.";
         AutoChatManager.Instance?.AddMessage("MANH MỐI", message);
         ShowLocalQuestEvent("ĐÃ PHÁT HIỆN ĐỦ MANH MỐI", message);
         QuestFlowUIPrototype.Instance?.QueueMapUnlockReveal();
@@ -943,10 +1080,13 @@ public sealed class MainQuestManager : NetworkBehaviour
         {
             objective = CurrentStage switch
             {
+                QuestStage.NotStarted when IsNetworkReady && !IsArrivalCarInspected =>
+                    "Kiểm tra chiếc xe vừa chết máy",
                 QuestStage.SearchNeighborhood =>
-                    $"Tìm kiếm manh mối trong các ngôi nhà  •  {RouteClueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}",
+                    $"Tìm tài liệu về tuyến tiếp tế và sơ tán  •  {RouteClueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}",
                 QuestStage.LocateOffice => "Tìm văn phòng màu tím trong khu vực đã xác định",
                 QuestStage.FindCityMap => GameLocalization.Get("quest.find_map"),
+                QuestStage.RepairArrivalCar => "Quay lại chiếc xe và tìm cách sửa động cơ",
                 QuestStage.CityMapFound => GameLocalization.Get("quest.reach_military"),
                 _ => string.Empty
             };

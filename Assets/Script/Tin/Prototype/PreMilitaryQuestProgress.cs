@@ -34,6 +34,8 @@ public sealed class PreMilitaryQuestProgress
     public bool OfficeInvestigationComplete { get; private set; }
     public bool HasMapFragment2 { get; private set; }
     public bool MainQuestComplete => HasMapFragment2;
+    public bool ArrivalCarRepairUnlocked { get; private set; }
+    public bool ArrivalCarRepaired { get; private set; }
 
     /// <summary>
     /// Rebuilds the presentation model from Fusion's authoritative bitmasks.
@@ -41,7 +43,8 @@ public sealed class PreMilitaryQuestProgress
     /// distinct counts; the actual stable house IDs remain in MainQuestManager.
     /// </summary>
     public void ApplyAuthoritativeSnapshot(int searchedHouseMask, int routeClueMask,
-        bool officeDiscovered, bool officeInvestigationComplete, bool hasMapFragment2)
+        bool officeDiscovered, bool officeInvestigationComplete, bool hasMapFragment2,
+        bool arrivalCarRepairUnlocked = false, bool arrivalCarRepaired = false)
     {
         routeClueIds.Clear();
         _ = searchedHouseMask; // Legacy replicated field; no longer quest progress.
@@ -56,6 +59,8 @@ public sealed class PreMilitaryQuestProgress
         OfficeDiscovered = officeDiscovered;
         OfficeInvestigationComplete = officeInvestigationComplete;
         HasMapFragment2 = hasMapFragment2;
+        ArrivalCarRepairUnlocked = arrivalCarRepairUnlocked;
+        ArrivalCarRepaired = arrivalCarRepaired;
     }
 
     public OfficeKnowledgeLevel OfficeKnowledge
