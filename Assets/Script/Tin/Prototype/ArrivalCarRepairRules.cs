@@ -26,7 +26,7 @@ public enum ArrivalCarRepairState
     BatteryReplaced = 1 << 2,
     TireReplaced = 1 << 3,
 
-    RequiredComplete = CoreRepaired | FuelAdded
+    RequiredComplete = CoreRepaired | FuelAdded | BatteryReplaced | TireReplaced
 }
 
 /// <summary>
@@ -49,10 +49,9 @@ public static class ArrivalCarRepairRules
             case "battery":
                 action = ArrivalCarRepairAction.ReplaceBattery;
                 return true;
+            // The opening car has exactly one unusable tire. Healthy tires are
+            // inspection-only and must not consume the single replacement.
             case "front_left":
-            case "front_right":
-            case "rear_left":
-            case "rear_right":
                 action = ArrivalCarRepairAction.ReplaceTire;
                 return true;
             default:

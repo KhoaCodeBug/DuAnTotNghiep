@@ -64,6 +64,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Header("Arrival car completion")]
     [Tooltip("Fusion vehicle spawned over the broken story car after the required repair is complete.")]
     [SerializeField] private NetworkPrefabRef repairedArrivalCarPrefab;
+    [Tooltip("Sau bộ 5 món được bảo đảm lúc khởi tạo, mỗi loại có cơ hội sinh thêm một bản để hỗ trợ trao đổi co-op.")]
+    [SerializeField, Range(0f, 1f)] private float arrivalCarDuplicateItemChance = 0.35f;
 
     [Header("Civilian escape finale")]
     [Tooltip("Điểm bắt đầu finale tuyến A. Nếu bỏ trống, code tìm GameObject tên CivilianEscapeExit.")]
@@ -126,6 +128,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     public int SearchedHouseCount => CountBits(SearchedHouseMask);
     public int RouteClueCount => CountBits(RouteClueMask);
     public bool HasMapFragment1 => RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues;
+    public bool AreArrivalCarRequiredRepairsComplete => IsNetworkReady &&
+        ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask);
     public EscapeEndingRoute LockedEscapeRoute => IsNetworkReady
         ? (EscapeEndingRoute)LockedEscapeRouteValue
         : EscapeEndingRoute.None;
@@ -278,6 +282,13 @@ public sealed class MainQuestManager : NetworkBehaviour
         else RPC_RequestRepairArrivalCarPart((int)action);
     }
 
+    public void RequestStartArrivalCar()
+    {
+        if (!IsNetworkReady || IsArrivalCarRepaired) return;
+        if (HasStateAuthority) ServerStartArrivalCar(Runner.LocalPlayer);
+        else RPC_RequestStartArrivalCar();
+    }
+
     public void RequestCivilianEscape()
     {
         if (!IsNetworkReady || !IsArrivalCarRepaired || IsCivilianEscapeComplete) return;
@@ -336,6 +347,12 @@ public sealed class MainQuestManager : NetworkBehaviour
         ServerRepairArrivalCarPart(info.Source, (ArrivalCarRepairAction)actionValue);
     }
 
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestStartArrivalCar(RpcInfo info = default)
+    {
+        ServerStartArrivalCar(info.Source);
+    }
+
     private void ServerRepairArrivalCarPart(PlayerRef requester, ArrivalCarRepairAction action)
     {
         if (!HasStateAuthority || !IsArrivalCarInspected ||
@@ -368,19 +385,43 @@ public sealed class MainQuestManager : NetworkBehaviour
         }
 
         ArrivalCarRepairMask |= (int)ArrivalCarRepairRules.GetStateBit(action);
-        bool completedNow = !IsArrivalCarRepaired &&
-                            ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask);
-        if (completedNow)
+        RPC_ShowArrivalCarRepairResult(requester, true, (int)action,
+            GetArrivalCarActionSuccessMessage(action));
+        if (ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask))
+            RPC_ShowQuestMessage("TUYẾN A — ĐÃ ĐỦ ĐIỀU KIỆN: Quay lại bảng tình trạng xe và bấm KHỞI ĐỘNG XE.");
+    }
+
+    private void ServerStartArrivalCar(PlayerRef requester)
+    {
+        if (!HasStateAuthority || !IsArrivalCarInspected || IsArrivalCarRepaired) return;
+
+        BrokenArrivalCar car = BrokenArrivalCar.Instance;
+        if (car == null || !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            !car.CanInspect(player.transform.position))
         {
-            IsArrivalCarRepaired = true;
-            SpawnRepairedArrivalCar(car);
+            RPC_ShowArrivalCarStartResult(requester, false,
+                "Phải đứng trong vùng kiểm tra trước mũi xe để khởi động.");
+            return;
         }
 
-        RPC_ShowArrivalCarRepairResult(requester, true, (int)action,
-            completedNow
-                ? "Xe đã có thể hoạt động. Tuyến A đã sẵn sàng cho giai đoạn khám phá."
-                : GetArrivalCarActionSuccessMessage(action));
-        if (completedNow) RPC_ShowQuestMessage("TUYẾN A — XE ĐÃ HOẠT ĐỘNG: Có thể tiếp tục khám phá các lối thoát dân sự.");
+        if (!ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask))
+        {
+            RPC_ShowArrivalCarStartResult(requester, false,
+                "Động cơ, nhiên liệu, ắc quy và lốp trước trái chưa được xử lý đầy đủ.");
+            return;
+        }
+
+        if (!SpawnRepairedArrivalCar(car))
+        {
+            RPC_ShowArrivalCarStartResult(requester, false,
+                "Không thể kích hoạt phương tiện. Hãy thử lại hoặc kiểm tra cấu hình prefab xe.");
+            return;
+        }
+
+        IsArrivalCarRepaired = true;
+        RPC_ShowArrivalCarStartResult(requester, true,
+            "Động cơ đã nổ máy. Xe dân sự đã sẵn sàng để khám phá và thoát hiểm.");
+        RPC_ShowQuestMessage("TUYẾN A — XE ĐÃ KHỞI ĐỘNG: Có thể tiếp tục khám phá các lối thoát dân sự.");
     }
 
     public string GetSearchHouseId(int index)
@@ -948,8 +989,67 @@ public sealed class MainQuestManager : NetworkBehaviour
             ArrivalCarItemKind.Battery,
             ArrivalCarItemKind.Tire
         };
-        for (int i = 0; i < items.Length; i++)
-            containers[i % containers.Count].EnsureArrivalCarItem(items[i]);
+        ShuffleContainers(containers);
+        HashSet<LootContainer> guaranteedContainers = new HashSet<LootContainer>();
+        for (int itemIndex = 0; itemIndex < items.Length; itemIndex++)
+        {
+            ArrivalCarItemKind kind = items[itemIndex];
+            LootContainer placedIn = TryPlaceArrivalCarItem(containers, guaranteedContainers, kind);
+            if (placedIn == null)
+            {
+                Debug.LogError($"[ARRIVAL CAR] Không thể đặt vật phẩm bắt buộc '{kind}' vào bất kỳ container nào.");
+                continue;
+            }
+
+            guaranteedContainers.Add(placedIn);
+            Debug.Log($"[ARRIVAL CAR] Guaranteed '{kind}' in container '{placedIn.name}'.");
+        }
+
+        // No continuous server scan is needed. The authoritative setup above
+        // prevents an initial soft-lock; a small number of random extras makes
+        // sharing/trading useful without deleting or policing player loot.
+        for (int itemIndex = 0; itemIndex < items.Length; itemIndex++)
+        {
+            if (Random.value > arrivalCarDuplicateItemChance) continue;
+            ArrivalCarItemKind kind = items[itemIndex];
+            ShuffleContainers(containers);
+            for (int containerIndex = 0; containerIndex < containers.Count; containerIndex++)
+            {
+                LootContainer candidate = containers[containerIndex];
+                if (candidate.ContainsArrivalCarItem(kind)) continue;
+                if (!candidate.EnsureArrivalCarItem(kind)) continue;
+                Debug.Log($"[ARRIVAL CAR] Bonus co-op copy '{kind}' in container '{candidate.name}'.");
+                break;
+            }
+        }
+    }
+
+    private static LootContainer TryPlaceArrivalCarItem(IReadOnlyList<LootContainer> containers,
+        ISet<LootContainer> alreadyUsed, ArrivalCarItemKind kind)
+    {
+        // Prefer a distinct cabinet for every guaranteed kind. If the selected
+        // neighborhood contains fewer than five usable cabinets, fall back to
+        // sharing a cabinet instead of failing the route.
+        for (int pass = 0; pass < 2; pass++)
+        {
+            for (int i = 0; i < containers.Count; i++)
+            {
+                LootContainer candidate = containers[i];
+                if (pass == 0 && alreadyUsed.Contains(candidate)) continue;
+                if (candidate.EnsureArrivalCarItem(kind)) return candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private static void ShuffleContainers(List<LootContainer> containers)
+    {
+        for (int i = containers.Count - 1; i > 0; i--)
+        {
+            int swapIndex = Random.Range(0, i + 1);
+            (containers[i], containers[swapIndex]) = (containers[swapIndex], containers[i]);
+        }
     }
 
     private void ConsumeCollectedRouteCluesAuthoritatively()
@@ -1015,8 +1115,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         ArrivalCarRepairAction.RepairCore => "Đã xử lý nắp capo, bộ đề và động cơ. Búa và bộ dụng cụ được giữ lại.",
         ArrivalCarRepairAction.AddFuel => "Đã đổ can nhiên liệu vào bình.",
-        ArrivalCarRepairAction.ReplaceBattery => "Đã lắp ắc quy mới (nâng cấp tùy chọn).",
-        ArrivalCarRepairAction.ReplaceTire => "Đã thay lốp xuống cấp (nâng cấp tùy chọn).",
+        ArrivalCarRepairAction.ReplaceBattery => "Đã lắp ắc quy mới. Đây là hạng mục bắt buộc trước khi khởi động.",
+        ArrivalCarRepairAction.ReplaceTire => "Đã thay lốp trước trái bị hỏng. Đây là hạng mục bắt buộc trước khi chạy.",
         _ => "Đã cập nhật tình trạng xe."
     };
 
@@ -1040,9 +1140,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         return civilianEscapeExit;
     }
 
-    private void SpawnRepairedArrivalCar(BrokenArrivalCar brokenCar)
+    private bool SpawnRepairedArrivalCar(BrokenArrivalCar brokenCar)
     {
-        if (!HasStateAuthority || brokenCar == null || RepairedArrivalCarObject != null) return;
+        if (!HasStateAuthority || brokenCar == null) return false;
+        if (RepairedArrivalCarObject != null) return true;
         try
         {
             NetworkObject spawned = Runner.Spawn(repairedArrivalCarPrefab, brokenCar.transform.position,
@@ -1050,14 +1151,16 @@ public sealed class MainQuestManager : NetworkBehaviour
             if (spawned == null)
             {
                 Debug.LogError("[ARRIVAL CAR] Fusion không thể spawn prefab xe chạy được.");
-                return;
+                return false;
             }
             spawned.name = "Repaired Arrival Car";
             RepairedArrivalCarObject = spawned;
+            return true;
         }
         catch (System.Exception exception)
         {
             Debug.LogError("[ARRIVAL CAR] Không thể kích hoạt xe sau sửa chữa: " + exception.Message);
+            return false;
         }
     }
 
@@ -1128,6 +1231,14 @@ public sealed class MainQuestManager : NetworkBehaviour
         AutoChatManager.Instance?.AddMessage(success ? "SỬA XE" : "KHÔNG THỂ SỬA", message);
         ArrivalCarInspectionUI.ActiveInstance?.NotifyRepairResult(
             (ArrivalCarRepairAction)actionValue, success, message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowArrivalCarStartResult([RpcTarget] PlayerRef targetPlayer, bool success, string message)
+    {
+        if (Runner.LocalPlayer != targetPlayer) return;
+        AutoChatManager.Instance?.AddMessage(success ? "KHỞI ĐỘNG XE" : "KHÔNG THỂ KHỞI ĐỘNG", message);
+        ArrivalCarInspectionUI.ActiveInstance?.NotifyStartResult(success, message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

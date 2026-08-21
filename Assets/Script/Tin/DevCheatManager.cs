@@ -347,14 +347,10 @@ public class DevCheatManager : MonoBehaviour
             }
         });
 
-        // --- POPULATE TAB 2: BACKPACK CAPACITY TEST ---
-        AddSectionHeader(backpackTabContent.transform, "🎒 BACKPACK CAPACITY TEST (LEVEL 0 - 5)");
-        AddCapacityRow(backpackTabContent.transform, 15, "Default: 15 Slots (5 Hotbar + 10 Storage) [Level 0]");
-        AddCapacityRow(backpackTabContent.transform, 20, "Level 1: 20 Slots (5 Hotbar + 15 Storage)");
-        AddCapacityRow(backpackTabContent.transform, 25, "Level 2: 25 Slots (5 Hotbar + 20 Storage)");
-        AddCapacityRow(backpackTabContent.transform, 30, "Level 3: 30 Slots (5 Hotbar + 25 Storage)");
-        AddCapacityRow(backpackTabContent.transform, 35, "Level 4: 35 Slots (5 Hotbar + 30 Storage)");
-        AddCapacityRow(backpackTabContent.transform, 40, "Level 5 (MAX): 40 Slots (5 Hotbar + 35 Storage)");
+        // --- POPULATE TAB 2: FIXED INVENTORY CAPACITY TEST ---
+        AddSectionHeader(backpackTabContent.transform, "🎒 FIXED INVENTORY CAPACITY");
+        AddCapacityRow(backpackTabContent.transform, InventorySystem.FixedTotalSlots,
+            "20 Slots Total (5 Hotbar + 15 Storage) — No Backpack Levels");
 
         // --- POPULATE TAB 3: ITEM SPAWNER ---
         AddSectionHeader(itemsTabContent.transform, "📋 ITEM SPAWNER");
@@ -575,48 +571,21 @@ public class DevCheatManager : MonoBehaviour
             return;
         }
 
-        // Do not hide active items by reducing the visible capacity below an
-        // occupied slot.  The fixed-index inventory UI must keep its items in
-        // the visible range.
-        for (int i = targetSlots; i < cachedInventory.slots.Count; i++)
-        {
-            InventorySlot slot = cachedInventory.slots[i];
-            if (slot != null && slot.item != null && slot.amount > 0)
-            {
-                Debug.LogWarning($"[CHEAT] Capacity change to {targetSlots} rejected: slot {i} still contains {slot.item.itemName}.");
-                return;
-            }
-        }
-
-        int level = Mathf.Clamp((targetSlots - 15) / 5, 0, 5);
-        ItemData equipped = null;
-        if (level > 0)
-        {
-            foreach (ItemData item in Resources.LoadAll<ItemData>("Items"))
-            {
-                if (item != null && item.category == ItemCategory.Backpack && item.backpackLevel == level)
-                {
-                    equipped = item;
-                    break;
-                }
-            }
-        }
-
-        cachedInventory.equippedBackpack = equipped;
-        cachedInventory.currentBackpackLevel = level;
         cachedInventory.SetMaxSlots(targetSlots);
         if (AutoUIManager.Instance != null)
         {
             AutoUIManager.Instance.RefreshUI(cachedInventory.slots, cachedInventory.maxSlots);
         }
-        Debug.Log($"[CHEAT] 🎒 Capacity set to {targetSlots} Total Slots (Level {level}). Command: SetBackpackCapacity");
+        Debug.Log($"[CHEAT] 🎒 Capacity reset to fixed {InventorySystem.FixedTotalSlots} slots.");
         UpdateCapacityButtonStyles();
         UpdateStatusDisplay();
     }
 
     private void UpdateCapacityButtonStyles()
     {
-        int currentCapacity = (cachedInventory != null) ? cachedInventory.maxSlots : 15;
+        int currentCapacity = (cachedInventory != null)
+            ? cachedInventory.maxSlots
+            : InventorySystem.FixedTotalSlots;
 
         foreach (var kvp in capacityButtons)
         {
@@ -697,8 +666,8 @@ public class DevCheatManager : MonoBehaviour
 
         if (item.category == ItemCategory.Backpack)
         {
-            cachedInventory.EquipBackpack(item);
-            Debug.Log($"[CHEAT] 🎒 Equipped {item.itemName} → Capacity: {cachedInventory.maxSlots} slots");
+            Debug.LogWarning($"[CHEAT] Backpack item '{item.itemName}' is disabled; inventory stays at " +
+                             $"{InventorySystem.FixedTotalSlots} slots.");
             UpdateCapacityButtonStyles();
             UpdateStatusDisplay();
             return;

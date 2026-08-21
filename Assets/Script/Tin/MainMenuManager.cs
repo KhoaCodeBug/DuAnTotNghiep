@@ -1384,6 +1384,25 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private async void StartGameInternal(GameMode mode, string roomName)
     {
+        try
+        {
+            await StartGameAsync(mode, roomName);
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogError($"[MENU FLOW] StartGame failed for mode={mode}, room='{roomName}'.\n{exception}");
+            if (this == null || isMenuDestroyed) return;
+
+            isConnecting = false;
+            if (connectionPopupPanel != null) connectionPopupPanel.SetActive(false);
+            ShowError(string.Format(GameLocalization.Get("menu.connection_failed"), exception.Message));
+            if (characterSelectPanel != null)
+                OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
+        }
+    }
+
+    private async Task StartGameAsync(GameMode mode, string roomName)
+    {
         string popupMsg = mode == GameMode.Single
             ? "INITIALIZING SOLO PROTOCOL..."
             : (mode == GameMode.Host ? "PLANNING SURVIVAL PROTOCOL..." : "SEARCHING FOR SURVIVORS...");
@@ -1391,7 +1410,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         ShowConnectionPopup(popupMsg);
         isConnecting = true;
 
+        Debug.Log($"[MENU FLOW] Cleaning old runners before mode={mode}, room='{roomName}'.");
         await CleanupOldRunnersAsync();
+        Debug.Log("[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.");
 
         activeRunner = Instantiate(runnerPrefab);
         // The gameplay scene is loaded by this runner. It must survive the
@@ -1457,7 +1478,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 await Task.Delay(800);
                 playersLoaded = 0;
                 int sceneIndex = TutorialSession.IsActive ? tutorialSceneIndex : mainSceneIndex;
+                Debug.Log($"[MENU FLOW] Fusion loading scene index {sceneIndex} from MainMenu.");
                 await activeRunner.LoadScene(SceneRef.FromIndex(sceneIndex));
+                Debug.Log($"[MENU FLOW] Fusion scene-load await completed for index {sceneIndex}.");
             }
             else if (mode == GameMode.Host)
             {
@@ -1526,6 +1549,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnSceneLoadStart(NetworkRunner runner)
     {
+        Debug.Log($"[MENU FLOW] OnSceneLoadStart runner='{runner?.name}'.");
         isLocalSceneLoaded = false;
         isHostSignaledGo = false;
         ShowLoadingScreen();
@@ -1631,6 +1655,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void OnSceneLoadDone(NetworkRunner runner)
     {
+        Debug.Log($"[MENU FLOW] OnSceneLoadDone runner='{runner?.name}', activeScene='{SceneManager.GetActiveScene().name}'.");
         isLocalSceneLoaded = true;
 
         // Tất cả người chơi (Host + Client) đều báo đã load xong

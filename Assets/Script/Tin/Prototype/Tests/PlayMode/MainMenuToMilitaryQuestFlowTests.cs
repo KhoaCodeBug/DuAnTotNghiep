@@ -68,6 +68,80 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Type autoUIType = Type.GetType("AutoUIManager, Assembly-CSharp");
         Component autoUI = UnityEngine.Object.FindFirstObjectByType(autoUIType) as Component;
         Assert.That(autoUI, Is.Not.Null);
+        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
+        Component inventory = ((Component)localPlayer).GetComponent(inventoryType);
+        Assert.That(inventory, Is.Not.Null);
+        Assert.That((int)inventoryType.GetField("maxSlots")?.GetValue(inventory), Is.EqualTo(20));
+
+        RectTransform inventoryGrid = FindInactiveTransform("SlotGrid") as RectTransform;
+        RectTransform inventoryScroll = FindInactiveTransform("InvScrollView") as RectTransform;
+        RectTransform inventoryPanel = FindInactiveTransform("InventoryPanel") as RectTransform;
+        RectTransform containerPanel = FindInactiveTransform("ContainerPanel") as RectTransform;
+        RectTransform containerGrid = FindInactiveTransform("ContainerSlotGrid") as RectTransform;
+        Assert.That(inventoryGrid, Is.Not.Null);
+        Assert.That(inventoryPanel, Is.Not.Null);
+        Assert.That(inventoryPanel.sizeDelta.y, Is.EqualTo(530f).Within(0.1f));
+        Assert.That(inventoryGrid.childCount, Is.EqualTo(15),
+            "Fixed inventory UI must render all 15 non-hotbar slots.");
+        Assert.That(inventoryScroll, Is.Not.Null);
+        ScrollRect inventoryScrollRect = inventoryScroll.GetComponent<ScrollRect>();
+        Assert.That(inventoryScrollRect, Is.Not.Null);
+        Assert.That(inventoryScrollRect.vertical, Is.True);
+        Assert.That(inventoryScrollRect.horizontal, Is.False);
+
+        Assert.That(containerPanel, Is.Not.Null);
+        Assert.That(containerGrid, Is.Not.Null);
+        Assert.That(containerGrid.childCount, Is.EqualTo(20),
+            "Container data supports 20 stacks, so all 20 slots must be reachable in UI.");
+        GridLayoutGroup containerLayout = containerGrid.GetComponent<GridLayoutGroup>();
+        Assert.That(containerLayout, Is.Not.Null);
+        Assert.That(containerLayout.constraint, Is.EqualTo(GridLayoutGroup.Constraint.FixedColumnCount));
+        Assert.That(containerLayout.constraintCount, Is.EqualTo(4));
+
+        Type tabManagerType = Type.GetType("AutoTabManager, Assembly-CSharp");
+        Component tabManager = UnityEngine.Object.FindFirstObjectByType(tabManagerType) as Component;
+        Assert.That(tabManager, Is.Not.Null);
+        GameObject tabContainerObject = ReadPrivateField(tabManager, "tabContainer") as GameObject;
+        RectTransform tabContainer = tabContainerObject != null
+            ? tabContainerObject.GetComponent<RectTransform>()
+            : null;
+        RectTransform inventoryTitle = inventoryPanel.Find("TitleText") as RectTransform;
+        Assert.That(tabContainer, Is.Not.Null);
+        Assert.That(inventoryTitle, Is.Not.Null);
+        float tabBottom = tabContainer.anchoredPosition.y + tabContainer.rect.yMin;
+        float inventoryTitleTop = inventoryPanel.anchoredPosition.y + inventoryPanel.rect.yMax +
+                                  inventoryTitle.anchoredPosition.y;
+        Assert.That(inventoryTitleTop, Is.LessThanOrEqualTo(tabBottom - 4f),
+            "The standalone inventory title must stay below the Inventory/Health tab bar.");
+
+        inventoryPanel.gameObject.SetActive(true);
+        containerPanel.gameObject.SetActive(true);
+        autoUIType.GetMethod("UpdatePanelsLayout", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?.Invoke(autoUI, null);
+        LayoutRebuilder.ForceRebuildLayoutImmediate(inventoryPanel);
+        LayoutRebuilder.ForceRebuildLayoutImmediate(inventoryGrid);
+        LayoutRebuilder.ForceRebuildLayoutImmediate(containerGrid);
+        Canvas.ForceUpdateCanvases();
+        Bounds inventoryBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+            inventoryScrollRect.viewport, inventoryGrid);
+        Assert.That(inventoryBounds.min.y,
+            Is.GreaterThanOrEqualTo(inventoryScrollRect.viewport.rect.yMin - 1f));
+        Assert.That(inventoryBounds.max.y,
+            Is.LessThanOrEqualTo(inventoryScrollRect.viewport.rect.yMax + 1f),
+            "All 15 storage slots should be visible at once at the 1920x1080 reference layout.");
+        Bounds containerBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(containerPanel, containerGrid);
+        Assert.That(containerBounds.min.x, Is.GreaterThanOrEqualTo(containerPanel.rect.xMin - 0.5f));
+        Assert.That(containerBounds.max.x, Is.LessThanOrEqualTo(containerPanel.rect.xMax + 0.5f));
+        Assert.That(containerBounds.min.y, Is.GreaterThanOrEqualTo(containerPanel.rect.yMin - 0.5f));
+        Assert.That(containerBounds.max.y, Is.LessThanOrEqualTo(containerPanel.rect.yMax + 0.5f),
+            "The expanded 4x5 container grid must stay inside its panel.");
+        Assert.That(inventoryPanel.anchoredPosition.x + inventoryPanel.rect.xMax,
+            Is.LessThanOrEqualTo(containerPanel.anchoredPosition.x + containerPanel.rect.xMin),
+            "Inventory and container panels must not overlap when opened together.");
+
+        inventoryPanel.gameObject.SetActive(false);
+        containerPanel.gameObject.SetActive(false);
+
         autoUIType.GetMethod("ShowReloadUI")?.Invoke(autoUI,
             new object[] { 0.8f, 2f, "ĐANG KIỂM TRA ĐỘNG CƠ..." });
         RectTransform actionBar = FindInactiveTransform("ActionBarPanel") as RectTransform;
@@ -122,18 +196,48 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "The active-part outline must match the white artwork frame exactly.");
         RectTransform headerTitle = FindInactiveTransform("Header Title") as RectTransform;
         RectTransform headerRule = FindInactiveTransform("Header Rule") as RectTransform;
+        RectTransform inspectionShell = FindInactiveTransform("Vehicle Condition Window") as RectTransform;
+        RectTransform closeButtonRect = FindInactiveTransform("Close Button") as RectTransform;
+        RectTransform startEngineRect = FindInactiveTransform("Start Engine Button") as RectTransform;
         Assert.That(headerTitle, Is.Not.Null);
         Assert.That(headerRule, Is.Not.Null);
+        Assert.That(inspectionShell, Is.Not.Null);
+        Assert.That(closeButtonRect, Is.Not.Null);
+        Assert.That(startEngineRect, Is.Not.Null);
         Assert.That(headerTitle.anchoredPosition.y - headerTitle.sizeDelta.y,
             Is.GreaterThan(headerRule.anchoredPosition.y),
             "The title must finish above the header rule instead of being clipped by it.");
+        Bounds startBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+            inspectionShell, startEngineRect);
+        Bounds closeBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+            inspectionShell, closeButtonRect);
+        Bounds headerRuleBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
+            inspectionShell, headerRule);
+        Assert.That(startBounds.max.x, Is.LessThanOrEqualTo(closeBounds.min.x - 4f),
+            "Start Engine must not overlap the close button.");
+        Assert.That(startBounds.min.y, Is.GreaterThanOrEqualTo(headerRuleBounds.max.y + 1f),
+            "Start Engine must stay completely above the header divider.");
         Button leftTireHotspot = FindInactiveButton("Vehicle Part Hotspot front_left");
         Assert.That(leftTireHotspot, Is.Not.Null, "The vehicle diagram must expose clickable part hotspots.");
         leftTireHotspot.onClick.Invoke();
         Assert.That(ReadProperty(inspectionUI, "SelectedPartId").ToString(), Is.EqualTo("front_left"));
         Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("THAY LINH KIỆN"));
+        TMP_Text selectedPartTitle = (FindInactiveTransform("Selected Part Title") as RectTransform)
+            ?.GetComponent<TMP_Text>();
+        Assert.That(selectedPartTitle, Is.Not.Null);
+        Assert.That(selectedPartTitle.text, Does.Contain("0%"),
+            "The actually broken front-left tire must start at 0%. ");
         Assert.That(FindInactiveButton("Selected Part Action Button"), Is.Not.Null,
             "The selected part detail must preserve the approved contextual action button.");
+        Button startEngineButton = FindInactiveButton("Start Engine Button");
+        Assert.That(startEngineButton, Is.Not.Null);
+        Assert.That(startEngineButton.interactable, Is.False,
+            "The car cannot start before all required repairs are complete.");
+        Button healthyTireHotspot = FindInactiveButton("Vehicle Part Hotspot front_right");
+        Assert.That(healthyTireHotspot, Is.Not.Null);
+        healthyTireHotspot.onClick.Invoke();
+        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("KIỂM TRA"),
+            "A temporary 60%+ tire must not consume the only replacement tire.");
         Button exhaustHotspot = FindInactiveButton("Vehicle Part Hotspot exhaust");
         Assert.That(exhaustHotspot, Is.Not.Null);
         exhaustHotspot.onClick.Invoke();
@@ -188,17 +292,18 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         int searchHouseCount = (int)ReadProperty(mainQuest, "SearchHouseCount");
         Assert.That(searchHouseCount, Is.EqualTo(6));
 
-        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
         Type itemLoaderType = Type.GetType("ItemDataLoader, Assembly-CSharp");
-        Component inventory = ((Component)localPlayer).GetComponent(inventoryType);
-        Assert.That(inventory, Is.Not.Null);
         MethodInfo loadItem = itemLoaderType?.GetMethod("LoadItem", BindingFlags.Public | BindingFlags.Static);
         MethodInfo addItem = inventoryType?.GetMethod("AddItem");
         MethodInfo hasItemNamed = inventoryType?.GetMethod("HasItemNamed");
         Assert.That(loadItem, Is.Not.Null);
         Assert.That(addItem, Is.Not.Null);
         Assert.That(hasItemNamed, Is.Not.Null);
-        foreach (string itemId in new[] { "ArrivalCarToolbox", "ArrivalCarHammer", "ArrivalCarFuelCan" })
+        foreach (string itemId in new[]
+                 {
+                     "ArrivalCarToolbox", "ArrivalCarHammer", "ArrivalCarFuelCan",
+                     "ArrivalCarBattery", "ArrivalCarTire"
+                 })
         {
             object item = loadItem.Invoke(null, new object[] { itemId });
             Assert.That(item, Is.Not.Null, "Arrival-car item catalog did not resolve " + itemId);
@@ -212,6 +317,27 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(ReadBool(mainQuest, "IsArrivalCarRepaired"), Is.False,
             "Core repair alone must not complete the optional quest.");
         requestRepair.Invoke(mainQuest, new object[] { "fuel" });
+        yield return null;
+        requestRepair.Invoke(mainQuest, new object[] { "battery" });
+        yield return null;
+        requestRepair.Invoke(mainQuest, new object[] { "front_left" });
+        yield return null;
+        Assert.That(ReadBool(mainQuest, "AreArrivalCarRequiredRepairsComplete"), Is.True);
+        Assert.That(ReadBool(mainQuest, "IsArrivalCarRepaired"), Is.False,
+            "Completing the parts must not bypass the approved Start Engine button.");
+        Assert.That(GameObject.Find("Repaired Arrival Car"), Is.Null,
+            "The drivable vehicle must not spawn before Start Engine succeeds.");
+
+        inspectionUIType.GetMethod("Open")?.Invoke(inspectionUI, new object[] { arrivalCarComponent });
+        yield return null;
+        startEngineButton = FindInactiveButton("Start Engine Button");
+        Assert.That(startEngineButton, Is.Not.Null);
+        Assert.That(startEngineButton.interactable, Is.True,
+            "Start Engine must become available after all four repairs.");
+        TMP_Text startEngineText = startEngineButton.GetComponentInChildren<TMP_Text>(true);
+        Assert.That(startEngineText, Is.Not.Null);
+        Assert.That(startEngineText.text, Is.EqualTo("KHỞI ĐỘNG XE"));
+        startEngineButton.onClick.Invoke();
         float repairDeadline = Time.realtimeSinceStartup + 10f;
         while (!ReadBool(mainQuest, "IsArrivalCarRepaired") && Time.realtimeSinceStartup < repairDeadline)
             yield return null;
@@ -223,8 +349,12 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "Hammer is a retained tool, not a consumed part.");
         Assert.That((bool)hasItemNamed.Invoke(inventory, new object[] { "ArrivalCarFuelCan" }), Is.False,
             "Fuel must be consumed by the authoritative transaction.");
+        Assert.That((bool)hasItemNamed.Invoke(inventory, new object[] { "ArrivalCarBattery" }), Is.False,
+            "The installed battery must be consumed by the authoritative transaction.");
+        Assert.That((bool)hasItemNamed.Invoke(inventory, new object[] { "ArrivalCarTire" }), Is.False,
+            "The installed tire must be consumed by the authoritative transaction.");
         Assert.That(GameObject.Find("Repaired Arrival Car"), Is.Not.Null,
-            "Completing the required repair must replace the broken prop with a drivable Fusion vehicle.");
+            "Starting after all required repairs must replace the broken prop with a drivable Fusion vehicle.");
 
         Type bridgeType = Type.GetType("PreMilitaryQuestRuntimeBridge, Assembly-CSharp");
         Assert.That(bridgeType, Is.Not.Null);
