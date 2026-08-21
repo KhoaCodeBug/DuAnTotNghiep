@@ -13,6 +13,11 @@ public class PlayerMovement : NetworkBehaviour
     public float aimSpeed = 2f;
     public float crouchSpeed = 2.5f;
 
+    [Header("--- Isometric Movement Projection ---")]
+    [SerializeField, Range(0.25f, 1f)]
+    [Tooltip("Vertical compression of Main's 2:1 isometric Grid. Keep at 0.5 unless the map projection changes.")]
+    private float isometricVerticalScale = IsometricMovementProjection.DefaultVerticalScale;
+
     [Header("--- Aiming & Hardware Cursor ---")]
     public Texture2D crosshairTexture;
     [Tooltip("Tọa độ tâm của tấm hình. Ví dụ hình 32x32 thì tâm là X:16, Y:16")]
@@ -271,10 +276,14 @@ public class PlayerMovement : NetworkBehaviour
                 input.isRunning = false;
             }
 
+            Vector2 worldMoveInput = IsometricMovementProjection.ProjectInput(
+                input.moveInput,
+                isometricVerticalScale);
+
             NetIsAiming = input.isAiming;
             NetIsVehicleBraking = false;
-            NetMoveInput = input.moveInput;
-            NetIsMoving = input.moveInput.magnitude > 0.1f;
+            NetMoveInput = worldMoveInput;
+            NetIsMoving = worldMoveInput.magnitude > 0.1f;
             NetIsRunning = input.isRunning && NetIsMoving;
 
             if (input.isCrouching && !PrevInputCrouch)
@@ -296,9 +305,9 @@ public class PlayerMovement : NetworkBehaviour
                     NetLastLookDir = SnapTo8Way(lookVector);
                 }
             }
-            else if (input.moveInput != Vector2.zero)
+            else if (worldMoveInput != Vector2.zero)
             {
-                NetLastLookDir = SnapTo8Way(input.moveInput);
+                NetLastLookDir = SnapTo8Way(worldMoveInput);
             }
 
             float currentSpeed = walkSpeed;
@@ -325,7 +334,7 @@ public class PlayerMovement : NetworkBehaviour
                 currentSpeed *= survivalSystem.GetFatigueMovementMultiplier();
             }
 
-            rb.linearVelocity = input.moveInput * currentSpeed;
+            rb.linearVelocity = worldMoveInput * currentSpeed;
 
             staminaSystem.UpdateStamina(NetIsRunning, NetIsMoving);
             HandleMovementNoise(NetIsMoving);

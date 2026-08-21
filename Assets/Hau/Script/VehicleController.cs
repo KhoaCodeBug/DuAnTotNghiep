@@ -8,6 +8,7 @@ using UnityEngine.Rendering.Universal;
 public class VehicleControllerFusion : NetworkBehaviour
 {
     private enum SeatSlot { Driver, FrontPassenger, RearLeftPassenger, RearRightPassenger, None }
+    private enum DirectionLayout { LegacyFiveByFive, EightWayIsometric }
 
     [Header("Seat anchors")]
     [SerializeField] private Transform driverSeat;
@@ -39,10 +40,14 @@ public class VehicleControllerFusion : NetworkBehaviour
     [SerializeField, Range(0f, 1f)] private float lateralGrip = 0.68f;
     [SerializeField, Range(0f, 1f)] private float steeringAtLowSpeed = 0.45f;
     [SerializeField, Min(0.01f)] private float gearChangeSpeedThreshold = 0.12f;
-    [SerializeField, Range(0, DirectionCount - 1)] private int initialDirectionIndex = 2;
+    [SerializeField] private DirectionLayout directionLayout = DirectionLayout.LegacyFiveByFive;
+    [SerializeField, Range(0, LegacyDirectionCount - 1)] private int initialDirectionIndex = 2;
+    [SerializeField, Range(0.1f, 1f)] private float isometricVerticalScale =
+        IsometricMovementProjection.DefaultVerticalScale;
+    [SerializeField] private bool showDirectionDebug;
 
     [Header("Visuals")]
-    [SerializeField] private Sprite[] directionSprites = new Sprite[25];
+    [SerializeField] private Sprite[] directionSprites = new Sprite[LegacyDirectionCount];
     [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private Animator animator;
     [SerializeField] private Camera vehicleCamera;
@@ -50,6 +55,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     [Header("Collision")]
     [SerializeField] private PolygonCollider2D bodyCollider;
     [SerializeField] private CircleCollider2D interactionCollider;
+    [SerializeField, Min(0.01f)] private float directionColliderScale = 1f;
 
     [Header("Headlights and vehicle vision")]
     [Tooltip("Legacy/main beam reference. Used as the left headlight.")]
@@ -83,7 +89,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     [Networked] public int DirectionIndex { get; private set; }
     [Networked] private float HeadingDegrees { get; set; }
 
-    private const int DirectionCount = 25;
+    private const int LegacyDirectionCount = 25;
     private Rigidbody2D rb;
     private int displayedDirection = -1;
     private Coroutine doorSequence;
@@ -93,7 +99,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     private ContactFilter2D zombieContactFilter;
 
     public Vector2 VisionOrigin => transform.position;
-    public Vector2 VisionDirection => GridIndexToVector(DirectionIndex);
+    public Vector2 VisionDirection => DirectionIndexToWorldVector(DirectionIndex);
     public float VisionRadius => HeadlightsOn ? headlightVisionRadius : lightsOffVisionRadius;
     public float VisionAngle => HeadlightsOn ? EffectiveHeadlightAngle : 360f;
     private float EffectiveHeadlightAngle => Mathf.Clamp(headlightVisionAngle, 20f, 60f);
@@ -112,7 +118,7 @@ public class VehicleControllerFusion : NetworkBehaviour
         ConfigureHeadlights();
         ConfigureDoorAudio();
         ConfigureZombieContactFilter();
-        UpdateBodyCollider(initialDirectionIndex);
+        UpdateBodyCollider(ClampDirectionIndex(initialDirectionIndex));
         SetVehicleMotionLocked(true);
         if (vehicleCamera != null) vehicleCamera.gameObject.SetActive(false);
     }
@@ -121,8 +127,8 @@ public class VehicleControllerFusion : NetworkBehaviour
     {
         if (!HasStateAuthority) return;
         rb.bodyType = RigidbodyType2D.Dynamic;
-        DirectionIndex = Mathf.Clamp(initialDirectionIndex, 0, DirectionCount - 1);
-        HeadingDegrees = VectorToHeading(GridIndexToVector(DirectionIndex));
+        DirectionIndex = ClampDirectionIndex(initialDirectionIndex);
+        HeadingDegrees = DirectionIndexToHeading(DirectionIndex);
         HeadlightsOn = false;
         UpdateBodyCollider(DirectionIndex);
     }
@@ -272,6 +278,32 @@ public class VehicleControllerFusion : NetworkBehaviour
     {
         ApplyDirectionalVisual();
         ApplyHeadlightVisual();
+    }
+
+    private void OnGUI()
+    {
+        if (!showDirectionDebug || directionLayout != DirectionLayout.EightWayIsometric) return;
+
+        PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+        PlayerInteraction interaction = localPlayer != null
+            ? localPlayer.GetComponent<PlayerInteraction>()
+            : null;
+        if (interaction == null || !interaction.IsVehicleDriver || interaction.CurrentVehicleController != this)
+            return;
+
+        int index = EightWayDirection.NormalizeIndex(DirectionIndex);
+        string direction = EightWayDirection.IndexToLabel(index);
+        GUIStyle style = new(GUI.skin.box)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 16,
+            fontStyle = FontStyle.Bold,
+            normal = { textColor = Color.white }
+        };
+        GUI.Box(
+            new Rect(Screen.width * 0.5f - 150f, 104f, 300f, 38f),
+            $"SEDAN FRONT: {direction}   |   INDEX: {index}",
+            style);
     }
 
     public void SetCamera(bool enable)
@@ -450,7 +482,7 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     private void SimulateDrive(Vector2 input, bool handbrake)
     {
-        Vector2 forward = HeadingToVector(HeadingDegrees);
+        Vector2 forward = HeadingToWorldVector(HeadingDegrees);
         float forwardSpeed = Vector2.Dot(rb.linearVelocity, forward);
         float throttle = Mathf.Clamp(input.y, -1f, 1f);
 
@@ -485,7 +517,7 @@ public class VehicleControllerFusion : NetworkBehaviour
         rb.linearVelocity = forward * forwardSpeed + lateral * (1f - lateralGrip);
         float speedFactor = Mathf.Lerp(steeringAtLowSpeed, 1f, Mathf.Clamp01(Mathf.Abs(forwardSpeed) / maxForwardSpeed));
         HeadingDegrees = Mathf.Repeat(HeadingDegrees + input.x * turnSpeed * speedFactor * (forwardSpeed < -0.01f ? -1f : 1f) * Runner.DeltaTime, 360f);
-        DirectionIndex = HeadingToGridIndex(HeadingToVector(HeadingDegrees));
+        DirectionIndex = HeadingToDirectionIndex(HeadingDegrees);
         UpdateBodyCollider(DirectionIndex);
         IsMoving = Mathf.Abs(forwardSpeed) > 0.05f;
     }
@@ -501,7 +533,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     {
         if (DirectionIndex == displayedDirection) return;
         displayedDirection = DirectionIndex;
-        if (directionSprites != null && directionSprites.Length == DirectionCount && directionSprites[DirectionIndex] != null)
+        if (directionSprites != null && directionSprites.Length == ActiveDirectionCount && directionSprites[DirectionIndex] != null)
         {
             if (animator != null) animator.enabled = false;
             if (spriteRenderer != null) spriteRenderer.sprite = directionSprites[DirectionIndex];
@@ -528,7 +560,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     private void UpdateBodyCollider(int directionIndex)
     {
         if (bodyCollider == null) return;
-        int index = Mathf.Clamp(directionIndex, 0, DirectionCount - 1);
+        int index = ClampDirectionIndex(directionIndex);
         Sprite sprite = directionSprites != null && index < directionSprites.Length
             ? directionSprites[index]
             : null;
@@ -541,6 +573,11 @@ public class VehicleControllerFusion : NetworkBehaviour
         {
             points.Clear();
             sprite.GetPhysicsShape(path, points);
+            if (!Mathf.Approximately(directionColliderScale, 1f))
+            {
+                for (int point = 0; point < points.Count; point++)
+                    points[point] *= directionColliderScale;
+            }
             bodyCollider.SetPath(path, points);
         }
     }
@@ -799,8 +836,8 @@ public class VehicleControllerFusion : NetworkBehaviour
     private Vector2 GetAnchorWorldPosition(Transform anchor)
     {
         if (anchor == null) return transform.position;
-        Vector2 referenceForward = GridIndexToVector(Mathf.Clamp(initialDirectionIndex, 0, DirectionCount - 1));
-        Vector2 currentForward = GridIndexToVector(Mathf.Clamp(DirectionIndex, 0, DirectionCount - 1));
+        Vector2 referenceForward = DirectionIndexToWorldVector(ClampDirectionIndex(initialDirectionIndex));
+        Vector2 currentForward = DirectionIndexToWorldVector(ClampDirectionIndex(DirectionIndex));
         float delta = Vector2.SignedAngle(referenceForward, currentForward);
         Vector2 rotatedLocal = Quaternion.Euler(0f, 0f, delta) * (Vector2)anchor.localPosition;
         return transform.TransformPoint(rotatedLocal);
@@ -820,6 +857,39 @@ public class VehicleControllerFusion : NetworkBehaviour
         float radians = degrees * Mathf.Deg2Rad;
         return new Vector2(Mathf.Sin(radians), Mathf.Cos(radians));
     }
+
+    private int ActiveDirectionCount =>
+        directionLayout == DirectionLayout.EightWayIsometric
+            ? EightWayDirection.Count
+            : LegacyDirectionCount;
+
+    private int ClampDirectionIndex(int index) =>
+        directionLayout == DirectionLayout.EightWayIsometric
+            ? EightWayDirection.NormalizeIndex(index)
+            : Mathf.Clamp(index, 0, LegacyDirectionCount - 1);
+
+    private float DirectionIndexToHeading(int index) =>
+        directionLayout == DirectionLayout.EightWayIsometric
+            ? EightWayDirection.IndexToHeadingDegrees(index)
+            : VectorToHeading(GridIndexToVector(Mathf.Clamp(index, 0, LegacyDirectionCount - 1)));
+
+    private Vector2 DirectionIndexToWorldVector(int index) =>
+        directionLayout == DirectionLayout.EightWayIsometric
+            ? EightWayDirection.IndexToIsometricDirection(index, isometricVerticalScale)
+            : GridIndexToVector(Mathf.Clamp(index, 0, LegacyDirectionCount - 1));
+
+    private Vector2 HeadingToWorldVector(float degrees)
+    {
+        Vector2 logicalDirection = HeadingToVector(degrees);
+        return directionLayout == DirectionLayout.EightWayIsometric
+            ? IsometricMovementProjection.ProjectDirection(logicalDirection, isometricVerticalScale)
+            : logicalDirection;
+    }
+
+    private int HeadingToDirectionIndex(float headingDegrees) =>
+        directionLayout == DirectionLayout.EightWayIsometric
+            ? EightWayDirection.HeadingDegreesToIndex(headingDegrees)
+            : HeadingToGridIndex(HeadingToVector(headingDegrees));
 
     private static int HeadingToGridIndex(Vector2 direction)
     {

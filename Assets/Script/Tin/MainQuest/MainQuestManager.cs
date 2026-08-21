@@ -203,7 +203,65 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void Update()
     {
         ApplyMapAccess();
+#if UNITY_EDITOR
+        if (Input.GetKeyDown(KeyCode.F8))
+            EditorGrantMissingArrivalCarRepairItems();
+#endif
     }
+
+#if UNITY_EDITOR
+    /// <summary>
+    /// Editor-only shortcut for focused vehicle/quest testing. It grants only
+    /// missing repair items and leaves every repair/start interaction intact.
+    /// The method is compiled out of player builds.
+    /// </summary>
+    private void EditorGrantMissingArrivalCarRepairItems()
+    {
+        if (!IsNetworkReady || !HasStateAuthority)
+        {
+            Debug.LogWarning("[EDITOR TEST] F8 cấp vật phẩm sửa xe chỉ dùng được khi đang Play ở Solo/Host.");
+            return;
+        }
+
+        PlayerMovement player = PlayerMovement.LocalPlayerInstance;
+        InventorySystem inventory = player != null ? player.GetComponent<InventorySystem>() : null;
+        if (inventory == null)
+        {
+            Debug.LogWarning("[EDITOR TEST] Chưa tìm thấy túi đồ của Player local.");
+            return;
+        }
+
+        ArrivalCarItemKind[] requiredItems =
+        {
+            ArrivalCarItemKind.Toolbox,
+            ArrivalCarItemKind.Hammer,
+            ArrivalCarItemKind.FuelCan,
+            ArrivalCarItemKind.Battery,
+            ArrivalCarItemKind.Tire
+        };
+
+        int addedCount = 0;
+        List<string> failedItems = new List<string>();
+        for (int i = 0; i < requiredItems.Length; i++)
+        {
+            ArrivalCarItemKind kind = requiredItems[i];
+            if (FindArrivalCarItem(inventory, kind) != null) continue;
+
+            ItemData item = ArrivalCarItemCatalog.GetOrCreate(kind);
+            if (item != null && inventory.AddItem(item, 1))
+                addedCount++;
+            else
+                failedItems.Add(ArrivalCarItemCatalog.GetDisplayName(kind));
+        }
+
+        string message = failedItems.Count == 0
+            ? $"F8 đã cấp {addedCount} món còn thiếu. Túi đồ hiện đủ 5/5 vật phẩm sửa xe."
+            : $"F8 không thể cấp: {string.Join(", ", failedItems)}. Hãy dọn ô trống trong túi rồi thử lại.";
+
+        Debug.Log("[EDITOR TEST] " + message);
+        AutoChatManager.Instance?.AddMessage("EDITOR TEST", message);
+    }
+#endif
 
     /// <summary>
     /// State Authority chooses the opening neighborhood exactly once. The six
