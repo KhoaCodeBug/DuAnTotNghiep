@@ -1,21 +1,6 @@
-# Main Play & Vehicle Quest — Codex Handoff
+# Main Play & Vehicle Quest — Technical Summary
 
-Tài liệu này là nguồn bàn giao nhanh cho thành viên mở project bằng Codex trên máy khác. Hãy đọc file này trước khi sửa flow nhiệm vụ, sau đó kiểm tra `git status`, diff hiện tại và các test liên quan vì trạng thái code có thể mới hơn tài liệu.
-
-## Nguồn hội thoại
-
-- Task thiết kế và xây lại Main Play: `codex://threads/01a0151d-4eac-7bf2-9acb-d9048e867c20`
-- Task hoàn thiện xe đầu game và UI kiểm tra xe: `codex://threads/01a018f6-ef2a-72e1-b67c-1929ae8e6f8b`
-
-Hai task trên thống nhất một flow liên tục từ Intro sang Main; không được xem chiếc xe ở Main là một phương tiện hoặc đoạn mở đầu tách biệt.
-
-## Cách làm việc bắt buộc
-
-- Mục tiêu là **làm tốt**, không chỉ làm cho chạy được. Trước khi code phải hỏi lại mọi lựa chọn thiết kế có thể làm đổi gameplay, mỹ thuật hoặc kiến trúc multiplayer; các chi tiết kỹ thuật an toàn, đã đủ bằng chứng thì chủ động xử lý.
-- Mọi lần bàn giao code phải có `Cách test thực tế trong game` và `Kết quả mong đợi`. Thay đổi UI phải kiểm tra tràn khung, chồng lấn, độ đọc được và bố cục ở độ phân giải mục tiêu; chỉ dựng mockup trước khi chưa đủ tự tin về thẩm mỹ.
-- State Authority là nguồn thật. Không dùng client để tự tiêu hao, tự cấp vật phẩm hoặc quyết định tiến độ nhiệm vụ.
-- Radio/voice của Tuyến B do **Tín** phụ trách. Khi làm gameplay không tự ý sửa nội dung, timing hoặc asset radio trừ khi Tín/người dùng yêu cầu rõ.
-- Sau mỗi phase: compile trong Unity, đọc Console, chạy test liên quan, QA thực tế, rồi mới cập nhật file bàn giao này.
+Tài liệu này tóm tắt thiết kế, trạng thái triển khai và các điểm còn cần xác nhận để thành viên khác tiếp tục phát triển Main Play. Chiếc xe chết máy trong Intro và sedan ở đầu scene Main là cùng một phương tiện, thuộc cùng một flow liên tục.
 
 ## Quyết định thiết kế đã chốt
 
@@ -28,9 +13,10 @@ Hai task trên thống nhất một flow liên tục từ Intro sang Main; khôn
 
 ### Thuật ngữ xe đã chốt
 
-- **Xe cảnh sát**: chiếc xe cũ đã có code lái và khoảng 25 ảnh nhưng hình ảnh xấu/mờ. Không tái sử dụng sprite của xe này; chỉ được tham khảo/tái cấu trúc phần code lái phù hợp.
-- **Xe đầu game**: sedan xuất hiện liên tục ở scene hướng dẫn và đầu scene Main. Ảnh nguồn canonical là `Assets/Art/Generated/IntroCar_UpperLeft.png`; giữ nguyên phong cách, hàng hóa và độ bẩn, vẽ bổ sung đủ 8 hướng rồi mới ghép code lái đã tái cấu trúc.
+- **Xe cảnh sát**: chiếc xe cũ đã có code lái và khoảng 25 ảnh nhưng hình ảnh xấu/mờ. Không tái sử dụng sprite của xe này; chỉ tham khảo cấu trúc controller, độ cao camera và footprint tổng quát. Góc nhìn của bộ ảnh cảnh sát cũng không khớp hoàn toàn với trục đường nên không phải chuẩn hướng cho asset sedan.
+- **Xe đầu game**: sedan xanh cũ/bẩn, mui chở hành lý, xuất hiện liên tục ở scene hướng dẫn và đầu scene Main. Ảnh nguồn canonical là `Assets/Art/Generated/IntroCar_UpperLeft.png`. Mốc hiện tại dùng tám hướng; NE và SE đã có bản map-test v3 căn theo trục đường isometric, sáu hướng còn lại vẫn là asset thử nghiệm cần QA/sửa tiếp.
 - Không được thay xe đầu game bằng xe cảnh sát hoặc dùng bộ sprite xe cảnh sát làm bản cuối.
+- Mở rộng lên 16 hướng là hướng phát triển sau mốc tám hướng. Quy ước index/controller hiện tại phải được mở rộng tương thích, không loại bỏ nền tám hướng đã có.
 
 ### Tương tác xe đầu game
 
@@ -151,12 +137,17 @@ Các phase authoritative của căn cứ quân sự là `NotReached`, `Investiga
 - `J`: nhật ký và checklist nhiệm vụ; tại đây mới kiểm tra vật phẩm đã có/đang thiếu.
 - `M`: bản đồ nhiệm vụ.
 - Trong nhật ký: `W/S` đổi nhiệm vụ, `Q/E` đổi tab, `V` bật/tắt theo dõi (khi UI cho phép).
+- Chỉ trong Unity Editor, Solo/Host: `F8` cấp những vật tư sửa xe còn thiếu để test nhanh; không tự sửa, không tự khởi động xe và không tồn tại trong player build.
 
 ## Các file quan trọng
 
 | File | Trách nhiệm |
 | --- | --- |
 | `Assets/Script/Tin/MainQuest/MainQuestManager.cs` | State Authority của nửa đầu Main, car-inspection state, nhà tìm kiếm, loot clue, stage và snapshot mạng. |
+| `Assets/Script/Tin/PlayerMovement.cs` | Áp input di chuyển đã chiếu sang hệ isometric 2:1 cho Player; khi ngồi xe vẫn giữ input ga/đánh lái thô cho controller xe. |
+| `Assets/Script/Tin/Prototype/IsometricMovementProjection.cs` | Utility thuần giữ tốc độ/magnitude và đổi bốn hướng chéo 45 độ sang trục đường isometric 2:1. Đây cũng là nền hướng dùng lại cho xe 8 chiều. |
+| `Assets/Script/Tin/Prototype/EightWayDirection.cs` | Quy ước index cố định `N, NE, E, SE, S, SW, W, NW`, snap heading và vector hướng đã chiếu isometric cho sedan. |
+| `Assets/Hau/Script/VehicleController.cs` | Controller Fusion dùng chung; xe cũ giữ layout 5x5/25 ảnh, sedan chọn layout tám hướng isometric và nhãn debug hướng khi local Player lái. |
 | `Assets/Script/Tin/InventorySystem.cs` | Inventory Player cố định 20 ô (5 Hotbar + 15 kho) và transaction add/consume dùng slot index ổn định. |
 | `Assets/Script/Tin/AutoUIManager.cs` | UI 15 ô kho Player, 20 ô Loot Container, bố cục tab/tiêu đề và request transfer authoritative. |
 | `Assets/Script/Tin/MainQuest/MainArrivalStoryBootstrap.cs` | Nối Intro với Main, tìm `ViTriXeChetMay`, tạo/đặt xe và cấu hình spawn lần đầu. |
@@ -180,9 +171,10 @@ Các phase authoritative của căn cứ quân sự là `NotReached`, `Investiga
 | `Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs` | State Authority của flow căn cứ, vật phẩm, lắp đặt, sửa xe, siege và thoát. |
 | `Assets/Script/Tin/Multiplayer/HostModeSpawner.cs` | Spawn player và gọi bootstrap story Main. |
 | `Assets/Resources/Story/BrokenArrivalCar.prefab` | Prefab xe đầu game và polygon tương tác đã cấu hình. |
-| `Assets/Hau/NewPrefab/Car/Car.prefab` | Prefab Fusion được server spawn khi xe đầu game sửa xong. |
+| `Assets/Hau/NewPrefab/Car/Car.prefab` | Prefab xe cũ/25 ảnh được giữ nguyên để tránh regression và chỉ làm nguồn cấu trúc controller. |
+| `Assets/Hau/NewPrefab/Car/IntroSedanCar.prefab` | Prefab Fusion sedan tám hướng được server spawn khi xe đầu game sửa xong; renderer/Animator xe cảnh sát đã tắt. |
 
-Asset canonical để vẽ 8 hướng cho xe đầu game là `Assets/Art/Generated/IntroCar_UpperLeft.png`. Các asset UI/hotspot liên quan nằm trong `Assets/Art/Generated/Car/`; khi thay sprite nhiều hướng phải giữ silhouette hoặc căn lại hotspot/polygon tương ứng.
+Asset canonical hướng NW của xe đầu game là `Assets/Art/Generated/IntroCar_UpperLeft.png`. Các hướng sedan nằm trong `Assets/Art/Generated/IntroCarDirections/`; PNG có alpha thật và import Sprite 100 PPU. Prefab hiện dùng `IntroCar_NE_MapTest_v3.png` tại index 1 và `IntroCar_SE_MapTest_v3.png` tại index 3. Hai bản này được xoay riêng quanh tâm xe để trục silhouette đạt lần lượt `-26.565°` và `+26.565°`, khớp trục 2:1 của map về mặt hình học; cảm giác phối cảnh/pivot cuối vẫn cần xác nhận trong gameplay. N, E, S, SW, W và NW hiện giữ nguyên, trong đó N/W đã được ghi nhận là chưa đúng phối cảnh. Các asset UI/hotspot liên quan nằm trong `Assets/Art/Generated/Car/`; khi thay sprite nhiều hướng phải giữ silhouette hoặc căn lại hotspot/polygon tương ứng.
 
 ## Nguyên tắc multiplayer và tránh regression
 
@@ -198,7 +190,8 @@ Asset canonical để vẽ 8 hướng cho xe đầu game là `Assets/Art/Generat
 
 ## Kiểm thử và việc còn lại
 
-- Mốc xác nhận mới nhất ngày 2026-08-21: Unity compile sạch, Console `0` error; EditMode `45/45` pass. E2E PlayMode `MainMenu -> SOLO -> EASY -> ENTER THE DEAD ZONE -> Main -> sửa xe -> KHỞI ĐỘNG XE -> spawn xe` pass `1/1` ở source cuối (`9.53s`). Chỉ lặp test khi có lỗi hoặc vừa bổ sung assertion cần xác nhận, không mặc định chạy ba lần.
+- Mốc xác nhận mới nhất ngày 2026-08-22: Unity compile sạch, Console `0` compile error; EditMode `71/71` pass sau khi gắn NE/SE map-test v3. E2E PlayMode `MainMenu -> SOLO -> EASY -> ENTER THE DEAD ZONE -> Main -> sửa xe -> KHỞI ĐỘNG XE -> spawn IntroSedanCar` từng pass `1/1` (`15.59s`), gồm assertion prefab dùng tám sprite sedan, layout isometric, khởi tạo NW và tắt renderer xe cảnh sát. Hai lượt E2E sau đó bị chặn sớm bởi sai số layout UI không liên quan (`208.500031 > 208.5`) trước bước spawn xe; vì vậy bản v3 chưa được tính là đã QA runtime. Không nới tolerance UI chỉ để test xe đi qua.
+- Checkpoint tọa độ Phase 4 đã vào code và được người dùng QA tay đạt: Player đi cardinal như cũ, còn `W+A`, `W+D`, `S+A`, `S+D` được chiếu từ chéo 45 độ sang trục 2:1 (`|y/x| = 0.5`) và normalize lại để không đổi tốc độ. Input analog giữ magnitude; input khi ngồi xe chưa bị đổi. Automated test đã pass.
 - Test bao phủ inventory cố định 20 ô, consume không làm lệch index, tủ mặc định 20 ô và từ chối ô thứ 21; PlayMode kiểm tra đủ 15/20 ô UI, lưới 5x3/4x5, không tràn viewport, hai panel không chồng nhau và tiêu đề inventory mở riêng nằm dưới thanh tab.
 - Quality gate modal xe kiểm tra hotspot, condition `0%`/`>=60%`, nút khởi động không chồng nút đóng/đường header, nút bị khóa trước khi sửa đủ, xe không tự spawn sau action cuối, và chỉ spawn sau request khởi động thành công.
 - Lỗi PlayMode không ổn định trước đây chưa tái hiện sau nhiều lượt. Nguyên nhân lỗi `RenderTexture.Create failed: height > 0` là GameView/Test Runner có kích thước nội dung bằng 0, không phải logic gameplay. `MainMenuManager` hiện log rõ cleanup, yêu cầu load scene, `OnSceneLoadStart` và `OnSceneLoadDone`, đồng thời bắt exception và trả UI về trạng thái có thể thử lại.
@@ -207,14 +200,5 @@ Asset canonical để vẽ 8 hướng cho xe đầu game là `Assets/Art/Generat
 - Cần QA tay cả hai confirmation point-of-no-return và tình huống hai client đồng thời xác nhận hai tuyến đối nghịch; server phải chỉ chấp nhận request đầu tiên.
 - Cần đặt/chốt vị trí scene `CivilianEscapeExit`; hiện có fallback chạy được nhưng chưa phải quyết định level-design cuối.
 - **Phase 3 đã hoàn tất ở mức code + automated QA:** condition, ắc quy, một lốp hỏng, nút khởi động và server gate đã vào flow. Vẫn cần QA tay host + client thật để xác nhận cảm giác UI, transaction đồng thời và late join.
-- **Phase 4 tiếp theo:** tạo bộ sprite 8 hướng từ đúng ảnh sedan đầu game, sau đó tái cấu trúc code lái cần thiết từ xe cảnh sát nhưng không dùng lại sprite xe cảnh sát. Trước khi thay asset phải duyệt sheet/8 ảnh vì đây là quyết định mỹ thuật lớn.
+- **Phase 4 đang làm:** checkpoint nền tọa độ Player đã hoàn tất code + automated QA + QA tay. `VehicleControllerFusion` có layout tám hướng isometric riêng, vẫn tương thích layout 25 ảnh của xe cảnh sát; `IntroSedanCar.prefab` đã nối vào `repairedArrivalCarPrefab` của Main. NE/SE map-test v3 đang là checkpoint art mới nhất; bước kế tiếp là QA runtime hai hướng này rồi sửa lần lượt sáu hướng provisional. Sau khi mốc tám hướng ổn định mới mở rộng 16 hướng.
 - Cần người dùng quyết định phần thưởng runtime `MilitaryBackpackLevel3` cũ của Tuyến B: xóa hẳn hay đổi thành bundle tiếp tế. Inventory cố định 20 ô sẽ không nhận hiệu ứng tăng sức chứa từ item này.
-
-## Checklist cho Codex ở máy khác
-
-1. Đọc file này và hai task ID ở trên nếu máy còn quyền truy cập task.
-2. Chạy `git status --short --branch` và đọc toàn bộ diff trước khi sửa.
-3. Mở scene `Main`, xác nhận có `ViTriXeChetMay` và prefab xe xuất hiện đúng hướng.
-4. Chạy EditMode và PlayMode tests trước/sau thay đổi.
-5. Khi mở rộng transaction sửa xe, giữ State Authority làm nguồn thật, không đổi luật giữ bộ dụng cụ/búa và tái sử dụng checklist inventory trong `J`.
-6. Không commit `.codex-artifacts`, `.codex-remote-attachments` hay thư mục tạm; chỉ commit source/assets/project cần để Unity chạy trên máy khác.

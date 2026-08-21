@@ -353,8 +353,28 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "The installed battery must be consumed by the authoritative transaction.");
         Assert.That((bool)hasItemNamed.Invoke(inventory, new object[] { "ArrivalCarTire" }), Is.False,
             "The installed tire must be consumed by the authoritative transaction.");
-        Assert.That(GameObject.Find("Repaired Arrival Car"), Is.Not.Null,
+        GameObject repairedArrivalCar = GameObject.Find("Repaired Arrival Car");
+        Assert.That(repairedArrivalCar, Is.Not.Null,
             "Starting after all required repairs must replace the broken prop with a drivable Fusion vehicle.");
+        Type sedanControllerType = Type.GetType("VehicleControllerFusion, Assembly-CSharp");
+        Assert.That(sedanControllerType, Is.Not.Null);
+        Component sedanController = repairedArrivalCar.GetComponent(sedanControllerType);
+        Assert.That(sedanController, Is.Not.Null,
+            "The repaired arrival sedan must use the existing network vehicle interaction/controller flow.");
+        Assert.That(ReadPrivateField(sedanController, "directionLayout").ToString(),
+            Is.EqualTo("EightWayIsometric"));
+        Sprite[] sedanDirections = ReadPrivateField(sedanController, "directionSprites") as Sprite[];
+        Assert.That(sedanDirections, Is.Not.Null);
+        Assert.That(sedanDirections.Length, Is.EqualTo(8));
+        Assert.That(sedanDirections, Has.All.Not.Null,
+            "The sedan sprite order must be N, NE, E, SE, S, SW, W, NW without gaps.");
+        Assert.That((int)ReadProperty(sedanController, "DirectionIndex"), Is.EqualTo(7),
+            "The repaired sedan must initially match the canonical NW broken-car pose.");
+        Transform sedanVisual = repairedArrivalCar.transform.Find("SedanVisual");
+        Assert.That(sedanVisual, Is.Not.Null);
+        Assert.That(sedanVisual.GetComponent<SpriteRenderer>()?.enabled, Is.True);
+        Assert.That(repairedArrivalCar.GetComponent<SpriteRenderer>()?.enabled, Is.False,
+            "The duplicated police renderer must stay disabled; only sedan art may be visible.");
 
         Type bridgeType = Type.GetType("PreMilitaryQuestRuntimeBridge, Assembly-CSharp");
         Assert.That(bridgeType, Is.Not.Null);
