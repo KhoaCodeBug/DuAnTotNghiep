@@ -6,9 +6,18 @@ using System.Collections.Generic;
 [RequireComponent(typeof(SpriteRenderer))]
 public class LootContainer : NetworkBehaviour
 {
+    public const int DefaultMaxSlots = 20;
+
     [Header("Cài đặt Tủ Đồ")]
     [Tooltip("Khoảng cách tối đa để mở tủ (Bấm vào tủ ở Scene để xem vòng tròn vàng)")]
     public float interactDistance = 2.5f;
+    [SerializeField, Min(1)] private int maxSlots = DefaultMaxSlots;
+    [SerializeField, Range(0, 4)]
+    [Tooltip("Số ô chừa cho vật phẩm nhiệm vụ sau khi random loot thường.")]
+    private int reservedQuestSlots = 2;
+
+    public int MaxSlots => Mathf.Max(1, maxSlots);
+    private int RandomLootSlotLimit => Mathf.Max(1, MaxSlots - reservedQuestSlots);
 
     [Header("Chống Loot Xuyên Tường")]
     [Tooltip("Chọn layer của các bức tường hoặc vật cản (Wall)")]
@@ -79,7 +88,7 @@ public class LootContainer : NetworkBehaviour
                 if (roll <= lootRule.dropChance)
                 {
                     int spawnAmount = Random.Range(lootRule.minAmount, lootRule.maxAmount + 1);
-                    StoreItemLocal(lootRule.itemPrefab, spawnAmount);
+                    StoreItemLocal(lootRule.itemPrefab, spawnAmount, RandomLootSlotLimit);
                 }
             }
         }
@@ -107,8 +116,11 @@ public class LootContainer : NetworkBehaviour
                 return true;
         }
 
-        if (itemsInContainer.Count >= 20) itemsInContainer.RemoveAt(itemsInContainer.Count - 1);
-        StoreItemLocal(clue, 1);
+        if (!StoreItemLocal(clue, 1))
+        {
+            Debug.LogWarning($"[QUEST LOOT] Container '{name}' is full; clue '{clue.itemName}' was not inserted.");
+            return false;
+        }
         RPC_SyncAddItem(clue.itemName, 1, false);
         return true;
     }
@@ -126,10 +138,25 @@ public class LootContainer : NetworkBehaviour
                 return true;
         }
 
-        if (itemsInContainer.Count >= 20) itemsInContainer.RemoveAt(itemsInContainer.Count - 1);
-        StoreItemLocal(item, 1);
+        if (!StoreItemLocal(item, 1))
+        {
+            Debug.LogWarning($"[ARRIVAL CAR] Container '{name}' is full; '{item.itemName}' was not inserted.");
+            return false;
+        }
         RPC_SyncAddItem(item.itemName, 1, false);
         return true;
+    }
+
+    public bool ContainsArrivalCarItem(ArrivalCarItemKind kind)
+    {
+        foreach (InventorySlot slot in itemsInContainer)
+        {
+            if (slot != null && slot.amount > 0 &&
+                ArrivalCarItemCatalog.TryGetKind(slot.item, out ArrivalCarItemKind existing) && existing == kind)
+                return true;
+        }
+
+        return false;
     }
 
     public bool AuthorityTryBeginRouteClueRoll()
@@ -157,22 +184,52 @@ public class LootContainer : NetworkBehaviour
         if (weaponPool.Count == 0) return;
 
         ItemData selectedWeapon = weaponPool[Random.Range(0, weaponPool.Count)];
-        StoreItemLocal(selectedWeapon, 1);
+        StoreItemLocal(selectedWeapon, 1, RandomLootSlotLimit);
     }
 
-    private void StoreItemLocal(ItemData itemData, int amount)
+    public bool CanStoreItem(ItemData itemData, int amount)
     {
+        return CanStoreItem(itemData, amount, MaxSlots);
+    }
+
+    private bool CanStoreItem(ItemData itemData, int amount, int slotLimit)
+    {
+        if (itemData == null || amount <= 0) return false;
+
+        int remaining = amount;
+        int stackLimit = itemData.isStackable ? Mathf.Max(1, itemData.maxStack) : 1;
+        if (itemData.isStackable)
+        {
+            foreach (InventorySlot slot in itemsInContainer)
+            {
+                if (slot == null || slot.item == null || slot.item.itemName != itemData.itemName) continue;
+                remaining -= Mathf.Max(0, stackLimit - slot.amount);
+                if (remaining <= 0) return true;
+            }
+        }
+
+        int availableNewSlots = Mathf.Max(0, slotLimit - itemsInContainer.Count);
+        return remaining <= availableNewSlots * stackLimit;
+    }
+
+    private bool StoreItemLocal(ItemData itemData, int amount, int slotLimit = -1)
+    {
+        int effectiveSlotLimit = slotLimit > 0 ? Mathf.Min(slotLimit, MaxSlots) : MaxSlots;
+        if (!CanStoreItem(itemData, amount, effectiveSlotLimit)) return false;
+
+        int stackLimit = itemData.isStackable ? Mathf.Max(1, itemData.maxStack) : 1;
         if (itemData.isStackable)
         {
             foreach (var slot in itemsInContainer)
             {
-                if (slot.item.itemName == itemData.itemName && slot.amount < itemData.maxStack)
+                if (slot != null && slot.item != null && slot.item.itemName == itemData.itemName &&
+                    slot.amount < stackLimit)
                 {
-                    int spaceLeft = itemData.maxStack - slot.amount;
+                    int spaceLeft = stackLimit - slot.amount;
                     if (amount <= spaceLeft)
                     {
                         slot.amount += amount;
-                        return;
+                        return true;
                     }
                     else
                     {
@@ -183,12 +240,14 @@ public class LootContainer : NetworkBehaviour
             }
         }
 
-        while (amount > 0 && itemsInContainer.Count < 20)
+        while (amount > 0 && itemsInContainer.Count < effectiveSlotLimit)
         {
-            int amountToStore = Mathf.Min(amount, itemData.maxStack);
+            int amountToStore = Mathf.Min(amount, stackLimit);
             itemsInContainer.Add(new InventorySlot(itemData, amountToStore));
             amount -= amountToStore;
         }
+
+        return amount == 0;
     }
 
     private void Update()
@@ -508,12 +567,42 @@ public class LootContainer : NetworkBehaviour
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_StoreItem(string itemName, int amount)
+    public void RPC_StoreItem(string itemName, int amount, PlayerRef playerTryingToStore, RpcInfo info = default)
     {
-        ItemData itemData = ItemDataLoader.LoadItem(itemName);
-        if (itemData == null) return;
+        if (info.Source != PlayerRef.None && info.Source != playerTryingToStore)
+        {
+            Debug.LogWarning($"[LOOT SERVER] Rejected spoofed store request: source={info.Source}, requested={playerTryingToStore}.");
+            return;
+        }
 
-        StoreItemLocal(itemData, amount);
+        ItemData itemData = ItemDataLoader.LoadItem(itemName);
+        if (itemData == null || amount <= 0) return;
+        if (!TryGetServerInventory(playerTryingToStore, out InventorySystem playerInventory))
+        {
+            RPC_NotifyLootDenied(playerTryingToStore, "Không tìm thấy túi đồ hợp lệ để cất vật phẩm.");
+            return;
+        }
+
+        if (playerInventory.GetItemCount(itemData) < amount)
+        {
+            RPC_NotifyLootDenied(playerTryingToStore, "Vật phẩm trong túi đã thay đổi; yêu cầu cất đồ bị hủy.");
+            return;
+        }
+
+        if (!CanStoreItem(itemData, amount))
+        {
+            RPC_NotifyLootDenied(playerTryingToStore, $"Tủ đã đầy ({MaxSlots} ô).");
+            return;
+        }
+
+        int consumed = playerInventory.ConsumeItem(itemData, amount);
+        if (consumed != amount || !StoreItemLocal(itemData, amount))
+        {
+            if (consumed > 0) playerInventory.AddItem(itemData, consumed);
+            RPC_NotifyLootDenied(playerTryingToStore, "Không thể hoàn tất giao dịch cất đồ; vật phẩm đã được hoàn lại.");
+            return;
+        }
+
         RPC_SyncAddItem(itemName, amount, false);
     }
 

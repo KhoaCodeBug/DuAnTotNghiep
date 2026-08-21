@@ -38,11 +38,16 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private TextMeshProUGUI selectedPartTitle;
     private TextMeshProUGUI selectedPartDescription;
     private TextMeshProUGUI selectedPartRecommendation;
+    private TextMeshProUGUI overallConditionText;
     private Image selectedPartActionBackground;
     private TextMeshProUGUI selectedPartActionText;
     private Button selectedPartActionButton;
+    private Image startEngineBackground;
+    private TextMeshProUGUI startEngineText;
+    private Button startEngineButton;
     private string selectedPartId;
     private int lastDisplayedRepairMask = int.MinValue;
+    private bool lastDisplayedVehicleStarted;
 
     public static ArrivalCarInspectionUI ActiveInstance { get; private set; }
     public static bool IsAnyOpen => ActiveInstance != null && ActiveInstance.IsOpen;
@@ -60,6 +65,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         public Vector2 DiagramPosition;
         public Vector2 DiagramSize;
         public Image RowBackground;
+        public TextMeshProUGUI ConditionText;
     }
 
     public string SelectedPartId => selectedPartId ?? string.Empty;
@@ -78,9 +84,11 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
         MainQuestManager manager = MainQuestManager.Instance;
         int repairMask = manager != null && manager.IsNetworkReady ? manager.ArrivalCarRepairMask : 0;
-        if (repairMask != lastDisplayedRepairMask)
+        bool vehicleStarted = manager != null && manager.IsNetworkReady && manager.IsArrivalCarRepaired;
+        if (repairMask != lastDisplayedRepairMask || vehicleStarted != lastDisplayedVehicleStarted)
         {
             lastDisplayedRepairMask = repairMask;
+            lastDisplayedVehicleStarted = vehicleStarted;
             SelectVehiclePart(string.IsNullOrEmpty(selectedPartId) ? "engine" : selectedPartId);
         }
 
@@ -126,6 +134,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         owner = target;
         open = true;
         lastDisplayedRepairMask = int.MinValue;
+        lastDisplayedVehicleStarted = false;
         ActiveInstance = this;
         waitForInteractionKeyRelease = true;
         previousCursorVisible = Cursor.visible;
@@ -212,6 +221,15 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             new Vector2(0.5f, 0.5f), new Vector2(44f, 44f), Vector2.zero);
         MakeClickable(close, Close);
 
+        RectTransform start = Box("Start Engine Button", shell, new Vector2(1f, 1f),
+            new Vector2(220f, 44f), new Vector2(-92f, -50f), new Color(0.12f, 0.13f, 0.125f, 1f));
+        AddBorder(start, new Color(0.42f, 0.45f, 0.43f, 0.95f));
+        startEngineBackground = start.GetComponent<Image>();
+        startEngineText = Text(start, "Start Engine Text", "CHƯA THỂ KHỞI ĐỘNG", 11f, Muted,
+            FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f),
+            new Vector2(204f, 32f), Vector2.zero);
+        startEngineButton = MakeClickable(start, InvokeStartEngine);
+
         EnsureVehiclePartDefinitions();
         BuildVehicleDiagram(shell);
         BuildConditionPanel(shell);
@@ -282,7 +300,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         AddBorder(panel, Border);
         Text(panel, "Vehicle Name", "CHEVALIER NYALA", 21f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(360f, 32f), new Vector2(22f, -18f));
-        Text(panel, "Overall Condition", "TÌNH TRẠNG TỔNG THỂ: 52%", 13f, Amber, FontStyles.Bold,
+        overallConditionText = Text(panel, "Overall Condition", "TÌNH TRẠNG TỔNG THỂ: 39%", 13f, Amber, FontStyles.Bold,
             TextAlignmentOptions.Right, new Vector2(1f, 1f), new Vector2(300f, 26f), new Vector2(-22f, -23f));
         Box("Status Rule", panel, new Vector2(0.5f, 1f), new Vector2(756f, 1f),
             new Vector2(0f, -62f), Border);
@@ -332,7 +350,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             Text(row, "Part Name", part.Label, 13f, Color.white, FontStyles.Normal,
                 TextAlignmentOptions.Left, new Vector2(0f, 0.5f), new Vector2(270f, 24f), new Vector2(10f, 0f));
             Color stateColor = GetConditionColor(part.Condition);
-            Text(row, "Part Condition", part.Condition + "%", 13f, stateColor, FontStyles.Bold,
+            part.ConditionText = Text(row, "Part Condition", part.Condition + "%", 13f, stateColor, FontStyles.Bold,
                 TextAlignmentOptions.Right, new Vector2(1f, 0.5f), new Vector2(70f, 24f), new Vector2(-10f, 0f));
             VehiclePartView capturedPart = part;
             MakeClickable(row, () => SelectVehiclePart(capturedPart.Id));
@@ -345,12 +363,33 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (part == null) return;
         selectedPartId = part.Id;
 
+        MainQuestManager manager = MainQuestManager.Instance;
+        int totalCondition = 0;
         for (int i = 0; i < vehicleParts.Count; i++)
         {
-            if (vehicleParts[i].RowBackground != null)
-                vehicleParts[i].RowBackground.color = vehicleParts[i] == part
+            VehiclePartView current = vehicleParts[i];
+            bool currentApplied = manager != null && manager.IsNetworkReady &&
+                                  ArrivalCarRepairRules.TryGetAction(current.Id,
+                                      out ArrivalCarRepairAction currentAction) &&
+                                  ArrivalCarRepairRules.IsApplied(manager.ArrivalCarRepairMask, currentAction);
+            int displayedCondition = currentApplied ? 100 : current.Condition;
+            totalCondition += displayedCondition;
+            if (current.ConditionText != null)
+            {
+                current.ConditionText.text = displayedCondition + "%";
+                current.ConditionText.color = GetConditionColor(displayedCondition);
+            }
+            if (current.RowBackground != null)
+                current.RowBackground.color = current == part
                     ? new Color(0.26f, 0.27f, 0.26f, 0.95f)
                     : Color.clear;
+        }
+
+        if (overallConditionText != null && vehicleParts.Count > 0)
+        {
+            int overall = Mathf.RoundToInt(totalCondition / (float)vehicleParts.Count);
+            overallConditionText.text = "TÌNH TRẠNG TỔNG THỂ: " + overall + "%";
+            overallConditionText.color = GetConditionColor(overall);
         }
 
         if (selectedPartHighlight != null)
@@ -362,7 +401,6 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         }
 
         Color conditionColor = GetConditionColor(part.Condition);
-        MainQuestManager manager = MainQuestManager.Instance;
         bool actionApplied = manager != null && manager.IsNetworkReady &&
                              ArrivalCarRepairRules.TryGetAction(part.Id, out ArrivalCarRepairAction action) &&
                              ArrivalCarRepairRules.IsApplied(manager.ArrivalCarRepairMask, action);
@@ -383,6 +421,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
                 : new Color(0.28f, 0.16f, 0.075f, 1f);
             if (selectedPartActionButton != null) selectedPartActionButton.interactable = !actionApplied;
         }
+
+        RefreshStartEngineButton(manager);
     }
 
     private void InvokeSelectedPartAction()
@@ -408,6 +448,45 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         manager.RequestRepairArrivalCarPart(part.Id);
     }
 
+    private void InvokeStartEngine()
+    {
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady)
+        {
+            if (selectedPartRecommendation != null)
+                selectedPartRecommendation.text = "CHƯA THỂ KẾT NỐI VỚI SERVER ĐỂ KHỞI ĐỘNG XE.";
+            return;
+        }
+
+        if (!manager.AreArrivalCarRequiredRepairsComplete)
+        {
+            if (selectedPartRecommendation != null)
+                selectedPartRecommendation.text =
+                    "CHƯA THỂ KHỞI ĐỘNG: CẦN SỬA ĐỘNG CƠ, ĐỔ NHIÊN LIỆU, THAY ẮC QUY VÀ LỐP TRƯỚC TRÁI.";
+            return;
+        }
+
+        if (startEngineButton != null) startEngineButton.interactable = false;
+        if (startEngineText != null) startEngineText.text = "ĐANG KHỞI ĐỘNG...";
+        manager.RequestStartArrivalCar();
+    }
+
+    private void RefreshStartEngineButton(MainQuestManager manager)
+    {
+        if (startEngineButton == null || startEngineText == null || startEngineBackground == null) return;
+        bool networkReady = manager != null && manager.IsNetworkReady;
+        bool started = networkReady && manager.IsArrivalCarRepaired;
+        bool ready = networkReady && manager.AreArrivalCarRequiredRepairsComplete;
+        startEngineButton.interactable = ready && !started;
+        startEngineText.text = started
+            ? "XE ĐÃ KHỞI ĐỘNG"
+            : ready ? "KHỞI ĐỘNG XE" : "CHƯA THỂ KHỞI ĐỘNG";
+        startEngineText.color = started || ready ? Color.white : Muted;
+        startEngineBackground.color = started
+            ? new Color(0.07f, 0.32f, 0.15f, 1f)
+            : ready ? new Color(0.2f, 0.36f, 0.12f, 1f) : new Color(0.12f, 0.13f, 0.125f, 1f);
+    }
+
     public void NotifyRepairResult(ArrivalCarRepairAction action, bool success, string message)
     {
         if (!open || selectedPartRecommendation == null) return;
@@ -415,27 +494,36 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         selectedPartRecommendation.text = (success ? "HOÀN TẤT: " : "KHÔNG THỂ THỰC HIỆN: ") + message;
     }
 
+    public void NotifyStartResult(bool success, string message)
+    {
+        if (!open) return;
+        RefreshStartEngineButton(MainQuestManager.Instance);
+        if (selectedPartRecommendation != null)
+            selectedPartRecommendation.text = (success ? "KHỞI ĐỘNG THÀNH CÔNG: " : "KHÔNG THỂ KHỞI ĐỘNG: ") +
+                                              message;
+    }
+
     private void EnsureVehiclePartDefinitions()
     {
         if (vehicleParts.Count > 0) return;
-        AddPart("engine", "Động cơ", "KHOANG ĐỘNG CƠ", 18,
+        AddPart("engine", "Động cơ", "KHOANG ĐỘNG CƠ", 0,
             "Động cơ bị quá nhiệt và bộ đề đang kẹt.",
             "Làm nguội động cơ, kiểm tra bộ đề và hệ thống đánh lửa.", "Sửa chữa",
             new Vector2(47.09247f, 222.6873f), new Vector2(103f, 63f));
-        AddPart("battery", "Ắc quy", "KHOANG ĐỘNG CƠ", 82,
-            "Ắc quy vẫn còn điện và các đầu cực chưa bị ăn mòn nặng.",
-            "Có thể tiếp tục sử dụng; thay thế chỉ là nâng cấp tùy chọn.", "Thay linh kiện",
+        AddPart("battery", "Ắc quy", "KHOANG ĐỘNG CƠ", 0,
+            "Ắc quy đã chết hoàn toàn và không còn khả năng cấp điện cho bộ đề.",
+            "Bắt buộc thay ắc quy trước khi thử khởi động.", "Thay linh kiện",
             new Vector2(-47.5f, 218f), new Vector2(46f, 35f));
         AddPart("exhaust", "Ống xả", "KHOANG ĐỘNG CƠ", 76,
             "Ống xả còn nguyên, chưa phát hiện rò khí nghiêm trọng.",
             "Chưa cần can thiệp ngay.", "Kiểm tra", new Vector2(55f, -222f), new Vector2(38f, 69f));
-        AddPart("fuel", "Bình xăng", "NHIÊN LIỆU", 4,
+        AddPart("fuel", "Bình xăng", "NHIÊN LIỆU", 0,
             "Bình gần như cạn và không còn nhiên liệu dự phòng trên xe.",
             "Bổ sung nhiên liệu trước khi thử khởi động.", "Đổ nhiên liệu",
             new Vector2(-48f, -224.5f), new Vector2(89f, 59f));
-        AddPart("front_left", "Lốp trước trái", "BÁNH XE", 46,
-            "Lốp trước trái đã mòn rõ và áp suất thấp.",
-            "Vẫn có thể di chuyển chậm; nên thay nếu tìm được lốp tốt.", "Thay linh kiện",
+        AddPart("front_left", "Lốp trước trái", "BÁNH XE", 0,
+            "Lốp trước trái đã thủng và không thể chịu tải.",
+            "Bắt buộc thay lốp trước trái trước khi cho xe chạy.", "Thay linh kiện",
             new Vector2(-103f, 86.5f), new Vector2(41f, 73f));
         AddPart("rear_left", "Lốp sau trái", "BÁNH XE", 73,
             "Lốp sau trái còn sử dụng được.",
@@ -443,17 +531,17 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             new Vector2(-103f, -102f), new Vector2(41f, 73f));
         AddPart("front_right", "Lốp trước phải", "BÁNH XE", 61,
             "Lốp trước phải có dấu hiệu chai bề mặt.",
-            "Có thể sử dụng tạm thời, tránh tăng tốc gấp.", "Thay linh kiện",
+            "Có thể sử dụng tạm thời, tránh tăng tốc gấp.", "Kiểm tra",
             new Vector2(107f, 86.5f), new Vector2(41f, 73f));
         AddPart("rear_right", "Lốp sau phải", "BÁNH XE", 69,
             "Lốp sau phải mòn không đều nhưng chưa thủng.",
-            "Có thể tiếp tục sử dụng trong quãng đường ngắn.", "Thay linh kiện",
+            "Có thể tiếp tục sử dụng trong quãng đường ngắn.", "Kiểm tra",
             new Vector2(107f, -102f), new Vector2(41f, 73f));
-        AddPart("hood", "Nắp capo", "THÂN XE", 23,
+        AddPart("hood", "Nắp capo", "THÂN XE", 0,
             "Nắp capo biến dạng do nhiệt và đang che khuất điểm kẹt của bộ đề.",
             "Mở nắp và xử lý cơ cấu khóa trước khi sửa động cơ.", "Sửa chữa",
             new Vector2(0f, 119f), new Vector2(110f, 85f));
-        AddPart("windshield", "Kính chắn gió", "THÂN XE", 57,
+        AddPart("windshield", "Kính chắn gió", "THÂN XE", 65,
             "Kính chắn gió có nhiều vết xước nhưng chưa vỡ.",
             "Tầm nhìn vẫn chấp nhận được trong điều kiện sáng.", "Kiểm tra",
             new Vector2(0f, 48f), new Vector2(107f, 52f));
@@ -489,7 +577,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private static Color GetConditionColor(int condition)
     {
         if (condition <= 30) return Red;
-        if (condition < 70) return Amber;
+        if (condition < 60) return Amber;
         return Green;
     }
 

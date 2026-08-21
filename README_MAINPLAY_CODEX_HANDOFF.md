@@ -9,6 +9,14 @@ Tài liệu này là nguồn bàn giao nhanh cho thành viên mở project bằn
 
 Hai task trên thống nhất một flow liên tục từ Intro sang Main; không được xem chiếc xe ở Main là một phương tiện hoặc đoạn mở đầu tách biệt.
 
+## Cách làm việc bắt buộc
+
+- Mục tiêu là **làm tốt**, không chỉ làm cho chạy được. Trước khi code phải hỏi lại mọi lựa chọn thiết kế có thể làm đổi gameplay, mỹ thuật hoặc kiến trúc multiplayer; các chi tiết kỹ thuật an toàn, đã đủ bằng chứng thì chủ động xử lý.
+- Mọi lần bàn giao code phải có `Cách test thực tế trong game` và `Kết quả mong đợi`. Thay đổi UI phải kiểm tra tràn khung, chồng lấn, độ đọc được và bố cục ở độ phân giải mục tiêu; chỉ dựng mockup trước khi chưa đủ tự tin về thẩm mỹ.
+- State Authority là nguồn thật. Không dùng client để tự tiêu hao, tự cấp vật phẩm hoặc quyết định tiến độ nhiệm vụ.
+- Radio/voice của Tuyến B do **Tín** phụ trách. Khi làm gameplay không tự ý sửa nội dung, timing hoặc asset radio trừ khi Tín/người dùng yêu cầu rõ.
+- Sau mỗi phase: compile trong Unity, đọc Console, chạy test liên quan, QA thực tế, rồi mới cập nhật file bàn giao này.
+
 ## Quyết định thiết kế đã chốt
 
 ### Mạch truyện mở đầu
@@ -18,6 +26,12 @@ Hai task trên thống nhất một flow liên tục từ Intro sang Main; khôn
 3. Lần đầu vào Main, người chơi xuất hiện gần chiếc xe. Sau khi chết, hệ thống vẫn dùng các điểm hồi sinh nhà cũ; không hồi sinh cạnh xe.
 4. Xe đầu game chỉ là phương tiện hướng dẫn/ngắn hạn. Xe thoát hiểm tại căn cứ quân sự dùng flow sửa chữa nâng cao riêng.
 
+### Thuật ngữ xe đã chốt
+
+- **Xe cảnh sát**: chiếc xe cũ đã có code lái và khoảng 25 ảnh nhưng hình ảnh xấu/mờ. Không tái sử dụng sprite của xe này; chỉ được tham khảo/tái cấu trúc phần code lái phù hợp.
+- **Xe đầu game**: sedan xuất hiện liên tục ở scene hướng dẫn và đầu scene Main. Ảnh nguồn canonical là `Assets/Art/Generated/IntroCar_UpperLeft.png`; giữ nguyên phong cách, hàng hóa và độ bẩn, vẽ bổ sung đủ 8 hướng rồi mới ghép code lái đã tái cấu trúc.
+- Không được thay xe đầu game bằng xe cảnh sát hoặc dùng bộ sprite xe cảnh sát làm bản cuối.
+
 ### Tương tác xe đầu game
 
 - Chỉ có thể bắt đầu kiểm tra khi đứng trong vùng polygon trước mũi xe và giữ `E` đủ thời gian.
@@ -26,7 +40,8 @@ Hai task trên thống nhất một flow liên tục từ Intro sang Main; khôn
 - Đóng bằng `E` lần nữa, `Esc`, hoặc nút `X`. Giữ `E` để mở không được làm UI đóng ngay; code chờ người chơi nhả phím trước.
 - UI có thể mở lại sau lần kiểm tra đầu.
 - Chỉ sau khi đóng UI lần đầu, server mới ghi nhận đã kiểm tra xe và mở màn giới thiệu hai tuyến thoát hiểm A/B.
-- Hư hỏng cốt truyện: động cơ quá nhiệt/bộ đề kẹt, nhiên liệu gần cạn. Bộ dụng cụ, búa và can nhiên liệu là vật phẩm bắt buộc; ắc quy và lốp là nâng cấp tùy chọn.
+- Condition hiện hành: các bộ phận thật sự hỏng đặt `0%`; bộ phận tạm còn dùng được đặt từ `60%` trở lên. Các bước bắt buộc là sửa cụm động cơ/nắp capo, đổ nhiên liệu, thay ắc quy và thay đúng **lốp trước trái** đang hỏng. Ba lốp còn lại từ `60%` trở lên chỉ cho kiểm tra, không được tiêu hao lốp thay thế.
+- Hoàn tất bốn action sửa chữa chưa tự sinh xe. Người chơi phải mở lại modal và bấm `KHỞI ĐỘNG XE`; State Authority kiểm tra người gửi, khoảng cách, trạng thái kiểm tra và toàn bộ repair bit trước khi đánh dấu hoàn tất/spawn xe Fusion. Request lặp hoặc chưa đủ điều kiện bị từ chối.
 
 ### Hai tuyến thoát hiểm và thời điểm khóa ending
 
@@ -68,8 +83,17 @@ Hai task trên thống nhất một flow liên tục từ Intro sang Main; khôn
 
 - Bấm `Kiểm tra` hiển thị kết quả chẩn đoán. Các nút sửa/thay/đổ gửi request lên State Authority; server kiểm tra người chơi, khoảng cách, state và inventory trước khi thực hiện.
 - Danh sách vật phẩm không còn nằm trong modal kiểm tra xe. Nhật ký `J` là nguồn hiển thị người chơi đang có hoặc còn thiếu gì.
-- Transaction sửa xe đầu game đã hoàn thiện và có tính idempotent theo từng hành động. Bộ dụng cụ + búa được giữ lại; can nhiên liệu bị tiêu hao; ắc quy + lốp là tùy chọn và chỉ bị tiêu hao khi người chơi chủ động lắp.
-- Khi đã sửa bộ đề và đổ nhiên liệu, server đánh dấu giai đoạn chuẩn bị Tuyến A hoàn tất, spawn prefab xe Fusion có thể lái tại vị trí xe hỏng và đồng bộ NetworkObject cho host/client/late joiner. Xe hỏng cũ tự ẩn sprite, collider và vùng tương tác.
+- Transaction sửa xe hiện có tính idempotent theo từng hành động: mỗi bộ phận chỉ nhận sửa/thay thành công một lần, nên loot thừa có thể giữ, bỏ ra hoặc trao đổi cho đồng đội mà không gây sửa lặp. Bộ dụng cụ + búa được giữ lại; vật tư tiêu hao chỉ bị trừ khi server chấp nhận hành động.
+- Runtime chỉ spawn xe Fusion sau flow `sửa cụm máy + nhiên liệu + ắc quy + lốp trước trái -> bấm KHỞI ĐỘNG XE -> server xác nhận`. Checklist trong `J` có bốn action sửa chữa và một bước khởi động riêng.
+
+### Balo, tủ loot và bảo hiểm vật phẩm sửa xe
+
+- Inventory Player là cố định **20 ô tổng**: 5 Hotbar + 15 ô kho. Không còn cấp balo, item balo hay thay đổi sức chứa runtime. Lời gọi legacy cố đổi sức chứa sẽ bị từ chối và giữ 20.
+- UI kho Player hiển thị đủ 15 ô theo lưới 5x3. Panel đã hạ chiều cao từ 630 xuống 530 để tiêu đề `INVENTORY` không bị thanh tab `INVENTORY / HEALTH STATUS` che khi mở riêng. Scroll dọc vẫn được giữ làm fallback ở độ phân giải thấp.
+- Loot Container mặc định **20 ô**, UI 4x5. Prefab nào chủ động cấu hình sức chứa thấp hơn vẫn ẩn các ô dư. Random loot thường chừa hai ô cho item nhiệm vụ.
+- Khi State Authority khởi tạo khu nhà được chọn, server phân phối đúng một bộ bảo đảm gồm `Toolbox`, `Hammer`, `FuelCan`, `Battery`, `Tire`. Ưu tiên năm tủ khác nhau; nếu map có ít tủ hợp lệ thì cho phép dùng chung tủ để tránh soft-lock.
+- Sau bộ bảo đảm, mỗi loại có `35%` cơ hội xuất hiện thêm đúng một bản hỗ trợ co-op/trao đổi. Không có vòng quét liên tục, không tự xóa đồ thừa và không ép mỗi loại chỉ tồn tại một bản trên toàn server.
+- Cất đồ vào tủ là transaction authoritative: server kiểm tra đúng Player, số lượng thật và chỗ trống trước khi trừ inventory. Tủ đầy phải từ chối mà không làm mất item.
 
 ### Manh mối và bản đồ
 
@@ -94,7 +118,9 @@ Main Menu / Solo
   -> Main: spawn lần đầu cạnh xe tại ViTriXeChetMay
   -> Đứng trước mũi xe, giữ E, kiểm tra và đóng UI
   -> Hiện hai tuyến A/B; chọn tuyến THEO DÕI hoặc chọn sau (chưa khóa ending)
-  -> Tuyến A: tìm dụng cụ + búa + nhiên liệu, sửa xe và nhận xe Fusion có thể lái
+  -> Tuyến A: tìm vật tư sửa xe dân sự (song song, không bắt buộc để đi Tuyến B)
+  -> Tuyến A: sửa cụm máy + nhiên liệu + ắc quy + lốp trước trái
+  -> Mở lại modal, bấm KHỞI ĐỘNG XE; server xác nhận rồi mới sinh xe có thể lái
   -> Tuyến B: tìm kiếm các nhà được State Authority chọn
   -> Nhặt đủ 3 tài liệu tuyến đường thật trong inventory
   -> Suy luận và tìm văn phòng cổng tím
@@ -131,9 +157,11 @@ Các phase authoritative của căn cứ quân sự là `NotReached`, `Investiga
 | File | Trách nhiệm |
 | --- | --- |
 | `Assets/Script/Tin/MainQuest/MainQuestManager.cs` | State Authority của nửa đầu Main, car-inspection state, nhà tìm kiếm, loot clue, stage và snapshot mạng. |
+| `Assets/Script/Tin/InventorySystem.cs` | Inventory Player cố định 20 ô (5 Hotbar + 15 kho) và transaction add/consume dùng slot index ổn định. |
+| `Assets/Script/Tin/AutoUIManager.cs` | UI 15 ô kho Player, 20 ô Loot Container, bố cục tab/tiêu đề và request transfer authoritative. |
 | `Assets/Script/Tin/MainQuest/MainArrivalStoryBootstrap.cs` | Nối Intro với Main, tìm `ViTriXeChetMay`, tạo/đặt xe và cấu hình spawn lần đầu. |
 | `Assets/Script/Tin/MainQuest/BrokenArrivalCar.cs` | Vùng polygon trước mũi xe, prompt, giữ `E`, mở lại UI và báo lần đóng đầu. |
-| `Assets/Script/Tin/MainQuest/ArrivalCarInspectionUI.cs` | Modal cơ khí, chọn bộ phận, nắp capo đỏ và nút hành động ngữ cảnh. |
+| `Assets/Script/Tin/MainQuest/ArrivalCarInspectionUI.cs` | Modal cơ khí, condition từng bộ phận, nắp capo đỏ, action ngữ cảnh và nút khởi động xe. |
 | `Assets/Script/Tin/MainQuest/ArrivalCarItemCatalog.cs` | Stable item IDs, alias, icon/runtime ItemData và yêu cầu inventory cho từng hành động sửa xe. |
 | `Assets/Script/Tin/Prototype/ArrivalCarRepairRules.cs` | Enum/bitmask thuần cho action, part ID, điều kiện hoàn tất bắt buộc và luật tiêu hao vật phẩm. |
 | `Assets/Script/Tin/Prototype/EscapeEndingRoute.cs` | Enum và luật thuần: theo dõi không khóa, ending chỉ khóa một lần và không thể đổi sang tuyến đối nghịch. |
@@ -145,7 +173,7 @@ Các phase authoritative của căn cứ quân sự là `NotReached`, `Investiga
 | `Assets/Script/Tin/MainQuest/VehiclePartPulseHighlight.cs` | Viền/pulse thẩm mỹ cho bộ phận đang chọn. |
 | `Assets/Script/Tin/MainQuest/PreMilitaryQuestRuntimeBridge.cs` | Nối state mạng với UI, inventory, map reveal, boundary và cinematic trước căn cứ. |
 | `Assets/Script/Tin/MainQuest/QuestRouteClueItemCatalog.cs` | Định nghĩa ba item manh mối, tên, nội dung đọc và icon runtime. |
-| `Assets/Script/Tin/Loot/LootContainer.cs` | Bảo đảm năm item sửa xe được phân phối authoritative vào các container nhà đã chọn. |
+| `Assets/Khoa/Code/LootContainer.cs` | Dữ liệu tủ 20 ô, loot/transfer authoritative và API đặt vật phẩm nhiệm vụ an toàn. |
 | `Assets/Script/Tin/MainQuest/QuestMapRevealTuningTool.cs` | Thông số vùng reveal trước/sau quest và công cụ chỉnh trong Play Mode. |
 | `Assets/Script/Tin/Prototype/QuestFlowUIPrototype.cs` | Nhật ký `J`, checklist sửa xe và các overlay quest. |
 | `Assets/Script/Tin/Prototype/QuestMapUIPrototype.cs` | Bản đồ `M` và các lớp reveal. |
@@ -154,7 +182,7 @@ Các phase authoritative của căn cứ quân sự là `NotReached`, `Investiga
 | `Assets/Resources/Story/BrokenArrivalCar.prefab` | Prefab xe đầu game và polygon tương tác đã cấu hình. |
 | `Assets/Hau/NewPrefab/Car/Car.prefab` | Prefab Fusion được server spawn khi xe đầu game sửa xong. |
 
-Asset ảnh UI xe nằm trong `Assets/Art/Generated/Car/`. Ảnh nguồn nhỏ có thể hơi mềm khi phóng lớn; code dùng cách hiển thị giữ tỉ lệ và overlay vector để hạn chế lộ vỡ ảnh. Nếu thay asset độ phân giải cao, giữ cùng silhouette hoặc chỉnh lại hotspot/polygon.
+Asset canonical để vẽ 8 hướng cho xe đầu game là `Assets/Art/Generated/IntroCar_UpperLeft.png`. Các asset UI/hotspot liên quan nằm trong `Assets/Art/Generated/Car/`; khi thay sprite nhiều hướng phải giữ silhouette hoặc căn lại hotspot/polygon tương ứng.
 
 ## Nguyên tắc multiplayer và tránh regression
 
@@ -170,13 +198,17 @@ Asset ảnh UI xe nằm trong `Assets/Art/Generated/Car/`. Ảnh nguồn nhỏ c
 
 ## Kiểm thử và việc còn lại
 
-- Mốc xác nhận sau khi thêm radio và nguồn audio Tuyến B ngày 2026-08-21: EditMode `43/43` và PlayMode `1/1` đã pass bằng Unity Test Runner.
-- Test đã bao phủ repair rules, snapshot/late join UI, trạng thái vật phẩm giữ lại/tiêu hao/nâng cấp, progress text chỉ còn `0 / 3`, divider tab hoàn thành rỗng, action bar không wrap, hotspot trùng khung artwork và flow PlayMode spawn xe lái được sau khi sửa.
+- Mốc xác nhận mới nhất ngày 2026-08-21: Unity compile sạch, Console `0` error; EditMode `45/45` pass. E2E PlayMode `MainMenu -> SOLO -> EASY -> ENTER THE DEAD ZONE -> Main -> sửa xe -> KHỞI ĐỘNG XE -> spawn xe` pass `1/1` ở source cuối (`9.53s`). Chỉ lặp test khi có lỗi hoặc vừa bổ sung assertion cần xác nhận, không mặc định chạy ba lần.
+- Test bao phủ inventory cố định 20 ô, consume không làm lệch index, tủ mặc định 20 ô và từ chối ô thứ 21; PlayMode kiểm tra đủ 15/20 ô UI, lưới 5x3/4x5, không tràn viewport, hai panel không chồng nhau và tiêu đề inventory mở riêng nằm dưới thanh tab.
+- Quality gate modal xe kiểm tra hotspot, condition `0%`/`>=60%`, nút khởi động không chồng nút đóng/đường header, nút bị khóa trước khi sửa đủ, xe không tự spawn sau action cuối, và chỉ spawn sau request khởi động thành công.
+- Lỗi PlayMode không ổn định trước đây chưa tái hiện sau nhiều lượt. Nguyên nhân lỗi `RenderTexture.Create failed: height > 0` là GameView/Test Runner có kích thước nội dung bằng 0, không phải logic gameplay. `MainMenuManager` hiện log rõ cleanup, yêu cầu load scene, `OnSceneLoadStart` và `OnSceneLoadDone`, đồng thời bắt exception và trả UI về trạng thái có thể thử lại.
 - Cần QA tay ở độ phân giải mục tiêu: vị trí nút, text dài tiếng Việt, mở/đóng liên tục bằng `E`/`Esc`/`X`, thanh tiến độ `0 / 3`, tab hoàn thành rỗng và khóa di chuyển/tấn công.
-- Cần QA multiplayer thật với host + client, đặc biệt late join sau khi xe đã spawn, hai người gửi cùng repair action, hai người mở cùng container, mất/nhặt lại clue và manh mối nằm rải trong inventory nhiều người.
+- Cần QA multiplayer thật với host + client, đặc biệt: hai người cùng mở/cất/nhặt ở một tủ, tủ đầy không mất item, bộ năm vật tư luôn tồn tại lúc khởi tạo, item bonus có thể trao đổi, late join sau khi xe đã spawn và hai người gửi cùng repair action.
 - Cần QA tay cả hai confirmation point-of-no-return và tình huống hai client đồng thời xác nhận hai tuyến đối nghịch; server phải chỉ chấp nhận request đầu tiên.
 - Cần đặt/chốt vị trí scene `CivilianEscapeExit`; hiện có fallback chạy được nhưng chưa phải quyết định level-design cuối.
-- Cần quyết định UX cho ắc quy/lốp tùy chọn nếu người chơi hoàn tất bộ đề + nhiên liệu trước: hiện xe được spawn ngay và các nâng cấp tùy chọn chỉ có thể lắp trước mốc hoàn tất bắt buộc.
+- **Phase 3 đã hoàn tất ở mức code + automated QA:** condition, ắc quy, một lốp hỏng, nút khởi động và server gate đã vào flow. Vẫn cần QA tay host + client thật để xác nhận cảm giác UI, transaction đồng thời và late join.
+- **Phase 4 tiếp theo:** tạo bộ sprite 8 hướng từ đúng ảnh sedan đầu game, sau đó tái cấu trúc code lái cần thiết từ xe cảnh sát nhưng không dùng lại sprite xe cảnh sát. Trước khi thay asset phải duyệt sheet/8 ảnh vì đây là quyết định mỹ thuật lớn.
+- Cần người dùng quyết định phần thưởng runtime `MilitaryBackpackLevel3` cũ của Tuyến B: xóa hẳn hay đổi thành bundle tiếp tế. Inventory cố định 20 ô sẽ không nhận hiệu ứng tăng sức chứa từ item này.
 
 ## Checklist cho Codex ở máy khác
 

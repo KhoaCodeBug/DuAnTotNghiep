@@ -11,8 +11,8 @@ public class AutoUIManager : MonoBehaviour
 
     #region Cài Đặt Chung
     [Header("Cài đặt")]
-    public int maxSlots = 40; // Hỗ trợ tối đa Cấp 5 = 40 ô (5 Hotbar + 35 Kho)
-    private int containerSlots = 9; // Tủ đồ 3x3
+    public int maxSlots = InventorySystem.FixedTotalSlots;
+    private const int ContainerSlots = LootContainer.DefaultMaxSlots;
     public TMP_FontAsset gameFont;
     public Sprite iconAmmo;
     private Sprite generatedBorderSprite;
@@ -612,6 +612,9 @@ public class AutoUIManager : MonoBehaviour
         inventoryPanel.transform.SetParent(canvasGO.transform, false);
 
         RectTransform panelRect = inventoryPanel.AddComponent<RectTransform>();
+        // Keep the inventory panel aligned with AutoTabManager's 530px reference.
+        // A taller panel lets the separate tab canvas overlap the title when the
+        // inventory is opened without a loot container.
         panelRect.sizeDelta = new Vector2(620, 530);
         panelRect.localScale = Vector3.one;
 
@@ -687,13 +690,16 @@ public class AutoUIManager : MonoBehaviour
         GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
         gridLayout.cellSize = new Vector2(90, 90); gridLayout.spacing = new Vector2(10, 10);
         gridLayout.childAlignment = TextAnchor.UpperCenter;
+        gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        gridLayout.constraintCount = 5;
 
         ContentSizeFitter csf = gridObj.AddComponent<ContentSizeFitter>();
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         sr.content = gridRect;
 
-        // Luôn luôn tạo sẵn toàn bộ 35 ô UI Kho (slotIndex 5 đến 39) hỗ trợ Balo tối đa Cấp 5 (40 ô total)
-        for (int i = 5; i < 40; i++)
+        // Fixed inventory: 5 Hotbar slots are rendered separately; this grid
+        // contains the remaining 15 storage slots.
+        for (int i = InventorySystem.HotbarSlotCount; i < InventorySystem.FixedTotalSlots; i++)
         {
             int slotIndex = i;
             GameObject slotObj = new GameObject("InvSlot_" + i);
@@ -856,7 +862,7 @@ public class AutoUIManager : MonoBehaviour
         containerPanel.transform.SetParent(canvasGO.transform, false);
 
         RectTransform panelRect = containerPanel.AddComponent<RectTransform>();
-        panelRect.sizeDelta = new Vector2(400, 480);
+        panelRect.sizeDelta = new Vector2(400, 540);
         panelRect.localScale = Vector3.one;
 
         panelRect.anchorMin = new Vector2(0.5f, 0.5f);
@@ -899,11 +905,13 @@ public class AutoUIManager : MonoBehaviour
         gridRect.offsetMin = new Vector2(30, 40); gridRect.offsetMax = new Vector2(-30, -75);
 
         GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
-        gridLayout.cellSize = new Vector2(90, 90);
-        gridLayout.spacing = new Vector2(10, 10);
+        gridLayout.cellSize = new Vector2(72, 72);
+        gridLayout.spacing = new Vector2(8, 8);
         gridLayout.childAlignment = TextAnchor.UpperCenter;
+        gridLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        gridLayout.constraintCount = 4;
 
-        for (int i = 0; i < containerSlots; i++)
+        for (int i = 0; i < ContainerSlots; i++)
         {
             int slotIndex = i;
             GameObject slotObj = new GameObject("ContSlot_" + i);
@@ -1005,13 +1013,17 @@ public class AutoUIManager : MonoBehaviour
 
     public void RefreshContainerUI(LootContainer container)
     {
-        if (currentOpenContainer != container) return;
+        if (container == null || currentOpenContainer != container) return;
 
         List<InventorySlot> cSlots = container.itemsInContainer;
 
-        for (int i = 0; i < containerSlots; i++)
+        int visibleCapacity = Mathf.Clamp(container.MaxSlots, 1, ContainerSlots);
+        for (int i = 0; i < ContainerSlots; i++)
         {
             SlotUIElements ui = containerSlotUIList[i];
+            ui.slotButton.gameObject.SetActive(i < visibleCapacity);
+            if (i >= visibleCapacity) continue;
+
             if (i < cSlots.Count && cSlots[i] != null && cSlots[i].amount > 0)
             {
                 ui.iconImage.gameObject.SetActive(true);
@@ -1088,8 +1100,9 @@ public class AutoUIManager : MonoBehaviour
         InventorySlot slot = currentSlots[invIdx];
         if (slot.item == null) return;
 
-        currentOpenContainer.RPC_StoreItem(slot.item.itemName, slot.amount);
-        localPlayer.GetComponent<InventorySystem>().ConsumeItem(slot.item, slot.amount);
+        NetworkObject playerObject = localPlayer.GetComponent<NetworkObject>();
+        if (playerObject == null || !playerObject.IsValid) return;
+        currentOpenContainer.RPC_StoreItem(slot.item.itemName, slot.amount, playerObject.InputAuthority);
     }
 
     public void DragItemToInventory(int contIdx)
@@ -1466,8 +1479,10 @@ public class AutoUIManager : MonoBehaviour
             EnsureLocalPlayer();
             if (localPlayer != null)
             {
-                localPlayer.GetComponent<InventorySystem>().ConsumeItem(itemToStore, amountToStore);
-                currentOpenContainer.RPC_StoreItem(itemToStore.name, amountToStore);
+                NetworkObject playerObject = localPlayer.GetComponent<NetworkObject>();
+                if (playerObject != null && playerObject.IsValid)
+                    currentOpenContainer.RPC_StoreItem(itemToStore.itemName, amountToStore,
+                        playerObject.InputAuthority);
 
                 HideContextMenu();
             }
@@ -1562,8 +1577,10 @@ public class AutoUIManager : MonoBehaviour
             ItemData itemToStore = currentSlots[index].item;
             int amountToStore = currentSlots[index].amount;
 
-            localPlayer.GetComponent<InventorySystem>().ConsumeItem(itemToStore, amountToStore);
-            currentOpenContainer.RPC_StoreItem(itemToStore.name, amountToStore);
+            NetworkObject playerObject = localPlayer.GetComponent<NetworkObject>();
+            if (playerObject != null && playerObject.IsValid)
+                currentOpenContainer.RPC_StoreItem(itemToStore.itemName, amountToStore,
+                    playerObject.InputAuthority);
         }
     }
 
@@ -1876,10 +1893,10 @@ public class AutoUIManager : MonoBehaviour
             {
                 localInv = PlayerMovement.LocalPlayerInstance.GetComponent<InventorySystem>();
             }
-            currentMax = (localInv != null) ? localInv.maxSlots : 20;
+            currentMax = (localInv != null) ? localInv.maxSlots : InventorySystem.FixedTotalSlots;
         }
 
-        for (int i = 5; i < 40; i++)
+        for (int i = InventorySystem.HotbarSlotCount; i < InventorySystem.FixedTotalSlots; i++)
         {
             int uiIndex = i - 5;
             if (uiIndex >= slotUIList.Count) break;

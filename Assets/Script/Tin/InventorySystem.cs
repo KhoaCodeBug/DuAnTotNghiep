@@ -18,8 +18,12 @@ public class InventorySlot
 
 public class InventorySystem : NetworkBehaviour
 {
+    public const int HotbarSlotCount = 5;
+    public const int FixedTotalSlots = 20;
+
     [Header("Cài đặt Ba lô")]
-    public int maxSlots = 20;
+    [Tooltip("Sức chứa cố định: 5 ô Hotbar + 15 ô Kho. Hệ thống nâng cấp balo hiện không được sử dụng.")]
+    public int maxSlots = FixedTotalSlots;
 
     [Header("Cài đặt Nhặt Đồ")]
     public float pickupRadius = 0.5f;
@@ -30,10 +34,6 @@ public class InventorySystem : NetworkBehaviour
     [Header("Cài đặt Rớt Đồ (Cá nhân)")]
     public GameObject droppedItemPrefab;
     public float dropLifeTime = 30f;
-
-    [Header("Balo Đang Trang Bị")]
-    public ItemData equippedBackpack;
-    public int currentBackpackLevel = 0; // 0 = Chưa có Balo (Mặc định 15 ô: 5 Hotbar + 10 Kho)
 
     // Cờ chống lặp vô hạn khi 2 máy gọi điện cho nhau
     private bool isSyncing = false;
@@ -49,47 +49,31 @@ public class InventorySystem : NetworkBehaviour
 
     private void Awake()
     {
-        // Khởi tạo sẵn tối đa 40 ô slot trong danh sách
-        for (int i = 0; i < 40; i++)
+        maxSlots = FixedTotalSlots;
+        while (slots.Count < FixedTotalSlots)
         {
             slots.Add(new InventorySlot(null, 0));
         }
-        maxSlots = 15; // Mặc định khởi đầu 15 ô (5 Hotbar + 10 Kho)
     }
 
     public bool EquipBackpack(ItemData backpack)
     {
-        if (backpack == null || backpack.category != ItemCategory.Backpack) return false;
-
-        // KIỂM TRA PHONG CÁCH PUBG: Nếu cấp balo định mặc nhỏ hơn hoặc bằng cấp hiện tại -> Từ chối!
-        if (backpack.backpackLevel <= currentBackpackLevel)
-        {
-            Debug.Log($"[INVENTORY] ❌ Balo {backpack.itemName} (Cấp {backpack.backpackLevel}) không cao hơn Balo hiện tại (Cấp {currentBackpackLevel})!");
-            return false;
-        }
-
-        equippedBackpack = backpack;
-        currentBackpackLevel = backpack.backpackLevel;
-
-        int targetTotalSlots = 15 + (backpack.backpackLevel * 5); // Cấp 1=20, 2=25, 3=30, 4=35, 5=40
-        SetMaxSlots(targetTotalSlots);
-        Debug.Log($"[INVENTORY] ✅ Đã nâng cấp Balo Cấp {currentBackpackLevel}! Tổng sức chứa: {maxSlots} ô.");
-        return true;
+        if (backpack != null && backpack.category == ItemCategory.Backpack)
+            Debug.LogWarning($"[INVENTORY] Bỏ qua '{backpack.itemName}': sức chứa hiện được cố định ở {FixedTotalSlots} ô.");
+        return false;
     }
 
     public void SetMaxSlots(int newMax)
     {
-        maxSlots = Mathf.Clamp(newMax, 15, 40);
+        if (newMax != FixedTotalSlots)
+            Debug.LogWarning($"[INVENTORY] Yêu cầu đổi sức chứa thành {newMax} bị bỏ qua; sức chứa cố định là {FixedTotalSlots} ô.");
+
+        maxSlots = FixedTotalSlots;
         while (slots.Count < maxSlots)
         {
             slots.Add(new InventorySlot(null, 0));
         }
         UpdateUI();
-
-        if (HasInputAuthority && !HasStateAuthority)
-        {
-            RPC_SyncBackpackToServer(maxSlots, currentBackpackLevel);
-        }
     }
 
     public override void Spawned()
@@ -638,7 +622,14 @@ public class InventorySystem : NetworkBehaviour
                 slots[i].amount -= amountToTakeFromSlot;
                 amountExtracted += amountToTakeFromSlot;
 
-                if (slots[i].amount <= 0) slots.RemoveAt(i);
+                if (slots[i].amount <= 0)
+                {
+                    // Inventory uses stable slot indices for Hotbar/UI/network
+                    // sync. Removing the list element shifts every later slot
+                    // and gradually reduces usable capacity after consuming.
+                    slots[i].item = null;
+                    slots[i].amount = 0;
+                }
                 if (amountExtracted >= amountNeeded) break;
             }
         }
@@ -710,15 +701,4 @@ public class InventorySystem : NetworkBehaviour
         }
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    public void RPC_SyncBackpackToServer(int newMaxSlots, int backpackLevel)
-    {
-        maxSlots = Mathf.Clamp(newMaxSlots, 15, 40);
-        currentBackpackLevel = backpackLevel;
-        while (slots.Count < maxSlots)
-        {
-            slots.Add(new InventorySlot(null, 0));
-        }
-        Debug.Log($"[SERVER INVENTORY] ✅ Đã đồng bộ sức chứa Balo mới cho Player: {maxSlots} ô (Level {currentBackpackLevel})");
-    }
 }

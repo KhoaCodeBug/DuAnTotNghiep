@@ -147,19 +147,19 @@ public sealed class QuestFlowUIPrototypeTests
         prototype.SelectQuestForPreview(2);
         Assert.That(prototype.SelectedQuestIndex, Is.EqualTo(2));
         Assert.That(prototype.CurrentDetailTitle, Does.Contain("KHÔI PHỤC CHIẾC XE"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("ĐANG THIẾU"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐANG THIẾU"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("0 / 2"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("0 / 2"));
         Assert.That(prototype.CurrentRewardText, Does.Contain("khám phá"));
         Assert.That(prototype.GetCarRepairRequirementStateForPreview(0), Is.EqualTo("THIẾU"));
-        Assert.That(prototype.GetCarRepairRequirementStateForPreview(4), Is.EqualTo("CHƯA LẮP"));
+        Assert.That(prototype.GetCarRepairRequirementStateForPreview(4), Is.EqualTo("THIẾU"));
 
         prototype.ApplyAuthoritativeSnapshot(0, 0, false, false, false, false,
             arrivalCarRepairUnlocked: true, arrivalCarRepaired: false,
             arrivalCarRepairMask: (int)ArrivalCarRepairState.CoreRepaired);
         prototype.SelectQuestForPreview(2);
-        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("ĐÃ SỬA BỘ ĐỀ"));
-        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("ĐANG THIẾU"));
-        Assert.That(prototype.CurrentObjectiveProgress, Is.EqualTo("2 / 3 BẮT BUỘC"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(0), Is.EqualTo("1 / 2"));
+        Assert.That(prototype.GetObjectiveStatusForPreview(1), Is.EqualTo("0 / 2"));
+        Assert.That(prototype.CurrentObjectiveProgress, Is.EqualTo("2 / 5 BẮT BUỘC"));
 
         prototype.ApplyAuthoritativeSnapshot(0, 0, false, false, false, false,
             arrivalCarRepairUnlocked: true, arrivalCarRepaired: true,
@@ -170,7 +170,7 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.CurrentDetailTitle, Does.Contain("KHÔI PHỤC CHIẾC XE"));
         Assert.That(prototype.GetCarRepairRequirementStateForPreview(0), Is.EqualTo("GIỮ LẠI"));
         Assert.That(prototype.GetCarRepairRequirementStateForPreview(2), Is.EqualTo("ĐÃ DÙNG"));
-        Assert.That(prototype.GetCarRepairRequirementStateForPreview(3), Is.EqualTo("CHƯA LẮP"));
+        Assert.That(prototype.GetCarRepairRequirementStateForPreview(3), Is.EqualTo("ĐÃ LẮP"));
     }
 
     [Test]
@@ -232,14 +232,21 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
-    public void ArrivalCarRepairRequiresCoreAndFuelWhileUpgradesRemainOptional()
+    public void ArrivalCarRepairRequiresCoreFuelBatteryAndExactlyOneBrokenTire()
     {
         int state = (int)ArrivalCarRepairState.CoreRepaired;
         Assert.That(ArrivalCarRepairRules.IsRequiredRepairComplete(state), Is.False);
 
         state |= (int)ArrivalCarRepairState.FuelAdded;
+        Assert.That(ArrivalCarRepairRules.IsRequiredRepairComplete(state), Is.False);
+        state |= (int)ArrivalCarRepairState.BatteryReplaced;
+        Assert.That(ArrivalCarRepairRules.IsRequiredRepairComplete(state), Is.False);
+        state |= (int)ArrivalCarRepairState.TireReplaced;
         Assert.That(ArrivalCarRepairRules.IsRequiredRepairComplete(state), Is.True);
-        Assert.That(ArrivalCarRepairRules.IsApplied(state, ArrivalCarRepairAction.ReplaceBattery), Is.False);
+        Assert.That(ArrivalCarRepairRules.TryGetAction("front_left", out ArrivalCarRepairAction tireAction), Is.True);
+        Assert.That(tireAction, Is.EqualTo(ArrivalCarRepairAction.ReplaceTire));
+        Assert.That(ArrivalCarRepairRules.TryGetAction("front_right", out _), Is.False,
+            "Only the actually broken tire may consume the single replacement tire.");
         Assert.That(ArrivalCarRepairRules.ConsumesInstalledPart(ArrivalCarRepairAction.RepairCore), Is.False);
         Assert.That(ArrivalCarRepairRules.ConsumesInstalledPart(ArrivalCarRepairAction.AddFuel), Is.True);
     }

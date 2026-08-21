@@ -1156,10 +1156,10 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             "Story/CarUI/GasCan", "NHIÊN LIỆU", true,
             new[] { "ArrivalCarFuelCan", "Can nhiên liệu" });
         BuildCarRequirementCard(root, 3, ArrivalCarItemKind.Battery,
-            "Story/CarUI/CarBattery", "ẮC QUY", false,
+            "Story/CarUI/CarBattery", "ẮC QUY", true,
             new[] { "ArrivalCarBattery", "Ắc quy xe", "CarBattery", "Ắc quy" });
         BuildCarRequirementCard(root, 4, ArrivalCarItemKind.Tire,
-            "Story/CarUI/CarTire", "LỐP XE", false,
+            "Story/CarUI/CarTire", "LỐP XE", true,
             new[] { "ArrivalCarTire", "Lốp xe", "CarTire", "Lốp" });
         carRepairRequirementsRoot.SetActive(false);
     }
@@ -1243,9 +1243,14 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         if (selectedQuestIndex == 2 && !mainQuestProgress.ArrivalCarRepaired && requiredTotal > 0)
         {
-            SetCurrentObjective("Thu thập vật phẩm bắt buộc để sửa xe",
-                requiredOwned + " / " + requiredTotal + " BẮT BUỘC",
-                requiredOwned / (float)requiredTotal, requiredOwned == requiredTotal ? Mint : Amber);
+            bool repairsComplete = ArrivalCarRepairRules.IsRequiredRepairComplete(
+                mainQuestProgress.ArrivalCarRepairMask);
+            SetCurrentObjective(repairsComplete
+                    ? "Quay lại xe và bấm KHỞI ĐỘNG XE"
+                    : "Thu thập vật phẩm bắt buộc để sửa xe",
+                repairsComplete ? "SẴN SÀNG KHỞI ĐỘNG" : requiredOwned + " / " + requiredTotal + " BẮT BUỘC",
+                repairsComplete ? 1f : requiredOwned / (float)requiredTotal,
+                repairsComplete || requiredOwned == requiredTotal ? Mint : Amber);
         }
     }
 
@@ -1475,7 +1480,14 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             ArrivalCarRepairAction.RepairCore);
         bool fuelAdded = ArrivalCarRepairRules.IsApplied(mainQuestProgress.ArrivalCarRepairMask,
             ArrivalCarRepairAction.AddFuel);
-        int completedRequiredActions = (coreRepaired ? 1 : 0) + (fuelAdded ? 1 : 0);
+        bool batteryReplaced = ArrivalCarRepairRules.IsApplied(mainQuestProgress.ArrivalCarRepairMask,
+            ArrivalCarRepairAction.ReplaceBattery);
+        bool tireReplaced = ArrivalCarRepairRules.IsApplied(mainQuestProgress.ArrivalCarRepairMask,
+            ArrivalCarRepairAction.ReplaceTire);
+        int completedRequiredActions = (coreRepaired ? 1 : 0) + (fuelAdded ? 1 : 0) +
+                                       (batteryReplaced ? 1 : 0) + (tireReplaced ? 1 : 0);
+        bool repairsComplete = ArrivalCarRepairRules.IsRequiredRepairComplete(
+            mainQuestProgress.ArrivalCarRepairMask);
         detailEyebrow.text = lockedEscapeRoute == EscapeEndingRoute.CivilianCar
             ? "TUYẾN THOÁT HIỂM A  /  ĐÃ KHÓA FINALE"
             : lockedEscapeRoute == EscapeEndingRoute.MilitaryEvacuation
@@ -1483,18 +1495,20 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
                 : "TUYẾN THOÁT HIỂM A  /  CHIẾC XE DÂN SỰ";
         detailEyebrow.color = Mint;
         detailTitle.text = "KHÔI PHỤC CHIẾC XE";
-        storyText.text = "Chiếc xe vẫn có thể hoạt động nếu sửa bộ đề và bổ sung nhiên liệu. " +
-                         "Sửa xe để khám phá lối thoát dân sự; ending chỉ bị khóa khi xác nhận vượt vòng phong tỏa.";
+        storyText.text = "Chiếc xe chỉ có thể khởi động sau khi sửa động cơ, bổ sung nhiên liệu, " +
+                         "thay ắc quy và lốp trước trái bị thủng. Ending chỉ khóa khi xác nhận vượt vòng phong tỏa.";
 
-        SetObjective(0, "Tìm bộ dụng cụ và búa sửa chữa",
-            coreRepaired ? "ĐÃ SỬA BỘ ĐỀ" : "ĐANG THIẾU",
-            !coreRepaired, coreRepaired ? Mint : Amber);
-        SetObjective(1, "Tìm một can nhiên liệu",
-            fuelAdded ? "ĐÃ ĐỔ NHIÊN LIỆU" : "ĐANG THIẾU",
-            coreRepaired && !fuelAdded, fuelAdded ? Mint : Amber);
-        SetObjective(2, "Quay lại mũi xe để kiểm tra và sửa chữa",
-            mainQuestProgress.ArrivalCarRepaired ? "ĐÃ SỬA XONG" : "TÙY CHỌN",
-            false, mainQuestProgress.ArrivalCarRepaired ? Mint : Muted);
+        SetObjective(0, "Sửa động cơ và bổ sung nhiên liệu",
+            (coreRepaired ? 1 : 0) + (fuelAdded ? 1 : 0) + " / 2",
+            !coreRepaired || !fuelAdded, coreRepaired && fuelAdded ? Mint : Amber);
+        SetObjective(1, "Thay ắc quy và lốp trước trái",
+            (batteryReplaced ? 1 : 0) + (tireReplaced ? 1 : 0) + " / 2",
+            coreRepaired && fuelAdded && (!batteryReplaced || !tireReplaced),
+            batteryReplaced && tireReplaced ? Mint : Amber);
+        SetObjective(2, "Quay lại mũi xe và bấm KHỞI ĐỘNG XE",
+            mainQuestProgress.ArrivalCarRepaired ? "ĐÃ KHỞI ĐỘNG" : repairsComplete ? "SẴN SÀNG" : "CHƯA ĐỦ ĐIỀU KIỆN",
+            repairsComplete && !mainQuestProgress.ArrivalCarRepaired,
+            mainQuestProgress.ArrivalCarRepaired ? Mint : repairsComplete ? Amber : Muted);
 
         rewardLabel.text = mainQuestProgress.ArrivalCarRepaired ? "PHẦN THƯỞNG ĐÃ MỞ" : "PHẦN THƯỞNG";
         rewardText.text = mainQuestProgress.ArrivalCarRepaired
@@ -1505,9 +1519,10 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         SetCurrentObjective(mainQuestProgress.ArrivalCarRepaired
                 ? "Chiếc xe đã sẵn sàng"
-                : coreRepaired ? "Tìm và đổ can nhiên liệu" : "Tìm dụng cụ sửa chữa và can nhiên liệu",
-            mainQuestProgress.ArrivalCarRepaired ? "HOÀN THÀNH" : completedRequiredActions + " / 2",
-            completedRequiredActions / 2f,
+                : repairsComplete ? "Quay lại xe và bấm KHỞI ĐỘNG XE" : "Hoàn tất bốn hạng mục sửa xe",
+            mainQuestProgress.ArrivalCarRepaired ? "HOÀN THÀNH" :
+            repairsComplete ? "SẴN SÀNG KHỞI ĐỘNG" : completedRequiredActions + " / 4",
+            mainQuestProgress.ArrivalCarRepaired || repairsComplete ? 1f : completedRequiredActions / 4f,
             mainQuestProgress.ArrivalCarRepaired ? Mint : Amber);
         RefreshCarRepairRequirementStates();
         UpdateTrackingPresentation();
