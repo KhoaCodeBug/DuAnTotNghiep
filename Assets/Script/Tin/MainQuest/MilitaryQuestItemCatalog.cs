@@ -87,6 +87,16 @@ public static class MilitaryQuestItemCatalog
         _ => "Balo quân sự cấp 3"
     };
 
+    public static string GetLocalizedDisplayName(MilitaryQuestItemKind kind) =>
+        GameLocalization.IsVietnamese ? GetDisplayName(kind) : kind switch
+        {
+            MilitaryQuestItemKind.ArmoryKey => "Armory key",
+            MilitaryQuestItemKind.Battery => "Military battery",
+            MilitaryQuestItemKind.FuelCanister => "Fuel canister",
+            MilitaryQuestItemKind.RepairKit => "Military repair kit",
+            _ => "Level-3 military backpack"
+        };
+
     private static Sprite CreateIcon(MilitaryQuestItemKind kind)
     {
         const int size = 32;

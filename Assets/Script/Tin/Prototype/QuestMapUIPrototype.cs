@@ -50,8 +50,6 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private RectTransform rasterArtRoot;
     private RectTransform rasterPlayerMarker;
     private RectTransform rasterSearchZone;
-    private TextMeshProUGUI rasterSearchZoneLabel;
-    private RectTransform rasterSearchZoneLabelPlate;
     private readonly List<RectTransform> rasterRestrictedFog = new List<RectTransform>();
     private int activeRasterFogCount;
     private Vector2 rasterOfficeNormalized;
@@ -412,8 +410,6 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         if (useRasterMap)
         {
             UpdateRasterMapMarkers();
-            if (Input.GetKeyDown(KeyCode.Q)) RotateRasterMap(-1);
-            if (Input.GetKeyDown(KeyCode.E)) RotateRasterMap(1);
         }
 
         bool pointerInside = RectTransformUtility.RectangleContainsScreenPoint(viewport, Input.mousePosition);
@@ -619,9 +615,6 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             unknownOfficeMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         if (rasterPlayerMarker != null)
             rasterPlayerMarker.localRotation = Quaternion.Euler(0f, 0f, 45f + 90f * rasterRotationQuarterTurns);
-        if (rasterSearchZoneLabelPlate != null)
-            rasterSearchZoneLabelPlate.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
-
         UpdateRasterMapMarkers();
         UpdateRotationLabel();
     }
@@ -697,18 +690,6 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         rasterSearchZone = Box("Quest Search Zone", rasterArtRoot, new Vector2(120f, 100f), Vector2.zero,
             new Color(0f, 0f, 0f, 0f));
         Border(rasterSearchZone, new Color(Amber.r, Amber.g, Amber.b, 0.9f));
-        rasterSearchZoneLabelPlate = Box("Quest Search Zone Label Plate", rasterSearchZone,
-            new Vector2(220f, 30f), Vector2.zero, new Color(0.015f, 0.025f, 0.022f, 0.92f));
-        rasterSearchZoneLabelPlate.anchorMin = new Vector2(0.5f, 1f);
-        rasterSearchZoneLabelPlate.anchorMax = new Vector2(0.5f, 1f);
-        rasterSearchZoneLabelPlate.pivot = new Vector2(0.5f, 1f);
-        rasterSearchZoneLabelPlate.anchoredPosition = new Vector2(0f, -8f);
-        Border(rasterSearchZoneLabelPlate, new Color(Amber.r, Amber.g, Amber.b, 0.95f));
-        rasterSearchZoneLabel = Text(rasterSearchZoneLabelPlate, "Quest Search Zone Label",
-            "KHU VỰC TÌM MANH MỐI", 11f, new Color(1f, 0.94f, 0.76f, 1f), FontStyles.Bold,
-            TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(204f, 24f), Vector2.zero);
-        rasterSearchZoneLabel.textWrappingMode = TextWrappingModes.NoWrap;
-        rasterSearchZoneLabelPlate.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         rasterSearchZone.SetSiblingIndex(Mathf.Min(5, rasterArtRoot.childCount - 1));
         UpdateSearchRestrictionVisibility();
     }
@@ -742,7 +723,9 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             int index = rasterRestrictedFog.Count;
             string name = index < names.Length ? names[index] : $"Restricted Fog Segment {index + 1}";
             RectTransform fog = Box(name, rasterArtRoot, Vector2.zero, Vector2.zero,
-                new Color(0f, 0f, 0f, 0.82f));
+                // Unknown districts should read as genuinely unavailable, not
+                // as a dim preview of streets the player has not uncovered.
+                new Color(0f, 0f, 0f, 0.97f));
             fog.SetSiblingIndex(Mathf.Min(index + 1, rasterArtRoot.childCount - 1));
             rasterRestrictedFog.Add(fog);
         }
@@ -1112,9 +1095,10 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         rotationLabel = Text(info, "Map Rotation State", "HƯỚNG BẢN ĐỒ  0°", 11f, Mint,
             FontStyles.Bold, TextAlignmentOptions.BottomLeft, new Vector2(0f, 0f),
             new Vector2(285f, 24f), new Vector2(22f, 78f));
-        Text(info, "Map Controls", "[Q/E] XOAY 90°\nCUỘN CHUỘT: ZOOM\nGIỮ CHUỘT TRÁI: KÉO BẢN ĐỒ", 11f, Muted,
+        rotationLabel.gameObject.SetActive(false);
+        Text(info, "Map Controls", "CUỘN CHUỘT: ZOOM\nGIỮ CHUỘT TRÁI: KÉO BẢN ĐỒ", 11f, Muted,
             FontStyles.Bold, TextAlignmentOptions.BottomLeft, new Vector2(0f, 0f),
-            new Vector2(285f, 66f), new Vector2(22f, 10f));
+            new Vector2(285f, 48f), new Vector2(22f, 10f));
         UpdateRotationLabel();
     }
 

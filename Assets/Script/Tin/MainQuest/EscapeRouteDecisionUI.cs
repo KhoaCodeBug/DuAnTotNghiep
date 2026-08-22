@@ -19,6 +19,8 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
     private TMP_Text confirmationBody;
     private TMP_Text confirmationButtonText;
     private Action pendingConfirmation;
+    private EscapeEndingRoute pendingRoute;
+    private bool preMilitaryChoice;
 
     public static bool IsVisible => instance != null && instance.canvas != null &&
                                     instance.canvas.enabled && instance.gameObject.activeSelf;
@@ -26,7 +28,13 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
     public static void ShowInitialChoice()
     {
         EscapeRouteDecisionUI ui = EnsureInstance();
-        ui.ShowIntroduction();
+        ui.ShowIntroduction(false);
+    }
+
+    public static void ShowPreMilitaryChoice()
+    {
+        EscapeRouteDecisionUI ui = EnsureInstance();
+        ui.ShowIntroduction(true);
     }
 
     public static void ShowFinaleConfirmation(EscapeEndingRoute route, Action onConfirmed)
@@ -58,16 +66,20 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+        GameLocalization.LanguageChanged -= ApplyLocalization;
+        GameLocalization.LanguageChanged += ApplyLocalization;
         if (canvas == null) Build();
     }
 
     private void OnDestroy()
     {
+        GameLocalization.LanguageChanged -= ApplyLocalization;
         if (instance == this) instance = null;
     }
 
     private void Update()
     {
+        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput) return;
         if (!IsVisible) return;
         if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.X))
         {
@@ -94,6 +106,7 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
 
         BuildIntroduction();
         BuildConfirmation();
+        ApplyLocalization();
         canvas.enabled = false;
     }
 
@@ -130,11 +143,6 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
             "[2]  THEO DÕI TUYẾN QUÂN SỰ");
         military.GetComponent<Button>().onClick.AddListener(() => TrackRoute(EscapeEndingRoute.MilitaryEvacuation));
 
-        CreateText(panel, "Tracking Does Not Lock Ending",
-            "CHƯA KHÓA ENDING  •  Có thể đổi tuyến theo dõi trong Nhật ký trước điểm không thể quay lại.",
-            12f, new Color(0.72f, 0.78f, 0.75f), FontStyles.Bold,
-            new Vector2(0.5f, 0f), new Vector2(760f, 24f), new Vector2(0f, 78f), TextAlignmentOptions.Center);
-
         Button later = CreateButton(panel, "Choose Later", "[X]  CHỌN SAU",
             new Vector2(0.5f, 0f), new Vector2(360f, 46f), new Vector2(0f, 28f),
             new Color(0.08f, 0.09f, 0.085f, 1f));
@@ -165,12 +173,15 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
         confirmationRoot.SetActive(false);
     }
 
-    private void ShowIntroduction()
+    private void ShowIntroduction(bool beforeMilitary)
     {
         PrepareForModal();
+        preMilitaryChoice = beforeMilitary;
         pendingConfirmation = null;
+        pendingRoute = EscapeEndingRoute.None;
         confirmationRoot.SetActive(false);
         introductionRoot.SetActive(true);
+        ApplyIntroductionLocalization();
         canvas.enabled = true;
     }
 
@@ -178,28 +189,26 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
     {
         PrepareForModal();
         pendingConfirmation = onConfirmed;
+        pendingRoute = route;
         introductionRoot.SetActive(false);
         confirmationRoot.SetActive(true);
-        confirmationEyebrow.text = "ĐIỂM KHÔNG THỂ QUAY LẠI  //  " + EscapeEndingRules.GetDisplayName(route);
-        confirmationTitle.text = route == EscapeEndingRoute.CivilianCar
-            ? "BẮT ĐẦU VƯỢT VÒNG PHONG TỎA?"
-            : "KÍCH HOẠT KẾ HOẠCH SƠ TÁN?";
-        confirmationBody.text = route == EscapeEndingRoute.CivilianCar
-            ? "Bạn sắp dùng chiếc xe dân sự để bắt đầu cuộc thoát hiểm cuối cùng. " +
-              "Xác nhận sẽ khóa tuyến căn cứ quân sự cho toàn đội."
-            : "Bạn sắp kích hoạt báo động và cuộc phòng thủ tại căn cứ. " +
-              "Xác nhận sẽ khóa tuyến thoát bằng chiếc xe dân sự cho toàn đội.";
-        confirmationButtonText.text = route == EscapeEndingRoute.CivilianCar
-            ? "XÁC NHẬN TUYẾN A"
-            : "XÁC NHẬN TUYẾN B";
+        ApplyConfirmationLocalization();
         canvas.enabled = true;
     }
 
     private void TrackRoute(EscapeEndingRoute route)
     {
         QuestFlowUIPrototype.Instance?.SetTrackedEscapeRoute(route);
-        AutoChatManager.Instance?.AddMessage("THEO DÕI",
-            EscapeEndingRules.GetDisplayName(route) + " — chưa khóa ending; có thể đổi trong Nhật ký.");
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.IsVietnamese ? "THEO DÕI" : "TRACKING",
+            EscapeEndingRules.GetDisplayName(route, GameLocalization.IsVietnamese) +
+            (preMilitaryChoice
+                ? GameLocalization.IsVietnamese
+                    ? " — đã chọn làm hướng ưu tiên trước khi đến căn cứ."
+                    : " — selected as the priority before approaching the base."
+                : GameLocalization.IsVietnamese
+                    ? " — đã chọn làm tuyến ưu tiên."
+                    : " — selected as the current priority."));
         Hide();
     }
 
@@ -219,10 +228,121 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
     private void Hide()
     {
         pendingConfirmation = null;
+        pendingRoute = EscapeEndingRoute.None;
         if (canvas != null) canvas.enabled = false;
         if (introductionRoot != null) introductionRoot.SetActive(false);
         if (confirmationRoot != null) confirmationRoot.SetActive(false);
         AutoUIManager.Instance?.SetQuestOverlayOpen(false);
+    }
+
+    private void ApplyLocalization()
+    {
+        if (canvas == null) return;
+        ApplyIntroductionLocalization();
+        if (pendingRoute != EscapeEndingRoute.None)
+            ApplyConfirmationLocalization();
+        SetNamedText(confirmationRoot, "Button Label", null);
+        TMP_Text cancel = FindText(confirmationRoot, "Cancel Finale", "Button Label");
+        if (cancel != null) cancel.text = GameLocalization.IsVietnamese ? "QUAY LẠI" : "GO BACK";
+    }
+
+    private void ApplyIntroductionLocalization()
+    {
+        if (introductionRoot == null) return;
+        bool vi = GameLocalization.IsVietnamese;
+        SetText("Introduction Eyebrow", preMilitaryChoice
+            ? vi ? "TRƯỚC KHI ĐẾN CĂN CỨ  //  XÁC NHẬN HƯỚNG ƯU TIÊN"
+                 : "BEFORE THE BASE  //  CONFIRM YOUR PRIORITY"
+            : vi ? "SAU TÍN HIỆU RADIO  //  HAI HƯỚNG THOÁT"
+                 : "AFTER THE RADIO SIGNAL  //  TWO ESCAPE ROUTES");
+        SetText("Introduction Title", preMilitaryChoice
+            ? vi ? "BẠN MUỐN TIẾP TỤC THEO TUYẾN NÀO?" : "WHICH ROUTE WILL YOU CONTINUE?"
+            : vi ? "BẠN SẼ CHUẨN BỊ THEO HƯỚNG NÀO?" : "WHICH ROUTE WILL YOU PREPARE FOR?");
+        SetText("Introduction Body", preMilitaryChoice
+            ? vi
+                ? "Đường tới căn cứ quân sự đã được xác định. Đây là lần chọn ưu tiên cuối trước khi tiến gần khu quân sự; lựa chọn kết thúc chỉ được khóa tại hành động cuối của từng tuyến."
+                : "The road to the military base is now known. This is the last priority check before approaching the base; the ending is locked only by each route's final action."
+            : vi
+                ? "Chiếc xe vẫn có thể sửa. Đồng thời radio vừa bắt được dấu vết về tuyến sơ tán quân sự. Chọn tuyến muốn ưu tiên theo dõi; cả hai tuyến có thể được chuẩn bị song song."
+                : "The car can still be repaired, while the radio has revealed a military evacuation lead. Choose the route to prioritize; both routes can still be prepared in parallel.");
+
+        SetTextIn("Civilian Route Card", "Route Eyebrow", vi ? "TUYẾN A  //  TỰ TÌM ĐƯỜNG THOÁT" : "ROUTE A  //  FIND YOUR OWN WAY OUT");
+        SetTextIn("Civilian Route Card", "Route Title", vi ? "KHÔI PHỤC CHIẾC XE" : "RESTORE THE CAR");
+        SetTextIn("Civilian Route Card", "Route Body", vi
+            ? "Tìm dụng cụ, nhiên liệu và linh kiện. Sửa chiếc xe, khám phá lối ra dân sự và vượt vòng phong tỏa."
+            : "Find tools, fuel and parts. Repair the car, explore the civilian exits and break through the quarantine.");
+        SetTextIn("Civilian Route Card", "Route Profile", vi ? "TỰ DO KHÁM PHÁ  •  PHỤ THUỘC PHƯƠNG TIỆN" : "FREE EXPLORATION  •  VEHICLE DEPENDENT");
+        SetTextIn("Civilian Route Card", "Route Action", preMilitaryChoice
+            ? vi ? "[1]  QUAY LẠI CHUẨN BỊ XE DÂN SỰ" : "[1]  RETURN TO THE CIVILIAN CAR"
+            : vi ? "[1]  THEO DÕI TUYẾN CHIẾC XE" : "[1]  TRACK THE CAR ROUTE");
+
+        SetTextIn("Military Route Card", "Route Eyebrow", vi ? "TUYẾN B  //  TUYẾN CỐT TRUYỆN" : "ROUTE B  //  STORY ROUTE");
+        SetTextIn("Military Route Card", "Route Title", vi ? "LẦN THEO TÍN HIỆU QUÂN SỰ" : "FOLLOW THE MILITARY SIGNAL");
+        SetTextIn("Military Route Card", "Route Body", vi
+            ? "Thu thập tài liệu sơ tán, tìm Văn phòng Điều phối và lần theo bản đồ tới căn cứ quân sự."
+            : "Collect evacuation records, locate the Coordination Office and follow the map to the military base.");
+        SetTextIn("Military Route Card", "Route Profile", vi ? "CỐT TRUYỆN DÀI  •  NGUY HIỂM CAO  •  MỞ CĂN CỨ QUÂN SỰ" : "LONG STORY  •  HIGH DANGER  •  UNLOCKS THE MILITARY BASE");
+        SetTextIn("Military Route Card", "Route Action", preMilitaryChoice
+            ? vi ? "[2]  TIẾP TỤC TỚI CĂN CỨ QUÂN SỰ" : "[2]  CONTINUE TO THE MILITARY BASE"
+            : vi ? "[2]  THEO DÕI TUYẾN QUÂN SỰ" : "[2]  TRACK THE MILITARY ROUTE");
+
+        TMP_Text later = FindText(introductionRoot, "Choose Later", "Button Label");
+        if (later != null) later.text = vi ? "[X]  CHỌN SAU" : "[X]  CHOOSE LATER";
+    }
+
+    private void ApplyConfirmationLocalization()
+    {
+        bool vi = GameLocalization.IsVietnamese;
+        EscapeEndingRoute route = pendingRoute;
+        confirmationEyebrow.text = (vi ? "ĐIỂM KHÔNG THỂ QUAY LẠI  //  " : "POINT OF NO RETURN  //  ") +
+                                   EscapeEndingRules.GetDisplayName(route, vi);
+        confirmationTitle.text = route == EscapeEndingRoute.CivilianCar
+            ? vi ? "BẮT ĐẦU VƯỢT VÒNG PHONG TỎA?" : "BREAK THROUGH THE QUARANTINE?"
+            : vi ? "KÍCH HOẠT KẾ HOẠCH SƠ TÁN?" : "ACTIVATE THE EVACUATION PLAN?";
+        confirmationBody.text = route == EscapeEndingRoute.CivilianCar
+            ? vi
+                ? "Bạn sắp dùng chiếc xe dân sự để bắt đầu cuộc thoát hiểm cuối cùng. Xác nhận sẽ khóa tuyến căn cứ quân sự cho toàn đội."
+                : "You are about to begin the final escape in the civilian car. Confirming will lock the military-base route for the whole team."
+            : vi
+                ? "Bạn sắp kích hoạt báo động và cuộc phòng thủ tại căn cứ. Xác nhận sẽ khóa tuyến thoát bằng chiếc xe dân sự cho toàn đội."
+                : "You are about to trigger the base alarm and defense. Confirming will lock the civilian-car route for the whole team.";
+        confirmationButtonText.text = route == EscapeEndingRoute.CivilianCar
+            ? vi ? "XÁC NHẬN TUYẾN A" : "CONFIRM ROUTE A"
+            : vi ? "XÁC NHẬN TUYẾN B" : "CONFIRM ROUTE B";
+    }
+
+    private void SetText(string objectName, string value)
+    {
+        TMP_Text text = FindText(introductionRoot, objectName);
+        if (text != null) text.text = value;
+    }
+
+    private void SetTextIn(string parentName, string objectName, string value)
+    {
+        TMP_Text text = FindText(introductionRoot, parentName, objectName);
+        if (text != null) text.text = value;
+    }
+
+    private static void SetNamedText(GameObject root, string objectName, string value)
+    {
+        if (root == null || value == null) return;
+        TMP_Text text = FindText(root, objectName);
+        if (text != null) text.text = value;
+    }
+
+    private static TMP_Text FindText(GameObject root, params string[] path)
+    {
+        if (root == null || path == null || path.Length == 0) return null;
+        Transform current = root.transform;
+        for (int pathIndex = 0; pathIndex < path.Length; pathIndex++)
+        {
+            Transform[] all = current.GetComponentsInChildren<Transform>(true);
+            current = null;
+            for (int i = 0; i < all.Length; i++)
+                if (all[i].name == path[pathIndex]) { current = all[i]; break; }
+            if (current == null) return null;
+        }
+        return current.GetComponent<TMP_Text>();
     }
 
     private GameObject CreateRoot(string name)

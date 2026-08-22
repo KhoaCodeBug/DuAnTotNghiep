@@ -61,6 +61,7 @@ public class FogVisionController : MonoBehaviour
 
     public float CurrentFogDensity { get; private set; }
     public float CurrentVisionMultiplier { get; private set; }
+    public bool IsQuestSearchBoundaryActive { get; private set; }
 
     private static readonly int FogColorId = Shader.PropertyToID("_FogColor");
     private static readonly int FogDensityId = Shader.PropertyToID("_FogDensity");
@@ -90,6 +91,12 @@ public class FogVisionController : MonoBehaviour
     private static readonly int FlashlightClearanceId = Shader.PropertyToID("_FlashlightClearance");
     private static readonly int FlashlightRadiusId = Shader.PropertyToID("_FlashlightRadius");
     private static readonly int FlashlightIlluminationId = Shader.PropertyToID("_FlashlightIllumination");
+    private static readonly int QuestBoundaryActiveId = Shader.PropertyToID("_QuestBoundaryActive");
+    private static readonly int QuestBoundaryOriginId = Shader.PropertyToID("_QuestBoundaryOrigin");
+    private static readonly int QuestBoundaryRightId = Shader.PropertyToID("_QuestBoundaryRight");
+    private static readonly int QuestBoundaryUpId = Shader.PropertyToID("_QuestBoundaryUp");
+    private static readonly int QuestBoundaryFadeId = Shader.PropertyToID("_QuestBoundaryFade");
+    private static readonly int QuestBoundaryOpacityId = Shader.PropertyToID("_QuestBoundaryOpacity");
 
     private Camera worldCamera;
     private GameObject overlayRoot;
@@ -102,6 +109,11 @@ public class FogVisionController : MonoBehaviour
     private float tutorialRevealRadius;
     private readonly Vector4[] indoorPoints = new Vector4[16];
     private readonly List<Vector2> polygonPoints = new List<Vector2>(16);
+    private Vector2 questBoundaryOrigin;
+    private Vector2 questBoundaryRight;
+    private Vector2 questBoundaryUp;
+    private float questBoundaryFade = 3f;
+    private float questBoundaryOpacity = 0.96f;
 
     private void Awake()
     {
@@ -139,8 +151,12 @@ public class FogVisionController : MonoBehaviour
         if (worldCamera == null || overlayMaterial == null || overlayImage == null) return;
 
         ResolveCameraTarget();
-        if (targetVision == null || targetMovement == null)
+        if (targetVision == null || targetMovement == null ||
+            targetVision.Object == null || !targetVision.Object.IsValid ||
+            targetMovement.Object == null || !targetMovement.Object.IsValid)
         {
+            targetVision = null;
+            targetMovement = null;
             overlayImage.enabled = false;
             return;
         }
@@ -166,6 +182,27 @@ public class FogVisionController : MonoBehaviour
     {
         tutorialRevealTarget = null;
         tutorialRevealRadius = 0f;
+    }
+
+    /// <summary>
+    /// Defines the client-local story search area as a world-space parallelogram.
+    /// Fog outside the area is visual guidance only; server authority performs
+    /// any position correction for the individual player who crossed it.
+    /// </summary>
+    public void SetQuestSearchBoundary(Vector2 origin, Vector2 right, Vector2 up,
+        float fadeDistance, float outsideOpacity)
+    {
+        questBoundaryOrigin = origin;
+        questBoundaryRight = right;
+        questBoundaryUp = up;
+        questBoundaryFade = Mathf.Max(0.1f, fadeDistance);
+        questBoundaryOpacity = Mathf.Clamp01(outsideOpacity);
+        IsQuestSearchBoundaryActive = Mathf.Abs(Cross(right, up)) > 0.001f;
+    }
+
+    public void ClearQuestSearchBoundary()
+    {
+        IsQuestSearchBoundaryActive = false;
     }
 
     private void UpdateWeatherState()
@@ -292,10 +329,21 @@ public class FogVisionController : MonoBehaviour
         overlayMaterial.SetFloat(IndoorExitAwarenessClearanceId, indoorExitAwarenessClearance);
         overlayMaterial.SetFloat(IndoorExitAwarenessRadiusId, indoorExitAwarenessRadius);
         overlayMaterial.SetFloat(IndoorExteriorFlashlightClearanceId, indoorExteriorFlashlightClearance);
+        overlayMaterial.SetFloat(QuestBoundaryActiveId, IsQuestSearchBoundaryActive ? 1f : 0f);
+        overlayMaterial.SetVector(QuestBoundaryOriginId, questBoundaryOrigin);
+        overlayMaterial.SetVector(QuestBoundaryRightId, questBoundaryRight);
+        overlayMaterial.SetVector(QuestBoundaryUpId, questBoundaryUp);
+        overlayMaterial.SetFloat(QuestBoundaryFadeId, questBoundaryFade);
+        overlayMaterial.SetFloat(QuestBoundaryOpacityId, questBoundaryOpacity);
         overlayMaterial.SetVector(FogWorldBottomLeftId, fogWorldBottomLeft);
         overlayMaterial.SetVector(FogWorldRightId, fogWorldRight);
         overlayMaterial.SetVector(FogWorldUpId, fogWorldUp);
         overlayMaterial.SetTexture(FogBankTextureId, fogBankTexture);
+    }
+
+    private static float Cross(Vector2 left, Vector2 right)
+    {
+        return left.x * right.y - left.y * right.x;
     }
 
     private int BuildIndoorWorldPolygon(Collider2D indoorCollider)

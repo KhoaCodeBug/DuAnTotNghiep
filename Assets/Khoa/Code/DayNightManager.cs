@@ -110,6 +110,12 @@ public class DayNightManager : NetworkBehaviour
         }
     }
 
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        isSpawned = false;
+        base.Despawned(runner, hasState);
+    }
+
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
@@ -496,5 +502,5 @@ public class DayNightManager : NetworkBehaviour
         AutoUIManager.Instance.clockText.text = $"{hours:00}:{minutes:00}";
     }
 
-    public float GetTimePercent() => CurrentTime / 24f;
+    public float GetTimePercent() => isSpawned ? CurrentTime / 24f : 0.5f;
 }

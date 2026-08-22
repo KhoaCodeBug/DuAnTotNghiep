@@ -71,3 +71,20 @@ Tài liệu này chỉ tổng kết các chức năng, cải tiến và thay đ�
 - Có EditMode test cho luật tiến độ, giới hạn góc xuất hiện, Perfect, Success, Miss và clamp `0–100%`.
 - Có PlayMode flow test từ Main Menu tới scene Main, kiểm tra xe cảnh sát bị khóa, được đặt đúng marker, dùng polygon scene, hướng runtime khớp preview, quyền sửa authoritative và giữ tiến độ khi hủy.
 - Kết quả chốt phiên: test luật EditMode đạt `5/5`; flow PlayMode xe cảnh sát đạt `1/1`; Unity Console không có compile error.
+
+## Cập nhật Tuyến B — audio, lựa chọn tuyến và input
+
+- Toàn bộ 15 file MP3 tuyến B được sắp tại `Assets/Resources/Sound/Story/RouteB/` và nối với catalog `RouteBAudioContent`; Unity xác nhận load đủ `15/15` clip.
+- Cue 01–02 phát sau lần kiểm tra xe đầu tiên; cue 03–05 theo ba tài liệu; cue 06–09 theo chuỗi Văn phòng; cue 10–15 theo tiến trình căn cứ và Ending B.
+- Sau cue 09, bảng hai tuyến xuất hiện lần thứ hai để người chơi xác nhận hướng ưu tiên trước khi tiến gần căn cứ. Đây là lựa chọn theo dõi; khóa ending authoritative vẫn chỉ xảy ra ở hành động cuối của từng tuyến.
+- Dòng `CHƯA KHÓA ENDING` đã được xóa khỏi bảng chọn. Phần xác nhận cuối vẫn cảnh báo rõ hậu quả khóa tuyến cho toàn đội.
+- Hotbar không còn dùng `Q/E`; người chơi đổi ô bằng hàng số `1–5`. Map không còn dùng `Q/E` để xoay và không còn hiển thị hướng dẫn này.
+- Header, nội dung tuyến trong Nhật ký, bảng chọn, radio subtitle và thông báo cốt truyện lấy ngôn ngữ local của từng client và cập nhật khi đổi Việt/Anh.
+- Voice Tuyến B duck game audio của client kích hoạt xuống 18%, ẩn tạm các Canvas khác và đặt bảng thoại ngay phía trên hotbar.
+- Khóa hội thoại là local-only: client kích hoạt gửi network input rỗng và không mở được UI/voice chat; đồng đội không nhận bảng thoại nên vẫn di chuyển, chiến đấu và dùng UI bình thường.
+- Header hội thoại chỉ hiện tên người nói. Prompt/viền tương tác xe chỉ hiện khi local player còn trong collider và không có modal UI; nó ẩn khi mở UI, hiện lại nếu đóng UI mà vẫn ở trong vùng, và tắt khi bước ra.
+
+## Phạm vi tạm hoãn
+
+- Hạng mục plan số 4 cũ đã được loại khỏi danh sách triển khai tiếp theo.
+- Chưa bổ sung spawn loot dùng chung cho Tuyến A/B. Phần này được giữ lại cho tới khi khu Văn phòng hoàn thiện và có xác nhận mới từ chủ dự án.

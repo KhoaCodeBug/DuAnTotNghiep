@@ -11,6 +11,7 @@ public sealed class QuestFlowUIPrototypeTests
     [SetUp]
     public void SetUp()
     {
+        QuestUILocalization.SetVietnamese(true);
         host = new GameObject("Quest UI Test Host");
         prototype = host.AddComponent<QuestFlowUIPrototype>();
         prototype.EnsureBuiltForTests();
@@ -201,6 +202,26 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.HasMapFragment1, Is.True);
 
         Assert.That(prototype.HasMapFragment1, Is.True);
+    }
+
+    [Test]
+    public void RouteBQuestNoticeStageAndJournalAdvanceTogether()
+    {
+        prototype.ApplyAuthoritativeSnapshot(
+            searchedHouseMask: (1 << 0) | (1 << 1) | (1 << 2),
+            routeClueMask: (1 << 0) | (1 << 1) | (1 << 2),
+            officeDiscovered: false, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false,
+            authoritativeStage: (int)PreMilitaryQuestStage.LocateOffice);
+        prototype.SetJournalOpenForPreview(true);
+        prototype.SelectQuestForPreview(0);
+
+        Assert.That(GameObject.Find("Main Quest Name").GetComponent<TMPro.TMP_Text>().text,
+            Is.EqualTo("Tìm Văn phòng Điều phối"));
+        Assert.That(GameObject.Find("Main Quest Meta").GetComponent<TMPro.TMP_Text>().text,
+            Is.EqualTo("BƯỚC 2"));
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("TÌM VĂN PHÒNG ĐIỀU PHỐI"));
+        Assert.That(prototype.CurrentObjectiveProgress, Is.EqualTo("ĐÃ XÁC ĐỊNH"));
     }
 
     [Test]
@@ -528,11 +549,9 @@ public sealed class QuestFlowUIPrototypeTests
             prototype.SetMapOpenForPreview(true);
 
             Assert.That(prototype.HasBuiltElement("Quest Search Zone"), Is.True);
-            Assert.That(prototype.HasBuiltElement("Quest Search Zone Label"), Is.True);
-            GameObject labelPlate = GameObject.Find("Quest Search Zone Label Plate");
-            Assert.That(labelPlate, Is.Not.Null);
-            Assert.That(labelPlate.GetComponent<Image>().color.a, Is.GreaterThan(0.85f),
-                "The clue-zone label needs an opaque dark plate over the map artwork.");
+            Assert.That(prototype.HasBuiltElement("Quest Search Zone Label"), Is.False);
+            Assert.That(GameObject.Find("Quest Search Zone Label Plate"), Is.Null,
+                "The clue-zone text and its dark plate were intentionally removed from the map.");
             Assert.That(prototype.HasBuiltElement("Restricted Fog West"), Is.True);
             Assert.That(prototype.HasBuiltElement("Restricted Fog East"), Is.True);
             Assert.That(prototype.HasBuiltElement("Restricted Fog South"), Is.True);
@@ -584,6 +603,9 @@ public sealed class QuestFlowUIPrototypeTests
 
             Assert.That(GameObject.Find("Restricted Fog Segment 5"), Is.Not.Null,
                 "Two independent openings need more than the original four union-rectangle fog strips.");
+            Assert.That(GameObject.Find("Restricted Fog West").GetComponent<Image>().color.a,
+                Is.GreaterThanOrEqualTo(0.97f),
+                "Unknown map districts must be opaque enough to hide undiscovered streets.");
         }
         finally
         {
@@ -641,6 +663,9 @@ public sealed class QuestFlowUIPrototypeTests
             RouteBAudioCue cue = RouteBAudioContent.All[i];
             Assert.That(ids.Add(cue.Id), Is.True, "Route B cue IDs must be unique.");
             Assert.That(paths.Add(cue.AudioResourcePath), Is.True, "Recording resource paths must be unique.");
+            Assert.That(cue.AudioResourcePath, Does.StartWith("Sound/Story/RouteB/"));
+            Assert.That(Resources.Load<AudioClip>(cue.AudioResourcePath), Is.Not.Null,
+                $"Missing Route B recording at Resources/{cue.AudioResourcePath}.");
             Assert.That(cue.Vietnamese, Is.Not.Empty);
             Assert.That(cue.English, Is.Not.Empty);
             Assert.That(cue.FallbackDuration, Is.GreaterThan(0f));
@@ -656,6 +681,22 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(RouteBAudioContent.OpeningSequence[1].Id,
             Is.EqualTo(RouteBAudioCueId.PlayerRouteReaction));
         Assert.That(RouteBAudioContent.OpeningSequence[1].Vietnamese, Does.Contain("cả hai hướng"));
+    }
+
+    [Test]
+    public void JournalHeadersAndCurrentRouteContentRefreshWhenLanguageChanges()
+    {
+        prototype.SetJournalOpenForPreview(true);
+        prototype.SelectQuestForPreview(0);
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("THU THẬP HỒ SƠ SƠ TÁN"));
+
+        QuestUILocalization.SetVietnamese(false);
+
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("RECOVER THE EVACUATION RECORDS"));
+        Assert.That(GameObject.Find("Journal Title").GetComponent<TMPro.TMP_Text>().text,
+            Is.EqualTo("MISSION JOURNAL"));
+        Assert.That(prototype.TrackingButtonText, Does.Contain("TRACK"));
+        QuestUILocalization.SetVietnamese(true);
     }
 
 }

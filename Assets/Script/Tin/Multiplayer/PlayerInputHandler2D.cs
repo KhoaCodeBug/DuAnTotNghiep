@@ -50,7 +50,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
     private void UpdatePushToTalk()
     {
-        bool shouldTransmit = Input.GetKey(KeyCode.V);
+        bool shouldTransmit = !RouteBRadioBroadcastUI.BlocksLocalGameplayInput && Input.GetKey(KeyCode.V);
 
         if (shouldTransmit != pushToTalkHeld)
         {
@@ -270,6 +270,15 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
     public void OnInput(NetworkRunner runner, NetworkInput input)
     {
+        // Fusion can deliver one final input callback while a scene/test is
+        // tearing down. Unity's destroyed-object check must happen before any
+        // GetComponent call on this callback target.
+        if (this == null)
+        {
+            input.Set(new PlayerNetworkInput());
+            return;
+        }
+
         var data = new PlayerNetworkInput();
 
         bool isTyping = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
@@ -294,6 +303,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         // 🔥 CHẶN TẤT CẢ INPUT NẾU ĐANG MỞ UI HOẶC ĐÃ CHẾT
         // Khi trả về 1 input rỗng, nhân vật sẽ đứng im, không bấm chuột phải bắn súng được luôn!
         if (isTyping || isUIMenuOpen || isQuestOverlayOpen || isHealthOpen || isDead || isSleepLocked ||
+            RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
             VehicleRepairSkillCheckUI.BlocksGameplayInput ||
             MainQuestSearchCabinet.IsLocalSearchInProgress)
         {

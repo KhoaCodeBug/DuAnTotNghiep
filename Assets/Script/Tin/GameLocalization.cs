@@ -76,6 +76,50 @@ public static class GameLocalization
         { "quest.military_title", new[] { "MILITARY ENCAMPMENT", "KHU ĐÓNG QUÂN CỦA QUÂN ĐỘI" } },
         { "quest.military_subtitle", new[] { "FPT POLYTECHNIC COLLEGE", "TRƯỜNG CAO ĐẲNG FPT POLYTECHNIC" } },
         { "quest.military_marker", new[] { "MILITARY ZONE", "KHU QUÂN SỰ" } },
+        { "quest.route_b_new_search", new[] { "ROUTE B — NEW OBJECTIVE: Find {0} supply and evacuation records in the nearby houses.", "TUYẾN B — MỤC TIÊU MỚI: Tìm {0} tài liệu về tuyến tiếp tế và sơ tán trong các ngôi nhà xung quanh." } },
+        { "quest.route_clue_count", new[] { "Route clues: {0}/{1}.", "Manh mối tuyến đường: {0}/{1}." } },
+        { "quest.route_a_ready", new[] { "ROUTE A — REQUIREMENTS MET: Return to the vehicle condition panel and press START CAR.", "TUYẾN A — ĐÃ ĐỦ ĐIỀU KIỆN: Quay lại bảng tình trạng xe và bấm KHỞI ĐỘNG XE." } },
+        { "quest.route_a_started", new[] { "ROUTE A — CAR STARTED: You can now explore the civilian escape routes.", "TUYẾN A — XE ĐÃ KHỞI ĐỘNG: Có thể tiếp tục khám phá các lối thoát dân sự." } },
+        { "quest.ending_a_locked", new[] { "ENDING LOCKED: The team chose to break through the quarantine in the civilian car.", "ENDING ĐÃ KHÓA: Toàn đội chọn vượt vòng phong tỏa bằng chiếc xe dân sự." } },
+        { "quest.office_no_points", new[] { "Cannot begin: this area has no mission search points.", "Chưa thể bắt đầu: khu vực chưa có điểm kiểm tra nhiệm vụ." } },
+        { "quest.office_missing_points", new[] { "Cannot begin: the office is missing story investigation points.", "Chưa thể bắt đầu: văn phòng thiếu điểm điều tra cốt truyện." } },
+        { "quest.office_new_objective", new[] { "NEW OBJECTIVE: Inspect the dispatch desk for the records-cabinet key.", "MỤC TIÊU MỚI: Kiểm tra bàn điều phối để tìm chìa khóa tủ hồ sơ." } },
+        { "quest.route_b_go_military", new[] { "ROUTE B — NEW OBJECTIVE: Follow the discovered road to the military base.", "TUYẾN B — MỤC TIÊU MỚI: Đi đến khu quân sự theo tuyến đường vừa tìm thấy." } },
+        { "quest.vehicle_sender", new[] { "VEHICLE", "CHIẾC XE" } },
+        { "quest.vehicle_signal", new[] { "The car can still be repaired. The emergency frequency has just picked up a new signal.", "Xe vẫn có thể sửa. Tần số khẩn cấp vừa bắt được một tín hiệu mới." } },
+        { "quest.outside_search_title", new[] { "OUTSIDE SEARCH AREA", "NGOÀI VÙNG TÌM KIẾM" } },
+        { "quest.outside_office_title", new[] { "OUTSIDE AREA OF INTEREST", "NGOÀI VÙNG NGHI VẤN" } },
+        { "quest.outside_search_body", new[] { "Follow the marker back to the objective  •  Map [M].", "Đi theo marker để quay lại mục tiêu  •  Bản đồ [M]." } },
+        { "quest.office_area_title", new[] { "NEW MISSION AREA", "KHU VỰC NHIỆM VỤ MỚI" } },
+        { "quest.office_area_body", new[] { "COORDINATION OFFICE  •  Start by finding the key at the dispatch desk.", "VĂN PHÒNG ĐIỀU PHỐI  •  Trước tiên hãy tìm chìa khóa tại bàn điều phối." } },
+        { "quest.investigation_sender", new[] { "INVESTIGATION", "ĐIỀU TRA" } },
+        { "quest.office_step0_title", new[] { "KEY FOUND", "ĐÃ TÌM THẤY CHÌA KHÓA" } },
+        { "quest.office_step0_body", new[] { "The shift log says the final transmission remains in the radio. Inspect the communications equipment.", "Sổ trực ghi rằng bản liên lạc cuối vẫn còn trong radio. Hãy kiểm tra thiết bị liên lạc." } },
+        { "quest.office_step1_title", new[] { "RADIO RECORDING RESTORED", "ĐÃ KHÔI PHỤC BẢN GHI RADIO" } },
+        { "quest.office_step1_body", new[] { "The evacuation route was redirected through the military station. The route diagram and maintenance records are locked in storage.", "Tuyến sơ tán đã chuyển qua trạm quân sự. Sơ đồ tuyến và hồ sơ bảo trì được khóa trong tủ lưu trữ." } },
+        { "quest.office_step2_title", new[] { "FINAL ROUTE RECORD FOUND", "ĐÃ TÌM THẤY HỒ SƠ TUYẾN CUỐI" } },
+        { "quest.office_step2_body", new[] { "The map confirms a road to the military base, but reaching it on foot would be dangerous.", "Bản đồ xác nhận đường đến khu quân sự, nhưng quãng đường không an toàn nếu di chuyển bằng chân." } },
+        { "quest.clues_sender", new[] { "CLUES", "MANH MỐI" } },
+        { "quest.all_clues_title", new[] { "ALL CLUES FOUND", "ĐÃ PHÁT HIỆN ĐỦ MANH MỐI" } },
+        { "quest.all_clues_body", new[] { "All three records point to the Coordination Office. Open the map [M] to inspect the identified location.", "Ba tài liệu cùng dẫn tới Văn phòng Điều phối. Mở bản đồ [M] để kiểm tra vị trí vừa xác định." } },
+        { "quest.cabinet_found_title", new[] { "CLUE FOUND", "ĐÃ TÌM THẤY MANH MỐI" } },
+        { "quest.cabinet_found_body", new[] { "An important clue was found.", "Đã tìm thấy manh mối quan trọng." } },
+        { "quest.cabinet_empty_title", new[] { "NO CLUE", "KHÔNG CÓ MANH MỐI" } },
+        { "quest.cabinet_empty_body", new[] { "There is no clue here. Check another location.", "Chẳng có manh mối gì ở đây cả. Hãy kiểm tra vị trí khác." } },
+        { "quest.objective_inspect_car", new[] { "Inspect the stalled car", "Kiểm tra chiếc xe vừa chết máy" } },
+        { "quest.objective_search_records", new[] { "Find supply and evacuation records  •  {0}/{1}", "Tìm tài liệu về tuyến tiếp tế và sơ tán  •  {0}/{1}" } },
+        { "quest.objective_locate_office", new[] { "Find the purple office in the identified area", "Tìm văn phòng màu tím trong khu vực đã xác định" } },
+        { "quest.military_arrived", new[] { "Reached the military base. Inspect the evacuation vehicle.", "Đã tới căn cứ quân sự. Kiểm tra chiếc xe thoát hiểm." } },
+        { "quest.military_failed", new[] { "MISSION FAILED: No survivors remain at the base.", "NHIỆM VỤ THẤT BẠI: Không còn người sống sót tại căn cứ." } },
+        { "quest.military_route_blocked", new[] { "Cannot activate: the team already locked the civilian-car ending.", "Không thể kích hoạt: toàn đội đã khóa ending bằng chiếc xe dân sự." } },
+        { "quest.military_siege", new[] { "ALARM! The gate is sealed. Collect 3 parts and defend the evacuation vehicle.", "BÁO ĐỘNG! Cổng đã đóng. Thu thập 3 phụ tùng và bảo vệ xe thoát hiểm." } },
+        { "quest.military_generator", new[] { "Generator online: the gate now has 150% HP and stuns zombies on contact.", "Máy phát điện đã hoạt động: cổng đạt 150% HP và làm choáng zombie tiếp xúc." } },
+        { "quest.military_armory_locked", new[] { "The armory is locked. Find the key in the office safe.", "Kho quân nhu bị khóa. Cần chìa khóa lấy từ két sắt văn phòng." } },
+        { "quest.military_armory_open", new[] { "Armory opened: AK47, S12K, ammunition and a level-3 backpack supplied.", "Kho quân nhu đã mở: AK47, S12K, đạn dược và balo cấp 3 đã được cấp." } },
+        { "quest.military_safe_open", new[] { "Safe opened: armory key and S12K acquired.", "Két sắt đã mở: nhận chìa khóa kho quân nhu và S12K." } },
+        { "quest.military_vehicle_ready", new[] { "The vehicle is repaired. Regroup at the vehicle and press E to leave the area.", "Xe đã sửa xong. Tập hợp tại xe và nhấn E để thoát khỏi khu vực." } },
+        { "quest.military_collected", new[] { "Collected: {0}.", "Đã thu thập: {0}." } },
+        { "quest.military_installed", new[] { "Installed: {0}.", "Đã lắp: {0}." } },
         { "menu.enter_base_name", new[] { "YOU MUST ENTER THE BASE NAME!", "BẠN PHẢI NHẬP TÊN PHÒNG!" } },
         { "menu.connection_failed", new[] { "CONNECTION FAILED! {0}", "KẾT NỐI THẤT BẠI! {0}" } },
         { "menu.connection_lost", new[] { "Lost connection to server: {0}", "Đã mất kết nối tới máy chủ: {0}" } },
@@ -158,13 +202,18 @@ public static class GameLocalization
 
     public static void SetLanguage(Language language, bool save = true)
     {
-        if (Current == language) return;
+        if (Current == language)
+        {
+            QuestUILocalization.SetVietnamese(language == Language.Vietnamese);
+            return;
+        }
         Current = language;
         if (save)
         {
             PlayerPrefs.SetInt(PreferenceKey, (int)language);
             PlayerPrefs.Save();
         }
+        QuestUILocalization.SetVietnamese(IsVietnamese);
         LanguageChanged?.Invoke();
     }
 

@@ -23,12 +23,17 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     [SerializeField, Range(6f, 24f)] private float officeSearchWorldRadius = 12f;
 
     [Header("Soft search-zone guidance")]
-    [SerializeField, Min(0f)] private float outsideWarningDistance = 2f;
+    [SerializeField, Min(0f)] private float outsideWarningDistance = 0.35f;
     [SerializeField, Min(0f)] private float outsideWarningDelay = 1.25f;
     [SerializeField, Min(0.05f)] private float outsideWarningFadeIn = 0.65f;
     [SerializeField, Min(0.1f)] private float outsideWarningHold = 2.4f;
     [SerializeField, Min(0.05f)] private float outsideWarningFadeOut = 0.9f;
     [SerializeField, Min(0f)] private float outsideWarningCooldown = 9f;
+    [SerializeField, Min(0.1f)] private float outsideFogFadeDistance = 2f;
+    [SerializeField, Range(0.75f, 1f)] private float outsideFogOpacity = 1f;
+    [SerializeField, Min(1f)] private float outsideBlackoutDistance = 4f;
+    [SerializeField, Min(1f)] private float outsideReturnDelay = 4.5f;
+    [SerializeField, Min(0.1f)] private float returnPointInset = 1.25f;
 
     private Transform officeTarget;
     private Transform configuredPlayerTarget;
@@ -40,6 +45,8 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private readonly HashSet<string> activeSearchHouseIds = new HashSet<string>();
     private Rect searchZoneMapRect;
     private bool hasSearchZoneMapRect;
+    private Rect gameplaySearchZoneMapRect;
+    private bool hasGameplaySearchZoneMapRect;
     private string configuredZoneSignature;
     private int lastAuthoritativeSnapshotSignature = int.MinValue;
     private bool hasAppliedInitialAuthoritativeSnapshot;
@@ -50,11 +57,17 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private Vector2 outsideGuidanceWorldTarget;
     private bool hasOutsideGuidanceTarget;
     private bool guidanceTargetsOffice;
+    private float outsideBoundaryDistance;
+    private float boundaryObscureAlpha;
+    private float nextReturnRequestTime;
     private QuestMapRevealTuningTool revealTuningTool;
     private int lastRevealTuningSignature = int.MinValue;
 
     public int ActiveSearchHouseCount => activeSearchHouseIds.Count;
     public Transform ConfiguredPlayerTarget => configuredPlayerTarget;
+    public float OutsideBoundaryDistance => outsideBoundaryDistance;
+    public float BoundaryObscureAlpha => boundaryObscureAlpha;
+    public float ReturnActivationDistance => outsideWarningDistance;
 
     private void Awake()
     {
@@ -125,6 +138,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         if (questUI != null)
             questUI.MapFragment1Acquired -= HandleMapFragment1Acquired;
         AutoUIManager.Instance?.SetQuestOverlayOpen(false);
+        FogVisionController.Instance?.ClearQuestSearchBoundary();
     }
 
     private void OnDestroy()
@@ -379,12 +393,36 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             }
         }
 
+        // The quest is accepted at the stalled arrival car, which sits just
+        // beyond the regular spawn cluster in Main. Include that shared scene
+        // anchor on every client so accepting the mission never places the
+        // triggering player on the fog side of the gameplay boundary.
+        BrokenArrivalCar arrivalCar = BrokenArrivalCar.Instance;
+        if (arrivalCar != null)
+        {
+            Vector2 arrivalPosition = arrivalCar.transform.position;
+            Vector2 inspectionPosition = arrivalCar.InspectionZoneWorldCenter;
+            worldMin = Vector2.Min(worldMin, arrivalPosition);
+            worldMax = Vector2.Max(worldMax, arrivalPosition);
+            worldMin = Vector2.Min(worldMin, inspectionPosition);
+            worldMax = Vector2.Max(worldMax, inspectionPosition);
+        }
+
         worldMin -= Vector2.one * searchZoneWorldPadding;
         worldMax += Vector2.one * searchZoneWorldPadding;
         Vector2 normalizedA = rasterMap.WorldToNormalized(worldMin);
         Vector2 normalizedB = rasterMap.WorldToNormalized(worldMax);
-        Vector2 mapMin = Vector2.Min(normalizedA, normalizedB);
-        Vector2 mapMax = Vector2.Max(normalizedA, normalizedB);
+        // Main uses an isometric Grid, so the two diagonal world-AABB corners
+        // are not sufficient to find map-space extrema. Include all four; the
+        // omitted pair was the reason the real inspection point landed just
+        // outside the gameplay rectangle.
+        Vector2 normalizedC = rasterMap.WorldToNormalized(new Vector2(worldMin.x, worldMax.y));
+        Vector2 normalizedD = rasterMap.WorldToNormalized(new Vector2(worldMax.x, worldMin.y));
+        Vector2 mapMin = Vector2.Min(Vector2.Min(normalizedA, normalizedB),
+            Vector2.Min(normalizedC, normalizedD));
+        Vector2 mapMax = Vector2.Max(Vector2.Max(normalizedA, normalizedB),
+            Vector2.Max(normalizedC, normalizedD));
+
         if (revealTuningTool != null)
         {
             Rect neighborhoodReveal = revealTuningTool.BeforeQuestRect;
@@ -398,7 +436,18 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         }
         searchZoneMapRect = Rect.MinMaxRect(mapMin.x, mapMin.y, mapMax.x, mapMax.y);
         hasSearchZoneMapRect = true;
-        questUI.ConfigureSearchZone(mapMin, mapMax, selected.Count);
+        // The authored map rectangle is the actual district the player sees and
+        // therefore must remain the basis of gameplay enforcement. Expanding a
+        // world-space AABB and converting all four isometric corners produced a
+        // much larger map-space box, effectively disabling the boundary. Only
+        // grow the authored rectangle enough to contain legitimate quest
+        // anchors (houses, shared spawns and the inspection point).
+        gameplaySearchZoneMapRect = BuildGameplaySearchZoneRect(searchZoneMapRect);
+        hasGameplaySearchZoneMapRect = true;
+        // Show the exact same rectangle that drives fog and server correction.
+        // This keeps the map promise and the world-space rule identical.
+        searchZoneMapRect = gameplaySearchZoneMapRect;
+        questUI.ConfigureSearchZone(searchZoneMapRect.min, searchZoneMapRect.max, selected.Count);
 
         searchZoneConfigured = true;
         lastRevealTuningSignature = revealTuningTool != null
@@ -421,7 +470,55 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         Rect neighborhoodReveal = revealTuningTool.BeforeQuestRect;
         searchZoneMapRect = neighborhoodReveal;
         hasSearchZoneMapRect = true;
-        questUI.ConfigureSearchZone(neighborhoodReveal.min, neighborhoodReveal.max, activeSearchHouseIds.Count);
+        gameplaySearchZoneMapRect = BuildGameplaySearchZoneRect(neighborhoodReveal);
+        hasGameplaySearchZoneMapRect = true;
+        searchZoneMapRect = gameplaySearchZoneMapRect;
+        questUI.ConfigureSearchZone(searchZoneMapRect.min, searchZoneMapRect.max, activeSearchHouseIds.Count);
+    }
+
+    private Rect BuildGameplaySearchZoneRect(Rect authoredRect)
+    {
+        Rect result = authoredRect;
+        Vector2 cellMargin = new Vector2(
+            2f / Mathf.Max(1, rasterMap.Size.x - 1),
+            2f / Mathf.Max(1, rasterMap.Size.y - 1));
+
+        foreach (QuestLocationIdentity identity in FindObjectsByType<QuestLocationIdentity>(
+                     FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (identity.HasValidId && activeSearchHouseIds.Contains(identity.LocationId))
+                IncludeGameplayAnchor(ref result, identity.transform.position, cellMargin);
+        }
+
+        Transform[] spawnPoints = HostModeSpawner.Instance != null ? HostModeSpawner.Instance.spawnPoints : null;
+        if (spawnPoints != null)
+        {
+            for (int i = 0; i < spawnPoints.Length; i++)
+                if (spawnPoints[i] != null)
+                    IncludeGameplayAnchor(ref result, spawnPoints[i].position, cellMargin);
+        }
+
+        BrokenArrivalCar arrivalCar = BrokenArrivalCar.Instance;
+        if (arrivalCar != null)
+        {
+            IncludeGameplayAnchor(ref result, arrivalCar.transform.position, cellMargin);
+            IncludeGameplayAnchor(ref result, arrivalCar.InspectionZoneWorldCenter, cellMargin);
+        }
+
+        result.xMin = Mathf.Clamp01(result.xMin);
+        result.yMin = Mathf.Clamp01(result.yMin);
+        result.xMax = Mathf.Clamp01(result.xMax);
+        result.yMax = Mathf.Clamp01(result.yMax);
+        return result;
+    }
+
+    private void IncludeGameplayAnchor(ref Rect rect, Vector2 worldPosition, Vector2 margin)
+    {
+        Vector2 point = rasterMap.WorldToNormalized(worldPosition);
+        rect.xMin = Mathf.Min(rect.xMin, point.x - margin.x);
+        rect.yMin = Mathf.Min(rect.yMin, point.y - margin.y);
+        rect.xMax = Mathf.Max(rect.xMax, point.x + margin.x);
+        rect.yMax = Mathf.Max(rect.yMax, point.y + margin.y);
     }
 
     private static void ExpandSearchZoneMapBoundsTowardRoad(
@@ -480,12 +577,13 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         signature = signature * 397 ^ manager.ArrivalCarRepairMask;
         signature = signature * 397 ^ (manager.IsArrivalCarRepaired ? 1 : 0);
         signature = signature * 397 ^ manager.LockedEscapeRouteValue;
+        signature = signature * 397 ^ manager.NetworkQuestStage;
         if (signature == lastAuthoritativeSnapshotSignature) return;
 
         questUI?.ApplyAuthoritativeSnapshot(manager.SearchedHouseMask, manager.RouteClueMask,
             manager.IsOfficeDiscovered, mapFragment2Found, mapFragment2Found,
             hasAppliedInitialAuthoritativeSnapshot, manager.IsArrivalCarInspected, manager.IsArrivalCarRepaired,
-            manager.ArrivalCarRepairMask, manager.LockedEscapeRoute);
+            manager.ArrivalCarRepairMask, manager.LockedEscapeRoute, manager.NetworkQuestStage);
         lastAuthoritativeSnapshotSignature = signature;
         hasAppliedInitialAuthoritativeSnapshot = true;
     }
@@ -495,32 +593,28 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         bool searchNeighborhood = manager != null && manager.IsNetworkReady
             ? manager.CurrentStage == MainQuestManager.QuestStage.SearchNeighborhood
             : questUI != null && !questUI.IsHouseSearchComplete;
-        bool locateOffice = manager != null && manager.IsNetworkReady &&
-                            manager.CurrentStage == MainQuestManager.QuestStage.LocateOffice;
         bool outside = false;
+        bool searchBoundaryActive = false;
+        outsideBoundaryDistance = 0f;
 
-        if (searchNeighborhood && hasSearchZoneMapRect && rasterMap != null)
+        if (searchNeighborhood && hasGameplaySearchZoneMapRect && rasterMap != null)
         {
-            Vector2 playerMapPosition = rasterMap.WorldToNormalized(playerPosition);
-            Vector2 closestMapPosition = ClosestPointInRect(playerMapPosition, searchZoneMapRect);
-            outsideGuidanceWorldTarget = rasterMap.NormalizedToWorld(closestMapPosition);
-            hasOutsideGuidanceTarget = true;
+            searchBoundaryActive = TryGetSearchZoneReturnPoint(playerPosition, returnPointInset,
+                out Vector2 returnPoint, out outsideBoundaryDistance);
+            outsideGuidanceWorldTarget = returnPoint;
+            hasOutsideGuidanceTarget = searchBoundaryActive;
             guidanceTargetsOffice = false;
-            outside = Vector2.Distance(playerPosition, outsideGuidanceWorldTarget) >= outsideWarningDistance;
-        }
-        else if (locateOffice && officeTarget != null)
-        {
-            outsideGuidanceWorldTarget = officeTarget.position;
-            hasOutsideGuidanceTarget = true;
-            guidanceTargetsOffice = true;
-            float distanceBeyondArea = Vector2.Distance(playerPosition, outsideGuidanceWorldTarget) -
-                                       officeSearchWorldRadius;
-            outside = distanceBeyondArea >= outsideWarningDistance;
+            outside = searchBoundaryActive && outsideBoundaryDistance >= outsideWarningDistance;
+            ApplyFogSearchBoundary();
         }
         else if (outsideWarningAlpha <= 0.001f)
         {
             hasOutsideGuidanceTarget = false;
+            guidanceTargetsOffice = false;
         }
+
+        if (!searchBoundaryActive)
+            FogVisionController.Instance?.ClearQuestSearchBoundary();
 
         float now = Time.unscaledTime;
 
@@ -528,6 +622,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         {
             outsideSince = -1f;
             outsideWarningVisibleUntil = 0f;
+            nextReturnRequestTime = 0f;
         }
         else
         {
@@ -537,12 +632,79 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
                 outsideWarningVisibleUntil = now + outsideWarningHold;
                 nextOutsideWarningTime = outsideWarningVisibleUntil + outsideWarningCooldown;
             }
+
+
+            if (searchBoundaryActive && manager != null && manager.IsNetworkReady &&
+                now - outsideSince >= outsideReturnDelay && now >= nextReturnRequestTime)
+            {
+                // Retry safely instead of latching forever when a request is
+                // dropped or the server observes the player just inside its
+                // correction threshold during the same network tick.
+                nextReturnRequestTime = now + 1.25f;
+                manager.RequestReturnPlayerToSearchZone();
+            }
         }
 
-        float targetAlpha = outside && now < outsideWarningVisibleUntil ? 1f : 0f;
+        // Only the opening clue district is a gameplay boundary. Once Fragment
+        // 1 advances the quest to LocateOffice, the boundary and its warning
+        // both disappear; the newly revealed map/office marker guides travel.
+        float targetAlpha = outside && (searchBoundaryActive || now < outsideWarningVisibleUntil) ? 1f : 0f;
         float duration = targetAlpha > outsideWarningAlpha ? outsideWarningFadeIn : outsideWarningFadeOut;
         outsideWarningAlpha = Mathf.MoveTowards(outsideWarningAlpha, targetAlpha,
             Time.unscaledDeltaTime / Mathf.Max(0.05f, duration));
+
+        float obscureTarget = searchBoundaryActive
+            ? Mathf.InverseLerp(outsideWarningDistance, Mathf.Max(outsideWarningDistance + 0.1f,
+                outsideBlackoutDistance), outsideBoundaryDistance)
+            : 0f;
+        boundaryObscureAlpha = Mathf.MoveTowards(boundaryObscureAlpha, obscureTarget,
+            Time.unscaledDeltaTime / (obscureTarget > boundaryObscureAlpha ? 0.7f : 0.35f));
+    }
+
+    public bool TryGetSearchZoneReturnPoint(Vector2 playerPosition, float inset,
+        out Vector2 returnPoint, out float distanceOutside)
+    {
+        returnPoint = playerPosition;
+        distanceOutside = 0f;
+        if (!hasGameplaySearchZoneMapRect || rasterMap == null) return false;
+
+        Vector2 playerMapPosition = rasterMap.WorldToNormalized(playerPosition);
+        if (gameplaySearchZoneMapRect.Contains(playerMapPosition))
+        {
+            // WorldToNormalized is cell-based. Converting that value back to
+            // world space returns the cell origin/centre rather than the exact
+            // player position, which previously produced a false 0.3-0.7 m
+            // "outside" distance and darkened the whole screen after accepting
+            // the quest. An inside player has no boundary distance at all.
+            returnPoint = playerPosition;
+            distanceOutside = 0f;
+            return true;
+        }
+
+        Vector2 closestMapPosition = ClosestPointInRect(playerMapPosition, gameplaySearchZoneMapRect);
+        Vector2 boundaryPoint = rasterMap.NormalizedToWorld(closestMapPosition);
+        distanceOutside = Vector2.Distance(playerPosition, boundaryPoint);
+
+        Vector2 zoneCenter = rasterMap.NormalizedToWorld(gameplaySearchZoneMapRect.center);
+        Vector2 inward = zoneCenter - boundaryPoint;
+        returnPoint = inward.sqrMagnitude > 0.001f
+            ? boundaryPoint + inward.normalized * Mathf.Max(0f, inset)
+            : boundaryPoint;
+        return true;
+    }
+
+    private void ApplyFogSearchBoundary()
+    {
+        FogVisionController fog = FogVisionController.Instance;
+        if (fog == null || rasterMap == null || !hasGameplaySearchZoneMapRect) return;
+
+        Vector2 origin = rasterMap.NormalizedToWorld(gameplaySearchZoneMapRect.min);
+        Vector2 rightCorner = rasterMap.NormalizedToWorld(
+            new Vector2(gameplaySearchZoneMapRect.xMax, gameplaySearchZoneMapRect.yMin));
+        Vector2 upCorner = rasterMap.NormalizedToWorld(
+            new Vector2(gameplaySearchZoneMapRect.xMin, gameplaySearchZoneMapRect.yMax));
+        fog.SetQuestSearchBoundary(origin, rightCorner - origin, upCorner - origin,
+            outsideFogFadeDistance, outsideFogOpacity);
     }
 
     private static Vector2 ClosestPointInRect(Vector2 point, Rect rect)
@@ -553,11 +715,26 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
     private void OnGUI()
     {
-        if (outsideWarningAlpha <= 0.001f || cinematicActive || TutorialSession.IsActive) return;
+        if ((outsideWarningAlpha <= 0.001f && boundaryObscureAlpha <= 0.001f) ||
+            cinematicActive || TutorialSession.IsActive) return;
 
         int previousDepth = GUI.depth;
         Color previousColor = GUI.color;
         GUI.depth = -850;
+        if (boundaryObscureAlpha > 0.001f)
+        {
+            float pulse = 0.92f + Mathf.Sin(Time.unscaledTime * 2.4f) * 0.04f;
+            GUI.color = new Color(0.002f, 0.004f, 0.005f,
+                Mathf.Clamp01(boundaryObscureAlpha * pulse) * 0.98f);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+        }
+
+        if (outsideWarningAlpha <= 0.001f)
+        {
+            GUI.color = previousColor;
+            GUI.depth = previousDepth;
+            return;
+        }
         float width = Mathf.Min(390f, Screen.width - 32f);
         Rect panel = new Rect(18f, 92f, width, 66f);
 
@@ -581,9 +758,11 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         titleStyle.normal.textColor = new Color(1f, 0.78f, 0.31f, outsideWarningAlpha);
         detailStyle.normal.textColor = new Color(0.9f, 0.93f, 0.92f, outsideWarningAlpha);
         GUI.Label(new Rect(panel.x + 18f, panel.y + 7f, panel.width - 28f, 25f),
-            guidanceTargetsOffice ? "NGOÀI VÙNG NGHI VẤN" : "NGOÀI VÙNG TÌM KIẾM", titleStyle);
+            GameLocalization.Get(guidanceTargetsOffice
+                ? "quest.outside_office_title"
+                : "quest.outside_search_title"), titleStyle);
         GUI.Label(new Rect(panel.x + 18f, panel.y + 31f, panel.width - 28f, 27f),
-            "Đi theo marker để quay lại mục tiêu • Bản đồ [M].", detailStyle);
+            GameLocalization.Get("quest.outside_search_body"), detailStyle);
 
         if (hasOutsideGuidanceTarget)
             DrawReturnDirectionMarker(outsideGuidanceWorldTarget);

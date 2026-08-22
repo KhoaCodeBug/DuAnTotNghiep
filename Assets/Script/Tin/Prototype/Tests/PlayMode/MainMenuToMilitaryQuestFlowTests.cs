@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Reflection;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
@@ -14,6 +15,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
     [Timeout(120000)]
     public IEnumerator RoadsideRepairTestStationSpawnsOnLockedPoliceCarNearArrival()
     {
+        yield return ShutdownExistingRunners();
         PlayerPrefs.SetInt("GameLanguage", 0);
         AsyncOperation loadMenu = SceneManager.LoadSceneAsync(0);
         while (!loadMenu.isDone) yield return null;
@@ -149,6 +151,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
     [Timeout(180000)]
     public IEnumerator SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap()
     {
+        yield return ShutdownExistingRunners();
         PlayerPrefs.SetInt("GameLanguage", 0);
         AsyncOperation loadMenu = SceneManager.LoadSceneAsync(0);
         while (!loadMenu.isDone) yield return null;
@@ -352,7 +355,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "Start Engine must not overlap the close button.");
         Assert.That(startBounds.min.y, Is.GreaterThanOrEqualTo(headerRuleBounds.max.y + 1f),
             "Start Engine must stay completely above the header divider.");
-        Button leftTireHotspot = FindInactiveButton("Vehicle Part Hotspot front_left");
+        Button leftTireHotspot = FindInactiveButtonUnder(inspectionUI, "Vehicle Part Hotspot front_left");
         Assert.That(leftTireHotspot, Is.Not.Null, "The vehicle diagram must expose clickable part hotspots.");
         leftTireHotspot.onClick.Invoke();
         Assert.That(ReadProperty(inspectionUI, "SelectedPartId").ToString(), Is.EqualTo("front_left"));
@@ -364,16 +367,16 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "The actually broken front-left tire must start at 0%. ");
         Assert.That(FindInactiveButton("Selected Part Action Button"), Is.Not.Null,
             "The selected part detail must preserve the approved contextual action button.");
-        Button startEngineButton = FindInactiveButton("Start Engine Button");
+        Button startEngineButton = FindInactiveButtonUnder(inspectionUI, "Start Engine Button");
         Assert.That(startEngineButton, Is.Not.Null);
         Assert.That(startEngineButton.interactable, Is.False,
             "The car cannot start before all required repairs are complete.");
-        Button healthyTireHotspot = FindInactiveButton("Vehicle Part Hotspot front_right");
+        Button healthyTireHotspot = FindInactiveButtonUnder(inspectionUI, "Vehicle Part Hotspot front_right");
         Assert.That(healthyTireHotspot, Is.Not.Null);
         healthyTireHotspot.onClick.Invoke();
         Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("KIỂM TRA"),
             "A temporary 60%+ tire must not consume the only replacement tire.");
-        Button exhaustHotspot = FindInactiveButton("Vehicle Part Hotspot exhaust");
+        Button exhaustHotspot = FindInactiveButtonUnder(inspectionUI, "Vehicle Part Hotspot exhaust");
         Assert.That(exhaustHotspot, Is.Not.Null);
         exhaustHotspot.onClick.Invoke();
         Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("KIỂM TRA"));
@@ -384,7 +387,8 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Vector3 inspectionPoint = (Vector3)ReadProperty(arrivalCarComponent, "InspectionZoneWorldCenter");
         ((Component)localPlayer).transform.position = inspectionPoint;
         yield return null;
-        inspectionUIType.GetMethod("Open")?.Invoke(inspectionUI, new object[] { arrivalCarComponent });
+        inspectionUIType.GetMethod("Open", BindingFlags.Public | BindingFlags.Instance, null,
+            new[] { arrivalCarType }, null)?.Invoke(inspectionUI, new object[] { arrivalCarComponent });
         Assert.That(ReadBool(inspectionUI, "IsOpen"), Is.True);
         mainQuestType.GetMethod("RequestInspectArrivalCar")?.Invoke(mainQuest, null);
         float investigationDeadline = Time.realtimeSinceStartup + 15f;
@@ -402,6 +406,34 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(GameObject.Find("Route B Radio Broadcast UI"), Is.Not.Null,
             "The emergency broadcast must introduce Route B before the tracking choice.");
         Assert.That((bool)radioBroadcastType.GetProperty("IsVisible")?.GetValue(null), Is.True);
+        Assert.That((bool)radioBroadcastType.GetProperty("BlocksLocalGameplayInput")?.GetValue(null), Is.True,
+            "Dialogue must block only this client's local gameplay input.");
+        GameObject radioPanel = GameObject.Find("Route B Radio Panel");
+        Assert.That(radioPanel, Is.Not.Null);
+        RectTransform radioPanelRect = radioPanel.GetComponent<RectTransform>();
+        Assert.That(radioPanelRect.anchorMin.y, Is.EqualTo(0f).Within(0.001f));
+        Assert.That(radioPanelRect.anchoredPosition.y, Is.EqualTo(128f).Within(0.01f),
+            "The dialogue panel must sit above the bottom-center hotbar area.");
+        AudioSource dialogueSource = GameObject.Find("Route B Radio Broadcast UI").GetComponent<AudioSource>();
+        Assert.That(dialogueSource.ignoreListenerVolume, Is.True,
+            "Dialogue voice must remain clear while the local game mix is ducked.");
+        TMP_Text radioSpeaker = GameObject.Find("Radio Speaker").GetComponent<TMP_Text>();
+        Assert.That(radioSpeaker.text, Is.Not.Empty);
+        Assert.That(radioSpeaker.text, Does.Not.Contain("ROUTE B").And.Not.Contain("TUYẾN"),
+            "The dialogue header should identify only the speaker, not the route.");
+        Type localUIStateType = Type.GetType("LocalGameplayUIState, Assembly-CSharp");
+        PropertyInfo blocksHintsProperty = localUIStateType?.GetProperty("BlocksWorldInteractionHints",
+            BindingFlags.Public | BindingFlags.Static);
+        Assert.That((bool)blocksHintsProperty?.GetValue(null), Is.True,
+            "Collider prompts must be suppressed while dialogue owns local input.");
+        LineRenderer arrivalPromptLine = FindInactiveTransform("Front Inspection Zone")
+            ?.GetComponent<LineRenderer>();
+        Assert.That(arrivalPromptLine == null || !arrivalPromptLine.enabled, Is.True,
+            "The arrival-car collider outline must be hidden behind dialogue.");
+        Canvas fogOverlayCanvas = FindInactiveTransform("Local Fog Vision Overlay")?.GetComponent<Canvas>();
+        Assert.That(fogOverlayCanvas, Is.Not.Null);
+        Assert.That(fogOverlayCanvas.enabled, Is.True,
+            "Dialogue may suppress interactive HUD canvases, but must preserve world fog.");
         Assert.That(GameObject.Find("Escape Route Decision UI"), Is.Null,
             "The tracking choice must wait until the opening radio sequence finishes.");
         radioBroadcastType.GetMethod("SkipIfOpen", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
@@ -414,13 +446,22 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(routeDecisionType, Is.Not.Null);
         Assert.That(GameObject.Find("Escape Route Decision UI"), Is.Not.Null,
             "Closing the first inspection must introduce both escape routes.");
-        Assert.That(FindInactiveTransform("Tracking Does Not Lock Ending"), Is.Not.Null,
-            "The route choice must say that tracking does not lock an ending.");
+        Assert.That((bool)radioBroadcastType.GetProperty("BlocksLocalGameplayInput")?.GetValue(null), Is.False,
+            "Local gameplay input must be restored after dialogue ends.");
+        Assert.That(fogOverlayCanvas.enabled, Is.True,
+            "The route-choice transition must not flash or disable world fog.");
+        Assert.That(FindInactiveTransform("Tracking Does Not Lock Ending"), Is.Null,
+            "The removed ending-lock footer must not return to the route choice.");
         Assert.That(FindInactiveTransform("Route Profile"), Is.Not.Null,
             "Each tracking card must explain its experience and risk profile.");
         Assert.That(ReadProperty(mainQuest, "LockedEscapeRoute").ToString(), Is.EqualTo("None"),
             "Introducing or tracking a route must not lock an ending.");
         routeDecisionType.GetMethod("CloseIfOpen", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        yield return null;
+        Assert.That((bool)blocksHintsProperty?.GetValue(null), Is.False,
+            "Closing the modal while still in the collider must release prompt suppression.");
+        Assert.That(arrivalPromptLine == null || arrivalPromptLine.enabled, Is.True,
+            "The collider outline must reappear when the player is still inside after closing UI.");
         Assert.That(ReadBool(mainQuest, "IsNeighborhoodConfigured"), Is.True,
             "State Authority did not replicate the shared opening neighborhood.");
         Assert.That(ReadProperty(mainQuest, "CurrentStage").ToString(), Is.EqualTo("SearchNeighborhood"));
@@ -463,9 +504,10 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(GameObject.Find("Repaired Arrival Car"), Is.Null,
             "The drivable vehicle must not spawn before Start Engine succeeds.");
 
-        inspectionUIType.GetMethod("Open")?.Invoke(inspectionUI, new object[] { arrivalCarComponent });
+        inspectionUIType.GetMethod("Open", BindingFlags.Public | BindingFlags.Instance, null,
+            new[] { arrivalCarType }, null)?.Invoke(inspectionUI, new object[] { arrivalCarComponent });
         yield return null;
-        startEngineButton = FindInactiveButton("Start Engine Button");
+        startEngineButton = FindInactiveButtonUnder(inspectionUI, "Start Engine Button");
         Assert.That(startEngineButton, Is.Not.Null);
         Assert.That(startEngineButton.interactable, Is.True,
             "Start Engine must become available after all four repairs.");
@@ -522,6 +564,67 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(blockerType, Is.Not.Null);
         Assert.That(UnityEngine.Object.FindFirstObjectByType(blockerType), Is.Null);
 
+        MethodInfo getSearchReturnPoint = bridgeType.GetMethod("TryGetSearchZoneReturnPoint",
+            BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(getSearchReturnPoint, Is.Not.Null);
+        object[] insideProbe = { (Vector2)((Component)localPlayer).transform.position, 1.25f, null, 0f };
+        Assert.That((bool)getSearchReturnPoint.Invoke(bridge, insideProbe), Is.True);
+        Assert.That((float)insideProbe[3], Is.EqualTo(0f).Within(0.001f),
+            "Accepting the search quest must not add boundary darkness while the player is inside.");
+        Rect visualSearchRect = (Rect)ReadPrivateField(bridge, "searchZoneMapRect");
+        Rect gameplaySearchRect = (Rect)ReadPrivateField(bridge, "gameplaySearchZoneMapRect");
+        Assert.That(gameplaySearchRect.xMin, Is.EqualTo(visualSearchRect.xMin).Within(0.0001f));
+        Assert.That(gameplaySearchRect.yMin, Is.EqualTo(visualSearchRect.yMin).Within(0.0001f));
+        Assert.That(gameplaySearchRect.xMax, Is.EqualTo(visualSearchRect.xMax).Within(0.0001f));
+        Assert.That(gameplaySearchRect.yMax, Is.EqualTo(visualSearchRect.yMax).Within(0.0001f),
+            "The rectangle shown on the map must exactly match fog and server correction bounds.");
+
+        object rasterMap = ReadPrivateField(bridge, "rasterMap");
+        MethodInfo normalizedToWorld = rasterMap.GetType().GetMethod("NormalizedToWorld");
+        Vector3 nearbyOutsideWorld = (Vector3)normalizedToWorld.Invoke(rasterMap,
+            new object[] { new Vector2(gameplaySearchRect.xMax + 0.015f, gameplaySearchRect.center.y) });
+        object[] nearbyOutsideProbe = { (Vector2)nearbyOutsideWorld, 1.25f, null, 0f };
+        Assert.That((bool)getSearchReturnPoint.Invoke(bridge, nearbyOutsideProbe), Is.True);
+        Assert.That((float)nearbyOutsideProbe[3], Is.GreaterThan(0.35f),
+            "Walking a short distance beyond the visible district must activate fog and return guidance.");
+
+        object[] outsideProbe = { new Vector2(100000f, 100000f), 1.25f, null, 0f };
+        Assert.That((bool)getSearchReturnPoint.Invoke(bridge, outsideProbe), Is.True);
+        Vector2 expectedSearchReturn = (Vector2)outsideProbe[2];
+        Assert.That((float)outsideProbe[3], Is.GreaterThan(10f),
+            "The configured clue district must report a real outside distance.");
+
+        Rigidbody2D boundaryBody = ((Component)localPlayer).GetComponent<Rigidbody2D>();
+        if (boundaryBody != null) boundaryBody.position = new Vector2(100000f, 100000f);
+        ((Component)localPlayer).transform.position = new Vector2(100000f, 100000f);
+        Physics2D.SyncTransforms();
+        mainQuestType.GetMethod("RequestReturnPlayerToSearchZone")?.Invoke(mainQuest, null);
+        yield return null;
+        Assert.That(Vector2.Distance(((Component)localPlayer).transform.position, expectedSearchReturn),
+            Is.LessThan(0.35f),
+            "State Authority must return only the player who crossed the clue-district boundary.");
+
+        if (boundaryBody != null) boundaryBody.position = new Vector2(100000f, 100000f);
+        ((Component)localPlayer).transform.position = new Vector2(100000f, 100000f);
+        Physics2D.SyncTransforms();
+        mainQuestType.GetMethod("RequestReturnPlayerToSearchZone")?.Invoke(mainQuest, null);
+        yield return null;
+        Assert.That(Vector2.Distance(((Component)localPlayer).transform.position, expectedSearchReturn),
+            Is.LessThan(0.35f),
+            "Crossing the district repeatedly must never become a one-shot correction.");
+
+        MethodInfo updateSearchWarning = bridgeType.GetMethod("UpdateOutsideSearchZoneWarning",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        updateSearchWarning?.Invoke(bridge, new object[] { new Vector2(100000f, 100000f), mainQuest });
+        Type fogType = Type.GetType("FogVisionController, Assembly-CSharp");
+        Component fog = UnityEngine.Object.FindFirstObjectByType(fogType) as Component;
+        Assert.That(fog, Is.Not.Null);
+        Assert.That((bool)ReadProperty(fog, "IsQuestSearchBoundaryActive"), Is.True,
+            "The world fog must cover the area beyond the active clue district.");
+        Assert.That((float)ReadProperty(bridge, "OutsideBoundaryDistance"), Is.GreaterThan(10f));
+        Assert.That((float)ReadProperty(bridge, "BoundaryObscureAlpha"), Is.GreaterThan(0f),
+            "The offending client's view must start darkening outside the district.");
+
         Type survivalType = Type.GetType("PlayerSurvival, Assembly-CSharp");
         Component survival = ((Component)localPlayer).GetComponent(survivalType);
         Assert.That(survival, Is.Not.Null);
@@ -554,8 +657,8 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(tierFourHeal, Is.GreaterThan(tierOneHeal),
             "Higher well-fed tiers must preserve the stronger passive-heal buff.");
 
-        // Reproduce the reported screenshot state: neighborhood complete,
-        // player outside the bright office-search area.
+        // Once the neighborhood is complete, travel to the office is free-roam.
+        // The map reveal replaces the old outside-area warning and correction.
         SetProperty(mainQuest, "NetworkQuestStage", 2); // LocateOffice
         SetPrivateField(bridge, "outsideSince", Time.unscaledTime - 2f);
         SetPrivateField(bridge, "nextOutsideWarningTime", 0f);
@@ -563,9 +666,9 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.That(updateWarning, Is.Not.Null);
         updateWarning.Invoke(bridge, new object[] { new Vector2(100000f, 100000f), mainQuest });
-        Assert.That((bool)ReadPrivateField(bridge, "guidanceTargetsOffice"), Is.True);
+        Assert.That((bool)ReadPrivateField(bridge, "guidanceTargetsOffice"), Is.False);
         Assert.That((float)ReadPrivateField(bridge, "outsideWarningVisibleUntil"),
-            Is.GreaterThan(Time.unscaledTime));
+            Is.EqualTo(0f));
 
         QuestFlowUIPrototype questUI = UnityEngine.Object.FindFirstObjectByType<QuestFlowUIPrototype>(
             FindObjectsInactive.Include);
@@ -595,6 +698,55 @@ public sealed class MainMenuToMilitaryQuestFlowTests
     {
         Transform transform = FindInactiveTransform(objectName);
         return transform != null ? transform.GetComponent<Button>() : null;
+    }
+
+    private static IEnumerator ShutdownExistingRunners()
+    {
+        Type runnerType = Type.GetType("Fusion.NetworkRunner, Fusion.Runtime");
+        if (runnerType == null) yield break;
+        UnityEngine.Object[] runners = Resources.FindObjectsOfTypeAll(runnerType);
+        Type shutdownReasonType = Type.GetType("Fusion.ShutdownReason, Fusion.Runtime");
+        MethodInfo shutdown = shutdownReasonType == null ? null : runnerType.GetMethod("Shutdown",
+            new[] { typeof(bool), shutdownReasonType, typeof(bool) });
+        for (int i = 0; i < runners.Length; i++)
+        {
+            if (runners[i] == null || shutdown == null) continue;
+            object ok = Enum.Parse(shutdownReasonType, "Ok");
+            Task task = shutdown.Invoke(runners[i], new[] { (object)true, ok, false }) as Task;
+            float deadline = Time.realtimeSinceStartup + 10f;
+            while (task != null && !task.IsCompleted && Time.realtimeSinceStartup < deadline)
+                yield return null;
+        }
+
+        Type menuType = Type.GetType("AutoMainMenuManager, Assembly-CSharp");
+        if (menuType != null)
+        {
+            UnityEngine.Object[] menus = Resources.FindObjectsOfTypeAll(menuType);
+            for (int i = 0; i < menus.Length; i++)
+                if (menus[i] is Component menu && menu != null)
+                    UnityEngine.Object.Destroy(menu.transform.root.gameObject);
+        }
+
+        GameObject[] persistentObjects = Resources.FindObjectsOfTypeAll<GameObject>();
+        for (int i = 0; i < persistentObjects.Length; i++)
+            if (persistentObjects[i] != null && persistentObjects[i].name == "AutoMenuCanvas")
+                UnityEngine.Object.Destroy(persistentObjects[i]);
+
+        yield return null;
+    }
+
+    private static Button FindInactiveButtonUnder(Component owner, string objectName)
+    {
+        if (owner == null) return null;
+        Transform root = owner.transform;
+        FieldInfo canvasField = owner.GetType().GetField("canvasObject",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        if (canvasField?.GetValue(owner) is GameObject canvasObject && canvasObject != null)
+            root = canvasObject.transform;
+        Button[] buttons = root.GetComponentsInChildren<Button>(true);
+        for (int i = 0; i < buttons.Length; i++)
+            if (buttons[i] != null && buttons[i].name == objectName) return buttons[i];
+        return null;
     }
 
     private static RectTransform AssertHotspotLayout(string partId, Vector2 expectedPosition,

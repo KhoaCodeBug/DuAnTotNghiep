@@ -10,6 +10,20 @@ public enum OfficeKnowledgeLevel
 }
 
 /// <summary>
+/// Presentation-safe mirror of the authoritative pre-military stage. It lives
+/// in the QuestUI assembly so the journal does not create a circular assembly
+/// reference back to MainQuestManager in Assembly-CSharp.
+/// </summary>
+public enum PreMilitaryQuestStage
+{
+    NotStarted,
+    SearchNeighborhood,
+    LocateOffice,
+    FindCityMap,
+    CityMapFound
+}
+
+/// <summary>
 /// Pure progress model for the complete pre-military quest demo.
 /// The opening objective has one source of truth: three physical route-clue
 /// documents taken from residential LootContainers.

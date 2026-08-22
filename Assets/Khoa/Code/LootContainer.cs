@@ -474,7 +474,7 @@ public class LootContainer : NetworkBehaviour
         RPC_SyncRemoveItem(slotIndex);
         if (isRouteClue)
         {
-            MainQuestManager.Instance?.AuthorityRegisterRouteClue(routeClueKind);
+            MainQuestManager.Instance?.AuthorityRegisterRouteClue(routeClueKind, playerTryingToLoot);
             RPC_NotifyQuestClueLooted(playerTryingToLoot, (int)routeClueKind,
                 QuestRouteClueItemCatalog.GetClueId(routeClueKind),
                 QuestRouteClueItemCatalog.GetDisplayName(routeClueKind));

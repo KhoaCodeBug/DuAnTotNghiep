@@ -53,6 +53,12 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float _IndoorExitAwarenessClearance;
                 float _IndoorExitAwarenessRadius;
                 float _IndoorExteriorFlashlightClearance;
+                float _QuestBoundaryActive;
+                float2 _QuestBoundaryOrigin;
+                float2 _QuestBoundaryRight;
+                float2 _QuestBoundaryUp;
+                float _QuestBoundaryFade;
+                float _QuestBoundaryOpacity;
                 float2 _FogWorldBottomLeft;
                 float2 _FogWorldRight;
                 float2 _FogWorldUp;
@@ -188,6 +194,37 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float3 outdoorFlashlightTint = float3(0.42, 0.45, 0.43);
                 fogColor = lerp(fogColor, outdoorFlashlightTint,
                                 flashlightVisibility * _FlashlightIllumination * 0.48);
+
+                if (_QuestBoundaryActive > 0.5)
+                {
+                    float2 relative = worldPosition - _QuestBoundaryOrigin;
+                    float determinant = _QuestBoundaryRight.x * _QuestBoundaryUp.y -
+                                        _QuestBoundaryRight.y * _QuestBoundaryUp.x;
+                    float safeDeterminant = abs(determinant) < 0.0001 ? 0.0001 : determinant;
+                    float2 zonePosition = float2(
+                        (relative.x * _QuestBoundaryUp.y - relative.y * _QuestBoundaryUp.x) / safeDeterminant,
+                        (_QuestBoundaryRight.x * relative.y - _QuestBoundaryRight.y * relative.x) / safeDeterminant);
+
+                    // Convert normalized overrun on either isometric axis back
+                    // into an approximate world-space distance from its edge.
+                    float area = abs(determinant);
+                    float rightEdgeSpacing = area / max(length(_QuestBoundaryUp), 0.0001);
+                    float upEdgeSpacing = area / max(length(_QuestBoundaryRight), 0.0001);
+                    float outsideDistance = max(
+                        max(max(-zonePosition.x, zonePosition.x - 1.0) * rightEdgeSpacing,
+                            max(-zonePosition.y, zonePosition.y - 1.0) * upEdgeSpacing),
+                        0.0);
+                    float boundaryFog = smoothstep(0.0, max(_QuestBoundaryFade, 0.1), outsideDistance);
+                    // Outside the allowed district becomes a continuous opaque
+                    // fog wall. Do not modulate its alpha with the weather bank:
+                    // that previously left clear pockets and a pale edge.
+                    opacity = lerp(opacity, _QuestBoundaryOpacity, boundaryFog);
+                    // Fade both colour and opacity from the existing weather fog.
+                    // A hard colour step exposes the exact polygon edge; keeping
+                    // both channels on the same curve removes that visible seam
+                    // while still reaching an almost-black wall farther outside.
+                    fogColor = lerp(fogColor, float3(0.004, 0.007, 0.009), boundaryFog);
+                }
                 return half4(fogColor, saturate(opacity));
             }
             ENDHLSL

@@ -189,7 +189,7 @@ public class HotbarHUDManager : MonoBehaviour
         GameObject hlObj = new GameObject("HighlightFrame");
         hlObj.transform.SetParent(hotbarPanel.transform, false);
         selectionHighlight = hlObj.AddComponent<RectTransform>();
-        
+
         CreateBorderLine(selectionHighlight, "TopBorder", new Vector2(0, 1), new Vector2(1, 1), new Vector2(0.5f, 1f), new Vector2(0, 3f));
         CreateBorderLine(selectionHighlight, "BottomBorder", new Vector2(0, 0), new Vector2(1, 0), new Vector2(0.5f, 0f), new Vector2(0, 3f));
         CreateBorderLine(selectionHighlight, "LeftBorder", new Vector2(0, 0), new Vector2(0, 1), new Vector2(0f, 0.5f), new Vector2(3f, 0));
@@ -313,18 +313,6 @@ public class HotbarHUDManager : MonoBehaviour
         for (int i = 0; i < hotbarSize && !seatModifierHeld; i++)
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i)) selectedSlotIndex = i;
-        }
-
-        // Phím Q: Chuyển ô sang trái (Giảm slot)
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            selectedSlotIndex = (selectedSlotIndex - 1 + hotbarSize) % hotbarSize;
-        }
-
-        // Phím E: Chuyển ô sang phải (Tăng slot)
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            selectedSlotIndex = (selectedSlotIndex + 1) % hotbarSize;
         }
 
         // Lăn chuột: Đã tắt theo yêu cầu vì trùng lặp với Zoom Camera
