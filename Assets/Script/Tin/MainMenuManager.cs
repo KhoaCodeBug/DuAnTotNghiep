@@ -343,6 +343,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void LateUpdate()
     {
+        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput)
+        {
+            EscapeConsumedThisFrame = false;
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (isLocalSceneLoaded && !isLoadingScreenActive)
@@ -2111,7 +2117,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
     private void EnableGameplayUI() { foreach (var obj in temporarilyDisabledObjects) { if (obj != null) obj.SetActive(true); } temporarilyDisabledObjects.Clear(); }
-    private void OnDestroy() { EnableGameplayUI(); isMenuDestroyed = true; }
+    private void OnDestroy()
+    {
+        EnableGameplayUI();
+        isMenuDestroyed = true;
+        if (Instance == this) Instance = null;
+    }
     private GameObject CreateBasePanel(string name, GameObject parent) { GameObject p = new GameObject(name); p.transform.SetParent(parent.transform, false); RectTransform r = p.AddComponent<RectTransform>(); r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero; return p; }
     private void CreateLabel(GameObject parent, string text, Vector2 anchorMin, Vector2 anchorMax) { GameObject labelObj = new GameObject("Label"); labelObj.transform.SetParent(parent.transform, false); TextMeshProUGUI labelTxt = labelObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) labelTxt.font = gameFont; labelTxt.text = GameLocalization.TranslateLiteral(text); labelTxt.color = new Color(0.8f, 0.8f, 0.8f, 1f); labelTxt.alignment = TextAlignmentOptions.Center; labelTxt.enableAutoSizing = true; labelTxt.fontSizeMin = 14; labelTxt.fontSizeMax = 20; RectTransform labelRect = labelObj.GetComponent<RectTransform>(); labelRect.anchorMin = anchorMin; labelRect.anchorMax = anchorMax; labelRect.offsetMin = Vector2.zero; labelRect.offsetMax = Vector2.zero; }
     private GameObject CreateInputField(GameObject parent, string name, string placeholderTxt, Vector2 anchorMin, Vector2 anchorMax) { GameObject inputObj = new GameObject(name); inputObj.transform.SetParent(parent.transform, false); RectTransform rect = inputObj.AddComponent<RectTransform>(); rect.anchorMin = anchorMin; rect.anchorMax = anchorMax; rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; Image bg = inputObj.AddComponent<Image>(); bg.color = new Color(0.05f, 0.05f, 0.05f, 1f); TMP_InputField inputField = inputObj.AddComponent<TMP_InputField>(); inputField.targetGraphic = bg; inputField.characterLimit = 20; GameObject viewportObj = new GameObject("Viewport"); viewportObj.transform.SetParent(inputObj.transform, false); RectTransform vpRect = viewportObj.AddComponent<RectTransform>(); vpRect.anchorMin = Vector2.zero; vpRect.anchorMax = Vector2.one; vpRect.offsetMin = new Vector2(15, 0); vpRect.offsetMax = new Vector2(-15, 0); viewportObj.AddComponent<RectMask2D>(); GameObject textObj = new GameObject("Text"); textObj.transform.SetParent(viewportObj.transform, false); TextMeshProUGUI txt = textObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.color = Color.white; txt.alignment = TextAlignmentOptions.Left; txt.enableAutoSizing = true; txt.fontSizeMin = 15; txt.fontSizeMax = 30; txt.textWrappingMode = TextWrappingModes.NoWrap; txt.overflowMode = TextOverflowModes.Truncate; RectTransform txtRect = textObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; GameObject phObj = new GameObject("Placeholder"); phObj.transform.SetParent(viewportObj.transform, false); TextMeshProUGUI pTxt = phObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) pTxt.font = gameFont; pTxt.text = GameLocalization.TranslateLiteral(placeholderTxt); pTxt.color = Color.gray; pTxt.alignment = TextAlignmentOptions.Left; pTxt.enableAutoSizing = true; pTxt.fontSizeMin = 15; pTxt.fontSizeMax = 30; pTxt.textWrappingMode = TextWrappingModes.NoWrap; pTxt.overflowMode = TextOverflowModes.Truncate; RectTransform phRect = phObj.GetComponent<RectTransform>(); phRect.anchorMin = Vector2.zero; phRect.anchorMax = Vector2.one; phRect.offsetMin = Vector2.zero; phRect.offsetMax = Vector2.zero; inputField.textViewport = vpRect; inputField.textComponent = txt; inputField.placeholder = pTxt; return inputObj; }

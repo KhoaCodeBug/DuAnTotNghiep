@@ -2,7 +2,8 @@
   "name": "ProjectZomboiNhai.QuestUI.Tests.Editor",
   "rootNamespace": "",
   "references": [
-    "ProjectZomboiNhai.QuestUI"
+    "ProjectZomboiNhai.QuestUI",
+    "Unity.TextMeshPro"
   ],
   "includePlatforms": [
     "Editor"

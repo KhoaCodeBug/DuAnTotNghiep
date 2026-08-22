@@ -38,9 +38,7 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
     {
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         bool inZone = player != null && IsPlayerInRepairPosition(player.transform.position);
-        bool blocked = VehicleRepairSkillCheckUI.BlocksGameplayInput ||
-                       (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) ||
-                       (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen);
+        bool blocked = LocalGameplayUIState.BlocksWorldInteractionHints;
         SetFrontZoneVisible(inZone && !blocked && (inspectionUI == null || !inspectionUI.IsOpen));
         if (!inZone || blocked)
         {
@@ -180,7 +178,7 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
     private void OnGUI()
     {
         if (manager == null || !manager.IsNetworkReady || inspectionRoutine != null ||
-            inspectionUI == null || inspectionUI.IsOpen || VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
+            inspectionUI == null || inspectionUI.IsOpen || LocalGameplayUIState.BlocksWorldInteractionHints) return;
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         Camera camera = Camera.main;
         if (player == null || camera == null || !IsPlayerInRepairPosition(player.transform.position)) return;

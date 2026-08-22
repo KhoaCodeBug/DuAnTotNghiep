@@ -79,8 +79,7 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         }
 
         bool canInspect = CanInspect(player.transform.position);
-        bool blockedByUI = (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) ||
-                           (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen);
+        bool blockedByUI = LocalGameplayUIState.BlocksWorldInteractionHints;
         SetFrontZoneVisible(canInspect && !blockedByUI && (inspectionUI == null || !inspectionUI.IsOpen));
 
         if (!canInspect || blockedByUI)
@@ -207,7 +206,7 @@ public sealed class BrokenArrivalCar : MonoBehaviour
 
     private void OnGUI()
     {
-        if (driveVehicleActivated) return;
+        if (driveVehicleActivated || LocalGameplayUIState.BlocksWorldInteractionHints) return;
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady || inspectionUI == null || inspectionUI.IsOpen) return;
         Camera camera = Camera.main;

@@ -190,11 +190,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (CurrentPhase == Phase.NotReached && MainQuestManager.Instance != null &&
             MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.CivilianCar &&
             MainQuestManager.Instance.CurrentStage == MainQuestManager.QuestStage.CityMapFound &&
-            AnyLivingPlayerNear(GetInteractionPosition(InteractionKind.Vehicle), 7f))
+            TryFindLivingPlayerNear(GetInteractionPosition(InteractionKind.Vehicle), 7f,
+                out PlayerRef approachPlayer))
         {
             MilitaryPhase = (int)Phase.Investigating;
-            RPC_ShowQuestMessage("Đã tới căn cứ quân sự. Kiểm tra chiếc xe thoát hiểm.");
-            RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.MilitaryBaseApproach);
+            RPC_ShowLocalizedQuestMessage("quest.military_arrived", 0);
+            RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.MilitaryBaseApproach, approachPlayer);
         }
 
         if ((CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape) && !AnyLivingPlayer())
@@ -203,7 +204,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             if (RepairSkillCheckSessionActive) AuthorityInterruptRepair(ActiveRepairer,
                 "Việc sửa xe đã dừng.");
             else ActiveRepairer = PlayerRef.None;
-            RPC_ShowQuestMessage("NHIỆM VỤ THẤT BẠI: Không còn người sống sót tại căn cứ.");
+            RPC_ShowLocalizedQuestMessage("quest.military_failed", 0);
         }
     }
 
@@ -385,7 +386,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound) return;
         if (!MainQuestManager.Instance.AuthorityTryLockEscapeRoute(EscapeEndingRoute.MilitaryEvacuation))
         {
-            RPC_ShowQuestMessage("Không thể kích hoạt: toàn đội đã khóa ending bằng chiếc xe dân sự.");
+            RPC_ShowLocalizedQuestMessage("quest.military_route_blocked", 0);
             return;
         }
 
@@ -393,8 +394,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GateCurrentHealth = Mathf.Max(GateCurrentHealth, GateMaxHealth);
         ActiveRepairer = PlayerRef.None;
         RPC_StartSiegePresentation();
-        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SiegeStarted);
-        RPC_ShowQuestMessage("BÁO ĐỘNG! Cổng đã đóng. Thu thập 3 phụ tùng và bảo vệ xe thoát hiểm.");
+        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SiegeStarted, requester);
+        RPC_ShowLocalizedQuestMessage("quest.military_siege", 0);
     }
 
     private void ServerActivateGenerator(PlayerRef requester)
@@ -408,8 +409,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GateMaxHealth = MilitaryQuestRules.GetElectrifiedGateHealth(baseGateHealth);
         GateCurrentHealth = Mathf.Max(GateCurrentHealth, GateMaxHealth * ratio);
         IsGeneratorActive = true;
-        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.GeneratorOnline);
-        RPC_ShowQuestMessage("Máy phát điện đã hoạt động: cổng đạt 150% HP và làm choáng zombie tiếp xúc.");
+        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.GeneratorOnline, requester);
+        RPC_ShowLocalizedQuestMessage("quest.military_generator", 0);
     }
 
     private void ServerUnlockArmory(PlayerRef requester)
@@ -421,7 +422,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         ItemData key = MilitaryQuestItemCatalog.GetOrCreate(MilitaryQuestItemKind.ArmoryKey);
         if (inventory == null || inventory.GetItemCount(key) < 1)
         {
-            RPC_ShowQuestMessage("Kho quân nhu bị khóa. Cần chìa khóa lấy từ két sắt văn phòng.");
+            RPC_ShowLocalizedQuestMessage("quest.military_armory_locked", 0);
             return;
         }
 
@@ -432,7 +433,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GrantItem(inventory, "Ammo762", 120);
         GrantItem(inventory, "Ammo12Gauge", 60);
         inventory.AddItem(MilitaryQuestItemCatalog.GetOrCreate(MilitaryQuestItemKind.LevelThreeBackpack), 1);
-        RPC_ShowQuestMessage("Kho quân nhu đã mở: AK47, S12K, đạn dược và balo cấp 3 đã được cấp.");
+        RPC_ShowLocalizedQuestMessage("quest.military_armory_open", 0);
     }
 
     private void ServerClaimOfficeSafe(PlayerRef requester)
@@ -448,7 +449,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GrantItem(inventory, "S12K", 1);
         GrantItem(inventory, "Ammo12Gauge", 24);
         IsOfficeSafeClaimed = true;
-        RPC_ShowQuestMessage("Két sắt đã mở: nhận chìa khóa kho quân nhu và S12K.");
+        RPC_ShowLocalizedQuestMessage("quest.military_safe_open", 0);
     }
 
     private void ServerCollectPart(PlayerRef requester, MilitaryQuestItemKind kind)
@@ -461,7 +462,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (inventory == null || !inventory.AddItem(MilitaryQuestItemCatalog.GetOrCreate(kind), 1)) return;
 
         SetPartCacheClaimed(kind);
-        RPC_ShowQuestMessage("Đã thu thập: " + MilitaryQuestItemCatalog.GetDisplayName(kind) + ".");
+        RPC_ShowLocalizedQuestMessage("quest.military_collected", (int)kind);
     }
 
     private void ServerInstallPart(PlayerRef requester, MilitaryQuestItemKind kind)
@@ -475,7 +476,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
         inventory.ConsumeItem(item, 1);
         SetPartInstalled(kind);
-        RPC_ShowQuestMessage("Đã lắp: " + MilitaryQuestItemCatalog.GetDisplayName(kind) + ".");
+        RPC_ShowLocalizedQuestMessage("quest.military_installed", (int)kind);
     }
 
     private void ServerProgressRepair(PlayerRef requester, float deltaSeconds)
@@ -492,10 +493,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             trustedDelta, repairDurationSeconds);
         if (VehicleRepairProgress < MilitaryQuestRules.MaxRepairProgress) return;
 
+        PlayerRef completedBy = requester;
         VehicleRepairProgress = MilitaryQuestRules.MaxRepairProgress;
         ActiveRepairer = PlayerRef.None;
         MilitaryPhase = (int)Phase.ReadyToEscape;
-        RPC_BroadcastVehicleReady();
+        RPC_BroadcastVehicleReady(completedBy);
     }
 
     private void ServerStartRepairSkillCheck(PlayerRef requester, PoliceCarRepairAction action)
@@ -722,7 +724,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GatherLivingPlayersForExtraction();
         MilitaryPhase = (int)Phase.Escaped;
         ActiveRepairer = PlayerRef.None;
-        RPC_TriggerVictoryCutscene();
+        RPC_TriggerVictoryCutscene(requester);
     }
 
     public void TakeGateDamage(float damage)
@@ -750,19 +752,22 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private void RPC_StartSiegePresentation() => hordeDirector?.BeginSiege();
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_BroadcastVehicleReady()
+    public void RPC_BroadcastVehicleReady(PlayerRef focusPlayer)
     {
         vehicleRepair?.SetVehicleReadyPresentation(true);
-        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.EscapeVehicleReady);
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ",
-            "Xe đã sửa xong. Tập hợp tại xe và nhấn E để thoát khỏi khu vực.");
+        if (Runner != null && Runner.LocalPlayer == focusPlayer)
+            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.EscapeVehicleReady);
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.Get("quest.sender"),
+            GameLocalization.Get("quest.military_vehicle_ready"));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_TriggerVictoryCutscene()
+    public void RPC_TriggerVictoryCutscene(PlayerRef focusPlayer)
     {
         EscapeRouteDecisionUI.CloseIfOpen();
-        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryEvacuationComplete);
+        if (Runner != null && Runner.LocalPlayer == focusPlayer)
+            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryEvacuationComplete);
         hordeDirector?.StopSiege();
         if (vehicleRepair != null)
             vehicleRepair.PlayEscapeCutscene(() => VictorySummaryUI.ShowForCurrentMatch(
@@ -832,8 +837,25 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", message);
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowRouteBAudioCue(int cueId) =>
-        RouteBRadioBroadcastUI.ShowCue((RouteBAudioCueId)cueId);
+    private void RPC_ShowLocalizedQuestMessage(string localizationKey, int itemKind)
+    {
+        string message = GameLocalization.Get(localizationKey, localizationKey);
+        if (localizationKey == "quest.military_collected" || localizationKey == "quest.military_installed")
+        {
+            if (itemKind >= (int)MilitaryQuestItemKind.ArmoryKey &&
+                itemKind <= (int)MilitaryQuestItemKind.LevelThreeBackpack)
+                message = string.Format(message,
+                    MilitaryQuestItemCatalog.GetLocalizedDisplayName((MilitaryQuestItemKind)itemKind));
+        }
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowRouteBAudioCue(int cueId, PlayerRef focusPlayer)
+    {
+        if (Runner != null && Runner.LocalPlayer == focusPlayer)
+            RouteBRadioBroadcastUI.ShowCue((RouteBAudioCueId)cueId);
+    }
 
     private void BuildPresentation()
     {
@@ -955,12 +977,23 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private bool AnyLivingPlayerNear(Vector2 point, float distance)
     {
+        return TryFindLivingPlayerNear(point, distance, out _);
+    }
+
+    private bool TryFindLivingPlayerNear(Vector2 point, float distance, out PlayerRef playerRef)
+    {
+        playerRef = PlayerRef.None;
         PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
         for (int i = 0; i < players.Length; i++)
         {
             PlayerHealth health = players[i] != null ? players[i].GetComponent<PlayerHealth>() : null;
             if (players[i] != null && (health == null || (!health.isDead && !health.isTransforming)) &&
-                Vector2.Distance(players[i].transform.position, point) <= distance) return true;
+                players[i].Object != null && players[i].Object.IsValid &&
+                Vector2.Distance(players[i].transform.position, point) <= distance)
+            {
+                playerRef = players[i].Object.InputAuthority;
+                return playerRef != PlayerRef.None;
+            }
         }
         return false;
     }

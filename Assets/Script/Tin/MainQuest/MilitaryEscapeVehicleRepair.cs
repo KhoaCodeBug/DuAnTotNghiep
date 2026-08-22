@@ -36,8 +36,10 @@ public sealed class MilitaryEscapeVehicleRepair : MonoBehaviour
         if ((manager.CurrentPhase == MilitaryBaseQuestManager.Phase.NotReached ||
              manager.CurrentPhase == MilitaryBaseQuestManager.Phase.Investigating) && Input.GetKeyDown(KeyCode.E))
         {
-            EscapeRouteDecisionUI.ShowFinaleConfirmation(
-                EscapeEndingRoute.MilitaryEvacuation, manager.RequestTriggerAlarm);
+            RouteBRadioBroadcastUI.ShowCue(
+                RouteBAudioCueId.AlarmPointOfNoReturn,
+                () => EscapeRouteDecisionUI.ShowFinaleConfirmation(
+                    EscapeEndingRoute.MilitaryEvacuation, manager.RequestTriggerAlarm));
             return;
         }
 

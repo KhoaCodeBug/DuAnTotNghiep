@@ -50,7 +50,9 @@ public readonly struct RouteBAudioCue
 
 public static class RouteBAudioContent
 {
-    private const string Root = "Story/RouteB/";
+    // The recorded Vietnamese clips are imported directly under
+    // Assets/Resources/Sound. Resources.Load paths never include an extension.
+    private const string Root = "Sound/Story/RouteB/";
 
     private static readonly RouteBAudioCue[] Cues =
     {
@@ -126,6 +128,46 @@ public static class RouteBAudioContent
         for (int i = 0; i < Cues.Length; i++)
             if (Cues[i].Id == id) return Cues[i];
         return Cues[0];
+    }
+
+    public static string GetLocalizedSpeaker(RouteBAudioCue cue, bool vietnamese)
+    {
+        if (vietnamese) return cue.Speaker;
+        return cue.Id switch
+        {
+            RouteBAudioCueId.OpeningEmergencyBroadcast => "EMERGENCY BROADCAST",
+            RouteBAudioCueId.PlayerRouteReaction or RouteBAudioCueId.FirstSupplyDocument or
+                RouteBAudioCueId.SecondEvacuationDocument or RouteBAudioCueId.ThirdCoordinationDocument or
+                RouteBAudioCueId.OfficeLocated or RouteBAudioCueId.MilitaryRouteRevealed => "SURVIVOR",
+            RouteBAudioCueId.DispatchDeskLog => "COORDINATION LOG",
+            RouteBAudioCueId.OfficeRadioRecording => "RADIO RECORDING",
+            RouteBAudioCueId.AlarmPointOfNoReturn => "WARNING SYSTEM",
+            RouteBAudioCueId.MilitaryEvacuationComplete => "SYSTEM LOG",
+            _ => "BASE SYSTEM"
+        };
+    }
+
+    public static string GetLocalizedTitle(RouteBAudioCue cue, bool vietnamese)
+    {
+        if (vietnamese) return cue.Title;
+        return cue.Id switch
+        {
+            RouteBAudioCueId.OpeningEmergencyBroadcast => "EMERGENCY SIGNAL",
+            RouteBAudioCueId.PlayerRouteReaction => "TWO ESCAPE ROUTES",
+            RouteBAudioCueId.FirstSupplyDocument => "SUPPLY RECORD",
+            RouteBAudioCueId.SecondEvacuationDocument => "EVACUATION SCHEDULE",
+            RouteBAudioCueId.ThirdCoordinationDocument => "COORDINATION ADDRESS",
+            RouteBAudioCueId.OfficeLocated => "COORDINATION OFFICE",
+            RouteBAudioCueId.DispatchDeskLog => "DISPATCH DESK LOG",
+            RouteBAudioCueId.OfficeRadioRecording => "FINAL TRANSMISSION",
+            RouteBAudioCueId.MilitaryRouteRevealed => "MILITARY ROUTE IDENTIFIED",
+            RouteBAudioCueId.MilitaryBaseApproach => "MILITARY BASE",
+            RouteBAudioCueId.AlarmPointOfNoReturn => "POINT OF NO RETURN",
+            RouteBAudioCueId.SiegeStarted => "EVACUATION ALARM",
+            RouteBAudioCueId.GeneratorOnline => "POWER RESTORED",
+            RouteBAudioCueId.EscapeVehicleReady => "EVACUATION VEHICLE READY",
+            _ => "EVACUATION COMPLETE"
+        };
     }
 
     private static RouteBAudioCue Cue(RouteBAudioCueId id, string speaker, string title,

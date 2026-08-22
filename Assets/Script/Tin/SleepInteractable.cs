@@ -60,9 +60,10 @@ public sealed class SleepInteractable : MonoBehaviour
         PlayerSurvival survival = movement.GetComponent<PlayerSurvival>();
         if (survival == null || survival.IsSleepInputLocked) return;
 
-        string text = DayNightManager.Instance != null && !DayNightManager.Instance.CanUseBedNow()
-            ? GameLocalization.TranslateLiteral("YOU CAN ONLY SLEEP FROM 20:00 TO 03:00")
-            : GameLocalization.TranslateLiteral("PRESS [E] TO SLEEP");
+        // The proximity prompt is an interaction hint, not a persistent error.
+        // Invalid-hour feedback is emitted by PlayerSurvival only after the
+        // local player actually presses E, and expires after a short timeout.
+        string text = GameLocalization.TranslateLiteral("PRESS [E] TO SLEEP");
 
         GUIStyle style = new GUIStyle(GUI.skin.box)
         {

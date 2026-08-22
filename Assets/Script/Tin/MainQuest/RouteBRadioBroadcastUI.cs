@@ -1,12 +1,14 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Compact, non-blocking Route B radio/subtitle presentation. Recorded clips are
-/// optional; missing radio clips use a procedural static bed so story flow remains complete.
+/// Local Route B dialogue presentation. It never pauses the shared simulation:
+/// only this client's UI, audio mix and local network input are temporarily locked.
+/// Missing radio clips use a procedural static bed so story flow remains complete.
 /// </summary>
 public sealed class RouteBRadioBroadcastUI : MonoBehaviour
 {
@@ -23,8 +25,29 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
     private Action sequenceCompleted;
     private bool skipRequested;
     private bool waitForInteractionKeyRelease;
+    private readonly Queue<PendingCue> pendingCues = new Queue<PendingCue>();
+    private readonly Dictionary<Canvas, bool> suppressedCanvases = new Dictionary<Canvas, bool>();
+    private bool localPresentationActive;
+    private float listenerVolumeBeforeDialogue = 1f;
+    private float nextCanvasSuppressionAt;
+
+    private const float DialogueDuckMultiplier = 0.18f;
+    private const float CanvasSuppressionInterval = 0.2f;
+
+    private readonly struct PendingCue
+    {
+        public PendingCue(RouteBAudioCue cue, Action callback)
+        {
+            Cue = cue;
+            Callback = callback;
+        }
+
+        public RouteBAudioCue Cue { get; }
+        public Action Callback { get; }
+    }
 
     public static bool IsVisible => instance != null && instance.canvas != null && instance.canvas.enabled;
+    public static bool BlocksLocalGameplayInput => IsVisible;
 
     public static void ShowOpeningSequence(Action onCompleted)
     {
@@ -34,12 +57,23 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
 
     public static void ShowCue(RouteBAudioCueId cueId)
     {
+        ShowCue(cueId, null);
+    }
+
+    public static void ShowCue(RouteBAudioCueId cueId, Action onCompleted)
+    {
         RouteBRadioBroadcastUI ui = EnsureInstance();
-        // Never let a later milestone interrupt the opening broadcast: its
-        // completion callback is what opens the non-locking route choice.
+        // Never let a later milestone interrupt a cue that owns a story-flow
+        // callback. Ordinary milestone cues are queued so all 15 recordings
+        // remain audible even when two network events arrive close together.
         if (IsVisible && ui.sequenceCompleted != null)
             return;
-        ui.BeginSingleCue(RouteBAudioContent.Get(cueId));
+        if (IsVisible)
+        {
+            ui.pendingCues.Enqueue(new PendingCue(RouteBAudioContent.Get(cueId), onCompleted));
+            return;
+        }
+        ui.BeginSingleCue(RouteBAudioContent.Get(cueId), onCompleted);
     }
 
     public static void SkipIfOpen()
@@ -74,12 +108,27 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EndLocalPresentation();
         if (instance == this) instance = null;
     }
 
     private void Update()
     {
         if (!IsVisible) return;
+
+        // AudioListener is process-local, so ducking here never changes the
+        // server or another player's mix. The dialogue source ignores listener
+        // volume and therefore stays clear above the reduced game audio.
+        if (localPresentationActive)
+        {
+            AudioListener.volume = listenerVolumeBeforeDialogue * DialogueDuckMultiplier;
+            if (Time.unscaledTime >= nextCanvasSuppressionAt)
+            {
+                nextCanvasSuppressionAt = Time.unscaledTime + CanvasSuppressionInterval;
+                SuppressForeignCanvases();
+            }
+        }
+
         if (waitForInteractionKeyRelease)
         {
             if (!Input.GetKey(KeyCode.E)) waitForInteractionKeyRelease = false;
@@ -97,17 +146,19 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         sequenceCompleted = onCompleted;
         skipRequested = false;
         waitForInteractionKeyRelease = Input.GetKey(KeyCode.E);
+        BeginLocalPresentation();
         canvas.enabled = true;
         sequenceRoutine = StartCoroutine(PlayOpeningSequence());
     }
 
-    private void BeginSingleCue(RouteBAudioCue cue)
+    private void BeginSingleCue(RouteBAudioCue cue, Action onCompleted)
     {
         if (sequenceRoutine != null) StopCoroutine(sequenceRoutine);
         audioSource.Stop();
-        sequenceCompleted = null;
+        sequenceCompleted = onCompleted;
         skipRequested = false;
         waitForInteractionKeyRelease = Input.GetKey(KeyCode.E);
+        BeginLocalPresentation();
         canvas.enabled = true;
         sequenceRoutine = StartCoroutine(PlaySingleCue(cue));
     }
@@ -157,13 +208,14 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
 
     private void RenderCue(RouteBAudioCue cue, int index, int count)
     {
-        eyebrowText.text = cue.Speaker + "  //  TUYẾN THOÁT HIỂM B";
+        eyebrowText.text = RouteBAudioContent.GetLocalizedSpeaker(cue, GameLocalization.IsVietnamese);
         eyebrowText.color = cue.IsRadioTransmission
             ? new Color(1f, 0.67f, 0.14f)
             : new Color(0.28f, 0.88f, 0.7f);
-        titleText.text = cue.Title;
+        titleText.text = RouteBAudioContent.GetLocalizedTitle(cue, GameLocalization.IsVietnamese);
         bodyText.text = GameLocalization.IsVietnamese ? cue.Vietnamese : cue.English;
-        skipText.text = $"{index + 1}/{count}    [E] BỎ QUA";
+        skipText.text = $"{index + 1}/{count}    " +
+                        (GameLocalization.IsVietnamese ? "[E] BỎ QUA" : "[E] SKIP");
     }
 
     private float PlayCueAudio(RouteBAudioCue cue)
@@ -172,8 +224,9 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         audioSource.Stop();
         audioSource.clip = clip != null ? clip : cue.IsRadioTransmission ? radioStaticClip : null;
         audioSource.loop = clip == null && cue.IsRadioTransmission;
-        audioSource.volume = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f) *
-                             (clip == null ? 0.2f : 0.78f);
+        float masterVolume = PlayerPrefs.GetFloat("GameMasterVolume", 1f);
+        audioSource.volume = masterVolume * PlayerPrefs.GetFloat("GameSFXVolume", 0.8f) *
+                             (clip == null ? 0.24f : 0.92f);
         if (audioSource.clip != null) audioSource.Play();
         return clip != null ? Mathf.Max(cue.FallbackDuration, clip.length + 0.2f) : cue.FallbackDuration;
     }
@@ -190,7 +243,26 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         Action callback = sequenceCompleted;
         sequenceCompleted = null;
         skipRequested = false;
-        if (invokeCallback) callback?.Invoke();
+        if (!invokeCallback)
+        {
+            pendingCues.Clear();
+            EndLocalPresentation();
+            return;
+        }
+
+        if (pendingCues.Count > 0 && !EscapeRouteDecisionUI.IsVisible)
+        {
+            callback?.Invoke();
+            PendingCue next = pendingCues.Dequeue();
+            BeginSingleCue(next.Cue, next.Callback);
+            return;
+        }
+
+        EndLocalPresentation();
+        // Restore the previous Canvas states before a story callback opens the
+        // route-choice UI. Otherwise a previously-created disabled choice canvas
+        // would be restored to disabled immediately after ShowPreMilitaryChoice.
+        callback?.Invoke();
     }
 
     private void Build()
@@ -208,20 +280,20 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         GameObject panel = new GameObject("Route B Radio Panel", typeof(RectTransform), typeof(Image), typeof(Outline));
         panel.transform.SetParent(transform, false);
         RectTransform panelRect = panel.GetComponent<RectTransform>();
-        panelRect.anchorMin = new Vector2(0.5f, 1f);
-        panelRect.anchorMax = new Vector2(0.5f, 1f);
-        panelRect.pivot = new Vector2(0.5f, 1f);
-        panelRect.sizeDelta = new Vector2(820f, 190f);
-        panelRect.anchoredPosition = new Vector2(0f, -48f);
+        panelRect.anchorMin = new Vector2(0.5f, 0f);
+        panelRect.anchorMax = new Vector2(0.5f, 0f);
+        panelRect.pivot = new Vector2(0.5f, 0f);
+        panelRect.sizeDelta = new Vector2(1120f, 176f);
+        panelRect.anchoredPosition = new Vector2(0f, 128f);
         panel.GetComponent<Image>().color = new Color(0.025f, 0.04f, 0.037f, 0.96f);
         panel.GetComponent<Outline>().effectColor = new Color(0.38f, 0.44f, 0.41f, 0.95f);
 
         eyebrowText = Text(panelRect, "Radio Speaker", string.Empty, 12f, FontStyles.Bold,
-            new Vector2(0f, 1f), new Vector2(670f, 24f), new Vector2(28f, -22f), TextAlignmentOptions.Left);
+            new Vector2(0f, 1f), new Vector2(930f, 24f), new Vector2(28f, -20f), TextAlignmentOptions.Left);
         titleText = Text(panelRect, "Radio Title", string.Empty, 23f, FontStyles.Bold,
-            new Vector2(0f, 1f), new Vector2(670f, 34f), new Vector2(28f, -51f), TextAlignmentOptions.Left);
+            new Vector2(0f, 1f), new Vector2(930f, 34f), new Vector2(28f, -47f), TextAlignmentOptions.Left);
         bodyText = Text(panelRect, "Radio Subtitle", string.Empty, 15f, FontStyles.Normal,
-            new Vector2(0f, 1f), new Vector2(760f, 76f), new Vector2(28f, -91f), TextAlignmentOptions.TopLeft);
+            new Vector2(0f, 1f), new Vector2(1040f, 64f), new Vector2(28f, -84f), TextAlignmentOptions.TopLeft);
         bodyText.color = new Color(0.82f, 0.86f, 0.84f);
         skipText = Text(panelRect, "Radio Skip", string.Empty, 11f, FontStyles.Bold,
             new Vector2(1f, 0f), new Vector2(170f, 22f), new Vector2(-24f, 16f), TextAlignmentOptions.Right);
@@ -231,8 +303,47 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         audioSource.playOnAwake = false;
         audioSource.spatialBlend = 0f;
         audioSource.ignoreListenerPause = true;
+        audioSource.ignoreListenerVolume = true;
         radioStaticClip = CreateRadioStaticClip();
         canvas.enabled = false;
+    }
+
+    private void BeginLocalPresentation()
+    {
+        if (localPresentationActive) return;
+        localPresentationActive = true;
+        QuestUIDialogueState.SetActive(true);
+        listenerVolumeBeforeDialogue = AudioListener.volume;
+        AudioListener.volume = listenerVolumeBeforeDialogue * DialogueDuckMultiplier;
+        nextCanvasSuppressionAt = 0f;
+        SuppressForeignCanvases();
+    }
+
+    private void SuppressForeignCanvases()
+    {
+        Canvas[] canvases = Resources.FindObjectsOfTypeAll<Canvas>();
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            Canvas candidate = canvases[i];
+            if (candidate == null || candidate == canvas || !candidate.gameObject.scene.IsValid()) continue;
+            // Fog is part of the rendered world, not an interactive gameplay
+            // HUD. Keep it active under dialogue and the following route choice.
+            if (candidate.gameObject.name == "Local Fog Vision Overlay") continue;
+            if (!suppressedCanvases.ContainsKey(candidate))
+                suppressedCanvases.Add(candidate, candidate.enabled);
+            candidate.enabled = false;
+        }
+    }
+
+    private void EndLocalPresentation()
+    {
+        if (!localPresentationActive) return;
+        localPresentationActive = false;
+        QuestUIDialogueState.SetActive(false);
+        AudioListener.volume = listenerVolumeBeforeDialogue;
+        foreach (KeyValuePair<Canvas, bool> entry in suppressedCanvases)
+            if (entry.Key != null) entry.Key.enabled = entry.Value;
+        suppressedCanvases.Clear();
     }
 
     private static TextMeshProUGUI Text(Transform parent, string name, string value, float size,

@@ -13,10 +13,15 @@ public static class EscapeEndingRules
     public static bool CanLock(EscapeEndingRoute current, EscapeEndingRoute requested) =>
         IsValidPlayableRoute(requested) && (current == EscapeEndingRoute.None || current == requested);
 
-    public static string GetDisplayName(EscapeEndingRoute route) => route switch
+    public static string GetDisplayName(EscapeEndingRoute route) => GetDisplayName(route, true);
+
+    public static string GetDisplayName(EscapeEndingRoute route, bool vietnamese)
     {
-        EscapeEndingRoute.CivilianCar => "TUYẾN A — CHIẾC XE DÂN SỰ",
-        EscapeEndingRoute.MilitaryEvacuation => "TUYẾN B — SƠ TÁN QUÂN SỰ",
-        _ => "CHƯA CHỌN TUYẾN THOÁT"
-    };
+        return route switch
+        {
+            EscapeEndingRoute.CivilianCar => vietnamese ? "TUYẾN A — CHIẾC XE DÂN SỰ" : "ROUTE A — CIVILIAN CAR",
+            EscapeEndingRoute.MilitaryEvacuation => vietnamese ? "TUYẾN B — SƠ TÁN QUÂN SỰ" : "ROUTE B — MILITARY EVACUATION",
+            _ => vietnamese ? "CHƯA CHỌN TUYẾN THOÁT" : "NO ESCAPE ROUTE SELECTED"
+        };
+    }
 }

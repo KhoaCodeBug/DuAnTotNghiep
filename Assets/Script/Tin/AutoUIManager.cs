@@ -157,6 +157,10 @@ public class AutoUIManager : MonoBehaviour
 
     private void Update()
     {
+        // Route B dialogue owns this client's presentation and shortcut input.
+        // This is deliberately local-only; the shared multiplayer simulation keeps running.
+        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput) return;
+
         // The quest journal/map is a full-screen modal owned by another canvas.
         // Do not let inventory/trade input reopen hidden panels underneath it.
         if (questOverlayOpen) return;
@@ -2121,7 +2125,8 @@ public class AutoUIManager : MonoBehaviour
         bool isLoot = containerPanel != null && containerPanel.activeSelf;
         bool isTrade = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
 
-        return isInv || isLoot || isTrade || questOverlayOpen;
+        return isInv || isLoot || isTrade || questOverlayOpen ||
+               RouteBRadioBroadcastUI.BlocksLocalGameplayInput;
     }
 
     private void GenerateSpectatorUI(GameObject canvasGO)
