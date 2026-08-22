@@ -99,6 +99,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     private Rigidbody2D rb;
     private Animator anim;
     private SpriteRenderer spriteRend;
+    private ZombieCorpseLoot corpseLoot;
     private Color originalColor;
 
     // Helpers
@@ -173,6 +174,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         spriteRend = GetComponentInChildren<SpriteRenderer>();
+        corpseLoot = GetComponent<ZombieCorpseLoot>();
 
         seeker = GetComponent<Seeker>();
 
@@ -827,6 +829,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         StopMovement();
         myCol.enabled = false;
+        corpseLoot?.MarkAsCorpse();
 
         if (shooter != PlayerRef.None)
         {
@@ -842,13 +845,12 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             }
         }
 
-        StartCoroutine(VanishRoutine());
+        // Keep the body in the level so it can be searched once.
     }
 
     private IEnumerator VanishRoutine()
     {
-        yield return new WaitForSeconds(5f);
-        if (HasStateAuthority) Runner.Despawn(Object);
+        yield break;
     }
 
     public void TriggerAttackDamage()

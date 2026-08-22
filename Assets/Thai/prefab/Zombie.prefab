@@ -159,6 +159,7 @@ GameObject:
   - component: {fileID: 4104682700520458656}
   - component: {fileID: 5223223820511616605}
   - component: {fileID: 496425067498801100}
+  - component: {fileID: 9010000000000000001}
   m_Layer: 3
   m_Name: Zombie
   m_TagString: Enemy
@@ -358,6 +359,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   nextWaypointDistance: 0.5
+  zombieMask:
+    serializedVersion: 2
+    m_Bits: 8
+  separationRadius: 0.45
+  separationWeight: 1.5
   obstacleMask:
     serializedVersion: 2
     m_Bits: 64
@@ -365,12 +371,18 @@ MonoBehaviour:
   obstacleProbeDistance: 0.8
   obstacleAvoidanceWeight: 1.8
   stuckRepathDelay: 0.75
-  zombieMask:
-    serializedVersion: 2
-    m_Bits: 8
-  separationRadius: 0.45
-  separationWeight: 1.5
   closeAwarenessRange: 0.6
+  useBlindV2Rules: 0
+  idleAwarenessRangeV2: 0
+  investigateAwarenessRangeV2: 0.05
+  chaseAwarenessRangeV2: 0.15
+  hearingRangeMultiplierV2: 0.65
+  arrivalRadarRangeV2: 1.75
+  arrivalRadarDurationV2: 1.5
+  contactToleranceV2: 0.02
+  blockQuietSoundsThroughWallsV2: 1
+  lockCommittedHitV2: 1
+  attackHitDelayV2: 0.2
   searchPointCount: 5
   searchRadius: 3
   searchWaitDuration: 1.2
@@ -396,10 +408,11 @@ MonoBehaviour:
   _NetMoveDir: {x: 0, y: 0}
   _NetIsRunning:
     _value: 0
-  _NetIsWandering:
-    _value: 0
   _NetIsChasing:
     _value: 0
+  _NetIsAttacking:
+    _value: 0
+  _NetMoveSpeed: 0
 --- !u!114 &1348887384322338406
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -421,6 +434,7 @@ MonoBehaviour:
   - {fileID: 2294525064702947934}
   - {fileID: 8265875105454390905}
   - {fileID: 496425067498801100}
+  - {fileID: 9010000000000000001}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &8265875105454390905
 MonoBehaviour:
@@ -601,6 +615,35 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   wanderSound: {fileID: 8300000, guid: 2bfa8e12b0ddc534a8f218abdbb91bb4, type: 3}
   chaseSound: {fileID: 8300000, guid: 4d3b379ca5bdb6546bc45f211a79b68e, type: 3}
+  wanderVolume: 0.34
+  chaseVolume: 0.78
+  chaseAudibleStart: 0.31
+  chaseAudibleEnd: 2.42
+  initialWanderDelayMin: 2
+  initialWanderDelayMax: 10
+  wanderBurstDurationMin: 1.5
+  wanderBurstDurationMax: 3.2
+  wanderIntervalMin: 5
+  wanderIntervalMax: 12
+--- !u!114 &9010000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4396508338874752408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e25ef3fd15ff5748ad2821beedb56cd, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  corpseSearchRange: 0.5
+  searchDuration: 2
+  corpseLootTable:
+    waterWeight: 35
+    bandageWeight: 30
+    medicineWeight: 20
+    ammoWeight: 15
 --- !u!1 &7054314984550428789
 GameObject:
   m_ObjectHideFlags: 0

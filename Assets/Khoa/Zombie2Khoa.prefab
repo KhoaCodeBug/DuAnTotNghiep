@@ -88,6 +88,7 @@ GameObject:
   - component: {fileID: -1847682362298374646}
   - component: {fileID: -1512541213844376578}
   - component: {fileID: -3967003760547683558}
+  - component: {fileID: 9010000000000000003}
   m_Layer: 3
   m_Name: Zombie2Khoa
   m_TagString: Enemy
@@ -311,6 +312,7 @@ MonoBehaviour:
   NetworkedBehaviours:
   - {fileID: 1607776019165846037}
   - {fileID: 5681118958131968407}
+  - {fileID: 9010000000000000003}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &5681118958131968407
 MonoBehaviour:
@@ -402,3 +404,22 @@ MonoBehaviour:
   raycastOffset: {x: 0, y: 0, z: 0}
   useGraphRaycasting: 0
   quality: 1
+--- !u!114 &9010000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5115177110719869878}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e25ef3fd15ff5748ad2821beedb56cd, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  corpseSearchRange: 0.5
+  searchDuration: 2
+  corpseLootTable:
+    waterWeight: 35
+    bandageWeight: 30
+    medicineWeight: 20
+    ammoWeight: 15

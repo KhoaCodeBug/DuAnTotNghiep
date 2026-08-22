@@ -23,6 +23,7 @@ public class PlayerInteraction : NetworkBehaviour
     public VehicleControllerFusion CurrentVehicleController =>
         CurrentVehicle != null ? CurrentVehicle.GetComponent<VehicleControllerFusion>() : null;
     private VehicleControllerFusion nearbyVehicle;
+    private IZombieCorpseSearchTarget nearbyCorpse;
     private VehicleControllerFusion currentVehicle;
     private Rigidbody2D body;
     private SpriteRenderer sprite;
@@ -59,7 +60,14 @@ public class PlayerInteraction : NetworkBehaviour
         if (survival != null && survival.IsSleepInputLocked) return;
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return;
         if (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) return;
+        CheckNearbyCorpse();
         CheckNearbyVehicle();
+
+        if (!NetworkIsInVehicle && nearbyCorpse != null && Input.GetKeyDown(KeyCode.E))
+        {
+            nearbyCorpse.RequestSearchCorpse();
+            return;
+        }
 
         if (NetworkIsInVehicle && NetworkIsVehicleDriver && Input.GetKeyDown(KeyCode.L))
         {
@@ -158,25 +166,40 @@ public class PlayerInteraction : NetworkBehaviour
 
     private void OnGUI()
     {
-        if (Object == null || !Object.IsValid || !Object.HasInputAuthority || !NetworkIsInVehicle) return;
+        if (Object == null || !Object.IsValid || !Object.HasInputAuthority) return;
 
-        string seatName = CurrentSeatNumber switch
+        if (NetworkIsInVehicle)
         {
-            1 => GameLocalization.Get("vehicle.seat.driver"),
-            2 => GameLocalization.Get("vehicle.seat.front"),
-            3 => GameLocalization.Get("vehicle.seat.rear_left"),
-            4 => GameLocalization.Get("vehicle.seat.rear_right"),
-            _ => GameLocalization.Get("vehicle.seat.unknown")
-        };
-        string message = string.Format(GameLocalization.Get("vehicle.seat.status"), CurrentSeatNumber, seatName);
-        GUIStyle style = new(GUI.skin.box)
+            string seatName = CurrentSeatNumber switch
+            {
+                1 => GameLocalization.Get("vehicle.seat.driver"),
+                2 => GameLocalization.Get("vehicle.seat.front"),
+                3 => GameLocalization.Get("vehicle.seat.rear_left"),
+                4 => GameLocalization.Get("vehicle.seat.rear_right"),
+                _ => GameLocalization.Get("vehicle.seat.unknown")
+            };
+            string message = string.Format(GameLocalization.Get("vehicle.seat.status"), CurrentSeatNumber, seatName);
+            GUIStyle style = new(GUI.skin.box)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
+                normal = { textColor = Color.white }
+            };
+            GUI.Box(new Rect(Screen.width * 0.5f - 360f, 58f, 720f, 38f), message, style);
+        }
+
+        if (nearbyCorpse == null || !nearbyCorpse.IsCorpseSearchAvailable || NetworkIsInVehicle ||
+            (AutoUIManager.Instance != null && AutoUIManager.Instance.isDoingAction)) return;
+        GUIStyle corpseStyle = new(GUI.skin.box)
         {
             alignment = TextAnchor.MiddleCenter,
             fontSize = 15,
             fontStyle = FontStyle.Bold,
-            normal = { textColor = Color.white }
+            normal = { textColor = new Color(1f, 0.92f, 0.55f) }
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 360f, 58f, 720f, 38f), message, style);
+        GUI.Box(new Rect(Screen.width * 0.5f - 180f, Screen.height - 115f, 360f, 36f),
+            "NHẤN [E] ĐỂ LỤC SOÁT", corpseStyle);
     }
 
     private void CheckNearbyVehicle()
@@ -192,6 +215,27 @@ public class PlayerInteraction : NetworkBehaviour
             if (distance >= closestDistance) continue;
             closestDistance = distance;
             nearbyVehicle = vehicle;
+        }
+    }
+
+    private void CheckNearbyCorpse()
+    {
+        nearbyCorpse = null;
+        float closestDistance = float.MaxValue;
+
+        ConsiderCorpseCandidates(FindObjectsByType<ZombieCorpseLoot>(FindObjectsSortMode.None), ref closestDistance);
+    }
+
+    private void ConsiderCorpseCandidates<T>(T[] candidates, ref float closestDistance) where T : Component, IZombieCorpseSearchTarget
+    {
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            T candidate = candidates[i];
+            if (candidate == null || !candidate.IsCorpseSearchAvailable) continue;
+            float distance = Vector2.Distance(transform.position, candidate.transform.position);
+            if (distance > candidate.CorpseSearchRange || distance >= closestDistance) continue;
+            closestDistance = distance;
+            nearbyCorpse = candidate;
         }
     }
 

@@ -151,6 +151,9 @@ public class PlayerCombat : NetworkBehaviour
             bool tutorialFireLocked = TutorialSession.IsActive && TutorialInputGate.FireLocked;
             if (input.isShooting && !tutorialFireLocked && nextFireTimer.ExpiredOrNotRunning(Runner) && !isMeleeAttacking)
             {
+                if (HasInputAuthority)
+                    AutoUIManager.Instance?.CancelTimedGameplayAction();
+
                 if (currentAmmo > 0 || isWeaponMasterActive)
                 {
                     nextFireTimer = TickTimer.CreateFromSeconds(Runner, currentFireRate);
@@ -258,6 +261,9 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Shoot(Vector2 mouseWorldPos)
     {
+        if (HasInputAuthority)
+            AutoUIManager.Instance?.CancelTimedGameplayAction();
+
         ItemData equipped = GetEquippedWeapon();
 
         if (HasStateAuthority)
@@ -366,6 +372,12 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Bash()
     {
+        // A real, accepted melee attack interrupts corpse searching on the
+        // attacking player's client. The corpse remains unsearched and can be
+        // searched again from the beginning afterwards.
+        if (HasInputAuthority)
+            AutoUIManager.Instance?.CancelTimedGameplayAction();
+
         int randomAttack = Random.Range(2, 5);
         RPC_PlayBashAnimation(randomAttack);
 
@@ -463,6 +475,9 @@ public class PlayerCombat : NetworkBehaviour
     {
         if (!gameObject.activeInHierarchy) return;
 
+        if (HasInputAuthority)
+            AutoUIManager.Instance?.CancelTimedGameplayAction();
+
         // 🔥 PHÁT ÂM THANH BẮN SÚNG AK47
         PlayAK47ShootSFX();
 
@@ -521,6 +536,8 @@ public class PlayerCombat : NetworkBehaviour
         string currentWeaponId = equipped != null ? equipped.name : string.Empty;
         if (currentWeaponId == lastLocalRequestedWeaponName) return;
         lastLocalRequestedWeaponName = currentWeaponId;
+
+        AutoUIManager.Instance?.CancelTimedGameplayAction();
 
         if (HasStateAuthority) ApplyAuthoritativeWeaponSwitch(currentWeaponId);
         else RPC_RequestEquipWeapon(currentWeaponId);
@@ -678,6 +695,8 @@ public class PlayerCombat : NetworkBehaviour
     public void RPC_PlayDryFireSFX()
     {
         if (!gameObject.activeInHierarchy) return;
+        if (HasInputAuthority)
+            AutoUIManager.Instance?.CancelTimedGameplayAction();
         AutoAssignAK47AudioClips();
         ItemData equipped = GetEquippedWeapon();
         AudioClip dryClip = (equipped != null && equipped.customDryFireSFX != null) ? equipped.customDryFireSFX : null;

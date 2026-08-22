@@ -87,6 +87,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
     private Animator animator;
     private SpriteRenderer spriteRenderer;
     private Seeker seeker;
+    private ZombieCorpseLoot corpseLoot;
     private Color originalColor;
 
     private BrainState state;
@@ -154,6 +155,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         animator = GetComponent<Animator>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         seeker = GetComponent<Seeker>();
+        corpseLoot = GetComponent<ZombieCorpseLoot>();
         if (spriteRenderer != null) originalColor = spriteRenderer.color;
 
         zombieFilter = new ContactFilter2D { useLayerMask = true, useTriggers = false };
@@ -803,6 +805,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         InvalidatePath();
         StopMovement();
         bodyCollider.enabled = false;
+        corpseLoot?.MarkAsCorpse();
 
         if (shooter != PlayerRef.None)
         {
@@ -814,13 +817,12 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
                 break;
             }
         }
-        StartCoroutine(VanishRoutine());
+        // Keep the body in the level so it can be searched once.
     }
 
     private IEnumerator VanishRoutine()
     {
-        yield return new WaitForSeconds(5f);
-        if (HasStateAuthority && Object != null && Object.IsValid) Runner.Despawn(Object);
+        yield break;
     }
 
     // Called by the copied attack clips at their original impact frame.

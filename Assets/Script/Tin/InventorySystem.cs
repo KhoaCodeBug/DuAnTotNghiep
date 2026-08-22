@@ -170,6 +170,36 @@ public class InventorySystem : NetworkBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Checks capacity without mutating any slot.  Authoritative interaction
+    /// systems use this before consuming a one-time world reward.
+    /// </summary>
+    public bool CanAddItem(ItemData itemToAdd, int amount)
+    {
+        if (itemToAdd == null || amount <= 0) return false;
+
+        int remaining = amount;
+        int stackLimit = Mathf.Max(1, itemToAdd.maxStack);
+        for (int i = 0; i < slots.Count; i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot == null || slot.item == null || slot.amount <= 0) continue;
+            if (slot.item.itemName != itemToAdd.itemName) continue;
+            remaining -= Mathf.Max(0, stackLimit - slot.amount);
+            if (remaining <= 0) return true;
+        }
+
+        for (int i = 0; i < maxSlots && i < slots.Count; i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot != null && slot.item != null && slot.amount > 0) continue;
+            remaining -= stackLimit;
+            if (remaining <= 0) return true;
+        }
+
+        return false;
+    }
+
     private void ApplyReplicatedStartingWeapon()
     {
         if (TutorialSession.IsActive) return;

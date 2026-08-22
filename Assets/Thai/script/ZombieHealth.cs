@@ -23,6 +23,7 @@ public class ZombieHealth : NetworkBehaviour
     private SpriteRenderer spriteRend;
     private Color originalColor;
     private ZombieAI aiScript;
+    private ZombieCorpseLoot corpseLoot;
 
     public override void Spawned()
     {
@@ -32,6 +33,7 @@ public class ZombieHealth : NetworkBehaviour
         anim = GetComponent<Animator>();
         coll = GetComponent<Collider2D>();
         aiScript = GetComponent<ZombieAI>();
+        corpseLoot = GetComponent<ZombieCorpseLoot>();
 
         spriteRend = GetComponentInChildren<SpriteRenderer>(); //hieu ung trung dan
         if (spriteRend != null) originalColor = spriteRend.color;
@@ -101,6 +103,7 @@ public class ZombieHealth : NetworkBehaviour
         isDead = true;
 
         if (coll != null) coll.enabled = false;
+        corpseLoot?.MarkAsCorpse();
        
 
         // Xử lý cộng điểm hạ gục (Kill) cho Player
@@ -138,7 +141,8 @@ public class ZombieHealth : NetworkBehaviour
 
     private IEnumerator VanishRoutine()
     {
-        yield return new WaitForSeconds(5f);
-        if (HasStateAuthority) Runner.Despawn(Object);
+        // Corpse persistence is intentional: it remains in the world and can
+        // be searched exactly once.  Cleanup is handled by the scene/session.
+        yield break;
     }
 }
