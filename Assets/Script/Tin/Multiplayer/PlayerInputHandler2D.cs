@@ -294,6 +294,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         // 🔥 CHẶN TẤT CẢ INPUT NẾU ĐANG MỞ UI HOẶC ĐÃ CHẾT
         // Khi trả về 1 input rỗng, nhân vật sẽ đứng im, không bấm chuột phải bắn súng được luôn!
         if (isTyping || isUIMenuOpen || isQuestOverlayOpen || isHealthOpen || isDead || isSleepLocked ||
+            VehicleRepairSkillCheckUI.BlocksGameplayInput ||
             MainQuestSearchCabinet.IsLocalSearchInProgress)
         {
             input.Set(new PlayerNetworkInput());
