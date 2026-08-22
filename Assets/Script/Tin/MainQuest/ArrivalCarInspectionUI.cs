@@ -25,6 +25,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private GameObject overlayRoot;
     private TMP_FontAsset font;
     private BrokenArrivalCar owner;
+    private RoadsideVehicleRepairStation policeOwner;
+    private bool policeMode;
     private bool built;
     private bool open;
     private bool waitForInteractionKeyRelease;
@@ -39,6 +41,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private TextMeshProUGUI selectedPartDescription;
     private TextMeshProUGUI selectedPartRecommendation;
     private TextMeshProUGUI overallConditionText;
+    private TextMeshProUGUI headerEyebrowText;
+    private TextMeshProUGUI vehicleNameText;
     private Image selectedPartActionBackground;
     private TextMeshProUGUI selectedPartActionText;
     private Button selectedPartActionButton;
@@ -83,8 +87,13 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (!open) return;
 
         MainQuestManager manager = MainQuestManager.Instance;
-        int repairMask = manager != null && manager.IsNetworkReady ? manager.ArrivalCarRepairMask : 0;
-        bool vehicleStarted = manager != null && manager.IsNetworkReady && manager.IsArrivalCarRepaired;
+        MilitaryBaseQuestManager policeManager = MilitaryBaseQuestManager.Instance;
+        int repairMask = policeMode
+            ? policeManager != null && policeManager.IsNetworkReady ? policeManager.PoliceCarRepairMask : 0
+            : manager != null && manager.IsNetworkReady ? manager.ArrivalCarRepairMask : 0;
+        bool vehicleStarted = policeMode
+            ? policeManager != null && policeManager.ArePoliceCarRepairsComplete
+            : manager != null && manager.IsNetworkReady && manager.IsArrivalCarRepaired;
         if (repairMask != lastDisplayedRepairMask || vehicleStarted != lastDisplayedVehicleStarted)
         {
             lastDisplayedRepairMask = repairMask;
@@ -128,10 +137,24 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
     public void Open(BrokenArrivalCar target)
     {
+        policeMode = false;
+        owner = target;
+        policeOwner = null;
+        OpenShared();
+    }
+
+    public void Open(RoadsideVehicleRepairStation target)
+    {
+        policeMode = true;
+        policeOwner = target;
+        owner = null;
+        OpenShared();
+    }
+
+    private void OpenShared()
+    {
         EnsureBuilt();
         if (open || overlayRoot == null) return;
-
-        owner = target;
         open = true;
         lastDisplayedRepairMask = int.MinValue;
         lastDisplayedVehicleStarted = false;
@@ -151,6 +174,10 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         AutoUIManager.Instance?.SetQuestOverlayOpen(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        if (headerEyebrowText != null) headerEyebrowText.text = policeMode
+            ? "KIỂM TRA PHƯƠNG TIỆN  //  XE CẢNH SÁT"
+            : "KIỂM TRA PHƯƠNG TIỆN  //  XE DÂN DỤNG";
+        if (vehicleNameText != null) vehicleNameText.text = policeMode ? "XE TUẦN TRA" : "CHEVALIER NYALA";
         SelectVehiclePart(string.IsNullOrEmpty(selectedPartId) ? "engine" : selectedPartId);
     }
 
@@ -176,8 +203,14 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         Cursor.visible = previousCursorVisible;
 
         BrokenArrivalCar closedOwner = owner;
+        RoadsideVehicleRepairStation closedPoliceOwner = policeOwner;
         owner = null;
-        if (notifyOwner) closedOwner?.NotifyInspectionUIClosed();
+        policeOwner = null;
+        if (notifyOwner)
+        {
+            closedOwner?.NotifyInspectionUIClosed();
+            closedPoliceOwner?.NotifyInspectionUIClosed();
+        }
     }
 
     private void EnsureBuilt()
@@ -208,7 +241,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             new Vector2(1420f, 820f), Vector2.zero, Background);
         AddBorder(shell, new Color(0.7f, 0.72f, 0.7f, 0.9f), 2f);
         Box("Header Rule", shell, new Vector2(0.5f, 1f), new Vector2(1420f, 3f), new Vector2(0f, -96f), Border);
-        Text(shell, "Header Eyebrow", "KIỂM TRA PHƯƠNG TIỆN  //  XE DÂN DỤNG", 13f, Muted,
+        headerEyebrowText = Text(shell, "Header Eyebrow", "KIỂM TRA PHƯƠNG TIỆN  //  XE DÂN DỤNG", 13f, Muted,
             FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(700f, 22f),
             new Vector2(36f, -18f));
         Text(shell, "Header Title", "TÌNH TRẠNG XE", 28f, Color.white, FontStyles.Bold,
@@ -298,7 +331,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         RectTransform panel = Box("Vehicle Status Panel", shell, new Vector2(1f, 1f),
             new Vector2(800f, 650f), new Vector2(-34f, -112f), Panel);
         AddBorder(panel, Border);
-        Text(panel, "Vehicle Name", "CHEVALIER NYALA", 21f, Color.white, FontStyles.Bold,
+        vehicleNameText = Text(panel, "Vehicle Name", "CHEVALIER NYALA", 21f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(360f, 32f), new Vector2(22f, -18f));
         overallConditionText = Text(panel, "Overall Condition", "TÌNH TRẠNG TỔNG THỂ: 39%", 13f, Amber, FontStyles.Bold,
             TextAlignmentOptions.Right, new Vector2(1f, 1f), new Vector2(300f, 26f), new Vector2(-22f, -23f));
@@ -368,10 +401,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         for (int i = 0; i < vehicleParts.Count; i++)
         {
             VehiclePartView current = vehicleParts[i];
-            bool currentApplied = manager != null && manager.IsNetworkReady &&
-                                  ArrivalCarRepairRules.TryGetAction(current.Id,
-                                      out ArrivalCarRepairAction currentAction) &&
-                                  ArrivalCarRepairRules.IsApplied(manager.ArrivalCarRepairMask, currentAction);
+            bool currentApplied = IsPartApplied(current.Id);
             int displayedCondition = currentApplied ? 100 : current.Condition;
             totalCondition += displayedCondition;
             if (current.ConditionText != null)
@@ -401,9 +431,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         }
 
         Color conditionColor = GetConditionColor(part.Condition);
-        bool actionApplied = manager != null && manager.IsNetworkReady &&
-                             ArrivalCarRepairRules.TryGetAction(part.Id, out ArrivalCarRepairAction action) &&
-                             ArrivalCarRepairRules.IsApplied(manager.ArrivalCarRepairMask, action);
+        bool actionApplied = IsPartApplied(part.Id);
         if (selectedPartTitle != null)
         {
             int displayedCondition = actionApplied ? 100 : part.Condition;
@@ -412,7 +440,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             selectedPartDescription.text = part.Description;
             selectedPartRecommendation.text = actionApplied
                 ? "TRẠNG THÁI: HẠNG MỤC ĐÃ HOÀN THÀNH VÀ ĐƯỢC SERVER XÁC NHẬN."
-                : "CHẨN ĐOÁN: " + part.Recommendation + "  •  VẬT PHẨM THEO DÕI TRONG [J]";
+                : BuildRecommendation(part);
             selectedPartActionText.text = actionApplied ? "ĐÃ HOÀN THÀNH" : part.Action.ToUpperInvariant();
             selectedPartActionBackground.color = actionApplied
                 ? new Color(0.08f, 0.28f, 0.16f, 1f)
@@ -437,6 +465,21 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             return;
         }
 
+        if (policeMode)
+        {
+            MilitaryBaseQuestManager policeManager = MilitaryBaseQuestManager.Instance;
+            if (policeManager == null || !policeManager.IsNetworkReady || policeOwner == null)
+            {
+                selectedPartRecommendation.text = "CHƯA THỂ KẾT NỐI VỚI TRẠNG THÁI XE CẢNH SÁT.";
+                return;
+            }
+            if (!PoliceCarRepairRules.TryGetAction(part.Id, out _)) return;
+            selectedPartRecommendation.text = "ĐANG XÁC NHẬN VẬT PHẨM VỚI SERVER...";
+            VehicleRepairSkillCheckUI.PrepareFromInspection(policeManager, policeOwner);
+            policeManager.RequestStartPoliceCarRepair(part.Id);
+            return;
+        }
+
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady)
         {
@@ -450,6 +493,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
     private void InvokeStartEngine()
     {
+        if (policeMode) return;
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady)
         {
@@ -474,6 +518,21 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private void RefreshStartEngineButton(MainQuestManager manager)
     {
         if (startEngineButton == null || startEngineText == null || startEngineBackground == null) return;
+        if (policeMode)
+        {
+            MilitaryBaseQuestManager policeManager = MilitaryBaseQuestManager.Instance;
+            int repaired = policeManager != null && policeManager.IsNetworkReady
+                ? PoliceCarRepairRules.CountApplied(policeManager.PoliceCarRepairMask)
+                : 0;
+            bool complete = repaired >= PoliceCarRepairRules.RequiredActionCount;
+            startEngineButton.interactable = false;
+            startEngineText.text = complete ? "SỬA XE HOÀN TẤT" : $"ĐÃ SỬA {repaired}/5";
+            startEngineText.color = complete ? Color.white : Muted;
+            startEngineBackground.color = complete
+                ? new Color(0.07f, 0.32f, 0.15f, 1f)
+                : new Color(0.12f, 0.13f, 0.125f, 1f);
+            return;
+        }
         bool networkReady = manager != null && manager.IsNetworkReady;
         bool started = networkReady && manager.IsArrivalCarRepaired;
         bool ready = networkReady && manager.AreArrivalCarRequiredRepairsComplete;
@@ -501,6 +560,54 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (selectedPartRecommendation != null)
             selectedPartRecommendation.text = (success ? "KHỞI ĐỘNG THÀNH CÔNG: " : "KHÔNG THỂ KHỞI ĐỘNG: ") +
                                               message;
+    }
+
+    public void CloseForPoliceMinigame()
+    {
+        Close(false);
+    }
+
+    public void NotifyPoliceRepairRequestFailed(string message)
+    {
+        if (!open && policeOwner != null) Open(policeOwner);
+        if (selectedPartRecommendation != null)
+            selectedPartRecommendation.text = "KHÔNG THỂ THỰC HIỆN: " + message;
+    }
+
+    public void ReopenPoliceInspection(RoadsideVehicleRepairStation target, string message)
+    {
+        if (!open) Open(target);
+        SelectVehiclePart(string.IsNullOrEmpty(selectedPartId) ? "engine" : selectedPartId);
+        if (selectedPartRecommendation != null && !string.IsNullOrEmpty(message))
+            selectedPartRecommendation.text = message;
+    }
+
+    private bool IsPartApplied(string partId)
+    {
+        if (policeMode)
+        {
+            MilitaryBaseQuestManager manager = MilitaryBaseQuestManager.Instance;
+            return manager != null && manager.IsNetworkReady &&
+                   PoliceCarRepairRules.TryGetAction(partId, out PoliceCarRepairAction action) &&
+                   PoliceCarRepairRules.IsApplied(manager.PoliceCarRepairMask, action);
+        }
+
+        MainQuestManager arrivalManager = MainQuestManager.Instance;
+        return arrivalManager != null && arrivalManager.IsNetworkReady &&
+               ArrivalCarRepairRules.TryGetAction(partId, out ArrivalCarRepairAction arrivalAction) &&
+               ArrivalCarRepairRules.IsApplied(arrivalManager.ArrivalCarRepairMask, arrivalAction);
+    }
+
+    private string BuildRecommendation(VehiclePartView part)
+    {
+        if (!policeMode || !PoliceCarRepairRules.TryGetAction(part.Id, out PoliceCarRepairAction action))
+            return "CHẨN ĐOÁN: " + part.Recommendation + "  •  VẬT PHẨM THEO DÕI TRONG [J]";
+
+        MilitaryBaseQuestManager manager = MilitaryBaseQuestManager.Instance;
+        float progress = manager != null && manager.IsNetworkReady ? manager.GetPoliceRepairProgress(action) : 0f;
+        ArrivalCarItemKind item = PoliceCarRepairRules.GetRequiredItem(action);
+        return $"CHẨN ĐOÁN: {part.Recommendation}  •  TIẾN ĐỘ: {progress:0.0}%  •  CẦN: " +
+               PoliceCarItemCatalog.GetDisplayName(item).ToUpperInvariant();
     }
 
     private void EnsureVehiclePartDefinitions()

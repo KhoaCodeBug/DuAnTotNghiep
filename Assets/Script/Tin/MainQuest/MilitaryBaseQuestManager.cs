@@ -51,6 +51,21 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [SerializeField, Min(1f)] private float baseGateHealth = MilitaryQuestRules.BaseGateHealth;
     [SerializeField, Min(1f)] private float repairDurationSeconds = 12f;
 
+    [Header("Roadside repair gameplay test")]
+    [SerializeField] private bool enableRoadsideRepairTest = true;
+    [SerializeField, Min(1f)] private float skillRepairDurationSeconds = 45f;
+    [SerializeField, Min(0.1f)] private float skillCheckIntervalMinSeconds = 4f;
+    [SerializeField, Min(0.1f)] private float skillCheckIntervalMaxSeconds = 7f;
+    [SerializeField, Min(0.25f)] private float skillCheckRotationSeconds = 1.25f;
+    [SerializeField, Range(1f, 180f)] private float skillCheckSuccessArcDegrees = 25f;
+    [SerializeField, Range(1f, 90f)] private float skillCheckPerfectArcDegrees = 8f;
+    [SerializeField, Range(0f, 0.8f)] private float skillCheckMinimumTravelFraction = 0.30f;
+    [SerializeField, Min(0f)] private float skillCheckSuccessBonus = 3.5f;
+    [SerializeField, Min(0f)] private float skillCheckPerfectBonus = 7f;
+    [SerializeField, Min(0f)] private float skillCheckMissPenalty = 2f;
+    [SerializeField, Min(0f)] private float skillCheckMissPauseSeconds = 1f;
+    [SerializeField] private bool emitRepairFailureNoise;
+
     [Networked] public int MilitaryPhase { get; private set; }
     [Networked] public float GateCurrentHealth { get; private set; }
     [Networked] public float GateMaxHealth { get; private set; }
@@ -66,12 +81,30 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Networked] public NetworkBool IsRepairKitCacheClaimed { get; private set; }
     [Networked] public PlayerRef ActiveRepairer { get; private set; }
     [Networked] public float SurvivalSeconds { get; private set; }
+    [Networked] public float RepairSkillCheckProgress { get; private set; }
+    [Networked] public NetworkBool RepairSkillCheckSessionActive { get; private set; }
+    [Networked] public NetworkBool RepairSkillCheckEventActive { get; private set; }
+    [Networked] public float RepairSkillCheckElapsed { get; private set; }
+    [Networked] public float RepairSkillCheckTargetAngle { get; private set; }
+    [Networked] public float RepairPenaltyRemaining { get; private set; }
+    [Networked] public float NextRepairSkillCheckSeconds { get; private set; }
+    [Networked] public int RepairSkillCheckSequence { get; private set; }
+    [Networked] public int PoliceCarRepairMask { get; private set; }
+    [Networked] public int ActivePoliceRepairAction { get; private set; }
+    [Networked] public float PoliceEngineRepairProgress { get; private set; }
+    [Networked] public float PoliceHoodRepairProgress { get; private set; }
+    [Networked] public float PoliceFuelRepairProgress { get; private set; }
+    [Networked] public float PoliceBatteryRepairProgress { get; private set; }
+    [Networked] public float PoliceTireRepairProgress { get; private set; }
 
     private bool hasSpawned;
     private GameObject presentationRoot;
     private SiegeHordeDirector hordeDirector;
     private MilitaryGateController gateController;
     private MilitaryEscapeVehicleRepair vehicleRepair;
+    private RoadsideVehicleRepairStation roadsideRepairStation;
+    private VehicleControllerFusion roadsideRepairVehicle;
+    private bool roadsideVehicleRelocated;
 
     public bool IsNetworkReady => hasSpawned && Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
     public Phase CurrentPhase => IsNetworkReady ? (Phase)MilitaryPhase : Phase.NotReached;
@@ -80,6 +113,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     public bool IsGateBroken => IsNetworkReady && GateCurrentHealth <= 0f;
     public float InteractionDistance => interactionDistance;
     public Vector2 EscapeExitPosition => GetInteractionPosition(InteractionKind.ExitPoint);
+    public bool IsLocalPlayerRepairer => IsNetworkReady && RepairSkillCheckSessionActive &&
+        ActiveRepairer != PlayerRef.None && Runner.LocalPlayer == ActiveRepairer;
+    public float RepairSkillCheckRotationSeconds => skillCheckRotationSeconds;
+    public float RepairSkillCheckSuccessArcDegrees => skillCheckSuccessArcDegrees;
+    public float RepairSkillCheckPerfectArcDegrees => skillCheckPerfectArcDegrees;
+    public bool ArePoliceCarRepairsComplete => IsNetworkReady && PoliceCarRepairRules.IsComplete(PoliceCarRepairMask);
 
     private void Awake()
     {
@@ -91,6 +130,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
         if (Instance == this) Instance = null;
         if (presentationRoot != null) Destroy(presentationRoot);
+        if (roadsideRepairStation != null) Destroy(roadsideRepairStation);
     }
 
     public override void Spawned()
@@ -98,6 +138,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         hasSpawned = true;
         ResolveAnchor();
         BuildPresentation();
+        EnsureRoadsideRepairTest();
 
         if (!HasStateAuthority) return;
         MilitaryPhase = (int)Phase.NotReached;
@@ -115,6 +156,21 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         IsRepairKitCacheClaimed = false;
         ActiveRepairer = PlayerRef.None;
         SurvivalSeconds = 0f;
+        RepairSkillCheckProgress = 0f;
+        RepairSkillCheckSessionActive = false;
+        RepairSkillCheckEventActive = false;
+        RepairSkillCheckElapsed = 0f;
+        RepairSkillCheckTargetAngle = 0f;
+        RepairPenaltyRemaining = 0f;
+        NextRepairSkillCheckSeconds = 0f;
+        RepairSkillCheckSequence = 0;
+        PoliceCarRepairMask = 0;
+        ActivePoliceRepairAction = -1;
+        PoliceEngineRepairProgress = 0f;
+        PoliceHoodRepairProgress = 0f;
+        PoliceFuelRepairProgress = 0f;
+        PoliceBatteryRepairProgress = 0f;
+        PoliceTireRepairProgress = 0f;
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -127,6 +183,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
+        TickRepairSkillCheck();
         if (CurrentPhase != Phase.Escaped && CurrentPhase != Phase.Failed)
             SurvivalSeconds += Runner.DeltaTime;
 
@@ -143,13 +200,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if ((CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape) && !AnyLivingPlayer())
         {
             MilitaryPhase = (int)Phase.Failed;
-            ActiveRepairer = PlayerRef.None;
+            if (RepairSkillCheckSessionActive) AuthorityInterruptRepair(ActiveRepairer,
+                "Việc sửa xe đã dừng.");
+            else ActiveRepairer = PlayerRef.None;
             RPC_ShowQuestMessage("NHIỆM VỤ THẤT BẠI: Không còn người sống sót tại căn cứ.");
         }
     }
 
     public override void Render()
     {
+        EnsureRoadsideRepairTest();
         gateController?.RefreshPresentation();
         vehicleRepair?.RefreshPresentation();
     }
@@ -222,6 +282,44 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         else RPC_RequestProgressRepair(deltaSeconds);
     }
 
+    private void Update()
+    {
+#if UNITY_EDITOR
+        if (Input.GetKeyDown(KeyCode.F9)) EditorGrantMissingPoliceCarRepairItems();
+#endif
+    }
+
+    public void RequestStartPoliceCarRepair(string partId)
+    {
+        if (!IsNetworkReady || !PoliceCarRepairRules.TryGetAction(partId, out PoliceCarRepairAction action)) return;
+        if (HasStateAuthority) ServerStartRepairSkillCheck(Runner.LocalPlayer, action);
+        else RPC_RequestStartPoliceCarRepair((int)action);
+    }
+
+    public float GetPoliceRepairProgress(PoliceCarRepairAction action) => action switch
+    {
+        PoliceCarRepairAction.RepairEngine => PoliceEngineRepairProgress,
+        PoliceCarRepairAction.RepairHood => PoliceHoodRepairProgress,
+        PoliceCarRepairAction.AddFuel => PoliceFuelRepairProgress,
+        PoliceCarRepairAction.ReplaceBattery => PoliceBatteryRepairProgress,
+        PoliceCarRepairAction.ReplaceTire => PoliceTireRepairProgress,
+        _ => 0f
+    };
+
+    public void RequestCancelRepairSkillCheck()
+    {
+        if (!IsNetworkReady) return;
+        if (HasStateAuthority) ServerCancelRepairSkillCheck(Runner.LocalPlayer);
+        else RPC_RequestCancelRepairSkillCheck();
+    }
+
+    public void RequestResolveRepairSkillCheck(int sequence, float needleAngle)
+    {
+        if (!IsNetworkReady) return;
+        if (HasStateAuthority) ServerResolveRepairSkillCheck(Runner.LocalPlayer, sequence, needleAngle);
+        else RPC_RequestResolveRepairSkillCheck(sequence, needleAngle);
+    }
+
     public void RequestEscape()
     {
         if (!IsNetworkReady) return;
@@ -258,6 +356,22 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_RequestProgressRepair(float deltaSeconds, RpcInfo info = default) =>
         ServerProgressRepair(info.Source, deltaSeconds);
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestStartPoliceCarRepair(int action, RpcInfo info = default)
+    {
+        if (action < (int)PoliceCarRepairAction.RepairEngine || action > (int)PoliceCarRepairAction.ReplaceTire)
+            return;
+        ServerStartRepairSkillCheck(info.Source, (PoliceCarRepairAction)action);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestCancelRepairSkillCheck(RpcInfo info = default) =>
+        ServerCancelRepairSkillCheck(info.Source);
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestResolveRepairSkillCheck(int sequence, float needleAngle, RpcInfo info = default) =>
+        ServerResolveRepairSkillCheck(info.Source, sequence, needleAngle);
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_RequestEscape(RpcInfo info = default) => ServerEscape(info.Source);
@@ -384,6 +498,219 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         RPC_BroadcastVehicleReady();
     }
 
+    private void ServerStartRepairSkillCheck(PlayerRef requester, PoliceCarRepairAction action)
+    {
+        if (!HasStateAuthority || !enableRoadsideRepairTest || requester == PlayerRef.None) return;
+        EnsureRoadsideRepairTest();
+        if (roadsideRepairStation == null ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            !roadsideRepairStation.IsPlayerInRepairPosition(player.transform.position))
+        {
+            RPC_RepairSessionResponse(requester, false, "Hãy đứng trước mũi xe để sửa chữa.");
+            return;
+        }
+
+        PlayerHealth health = player.GetComponent<PlayerHealth>();
+        if (health != null && (health.isDead || health.isTransforming))
+        {
+            RPC_RepairSessionResponse(requester, false, "Không thể sửa xe trong trạng thái hiện tại.");
+            return;
+        }
+
+        if (PoliceCarRepairRules.IsApplied(PoliceCarRepairMask, action))
+        {
+            RPC_RepairSessionResponse(requester, false, "Hạng mục này đã được sửa hoàn tất.");
+            return;
+        }
+
+        if (RepairSkillCheckSessionActive && ActiveRepairer != PlayerRef.None && ActiveRepairer != requester)
+        {
+            RPC_RepairSessionResponse(requester, false,
+                "XE ĐANG ĐƯỢC SỬA BỞI: " + GetPlayerDisplayName(ActiveRepairer));
+            return;
+        }
+
+        if (RepairSkillCheckSessionActive && ActiveRepairer == requester &&
+            ActivePoliceRepairAction != (int)action)
+        {
+            RPC_RepairSessionResponse(requester, false, "Bạn đang sửa một hạng mục khác.");
+            return;
+        }
+
+        InventorySystem inventory = player.GetComponent<InventorySystem>();
+        ArrivalCarItemKind requiredKind = PoliceCarRepairRules.GetRequiredItem(action);
+        if (FindPoliceCarItem(inventory, requiredKind) == null)
+        {
+            RPC_RepairSessionResponse(requester, false,
+                "Cần vật phẩm: " + PoliceCarItemCatalog.GetDisplayName(requiredKind) + ".");
+            return;
+        }
+
+        ActiveRepairer = requester;
+        ActivePoliceRepairAction = (int)action;
+        RepairSkillCheckProgress = GetPoliceRepairProgress(action);
+        RepairSkillCheckSessionActive = true;
+        RepairSkillCheckEventActive = false;
+        RepairSkillCheckElapsed = 0f;
+        RepairPenaltyRemaining = 0f;
+        NextRepairSkillCheckSeconds = RandomSkillCheckInterval();
+        RPC_RepairSessionResponse(requester, true, string.Empty);
+    }
+
+    private void ServerCancelRepairSkillCheck(PlayerRef requester)
+    {
+        if (!HasStateAuthority || !RepairSkillCheckSessionActive || ActiveRepairer != requester) return;
+        ClearRepairSkillCheckSession();
+        RPC_RepairCancelled(requester);
+    }
+
+    private void ServerResolveRepairSkillCheck(PlayerRef requester, int sequence, float needleAngle)
+    {
+        if (!HasStateAuthority || !RepairSkillCheckSessionActive || !RepairSkillCheckEventActive ||
+            ActiveRepairer != requester || sequence != RepairSkillCheckSequence ||
+            float.IsNaN(needleAngle) || float.IsInfinity(needleAngle)) return;
+
+        VehicleRepairSkillCheckResult result = VehicleRepairSkillCheckRules.Evaluate(
+            Mathf.Repeat(needleAngle, 360f), RepairSkillCheckTargetAngle,
+            skillCheckSuccessArcDegrees, skillCheckPerfectArcDegrees);
+        AuthorityApplyRepairSkillCheckResult(result);
+    }
+
+    private void TickRepairSkillCheck()
+    {
+        if (!RepairSkillCheckSessionActive || ActiveRepairer == PlayerRef.None) return;
+        if (!TryGetRequestingPlayer(ActiveRepairer, out PlayerMovement player))
+        {
+            AuthorityInterruptRepair(ActiveRepairer, "Người sửa xe đã rời trận.");
+            return;
+        }
+
+        PlayerHealth health = player.GetComponent<PlayerHealth>();
+        if ((health != null && (health.isDead || health.isTransforming)) || roadsideRepairStation == null ||
+            !roadsideRepairStation.IsPlayerInRepairPosition(player.transform.position))
+        {
+            AuthorityInterruptRepair(ActiveRepairer, "Việc sửa xe bị gián đoạn.");
+            return;
+        }
+
+        float delta = Runner.DeltaTime;
+        if (RepairPenaltyRemaining > 0f)
+            RepairPenaltyRemaining = Mathf.Max(0f, RepairPenaltyRemaining - delta);
+        else
+            RepairSkillCheckProgress = VehicleRepairSkillCheckRules.AdvanceBaseProgress(
+                RepairSkillCheckProgress, delta, skillRepairDurationSeconds);
+        StoreActivePoliceRepairProgress();
+
+        if (RepairSkillCheckProgress >= VehicleRepairSkillCheckRules.MaxProgress)
+        {
+            PlayerRef completedBy = ActiveRepairer;
+            PoliceCarRepairAction completedAction = (PoliceCarRepairAction)ActivePoliceRepairAction;
+            RepairSkillCheckProgress = VehicleRepairSkillCheckRules.MaxProgress;
+            StoreActivePoliceRepairProgress();
+            if (!TryConsumePoliceRepairItem(player, completedAction))
+            {
+                AuthorityInterruptRepair(completedBy, "Vật phẩm sửa chữa không còn trong túi đồ.");
+                return;
+            }
+            PoliceCarRepairMask |= (int)PoliceCarRepairRules.GetStateBit(completedAction);
+            ClearRepairSkillCheckSession();
+            RPC_RepairCompleted(completedBy, (int)completedAction,
+                PoliceCarRepairRules.IsComplete(PoliceCarRepairMask));
+            return;
+        }
+
+        if (RepairSkillCheckEventActive)
+        {
+            RepairSkillCheckElapsed += delta;
+            if (RepairSkillCheckElapsed >= skillCheckRotationSeconds)
+                AuthorityApplyRepairSkillCheckResult(VehicleRepairSkillCheckResult.Miss);
+            return;
+        }
+
+        NextRepairSkillCheckSeconds -= delta;
+        if (NextRepairSkillCheckSeconds > 0f) return;
+
+        RepairSkillCheckSequence++;
+        float minimumTargetAngle = VehicleRepairSkillCheckRules.GetMinimumTargetCenterAngle(
+            skillCheckMinimumTravelFraction, skillCheckSuccessArcDegrees);
+        float maximumTargetAngle = 360f - skillCheckSuccessArcDegrees * 0.5f;
+        RepairSkillCheckTargetAngle = Random.Range(minimumTargetAngle, Mathf.Max(minimumTargetAngle, maximumTargetAngle));
+        RepairSkillCheckElapsed = 0f;
+        RepairSkillCheckEventActive = true;
+    }
+
+    private void AuthorityApplyRepairSkillCheckResult(VehicleRepairSkillCheckResult result)
+    {
+        if (!HasStateAuthority || !RepairSkillCheckSessionActive) return;
+        PlayerRef repairer = ActiveRepairer;
+        RepairSkillCheckProgress = VehicleRepairSkillCheckRules.ApplyResult(RepairSkillCheckProgress, result,
+            skillCheckSuccessBonus, skillCheckPerfectBonus, skillCheckMissPenalty);
+        StoreActivePoliceRepairProgress();
+        RepairSkillCheckEventActive = false;
+        RepairSkillCheckElapsed = 0f;
+        NextRepairSkillCheckSeconds = RandomSkillCheckInterval();
+        RepairPenaltyRemaining = result == VehicleRepairSkillCheckResult.Miss
+            ? skillCheckMissPauseSeconds
+            : 0f;
+
+        // Failure noise is intentionally disabled for the roadside gameplay test.
+        // The serialized switch is retained so military-base integration can enable it later.
+        if (emitRepairFailureNoise && result == VehicleRepairSkillCheckResult.Miss)
+            Debug.Log("[VehicleRepair] Failure-noise hook is armed but suppressed during roadside testing.");
+
+        RPC_RepairSkillCheckOutcome(repairer, (int)result);
+    }
+
+    private void AuthorityInterruptRepair(PlayerRef player, string message)
+    {
+        if (!HasStateAuthority || player == PlayerRef.None || ActiveRepairer != player) return;
+        ClearRepairSkillCheckSession();
+        RPC_InterruptRepair(player);
+        RPC_RepairInterrupted(player, message);
+    }
+
+    private void ClearRepairSkillCheckSession()
+    {
+        StoreActivePoliceRepairProgress();
+        RepairSkillCheckSessionActive = false;
+        RepairSkillCheckEventActive = false;
+        RepairSkillCheckElapsed = 0f;
+        RepairPenaltyRemaining = 0f;
+        NextRepairSkillCheckSeconds = 0f;
+        ActiveRepairer = PlayerRef.None;
+        ActivePoliceRepairAction = -1;
+    }
+
+    private void StoreActivePoliceRepairProgress()
+    {
+        if (ActivePoliceRepairAction < (int)PoliceCarRepairAction.RepairEngine ||
+            ActivePoliceRepairAction > (int)PoliceCarRepairAction.ReplaceTire) return;
+        float progress = Mathf.Clamp(RepairSkillCheckProgress, 0f, VehicleRepairSkillCheckRules.MaxProgress);
+        switch ((PoliceCarRepairAction)ActivePoliceRepairAction)
+        {
+            case PoliceCarRepairAction.RepairEngine: PoliceEngineRepairProgress = progress; break;
+            case PoliceCarRepairAction.RepairHood: PoliceHoodRepairProgress = progress; break;
+            case PoliceCarRepairAction.AddFuel: PoliceFuelRepairProgress = progress; break;
+            case PoliceCarRepairAction.ReplaceBattery: PoliceBatteryRepairProgress = progress; break;
+            case PoliceCarRepairAction.ReplaceTire: PoliceTireRepairProgress = progress; break;
+        }
+    }
+
+    private static bool TryConsumePoliceRepairItem(PlayerMovement player, PoliceCarRepairAction action)
+    {
+        InventorySystem inventory = player != null ? player.GetComponent<InventorySystem>() : null;
+        ArrivalCarItemKind kind = PoliceCarRepairRules.GetRequiredItem(action);
+        ItemData item = FindPoliceCarItem(inventory, kind);
+        return item != null && inventory.ConsumeItem(item, 1) == 1;
+    }
+
+    private float RandomSkillCheckInterval()
+    {
+        float min = Mathf.Max(0.1f, skillCheckIntervalMinSeconds);
+        float max = Mathf.Max(min, skillCheckIntervalMaxSeconds);
+        return Random.Range(min, max);
+    }
+
     private void ServerEscape(PlayerRef requester)
     {
         if (!HasStateAuthority || CurrentPhase != Phase.ReadyToEscape) return;
@@ -407,7 +734,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     public void NotifyPlayerDamaged(PlayerRef player, bool zombieAttack)
     {
-        if (!HasStateAuthority || !zombieAttack || player == PlayerRef.None || ActiveRepairer != player) return;
+        if (!HasStateAuthority || player == PlayerRef.None || ActiveRepairer != player) return;
+        if (RepairSkillCheckSessionActive)
+        {
+            AuthorityInterruptRepair(player, "Việc sửa xe bị gián đoạn vì bạn vừa nhận sát thương.");
+            return;
+        }
+
+        if (!zombieAttack) return;
         ActiveRepairer = PlayerRef.None;
         RPC_InterruptRepair(player);
     }
@@ -454,6 +788,46 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_RepairSessionResponse(PlayerRef target, NetworkBool accepted, string message)
+    {
+        if (Runner == null || Runner.LocalPlayer != target) return;
+        VehicleRepairSkillCheckUI.NotifyStartResponse(accepted, message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_RepairSkillCheckOutcome(PlayerRef target, int result)
+    {
+        if (Runner == null || Runner.LocalPlayer != target) return;
+        if (result < (int)VehicleRepairSkillCheckResult.Miss ||
+            result > (int)VehicleRepairSkillCheckResult.Perfect) return;
+        VehicleRepairSkillCheckUI.NotifyOutcome((VehicleRepairSkillCheckResult)result);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_RepairCancelled(PlayerRef target)
+    {
+        if (Runner == null || Runner.LocalPlayer != target) return;
+        VehicleRepairSkillCheckUI.NotifyCancelled();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_RepairInterrupted(PlayerRef target, string message)
+    {
+        if (Runner == null || Runner.LocalPlayer != target) return;
+        VehicleRepairSkillCheckUI.NotifyInterrupted(message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_RepairCompleted(PlayerRef target, int action, NetworkBool allComplete)
+    {
+        if (Runner != null && Runner.LocalPlayer == target)
+            VehicleRepairSkillCheckUI.NotifyCompleted((PoliceCarRepairAction)action, allComplete);
+        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", allComplete
+            ? "Xe cảnh sát đã hoàn tất đủ 5 hạng mục sửa chữa."
+            : "Đã hoàn tất một hạng mục sửa xe cảnh sát.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowQuestMessage(string message) =>
         AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", message);
 
@@ -482,6 +856,77 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         CreatePoint(InteractionKind.ExitPoint, "EXIT", new Color(0.2f, 0.95f, 0.45f));
         CreatePoint(InteractionKind.OfficeSafe, "KÉT SẮT VĂN PHÒNG", new Color(0.72f, 0.32f, 0.85f));
     }
+
+    private void EnsureRoadsideRepairTest()
+    {
+        if (!enableRoadsideRepairTest) return;
+
+        if (roadsideRepairStation == null)
+        {
+            VehicleControllerFusion[] vehicles = FindObjectsByType<VehicleControllerFusion>(FindObjectsSortMode.None);
+            for (int i = 0; i < vehicles.Length; i++)
+            {
+                VehicleControllerFusion candidate = vehicles[i];
+                if (candidate == null || candidate.gameObject.name != "Car") continue;
+                roadsideRepairVehicle = candidate;
+                break;
+            }
+            if (roadsideRepairVehicle == null) return;
+
+            roadsideRepairStation = roadsideRepairVehicle.GetComponent<RoadsideVehicleRepairStation>();
+            if (roadsideRepairStation == null)
+                roadsideRepairStation = roadsideRepairVehicle.gameObject.AddComponent<RoadsideVehicleRepairStation>();
+            roadsideRepairStation.Configure(this, roadsideRepairVehicle);
+        }
+
+        if (!HasStateAuthority || roadsideVehicleRelocated) return;
+        GameObject arrivalMarker = GameObject.Find("ViTriXeTest");
+        if (arrivalMarker == null) return;
+        roadsideRepairVehicle.AuthorityPrepareRepairTest(
+            arrivalMarker.transform.position);
+        roadsideVehicleRelocated = true;
+    }
+
+#if UNITY_EDITOR
+    private void EditorGrantMissingPoliceCarRepairItems()
+    {
+        if (!IsNetworkReady || !HasStateAuthority)
+        {
+            Debug.LogWarning("[EDITOR TEST] F9 chỉ cấp vật phẩm xe cảnh sát khi đang Play ở Solo/Host.");
+            return;
+        }
+
+        PlayerMovement player = PlayerMovement.LocalPlayerInstance;
+        InventorySystem inventory = player != null ? player.GetComponent<InventorySystem>() : null;
+        if (inventory == null)
+        {
+            Debug.LogWarning("[EDITOR TEST] Chưa tìm thấy túi đồ của Player local.");
+            return;
+        }
+
+        ArrivalCarItemKind[] requiredItems =
+        {
+            ArrivalCarItemKind.Toolbox, ArrivalCarItemKind.Hammer, ArrivalCarItemKind.FuelCan,
+            ArrivalCarItemKind.Battery, ArrivalCarItemKind.Tire
+        };
+        int addedCount = 0;
+        List<string> failedItems = new List<string>();
+        for (int i = 0; i < requiredItems.Length; i++)
+        {
+            ArrivalCarItemKind kind = requiredItems[i];
+            if (FindPoliceCarItem(inventory, kind) != null) continue;
+            ItemData item = PoliceCarItemCatalog.GetOrCreate(kind);
+            if (item != null && inventory.AddItem(item, 1)) addedCount++;
+            else failedItems.Add(PoliceCarItemCatalog.GetDisplayName(kind));
+        }
+
+        string message = failedItems.Count == 0
+            ? $"F9 đã cấp {addedCount} món còn thiếu. Túi đồ hiện đủ 5/5 vật phẩm sửa xe cảnh sát."
+            : $"F9 không thể cấp: {string.Join(", ", failedItems)}. Hãy dọn ô trống rồi thử lại.";
+        Debug.Log("[EDITOR TEST] " + message);
+        AutoChatManager.Instance?.AddMessage("EDITOR TEST", message);
+    }
+#endif
 
     private void CreatePoint(InteractionKind kind, string label, Color color)
     {
@@ -595,10 +1040,31 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         return false;
     }
 
+    private static string GetPlayerDisplayName(PlayerRef playerRef)
+    {
+        if (!TryGetRequestingPlayer(playerRef, out PlayerMovement player)) return "NGƯỜI CHƠI KHÁC";
+        PlayerNameTag nameTag = player.GetComponent<PlayerNameTag>();
+        string displayName = nameTag != null ? nameTag.PlayerName.ToString() : string.Empty;
+        return string.IsNullOrWhiteSpace(displayName) ? "NGƯỜI CHƠI KHÁC" : displayName.ToUpperInvariant();
+    }
+
     private static void GrantItem(InventorySystem inventory, string id, int amount)
     {
         ItemData item = ItemDataLoader.LoadItem(id);
         if (item != null) inventory.AddItem(item, amount);
+    }
+
+    private static ItemData FindPoliceCarItem(InventorySystem inventory, ArrivalCarItemKind kind)
+    {
+        if (inventory == null) return null;
+        for (int i = 0; i < inventory.slots.Count; i++)
+        {
+            InventorySlot slot = inventory.slots[i];
+            if (slot != null && slot.amount > 0 &&
+                PoliceCarItemCatalog.TryGetKind(slot.item, out ArrivalCarItemKind existing) && existing == kind)
+                return slot.item;
+        }
+        return null;
     }
 
     private bool IsPartInstalled(MilitaryQuestItemKind kind) => kind switch

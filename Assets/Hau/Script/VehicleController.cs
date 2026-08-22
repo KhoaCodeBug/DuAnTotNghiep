@@ -30,6 +30,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     [SerializeField] private Transform rearRightExitPoint;
 
     [Header("Driving")]
+    [SerializeField] private bool entryLockedForRepair;
     [SerializeField, Min(0.1f)] private float maxForwardSpeed = 5.5f;
     [SerializeField, Min(0.1f)] private float maxReverseSpeed = 2.2f;
     [SerializeField, Min(0.1f)] private float acceleration = 7f;
@@ -90,6 +91,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     [Networked] private float HeadingDegrees { get; set; }
 
     private const int LegacyDirectionCount = 25;
+    private const int RepairTestDirectionIndex = 0;
     private Rigidbody2D rb;
     private int displayedDirection = -1;
     private Coroutine doorSequence;
@@ -102,6 +104,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     public Vector2 VisionDirection => DirectionIndexToWorldVector(DirectionIndex);
     public float VisionRadius => HeadlightsOn ? headlightVisionRadius : lightsOffVisionRadius;
     public float VisionAngle => HeadlightsOn ? EffectiveHeadlightAngle : 360f;
+    public bool IsEntryLockedForRepair => entryLockedForRepair;
     private float EffectiveHeadlightAngle => Mathf.Clamp(headlightVisionAngle, 20f, 60f);
 
     private void Awake()
@@ -140,7 +143,7 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     public bool AuthorityTryEnter(NetworkObject player)
     {
-        if (!HasStateAuthority || player == null) return false;
+        if (!HasStateAuthority || player == null || entryLockedForRepair) return false;
         PlayerInteraction interaction = player.GetComponent<PlayerInteraction>();
         if (interaction == null || interaction.IsInVehicle) return false;
 
@@ -148,6 +151,36 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (slot == SeatSlot.None) return false;
         AssignSeat(slot, player);
         return true;
+    }
+
+    public void SetRepairEntryLocked(bool locked)
+    {
+        entryLockedForRepair = locked;
+        if (locked && HasStateAuthority) StopVehicle();
+    }
+
+    public void AuthorityPrepareRepairTest(Vector2 position)
+    {
+        if (!HasStateAuthority) return;
+        entryLockedForRepair = true;
+        StopVehicle();
+
+        // The EditMode authoring preview uses directionSprites[0]. Keep the
+        // locked roadside test car on that exact frame so its nose and the
+        // scene-authored interaction polygon stay aligned in PlayMode.
+        DirectionIndex = ClampDirectionIndex(RepairTestDirectionIndex);
+        HeadingDegrees = DirectionIndexToHeading(DirectionIndex);
+        displayedDirection = -1;
+        ApplyDirectionalVisual();
+
+        if (rb != null)
+        {
+            rb.position = position;
+            rb.linearVelocity = Vector2.zero;
+            rb.angularVelocity = 0f;
+        }
+        transform.position = new Vector3(position.x, position.y, transform.position.z);
+        Physics2D.SyncTransforms();
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]

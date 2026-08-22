@@ -231,6 +231,10 @@ public sealed class BrokenArrivalCar : MonoBehaviour
 
     private void ResolveInspectionPolygon()
     {
+        GameObject sceneAuthoredZone = GameObject.Find("VungKiemTraXeDauGame");
+        if (sceneAuthoredZone != null && sceneAuthoredZone.GetComponent<PolygonCollider2D>() is { } authoredPolygon)
+            inspectionPolygon = authoredPolygon;
+
         if (inspectionPolygon == null)
         {
             PolygonCollider2D[] childPolygons = GetComponentsInChildren<PolygonCollider2D>(true);
@@ -246,7 +250,10 @@ public sealed class BrokenArrivalCar : MonoBehaviour
 
         if (inspectionPolygon == null)
         {
-            string[] supportedNames = { "VungKiemTraXe", "ViTriKiemTraXe", "Vehicle Inspection Zone" };
+            string[] supportedNames =
+            {
+                "VungKiemTraXeDauGame", "VungKiemTraXe", "ViTriKiemTraXe", "Vehicle Inspection Zone"
+            };
             for (int i = 0; i < supportedNames.Length && inspectionPolygon == null; i++)
             {
                 GameObject authoredZone = GameObject.Find(supportedNames[i]);
@@ -268,7 +275,8 @@ public sealed class BrokenArrivalCar : MonoBehaviour
 
     private static bool IsInspectionZoneName(string objectName)
     {
-        return objectName == "VungKiemTraXe" || objectName == "VungKiemTraXe [AUTO]" ||
+        return objectName == "VungKiemTraXeDauGame" || objectName == "VungKiemTraXe" ||
+               objectName == "VungKiemTraXe [AUTO]" ||
                objectName == "ViTriKiemTraXe" || objectName == "Vehicle Inspection Zone";
     }
 }

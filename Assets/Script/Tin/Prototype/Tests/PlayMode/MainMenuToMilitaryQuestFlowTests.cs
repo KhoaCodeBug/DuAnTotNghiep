@@ -11,6 +11,141 @@ using UnityEngine.UI;
 public sealed class MainMenuToMilitaryQuestFlowTests
 {
     [UnityTest]
+    [Timeout(120000)]
+    public IEnumerator RoadsideRepairTestStationSpawnsOnLockedPoliceCarNearArrival()
+    {
+        PlayerPrefs.SetInt("GameLanguage", 0);
+        AsyncOperation loadMenu = SceneManager.LoadSceneAsync(0);
+        while (!loadMenu.isDone) yield return null;
+
+        yield return WaitForActiveButton("SOLO", 15f);
+        InvokeButton("SOLO");
+        yield return WaitForActiveButton("EASY", 10f);
+        InvokeButton("EASY");
+        yield return WaitForActiveButton("ENTER THE DEAD ZONE", 10f);
+        InvokeButton("ENTER THE DEAD ZONE");
+
+        float sceneDeadline = Time.realtimeSinceStartup + 60f;
+        while (SceneManager.GetActiveScene().buildIndex != 1 && Time.realtimeSinceStartup < sceneDeadline)
+            yield return null;
+        Assert.That(SceneManager.GetActiveScene().buildIndex, Is.EqualTo(1));
+
+        Type managerType = Type.GetType("MilitaryBaseQuestManager, Assembly-CSharp");
+        Component manager = null;
+        float managerDeadline = Time.realtimeSinceStartup + 30f;
+        while (Time.realtimeSinceStartup < managerDeadline)
+        {
+            manager = UnityEngine.Object.FindFirstObjectByType(managerType) as Component;
+            if (manager != null && ReadBool(manager, "IsNetworkReady")) break;
+            yield return null;
+        }
+        Assert.That(manager, Is.Not.Null);
+        Assert.That(ReadBool(manager, "HasStateAuthority"), Is.True);
+
+        Type stationType = Type.GetType("RoadsideVehicleRepairStation, Assembly-CSharp");
+        Component station = null;
+        float stationDeadline = Time.realtimeSinceStartup + 10f;
+        while (Time.realtimeSinceStartup < stationDeadline)
+        {
+            station = UnityEngine.Object.FindFirstObjectByType(stationType) as Component;
+            if (station != null) break;
+            yield return null;
+        }
+        Assert.That(station, Is.Not.Null, "Roadside repair station was not attached to the police car.");
+        Assert.That(station.gameObject.name, Is.EqualTo("Car"));
+
+        Type vehicleType = Type.GetType("VehicleControllerFusion, Assembly-CSharp");
+        Component vehicle = station.GetComponent(vehicleType);
+        Assert.That(vehicle, Is.Not.Null);
+        Assert.That(ReadBool(vehicle, "IsEntryLockedForRepair"), Is.True,
+            "The repair-test police car must not allow entering or driving.");
+
+        GameObject arrivalMarker = GameObject.Find("ViTriXeTest");
+        Assert.That(arrivalMarker, Is.Not.Null);
+        Vector2 expected = arrivalMarker.transform.position;
+        Assert.That(Vector2.Distance(station.transform.position, expected), Is.LessThan(0.15f),
+            "Police car was not relocated to ViTriXeTest.");
+        GameObject policeZone = GameObject.Find("VungKiemTraXeCanhSat");
+        Assert.That(policeZone, Is.Not.Null, "The police-car EditMode authoring polygon is missing.");
+        Assert.That(policeZone.transform.parent?.name, Is.EqualTo("Police Car Preview [EDIT MODE]"),
+            "The police polygon must remain a child of the EditMode police-car preview.");
+        SpriteRenderer previewRenderer = policeZone.transform.parent.GetComponent<SpriteRenderer>();
+        SpriteRenderer runtimeRenderer = station.GetComponent<SpriteRenderer>();
+        Assert.That(runtimeRenderer?.sprite, Is.SameAs(previewRenderer?.sprite),
+            "The runtime police car must keep the same visual direction as its EditMode preview.");
+        Assert.That((int)ReadProperty(vehicle, "DirectionIndex"), Is.EqualTo(0),
+            "The locked roadside repair car must use the preview's direction index.");
+        PolygonCollider2D policePolygon = policeZone.GetComponent<PolygonCollider2D>();
+        FieldInfo stationPolygonField = stationType.GetField("inspectionPolygon",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(stationPolygonField?.GetValue(station), Is.SameAs(policePolygon),
+            "Runtime police-car repair must use the scene-authored polygon, not an AUTO polygon.");
+
+        Type brokenCarType = Type.GetType("BrokenArrivalCar, Assembly-CSharp");
+        Component brokenCar = UnityEngine.Object.FindFirstObjectByType(brokenCarType) as Component;
+        GameObject arrivalZone = GameObject.Find("VungKiemTraXeDauGame");
+        Assert.That(brokenCar, Is.Not.Null);
+        Assert.That(brokenCar.gameObject.name, Is.EqualTo("Broken Arrival Car (from Intro)"),
+            "Main must reuse the visible scene car instead of spawning a hidden duplicate.");
+        Assert.That(arrivalZone, Is.Not.Null, "The opening-car EditMode authoring polygon is missing.");
+        Assert.That(arrivalZone.transform.parent, Is.SameAs(brokenCar.transform),
+            "The opening-car polygon must remain a child of its visible EditMode car.");
+        FieldInfo arrivalPolygonField = brokenCarType.GetField("inspectionPolygon",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(arrivalPolygonField?.GetValue(brokenCar), Is.SameAs(arrivalZone.GetComponent<PolygonCollider2D>()),
+            "Runtime opening car must use the scene-authored polygon, not its prefab fallback.");
+        Assert.That(GameObject.Find("Vehicle Repair Skill Check UI"), Is.Not.Null);
+
+        Type playerType = Type.GetType("PlayerMovement, Assembly-CSharp");
+        FieldInfo localPlayerField = playerType?.GetField("LocalPlayerInstance",
+            BindingFlags.Public | BindingFlags.Static);
+        Component localPlayer = null;
+        float playerDeadline = Time.realtimeSinceStartup + 30f;
+        while (Time.realtimeSinceStartup < playerDeadline)
+        {
+            localPlayer = localPlayerField?.GetValue(null) as Component;
+            if (localPlayer != null) break;
+            yield return null;
+        }
+        Assert.That(localPlayer, Is.Not.Null);
+
+        Vector2 interactionPosition = (Vector2)ReadProperty(station, "InteractionPosition");
+        Rigidbody2D playerBody = localPlayer.GetComponent<Rigidbody2D>();
+        if (playerBody != null) playerBody.position = interactionPosition;
+        localPlayer.transform.position = interactionPosition;
+        Physics2D.SyncTransforms();
+        yield return null;
+
+        managerType.GetMethod("EditorGrantMissingPoliceCarRepairItems",
+            BindingFlags.NonPublic | BindingFlags.Instance)?.Invoke(manager, null);
+        managerType.GetMethod("RequestStartPoliceCarRepair")?.Invoke(manager, new object[] { "engine" });
+        float sessionDeadline = Time.realtimeSinceStartup + 5f;
+        while (!ReadBool(manager, "RepairSkillCheckSessionActive") &&
+               Time.realtimeSinceStartup < sessionDeadline)
+            yield return null;
+        Assert.That(ReadBool(manager, "RepairSkillCheckSessionActive"), Is.True,
+            "Host did not authorize a repair session from the front interaction point.");
+
+        yield return new WaitForSecondsRealtime(0.35f);
+        float progressBeforeCancel = (float)ReadProperty(manager, "RepairSkillCheckProgress");
+        Assert.That(progressBeforeCancel, Is.GreaterThan(0f),
+            "Authoritative base repair progress did not advance over time.");
+
+        managerType.GetMethod("RequestCancelRepairSkillCheck")?.Invoke(manager, null);
+        float cancelDeadline = Time.realtimeSinceStartup + 5f;
+        while (ReadBool(manager, "RepairSkillCheckSessionActive") &&
+               Time.realtimeSinceStartup < cancelDeadline)
+            yield return null;
+        Assert.That(ReadBool(manager, "RepairSkillCheckSessionActive"), Is.False);
+        Assert.That((float)ReadProperty(manager, "RepairSkillCheckProgress"),
+            Is.EqualTo(progressBeforeCancel).Within(0.1f),
+            "Leaving repair must preserve completed progress.");
+        Assert.That((float)ReadProperty(manager, "PoliceEngineRepairProgress"),
+            Is.EqualTo(progressBeforeCancel).Within(0.1f),
+            "Engine progress must be stored independently from the other four repair actions.");
+    }
+
+    [UnityTest]
     [Timeout(180000)]
     public IEnumerator SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap()
     {

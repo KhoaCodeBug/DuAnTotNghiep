@@ -54,6 +54,7 @@ public class PlayerInteraction : NetworkBehaviour
     private void Update()
     {
         if (!Object.HasInputAuthority) return;
+        if (VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
         PlayerSurvival survival = GetComponent<PlayerSurvival>();
         if (survival != null && survival.IsSleepInputLocked) return;
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return;
