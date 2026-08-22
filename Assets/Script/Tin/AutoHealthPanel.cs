@@ -666,7 +666,8 @@ public class AutoHealthPanel : MonoBehaviour
 
     void Update()
     {
-        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput) return;
+        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
+            VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
 
         if (isOpen && injuryScrollRect != null && injuryScrollRect.viewport != null &&
             RectTransformUtility.RectangleContainsScreenPoint(injuryScrollRect.viewport, Input.mousePosition, null))

@@ -45,7 +45,8 @@ public class MapController : MonoBehaviour
 
     private void Update()
     {
-        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput) return;
+        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
+            VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
         if (!isUnlocked) return;
 
         if (Input.GetKeyDown(KeyCode.M))

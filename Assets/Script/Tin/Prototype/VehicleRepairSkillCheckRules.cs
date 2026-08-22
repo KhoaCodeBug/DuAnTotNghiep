@@ -47,4 +47,10 @@ public static class VehicleRepairSkillCheckRules
         float firstSafeAngle = Mathf.Clamp01(minimumTravelFraction) * 360f;
         return Mathf.Clamp(firstSafeAngle + Mathf.Max(0f, successArcDegrees) * 0.5f, 0f, 360f);
     }
+
+    public static bool CanRunSkillCheck(float progress, float finaleCutoffProgress)
+    {
+        float cutoff = Mathf.Clamp(finaleCutoffProgress, 0f, MaxProgress);
+        return Mathf.Clamp(progress, 0f, MaxProgress) < cutoff;
+    }
 }
