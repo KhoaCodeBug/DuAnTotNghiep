@@ -604,7 +604,7 @@ public sealed class QuestFlowUIPrototypeTests
             Assert.That(GameObject.Find("Restricted Fog Segment 5"), Is.Not.Null,
                 "Two independent openings need more than the original four union-rectangle fog strips.");
             Assert.That(GameObject.Find("Restricted Fog West").GetComponent<Image>().color.a,
-                Is.GreaterThanOrEqualTo(0.97f),
+                Is.EqualTo(1f),
                 "Unknown map districts must be opaque enough to hide undiscovered streets.");
         }
         finally

@@ -518,9 +518,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
 
         exactRoute = Box("Exact Route", sceneLayoutRoot, new Vector2(100f, 5f), Vector2.zero,
             new Color(Purple.r, Purple.g, Purple.b, 0.92f)).gameObject;
-        scenePlayerMarker = Box("Scene Player Marker", sceneLayoutRoot, new Vector2(18f, 18f),
-            SceneToMapPoint(GetPlayerMapPosition()), Mint);
-        scenePlayerMarker.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        scenePlayerMarker = PlayerCircleMarker("Scene Player Marker", sceneLayoutRoot, 14f,
+            SceneToMapPoint(GetPlayerMapPosition()));
 
         UpdateSceneLayoutMarkers();
         Refresh();
@@ -577,8 +576,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         // old line implied a traversable route even when it crossed buildings.
         exactRoute = new GameObject("Exact Location Revealed", typeof(RectTransform));
         exactRoute.transform.SetParent(rasterArtRoot, false);
-        rasterPlayerMarker = Box("Raster Player Marker", rasterArtRoot, new Vector2(18f, 18f), Vector2.zero, Mint);
-        rasterPlayerMarker.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        rasterPlayerMarker = PlayerCircleMarker("Raster Player Marker", rasterArtRoot, 14f, Vector2.zero);
 
         ApplyRasterRotationLayout();
         Refresh();
@@ -614,7 +612,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         if (unknownOfficeMarker != null)
             unknownOfficeMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         if (rasterPlayerMarker != null)
-            rasterPlayerMarker.localRotation = Quaternion.Euler(0f, 0f, 45f + 90f * rasterRotationQuarterTurns);
+            rasterPlayerMarker.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         UpdateRasterMapMarkers();
         UpdateRotationLabel();
     }
@@ -725,7 +723,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             RectTransform fog = Box(name, rasterArtRoot, Vector2.zero, Vector2.zero,
                 // Unknown districts should read as genuinely unavailable, not
                 // as a dim preview of streets the player has not uncovered.
-                new Color(0f, 0f, 0f, 0.97f));
+                new Color(0f, 0f, 0f, 1f));
             fog.SetSiblingIndex(Mathf.Min(index + 1, rasterArtRoot.childCount - 1));
             rasterRestrictedFog.Add(fog);
         }
@@ -915,9 +913,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Text(worldOfficeMarker, "Live Office Label", "VĂN PHÒNG", 12f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(116f, 60f), Vector2.zero);
 
-        worldPlayerMarker = Box("Live Player Marker", worldOverlayRoot,
-            new Vector2(20f, 20f), Vector2.zero, Mint);
-        worldPlayerMarker.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        worldPlayerMarker = PlayerCircleMarker("Live Player Marker", worldOverlayRoot, 16f, Vector2.zero);
 
         Refresh();
     }
@@ -1164,8 +1160,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Text(home, "Safehouse Label", "NHÀ TRÚ ẨN", 11f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(100f, 56f), Vector2.zero);
 
-        RectTransform player = Box("Player Marker", parent, new Vector2(18f, 18f), new Vector2(-320f, -145f), Mint);
-        player.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        PlayerCircleMarker("Player Marker", parent, 14f, new Vector2(-320f, -145f));
         Text(parent, "Player Label", "BẠN", 11f, Mint, FontStyles.Bold, TextAlignmentOptions.Center,
             new Vector2(0.5f, 0.5f), new Vector2(62f, 26f), new Vector2(-320f, -112f));
 
@@ -1248,6 +1243,16 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         image.color = color;
         image.raycastTarget = false;
         return rect;
+    }
+
+    private RectTransform PlayerCircleMarker(string name, Transform parent, float diameter, Vector2 position)
+    {
+        RectTransform marker = Box(name, parent, new Vector2(diameter, diameter), position, Mint);
+        Image image = marker.GetComponent<Image>();
+        image.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+        image.type = Image.Type.Simple;
+        image.preserveAspect = true;
+        return marker;
     }
 
     private RectTransform StretchBox(string name, Transform parent, Color color)

@@ -129,7 +129,8 @@ public class DevCheatManager : MonoBehaviour
     // ============================
     private void Update()
     {
-        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput) return;
+        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
+            VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         // The cheat is a modal UI.  Consume Escape before other menus see it.
         if (isMenuOpen && Input.GetKeyDown(KeyCode.Escape))

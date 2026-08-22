@@ -60,6 +60,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [SerializeField, Range(1f, 180f)] private float skillCheckSuccessArcDegrees = 25f;
     [SerializeField, Range(1f, 90f)] private float skillCheckPerfectArcDegrees = 8f;
     [SerializeField, Range(0f, 0.8f)] private float skillCheckMinimumTravelFraction = 0.30f;
+    [SerializeField, Range(90f, 99.9f)] private float skillCheckFinaleCutoffProgress = 95f;
     [SerializeField, Min(0f)] private float skillCheckSuccessBonus = 3.5f;
     [SerializeField, Min(0f)] private float skillCheckPerfectBonus = 7f;
     [SerializeField, Min(0f)] private float skillCheckMissPenalty = 2f;
@@ -587,6 +588,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             return;
         }
 
+        // Movement is also frozen authoritatively so stale/queued client input
+        // cannot slide the active repairer while the local minigame owns input.
+        player.LockMovement(Mathf.Max(0.2f, Runner.DeltaTime * 2f));
+
         PlayerHealth health = player.GetComponent<PlayerHealth>();
         if ((health != null && (health.isDead || health.isTransforming)) || roadsideRepairStation == null ||
             !roadsideRepairStation.IsPlayerInRepairPosition(player.transform.position))
@@ -621,6 +626,18 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             return;
         }
 
+
+        // The final five percent are a clean completion runway. Cancel any check
+        // that reaches the cutoff and never create another one near 100%.
+        if (!VehicleRepairSkillCheckRules.CanRunSkillCheck(
+                RepairSkillCheckProgress, skillCheckFinaleCutoffProgress))
+        {
+            RepairSkillCheckEventActive = false;
+            RepairSkillCheckElapsed = 0f;
+            NextRepairSkillCheckSeconds = 0f;
+            return;
+        }
+
         if (RepairSkillCheckEventActive)
         {
             RepairSkillCheckElapsed += delta;
@@ -631,6 +648,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
         NextRepairSkillCheckSeconds -= delta;
         if (NextRepairSkillCheckSeconds > 0f) return;
+
+        float projectedProgressAtTimeout = VehicleRepairSkillCheckRules.AdvanceBaseProgress(
+            RepairSkillCheckProgress, skillCheckRotationSeconds, skillRepairDurationSeconds);
+        if (!VehicleRepairSkillCheckRules.CanRunSkillCheck(
+                projectedProgressAtTimeout, skillCheckFinaleCutoffProgress))
+            return;
 
         RepairSkillCheckSequence++;
         float minimumTargetAngle = VehicleRepairSkillCheckRules.GetMinimumTargetCenterAngle(

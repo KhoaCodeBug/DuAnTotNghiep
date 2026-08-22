@@ -32,7 +32,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     [SerializeField, Min(0.1f)] private float outsideFogFadeDistance = 2f;
     [SerializeField, Range(0.75f, 1f)] private float outsideFogOpacity = 1f;
     [SerializeField, Min(1f)] private float outsideBlackoutDistance = 4f;
-    [SerializeField, Min(1f)] private float outsideReturnDelay = 4.5f;
+    [SerializeField, Min(1f)] private float outsideReturnDelay = 2f;
     [SerializeField, Min(0.1f)] private float returnPointInset = 1.25f;
 
     private Transform officeTarget;

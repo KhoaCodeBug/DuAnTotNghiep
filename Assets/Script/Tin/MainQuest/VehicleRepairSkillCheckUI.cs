@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>Runtime repair dialog and DBD-style skill-check presentation.</summary>
 public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
@@ -16,6 +18,11 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
     private Texture2D ringTexture;
     private string statusMessage = string.Empty;
     private float statusUntil;
+    private readonly Dictionary<Canvas, bool> suppressedCanvases = new Dictionary<Canvas, bool>();
+    private bool localPresentationActive;
+    private float nextCanvasSuppressionAt;
+
+    private const float CanvasSuppressionInterval = 0.2f;
 
     public static bool BlocksGameplayInput => instance != null && instance.state != PanelState.Closed;
     public static bool IsLocalRepairSessionActive =>
@@ -46,10 +53,12 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
         {
             instance.station?.CloseInspectionForMinigame();
             instance.state = PanelState.Minigame;
+            instance.BeginLocalPresentation();
             instance.statusMessage = "BẮT ĐẦU SỬA XE";
         }
         else
         {
+            instance.EndLocalPresentation();
             instance.state = PanelState.Closed;
             instance.station?.NotifyRepairRequestFailed(message);
             instance.statusMessage = message;
@@ -74,6 +83,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
         if (instance == null) return;
         instance.statusMessage = message;
         instance.statusUntil = Time.unscaledTime + 2.5f;
+        instance.EndLocalPresentation();
         instance.state = PanelState.Closed;
         instance.pendingCancel = false;
     }
@@ -82,6 +92,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
     {
         if (instance == null) return;
         instance.pendingCancel = false;
+        instance.EndLocalPresentation();
         instance.state = PanelState.Closed;
     }
 
@@ -90,6 +101,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
         if (instance == null) return;
         instance.statusMessage = allComplete ? "ĐÃ HOÀN TẤT ĐỦ 5 HẠNG MỤC" : "HẠNG MỤC SỬA CHỮA HOÀN TẤT";
         instance.statusUntil = Time.unscaledTime + 3f;
+        instance.EndLocalPresentation();
         instance.state = PanelState.Closed;
         instance.pendingCancel = false;
         instance.station?.ReopenInspection(instance.statusMessage);
@@ -103,24 +115,39 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EndLocalPresentation();
         if (instance == this) instance = null;
         if (ringTexture != null) Destroy(ringTexture);
     }
 
     private void Update()
     {
-        if (state == PanelState.Closed || manager == null || !manager.IsNetworkReady) return;
+        if (state == PanelState.Closed) return;
+        if (manager == null || !manager.IsNetworkReady)
+        {
+            EndLocalPresentation();
+            state = PanelState.Closed;
+            return;
+        }
+
+        if (localPresentationActive && Time.unscaledTime >= nextCanvasSuppressionAt)
+        {
+            nextCanvasSuppressionAt = Time.unscaledTime + CanvasSuppressionInterval;
+            SuppressForeignCanvases();
+        }
 
         bool localOwnsSession = manager.IsLocalPlayerRepairer;
 
         if (state == PanelState.Minigame && !pendingCancel && !localOwnsSession)
         {
+            EndLocalPresentation();
             state = PanelState.Closed;
             return;
         }
 
         if (state == PanelState.WaitingForServer && Input.GetKeyDown(KeyCode.Escape))
         {
+            EndLocalPresentation();
             state = PanelState.Closed;
             return;
         }
@@ -130,6 +157,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
         {
             pendingCancel = true;
             manager.RequestCancelRepairSkillCheck();
+            EndLocalPresentation();
             state = PanelState.Closed;
             station?.ReopenInspection("ĐÃ DỪNG SỬA. TIẾN ĐỘ HẠNG MỤC ĐƯỢC GIỮ LẠI.");
             return;
@@ -140,6 +168,40 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
 
         submittedSequence = manager.RepairSkillCheckSequence;
         manager.RequestResolveRepairSkillCheck(submittedSequence, CurrentNeedleAngle());
+    }
+
+    private void BeginLocalPresentation()
+    {
+        if (localPresentationActive) return;
+        localPresentationActive = true;
+        QuestUIDialogueState.SetRepairActive(true);
+        nextCanvasSuppressionAt = 0f;
+        SuppressForeignCanvases();
+    }
+
+    private void SuppressForeignCanvases()
+    {
+        Canvas[] canvases = Resources.FindObjectsOfTypeAll<Canvas>();
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            Canvas candidate = canvases[i];
+            if (candidate == null || !candidate.gameObject.scene.IsValid()) continue;
+            // World fog is part of the scene presentation, not gameplay HUD.
+            if (candidate.gameObject.name == "Local Fog Vision Overlay") continue;
+            if (!suppressedCanvases.ContainsKey(candidate))
+                suppressedCanvases.Add(candidate, candidate.enabled);
+            candidate.enabled = false;
+        }
+    }
+
+    private void EndLocalPresentation()
+    {
+        if (!localPresentationActive) return;
+        localPresentationActive = false;
+        QuestUIDialogueState.SetRepairActive(false);
+        foreach (KeyValuePair<Canvas, bool> entry in suppressedCanvases)
+            if (entry.Key != null) entry.Key.enabled = entry.Value;
+        suppressedCanvases.Clear();
     }
 
     private void OnGUI()

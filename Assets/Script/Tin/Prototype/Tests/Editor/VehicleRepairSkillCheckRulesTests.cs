@@ -44,6 +44,14 @@ public sealed class VehicleRepairSkillCheckRulesTests
     }
 
     [Test]
+    public void SkillChecksStopAtFinalFivePercent()
+    {
+        Assert.That(VehicleRepairSkillCheckRules.CanRunSkillCheck(94.99f, 95f), Is.True);
+        Assert.That(VehicleRepairSkillCheckRules.CanRunSkillCheck(95f, 95f), Is.False);
+        Assert.That(VehicleRepairSkillCheckRules.CanRunSkillCheck(99f, 95f), Is.False);
+    }
+
+    [Test]
     public void PoliceCarUsesFiveIndependentRepairActions()
     {
         Assert.That(PoliceCarRepairRules.RequiredActionCount, Is.EqualTo(5));
