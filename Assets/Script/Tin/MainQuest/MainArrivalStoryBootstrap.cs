@@ -6,6 +6,11 @@ public static class MainArrivalStoryBootstrap
 {
     private const string CarResourcePath = "Story/BrokenArrivalCar";
     private const string ArrivalAnchorName = "ViTriXeChetMay";
+    // Keep the story arrival independent from the four gameplay respawn points.
+    // PR #305 overwrote Main.unity and removed ViTriXeChetMay; this is the
+    // marker's last known position before that scene regression.
+    private static readonly Vector3 DefaultArrivalAnchorPosition =
+        new Vector3(35.73f, -13.73f, -0.025169304f);
     private static readonly Vector2[] InitialSpawnOffsets =
     {
         new Vector2(-1.9f, -1.35f),
@@ -30,15 +35,11 @@ public static class MainArrivalStoryBootstrap
             arrivalAnchorPosition = anchorTransform.position;
             hasArrivalAnchor = true;
         }
-        else if (!TryGetFallbackAnchor(spawner.spawnPoints, out arrivalAnchorPosition))
-        {
-            Debug.LogError($"[MAIN STORY] Missing '{ArrivalAnchorName}' and no fallback spawn point exists.");
-            return;
-        }
         else
         {
+            arrivalAnchorPosition = DefaultArrivalAnchorPosition;
             hasArrivalAnchor = true;
-            Debug.LogWarning($"[MAIN STORY] Missing '{ArrivalAnchorName}'. Using the old spawn-point centre as fallback.");
+            Debug.LogWarning($"[MAIN STORY] Missing '{ArrivalAnchorName}'. Using the preserved story-arrival position.");
         }
 
         BrokenArrivalCar car = BrokenArrivalCar.Instance;
@@ -74,21 +75,4 @@ public static class MainArrivalStoryBootstrap
         return true;
     }
 
-    private static bool TryGetFallbackAnchor(Transform[] points, out Vector3 anchor)
-    {
-        anchor = Vector3.zero;
-        if (points == null || points.Length == 0) return false;
-
-        int count = 0;
-        for (int i = 0; i < points.Length; i++)
-        {
-            if (points[i] == null) continue;
-            anchor += points[i].position;
-            count++;
-        }
-
-        if (count == 0) return false;
-        anchor /= count;
-        return true;
-    }
 }

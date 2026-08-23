@@ -62,6 +62,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private float nextReturnRequestTime;
     private QuestMapRevealTuningTool revealTuningTool;
     private int lastRevealTuningSignature = int.MinValue;
+    private bool locateOfficeNotificationPending;
 
     public int ActiveSearchHouseCount => activeSearchHouseIds.Count;
     public Transform ConfiguredPlayerTarget => configuredPlayerTarget;
@@ -131,6 +132,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             UpdateOutsideSearchZoneWarning(player.position, manager);
 
         SyncModalUI(false);
+        TryShowLocateOfficeNotificationAfterMapClosed(manager);
     }
 
     private void OnDisable()
@@ -863,9 +865,30 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
     private void HandleMapFragment1Acquired()
     {
-        questUI?.QueueMapUnlockReveal();
-        AutoChatManager.Instance?.AddMessage(
-            "MANH MỐI", "Đã ghép đủ dữ liệu tuyến đường. Mở bản đồ [M] để xem khu vực vừa mở khóa.");
+        questUI?.QueueMapUnlockReveal(HandleMapUnlockRevealFinished);
+        // The completion reward has already faded out before this callback.
+        // Open the map immediately so the player sees the newly revealed
+        // office location without needing to discover the [M] shortcut.
+        questUI?.SetMapOpenForPreview(true);
+    }
+
+    private void HandleMapUnlockRevealFinished()
+    {
+        // Finishing the reveal only arms the next objective. Keep the map clear
+        // of quest popups and wait until the player deliberately closes it.
+        locateOfficeNotificationPending = true;
+    }
+
+    private void TryShowLocateOfficeNotificationAfterMapClosed(MainQuestManager manager)
+    {
+        if (!locateOfficeNotificationPending || (questUI != null && questUI.IsMapOpen))
+            return;
+        if (manager == null || !manager.IsNetworkReady ||
+            manager.CurrentStage != MainQuestManager.QuestStage.LocateOffice)
+            return;
+
+        locateOfficeNotificationPending = false;
+        manager.ShowLocateOfficeObjectiveNotification();
     }
 
     private IEnumerator PlayOfficeRevealRoutine()

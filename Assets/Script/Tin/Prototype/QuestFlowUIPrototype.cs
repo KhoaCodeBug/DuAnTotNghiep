@@ -56,6 +56,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private CanvasGroup completionGroup;
     private TextMeshProUGUI completionQuestName;
     private TextMeshProUGUI completionRewardText;
+    private RawImage completionRewardMapImage;
     private RectTransform completionRewardCard;
     private readonly RectTransform[] completionSparkles = new RectTransform[8];
     private Coroutine completionRoutine;
@@ -65,6 +66,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private TextMeshProUGUI clueReadingBody;
     private TextMeshProUGUI clueReadingConclusion;
     private bool fragmentCompletionPending;
+    private bool fragmentCompletionPresented;
+    private bool fragmentRewardRequestedAfterDialogue;
 
     private RectTransform mainQuestCard;
     private RectTransform sideQuestCard;
@@ -430,17 +433,19 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             trackedQuestIndex = lockedEscapeRoute == EscapeEndingRoute.CivilianCar ? 2 : 0;
         RefreshQuestPresentation();
 
+        // The dialogue RPC and replicated snapshot can arrive in either order.
+        // If the dialogue already finished, continue the reward as soon as the
+        // 3/3 snapshot reaches this client instead of dropping the callback.
+        TryPlayMapFragmentOneRewardAfterDialogue();
+
         if (!playTransitions || !Application.isPlaying) return;
         if (!hadFragment1 && mainQuestProgress.HasMapFragment1)
         {
-            // Queue independently of the completion popup. If the RPC arrived
-            // before this UI existed, the replicated snapshot still guarantees
-            // that opening the map will play the reveal once.
+            // The authoritative RPC owns the ordered dialogue -> reward -> map
+            // sequence. The snapshot only preserves the reveal in case the RPC
+            // arrived before this UI was ready; it must not start the reward in
+            // parallel with the dialogue.
             mapPrototype?.QueueUnlockReveal();
-            if (IsClueReadingOpen)
-                fragmentCompletionPending = true;
-            else
-                PlayMapFragmentOneCompletion();
         }
         if (!wasMainQuestComplete && mainQuestProgress.MainQuestComplete)
             PlayQuestCompletion("NHIỆM VỤ HOÀN THÀNH", "Tìm thêm thông tin về thành phố", "Mảnh bản đồ 2", null);
@@ -524,8 +529,35 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private void PlayMapFragmentOneCompletion()
     {
         PlayQuestCompletion("ĐÃ PHÁT HIỆN ĐỦ MANH MỐI", "Dữ liệu tuyến đường đã hoàn chỉnh",
-            "MỞ BẢN ĐỒ [M] ĐỂ KIỂM TRA",
-            ContinueMapFragmentOneFlow);
+            "MẢNH BẢN ĐỒ 1 — VỊ TRÍ VĂN PHÒNG",
+            ContinueMapFragmentOneFlow, true);
+    }
+
+    public void PrepareForMapFragmentDialogue()
+    {
+        EnsureBuiltForTests();
+        fragmentCompletionPending = false;
+        if (clueReadingRoot != null) clueReadingRoot.SetActive(false);
+        SetJournalOpen(false);
+        if (mapPrototype != null) mapPrototype.SetOpen(false);
+    }
+
+    public void PlayMapFragmentOneRewardAfterDialogue()
+    {
+        EnsureBuiltForTests();
+        fragmentRewardRequestedAfterDialogue = true;
+        TryPlayMapFragmentOneRewardAfterDialogue();
+    }
+
+    private void TryPlayMapFragmentOneRewardAfterDialogue()
+    {
+        if (!Application.isPlaying || !fragmentRewardRequestedAfterDialogue ||
+            !mainQuestProgress.HasMapFragment1 || fragmentCompletionPresented)
+            return;
+
+        fragmentRewardRequestedAfterDialogue = false;
+        fragmentCompletionPresented = true;
+        PlayMapFragmentOneCompletion();
     }
 
     public void RegisterOfficeDiscoveredForPreview()
@@ -569,10 +601,10 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         mapPrototype.SetOpen(open);
     }
 
-    public void QueueMapUnlockReveal()
+    public void QueueMapUnlockReveal(Action onFinished = null)
     {
         EnsureBuiltForTests();
-        mapPrototype?.QueueUnlockReveal();
+        mapPrototype?.QueueUnlockReveal(onFinished);
     }
 
     public void ConfigureWorldMap(Camera mapCameraTemplate, Transform officeTarget, Transform playerTarget = null)
@@ -903,13 +935,26 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             TextAlignmentOptions.Center, new Vector2(0.5f, 1f), new Vector2(650f, 54f), new Vector2(0f, -78f));
 
         completionRewardCard = Box("Completion Reward Card", panel, new Vector2(0.5f, 0f),
-            new Vector2(520f, 112f), new Vector2(0f, 45f), new Color(0.09f, 0.15f, 0.12f, 1f));
+            new Vector2(520f, 150f), new Vector2(0f, 20f), new Color(0.09f, 0.15f, 0.12f, 1f));
         AddBorder(completionRewardCard, new Color(Mint.r, Mint.g, Mint.b, 0.88f));
         Text(completionRewardCard, "Completion Reward Header", "PHẦN THƯỞNG ĐÃ NHẬN", 12f, Mint, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 1f), new Vector2(470f, 24f), new Vector2(0f, -18f));
         completionRewardText = Text(completionRewardCard, "Completion Reward Text", string.Empty, 23f,
             Color.white, FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0f),
-            new Vector2(470f, 42f), new Vector2(0f, 18f));
+            new Vector2(470f, 58f), new Vector2(0f, 34f));
+
+        GameObject rewardMapObject = new GameObject("Map Fragment Reward Art", typeof(RectTransform), typeof(RawImage));
+        rewardMapObject.transform.SetParent(completionRewardCard, false);
+        RectTransform rewardMapRect = rewardMapObject.GetComponent<RectTransform>();
+        rewardMapRect.anchorMin = rewardMapRect.anchorMax = rewardMapRect.pivot = new Vector2(0.5f, 0.5f);
+        // Match the source aspect ratio so the torn paper is not stretched.
+        rewardMapRect.sizeDelta = new Vector2(90f, 82f);
+        rewardMapRect.anchoredPosition = new Vector2(0f, -20f);
+        completionRewardMapImage = rewardMapObject.GetComponent<RawImage>();
+        completionRewardMapImage.texture = Resources.Load<Texture2D>("QuestUI/MapFragmentReward");
+        completionRewardMapImage.color = Color.white;
+        completionRewardMapImage.raycastTarget = false;
+        completionRewardMapImage.gameObject.SetActive(false);
 
         Vector2[] sparklePositions =
         {
@@ -928,19 +973,26 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         completionRoot.SetActive(false);
     }
 
-    private void PlayQuestCompletion(string header, string questName, string reward, Action onFinished)
+    private void PlayQuestCompletion(string header, string questName, string reward, Action onFinished,
+        bool showMapFragmentArt = false)
     {
         if (completionRoutine != null)
             StopCoroutine(completionRoutine);
-        completionRoutine = StartCoroutine(QuestCompletionRoutine(header, questName, reward, onFinished));
+        completionRoutine = StartCoroutine(QuestCompletionRoutine(
+            header, questName, reward, onFinished, showMapFragmentArt));
     }
 
-    private IEnumerator QuestCompletionRoutine(string header, string questName, string reward, Action onFinished)
+    private IEnumerator QuestCompletionRoutine(string header, string questName, string reward, Action onFinished,
+        bool showMapFragmentArt)
     {
         SetJournalOpen(false);
         if (mapPrototype != null) mapPrototype.SetOpen(false);
         completionQuestName.text = questName;
         completionRewardText.text = reward;
+        bool hasRewardArt = showMapFragmentArt && completionRewardMapImage != null &&
+                            completionRewardMapImage.texture != null;
+        completionRewardText.gameObject.SetActive(!hasRewardArt);
+        if (completionRewardMapImage != null) completionRewardMapImage.gameObject.SetActive(hasRewardArt);
         Transform headerTransform = FindChild(completionRoot.transform, "Completion Header");
         if (headerTransform != null)
             headerTransform.GetComponent<TextMeshProUGUI>().text = header;
@@ -1566,7 +1618,9 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             mainQuestProgress.SideQuestSkipped ? L("FOUND MANUALLY", "ĐÃ TỰ TÌM") : L("LOCKED", "ĐANG KHÓA"),
             false, mainQuestProgress.HasMapFragment1 ? Purple : Muted);
         rewardLabel.text = mainQuestProgress.HasMapFragment1 ? L("REWARD RECEIVED", "PHẦN THƯỞNG ĐÃ NHẬN") : L("REWARD", "PHẦN THƯỞNG");
-        rewardText.text = mainQuestProgress.HasMapFragment1 ? L("Map Fragment 1", "Mảnh bản đồ 1") : L("Unknown", "Chưa xác định");
+        rewardText.text = mainQuestProgress.HasMapFragment1
+            ? L("Map Fragment 1 — Office Location", "Mảnh bản đồ 1 — Vị trí văn phòng")
+            : L("Unknown", "Chưa xác định");
 
         contextPanelTitle.text = L("CLUES COLLECTED", "DẤU VẾT ĐÃ THU THẬP");
         contextPanelCount.text = mainQuestProgress.RouteClueCount + " / 3";
