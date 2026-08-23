@@ -20,6 +20,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private static readonly Color Purple = new Color(0.72f, 0.36f, 0.98f, 1f);
     private static readonly Color Mint = new Color(0.28f, 0.88f, 0.7f, 1f);
     private static readonly Color Muted = new Color(0.62f, 0.69f, 0.67f, 1f);
+    private static Sprite circleMarkerSprite;
 
     private PreMilitaryQuestProgress progress;
     private TMP_FontAsset font;
@@ -518,7 +519,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
 
         exactRoute = Box("Exact Route", sceneLayoutRoot, new Vector2(100f, 5f), Vector2.zero,
             new Color(Purple.r, Purple.g, Purple.b, 0.92f)).gameObject;
-        scenePlayerMarker = PlayerCircleMarker("Scene Player Marker", sceneLayoutRoot, 14f,
+        scenePlayerMarker = PlayerCircleMarker("Scene Player Marker", sceneLayoutRoot, 12f,
             SceneToMapPoint(GetPlayerMapPosition()));
 
         UpdateSceneLayoutMarkers();
@@ -576,7 +577,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         // old line implied a traversable route even when it crossed buildings.
         exactRoute = new GameObject("Exact Location Revealed", typeof(RectTransform));
         exactRoute.transform.SetParent(rasterArtRoot, false);
-        rasterPlayerMarker = PlayerCircleMarker("Raster Player Marker", rasterArtRoot, 14f, Vector2.zero);
+        rasterPlayerMarker = PlayerCircleMarker("Raster Player Marker", rasterArtRoot, 12f, Vector2.zero);
 
         ApplyRasterRotationLayout();
         Refresh();
@@ -913,7 +914,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Text(worldOfficeMarker, "Live Office Label", "VĂN PHÒNG", 12f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(116f, 60f), Vector2.zero);
 
-        worldPlayerMarker = PlayerCircleMarker("Live Player Marker", worldOverlayRoot, 16f, Vector2.zero);
+        worldPlayerMarker = PlayerCircleMarker("Live Player Marker", worldOverlayRoot, 12f, Vector2.zero);
 
         Refresh();
     }
@@ -1160,7 +1161,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Text(home, "Safehouse Label", "NHÀ TRÚ ẨN", 11f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(100f, 56f), Vector2.zero);
 
-        PlayerCircleMarker("Player Marker", parent, 14f, new Vector2(-320f, -145f));
+        PlayerCircleMarker("Player Marker", parent, 12f, new Vector2(-320f, -145f));
         Text(parent, "Player Label", "BẠN", 11f, Mint, FontStyles.Bold, TextAlignmentOptions.Center,
             new Vector2(0.5f, 0.5f), new Vector2(62f, 26f), new Vector2(-320f, -112f));
 
@@ -1249,10 +1250,50 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     {
         RectTransform marker = Box(name, parent, new Vector2(diameter, diameter), position, Mint);
         Image image = marker.GetComponent<Image>();
-        image.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+        image.sprite = GetCircleMarkerSprite();
         image.type = Image.Type.Simple;
         image.preserveAspect = true;
         return marker;
+    }
+
+    private static Sprite GetCircleMarkerSprite()
+    {
+        if (circleMarkerSprite != null)
+            return circleMarkerSprite;
+
+        const int textureSize = 32;
+        float center = (textureSize - 1) * 0.5f;
+        float radius = center;
+        Color[] pixels = new Color[textureSize * textureSize];
+
+        for (int y = 0; y < textureSize; y++)
+        {
+            for (int x = 0; x < textureSize; x++)
+            {
+                float distance = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                float alpha = Mathf.Clamp01(radius + 0.5f - distance);
+                pixels[y * textureSize + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+
+        Texture2D texture = new Texture2D(textureSize, textureSize, TextureFormat.RGBA32, false)
+        {
+            name = "Runtime Circle Marker",
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp,
+            hideFlags = HideFlags.HideAndDontSave
+        };
+        texture.SetPixels(pixels);
+        texture.Apply(false, true);
+
+        circleMarkerSprite = Sprite.Create(
+            texture,
+            new Rect(0f, 0f, textureSize, textureSize),
+            new Vector2(0.5f, 0.5f),
+            textureSize);
+        circleMarkerSprite.name = "Runtime Circle Marker";
+        circleMarkerSprite.hideFlags = HideFlags.HideAndDontSave;
+        return circleMarkerSprite;
     }
 
     private RectTransform StretchBox(string name, Transform parent, Color color)
