@@ -203,10 +203,66 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void Update()
     {
         ApplyMapAccess();
+        if (Input.GetKeyDown(KeyCode.F7))
+            RequestDebugCompleteClueSearch();
 #if UNITY_EDITOR
         if (Input.GetKeyDown(KeyCode.F8))
             EditorGrantMissingArrivalCarRepairItems();
 #endif
+    }
+
+    /// <summary>
+    /// Runtime test shortcut that completes the residential clue-search
+    /// objective. Clients forward the request to State Authority so F7 behaves
+    /// consistently in Solo, Host and multiplayer builds.
+    /// </summary>
+    private void RequestDebugCompleteClueSearch()
+    {
+        if (!IsNetworkReady)
+        {
+            Debug.LogWarning("[QUEST TEST] F7 chưa dùng được vì hệ thống nhiệm vụ chưa sẵn sàng.");
+            return;
+        }
+
+        if (HasStateAuthority)
+            ServerDebugCompleteClueSearch(Runner.LocalPlayer);
+        else
+            RPC_RequestDebugCompleteClueSearch();
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestDebugCompleteClueSearch(RpcInfo info = default)
+    {
+        ServerDebugCompleteClueSearch(info.Source);
+    }
+
+    private void ServerDebugCompleteClueSearch(PlayerRef requester)
+    {
+        if (!HasStateAuthority) return;
+
+        if (CurrentStage != QuestStage.SearchNeighborhood)
+        {
+            const string unavailable = "F7 chỉ hoạt động khi nhiệm vụ tìm kiếm manh mối trong khu dân cư đang diễn ra.";
+            Debug.Log("[QUEST TEST] " + unavailable);
+            RPC_ShowDebugShortcutMessage(requester, unavailable);
+            return;
+        }
+
+        int completeClueMask = (1 << PreMilitaryQuestProgress.RequiredRouteClues) - 1;
+        RouteClueMask = completeClueMask;
+        InsuredRouteClueMask |= completeClueMask;
+        RouteClueDryOpenCount = 0;
+        NetworkQuestStage = (int)QuestStage.LocateOffice;
+        RPC_ShowAllRouteCluesFound(requester);
+
+        const string message = "F7 đã thu thập đủ 3/3 manh mối; bắt đầu chuỗi hội thoại nhiệm vụ.";
+        Debug.Log("[QUEST TEST] " + message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowDebugShortcutMessage([RpcTarget] PlayerRef targetPlayer, string message)
+    {
+        AutoChatManager.Instance?.AddMessage("QUEST TEST", message);
     }
 
 #if UNITY_EDITOR
@@ -1371,13 +1427,25 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowAllRouteCluesFound(PlayerRef focusPlayer)
     {
-        QuestFlowUIPrototype.Instance?.NotifyAuthoritativeQuestStage((int)QuestStage.LocateOffice);
+        _ = focusPlayer;
+        QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
+        flow?.NotifyAuthoritativeQuestStage((int)QuestStage.LocateOffice);
+        flow?.PrepareForMapFragmentDialogue();
+        flow?.QueueMapUnlockReveal();
+
+        // Every client follows the same ordered presentation. Skipping the
+        // dialogue still invokes its completion callback and continues to the
+        // reward instead of jumping directly to the map.
+        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.ThirdCoordinationDocument,
+            () => QuestFlowUIPrototype.Instance?.PlayMapFragmentOneRewardAfterDialogue());
+    }
+
+    public void ShowLocateOfficeObjectiveNotification()
+    {
+        if (!IsNetworkReady || CurrentStage != QuestStage.LocateOffice) return;
         string message = GameLocalization.Get("quest.all_clues_body");
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.clues_sender"), message);
-        if (Runner != null && Runner.LocalPlayer == focusPlayer)
-            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.ThirdCoordinationDocument);
         ShowLocalQuestEvent(GameLocalization.Get("quest.all_clues_title"), message);
-        QuestFlowUIPrototype.Instance?.QueueMapUnlockReveal();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

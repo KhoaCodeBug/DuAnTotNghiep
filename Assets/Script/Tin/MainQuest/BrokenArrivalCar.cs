@@ -209,23 +209,67 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         if (driveVehicleActivated || LocalGameplayUIState.BlocksWorldInteractionHints) return;
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady || inspectionUI == null || inspectionUI.IsOpen) return;
-        Camera camera = Camera.main;
-        if (camera == null) return;
 
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         if (player == null || !CanInspect(player.transform.position) || inspectionRoutine != null) return;
-        Vector3 point = camera.WorldToScreenPoint(InspectionZoneWorldCenter);
-        if (point.z <= 0f) return;
-        GUIStyle prompt = new GUIStyle(GUI.skin.box)
+
+        Camera camera = Camera.main;
+        if (camera == null) return;
+        Vector3 screenPoint = camera.WorldToScreenPoint(InspectionZoneWorldCenter);
+        if (screenPoint.z <= 0f) return;
+
+        Vector2 target = new Vector2(screenPoint.x, Screen.height - screenPoint.y);
+        float promptWidth = Mathf.Clamp(Screen.width * 0.105f, 165f, 210f);
+        float promptHeight = Mathf.Clamp(Screen.height * 0.058f, 52f, 64f);
+        float horizontalOffset = Mathf.Clamp(Screen.width * 0.055f, 70f, 105f);
+        float verticalOffset = Mathf.Clamp(Screen.height * 0.085f, 62f, 92f);
+        float x = Mathf.Clamp(target.x - promptWidth - horizontalOffset, 12f,
+            Screen.width - promptWidth - 12f);
+        float y = Mathf.Clamp(target.y - promptHeight - verticalOffset, 48f,
+            Screen.height - promptHeight - 100f);
+        Rect promptRect = new Rect(x, y, promptWidth, promptHeight);
+
+        Color accent = new Color(0.22f, 1f, 0.36f, 0.95f);
+        Vector2 lineStart = new Vector2(promptRect.xMax, promptRect.yMax - 10f);
+        Vector2 elbow = new Vector2(lineStart.x + Mathf.Clamp(Screen.width * 0.018f, 24f, 36f), lineStart.y);
+        DrawGuiLine(lineStart, elbow, accent, 2f);
+        DrawGuiLine(elbow, target, accent, 2f);
+
+        Color previousColor = GUI.color;
+        GUI.color = new Color(0.035f, 0.045f, 0.04f, 0.9f);
+        GUI.DrawTexture(promptRect, Texture2D.whiteTexture);
+        GUI.color = accent;
+        const float borderWidth = 2f;
+        GUI.DrawTexture(new Rect(promptRect.x, promptRect.y, promptRect.width, borderWidth), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(promptRect.x, promptRect.yMax - borderWidth, promptRect.width, borderWidth), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(promptRect.x, promptRect.y, borderWidth, promptRect.height), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(promptRect.xMax - borderWidth, promptRect.y, borderWidth, promptRect.height), Texture2D.whiteTexture);
+        GUI.color = previousColor;
+
+        GUIStyle prompt = new GUIStyle(GUI.skin.label)
         {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize = 15,
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.017f), 15, 19),
             fontStyle = FontStyle.Bold
         };
-        prompt.normal.textColor = new Color(0.52f, 1f, 0.58f);
-        float x = Mathf.Clamp(point.x - 150f, 8f, Screen.width - 308f);
-        float y = Mathf.Clamp(Screen.height - point.y - 66f, 8f, Screen.height - 54f);
-        GUI.Box(new Rect(x, y, 300f, 46f), "KIỂM TRA TÌNH TRẠNG XE\nGIỮ [E]", prompt);
+        prompt.normal.textColor = accent;
+        Rect textRect = new Rect(promptRect.x + 14f, promptRect.y + 4f,
+            promptRect.width - 28f, promptRect.height - 8f);
+        GUI.Label(textRect, "GIỮ [E]\nKIỂM TRA XE", prompt);
+    }
+
+    private static void DrawGuiLine(Vector2 start, Vector2 end, Color color, float width)
+    {
+        Matrix4x4 previousMatrix = GUI.matrix;
+        Color previousColor = GUI.color;
+        Vector2 delta = end - start;
+        float angle = Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg;
+        GUI.color = color;
+        GUIUtility.RotateAroundPivot(angle, start);
+        GUI.DrawTexture(new Rect(start.x, start.y - width * 0.5f, delta.magnitude, width),
+            Texture2D.whiteTexture);
+        GUI.matrix = previousMatrix;
+        GUI.color = previousColor;
     }
 
     private void ResolveInspectionPolygon()

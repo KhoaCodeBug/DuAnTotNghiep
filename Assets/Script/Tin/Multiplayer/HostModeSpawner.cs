@@ -132,8 +132,11 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         Vector3 safeSpawnPos = Vector3.zero;
         Quaternion safeSpawnRot = Quaternion.identity;
 
-        bool isFirstSpawn = !playersGivenArrivalSpawn.Contains(player);
-        bool useArrivalSpawn = isFirstSpawn &&
+        // The first avatar created in Main is the survivor arriving from Intro,
+        // so place it beside the broken car. Only death respawns are allowed to
+        // use the scene's four random spawn points.
+        bool isInitialArrival = !playersGivenArrivalSpawn.Contains(player);
+        bool useArrivalSpawn = isInitialArrival &&
             MainArrivalStoryBootstrap.TryGetInitialSpawnPose(playersGivenArrivalSpawn.Count,
                 out safeSpawnPos, out safeSpawnRot);
 
@@ -148,7 +151,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
         // 🔥 FIX LỖI 2: Dùng chép đè để tránh Crash nếu người chơi gửi lệnh đẻ 2 lần do lag
         spawnedPlayers[player] = netObj;
-        if (isFirstSpawn) playersGivenArrivalSpawn.Add(player);
+        if (isInitialArrival) playersGivenArrivalSpawn.Add(player);
         Runner.SetPlayerObject(player, netObj);
 
         // 🔥 LOGIC LATE JOIN (NGƯỜI CHƠI NHẢY DÙ VÀO SAU)
