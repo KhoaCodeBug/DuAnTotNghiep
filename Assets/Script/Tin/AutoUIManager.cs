@@ -394,6 +394,10 @@ public class AutoUIManager : MonoBehaviour
         {
             if (Time.time < invToggleCooldown) return;
 
+            // Corpse searching is interrupted, but this same key press still
+            // opens the inventory immediately.
+            CancelTimedGameplayAction();
+
             bool isHealthHealing = AutoHealthPanel.Instance != null && AutoHealthPanel.Instance.IsHealing;
             if (isDoingAction || isHealthHealing) return;
 
@@ -989,6 +993,7 @@ public class AutoUIManager : MonoBehaviour
     #region LOGIC XỬ LÝ TỦ ĐỒ VÀ DRAG & DROP
     public void OpenContainerUI(LootContainer container)
     {
+        CancelTimedGameplayAction();
         currentOpenContainer = container;
         containerPanel.SetActive(true);
 
@@ -1396,6 +1401,7 @@ public class AutoUIManager : MonoBehaviour
 
     private void OpenInventoryForTrade()
     {
+        CancelTimedGameplayAction();
         tradeWindowPanel.SetActive(false);
         if (inventoryPanel != null)
         {
@@ -1872,6 +1878,122 @@ public class AutoUIManager : MonoBehaviour
         if (itemToUse == null || isDoingAction) return;
         StartCoroutine(ActionTimerRoutine(slotIndex, itemToUse));
     }
+
+    /// <summary>
+    /// Uses the normal item action bar for world interactions such as corpse
+    /// searching. Movement/displacement cancels it; a later E press restarts
+    /// the timer from zero on the same target.
+    /// </summary>
+    public bool StartTimedGameplayAction(
+        string label,
+        float duration,
+        System.Action onCompleted,
+        System.Action onCancelled = null)
+    {
+        if (isDoingAction || actionBarPanel == null || actionBarFill == null || actionBarText == null)
+            return false;
+
+        timedGameplayActionOnCancelled = onCancelled;
+        timedGameplayActionCoroutine = StartCoroutine(
+            TimedGameplayActionRoutine(label, Mathf.Max(0.1f, duration), onCompleted));
+        return true;
+    }
+
+    private bool timedGameplayActionActive;
+    private Coroutine timedGameplayActionCoroutine;
+    private System.Action timedGameplayActionOnCancelled;
+
+    /// <summary>Cancels corpse search without affecting item-use/reload routines.</summary>
+    public bool CancelTimedGameplayAction()
+    {
+        if (!timedGameplayActionActive) return false;
+
+        if (timedGameplayActionCoroutine != null)
+            StopCoroutine(timedGameplayActionCoroutine);
+
+        timedGameplayActionCoroutine = null;
+        timedGameplayActionActive = false;
+        if (actionBarPanel != null) actionBarPanel.SetActive(false);
+        isDoingAction = false;
+
+        System.Action onCancelled = timedGameplayActionOnCancelled;
+        timedGameplayActionOnCancelled = null;
+        onCancelled?.Invoke();
+        return true;
+    }
+
+    private IEnumerator TimedGameplayActionRoutine(
+        string label,
+        float duration,
+        System.Action onCompleted)
+    {
+        timedGameplayActionActive = true;
+        isDoingAction = true;
+        actionBarPanel.SetActive(true);
+        actionBarFill.fillAmount = 0f;
+        if (edgeGlowRt != null) edgeGlowRt.anchoredPosition = new Vector2(2f, 0f);
+
+        EnsureLocalPlayer();
+        Transform actionActor = localPlayer != null ? localPlayer.transform : null;
+        Vector2 actionStartPosition = actionActor != null ? actionActor.position : Vector2.zero;
+        int actionStartFrame = Time.frameCount;
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            // Ignore the E that started the action. Any later E starts the
+            // current search over from the beginning.
+            if (Time.frameCount > actionStartFrame && Input.GetKeyDown(KeyCode.E))
+            {
+                timer = 0f;
+                actionStartFrame = Time.frameCount;
+                if (actionActor != null) actionStartPosition = actionActor.position;
+                actionBarFill.fillAmount = 0f;
+                if (edgeGlowRt != null) edgeGlowRt.anchoredPosition = new Vector2(2f, 0f);
+            }
+
+            timer += Time.deltaTime;
+            float progress = Mathf.Clamp01(timer / duration);
+            actionBarFill.fillAmount = progress;
+            if (edgeGlowRt != null)
+                edgeGlowRt.anchoredPosition = new Vector2(2f + progress * GetActionBarInnerWidth(), 0f);
+
+            actionBarText.text = $"{label}... {Mathf.Max(0f, duration - timer):F1}s";
+
+            // Position monitoring also catches knockback/physics displacement
+            // when the player did not press a movement key.
+            bool actorWasDisplaced = actionActor != null &&
+                ((Vector2)actionActor.position - actionStartPosition).sqrMagnitude > 0.0004f;
+            if (Input.GetKey(KeyCode.LeftShift) || actorWasDisplaced ||
+                Mathf.Abs(Input.GetAxisRaw("Horizontal")) > 0.1f ||
+                Mathf.Abs(Input.GetAxisRaw("Vertical")) > 0.1f)
+            {
+                FinishTimedGameplayActionAsCancelled();
+                yield break;
+            }
+
+            yield return null;
+        }
+
+        actionBarPanel.SetActive(false);
+        isDoingAction = false;
+        timedGameplayActionActive = false;
+        timedGameplayActionCoroutine = null;
+        timedGameplayActionOnCancelled = null;
+        onCompleted?.Invoke();
+    }
+
+    private void FinishTimedGameplayActionAsCancelled()
+    {
+        if (actionBarPanel != null) actionBarPanel.SetActive(false);
+        isDoingAction = false;
+        timedGameplayActionActive = false;
+        timedGameplayActionCoroutine = null;
+
+        System.Action onCancelled = timedGameplayActionOnCancelled;
+        timedGameplayActionOnCancelled = null;
+        onCancelled?.Invoke();
+    }
     #endregion
 
     #region Quản Lý Context Menu & Tooltip
@@ -2308,6 +2430,7 @@ public class AutoUIManager : MonoBehaviour
 
     public void ForceShowInventoryOnly()
     {
+        CancelTimedGameplayAction();
         if (inventoryPanel != null && !inventoryPanel.activeSelf)
         {
             inventoryPanel.SetActive(true);

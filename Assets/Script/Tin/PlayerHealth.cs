@@ -313,6 +313,9 @@ public class PlayerHealth : NetworkBehaviour
 
         if (isDead && !isTransforming) return;
 
+        if (damage > 0f)
+            RPC_CancelCorpseSearchForDamage();
+
         currentHealth -= damage;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         ApplyTutorialHealthFloor();
@@ -375,6 +378,12 @@ public class PlayerHealth : NetworkBehaviour
     private void RPC_RequestTakeDamage(float damage, NetworkBool isStarving, NetworkBool isZombieAttack)
     {
         TakeDamage(damage, isStarving, isZombieAttack);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_CancelCorpseSearchForDamage()
+    {
+        AutoUIManager.Instance?.CancelTimedGameplayAction();
     }
 
     private void ApplyTutorialHealthFloor()

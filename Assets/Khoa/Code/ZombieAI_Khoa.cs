@@ -187,8 +187,20 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         zombieFilter.SetLayerMask(zombieMask);
     }
 
+    private void SetBodyCollisionEnabled(bool enabled)
+    {
+        if (myCol != null && myCol.enabled != enabled)
+        {
+            myCol.enabled = enabled;
+        }
+    }
+
     public override void Spawned()
     {
+        // Collider2D.enabled is local-only in Fusion. Restore it when this
+        // network object is spawned/reused; Render keeps it synced afterward.
+        SetBodyCollisionEnabled(!NetIsDead);
+
         // Tutorial actors are pooled from the same prefab as normal zombies.
         // Explicitly clear the Animator's death parameter so a reused/default
         // controller state can never show the corpse pose on its first frame.
@@ -658,6 +670,10 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
     public override void Render()
     {
+        // The Host's Collider2D.enabled change is not replicated automatically.
+        // Apply the replicated death state locally on every peer.
+        SetBodyCollisionEnabled(!NetIsDead);
+
         if (anim != null)
         {
             smoothMoveX = Mathf.Lerp(smoothMoveX, NetMoveDir.x, Time.deltaTime * 12f);
@@ -826,7 +842,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         NetIsDead = true;
 
         StopMovement();
-        myCol.enabled = false;
+        SetBodyCollisionEnabled(false);
 
         if (shooter != PlayerRef.None)
         {
@@ -842,11 +858,13 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             }
         }
 
+        GetComponent<ZombieCorpseLoot>()?.MarkAsCorpse();
         StartCoroutine(VanishRoutine());
     }
 
     private IEnumerator VanishRoutine()
     {
+        if (GetComponent<ZombieCorpseLoot>() != null) yield break;
         yield return new WaitForSeconds(5f);
         if (HasStateAuthority) Runner.Despawn(Object);
     }
