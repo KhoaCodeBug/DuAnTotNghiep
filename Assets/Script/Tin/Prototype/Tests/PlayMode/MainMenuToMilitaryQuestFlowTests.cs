@@ -676,6 +676,130 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "Quest journal/map modal overlaps gameplay immediately after Main loads.");
     }
 
+    [UnityTest]
+    [Timeout(180000)]
+    public IEnumerator RouteBDebugFlowRunsFromMainMenuThroughMilitaryExtractionWithoutLootContainers()
+    {
+        yield return ShutdownExistingRunners();
+        PlayerPrefs.SetInt("GameLanguage", 1);
+        AsyncOperation loadMenu = SceneManager.LoadSceneAsync(0);
+        while (!loadMenu.isDone) yield return null;
+
+        yield return WaitForActiveButton("SOLO", 15f);
+        InvokeButton("SOLO");
+        yield return WaitForActiveButton("EASY", 10f);
+        InvokeButton("EASY");
+        yield return WaitForActiveButton("ENTER THE DEAD ZONE", 10f);
+        InvokeButton("ENTER THE DEAD ZONE");
+
+        float sceneDeadline = Time.realtimeSinceStartup + 60f;
+        while (SceneManager.GetActiveScene().buildIndex != 1 && Time.realtimeSinceStartup < sceneDeadline)
+            yield return null;
+        Assert.That(SceneManager.GetActiveScene().buildIndex, Is.EqualTo(1));
+
+        Type mainType = Type.GetType("MainQuestManager, Assembly-CSharp");
+        Type militaryType = Type.GetType("MilitaryBaseQuestManager, Assembly-CSharp");
+        Assert.That(mainType, Is.Not.Null);
+        Assert.That(militaryType, Is.Not.Null);
+        Component main = null;
+        Component military = null;
+        float managersDeadline = Time.realtimeSinceStartup + 30f;
+        while (Time.realtimeSinceStartup < managersDeadline)
+        {
+            main = UnityEngine.Object.FindFirstObjectByType(mainType) as Component;
+            military = UnityEngine.Object.FindFirstObjectByType(militaryType) as Component;
+            if (main != null && military != null && ReadBool(main, "IsNetworkReady") &&
+                ReadBool(military, "IsNetworkReady")) break;
+            yield return null;
+        }
+        Assert.That(main, Is.Not.Null);
+        Assert.That(military, Is.Not.Null);
+        Assert.That(ReadBool(main, "HasStateAuthority"), Is.True);
+        Assert.That(ReadBool(military, "HasStateAuthority"), Is.True);
+
+        MethodInfo advanceStory = mainType.GetMethod("DebugAdvanceRouteB");
+        MethodInfo advanceBase = militaryType.GetMethod("DebugAdvanceMilitaryRoute");
+        Assert.That(advanceStory, Is.Not.Null);
+        Assert.That(advanceBase, Is.Not.Null);
+
+        // B0: debug inspection still lets the authoritative bridge choose the
+        // real shared neighborhood; no quest LootContainer transaction is used.
+        advanceStory.Invoke(main, null);
+        float neighborhoodDeadline = Time.realtimeSinceStartup + 15f;
+        while (ReadProperty(main, "CurrentStage").ToString() == "NotStarted" &&
+               Time.realtimeSinceStartup < neighborhoodDeadline)
+            yield return null;
+        Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("SearchNeighborhood"));
+
+        // B1: three presses simulate the three document pickups one by one so
+        // Cue 03, 04 and 05 all pass through their production presentation path.
+        advanceStory.Invoke(main, null);
+        advanceStory.Invoke(main, null);
+        advanceStory.Invoke(main, null);
+        Assert.That((int)ReadProperty(main, "RouteClueCount"), Is.EqualTo(3));
+        Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("LocateOffice"));
+
+        // B2–B3: hospital marker path; it deliberately does not require a
+        // LootContainer until the authored hospital props are ready.
+        advanceStory.Invoke(main, null);
+        Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("FindCityMap"));
+        advanceStory.Invoke(main, null);
+        advanceStory.Invoke(main, null);
+        advanceStory.Invoke(main, null);
+        Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("CityMapFound"));
+        Assert.That(ReadBool(main, "IsCityMapUnlocked"), Is.True);
+        Assert.That(ReadProperty(main, "LockedEscapeRoute").ToString(), Is.EqualTo("None"),
+            "The second tracking choice must not lock an ending.");
+
+        QuestFlowUIPrototype journal = UnityEngine.Object.FindFirstObjectByType<QuestFlowUIPrototype>(
+            FindObjectsInactive.Include);
+        float militaryMarkerDeadline = Time.realtimeSinceStartup + 5f;
+        while (journal != null && !journal.IsMapMilitaryDestinationVisible &&
+               Time.realtimeSinceStartup < militaryMarkerDeadline)
+            yield return null;
+        Assert.That(journal, Is.Not.Null);
+        Assert.That(journal.IsMapMilitaryDestinationVisible, Is.True,
+            "Fragment 2 must replace the active hospital destination with the military-base marker.");
+
+        Type minimapType = Type.GetType("MinimapController, Assembly-CSharp");
+        Assert.That(minimapType, Is.Not.Null);
+        Component minimap = UnityEngine.Object.FindFirstObjectByType(minimapType,
+            FindObjectsInactive.Include) as Component;
+        Assert.That(minimap, Is.Not.Null);
+        Assert.That(minimap.GetComponent<Canvas>().enabled, Is.False,
+            "Unlocking the full mission map must not enable the corner minimap.");
+
+        // B4: approach. B5 keeps the final confirmation in production; the
+        // test invokes its confirmed callback directly after checking no prior lock.
+        advanceBase.Invoke(military, null);
+        Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("Investigating"));
+        MethodInfo confirmFinale = militaryType.GetMethod("DebugConfirmMilitaryFinale",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(confirmFinale, Is.Not.Null);
+        confirmFinale.Invoke(military, null);
+        Assert.That(ReadProperty(main, "LockedEscapeRoute").ToString(), Is.EqualTo("MilitaryEvacuation"));
+        Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("SiegeAndRepair"));
+
+        // B6: generator → test parts → repaired vehicle.
+        advanceBase.Invoke(military, null);
+        Assert.That(ReadBool(military, "IsGeneratorActive"), Is.True);
+        advanceBase.Invoke(military, null);
+        Assert.That(ReadBool(military, "HasAllParts"), Is.True);
+        advanceBase.Invoke(military, null);
+        Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("ReadyToEscape"));
+
+        // B7: extraction and authoritative journal completion.
+        advanceBase.Invoke(military, null);
+        Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("Escaped"));
+        float journalDeadline = Time.realtimeSinceStartup + 5f;
+        while (journal != null && !journal.IsMainQuestComplete && Time.realtimeSinceStartup < journalDeadline)
+            yield return null;
+        Assert.That(journal, Is.Not.Null);
+        Assert.That(journal.IsMainQuestComplete, Is.True,
+            "Journal must complete Route B only after military extraction.");
+        Assert.That(journal.MilitaryPresentationPhase, Is.EqualTo(RouteBMilitaryPresentationPhase.Escaped));
+    }
+
     private static IEnumerator WaitForActiveButton(string label, float seconds)
     {
         float deadline = Time.realtimeSinceStartup + seconds;

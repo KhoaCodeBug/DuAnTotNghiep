@@ -1,6 +1,30 @@
-# MainPlay — Vehicle Repair Gameplay Update
+# MainPlay — Gameplay và Tuyến B Handoff
 
-Tài liệu này chỉ tổng kết các chức năng, cải tiến và thay đổi được triển khai trong phiên cập nhật gameplay sửa xe cảnh sát.
+Đây là file bàn giao chính dành cho người pull nhánh về tiếp tục phát triển. Tài liệu tổng kết gameplay sửa xe, flow Tuyến B, các quyết định thiết kế đã chốt, phần đang tạm hoãn và cách kiểm tra trạng thái hiện tại.
+
+## Đọc nhanh sau khi pull — cập nhật 2026-08-24
+
+1. Mở project bằng Unity `6000.0.69f1`.
+2. Khi kiểm thử flow thật, luôn bắt đầu từ scene `MainMenu`, chọn chơi đơn rồi để hệ thống chuyển sang `Main`; không chạy thẳng `Main` vì player và trạng thái network có thể không được khởi tạo đúng.
+3. Tuyến B hiện đã có flow test từ Main Menu tới Ending B mà không cần LootContainer. Các phím/CheatMenu phát triển chỉ mô phỏng state nhiệm vụ và không tạo hoặc sửa loot thật.
+4. Không triển khai phần nhiệm vụ phụ thuộc LootContainer tại bệnh viện/căn cứ cho tới khi chủ dự án xác nhận container đã setup xong.
+5. Hai lần chọn Tuyến A/B chỉ đổi tuyến đang theo dõi. Ending B chỉ bị khóa authoritative tại bước xác nhận kích hoạt báo động ở căn cứ.
+6. Prompt `Giữ E` trong Khu Điều phối đã chốt phương án C: nằm dưới vùng objective phía trên, hiển thị như thẻ tương tác riêng và không dùng bố cục mission toast.
+
+### Thay đổi UI mới nhất
+
+- Thẻ tương tác có ô `[E]` màu cam, nhãn loại `TƯƠNG TÁC • GIỮ PHÍM`, hành động ở dòng thứ hai, nền xanh-đen và sọc cam bên trái.
+- Nội dung tự đổi Việt/Anh cho từng client: bàn điều phối, radio, tủ hồ sơ và trạng thái đang kiểm tra.
+- Prompt tự ẩn khi đang có hội thoại, bảng chọn tuyến, Nhật ký, bản đồ hoặc modal UI khác; khi đóng UI, prompt chỉ hiện lại nếu local player vẫn đứng đúng vùng tương tác.
+- Ảnh kiểm tra thật ở độ phân giải Game View 1920×1080: `Captures/hold-e-option-c-improved-interaction-card.png`.
+- Code chính: `Assets/Script/Tin/MainQuest/MainQuestSearchCabinet.cs`, `Assets/Script/Tin/MainQuest/MainQuestManager.cs` và `Assets/Script/Tin/GameLocalization.cs`.
+
+### Trạng thái kiểm thử hiện tại
+
+- EditMode toàn project: `82/82` test đạt.
+- PlayMode: `MainMenuToMilitaryQuestFlowTests.RouteBDebugFlowRunsFromMainMenuThroughMilitaryExtractionWithoutLootContainers` đạt `1/1`.
+- Unity Console sau kiểm thử: `0` error.
+- Cảnh báo glyph `✦` của `LiberationSans SDF` và cảnh báo Photon Voice `TransmitEnabled=false` vẫn có thể xuất hiện trong log test; đây không phải compile error và không làm test thất bại.
 
 ## Gameplay sửa xe cảnh sát
 
@@ -88,3 +112,12 @@ Tài liệu này chỉ tổng kết các chức năng, cải tiến và thay đ�
 
 - Hạng mục plan số 4 cũ đã được loại khỏi danh sách triển khai tiếp theo.
 - Chưa bổ sung spawn loot dùng chung cho Tuyến A/B. Phần này được giữ lại cho tới khi khu Văn phòng hoàn thiện và có xác nhận mới từ chủ dự án.
+
+## Cập nhật Tuyến B — Mảnh bản đồ quân sự
+
+- Phần thưởng sau Cue 09 là `Mảnh bản đồ 2 — Tuyến quân sự`, dùng cùng art giấy rách với Mảnh 1; không còn lấy nguyên raster map làm ảnh phần thưởng.
+- Sau thẻ thưởng, map tự mở, camera map tập trung vào căn cứ và vùng quân sự được mở sáng bằng hiệu ứng scan. Các khu chưa khám phá vẫn đen hoàn toàn; không mở full map.
+- Khi Mảnh 2 đã được nhận, marker bệnh viện/Khu Điều phối được gỡ khỏi map và chỉ còn marker căn cứ quân sự.
+- Sau khi map reveal kết thúc, map đóng rồi mới chạy cinematic ngoài thế giới và bảng chọn tuyến lần hai.
+- Prompt tương tác bệnh viện đã dùng policy UI chung nên không còn hiện đè sau hội thoại, bảng chọn tuyến, Journal hoặc map.
+- Chủ dự án đã chọn phương án C. Prompt production nằm cố định dưới vùng objective phía trên và được đổi thành thẻ tương tác riêng: ô phím `[E]` màu cam, nhãn nhỏ `TƯƠNG TÁC • GIỮ PHÍM`, nội dung hành động ở dòng hai, nền xanh-đen và sọc cam bên trái. Thiết kế này tránh nhầm với mission toast. Ảnh Game View thực tế: `Captures/hold-e-option-c-improved-interaction-card.png`.

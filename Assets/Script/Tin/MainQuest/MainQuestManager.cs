@@ -127,6 +127,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     public bool IsNeighborhoodSearchActive => IsNetworkReady && CurrentStage == QuestStage.SearchNeighborhood;
     public int SearchedHouseCount => CountBits(SearchedHouseMask);
     public int RouteClueCount => CountBits(RouteClueMask);
+    public int CurrentOfficeInvestigationStep => GetCurrentOfficeInvestigationStep();
     public bool HasMapFragment1 => RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues;
     public bool AreArrivalCarRequiredRepairsComplete => IsNetworkReady &&
         ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask);
@@ -203,8 +204,6 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void Update()
     {
         ApplyMapAccess();
-        if (Input.GetKeyDown(KeyCode.F7))
-            RequestDebugCompleteClueSearch();
 #if UNITY_EDITOR
         if (Input.GetKeyDown(KeyCode.F8))
             EditorGrantMissingArrivalCarRepairItems();
@@ -216,7 +215,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     /// objective. Clients forward the request to State Authority so F7 behaves
     /// consistently in Solo, Host and multiplayer builds.
     /// </summary>
-    private void RequestDebugCompleteClueSearch()
+    public void DebugCompleteClueSearch()
     {
         if (!IsNetworkReady)
         {
@@ -228,6 +227,158 @@ public sealed class MainQuestManager : NetworkBehaviour
             ServerDebugCompleteClueSearch(Runner.LocalPlayer);
         else
             RPC_RequestDebugCompleteClueSearch();
+    }
+
+    /// <summary>
+    /// Host/Solo development helper. It moves only the local authoritative
+    /// player and intentionally refuses objectives backed by LootContainers.
+    /// </summary>
+    public void DebugTeleportToCurrentObjective()
+    {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+        return;
+#else
+        if (!IsNetworkReady || !HasStateAuthority ||
+            !TryGetRequestingPlayer(Runner.LocalPlayer, out PlayerMovement player))
+        {
+            Debug.LogWarning("[QUEST TEST] F12 cần Solo/Host và player local đã spawn.");
+            return;
+        }
+
+        Vector2 destination;
+        string targetName;
+        switch (CurrentStage)
+        {
+            case QuestStage.NotStarted:
+                if (BrokenArrivalCar.Instance == null)
+                {
+                    Debug.LogWarning("[QUEST TEST] Không tìm thấy xe hỏng đầu game.");
+                    return;
+                }
+                destination = BrokenArrivalCar.Instance.InspectionZoneWorldCenter;
+                targetName = "vùng kiểm tra xe đầu game";
+                break;
+
+            case QuestStage.SearchNeighborhood:
+                Debug.LogWarning("[QUEST TEST] F12 không dịch chuyển: mục tiêu hiện tại cần tìm hồ sơ trong LootContainer.");
+                AutoChatManager.Instance?.AddMessage("QUEST TEST",
+                    "F12 bị bỏ qua: nhiệm vụ tìm hồ sơ dùng LootContainer.");
+                return;
+
+            case QuestStage.LocateOffice:
+                MainQuestStartTrigger office = FindFirstObjectByType<MainQuestStartTrigger>();
+                if (office == null)
+                {
+                    Debug.LogWarning("[QUEST TEST] Không tìm thấy vùng Khu Điều phối.");
+                    return;
+                }
+                destination = office.transform.position;
+                targetName = "Khu Điều phối trong bệnh viện";
+                break;
+
+            case QuestStage.FindCityMap:
+                if (!MainQuestSearchCabinet.TryGet(MapCabinetId, out MainQuestSearchCabinet cabinet))
+                {
+                    Debug.LogWarning("[QUEST TEST] Không tìm thấy điểm điều tra hiện tại trong bệnh viện.");
+                    return;
+                }
+                destination = (Vector2)cabinet.transform.position + new Vector2(0f, -0.45f);
+                targetName = GetCurrentOfficeInteractionLabel();
+                break;
+
+            case QuestStage.CityMapFound:
+                MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+                if (military == null || !military.IsNetworkReady)
+                {
+                    Debug.LogWarning("[QUEST TEST] Hệ thống căn cứ quân sự chưa sẵn sàng.");
+                    return;
+                }
+                military.DebugTeleportToCurrentObjective();
+                return;
+
+            default:
+                return;
+        }
+
+        DebugTeleportPlayer(player, destination);
+        Debug.Log($"[QUEST TEST] F12: đã dịch chuyển tới {targetName}.");
+        AutoChatManager.Instance?.AddMessage("QUEST TEST", $"Đã dịch chuyển tới {targetName}.");
+#endif
+    }
+
+    private static void DebugTeleportPlayer(PlayerMovement player, Vector2 destination)
+    {
+        PlayerInteraction interaction = player != null ? player.GetComponent<PlayerInteraction>() : null;
+        if (interaction != null && interaction.IsInVehicle)
+        {
+            VehicleControllerFusion vehicle = interaction.CurrentVehicleController;
+            bool exited = vehicle != null && vehicle.AuthorityTryExit(player.Object);
+            if (!exited)
+                interaction.SetVehicleNetworkState(null, false, false, 0, destination);
+        }
+        TeleportPlayer(player, destination);
+        Physics2D.SyncTransforms();
+    }
+
+    /// <summary>
+    /// Developer-only presentation path used by F6/CheatMenu. It advances one
+    /// authoritative Route-B beat without creating or modifying LootContainers.
+    /// Natural gameplay continues to use the validated interaction methods.
+    /// </summary>
+    public void DebugAdvanceRouteB()
+    {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+        return;
+#else
+        if (!IsNetworkReady || !HasStateAuthority)
+        {
+            Debug.LogWarning("[QUEST TEST] NEXT ROUTE B chỉ dùng được trên Solo/Host đang có authority.");
+            return;
+        }
+
+        PlayerRef requester = Runner.LocalPlayer;
+        switch (CurrentStage)
+        {
+            case QuestStage.NotStarted:
+                if (!IsArrivalCarInspected)
+                {
+                    IsArrivalCarInspected = true;
+                    RPC_ShowArrivalCarInspected(requester);
+                    Debug.Log("[QUEST TEST] F6: đã hoàn tất kiểm tra xe. Chờ khu dân cư khởi tạo rồi nhấn F6 tiếp.");
+                }
+                break;
+
+            case QuestStage.SearchNeighborhood:
+                for (int clueIndex = 0; clueIndex < PreMilitaryQuestProgress.RequiredRouteClues; clueIndex++)
+                {
+                    int bit = 1 << clueIndex;
+                    if ((RouteClueMask & bit) != 0) continue;
+                    AuthorityRegisterRouteClue((QuestRouteClueKind)clueIndex, requester, false);
+                    Debug.Log($"[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B {clueIndex + 1}/3, không đụng LootContainer.");
+                    return;
+                }
+                break;
+
+            case QuestStage.LocateOffice:
+                AuthorityStartOfficeInvestigation(requester);
+                Debug.Log("[QUEST TEST] F6: mô phỏng đã tới Khu Điều phối trong bệnh viện.");
+                break;
+
+            case QuestStage.FindCityMap:
+                if (MapCabinetId != 0)
+                {
+                    AuthorityCompleteOfficeStep(MapCabinetId, requester);
+                    Debug.Log("[QUEST TEST] F6: hoàn tất một điểm điều tra bệnh viện bằng marker test.");
+                }
+                break;
+
+            case QuestStage.CityMapFound:
+                Debug.Log("[QUEST TEST] Nửa đầu Tuyến B đã xong. Dùng F10 hoặc CheatMenu để chạy phần căn cứ.");
+                RPC_ShowDebugShortcutMessage(requester,
+                    "Đã mở tuyến quân sự. Dùng F10 hoặc CheatMenu để chạy nhiệm vụ căn cứ.");
+                break;
+        }
+#endif
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -593,7 +744,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     /// <summary>Called only by the authoritative loot transaction.</summary>
-    public void AuthorityRegisterRouteClue(QuestRouteClueKind kind, PlayerRef focusPlayer)
+    public void AuthorityRegisterRouteClue(QuestRouteClueKind kind, PlayerRef focusPlayer,
+        bool consumeCollectedDocuments = true)
     {
         if (!IsNetworkReady || !HasStateAuthority || CurrentStage == QuestStage.CityMapFound) return;
         int bit = 1 << (int)kind;
@@ -607,7 +759,8 @@ public sealed class MainQuestManager : NetworkBehaviour
             RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SecondEvacuationDocument, focusPlayer);
         if (RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues)
         {
-            ConsumeCollectedRouteCluesAuthoritatively();
+            if (consumeCollectedDocuments)
+                ConsumeCollectedRouteCluesAuthoritatively();
             NetworkQuestStage = (int)QuestStage.LocateOffice;
             RPC_ShowAllRouteCluesFound(focusPlayer);
         }
@@ -747,6 +900,13 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (!MainQuestStartTrigger.TryGet(triggerId, out MainQuestStartTrigger trigger) || trigger == null) return;
         if (!TryGetRequestingPlayer(requester, out PlayerMovement player) || !trigger.Contains(player.transform.position)) return;
 
+        AuthorityStartOfficeInvestigation(requester);
+    }
+
+    private void AuthorityStartOfficeInvestigation(PlayerRef requester)
+    {
+        if (!HasStateAuthority || CurrentStage != QuestStage.LocateOffice) return;
+
         MainQuestSearchCabinet[] allCabinets = FindObjectsByType<MainQuestSearchCabinet>(
             FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         List<MainQuestSearchCabinet> validCabinets = new List<MainQuestSearchCabinet>(allCabinets.Length);
@@ -796,6 +956,15 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         if (cabinetId != MapCabinetId) return;
 
+        AuthorityCompleteOfficeStep(cabinetId, requester);
+    }
+
+    private void AuthorityCompleteOfficeStep(int cabinetId, PlayerRef requester)
+    {
+        if (!HasStateAuthority || !IsMapSearchActive || cabinetId == 0 || cabinetId != MapCabinetId) return;
+        int cabinetIndex = GetCabinetIndex(cabinetId);
+        if (cabinetIndex >= 0 && (CheckedCabinetMask & (1 << cabinetIndex)) != 0) return;
+
         List<MainQuestSearchCabinet> investigationOrder = BuildOfficeInvestigationOrder(
             FindObjectsByType<MainQuestSearchCabinet>(FindObjectsInactive.Exclude, FindObjectsSortMode.None));
         int investigationStep = investigationOrder.FindIndex(point => point.CabinetId == cabinetId);
@@ -835,26 +1004,36 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     public string GetCurrentOfficeInteractionLabel()
     {
+        string action = GetCurrentOfficeInteractionActionLabel();
+        return QuestUILocalization.IsVietnamese
+            ? $"GIỮ [E] ĐỂ {action}"
+            : $"HOLD [E] TO {action}";
+    }
+
+    public string GetCurrentOfficeInteractionActionLabel()
+    {
         int step = GetCurrentOfficeInvestigationStep();
-        return step switch
+        string key = step switch
         {
-            0 => "GIỮ [E] ĐỂ KIỂM TRA BÀN ĐIỀU PHỐI",
-            1 => "GIỮ [E] ĐỂ KIỂM TRA RADIO",
-            2 => "GIỮ [E] ĐỂ MỞ TỦ HỒ SƠ",
-            _ => "GIỮ [E] ĐỂ KIỂM TRA"
+            0 => "quest.office_action_dispatch",
+            1 => "quest.office_action_radio",
+            2 => "quest.office_action_cabinet",
+            _ => "quest.office_action_generic"
         };
+        return GameLocalization.Get(key);
     }
 
     public string GetCurrentOfficeProgressLabel()
     {
         int step = GetCurrentOfficeInvestigationStep();
-        return step switch
+        string key = step switch
         {
-            0 => "ĐANG KIỂM TRA BÀN ĐIỀU PHỐI...",
-            1 => "ĐANG KHÔI PHỤC BẢN GHI RADIO...",
-            2 => "ĐANG MỞ TỦ HỒ SƠ...",
-            _ => "ĐANG KIỂM TRA..."
+            0 => "quest.office_progress_dispatch",
+            1 => "quest.office_progress_radio",
+            2 => "quest.office_progress_cabinet",
+            _ => "quest.office_progress_generic"
         };
+        return GameLocalization.Get(key);
     }
 
     private int GetCurrentOfficeInvestigationStep()
@@ -1306,7 +1485,10 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         bool unlocked = IsNetworkReady && IsCityMapUnlocked;
         if (cachedMapController != null) cachedMapController.SetMapUnlocked(unlocked);
-        if (cachedMinimapController != null) cachedMinimapController.SetMapUnlocked(unlocked);
+        // Route B unlocks the full mission map only. The corner minimap is a
+        // separate exploration aid and must not suddenly appear after the
+        // hospital investigation.
+        if (cachedMinimapController != null) cachedMinimapController.SetMapUnlocked(false);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1419,9 +1601,23 @@ public sealed class MainQuestManager : NetworkBehaviour
             else
                 RouteBRadioBroadcastUI.ShowCue(
                     RouteBAudioCueId.MilitaryRouteRevealed,
-                    EscapeRouteDecisionUI.ShowPreMilitaryChoice);
+                    ShowMilitaryMapRewardThenReveal);
         }
         ShowLocalQuestEvent(title, body);
+    }
+
+    private void ShowMilitaryMapRewardThenReveal()
+    {
+        QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
+        if (flow != null)
+        {
+            flow.PlayMilitaryMapRewardAfterDialogue(
+                () => flow.PlayMilitaryMapReveal(
+                    () => BeginLocalMilitaryReveal(EscapeRouteDecisionUI.ShowPreMilitaryChoice)));
+            return;
+        }
+
+        BeginLocalMilitaryReveal(EscapeRouteDecisionUI.ShowPreMilitaryChoice);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1509,8 +1705,17 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayMilitaryZoneReveal()
     {
+        BeginLocalMilitaryReveal();
+    }
+
+    public void BeginLocalMilitaryReveal(System.Action onFinished = null)
+    {
         PreMilitaryQuestRuntimeBridge.NotifyMapFragment2Found();
-        if (khuVucQuanSuFocus == null || PZ_CameraController.Instance == null) return;
+        if (khuVucQuanSuFocus == null || PZ_CameraController.Instance == null)
+        {
+            onFinished?.Invoke();
+            return;
+        }
 
         // Dọn các bảng phủ màn hình để mọi client đều thực sự nhìn thấy cùng cutscene.
         AutoTabManager.Instance?.ShowTabs(false);
@@ -1523,14 +1728,19 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (AutoHealthPanel.Instance != null) AutoHealthPanel.Instance.SetOpenState(false);
 
         if (focusRoutine != null) StopCoroutine(focusRoutine);
-        focusRoutine = StartCoroutine(FocusMilitaryZoneRoutine());
+        focusRoutine = StartCoroutine(FocusMilitaryZoneRoutine(onFinished));
     }
 
-    private IEnumerator FocusMilitaryZoneRoutine()
+    private IEnumerator FocusMilitaryZoneRoutine(System.Action onFinished)
     {
         PZ_CameraController cameraController = PZ_CameraController.Instance;
         Transform initialTarget = cameraController != null ? cameraController.CurrentTarget : null;
-        if (cameraController == null || initialTarget == null || khuVucQuanSuFocus == null) yield break;
+        if (cameraController == null || initialTarget == null || khuVucQuanSuFocus == null)
+        {
+            focusRoutine = null;
+            onFinished?.Invoke();
+            yield break;
+        }
 
         localFadeAlpha = 0f;
         localClueNoticeAlpha = 0f;
@@ -1576,6 +1786,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         localClueNoticeAlpha = 0f;
         localLocationTitleAlpha = 0f;
         focusRoutine = null;
+        onFinished?.Invoke();
     }
 
     private IEnumerator ShowClueNotice(float duration)
@@ -1662,20 +1873,26 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         if (!showBuiltInQuestHud || TutorialSession.IsActive) return;
 
-        if (CurrentStage == QuestStage.CityMapFound && !IsQuestCutsceneActive && localFadeAlpha < 0.001f)
+        QuestFlowUIPrototype journal = QuestFlowUIPrototype.Instance;
+        if (CurrentStage == QuestStage.CityMapFound && !IsQuestCutsceneActive && localFadeAlpha < 0.001f &&
+            (journal == null || journal.TrackedEscapeRoute != EscapeEndingRoute.CivilianCar))
             DrawMilitaryDirectionMarker();
 
         bool isPreMilitaryObjective = CurrentStage == QuestStage.SearchNeighborhood ||
                                       CurrentStage == QuestStage.LocateOffice ||
                                       CurrentStage == QuestStage.FindCityMap;
         string objective;
-        QuestFlowUIPrototype journal = QuestFlowUIPrototype.Instance;
         if (isPreMilitaryObjective && journal != null)
         {
             // The journal's Follow button owns HUD visibility. This gives the
             // click an immediate gameplay effect instead of being cosmetic only.
             if (!journal.TryGetTrackedObjectiveText(out objective))
                 return;
+        }
+        else if (CurrentStage == QuestStage.CityMapFound && journal != null &&
+                 journal.TryGetTrackedObjectiveText(out string trackedMilitaryObjective))
+        {
+            objective = trackedMilitaryObjective;
         }
         else
         {

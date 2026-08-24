@@ -138,7 +138,7 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
         RectTransform military = CreateRouteCard(panel, "Military Route Card", new Vector2(292f, -35f),
             new Color(0.16f, 0.13f, 0.19f, 1f), "TUYẾN B  //  TUYẾN CỐT TRUYỆN",
             "LẦN THEO TÍN HIỆU QUÂN SỰ",
-            "Thu thập tài liệu sơ tán, tìm Văn phòng Điều phối và lần theo bản đồ tới căn cứ quân sự.",
+            "Thu thập tài liệu sơ tán, tìm Khu Điều phối trong bệnh viện và lần theo bản đồ tới căn cứ quân sự.",
             "CỐT TRUYỆN DÀI  •  NGUY HIỂM CAO  •  MỞ CĂN CỨ QUÂN SỰ",
             "[2]  THEO DÕI TUYẾN QUÂN SỰ");
         military.GetComponent<Button>().onClick.AddListener(() => TrackRoute(EscapeEndingRoute.MilitaryEvacuation));
@@ -251,17 +251,17 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
         if (introductionRoot == null) return;
         bool vi = GameLocalization.IsVietnamese;
         SetText("Introduction Eyebrow", preMilitaryChoice
-            ? vi ? "TRƯỚC KHI ĐẾN CĂN CỨ  //  XÁC NHẬN HƯỚNG ƯU TIÊN"
-                 : "BEFORE THE BASE  //  CONFIRM YOUR PRIORITY"
+            ? vi ? "ĐÃ MỞ TUYẾN QUÂN SỰ  //  CẬP NHẬT MỤC TIÊU THEO DÕI"
+                 : "MILITARY ROUTE UNLOCKED  //  UPDATE TRACKED OBJECTIVE"
             : vi ? "SAU TÍN HIỆU RADIO  //  HAI HƯỚNG THOÁT"
                  : "AFTER THE RADIO SIGNAL  //  TWO ESCAPE ROUTES");
         SetText("Introduction Title", preMilitaryChoice
-            ? vi ? "BẠN MUỐN TIẾP TỤC THEO TUYẾN NÀO?" : "WHICH ROUTE WILL YOU CONTINUE?"
+            ? vi ? "BẠN MUỐN THEO DÕI MỤC TIÊU NÀO?" : "WHICH OBJECTIVE DO YOU WANT TO TRACK?"
             : vi ? "BẠN SẼ CHUẨN BỊ THEO HƯỚNG NÀO?" : "WHICH ROUTE WILL YOU PREPARE FOR?");
         SetText("Introduction Body", preMilitaryChoice
             ? vi
-                ? "Đường tới căn cứ quân sự đã được xác định. Đây là lần chọn ưu tiên cuối trước khi tiến gần khu quân sự; lựa chọn kết thúc chỉ được khóa tại hành động cuối của từng tuyến."
-                : "The road to the military base is now known. This is the last priority check before approaching the base; the ending is locked only by each route's final action."
+                ? "Bản đồ quân sự đã mở waypoint căn cứ. Lựa chọn này chỉ đổi mục tiêu và chỉ dẫn đang theo dõi trên HUD; chưa khóa hướng thoát."
+                : "The military map has unlocked the base waypoint. This choice only changes the objective and HUD guidance being tracked; it does not lock an escape route."
             : vi
                 ? "Chiếc xe vẫn có thể sửa. Đồng thời radio vừa bắt được dấu vết về tuyến sơ tán quân sự. Chọn tuyến muốn ưu tiên theo dõi; cả hai tuyến có thể được chuẩn bị song song."
                 : "The car can still be repaired, while the radio has revealed a military evacuation lead. Choose the route to prioritize; both routes can still be prepared in parallel.");
@@ -273,17 +273,17 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
             : "Find tools, fuel and parts. Repair the car, explore the civilian exits and break through the quarantine.");
         SetTextIn("Civilian Route Card", "Route Profile", vi ? "TỰ DO KHÁM PHÁ  •  PHỤ THUỘC PHƯƠNG TIỆN" : "FREE EXPLORATION  •  VEHICLE DEPENDENT");
         SetTextIn("Civilian Route Card", "Route Action", preMilitaryChoice
-            ? vi ? "[1]  QUAY LẠI CHUẨN BỊ XE DÂN SỰ" : "[1]  RETURN TO THE CIVILIAN CAR"
+            ? vi ? "[1]  THEO DÕI XE DÂN SỰ" : "[1]  TRACK THE CIVILIAN CAR"
             : vi ? "[1]  THEO DÕI TUYẾN CHIẾC XE" : "[1]  TRACK THE CAR ROUTE");
 
         SetTextIn("Military Route Card", "Route Eyebrow", vi ? "TUYẾN B  //  TUYẾN CỐT TRUYỆN" : "ROUTE B  //  STORY ROUTE");
         SetTextIn("Military Route Card", "Route Title", vi ? "LẦN THEO TÍN HIỆU QUÂN SỰ" : "FOLLOW THE MILITARY SIGNAL");
         SetTextIn("Military Route Card", "Route Body", vi
-            ? "Thu thập tài liệu sơ tán, tìm Văn phòng Điều phối và lần theo bản đồ tới căn cứ quân sự."
-            : "Collect evacuation records, locate the Coordination Office and follow the map to the military base.");
+            ? "Thu thập tài liệu sơ tán, tìm Khu Điều phối trong bệnh viện và lần theo bản đồ tới căn cứ quân sự."
+            : "Collect evacuation records, locate the hospital Coordination Section and follow the map to the military base.");
         SetTextIn("Military Route Card", "Route Profile", vi ? "CỐT TRUYỆN DÀI  •  NGUY HIỂM CAO  •  MỞ CĂN CỨ QUÂN SỰ" : "LONG STORY  •  HIGH DANGER  •  UNLOCKS THE MILITARY BASE");
         SetTextIn("Military Route Card", "Route Action", preMilitaryChoice
-            ? vi ? "[2]  TIẾP TỤC TỚI CĂN CỨ QUÂN SỰ" : "[2]  CONTINUE TO THE MILITARY BASE"
+            ? vi ? "[2]  THEO DÕI CĂN CỨ QUÂN SỰ" : "[2]  TRACK THE MILITARY BASE"
             : vi ? "[2]  THEO DÕI TUYẾN QUÂN SỰ" : "[2]  TRACK THE MILITARY ROUTE");
 
         TMP_Text later = FindText(introductionRoot, "Choose Later", "Button Label");

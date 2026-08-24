@@ -55,8 +55,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
         if (searchRoutine != null)
             return;
         if (!IsClosestCabinetForLocalPlayer(out PlayerMovement localPlayer)) return;
-        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return;
-        if (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) return;
+        if (LocalGameplayUIState.BlocksWorldInteractionHints) return;
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.isDoingAction) return;
         if (Input.GetKeyDown(KeyCode.E)) searchRoutine = StartCoroutine(SearchRoutine(localPlayer));
     }
@@ -66,6 +65,7 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsCurrentOfficeObjective(CabinetId) || manager.IsQuestCutsceneActive) return;
         if (manager.IsCabinetChecked(CabinetId)) return;
+        if (LocalGameplayUIState.BlocksWorldInteractionHints) return;
 
         Camera camera = Camera.main;
         if (camera == null) return;
@@ -82,14 +82,63 @@ public sealed class MainQuestSearchCabinet : MonoBehaviour
         GUI.Label(new Rect(screenPoint.x - 18f, Screen.height - screenPoint.y - 18f, 36f, 36f), "●", markerStyle);
 
         if (searchRoutine != null || !IsClosestCabinetForLocalPlayer(out _)) return;
-        GUIStyle promptStyle = new GUIStyle(GUI.skin.box)
+        // Option C: keep the hint near the objective area, but give it its own
+        // interaction-card language so it cannot be mistaken for a quest toast.
+        const float cardWidth = 500f;
+        const float cardHeight = 60f;
+        Rect card = new Rect(Screen.width * 0.5f - cardWidth * 0.5f, 72f, cardWidth, cardHeight);
+        DrawSolidRect(card, new Color(0.025f, 0.045f, 0.043f, 0.96f));
+        DrawSolidRect(new Rect(card.x, card.y, 4f, card.height), new Color(1f, 0.62f, 0.08f, 1f));
+        DrawCardBorder(card, new Color(0.28f, 0.39f, 0.36f, 0.95f));
+
+        Rect keyCap = new Rect(card.x + 18f, card.y + 13f, 52f, 34f);
+        DrawSolidRect(keyCap, new Color(1f, 0.62f, 0.08f, 1f));
+        GUIStyle keyStyle = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = 16,
+            fontSize = 17,
             fontStyle = FontStyle.Bold
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 185f, Screen.height - 105f, 370f, 42f),
-            manager.GetCurrentOfficeInteractionLabel(), promptStyle);
+        keyStyle.normal.textColor = new Color(0.045f, 0.04f, 0.025f, 1f);
+        GUI.Label(keyCap, "[E]", keyStyle);
+
+        GUIStyle categoryStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.UpperLeft,
+            fontSize = 10,
+            fontStyle = FontStyle.Bold
+        };
+        categoryStyle.normal.textColor = new Color(1f, 0.69f, 0.2f, 1f);
+        GUI.Label(new Rect(card.x + 86f, card.y + 8f, card.width - 104f, 18f),
+            GameLocalization.Get("quest.interaction_hold"), categoryStyle);
+
+        GUIStyle actionStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.UpperLeft,
+            fontSize = 16,
+            fontStyle = FontStyle.Bold,
+            clipping = TextClipping.Clip
+        };
+        actionStyle.normal.textColor = new Color(0.94f, 0.97f, 0.96f, 1f);
+        GUI.Label(new Rect(card.x + 86f, card.y + 25f, card.width - 104f, 26f),
+            manager.GetCurrentOfficeInteractionActionLabel(), actionStyle);
+    }
+
+    private static void DrawSolidRect(Rect rect, Color color)
+    {
+        Color previous = GUI.color;
+        GUI.color = color;
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        GUI.color = previous;
+    }
+
+    private static void DrawCardBorder(Rect rect, Color color)
+    {
+        const float thickness = 1f;
+        DrawSolidRect(new Rect(rect.x, rect.y, rect.width, thickness), color);
+        DrawSolidRect(new Rect(rect.x, rect.yMax - thickness, rect.width, thickness), color);
+        DrawSolidRect(new Rect(rect.x, rect.y, thickness, rect.height), color);
+        DrawSolidRect(new Rect(rect.xMax - thickness, rect.y, thickness, rect.height), color);
     }
 
     private IEnumerator SearchRoutine(PlayerMovement localPlayer)
