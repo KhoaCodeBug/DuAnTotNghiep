@@ -35,6 +35,25 @@ public class ZombieHealth : NetworkBehaviour
 
         spriteRend = GetComponentInChildren<SpriteRenderer>(); //hieu ung trung dan
         if (spriteRend != null) originalColor = spriteRend.color;
+
+        // Collider2D.enabled is local-only in Fusion. Restore it when this
+        // network object is spawned/reused; Render keeps it synced afterward.
+        SetBodyCollisionEnabled(!isDead);
+    }
+
+    public override void Render()
+    {
+        // The Host's Collider2D.enabled change is not replicated automatically.
+        // Apply the replicated death state locally on every peer.
+        SetBodyCollisionEnabled(!isDead);
+    }
+
+    private void SetBodyCollisionEnabled(bool enabled)
+    {
+        if (coll != null && coll.enabled != enabled)
+        {
+            coll.enabled = enabled;
+        }
     }
 
     // =======================================================
@@ -100,7 +119,7 @@ public class ZombieHealth : NetworkBehaviour
         if (isDead) return;
         isDead = true;
 
-        if (coll != null) coll.enabled = false;
+        SetBodyCollisionEnabled(false);
        
 
         // Xử lý cộng điểm hạ gục (Kill) cho Player
@@ -118,6 +137,7 @@ public class ZombieHealth : NetworkBehaviour
             }
         }
 
+        GetComponent<ZombieCorpseLoot>()?.MarkAsCorpse();
         RPC_PlayDeathAnimation();
         StartCoroutine(VanishRoutine());
     }
@@ -138,6 +158,8 @@ public class ZombieHealth : NetworkBehaviour
 
     private IEnumerator VanishRoutine()
     {
+        // ZombieCorpseLoot owns the delayed cleanup for searchable corpses.
+        if (GetComponent<ZombieCorpseLoot>() != null) yield break;
         yield return new WaitForSeconds(5f);
         if (HasStateAuthority) Runner.Despawn(Object);
     }
