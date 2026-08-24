@@ -53,9 +53,12 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private RectTransform rasterSearchZone;
     private RectTransform rasterOfficeRevealFog;
     private Image rasterOfficeRevealFogImage;
+    private RectTransform rasterMilitaryRevealFog;
+    private Image rasterMilitaryRevealFogImage;
     private readonly List<RectTransform> rasterRestrictedFog = new List<RectTransform>();
     private int activeRasterFogCount;
     private Vector2 rasterOfficeNormalized;
+    private Vector2 rasterMilitaryNormalized;
     private Vector2 rasterPlayerNormalized;
     private Vector2 rasterSearchZoneMin;
     private Vector2 rasterSearchZoneMax;
@@ -64,6 +67,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private int searchZoneHouseCount;
     private bool hasSearchZone;
     private bool hasOfficeSearchArea;
+    private bool hasMilitaryDestination;
     // Main is tall in Grid space, so the readable cartographic default is the
     // 90-degree landscape orientation used by the reference town maps.
     private int rasterRotationQuarterTurns = 1;
@@ -71,6 +75,9 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private GameObject approximateArea;
     private GameObject exactRoute;
     private GameObject officeMarker;
+    private GameObject militaryMarker;
+    private TextMeshProUGUI officeMarkerLabel;
+    private TextMeshProUGUI militaryMarkerLabel;
     private GameObject unknownOfficeMarker;
     private TextMeshProUGUI stateLabel;
     private TextMeshProUGUI officeKnowledgeText;
@@ -90,6 +97,9 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private bool unlockRevealCompleted;
     private Action unlockRevealFinished;
     private bool officeRegionRevealVisualComplete;
+    private Coroutine militaryUnlockRevealRoutine;
+    private bool militaryRevealPending;
+    private bool militaryRegionRevealVisualComplete;
     private static bool escapeClosePending;
 
     public bool IsOpen => root != null && root.activeSelf;
@@ -101,6 +111,12 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     public int SearchZoneHouseCount => searchZoneHouseCount;
     public bool HasPendingUnlockReveal => unlockRevealPending;
     public int ActiveRestrictedFogCount => activeRasterFogCount;
+    public bool IsMilitaryDestinationVisible => militaryMarker != null && militaryMarker.activeSelf;
+    public bool IsOfficeDestinationVisible => officeMarker != null && officeMarker.activeSelf;
+    public bool IsMilitaryUnlockRevealPlaying => militaryUnlockRevealRoutine != null;
+
+    private static string L(string english, string vietnamese) =>
+        QuestUILocalization.IsVietnamese ? vietnamese : english;
 
     public static bool ConsumeEscapeCloseRequest()
     {
@@ -153,6 +169,16 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         useWorldMap = false;
         if (root != null)
             BuildRasterMapIfNeeded();
+    }
+
+    public void ConfigureMilitaryDestination(Vector2 militaryNormalized)
+    {
+        rasterMilitaryNormalized = militaryNormalized;
+        hasMilitaryDestination = true;
+        if (root != null)
+            BuildRasterMapIfNeeded();
+        UpdateRasterMapMarkers();
+        Refresh();
     }
 
     public void SetRasterMapPlayerPosition(Vector2 playerNormalized)
@@ -267,13 +293,16 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         unlockRevealRoot.SetActive(true);
         unlockRevealRoot.transform.SetAsLastSibling();
         unlockRevealGroup.alpha = 1f;
+        TintUnlockReveal(Purple);
         // Raster maps already show the known neighborhood through permanent
         // fog openings. Preserve that exact view and reveal only the office
         // opening; fallback maps still use the full-screen darkness transition.
         SetUnlockRevealDarkness(useRasterMap ? 0f : 0.96f);
         SetRasterOfficeRevealProgress(0f);
-        unlockRevealTitle.text = "ĐANG GIẢI MÃ DỮ LIỆU BẢN ĐỒ";
-        unlockRevealBody.text = "Đối chiếu ba tài liệu về vật tư và tuyến sơ tán...";
+        unlockRevealTitle.text = L("DECODING MAP DATA", "ĐANG GIẢI MÃ DỮ LIỆU BẢN ĐỒ");
+        unlockRevealBody.text = L(
+            "Cross-referencing three supply and evacuation records...",
+            "Đối chiếu ba tài liệu về vật tư và tuyến sơ tán...");
         unlockRevealPulse.localScale = Vector3.one * 0.3f;
         unlockRevealCore.localScale = Vector3.one * 0.7f;
         // The raster map already owns the real purple office pin. Hide the
@@ -338,8 +367,10 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         // player chooses to inspect the map.
         if (exactRoute != null) exactRoute.SetActive(true);
         if (officeMarker != null) officeMarker.SetActive(true);
-        unlockRevealTitle.text = "ĐÃ MỞ KHÓA VỊ TRÍ MỚI";
-        unlockRevealBody.text = "Văn phòng màu tím đã được đánh dấu trên bản đồ.";
+        unlockRevealTitle.text = L("NEW LOCATION UNLOCKED", "ĐÃ MỞ KHÓA VỊ TRÍ MỚI");
+        unlockRevealBody.text = L(
+            "The hospital Coordination Section has been marked in purple.",
+            "Khu Điều phối trong bệnh viện đã được đánh dấu màu tím.");
 
         elapsed = 0f;
         const float impactDuration = 1.8f;
@@ -438,52 +469,318 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         rasterOfficeRevealFogImage.color = color;
     }
 
+    /// <summary>
+    /// Opens the real map and reveals only the military destination uncovered
+    /// by Fragment 2. Unknown districts remain black so later discoveries keep
+    /// their navigation and reward value.
+    /// </summary>
+    public void PlayMilitaryDestinationReveal(Action onFinished = null)
+    {
+        if (root == null || progress == null || !progress.HasMapFragment2 ||
+            militaryMarker == null || !hasMilitaryDestination || !Application.isPlaying)
+        {
+            onFinished?.Invoke();
+            return;
+        }
+
+        if (militaryUnlockRevealRoutine != null)
+        {
+            Debug.LogWarning("[QUEST MAP] Military destination reveal is already playing.");
+            return;
+        }
+
+        militaryRevealPending = true;
+        militaryRegionRevealVisualComplete = false;
+        SetOpen(true);
+        SetRasterMilitaryRevealProgress(0f);
+        militaryMarker.SetActive(false);
+        militaryUnlockRevealRoutine = StartCoroutine(MilitaryDestinationRevealRoutine(onFinished));
+    }
+
+    private IEnumerator MilitaryDestinationRevealRoutine(Action onFinished)
+    {
+        // A late presentation may still owe the player Fragment 1's reveal.
+        // Preserve its callback and let that sequence finish before reusing the
+        // shared scan overlay for Fragment 2.
+        while (unlockRevealRoutine != null)
+            yield return null;
+
+        // Fragment 1's reveal may have temporarily re-enabled its destination
+        // marker. Re-apply the durable Fragment 2 state before the next scan so
+        // the completed hospital target never competes with the military pin.
+        Refresh();
+        unlockRevealRoot.SetActive(true);
+        unlockRevealRoot.transform.SetAsLastSibling();
+        unlockRevealGroup.alpha = 1f;
+        SetUnlockRevealDarkness(useRasterMap ? 0f : 0.96f);
+        SetRasterMilitaryRevealProgress(0f);
+        TintUnlockReveal(Amber);
+        unlockRevealTitle.text = L("DECODING MAP FRAGMENT 2", "ĐANG GIẢI MÃ MẢNH BẢN ĐỒ 2");
+        unlockRevealBody.text = L(
+            "Matching the convoy route with the final military transmission...",
+            "Đối chiếu tuyến đoàn xe với tín hiệu quân sự cuối cùng...");
+        unlockRevealPulse.localScale = Vector3.one * 0.3f;
+        unlockRevealCore.localScale = Vector3.one * 0.7f;
+        unlockRevealCore.gameObject.SetActive(!useRasterMap);
+        AlignUnlockRevealToMilitaryMarker();
+
+        Vector2 startContentPosition = mapContent != null ? mapContent.anchoredPosition : Vector2.zero;
+        float startZoom = mapContent != null ? mapContent.localScale.x : 1f;
+        const float targetZoom = 1.58f;
+        Vector2 targetContentPosition = startContentPosition;
+        if (mapContent != null && viewport != null && militaryMarker != null)
+        {
+            Vector2 markerInViewport = viewport.InverseTransformPoint(militaryMarker.transform.position);
+            Vector2 unscaledMarkerPoint = (markerInViewport - startContentPosition) /
+                                          Mathf.Max(0.001f, startZoom);
+            targetContentPosition = -unscaledMarkerPoint * targetZoom;
+            zoom = targetZoom;
+            mapContent.localScale = Vector3.one * targetZoom;
+            mapContent.anchoredPosition = targetContentPosition;
+            ClampPan();
+            targetContentPosition = mapContent.anchoredPosition;
+            zoom = startZoom;
+            mapContent.localScale = Vector3.one * startZoom;
+            mapContent.anchoredPosition = startContentPosition;
+        }
+
+        CanvasGroup militaryMarkerGroup = militaryMarker.GetComponent<CanvasGroup>();
+        if (militaryMarkerGroup == null) militaryMarkerGroup = militaryMarker.AddComponent<CanvasGroup>();
+        militaryMarkerGroup.alpha = 0f;
+        militaryMarker.transform.localScale = Vector3.one * 0.72f;
+        militaryMarker.SetActive(false);
+
+        float elapsed = 0f;
+        const float scanDuration = 1.35f;
+        while (elapsed < scanDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / scanDuration);
+            float eased = t * t * (3f - 2f * t);
+            unlockRevealPulse.localScale = Vector3.one * Mathf.Lerp(0.3f, 1.18f, eased);
+            unlockRevealPulse.localRotation = Quaternion.Euler(0f, 0f, elapsed * 55f);
+            unlockRevealCore.localRotation = Quaternion.Euler(0f, 0f, -elapsed * 80f);
+            AlignUnlockRevealToMilitaryMarker();
+            if (useRasterMap)
+                SetRasterMilitaryRevealProgress(Mathf.Lerp(0f, 0.42f, eased));
+            else
+                SetUnlockRevealDarkness(Mathf.Lerp(0.96f, 0.62f, eased));
+            yield return null;
+        }
+
+        militaryMarker.SetActive(true);
+        unlockRevealTitle.text = L("MILITARY BASE MARKED", "ĐÃ ĐÁNH DẤU CĂN CỨ QUÂN SỰ");
+        unlockRevealBody.text = L(
+            "Fragment 2 has revealed the military destination. Other unknown districts remain hidden.",
+            "Mảnh 2 đã mở vị trí căn cứ quân sự. Các khu vực chưa biết vẫn được che kín.");
+
+        elapsed = 0f;
+        const float impactDuration = 1.8f;
+        while (elapsed < impactDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / impactDuration);
+            float eased = t * t * (3f - 2f * t);
+            unlockRevealPulse.localScale = Vector3.one * Mathf.Lerp(1.18f, 1.55f, t);
+            unlockRevealCore.localScale = Vector3.one * (1f + Mathf.Sin(t * Mathf.PI) * 0.28f);
+            unlockRevealPulse.localRotation = Quaternion.Euler(0f, 0f, 50f + elapsed * 90f);
+            if (useRasterMap)
+                SetRasterMilitaryRevealProgress(Mathf.Lerp(0.42f, 1f, eased));
+            else
+                SetUnlockRevealDarkness(Mathf.Lerp(0.62f, 0f, eased));
+
+            float markerArrival = Mathf.Lerp(0.72f, 1f, eased);
+            float markerPulse = 1f + Mathf.Sin(t * Mathf.PI * 4f) * 0.1f * (1f - t * 0.35f);
+            militaryMarker.transform.localScale = Vector3.one * markerArrival * markerPulse;
+            militaryMarkerGroup.alpha = Mathf.Clamp01(Mathf.Lerp(0.35f, 1f, eased) +
+                                                        Mathf.Sin(t * Mathf.PI * 4f) * 0.12f);
+            if (mapContent != null)
+            {
+                zoom = Mathf.Lerp(startZoom, targetZoom, eased);
+                mapContent.localScale = Vector3.one * zoom;
+                mapContent.anchoredPosition = Vector2.Lerp(
+                    startContentPosition, targetContentPosition, eased);
+                AlignUnlockRevealToMilitaryMarker();
+            }
+            yield return null;
+        }
+
+        elapsed = 0f;
+        const float markerPulseDuration = 0.9f;
+        while (elapsed < markerPulseDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float markerPulse = 1f + Mathf.Sin(elapsed * Mathf.PI * 3.5f) * 0.075f;
+            militaryMarker.transform.localScale = Vector3.one * markerPulse;
+            militaryMarkerGroup.alpha = 0.86f + Mathf.Sin(elapsed * Mathf.PI * 3.5f) * 0.14f;
+            yield return null;
+        }
+        militaryMarker.transform.localScale = Vector3.one;
+        militaryMarkerGroup.alpha = 1f;
+
+        elapsed = 0f;
+        const float fadeDuration = 0.35f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            unlockRevealGroup.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
+            yield return null;
+        }
+
+        unlockRevealRoot.SetActive(false);
+        unlockRevealGroup.alpha = 0f;
+        militaryRevealPending = false;
+        militaryRegionRevealVisualComplete = true;
+        SetRasterMilitaryRevealProgress(1f);
+        Refresh();
+        militaryUnlockRevealRoutine = null;
+        onFinished?.Invoke();
+    }
+
+    private void AlignUnlockRevealToMilitaryMarker()
+    {
+        if (!useRasterMap || viewport == null || militaryMarker == null || unlockRevealPulse == null)
+            return;
+
+        Vector2 markerPoint = viewport.InverseTransformPoint(militaryMarker.transform.position);
+        unlockRevealPulse.anchoredPosition = markerPoint;
+        if (unlockRevealCore != null) unlockRevealCore.anchoredPosition = markerPoint;
+    }
+
+    private void SetRasterMilitaryRevealProgress(float revealProgress)
+    {
+        if (rasterMilitaryRevealFog == null || rasterMilitaryRevealFogImage == null) return;
+        float progressValue = Mathf.Clamp01(revealProgress);
+        rasterMilitaryRevealFog.gameObject.SetActive(
+            militaryRevealPending && !militaryRegionRevealVisualComplete && progressValue < 1f);
+        Color color = rasterMilitaryRevealFogImage.color;
+        color.a = 1f - progressValue;
+        rasterMilitaryRevealFogImage.color = color;
+    }
+
+    private void TintUnlockReveal(Color accent)
+    {
+        if (unlockRevealPulse == null) return;
+        Image[] images = unlockRevealPulse.GetComponentsInChildren<Image>(true);
+        for (int i = 0; i < images.Length; i++)
+        {
+            Color current = images[i].color;
+            images[i].color = new Color(accent.r, accent.g, accent.b, current.a);
+        }
+    }
+
     public void Refresh()
     {
         if (progress == null || stateLabel == null)
             return;
 
+        ApplyLocalization();
+
         OfficeKnowledgeLevel knowledge = progress.OfficeKnowledge;
         bool approximate = knowledge == OfficeKnowledgeLevel.ApproximateArea;
         bool exact = knowledge == OfficeKnowledgeLevel.ExactLocation || knowledge == OfficeKnowledgeLevel.Discovered;
 
+        bool militaryKnown = progress.HasMapFragment2 && hasMilitaryDestination;
+        bool showOfficeTarget = exact && !militaryKnown;
         approximateArea.SetActive(approximate);
         unknownOfficeMarker.SetActive(approximate);
-        exactRoute.SetActive(exact);
-        officeMarker.SetActive(exact);
+        exactRoute.SetActive(showOfficeTarget);
+        officeMarker.SetActive(showOfficeTarget);
+        if (militaryMarker != null) militaryMarker.SetActive(militaryKnown);
+        if (officeMarkerLabel != null)
+        {
+            officeMarkerLabel.text = L("HOSPITAL\nCOORDINATION", "KHU ĐIỀU PHỐI\nBỆNH VIỆN");
+            officeMarkerLabel.color = Color.white;
+        }
+        if (militaryMarkerLabel != null)
+            militaryMarkerLabel.text = L("MILITARY BASE", "CĂN CỨ QUÂN SỰ");
         if (worldApproximateArea != null) worldApproximateArea.gameObject.SetActive(approximate);
-        if (worldOfficeMarker != null) worldOfficeMarker.gameObject.SetActive(exact);
-        if (worldRoute != null) worldRoute.gameObject.SetActive(exact);
+        if (worldOfficeMarker != null) worldOfficeMarker.gameObject.SetActive(showOfficeTarget);
+        if (worldRoute != null) worldRoute.gameObject.SetActive(showOfficeTarget);
         UpdateRasterMapMarkers();
 
-        switch (knowledge)
+        if (militaryKnown)
+        {
+            stateLabel.text = L("FRAGMENT 2  •  MILITARY ROUTE", "MẢNH 2  •  TUYẾN QUÂN SỰ");
+            stateLabel.color = Amber;
+            officeKnowledgeText.text = L(
+                "Military base  •  Marked",
+                "Căn cứ quân sự  •  Đã đánh dấu");
+        }
+        else switch (knowledge)
         {
             case OfficeKnowledgeLevel.ApproximateArea:
-                stateLabel.text = "ĐÃ KHOANH VÙNG TÌM KIẾM";
+                stateLabel.text = L("SEARCH AREA IDENTIFIED", "ĐÃ KHOANH VÙNG TÌM KIẾM");
                 stateLabel.color = Amber;
-                officeKnowledgeText.text = "Văn phòng  •  Chỉ biết khu vực tương đối";
+                officeKnowledgeText.text = L(
+                    "Hospital  •  Approximate area only",
+                    "Bệnh viện  •  Chỉ biết khu vực tương đối");
                 break;
             case OfficeKnowledgeLevel.ExactLocation:
-                stateLabel.text = "MẢNH 1  •  VỊ TRÍ CHÍNH XÁC";
+                stateLabel.text = L("FRAGMENT 1  •  EXACT LOCATION", "MẢNH 1  •  VỊ TRÍ CHÍNH XÁC");
                 stateLabel.color = Purple;
-                officeKnowledgeText.text = "Văn phòng  •  Đã đánh dấu chính xác";
+                officeKnowledgeText.text = L(
+                    "Hospital Coordination Section  •  Precisely marked",
+                    "Khu Điều phối bệnh viện  •  Đã đánh dấu chính xác");
                 break;
             case OfficeKnowledgeLevel.Discovered:
-                stateLabel.text = "ĐÃ KHÁM PHÁ VĂN PHÒNG";
+                stateLabel.text = L("COORDINATION SECTION DISCOVERED", "ĐÃ KHÁM PHÁ KHU ĐIỀU PHỐI");
                 stateLabel.color = Mint;
-                officeKnowledgeText.text = "Văn phòng  •  Địa điểm đã xác nhận";
+                officeKnowledgeText.text = L(
+                    "Hospital Coordination Section  •  Location confirmed",
+                    "Khu Điều phối bệnh viện  •  Địa điểm đã xác nhận");
                 break;
             default:
-                stateLabel.text = "CHƯA CÓ MANH MỐI VĂN PHÒNG";
+                stateLabel.text = L("NO HOSPITAL LEAD YET", "CHƯA CÓ MANH MỐI BỆNH VIỆN");
                 stateLabel.color = Muted;
-                officeKnowledgeText.text = "Văn phòng  •  Chưa xác định";
+                officeKnowledgeText.text = L("Hospital  •  Unknown", "Bệnh viện  •  Chưa xác định");
                 break;
         }
 
         int clueCount = Mathf.Min(progress.RouteClueCount, PreMilitaryQuestProgress.RequiredRouteClues);
         clueSummaryText.text =
-            $"Manh mối đã thu thập  {clueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}" +
-            (searchZoneHouseCount > 0 ? "\nPhạm vi  •  Các ngôi nhà xung quanh" : string.Empty);
+            L("Records collected  ", "Manh mối đã thu thập  ") +
+            $"{clueCount}/{PreMilitaryQuestProgress.RequiredRouteClues}" +
+            (searchZoneHouseCount > 0
+                ? L("\nArea  •  Nearby houses", "\nPhạm vi  •  Các ngôi nhà xung quanh")
+                : string.Empty);
+    }
+
+    private void ApplyLocalization()
+    {
+        if (root == null) return;
+        TMP_Text[] labels = root.GetComponentsInChildren<TMP_Text>(true);
+        for (int i = 0; i < labels.Length; i++)
+        {
+            TMP_Text label = labels[i];
+            switch (label.gameObject.name)
+            {
+                case "Map Title": label.text = L("RESIDENTIAL DISTRICT MAP", "BẢN ĐỒ KHU DÂN CƯ"); break;
+                case "Map Subtitle": label.text = L("EXPLORATION DATA  //  MAP ALWAYS AVAILABLE", "DỮ LIỆU KHÁM PHÁ  //  BẢN ĐỒ LUÔN CÓ THỂ MỞ"); break;
+                case "Map Close Text": label.text = L("[M]  CLOSE", "[M]  ĐÓNG"); break;
+                case "Known Header": label.text = L("KNOWN INFORMATION", "THÔNG TIN ĐÃ BIẾT"); break;
+                case "Safehouse Known": label.text = L("[01]  Safehouse  •  Known", "[01]  Nhà trú ẩn  •  Đã biết"); break;
+                case "Neighborhood Known": label.text = L("■  Residential district  •  Known", "■  Khu dân cư  •  Đã biết"); break;
+                case "Progress Header": label.text = L("CLUE PROGRESS", "TIẾN ĐỘ MANH MỐI"); break;
+                case "Legend":
+                    label.text = L(
+                        "BLACK — temporarily blocked\nAMBER — approximate hospital area\nPURPLE — exact Coordination Section location\nMINT — Player position",
+                        "ĐEN — khu vực tạm thời bị chặn\nCAM — vùng bệnh viện tương đối\nTÍM — vị trí chính xác của Khu Điều phối\nXANH SÁNG — vị trí Player");
+                    break;
+                case "Map Controls": label.text = L("MOUSE WHEEL: ZOOM\nHOLD LEFT MOUSE: PAN", "CUỘN CHUỘT: ZOOM\nGIỮ CHUỘT TRÁI: KÉO BẢN ĐỒ"); break;
+                case "Safehouse Label": label.text = L("SAFEHOUSE", "NHÀ TRÚ ẨN"); break;
+                case "Player Label": label.text = L("YOU", "BẠN"); break;
+                case "Approximate Label":
+                case "Live Approximate Label": label.text = L("SEARCH AREA", "VÙNG NGHI VẤN"); break;
+                case "Office Label":
+                case "Live Office Label": label.text = L("HOSPITAL\nCOORDINATION", "KHU ĐIỀU PHỐI\nBỆNH VIỆN"); break;
+                case "Military Label": label.text = L("MILITARY BASE", "CĂN CỨ QUÂN SỰ"); break;
+            }
+        }
+
+        if (rotationLabel != null)
+            rotationLabel.text = L("MAP ORIENTATION  ", "HƯỚNG BẢN ĐỒ  ") +
+                                 $"{rasterRotationQuarterTurns * 90}°";
     }
 
     private void Update()
@@ -658,6 +955,12 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         rasterOfficeRevealFogImage = rasterOfficeRevealFog.GetComponent<Image>();
         rasterOfficeRevealFogImage.raycastTarget = false;
 
+        rasterMilitaryRevealFog = Box("Military Region Reveal Fog", rasterArtRoot,
+            new Vector2(124f, 124f), Vector2.zero, Color.black);
+        rasterMilitaryRevealFogImage = rasterMilitaryRevealFog.GetComponent<Image>();
+        rasterMilitaryRevealFogImage.raycastTarget = false;
+        rasterMilitaryRevealFog.gameObject.SetActive(false);
+
         approximateArea = Box("Approximate Office Area", rasterArtRoot, new Vector2(72f, 72f), Vector2.zero,
             new Color(Amber.r, Amber.g, Amber.b, 0.22f)).gameObject;
         Border(approximateArea.GetComponent<RectTransform>(), new Color(Amber.r, Amber.g, Amber.b, 0.95f));
@@ -674,8 +977,20 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         officePin.localRotation = Quaternion.Euler(0f, 0f, 45f);
         RectTransform officeCaption = Box("Office Caption", officeMarker.transform, new Vector2(80f, 26f),
             new Vector2(12f, 0f), new Color(0.16f, 0.08f, 0.2f, 0.94f));
-        Text(officeCaption, "Office Label", "VĂN PHÒNG", 9f, Color.white, FontStyles.Bold,
+        officeMarkerLabel = Text(officeCaption, "Office Label", "VĂN PHÒNG", 9f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(76f, 22f), Vector2.zero);
+
+        militaryMarker = new GameObject("Military Base Marker", typeof(RectTransform));
+        militaryMarker.transform.SetParent(rasterArtRoot, false);
+        SetRect(militaryMarker.GetComponent<RectTransform>(), new Vector2(132f, 38f), Vector2.zero);
+        RectTransform militaryPin = Box("Military Pin", militaryMarker.transform, new Vector2(20f, 20f),
+            new Vector2(-52f, 0f), Amber);
+        militaryPin.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        RectTransform militaryCaption = Box("Military Caption", militaryMarker.transform, new Vector2(104f, 28f),
+            new Vector2(14f, 0f), new Color(0.18f, 0.095f, 0.025f, 0.96f));
+        militaryMarkerLabel = Text(militaryCaption, "Military Label", "CĂN CỨ QUÂN SỰ", 9f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(100f, 24f), Vector2.zero);
+        militaryMarker.SetActive(false);
 
         // Mảnh 1 reveals a destination marker, not a fake straight road. The
         // old line implied a traversable route even when it crossed buildings.
@@ -714,6 +1029,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         // Quest labels stay upright while the cartographic layer rotates.
         if (officeMarker != null)
             officeMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
+        if (militaryMarker != null)
+            militaryMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         if (unknownOfficeMarker != null)
             unknownOfficeMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         if (rasterPlayerMarker != null)
@@ -725,7 +1042,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private void UpdateRotationLabel()
     {
         if (rotationLabel != null)
-            rotationLabel.text = $"HƯỚNG BẢN ĐỒ  {rasterRotationQuarterTurns * 90}°";
+            rotationLabel.text = L("MAP ORIENTATION  ", "HƯỚNG BẢN ĐỒ  ") +
+                                 $"{rasterRotationQuarterTurns * 90}°";
     }
 
     private void UpdateRasterMapMarkers()
@@ -734,8 +1052,11 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             return;
         Vector2 playerPoint = NormalizedToRasterPoint(rasterPlayerNormalized);
         Vector2 officePoint = NormalizedToRasterPoint(rasterOfficeNormalized);
+        Vector2 militaryPoint = NormalizedToRasterPoint(rasterMilitaryNormalized);
         rasterPlayerMarker.anchoredPosition = playerPoint;
         officeMarker.GetComponent<RectTransform>().anchoredPosition = officePoint;
+        if (militaryMarker != null)
+            militaryMarker.GetComponent<RectTransform>().anchoredPosition = militaryPoint;
         approximateArea.GetComponent<RectTransform>().anchoredPosition = officePoint;
         if (hasOfficeSearchArea)
         {
@@ -758,6 +1079,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
                 Mathf.Max(56f, Mathf.Abs(maxPoint.y - minPoint.y)));
             Rect neighborhoodOpening = RectFromPoints(minPoint, maxPoint);
             Rect? officeOpening = null;
+            Rect? militaryOpening = null;
 
             // Fragment 1 opens a second landmark-aligned rectangle around the
             // office. It deliberately stays independent from the neighborhood
@@ -780,6 +1102,14 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
                 officeOpening = RectFromPoints(officeMin, officeMax);
             }
 
+            if (progress != null && progress.HasMapFragment2 && hasMilitaryDestination)
+            {
+                const float militaryRevealPadding = 62f;
+                militaryOpening = RectFromPoints(
+                    militaryPoint - Vector2.one * militaryRevealPadding,
+                    militaryPoint + Vector2.one * militaryRevealPadding);
+            }
+
             if (rasterOfficeRevealFog != null && officeOpening.HasValue)
             {
                 Rect revealRect = officeOpening.Value;
@@ -792,7 +1122,20 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
                 rasterOfficeRevealFog.gameObject.SetActive(false);
             }
 
-            UpdateRasterRestrictionFog(neighborhoodOpening, officeOpening);
+            if (rasterMilitaryRevealFog != null && militaryOpening.HasValue)
+            {
+                Rect revealRect = militaryOpening.Value;
+                rasterMilitaryRevealFog.anchoredPosition = revealRect.center;
+                rasterMilitaryRevealFog.sizeDelta = revealRect.size;
+                rasterMilitaryRevealFog.gameObject.SetActive(
+                    militaryRevealPending && !militaryRegionRevealVisualComplete);
+            }
+            else if (rasterMilitaryRevealFog != null)
+            {
+                rasterMilitaryRevealFog.gameObject.SetActive(false);
+            }
+
+            UpdateRasterRestrictionFog(neighborhoodOpening, officeOpening, militaryOpening);
             UpdateSearchRestrictionVisibility();
         }
     }
@@ -809,7 +1152,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         UpdateSearchRestrictionVisibility();
     }
 
-    private void UpdateRasterRestrictionFog(Rect neighborhoodOpening, Rect? officeOpening)
+    private void UpdateRasterRestrictionFog(Rect neighborhoodOpening, Rect? officeOpening, Rect? militaryOpening)
     {
         if (rasterArtRoot == null) return;
         float halfWidth = rasterArtRoot.rect.width * 0.5f;
@@ -819,6 +1162,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         SubtractOpening(fogRects, ClampRect(neighborhoodOpening, mapRect));
         if (officeOpening.HasValue)
             SubtractOpening(fogRects, ClampRect(officeOpening.Value, mapRect));
+        if (militaryOpening.HasValue)
+            SubtractOpening(fogRects, ClampRect(militaryOpening.Value, mapRect));
 
         EnsureRasterFogCount(Mathf.Max(8, fogRects.Count));
         activeRasterFogCount = fogRects.Count;

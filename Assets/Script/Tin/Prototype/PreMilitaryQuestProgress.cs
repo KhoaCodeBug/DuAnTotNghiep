@@ -24,6 +24,21 @@ public enum PreMilitaryQuestStage
 }
 
 /// <summary>
+/// Presentation-safe mirror of MilitaryBaseQuestManager.Phase.  The Quest UI
+/// assembly cannot reference Assembly-CSharp directly, so the runtime bridge
+/// sends the phase as primitives and the journal keeps this matching enum.
+/// </summary>
+public enum RouteBMilitaryPresentationPhase
+{
+    NotReached,
+    Investigating,
+    SiegeAndRepair,
+    ReadyToEscape,
+    Escaped,
+    Failed
+}
+
+/// <summary>
 /// Pure progress model for the complete pre-military quest demo.
 /// The opening objective has one source of truth: three physical route-clue
 /// documents taken from residential LootContainers.

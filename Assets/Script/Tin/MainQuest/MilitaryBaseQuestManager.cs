@@ -235,6 +235,155 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         };
     }
 
+    /// <summary>
+    /// Developer presentation path used by F10/CheatMenu. It never creates
+    /// LootContainers; it only advances the already replicated base state.
+    /// The point-of-no-return confirmation is intentionally preserved.
+    /// </summary>
+    public void DebugAdvanceMilitaryRoute()
+    {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+        return;
+#else
+        if (!IsNetworkReady || !HasStateAuthority)
+        {
+            Debug.LogWarning("[QUEST TEST] NEXT BASE STEP chỉ dùng được trên Solo/Host đang có authority.");
+            return;
+        }
+
+        PlayerRef requester = Runner.LocalPlayer;
+        switch (CurrentPhase)
+        {
+            case Phase.NotReached:
+                if (MainQuestManager.Instance == null ||
+                    MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound)
+                {
+                    Debug.LogWarning("[QUEST TEST] Hãy hoàn tất nửa đầu Tuyến B bằng F6/F7 trước.");
+                    return;
+                }
+                MilitaryPhase = (int)Phase.Investigating;
+                RPC_ShowLocalizedQuestMessage("quest.military_arrived", 0);
+                RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.MilitaryBaseApproach, requester);
+                Debug.Log("[QUEST TEST] F10: mô phỏng đã tới căn cứ quân sự.");
+                break;
+
+            case Phase.Investigating:
+                RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.AlarmPointOfNoReturn,
+                    () => EscapeRouteDecisionUI.ShowFinaleConfirmation(
+                        EscapeEndingRoute.MilitaryEvacuation, DebugConfirmMilitaryFinale));
+                Debug.Log("[QUEST TEST] F10: mở xác nhận điểm không thể quay lại; ending chỉ khóa khi bấm XÁC NHẬN.");
+                break;
+
+            case Phase.SiegeAndRepair:
+                if (!IsGeneratorActive)
+                {
+                    AuthorityActivateGenerator(requester);
+                    Debug.Log("[QUEST TEST] F10: máy phát điện đã hoạt động.");
+                    break;
+                }
+                if (!HasAllParts)
+                {
+                    HasBatteryInstalled = true;
+                    HasFuelInstalled = true;
+                    HasRepairKitInstalled = true;
+                    RPC_ShowLocalizedQuestMessage("quest.military_debug_parts", 0);
+                    Debug.Log("[QUEST TEST] F10: đã mô phỏng lắp đủ ba vật phẩm xe, không dùng LootContainer.");
+                    break;
+                }
+
+                VehicleRepairProgress = MilitaryQuestRules.MaxRepairProgress;
+                ActiveRepairer = PlayerRef.None;
+                MilitaryPhase = (int)Phase.ReadyToEscape;
+                RPC_BroadcastVehicleReady(requester);
+                Debug.Log("[QUEST TEST] F10: xe sơ tán đã sẵn sàng.");
+                break;
+
+            case Phase.ReadyToEscape:
+                AuthorityCompleteEscape(requester);
+                Debug.Log("[QUEST TEST] F10: bắt đầu extraction Ending B.");
+                break;
+
+            case Phase.Escaped:
+                Debug.Log("[QUEST TEST] Tuyến B đã hoàn thành.");
+                break;
+
+            default:
+                Debug.LogWarning("[QUEST TEST] Tuyến B đang Failed; cần bắt đầu session mới để chạy lại đầy đủ.");
+                break;
+        }
+#endif
+    }
+
+    public void DebugTeleportToCurrentObjective()
+    {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+        return;
+#else
+        if (!IsNetworkReady || !HasStateAuthority ||
+            !TryGetRequestingPlayer(Runner.LocalPlayer, out PlayerMovement player))
+        {
+            Debug.LogWarning("[QUEST TEST] F12 căn cứ cần Solo/Host và player local đã spawn.");
+            return;
+        }
+
+        InteractionKind target;
+        string targetName;
+        switch (CurrentPhase)
+        {
+            case Phase.NotReached:
+                target = InteractionKind.Vehicle;
+                targetName = "cổng vào/xe sơ tán tại căn cứ quân sự";
+                break;
+            case Phase.Investigating:
+                target = InteractionKind.Vehicle;
+                targetName = "xe sơ tán cần kiểm tra";
+                break;
+            case Phase.SiegeAndRepair when !IsGeneratorActive:
+                target = InteractionKind.Generator;
+                targetName = "máy phát điện";
+                break;
+            case Phase.SiegeAndRepair when !HasAllParts:
+                Debug.LogWarning("[QUEST TEST] F12 không dịch chuyển: mục tiêu hiện tại liên quan các cache/LootContainer linh kiện.");
+                AutoChatManager.Instance?.AddMessage("QUEST TEST",
+                    "F12 bị bỏ qua: nhiệm vụ thu thập linh kiện dùng điểm loot.");
+                return;
+            case Phase.SiegeAndRepair:
+                target = InteractionKind.Vehicle;
+                targetName = "xe sơ tán cần sửa";
+                break;
+            case Phase.ReadyToEscape:
+                target = InteractionKind.Vehicle;
+                targetName = "điểm tập kết xe sơ tán";
+                break;
+            default:
+                Debug.LogWarning("[QUEST TEST] Nhiệm vụ căn cứ không còn mục tiêu dịch chuyển hợp lệ.");
+                return;
+        }
+
+        Vector2 destination = GetInteractionPosition(target) + new Vector2(0f, -0.45f);
+        PlayerInteraction interaction = player.GetComponent<PlayerInteraction>();
+        if (interaction != null && interaction.IsInVehicle)
+        {
+            VehicleControllerFusion vehicle = interaction.CurrentVehicleController;
+            bool exited = vehicle != null && vehicle.AuthorityTryExit(player.Object);
+            if (!exited)
+                interaction.SetVehicleNetworkState(null, false, false, 0, destination);
+        }
+        TeleportPlayer(player, destination);
+        Physics2D.SyncTransforms();
+        Debug.Log($"[QUEST TEST] F12: đã dịch chuyển tới {targetName}.");
+        AutoChatManager.Instance?.AddMessage("QUEST TEST", $"Đã dịch chuyển tới {targetName}.");
+#endif
+    }
+
+    private void DebugConfirmMilitaryFinale()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!IsNetworkReady || !HasStateAuthority || CurrentPhase != Phase.Investigating) return;
+        AuthorityStartSiege(Runner.LocalPlayer);
+#endif
+    }
+
     public void RequestTriggerAlarm()
     {
         if (!IsNetworkReady) return;
@@ -385,6 +534,15 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             !IsNear(player.transform.position, InteractionKind.Vehicle)) return;
         if (MainQuestManager.Instance == null ||
             MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound) return;
+        AuthorityStartSiege(requester);
+    }
+
+    private void AuthorityStartSiege(PlayerRef requester)
+    {
+        if (!HasStateAuthority || (CurrentPhase != Phase.NotReached && CurrentPhase != Phase.Investigating) ||
+            MainQuestManager.Instance == null ||
+            MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound)
+            return;
         if (!MainQuestManager.Instance.AuthorityTryLockEscapeRoute(EscapeEndingRoute.MilitaryEvacuation))
         {
             RPC_ShowLocalizedQuestMessage("quest.military_route_blocked", 0);
@@ -405,6 +563,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (!TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             !IsNear(player.transform.position, InteractionKind.Generator)) return;
 
+        AuthorityActivateGenerator(requester);
+    }
+
+    private void AuthorityActivateGenerator(PlayerRef requester)
+    {
+        if (!HasStateAuthority || CurrentPhase != Phase.SiegeAndRepair || IsGeneratorActive) return;
         float oldMax = Mathf.Max(1f, GateMaxHealth);
         float ratio = Mathf.Clamp01(GateCurrentHealth / oldMax);
         GateMaxHealth = MilitaryQuestRules.GetElectrifiedGateHealth(baseGateHealth);
@@ -744,6 +908,15 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (!TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             !IsNear(player.transform.position, InteractionKind.Vehicle)) return;
 
+        AuthorityCompleteEscape(requester);
+    }
+
+    private void AuthorityCompleteEscape(PlayerRef requester)
+    {
+        if (!HasStateAuthority || CurrentPhase != Phase.ReadyToEscape ||
+            MainQuestManager.Instance == null ||
+            MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.MilitaryEvacuation)
+            return;
         GatherLivingPlayersForExtraction();
         MilitaryPhase = (int)Phase.Escaped;
         ActiveRepairer = PlayerRef.None;

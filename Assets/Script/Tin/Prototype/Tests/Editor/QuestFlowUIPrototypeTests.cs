@@ -217,10 +217,10 @@ public sealed class QuestFlowUIPrototypeTests
         prototype.SelectQuestForPreview(0);
 
         Assert.That(GameObject.Find("Main Quest Name").GetComponent<TMPro.TMP_Text>().text,
-            Is.EqualTo("Tìm Văn phòng Điều phối"));
+            Is.EqualTo("Tìm Khu Điều phối trong bệnh viện"));
         Assert.That(GameObject.Find("Main Quest Meta").GetComponent<TMPro.TMP_Text>().text,
             Is.EqualTo("BƯỚC 2"));
-        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("TÌM VĂN PHÒNG ĐIỀU PHỐI"));
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("TÌM KHU ĐIỀU PHỐI TRONG BỆNH VIỆN"));
         Assert.That(prototype.CurrentObjectiveProgress, Is.EqualTo("ĐÃ XÁC ĐỊNH"));
     }
 
@@ -356,10 +356,15 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.IsMainQuestComplete, Is.False);
 
         prototype.RegisterMapFragment2AddedToInventoryForPreview();
-        Assert.That(prototype.IsMainQuestComplete, Is.True);
-        prototype.SelectTabForPreview(1);
+        Assert.That(prototype.IsMainQuestComplete, Is.False,
+            "The military map opens the second half of Route B; it is not the ending.");
         prototype.SelectQuestForPreview(0);
         Assert.That(prototype.GetObjectiveStatusForPreview(2), Is.EqualTo("ĐÃ CÓ MẢNH 2"));
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.NotReached,
+            false, false, 0f, 100f, 100f, false);
+        prototype.SelectTabForPreview(0);
+        prototype.SelectQuestForPreview(0);
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("ĐI TỚI CĂN CỨ QUÂN SỰ"));
     }
 
     [Test]
@@ -416,6 +421,11 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(prototype.GetTabTextForPreview(1), Does.EndWith("00"));
 
         prototype.RegisterMapFragment2AddedToInventoryForPreview();
+        Assert.That(prototype.GetTabTextForPreview(0), Does.EndWith("01"));
+        Assert.That(prototype.GetTabTextForPreview(1), Does.EndWith("00"));
+
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.Escaped,
+            true, true, 100f, 100f, 150f, false);
         Assert.That(prototype.GetTabTextForPreview(0), Does.EndWith("00"));
         Assert.That(prototype.GetTabTextForPreview(1), Does.EndWith("01"));
 
@@ -424,17 +434,55 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
-    public void RewardIdentityRemainsHiddenUntilItHasBeenReceived()
+    public void JournalExplainsTheRewardForEachRouteBPhase()
     {
         prototype.SelectQuestForPreview(0);
-        Assert.That(prototype.CurrentRewardLabel, Is.EqualTo("PHẦN THƯỞNG"));
-        Assert.That(prototype.CurrentRewardText, Is.EqualTo("Chưa xác định"));
+        Assert.That(prototype.CurrentRewardLabel, Is.EqualTo("PHẦN THƯỞNG NHIỆM VỤ"));
+        Assert.That(prototype.CurrentRewardText, Is.EqualTo("3 hồ sơ ghép thành Mảnh bản đồ 1"));
 
         prototype.RegisterMapFragment2AddedToInventoryForPreview();
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.NotReached,
+            false, false, 0f, 100f, 100f, false);
+        prototype.SelectTabForPreview(0);
+        prototype.SelectQuestForPreview(0);
+        Assert.That(prototype.CurrentRewardLabel, Is.EqualTo("PHẦN THƯỞNG NHIỆM VỤ"));
+        Assert.That(prototype.CurrentRewardText, Is.EqualTo("Quyền tiếp cận căn cứ + đánh giá xe sơ tán"));
+
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.Escaped,
+            true, true, 100f, 100f, 150f, false);
         prototype.SelectTabForPreview(1);
         prototype.SelectQuestForPreview(0);
-        Assert.That(prototype.CurrentRewardLabel, Is.EqualTo("PHẦN THƯỞNG ĐÃ NHẬN"));
-        Assert.That(prototype.CurrentRewardText, Is.EqualTo("Mảnh bản đồ 2"));
+        Assert.That(prototype.CurrentRewardLabel, Is.EqualTo("KẾT QUẢ THOÁT HIỂM"));
+        Assert.That(prototype.CurrentRewardText, Is.EqualTo("Sơ tán quân sự — hoàn thành Tuyến B"));
+    }
+
+    [Test]
+    public void RouteBJournalTracksMilitaryBasePhasesUntilExtraction()
+    {
+        prototype.RegisterMapFragment2AddedToInventoryForPreview();
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.NotReached,
+            false, false, 0f, 100f, 100f, false);
+        prototype.SelectQuestForPreview(0);
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("ĐI TỚI CĂN CỨ QUÂN SỰ"));
+        Assert.That(prototype.IsMainQuestComplete, Is.False);
+
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.Investigating,
+            false, false, 0f, 100f, 100f, true);
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("KIỂM TRA XE SƠ TÁN"));
+
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.SiegeAndRepair,
+            true, true, 64f, 90f, 150f, true);
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("PHÒNG THỦ VÀ KHÔI PHỤC XE THOÁT HIỂM"));
+        Assert.That(prototype.CurrentObjectiveProgress, Is.EqualTo("64%"));
+
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.ReadyToEscape,
+            true, true, 100f, 70f, 150f, true);
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("XE SƠ TÁN ĐÃ SẴN SÀNG"));
+
+        prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.Escaped,
+            true, true, 100f, 70f, 150f, true);
+        Assert.That(prototype.IsMainQuestComplete, Is.True);
+        Assert.That(prototype.GetTabTextForPreview(1), Does.EndWith("01"));
     }
 
     [Test]
@@ -606,6 +654,60 @@ public sealed class QuestFlowUIPrototypeTests
             Assert.That(GameObject.Find("Restricted Fog West").GetComponent<Image>().color.a,
                 Is.EqualTo(1f),
                 "Unknown map districts must be opaque enough to hide undiscovered streets.");
+        }
+        finally
+        {
+            Object.DestroyImmediate(texture);
+        }
+    }
+
+    [Test]
+    public void MapFragmentTwoReplacesHospitalTargetWithMilitaryBaseMarker()
+    {
+        Texture2D texture = new Texture2D(128, 96, TextureFormat.RGBA32, false);
+        try
+        {
+            prototype.ConfigureRasterMap(texture, new Vector2(0.42f, 0.55f), new Vector2(0.2f, 0.2f));
+            prototype.ConfigureMilitaryDestination(new Vector2(0.86f, 0.78f));
+            prototype.ConfigureSearchZone(new Vector2(0.1f, 0.1f), new Vector2(0.35f, 0.45f), 6);
+            prototype.RegisterRouteClueForPreview("Invoice");
+            prototype.RegisterRouteClueForPreview("Route");
+            prototype.RegisterRouteClueForPreview("Address");
+            prototype.RegisterOfficeDiscoveredForPreview();
+            prototype.RegisterOfficeMapCabinetOpenedForPreview();
+
+            Assert.That(prototype.IsMapMilitaryDestinationVisible, Is.False);
+            prototype.RegisterMapFragment2AddedToInventoryForPreview();
+            prototype.SetMapOpenForPreview(true);
+
+            Assert.That(prototype.IsMapMilitaryDestinationVisible, Is.True);
+            Assert.That(prototype.IsMapOfficeDestinationVisible, Is.False,
+                "Fragment 2 replaces the completed hospital target instead of leaving two competing markers.");
+            Assert.That(GameObject.Find("Military Base Marker"), Is.Not.Null);
+            Assert.That(prototype.CurrentMapKnowledgeLabel, Is.EqualTo("MẢNH 2  •  TUYẾN QUÂN SỰ"));
+        }
+        finally
+        {
+            Object.DestroyImmediate(texture);
+        }
+    }
+
+    [Test]
+    public void MilitaryMapRewardUsesTheSamePhysicalFragmentArtAsFragmentOne()
+    {
+        Texture2D texture = new Texture2D(256, 128, TextureFormat.RGBA32, false);
+        texture.name = "Real Quest Raster Reward";
+        try
+        {
+            prototype.ConfigureRasterMap(texture, new Vector2(0.4f, 0.5f), new Vector2(0.2f, 0.2f));
+            prototype.PlayMilitaryMapRewardAfterDialogue();
+
+            Texture2D fragmentArt = Resources.Load<Texture2D>("QuestUI/MapFragmentReward");
+            Assert.That(fragmentArt, Is.Not.Null);
+            Assert.That(prototype.CurrentCompletionRewardTexture, Is.SameAs(fragmentArt));
+            Assert.That(prototype.CurrentCompletionRewardTexture, Is.Not.SameAs(texture),
+                "The full map raster belongs to the map screen, not the inventory reward card.");
+            Assert.That(prototype.HasBuiltElement("Map Fragment Reward Art"), Is.True);
         }
         finally
         {

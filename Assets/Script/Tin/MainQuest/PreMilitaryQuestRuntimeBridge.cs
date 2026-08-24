@@ -36,6 +36,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     [SerializeField, Min(0.1f)] private float returnPointInset = 1.25f;
 
     private Transform officeTarget;
+    private Transform militaryTarget;
     private Transform configuredPlayerTarget;
     private ProjectZomboidMapRasterizer.Result rasterMap;
     private Coroutine officeRevealRoutine;
@@ -50,6 +51,8 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private string configuredZoneSignature;
     private int lastAuthoritativeSnapshotSignature = int.MinValue;
     private bool hasAppliedInitialAuthoritativeSnapshot;
+    private int lastMilitarySnapshotSignature = int.MinValue;
+    private bool hasAppliedInitialMilitarySnapshot;
     private float outsideSince = -1f;
     private float outsideWarningAlpha;
     private float outsideWarningVisibleUntil;
@@ -234,6 +237,12 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             rasterMap = ProjectZomboidMapRasterizer.Build(mapRoot);
         }
 
+        if (militaryTarget == null)
+        {
+            GameObject militaryArea = GameObject.Find("KhuVucQuanSu");
+            if (militaryArea != null) militaryTarget = militaryArea.transform;
+        }
+
         EnsureRevealTuningTool();
     }
 
@@ -263,6 +272,8 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             Vector2 officePosition = rasterMap.WorldToNormalized(officeTarget != null ? officeTarget.position : Vector3.zero);
             Vector2 playerPosition = rasterMap.WorldToNormalized(configuredPlayerTarget != null ? configuredPlayerTarget.position : Vector3.zero);
             questUI.ConfigureRasterMap(rasterMap.Texture, officePosition, playerPosition);
+            if (militaryTarget != null)
+                questUI.ConfigureMilitaryDestination(rasterMap.WorldToNormalized(militaryTarget.position));
             if (officeTarget != null)
             {
                 if (revealTuningTool != null)
@@ -580,14 +591,37 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         signature = signature * 397 ^ (manager.IsArrivalCarRepaired ? 1 : 0);
         signature = signature * 397 ^ manager.LockedEscapeRouteValue;
         signature = signature * 397 ^ manager.NetworkQuestStage;
-        if (signature == lastAuthoritativeSnapshotSignature) return;
+        if (signature != lastAuthoritativeSnapshotSignature)
+        {
+            questUI?.ApplyAuthoritativeSnapshot(manager.SearchedHouseMask, manager.RouteClueMask,
+                manager.IsOfficeDiscovered, mapFragment2Found, mapFragment2Found,
+                hasAppliedInitialAuthoritativeSnapshot, manager.IsArrivalCarInspected, manager.IsArrivalCarRepaired,
+                manager.ArrivalCarRepairMask, manager.LockedEscapeRoute, manager.NetworkQuestStage);
+            lastAuthoritativeSnapshotSignature = signature;
+            hasAppliedInitialAuthoritativeSnapshot = true;
+        }
 
-        questUI?.ApplyAuthoritativeSnapshot(manager.SearchedHouseMask, manager.RouteClueMask,
-            manager.IsOfficeDiscovered, mapFragment2Found, mapFragment2Found,
-            hasAppliedInitialAuthoritativeSnapshot, manager.IsArrivalCarInspected, manager.IsArrivalCarRepaired,
-            manager.ArrivalCarRepairMask, manager.LockedEscapeRoute, manager.NetworkQuestStage);
-        lastAuthoritativeSnapshotSignature = signature;
-        hasAppliedInitialAuthoritativeSnapshot = true;
+        SyncMilitarySnapshot();
+    }
+
+    private void SyncMilitarySnapshot()
+    {
+        MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        if (military == null || !military.IsNetworkReady || questUI == null) return;
+
+        int signature = (int)military.CurrentPhase;
+        signature = signature * 397 ^ (military.IsGeneratorActive ? 1 : 0);
+        signature = signature * 397 ^ (military.HasAllParts ? 1 : 0);
+        signature = signature * 397 ^ Mathf.RoundToInt(military.VehicleRepairProgress * 10f);
+        signature = signature * 397 ^ Mathf.RoundToInt(military.GateCurrentHealth * 10f);
+        signature = signature * 397 ^ Mathf.RoundToInt(military.GateMaxHealth * 10f);
+        if (signature == lastMilitarySnapshotSignature) return;
+
+        questUI.ApplyMilitarySnapshot((int)military.CurrentPhase, military.IsGeneratorActive,
+            military.HasAllParts, military.VehicleRepairProgress, military.GateCurrentHealth,
+            military.GateMaxHealth, hasAppliedInitialMilitarySnapshot);
+        lastMilitarySnapshotSignature = signature;
+        hasAppliedInitialMilitarySnapshot = true;
     }
 
     private void UpdateOutsideSearchZoneWarning(Vector2 playerPosition, MainQuestManager manager)

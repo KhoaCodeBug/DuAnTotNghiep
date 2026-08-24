@@ -153,6 +153,17 @@ public class DevCheatManager : MonoBehaviour
 
             ToggleMenu();
         }
+
+        if (Input.GetKeyDown(KeyCode.F6))
+            RunRouteBCheat(AdvanceRouteBStory);
+        else if (Input.GetKeyDown(KeyCode.F7))
+            RunRouteBCheat(CompleteRouteBClues);
+        else if (Input.GetKeyDown(KeyCode.F10))
+            RunRouteBCheat(AdvanceRouteBBase);
+        else if (Input.GetKeyDown(KeyCode.F11))
+            RunRouteBCheat(ReplayCurrentRouteBAudio);
+        else if (Input.GetKeyDown(KeyCode.F12))
+            RunRouteBCheat(TeleportToCurrentRouteBObjective);
 #endif
 
         // God Mode Update Loop
@@ -348,6 +359,18 @@ public class DevCheatManager : MonoBehaviour
                 Debug.Log("[CHEAT] 📦 Granted +100 7.62mm & 12 Gauge Ammo!");
             }
         });
+
+        AddSectionHeader(cheatsTabContent.transform, "📻 ROUTE B FLOW TEST — NO LOOT CONTAINERS");
+        AddActionRow(cheatsTabContent.transform, "NEXT STORY STEP  [F6]", "ADVANCE", new Color32(124, 58, 237, 255),
+            () => RunRouteBCheat(AdvanceRouteBStory));
+        AddActionRow(cheatsTabContent.transform, "COMPLETE RESIDENTIAL CLUES  [F7]", "3 / 3", new Color32(217, 119, 6, 255),
+            () => RunRouteBCheat(CompleteRouteBClues));
+        AddActionRow(cheatsTabContent.transform, "NEXT MILITARY-BASE STEP  [F10]", "ADVANCE", new Color32(5, 150, 105, 255),
+            () => RunRouteBCheat(AdvanceRouteBBase));
+        AddActionRow(cheatsTabContent.transform, "REPLAY CURRENT STORY AUDIO  [F11]", "REPLAY", new Color32(2, 132, 199, 255),
+            () => RunRouteBCheat(ReplayCurrentRouteBAudio));
+        AddActionRow(cheatsTabContent.transform, "TELEPORT TO CURRENT NON-LOOT OBJECTIVE  [F12]", "TELEPORT", new Color32(14, 116, 144, 255),
+            () => RunRouteBCheat(TeleportToCurrentRouteBObjective));
 
         // --- POPULATE TAB 2: FIXED INVENTORY CAPACITY TEST ---
         AddSectionHeader(backpackTabContent.transform, "🎒 FIXED INVENTORY CAPACITY");
@@ -705,6 +728,126 @@ public class DevCheatManager : MonoBehaviour
         string godState = isGodMode ? "<color=#22c55e>ON</color>" : "<color=#94a3b8>OFF</color>";
 
         statusText.text = $"Player: {playerState}  ·  Capacity: <color=#38bdf8>{capacity} Slots</color> (5 Hotbar + {storage} Storage)  ·  GodMode: {godState}";
+    }
+
+    private void RunRouteBCheat(System.Action action)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
+        if (!CanUseDevCheats())
+        {
+            Debug.LogWarning("[CHEAT] Route B flow controls require Solo/Host authority.");
+            return;
+        }
+
+        // Route audio and choice panels own the local modal layer. Closing the
+        // cheat first prevents its fullscreen raycast blocker from covering them.
+        HideCheatMenu();
+        action?.Invoke();
+#endif
+    }
+
+    private static void AdvanceRouteBStory()
+    {
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady)
+        {
+            Debug.LogWarning("[CHEAT] MainQuestManager is not ready. Start Main from MainMenu first.");
+            return;
+        }
+        manager.DebugAdvanceRouteB();
+    }
+
+    private static void CompleteRouteBClues()
+    {
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady)
+        {
+            Debug.LogWarning("[CHEAT] MainQuestManager is not ready. Start Main from MainMenu first.");
+            return;
+        }
+        manager.DebugCompleteClueSearch();
+    }
+
+    private static void AdvanceRouteBBase()
+    {
+        MilitaryBaseQuestManager manager = MilitaryBaseQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady)
+        {
+            Debug.LogWarning("[CHEAT] MilitaryBaseQuestManager is not ready. Start Main from MainMenu first.");
+            return;
+        }
+        manager.DebugAdvanceMilitaryRoute();
+    }
+
+    private static void ReplayCurrentRouteBAudio()
+    {
+        MainQuestManager main = MainQuestManager.Instance;
+        if (main == null || !main.IsNetworkReady)
+        {
+            Debug.LogWarning("[CHEAT] Route B is not ready.");
+            return;
+        }
+
+        RouteBAudioCueId cue;
+        switch (main.CurrentStage)
+        {
+            case MainQuestManager.QuestStage.NotStarted:
+                cue = RouteBAudioCueId.OpeningEmergencyBroadcast;
+                break;
+            case MainQuestManager.QuestStage.SearchNeighborhood:
+                cue = main.RouteClueCount switch
+                {
+                    0 => RouteBAudioCueId.PlayerRouteReaction,
+                    1 => RouteBAudioCueId.FirstSupplyDocument,
+                    _ => RouteBAudioCueId.SecondEvacuationDocument
+                };
+                break;
+            case MainQuestManager.QuestStage.LocateOffice:
+                cue = RouteBAudioCueId.ThirdCoordinationDocument;
+                break;
+            case MainQuestManager.QuestStage.FindCityMap:
+                cue = main.CurrentOfficeInvestigationStep switch
+                {
+                    <= 0 => RouteBAudioCueId.OfficeLocated,
+                    1 => RouteBAudioCueId.DispatchDeskLog,
+                    _ => RouteBAudioCueId.OfficeRadioRecording
+                };
+                break;
+            default:
+                MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+                if (military == null || !military.IsNetworkReady)
+                {
+                    cue = RouteBAudioCueId.MilitaryRouteRevealed;
+                    break;
+                }
+                cue = military.CurrentPhase switch
+                {
+                    MilitaryBaseQuestManager.Phase.NotReached => RouteBAudioCueId.MilitaryRouteRevealed,
+                    MilitaryBaseQuestManager.Phase.Investigating => RouteBAudioCueId.MilitaryBaseApproach,
+                    MilitaryBaseQuestManager.Phase.SiegeAndRepair when military.IsGeneratorActive =>
+                        RouteBAudioCueId.GeneratorOnline,
+                    MilitaryBaseQuestManager.Phase.SiegeAndRepair => RouteBAudioCueId.SiegeStarted,
+                    MilitaryBaseQuestManager.Phase.ReadyToEscape => RouteBAudioCueId.EscapeVehicleReady,
+                    MilitaryBaseQuestManager.Phase.Escaped => RouteBAudioCueId.MilitaryEvacuationComplete,
+                    _ => RouteBAudioCueId.AlarmPointOfNoReturn
+                };
+                break;
+        }
+
+        RouteBRadioBroadcastUI.ShowCue(cue);
+        Debug.Log($"[QUEST TEST] F11: replay {cue}.");
+    }
+
+    private static void TeleportToCurrentRouteBObjective()
+    {
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady)
+        {
+            Debug.LogWarning("[CHEAT] Route B is not ready. Start Main from MainMenu first.");
+            return;
+        }
+        manager.DebugTeleportToCurrentObjective();
     }
 
     // ============================
