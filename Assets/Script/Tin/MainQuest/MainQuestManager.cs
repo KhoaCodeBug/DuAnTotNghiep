@@ -29,6 +29,16 @@ public sealed class MainQuestManager : NetworkBehaviour
         RadioReady
     }
 
+    public enum CivilianRouteStage
+    {
+        PreparingCar,
+        CarReady,
+        ExploringExits,
+        AwaitingTeam,
+        EscapeRun,
+        Completed
+    }
+
     public const int MaximumSearchHouses = PreMilitaryQuestProgress.MaximumSearchHouses;
     private const int MaximumCabinetSearchPoints = 32;
 
@@ -92,6 +102,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     [SerializeField] private Transform civilianEscapeExit;
     [SerializeField] private Vector2 civilianEscapeFallbackOffset = new Vector2(30f, 0f);
     [SerializeField, Min(1f)] private float civilianEscapeTriggerRadius = 2.75f;
+    [SerializeField, Min(1f)] private float civilianCityExitTriggerRadius = 3.5f;
+    [SerializeField, Min(1f)] private float civilianTeamGatherRadius = 6f;
 
     [Networked] public int NetworkQuestStage { get; set; }
     [Networked] public int MapCabinetId { get; set; }
@@ -103,6 +115,9 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Networked] public NetworkObject RepairedArrivalCarObject { get; set; }
     [Networked] public int LockedEscapeRouteValue { get; private set; }
     [Networked] public NetworkBool IsCivilianEscapeComplete { get; private set; }
+    [Networked] public int CivilianRouteStageValue { get; private set; }
+    [Networked] public Vector2 CivilianCheckpointPosition { get; private set; }
+    [Networked] public Vector2 CivilianCityExitPosition { get; private set; }
     [Networked] public NetworkBool IsNeighborhoodConfigured { get; set; }
     [Networked] public int SearchHouseCount { get; set; }
     [Networked] public NetworkString<_64> SearchHouseId0 { get; set; }
@@ -146,6 +161,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         new List<HospitalRadioKeyLootPoint>();
     private readonly Dictionary<int, int> cabinetIndexById = new Dictionary<int, int>();
     private bool hasSpawned;
+    private bool hasGeneratedCivilianEscapeFallback;
 
     /// <summary>
     /// Fusion networked properties are not legal to access between Awake and
@@ -188,8 +204,19 @@ public sealed class MainQuestManager : NetworkBehaviour
     public EscapeEndingRoute LockedEscapeRoute => IsNetworkReady
         ? (EscapeEndingRoute)LockedEscapeRouteValue
         : EscapeEndingRoute.None;
-    public Vector2 CivilianEscapePosition => ResolveCivilianEscapeExit().position;
+    public CivilianRouteStage CurrentCivilianRouteStage => IsNetworkReady
+        ? (CivilianRouteStage)CivilianRouteStageValue
+        : CivilianRouteStage.PreparingCar;
+    public bool IsCivilianCityMapUnlocked => IsNetworkReady &&
+        CurrentCivilianRouteStage >= CivilianRouteStage.CarReady;
+    public bool IsSearchNeighborhoodBoundaryActive => IsNetworkReady &&
+        CurrentStage == QuestStage.SearchNeighborhood && !IsCivilianCityMapUnlocked;
+    public Vector2 CivilianEscapePosition => IsCivilianCityMapUnlocked
+        ? CivilianCheckpointPosition
+        : ResolveCivilianEscapeExit().position;
     public float CivilianEscapeTriggerRadius => civilianEscapeTriggerRadius;
+    public float CivilianCityExitTriggerRadius => civilianCityExitTriggerRadius;
+    public float CivilianTeamGatherRadius => civilianTeamGatherRadius;
 
     private void Awake()
     {
@@ -219,6 +246,9 @@ public sealed class MainQuestManager : NetworkBehaviour
             RepairedArrivalCarObject = null;
             LockedEscapeRouteValue = (int)EscapeEndingRoute.None;
             IsCivilianEscapeComplete = false;
+            CivilianRouteStageValue = (int)CivilianRouteStage.PreparingCar;
+            CivilianCheckpointPosition = default;
+            CivilianCityExitPosition = default;
             IsNeighborhoodConfigured = false;
             SearchHouseCount = 0;
             SearchHouseId0 = default;
@@ -273,6 +303,41 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (Input.GetKeyDown(KeyCode.F8))
             EditorGrantMissingArrivalCarRepairItems();
 #endif
+    }
+
+    public override void FixedUpdateNetwork()
+    {
+        if (!HasStateAuthority) return;
+
+        TickHospitalRadioRestore();
+
+        if (!IsArrivalCarRepaired || RepairedArrivalCarObject == null || IsCivilianEscapeComplete)
+            return;
+
+        float checkpointDistance = Vector2.Distance(RepairedArrivalCarObject.transform.position,
+            CivilianCheckpointPosition);
+        switch (CurrentCivilianRouteStage)
+        {
+            case CivilianRouteStage.CarReady:
+                CivilianRouteStageValue = (int)CivilianRouteStage.ExploringExits;
+                break;
+            case CivilianRouteStage.ExploringExits:
+                if (checkpointDistance <= civilianEscapeTriggerRadius)
+                {
+                    CivilianRouteStageValue = (int)CivilianRouteStage.AwaitingTeam;
+                    RPC_ShowLocalizedQuestMessage("quest.route_a_regroup", 0, 0);
+                }
+                break;
+            case CivilianRouteStage.AwaitingTeam:
+                if (checkpointDistance > civilianEscapeTriggerRadius * 1.75f)
+                    CivilianRouteStageValue = (int)CivilianRouteStage.ExploringExits;
+                break;
+            case CivilianRouteStage.EscapeRun:
+                if (Vector2.Distance(RepairedArrivalCarObject.transform.position,
+                        CivilianCityExitPosition) <= civilianCityExitTriggerRadius)
+                    ServerCompleteCivilianEscape();
+                break;
+        }
     }
 
     /// <summary>
@@ -384,11 +449,6 @@ public sealed class MainQuestManager : NetworkBehaviour
         }
         TeleportPlayer(player, destination);
         Physics2D.SyncTransforms();
-    }
-
-    public override void FixedUpdateNetwork()
-    {
-        if (HasStateAuthority) TickHospitalRadioRestore();
     }
 
     private Transform ResolveCurrentHospitalObjective()
@@ -678,7 +738,9 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     public void RequestCivilianEscape()
     {
-        if (!IsNetworkReady || !IsArrivalCarRepaired || IsCivilianEscapeComplete) return;
+        if (!IsNetworkReady || !IsArrivalCarRepaired || IsCivilianEscapeComplete ||
+            CurrentCivilianRouteStage != CivilianRouteStage.AwaitingTeam)
+            return;
         if (HasStateAuthority) ServerBeginCivilianEscape(Runner.LocalPlayer);
         else RPC_RequestCivilianEscape();
     }
@@ -700,6 +762,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void ServerBeginCivilianEscape(PlayerRef requester)
     {
         if (!HasStateAuthority || !IsArrivalCarRepaired || IsCivilianEscapeComplete ||
+            CurrentCivilianRouteStage != CivilianRouteStage.AwaitingTeam ||
             !EscapeEndingRules.CanLock(LockedEscapeRoute, EscapeEndingRoute.CivilianCar))
             return;
 
@@ -714,9 +777,24 @@ public sealed class MainQuestManager : NetworkBehaviour
             civilianEscapeTriggerRadius)
             return;
 
+        if (!AreAllLivingPlayersGatheredForCivilianEscape())
+        {
+            RPC_ShowLocalizedQuestMessage("quest.route_a_wait_team", 0, 0);
+            return;
+        }
+
         if (!AuthorityTryLockEscapeRoute(EscapeEndingRoute.CivilianCar)) return;
-        IsCivilianEscapeComplete = true;
+        CivilianRouteStageValue = (int)CivilianRouteStage.EscapeRun;
         RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0);
+    }
+
+    private void ServerCompleteCivilianEscape()
+    {
+        if (!HasStateAuthority || CurrentCivilianRouteStage != CivilianRouteStage.EscapeRun ||
+            IsCivilianEscapeComplete || LockedEscapeRoute != EscapeEndingRoute.CivilianCar)
+            return;
+        CivilianRouteStageValue = (int)CivilianRouteStage.Completed;
+        IsCivilianEscapeComplete = true;
         RPC_TriggerCivilianVictory(Time.timeSinceLevelLoad);
     }
 
@@ -798,7 +876,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             return;
         }
 
-        if (!SpawnRepairedArrivalCar(car))
+        if (!SpawnRepairedArrivalCar(car, player.Object))
         {
             RPC_ShowArrivalCarStartResult(requester, false,
                 "Không thể kích hoạt phương tiện. Hãy thử lại hoặc kiểm tra cấu hình prefab xe.");
@@ -806,9 +884,12 @@ public sealed class MainQuestManager : NetworkBehaviour
         }
 
         IsArrivalCarRepaired = true;
+        ConfigureCivilianEscapeRoute(RepairedArrivalCarObject.transform.position);
+        CivilianRouteStageValue = (int)CivilianRouteStage.CarReady;
         RPC_ShowArrivalCarStartResult(requester, true,
             "Động cơ đã nổ máy. Xe dân sự đã sẵn sàng để khám phá và thoát hiểm.");
         RPC_ShowLocalizedQuestMessage("quest.route_a_started", 0, 0);
+        RPC_ShowCivilianMapUnlocked(CivilianCheckpointPosition, CivilianCityExitPosition);
     }
 
     public string GetSearchHouseId(int index)
@@ -1930,6 +2011,55 @@ public sealed class MainQuestManager : NetworkBehaviour
         _ => "Đã cập nhật tình trạng xe."
     };
 
+    private void ConfigureCivilianEscapeRoute(Vector2 origin)
+    {
+        Vector2 checkpoint = origin + civilianEscapeFallbackOffset;
+        Vector2 cityExit = checkpoint + civilianEscapeFallbackOffset.normalized * 20f;
+        PreMilitaryQuestRuntimeBridge bridge = PreMilitaryQuestRuntimeBridge.Instance;
+        if (bridge != null && bridge.TryGetCivilianEscapeRoute(origin, out Vector2 roadCheckpoint,
+                out Vector2 roadExit))
+        {
+            checkpoint = roadCheckpoint;
+            cityExit = roadExit;
+        }
+
+        Transform configuredExit = hasGeneratedCivilianEscapeFallback ? null : civilianEscapeExit;
+        if (configuredExit == null && !hasGeneratedCivilianEscapeFallback)
+        {
+            GameObject configuredObject = GameObject.Find("CivilianEscapeExit");
+            if (configuredObject != null) configuredExit = configuredObject.transform;
+        }
+        if (configuredExit != null) checkpoint = configuredExit.position;
+
+        CivilianCheckpointPosition = checkpoint;
+        CivilianCityExitPosition = cityExit;
+    }
+
+    public bool AreAllLivingPlayersGatheredForCivilianEscape()
+    {
+        if (!IsNetworkReady || RepairedArrivalCarObject == null) return false;
+        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        bool foundLivingPlayer = false;
+        for (int i = 0; i < players.Length; i++)
+        {
+            PlayerMovement candidate = players[i];
+            if (candidate == null || candidate.Object == null || !candidate.Object.IsValid) continue;
+            PlayerHealth health = candidate.GetComponent<PlayerHealth>();
+            if (health != null && health.isDead) continue;
+            foundLivingPlayer = true;
+
+            PlayerInteraction interaction = candidate.GetComponent<PlayerInteraction>();
+            if (interaction != null && interaction.IsInVehicle &&
+                interaction.CurrentVehicle == RepairedArrivalCarObject)
+                continue;
+            if (Vector2.Distance(candidate.transform.position, RepairedArrivalCarObject.transform.position) <=
+                civilianTeamGatherRadius)
+                continue;
+            return false;
+        }
+        return foundLivingPlayer;
+    }
+
     private Transform ResolveCivilianEscapeExit()
     {
         if (civilianEscapeExit != null) return civilianEscapeExit;
@@ -1937,6 +2067,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (configured != null)
         {
             civilianEscapeExit = configured.transform;
+            hasGeneratedCivilianEscapeFallback = false;
             return civilianEscapeExit;
         }
 
@@ -1947,10 +2078,11 @@ public sealed class MainQuestManager : NetworkBehaviour
             : BrokenArrivalCar.Instance != null ? BrokenArrivalCar.Instance.transform.position : Vector3.zero;
         anchor.transform.position = origin + (Vector3)civilianEscapeFallbackOffset;
         civilianEscapeExit = anchor.transform;
+        hasGeneratedCivilianEscapeFallback = true;
         return civilianEscapeExit;
     }
 
-    private bool SpawnRepairedArrivalCar(BrokenArrivalCar brokenCar)
+    private bool SpawnRepairedArrivalCar(BrokenArrivalCar brokenCar, NetworkObject sourcePlayer)
     {
         if (!HasStateAuthority || brokenCar == null) return false;
         if (RepairedArrivalCarObject != null) return true;
@@ -1965,6 +2097,9 @@ public sealed class MainQuestManager : NetworkBehaviour
             }
             spawned.name = "Repaired Arrival Car";
             RepairedArrivalCarObject = spawned;
+            VehicleControllerFusion controller = spawned.GetComponent<VehicleControllerFusion>();
+            if (controller == null || !controller.AuthorityPlayStarterConfirmation(sourcePlayer))
+                Debug.LogWarning("[ARRIVAL CAR] Xe đã spawn nhưng không thể phát tiếng đề máy xác nhận.");
             return true;
         }
         catch (System.Exception exception)
@@ -1996,11 +2131,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (cachedMinimapController == null)
             cachedMinimapController = FindFirstObjectByType<MinimapController>(FindObjectsInactive.Include);
 
-        bool unlocked = IsNetworkReady && IsCityMapUnlocked;
+        bool unlocked = IsNetworkReady && (IsCityMapUnlocked || IsCivilianCityMapUnlocked);
         if (cachedMapController != null) cachedMapController.SetMapUnlocked(unlocked);
-        // Route B unlocks the full mission map only. The corner minimap is a
-        // separate exploration aid and must not suddenly appear after the
-        // hospital investigation.
+        // Either route can unlock the full mission map. The corner minimap is a
+        // separate exploration aid and remains disabled for the whole story.
         if (cachedMinimapController != null) cachedMinimapController.SetMapUnlocked(false);
     }
 
@@ -2132,7 +2266,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     public void RequestReturnPlayerToSearchZone()
     {
-        if (!IsNetworkReady || CurrentStage != QuestStage.SearchNeighborhood) return;
+        if (!IsSearchNeighborhoodBoundaryActive) return;
         if (HasStateAuthority) ServerReturnPlayerToSearchZone(Runner.LocalPlayer);
         else RPC_RequestReturnPlayerToSearchZone();
     }
@@ -2145,7 +2279,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void ServerReturnPlayerToSearchZone(PlayerRef requester)
     {
-        if (!HasStateAuthority || CurrentStage != QuestStage.SearchNeighborhood ||
+        if (!HasStateAuthority || !IsSearchNeighborhoodBoundaryActive ||
             !TryGetRequestingPlayer(requester, out PlayerMovement player)) return;
 
         PreMilitaryQuestRuntimeBridge bridge = PreMilitaryQuestRuntimeBridge.Instance;
@@ -2195,6 +2329,18 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (Runner.LocalPlayer != targetPlayer) return;
         AutoChatManager.Instance?.AddMessage(success ? "KHỞI ĐỘNG XE" : "KHÔNG THỂ KHỞI ĐỘNG", message);
         ArrivalCarInspectionUI.ActiveInstance?.NotifyStartResult(success, message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowCivilianMapUnlocked(Vector2 checkpointPosition, Vector2 cityExitPosition)
+    {
+        QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
+        if (flow == null) return;
+        PreMilitaryQuestRuntimeBridge bridge = PreMilitaryQuestRuntimeBridge.Instance;
+        bridge?.ConfigureCivilianRouteMap(checkpointPosition, cityExitPosition,
+            CivilianRouteStage.CarReady);
+        flow.SetCivilianCityMapUnlocked(true);
+        flow.SetMapOpenForPreview(true);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

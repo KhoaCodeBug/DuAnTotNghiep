@@ -4,9 +4,10 @@ using UnityEngine;
 public sealed class CivilianEscapeRouteController : MonoBehaviour
 {
     private MainQuestManager manager;
-    private GameObject marker;
-    private SpriteRenderer markerSprite;
-    private bool localPlayerCanEscape;
+    private GameObject checkpointMarker;
+    private GameObject cityExitMarker;
+    private bool localDriverAtCheckpoint;
+    private bool localTeamReady;
 
     public static CivilianEscapeRouteController Attach(MainQuestManager target)
     {
@@ -22,24 +23,36 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
     {
         if (manager == null || !manager.IsNetworkReady)
         {
-            SetMarkerVisible(false);
-            localPlayerCanEscape = false;
+            SetMarkerVisible(checkpointMarker, false);
+            SetMarkerVisible(cityExitMarker, false);
+            localDriverAtCheckpoint = false;
+            localTeamReady = false;
             return;
         }
 
+        MainQuestManager.CivilianRouteStage stage = manager.CurrentCivilianRouteStage;
         bool routeAvailable = manager.IsArrivalCarRepaired && !manager.IsCivilianEscapeComplete &&
                               manager.LockedEscapeRoute != EscapeEndingRoute.MilitaryEvacuation;
-        SetMarkerVisible(routeAvailable);
+        SetMarkerVisible(checkpointMarker, routeAvailable &&
+            stage >= MainQuestManager.CivilianRouteStage.ExploringExits &&
+            stage <= MainQuestManager.CivilianRouteStage.AwaitingTeam);
+        SetMarkerVisible(cityExitMarker, routeAvailable &&
+            stage == MainQuestManager.CivilianRouteStage.EscapeRun);
         if (!routeAvailable)
         {
-            localPlayerCanEscape = false;
+            localDriverAtCheckpoint = false;
+            localTeamReady = false;
             return;
         }
 
         EnsureMarker();
-        marker.transform.position = manager.CivilianEscapePosition;
-        localPlayerCanEscape = IsLocalDriverAtExit();
-        if (!localPlayerCanEscape || !Input.GetKeyDown(KeyCode.E) || EscapeRouteDecisionUI.IsVisible ||
+        checkpointMarker.transform.position = manager.CivilianEscapePosition;
+        cityExitMarker.transform.position = manager.CivilianCityExitPosition;
+        localDriverAtCheckpoint = stage == MainQuestManager.CivilianRouteStage.AwaitingTeam &&
+                                  IsLocalDriverAt(manager.CivilianEscapePosition,
+                                      manager.CivilianEscapeTriggerRadius);
+        localTeamReady = localDriverAtCheckpoint && manager.AreAllLivingPlayersGatheredForCivilianEscape();
+        if (!localTeamReady || !Input.GetKeyDown(KeyCode.E) || EscapeRouteDecisionUI.IsVisible ||
             (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()))
             return;
 
@@ -47,7 +60,7 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
             EscapeEndingRoute.CivilianCar, manager.RequestCivilianEscape);
     }
 
-    private bool IsLocalDriverAtExit()
+    private bool IsLocalDriverAt(Vector2 position, float radius)
     {
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         if (player == null || manager.RepairedArrivalCarObject == null) return false;
@@ -55,39 +68,51 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
         if (interaction == null || !interaction.IsInVehicle || !interaction.IsVehicleDriver ||
             interaction.CurrentVehicle != manager.RepairedArrivalCarObject)
             return false;
-        return Vector2.Distance(manager.RepairedArrivalCarObject.transform.position,
-            manager.CivilianEscapePosition) <= manager.CivilianEscapeTriggerRadius;
+        return Vector2.Distance(manager.RepairedArrivalCarObject.transform.position, position) <= radius;
     }
 
     private void EnsureMarker()
     {
-        if (marker != null || manager == null) return;
-        marker = new GameObject("Civilian Escape Finale Marker");
-        marker.transform.position = manager.CivilianEscapePosition;
-        markerSprite = marker.AddComponent<SpriteRenderer>();
-        markerSprite.sprite = CreateMarkerSprite();
-        markerSprite.sortingOrder = 30;
-        markerSprite.color = new Color(0.25f, 0.95f, 0.72f, 0.92f);
-        marker.SetActive(false);
+        if (manager == null) return;
+        if (checkpointMarker == null)
+            checkpointMarker = CreateWorldMarker("Civilian Escape Regroup Marker",
+                manager.CivilianEscapePosition, new Color(0.25f, 0.95f, 0.72f, 0.92f));
+        if (cityExitMarker == null)
+            cityExitMarker = CreateWorldMarker("Civilian City Exit Marker",
+                manager.CivilianCityExitPosition, new Color(1f, 0.72f, 0.18f, 0.95f));
     }
 
-    private void SetMarkerVisible(bool visible)
+    private void SetMarkerVisible(GameObject target, bool visible)
     {
         EnsureMarker();
-        if (marker != null && marker.activeSelf != visible) marker.SetActive(visible);
+        if (target != null && target.activeSelf != visible) target.SetActive(visible);
     }
 
     private void OnGUI()
     {
-        if (!localPlayerCanEscape || EscapeRouteDecisionUI.IsVisible) return;
+        if ((!localDriverAtCheckpoint && !localTeamReady) || EscapeRouteDecisionUI.IsVisible) return;
         GUIStyle style = new GUIStyle(GUI.skin.box)
         {
             alignment = TextAnchor.MiddleCenter,
             fontSize = 15,
             fontStyle = FontStyle.Bold
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 290f, Screen.height - 112f, 580f, 42f),
-            "[E]  BẮT ĐẦU VƯỢT VÒNG PHONG TỎA  •  ĐIỂM KHÔNG THỂ QUAY LẠI", style);
+        string prompt = localTeamReady
+            ? "[E]  BẮT ĐẦU VƯỢT VÒNG PHONG TỎA  •  ĐIỂM KHÔNG THỂ QUAY LẠI"
+            : "CHỜ CÁC THÀNH VIÊN CÒN SỐNG TẬP KẾT GẦN XE";
+        GUI.Box(new Rect(Screen.width * 0.5f - 310f, Screen.height - 112f, 620f, 42f), prompt, style);
+    }
+
+    private static GameObject CreateWorldMarker(string name, Vector2 position, Color color)
+    {
+        GameObject result = new GameObject(name);
+        result.transform.position = position;
+        SpriteRenderer sprite = result.AddComponent<SpriteRenderer>();
+        sprite.sprite = CreateMarkerSprite();
+        sprite.sortingOrder = 30;
+        sprite.color = color;
+        result.SetActive(false);
+        return result;
     }
 
     private static Sprite CreateMarkerSprite()
@@ -117,6 +142,7 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (marker != null) Destroy(marker);
+        if (checkpointMarker != null) Destroy(checkpointMarker);
+        if (cityExitMarker != null) Destroy(cityExitMarker);
     }
 }

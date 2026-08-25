@@ -73,6 +73,23 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     public float BoundaryObscureAlpha => boundaryObscureAlpha;
     public float ReturnActivationDistance => outsideWarningDistance;
 
+    public bool TryGetCivilianEscapeRoute(Vector2 origin, out Vector2 checkpoint, out Vector2 cityExit)
+    {
+        checkpoint = origin;
+        cityExit = origin;
+        if (rasterMap == null) ResolveMainSceneReferences();
+        return rasterMap != null && rasterMap.TryFindCivilianRoadExit(origin, out checkpoint, out cityExit);
+    }
+
+    public void ConfigureCivilianRouteMap(Vector2 checkpoint, Vector2 cityExit,
+        MainQuestManager.CivilianRouteStage stage)
+    {
+        if (rasterMap == null) ResolveMainSceneReferences();
+        if (rasterMap == null || questUI == null) return;
+        questUI.ConfigureCivilianEscapeRoute(rasterMap.WorldToNormalized(checkpoint),
+            rasterMap.WorldToNormalized(cityExit), (CivilianEscapePresentationStage)(int)stage);
+    }
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -117,10 +134,8 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             if (!manager.IsNeighborhoodConfigured && manager.HasStateAuthority && manager.IsArrivalCarInspected)
                 TryInitializeAuthoritativeSearchZone(player, manager);
             if (manager.IsNeighborhoodConfigured)
-            {
                 ConfigureSearchZoneFromAuthority(manager);
-                SyncAuthoritativeQuestSnapshot(manager);
-            }
+            SyncAuthoritativeQuestSnapshot(manager);
         }
         else if (player != null && manager == null && !searchZoneConfigured)
         {
@@ -590,6 +605,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         signature = signature * 397 ^ manager.ArrivalCarRepairMask;
         signature = signature * 397 ^ (manager.IsArrivalCarRepaired ? 1 : 0);
         signature = signature * 397 ^ manager.LockedEscapeRouteValue;
+        signature = signature * 397 ^ manager.CivilianRouteStageValue;
         signature = signature * 397 ^ manager.NetworkQuestStage;
         signature = signature * 397 ^ manager.NetworkHospitalInvestigationStage;
         signature = signature * 397 ^ (manager.HasHospitalRadioKeyState ? 1 : 0);
@@ -604,6 +620,10 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
                 manager.ArrivalCarRepairMask, manager.LockedEscapeRoute, manager.NetworkQuestStage,
                 manager.NetworkHospitalInvestigationStage, manager.HospitalRadioRestoreNormalized,
                 manager.HospitalRadioCheckpointCountState);
+            questUI?.SetCivilianCityMapUnlocked(manager.IsCivilianCityMapUnlocked);
+            if (manager.IsCivilianCityMapUnlocked)
+                ConfigureCivilianRouteMap(manager.CivilianCheckpointPosition, manager.CivilianCityExitPosition,
+                    manager.CurrentCivilianRouteStage);
             lastAuthoritativeSnapshotSignature = signature;
             hasAppliedInitialAuthoritativeSnapshot = true;
         }
@@ -634,7 +654,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private void UpdateOutsideSearchZoneWarning(Vector2 playerPosition, MainQuestManager manager)
     {
         bool searchNeighborhood = manager != null && manager.IsNetworkReady
-            ? manager.CurrentStage == MainQuestManager.QuestStage.SearchNeighborhood
+            ? manager.IsSearchNeighborhoodBoundaryActive
             : questUI != null && !questUI.IsHouseSearchComplete;
         bool outside = false;
         bool searchBoundaryActive = false;

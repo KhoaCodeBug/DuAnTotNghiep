@@ -5,6 +5,17 @@ public enum EscapeEndingRoute
     MilitaryEvacuation = 2
 }
 
+/// <summary>Assembly-independent presentation mirror of Route A's network stage.</summary>
+public enum CivilianEscapePresentationStage
+{
+    PreparingCar,
+    CarReady,
+    ExploringExits,
+    AwaitingTeam,
+    EscapeRun,
+    Completed
+}
+
 public static class EscapeEndingRules
 {
     public static bool IsValidPlayableRoute(EscapeEndingRoute route) =>

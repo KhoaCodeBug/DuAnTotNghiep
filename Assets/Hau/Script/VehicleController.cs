@@ -81,11 +81,22 @@ public class VehicleControllerFusion : NetworkBehaviour
     [SerializeField] private AudioClip doorOpenClip;
     [SerializeField] private AudioClip doorCloseClip;
 
+    [Header("Vehicle noise and zombie attraction")]
+    [SerializeField, Min(1f)] private float starterNoiseRadius = 16f;
+    [SerializeField, Min(1f)] private float idleEngineNoiseRadius = 11f;
+    [SerializeField, Min(1f)] private float drivingEngineNoiseRadius = 22f;
+    [SerializeField, Min(1f)] private float hornSingleNoiseRadius = 36f;
+    [SerializeField, Min(1f)] private float hornHoldNoiseRadius = 46f;
+    [SerializeField, Min(0.1f)] private float engineNoiseInterval = 0.75f;
+    [SerializeField, Min(0.1f)] private float hornNoiseInterval = 0.6f;
+
     [Networked] public NetworkObject Driver { get; private set; }
     [Networked] public NetworkObject FrontPassenger { get; private set; }
     [Networked] public NetworkObject RearLeftPassenger { get; private set; }
     [Networked] public NetworkObject RearRightPassenger { get; private set; }
     [Networked] public NetworkBool IsMoving { get; private set; }
+    [Networked] public NetworkBool EngineRunning { get; private set; }
+    [Networked] public NetworkBool HornHeld { get; private set; }
     [Networked] public NetworkBool HeadlightsOn { get; private set; }
     [Networked] public int DirectionIndex { get; private set; }
     [Networked] private float HeadingDegrees { get; set; }
@@ -99,12 +110,23 @@ public class VehicleControllerFusion : NetworkBehaviour
     private readonly Collider2D[] zombieContacts = new Collider2D[32];
     private readonly RaycastHit2D[] zombieSweepHits = new RaycastHit2D[32];
     private ContactFilter2D zombieContactFilter;
+    private bool networkSpawned;
+    private float engineNoiseCooldown;
+    private float hornNoiseCooldown;
 
     public Vector2 VisionOrigin => transform.position;
     public Vector2 VisionDirection => DirectionIndexToWorldVector(DirectionIndex);
     public float VisionRadius => HeadlightsOn ? headlightVisionRadius : lightsOffVisionRadius;
     public float VisionAngle => HeadlightsOn ? EffectiveHeadlightAngle : 360f;
     public bool IsEntryLockedForRepair => entryLockedForRepair;
+    public bool IsNetworkSpawned => networkSpawned;
+    public bool IsEngineRunning => EngineRunning;
+    public bool IsHornHeld => HornHeld;
+    public bool HasLocalDriver => Driver != null && Driver.HasInputAuthority;
+    public bool HasLocalOccupant => HasLocalInputAuthority(Driver) ||
+                                    HasLocalInputAuthority(FrontPassenger) ||
+                                    HasLocalInputAuthority(RearLeftPassenger) ||
+                                    HasLocalInputAuthority(RearRightPassenger);
     private float EffectiveHeadlightAngle => Mathf.Clamp(headlightVisionAngle, 20f, 60f);
 
     private void Awake()
@@ -120,6 +142,8 @@ public class VehicleControllerFusion : NetworkBehaviour
         ConfigureColliders();
         ConfigureHeadlights();
         ConfigureDoorAudio();
+        VehicleEngineAudioController.Attach(this);
+        VehicleHornAudioController.Attach(this);
         ConfigureZombieContactFilter();
         UpdateBodyCollider(ClampDirectionIndex(initialDirectionIndex));
         SetVehicleMotionLocked(true);
@@ -128,12 +152,22 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     public override void Spawned()
     {
+        networkSpawned = true;
         if (!HasStateAuthority) return;
         rb.bodyType = RigidbodyType2D.Dynamic;
         DirectionIndex = ClampDirectionIndex(initialDirectionIndex);
         HeadingDegrees = DirectionIndexToHeading(DirectionIndex);
+        EngineRunning = false;
+        HornHeld = false;
         HeadlightsOn = false;
         UpdateBodyCollider(DirectionIndex);
+    }
+
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        networkSpawned = false;
+        GetComponent<VehicleEngineAudioController>()?.NotifyNetworkDespawned();
+        GetComponent<VehicleHornAudioController>()?.NotifyNetworkDespawned();
     }
 
     public void RequestEnter(NetworkObject player)
@@ -156,13 +190,41 @@ public class VehicleControllerFusion : NetworkBehaviour
     public void SetRepairEntryLocked(bool locked)
     {
         entryLockedForRepair = locked;
-        if (locked && HasStateAuthority) StopVehicle();
+        if (locked && HasStateAuthority)
+        {
+            HornHeld = false;
+            EngineRunning = false;
+            StopVehicle();
+        }
+    }
+
+    public bool AuthorityStartEngine()
+    {
+        if (!HasStateAuthority || entryLockedForRepair) return false;
+        EngineRunning = true;
+        return true;
+    }
+
+    public bool AuthorityPlayStarterConfirmation(NetworkObject sourcePlayer)
+    {
+        if (!HasStateAuthority || entryLockedForRepair) return false;
+        EmitVehicleNoise(sourcePlayer, starterNoiseRadius, 18, 0.78f);
+        RPC_PlayStarterConfirmation(sourcePlayer);
+        return true;
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayStarterConfirmation(NetworkObject sourcePlayer)
+    {
+        GetComponent<VehicleEngineAudioController>()?.PlayStarterConfirmation(sourcePlayer);
     }
 
     public void AuthorityPrepareRepairTest(Vector2 position)
     {
         if (!HasStateAuthority) return;
         entryLockedForRepair = true;
+        HornHeld = false;
+        EngineRunning = false;
         StopVehicle();
 
         // The EditMode authoring preview uses directionSprites[0]. Keep the
@@ -208,6 +270,8 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (slot == SeatSlot.Driver)
         {
             HeadlightsOn = false;
+            HornHeld = false;
+            EngineRunning = false;
             StopVehicle();
         }
         RPC_PlayDoorSequence();
@@ -218,6 +282,40 @@ public class VehicleControllerFusion : NetworkBehaviour
     {
         if (player != null && seatNumber >= 1 && seatNumber <= 4)
             RPC_RequestSeatChange(player, seatNumber);
+    }
+
+    public void RequestHornSingle(NetworkObject player)
+    {
+        if (player != null) RPC_RequestHornSingle(player);
+    }
+
+    public void RequestHornHold(NetworkObject player, bool held)
+    {
+        if (player != null) RPC_RequestHornHold(player, held);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestHornSingle(NetworkObject player, RpcInfo info = default)
+    {
+        if (player == null || player.InputAuthority != info.Source || Driver != player) return;
+        EmitVehicleNoise(player, hornSingleNoiseRadius, 100, 1f);
+        RPC_PlayHornSingle(player);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestHornHold(NetworkObject player, bool held, RpcInfo info = default)
+    {
+        if (player == null || player.InputAuthority != info.Source || Driver != player) return;
+        HornHeld = held;
+        if (!held) return;
+        hornNoiseCooldown = hornNoiseInterval;
+        EmitVehicleNoise(player, hornHoldNoiseRadius, 100, 1f);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayHornSingle(NetworkObject sourcePlayer)
+    {
+        GetComponent<VehicleHornAudioController>()?.PlaySingle(sourcePlayer);
     }
 
     public bool AuthorityTryChangeSeat(NetworkObject player, int seatNumber)
@@ -272,10 +370,15 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (current == SeatSlot.Driver && target != SeatSlot.Driver)
         {
             HeadlightsOn = false;
+            HornHeld = false;
+            EngineRunning = false;
             StopVehicle();
         }
         if (target == SeatSlot.Driver)
+        {
+            EngineRunning = true;
             SetVehicleMotionLocked(false);
+        }
         return true;
     }
 
@@ -292,6 +395,8 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (Driver == null)
         {
             HeadlightsOn = false;
+            HornHeld = false;
+            EngineRunning = false;
             StopVehicle();
             SetVehicleMotionLocked(true);
             ProcessZombieContacts();
@@ -304,8 +409,53 @@ public class VehicleControllerFusion : NetworkBehaviour
             driverMovement != null ? driverMovement.NetMoveInput : Vector2.zero,
             driverMovement != null && driverMovement.NetIsVehicleBraking);
         SyncOccupants();
+        UpdateVehicleNoise(driverMovement);
         ProcessZombieContacts();
     }
+
+    private void UpdateVehicleNoise(PlayerMovement driverMovement)
+    {
+        if (driverMovement == null || driverMovement.Object == null || !driverMovement.Object.IsValid) return;
+
+        if (EngineRunning)
+        {
+            engineNoiseCooldown -= Runner.DeltaTime;
+            if (engineNoiseCooldown <= 0f)
+            {
+                bool driving = rb != null && rb.linearVelocity.magnitude >= gearChangeSpeedThreshold;
+                EmitVehicleNoise(driverMovement.Object,
+                    driving ? drivingEngineNoiseRadius : idleEngineNoiseRadius,
+                    driving ? 24 : 12, driving ? 0.78f : 0.42f);
+                engineNoiseCooldown = engineNoiseInterval;
+            }
+        }
+        else
+        {
+            engineNoiseCooldown = 0f;
+        }
+
+        if (!HornHeld)
+        {
+            hornNoiseCooldown = 0f;
+            return;
+        }
+
+        hornNoiseCooldown -= Runner.DeltaTime;
+        if (hornNoiseCooldown > 0f) return;
+        EmitVehicleNoise(driverMovement.Object, hornHoldNoiseRadius, 100, 1f);
+        hornNoiseCooldown = hornNoiseInterval;
+    }
+
+    private static void EmitVehicleNoise(NetworkObject sourcePlayer, float radius, int responderLimit,
+        float urgency)
+    {
+        if (sourcePlayer == null || !sourcePlayer.IsValid) return;
+        PlayerMovement movement = sourcePlayer.GetComponent<PlayerMovement>();
+        movement?.MakeNoise(radius, true, responderLimit, radius, urgency);
+    }
+
+    private static bool HasLocalInputAuthority(NetworkObject player) =>
+        player != null && player.IsValid && player.HasInputAuthority;
 
     public override void Render()
     {
@@ -390,7 +540,11 @@ public class VehicleControllerFusion : NetworkBehaviour
         SetOccupant(slot, player);
         SetPlayerVehicleState(player, true, slot == SeatSlot.Driver, SeatNumber(slot), default);
         MoveToSeat(player, GetAnchorWorldPosition(GetSeatAnchor(slot)));
-        if (slot == SeatSlot.Driver) SetVehicleMotionLocked(false);
+        if (slot == SeatSlot.Driver)
+        {
+            EngineRunning = true;
+            SetVehicleMotionLocked(false);
+        }
         RPC_PlayDoorSequence();
     }
 
