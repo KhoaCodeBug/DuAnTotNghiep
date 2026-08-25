@@ -55,6 +55,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private AudioSource hoodAudioSource;
     private AudioClip hoodOpenClip;
     private AudioClip hoodCloseClip;
+    [SerializeField, Range(0f, 1.5f)] private float hoodOpenVolumeMultiplier = 1.25f;
+    [SerializeField, Range(0f, 1.5f)] private float hoodCloseVolumeMultiplier = 0.5f;
 
     public static ArrivalCarInspectionUI ActiveInstance { get; private set; }
     public static bool IsAnyOpen => ActiveInstance != null && ActiveInstance.IsOpen;
@@ -225,8 +227,10 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         AudioClip clip = opening ? hoodOpenClip : hoodCloseClip;
         if (hoodAudioSource == null || clip == null) return;
         hoodAudioSource.Stop();
-        hoodAudioSource.PlayOneShot(clip,
-            Mathf.Clamp01(PlayerPrefs.GetFloat("GameSFXVolume", 0.8f)));
+        float clipMultiplier = opening ? hoodOpenVolumeMultiplier : hoodCloseVolumeMultiplier;
+        float volumeScale = Mathf.Clamp(
+            PlayerPrefs.GetFloat("GameSFXVolume", 0.8f) * clipMultiplier, 0f, 1.5f);
+        hoodAudioSource.PlayOneShot(clip, volumeScale);
     }
 
     private void EnsureHoodAudio()
