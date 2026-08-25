@@ -160,8 +160,20 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         zombieFilter.SetLayerMask(zombieMask);
     }
 
+    private void SetBodyCollisionEnabled(bool enabled)
+    {
+        if (bodyCollider != null && bodyCollider.enabled != enabled)
+        {
+            bodyCollider.enabled = enabled;
+        }
+    }
+
     public override void Spawned()
     {
+        // Collider2D.enabled is local-only in Fusion. Restore it when this
+        // network object is spawned/reused; Render keeps it synced afterward.
+        SetBodyCollisionEnabled(!NetIsDead);
+
         ResetAnimator();
 
         if (!HasStateAuthority)
@@ -649,6 +661,10 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
 
     public override void Render()
     {
+        // The Host's Collider2D.enabled change is not replicated automatically.
+        // Apply the replicated death state locally on every peer.
+        SetBodyCollisionEnabled(!NetIsDead);
+
         if (animator == null) return;
         renderMoveX = Mathf.Lerp(renderMoveX, NetMoveDir.x, Time.deltaTime * 12f);
         renderMoveY = Mathf.Lerp(renderMoveY, NetMoveDir.y, Time.deltaTime * 12f);
@@ -802,7 +818,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         ClearLockedAttack();
         InvalidatePath();
         StopMovement();
-        bodyCollider.enabled = false;
+        SetBodyCollisionEnabled(false);
 
         if (shooter != PlayerRef.None)
         {
@@ -814,11 +830,13 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
                 break;
             }
         }
+        GetComponent<ZombieCorpseLoot>()?.MarkAsCorpse();
         StartCoroutine(VanishRoutine());
     }
 
     private IEnumerator VanishRoutine()
     {
+        if (GetComponent<ZombieCorpseLoot>() != null) yield break;
         yield return new WaitForSeconds(5f);
         if (HasStateAuthority && Object != null && Object.IsValid) Runner.Despawn(Object);
     }

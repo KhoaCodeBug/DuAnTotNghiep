@@ -159,6 +159,7 @@ GameObject:
   - component: {fileID: 4104682700520458656}
   - component: {fileID: 5223223820511616605}
   - component: {fileID: 496425067498801100}
+  - component: {fileID: 9010000000000000001}
   m_Layer: 3
   m_Name: Zombie
   m_TagString: Enemy
@@ -421,6 +422,7 @@ MonoBehaviour:
   - {fileID: 2294525064702947934}
   - {fileID: 8265875105454390905}
   - {fileID: 496425067498801100}
+  - {fileID: 9010000000000000001}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &8265875105454390905
 MonoBehaviour:
@@ -670,6 +672,30 @@ CapsuleCollider2D:
   m_Offset: {x: 0.06353164, y: -0.06633453}
   m_Size: {x: 0.15991855, y: 0.43755785}
   m_Direction: 0
+--- !u!114 &9010000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4396508338874752408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e25ef3fd15ff5748ad2821beedb56cd, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  corpseSearchRange: 0.5
+  searchDuration: 2
+  easyLootChance: 45
+  normalLootChance: 30
+  hardcoreLootChance: 12
+  lootTable:
+    waterWeight: 35
+    bandageWeight: 30
+    medicineWeight: 20
+    ammoWeight: 15
+  unsearchedCorpseLifetime: 120
+  searchedCorpseLifetime: 20
 --- !u!1 &8373172737952180656
 GameObject:
   m_ObjectHideFlags: 0
