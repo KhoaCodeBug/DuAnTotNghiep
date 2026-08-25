@@ -96,6 +96,13 @@ public sealed class VehicleHornAudioController : MonoBehaviour
             AutoNoiseMeter.ReportTransientNoise(1f, "CÒI XE");
     }
 
+    public void SetCinematicAlarm(bool active)
+    {
+        if (!initialized) Initialize(GetComponent<VehicleControllerFusion>());
+        if (active) StartHold();
+        else StopHold();
+    }
+
     private void StartHold()
     {
         if (holdSource == null || holdClip == null) return;

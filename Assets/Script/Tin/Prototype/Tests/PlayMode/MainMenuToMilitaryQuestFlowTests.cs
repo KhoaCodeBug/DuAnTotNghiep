@@ -40,6 +40,8 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That((float)spawnDelay.GetValue(mainQuest), Is.EqualTo(0.25f).Within(0.001f));
         Assert.That(GameObject.Find("HospitalQuest_ZombieEntry_A"), Is.Not.Null);
         Assert.That(GameObject.Find("HospitalQuest_ZombieEntry_B"), Is.Not.Null);
+        Assert.That(GameObject.Find("TeleportToHospital"), Is.Not.Null,
+            "Main scene must keep the authored F12 arrival marker for the hospital objective.");
 
         GameObject environmentStory = GameObject.Find("HospitalQuest_EnvironmentalStory");
         Assert.That(environmentStory, Is.Not.Null,
@@ -152,7 +154,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
 
     [UnityTest]
     [Timeout(120000)]
-    public IEnumerator RoadsideRepairTestStationSpawnsOnLockedPoliceCarNearArrival()
+    public IEnumerator MilitaryRepairStationUsesAuthoredPoliceCarWithoutRelocatingIt()
     {
         yield return ShutdownExistingRunners();
         PlayerPrefs.SetInt("GameLanguage", 0);
@@ -201,89 +203,22 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(ReadBool(vehicle, "IsEntryLockedForRepair"), Is.True,
             "The repair-test police car must not allow entering or driving.");
 
-        GameObject arrivalMarker = GameObject.Find("ViTriXeTest");
-        Assert.That(arrivalMarker, Is.Not.Null);
-        Vector2 expected = arrivalMarker.transform.position;
-        Assert.That(Vector2.Distance(station.transform.position, expected), Is.LessThan(0.15f),
-            "Police car was not relocated to ViTriXeTest.");
-        GameObject policeZone = GameObject.Find("VungKiemTraXeCanhSat");
-        Assert.That(policeZone, Is.Not.Null, "The police-car EditMode authoring polygon is missing.");
-        Assert.That(policeZone.transform.parent?.name, Is.EqualTo("Police Car Preview [EDIT MODE]"),
-            "The police polygon must remain a child of the EditMode police-car preview.");
-        SpriteRenderer previewRenderer = policeZone.transform.parent.GetComponent<SpriteRenderer>();
-        SpriteRenderer runtimeRenderer = station.GetComponent<SpriteRenderer>();
-        Assert.That(runtimeRenderer?.sprite, Is.SameAs(previewRenderer?.sprite),
-            "The runtime police car must keep the same visual direction as its EditMode preview.");
+        GameObject policeCarMarker = GameObject.Find("SpawnXeCanhSat");
+        Assert.That(policeCarMarker, Is.Not.Null);
+        Assert.That(Vector2.Distance(station.transform.position, policeCarMarker.transform.position),
+            Is.LessThan(2f),
+            "The authored Car should remain beside SpawnXeCanhSat instead of being moved to ViTriXeTest.");
         Assert.That((int)ReadProperty(vehicle, "DirectionIndex"), Is.EqualTo(0),
             "The locked roadside repair car must use the preview's direction index.");
-        PolygonCollider2D policePolygon = policeZone.GetComponent<PolygonCollider2D>();
         FieldInfo stationPolygonField = stationType.GetField("inspectionPolygon",
             BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.That(stationPolygonField?.GetValue(station), Is.SameAs(policePolygon),
-            "Runtime police-car repair must use the scene-authored polygon, not an AUTO polygon.");
+        PolygonCollider2D policePolygon = stationPolygonField?.GetValue(station) as PolygonCollider2D;
+        Assert.That(policePolygon, Is.Not.Null,
+            "The authored Car must receive a usable front inspection polygon at runtime.");
+        Assert.That(policePolygon.enabled, Is.True);
+        Assert.That(policePolygon.isTrigger, Is.True);
 
-        Type brokenCarType = Type.GetType("BrokenArrivalCar, Assembly-CSharp");
-        Component brokenCar = UnityEngine.Object.FindFirstObjectByType(brokenCarType) as Component;
-        GameObject arrivalZone = GameObject.Find("VungKiemTraXeDauGame");
-        Assert.That(brokenCar, Is.Not.Null);
-        Assert.That(brokenCar.gameObject.name, Is.EqualTo("Broken Arrival Car (from Intro)"),
-            "Main must reuse the visible scene car instead of spawning a hidden duplicate.");
-        Assert.That(arrivalZone, Is.Not.Null, "The opening-car EditMode authoring polygon is missing.");
-        Assert.That(arrivalZone.transform.parent, Is.SameAs(brokenCar.transform),
-            "The opening-car polygon must remain a child of its visible EditMode car.");
-        FieldInfo arrivalPolygonField = brokenCarType.GetField("inspectionPolygon",
-            BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.That(arrivalPolygonField?.GetValue(brokenCar), Is.SameAs(arrivalZone.GetComponent<PolygonCollider2D>()),
-            "Runtime opening car must use the scene-authored polygon, not its prefab fallback.");
         Assert.That(GameObject.Find("Vehicle Repair Skill Check UI"), Is.Not.Null);
-
-        Type playerType = Type.GetType("PlayerMovement, Assembly-CSharp");
-        FieldInfo localPlayerField = playerType?.GetField("LocalPlayerInstance",
-            BindingFlags.Public | BindingFlags.Static);
-        Component localPlayer = null;
-        float playerDeadline = Time.realtimeSinceStartup + 30f;
-        while (Time.realtimeSinceStartup < playerDeadline)
-        {
-            localPlayer = localPlayerField?.GetValue(null) as Component;
-            if (localPlayer != null) break;
-            yield return null;
-        }
-        Assert.That(localPlayer, Is.Not.Null);
-
-        Vector2 interactionPosition = (Vector2)ReadProperty(station, "InteractionPosition");
-        Rigidbody2D playerBody = localPlayer.GetComponent<Rigidbody2D>();
-        if (playerBody != null) playerBody.position = interactionPosition;
-        localPlayer.transform.position = interactionPosition;
-        Physics2D.SyncTransforms();
-        yield return null;
-
-        managerType.GetMethod("EditorGrantMissingPoliceCarRepairItems",
-            BindingFlags.NonPublic | BindingFlags.Instance)?.Invoke(manager, null);
-        managerType.GetMethod("RequestStartPoliceCarRepair")?.Invoke(manager, new object[] { "engine" });
-        float sessionDeadline = Time.realtimeSinceStartup + 5f;
-        while (!ReadBool(manager, "RepairSkillCheckSessionActive") &&
-               Time.realtimeSinceStartup < sessionDeadline)
-            yield return null;
-        Assert.That(ReadBool(manager, "RepairSkillCheckSessionActive"), Is.True,
-            "Host did not authorize a repair session from the front interaction point.");
-
-        yield return new WaitForSecondsRealtime(0.35f);
-        float progressBeforeCancel = (float)ReadProperty(manager, "RepairSkillCheckProgress");
-        Assert.That(progressBeforeCancel, Is.GreaterThan(0f),
-            "Authoritative base repair progress did not advance over time.");
-
-        managerType.GetMethod("RequestCancelRepairSkillCheck")?.Invoke(manager, null);
-        float cancelDeadline = Time.realtimeSinceStartup + 5f;
-        while (ReadBool(manager, "RepairSkillCheckSessionActive") &&
-               Time.realtimeSinceStartup < cancelDeadline)
-            yield return null;
-        Assert.That(ReadBool(manager, "RepairSkillCheckSessionActive"), Is.False);
-        Assert.That((float)ReadProperty(manager, "RepairSkillCheckProgress"),
-            Is.EqualTo(progressBeforeCancel).Within(0.1f),
-            "Leaving repair must preserve completed progress.");
-        Assert.That((float)ReadProperty(manager, "PoliceEngineRepairProgress"),
-            Is.EqualTo(progressBeforeCancel).Within(0.1f),
-            "Engine progress must be stored independently from the other four repair actions.");
     }
 
     [UnityTest]
@@ -326,8 +261,37 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "Single-player Host must own military quest state authority.");
 
         Assert.That(GameObject.Find("Military Base Quest Presentation"), Is.Not.Null);
-        Assert.That(GameObject.Find("Military Iron Gate"), Is.Not.Null);
-        Assert.That(GameObject.Find("Military Escape Vehicle"), Is.Not.Null);
+        Transform authoredGate = FindInactiveTransform("CongRao");
+        Assert.That(authoredGate, Is.Not.Null,
+            "The finale must reuse the authored CongRao object instead of drawing a runtime gate.");
+        Type gateType = Type.GetType("MilitaryGateController, Assembly-CSharp");
+        Assert.That(authoredGate.GetComponent(gateType), Is.Not.Null);
+        Assert.That(authoredGate.gameObject.activeSelf, Is.False,
+            "CongRao must stay hidden before the military cinematic closes the entrance.");
+        Assert.That(GameObject.Find("Car"), Is.Not.Null,
+            "The authored completed Car is reused as the police repair vehicle.");
+        Assert.That(GameObject.Find("Military School Clue 1 - HỒ SƠ TRỰC BAN"), Is.Not.Null);
+        Assert.That(GameObject.Find("Military School Clue 2 - BẢN GHI TIẾP VẬN"), Is.Not.Null);
+        Assert.That(GameObject.Find("Military School Clue 3 - LỆNH PHONG TỎA"), Is.Not.Null);
+        GameObject gateMarker = GameObject.Find("ViTriDongCong");
+        Assert.That(gateMarker, Is.Not.Null);
+        Transform gateCollider = authoredGate.Find("CongRao Collider [RUNTIME]");
+        Assert.That(gateCollider, Is.Not.Null);
+        Assert.That(gateCollider.GetComponent<BoxCollider2D>(), Is.Not.Null);
+        Assert.That(gateCollider.GetComponent<BoxCollider2D>().enabled, Is.False);
+        Assert.That(gateCollider.gameObject.layer, Is.EqualTo(LayerMask.NameToLayer("Obstacle")),
+            "The runtime gate must use the same Obstacle layer queried by every zombie AI.");
+        Type visionPassType = Type.GetType("MilitaryGateVisionPassThrough, Assembly-CSharp");
+        Assert.That(visionPassType, Is.Not.Null);
+        Assert.That(gateCollider.GetComponent(visionPassType), Is.Not.Null,
+            "The physical/A* gate must be ignored by Player fog line-of-sight.");
+        Assert.That(Vector2.Distance(gateCollider.position, gateMarker.transform.position), Is.LessThan(2f));
+        Type hordeType = Type.GetType("SiegeHordeDirector, Assembly-CSharp");
+        Component horde = UnityEngine.Object.FindFirstObjectByType(hordeType) as Component;
+        Assert.That(horde, Is.Not.Null);
+        ICollection spawnPoints = ReadPrivateField(horde, "spawnPoints") as ICollection;
+        Assert.That(spawnPoints?.Count, Is.EqualTo(4),
+            "The siege must use all four authored ViTriSpawnZombie markers.");
 
         Type playerType = Type.GetType("PlayerMovement, Assembly-CSharp");
         FieldInfo localPlayerField = playerType?.GetField("LocalPlayerInstance",
@@ -957,23 +921,102 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(minimap.GetComponent<Canvas>().enabled, Is.False,
             "Unlocking the full mission map must not enable the corner minimap.");
 
-        // B4: approach. B5 keeps the final confirmation in production; the
-        // test invokes its confirmed callback directly after checking no prior lock.
+        // B4: the debug approach completes the three temporary school clue
+        // states and exits the roof trigger without touching LootContainers.
         advanceBase.Invoke(military, null);
         Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("Investigating"));
+        Assert.That((int)ReadProperty(military, "SchoolClueCount"), Is.EqualTo(3));
+        Assert.That(ReadBool(military, "HasExitedSchoolAfterClues"), Is.True);
+
+        // In Solo the unanimous snapshot contains one voter. The debug
+        // confirmation opens that production vote and submits the local yes.
         MethodInfo confirmFinale = militaryType.GetMethod("DebugConfirmMilitaryFinale",
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.That(confirmFinale, Is.Not.Null);
         confirmFinale.Invoke(military, null);
         Assert.That(ReadProperty(main, "LockedEscapeRoute").ToString(), Is.EqualTo("MilitaryEvacuation"));
+        GameObject cinematicClone = null;
+        float cloneDeadline = Time.realtimeSinceStartup + 4f;
+        while (cinematicClone == null && Time.realtimeSinceStartup < cloneDeadline)
+        {
+            cinematicClone = GameObject.Find("Military Cinematic Host Visual");
+            yield return null;
+        }
+        Assert.That(cinematicClone, Is.Not.Null);
+        Type cinematicLightType = Type.GetType("MilitaryCinematicVisionLight, Assembly-CSharp");
+        Assert.That(cinematicLightType, Is.Not.Null);
+        Assert.That(cinematicClone.GetComponent(cinematicLightType), Is.Not.Null,
+            "The Host clone must carry the cinematic light proxy used by fog and flashlight presentation.");
+        Type playerMovementType = Type.GetType("PlayerMovement, Assembly-CSharp");
+        Assert.That(playerMovementType, Is.Not.Null);
+        Component localMovement = playerMovementType.GetField("LocalPlayerInstance",
+            BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as Component;
+        Assert.That(localMovement, Is.Not.Null);
+        FieldInfo presentationSuppressed = playerMovementType.GetField("cinematicPresentationSuppressed",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That((bool)presentationSuppressed.GetValue(localMovement), Is.True,
+            "The real Host must not emit footsteps while its cinematic clone is active.");
+        Renderer[] realHostRenderers = localMovement.GetComponentsInChildren<Renderer>(true);
+        for (int i = 0; i < realHostRenderers.Length; i++)
+        {
+            Assert.That(realHostRenderers[i].enabled, Is.False,
+                "The real Host visual must remain hidden for the whole cinematic.");
+            Assert.That(realHostRenderers[i].forceRenderingOff, Is.True);
+        }
+        Type playerNameTagType = Type.GetType("PlayerNameTag, Assembly-CSharp");
+        Component playerNameTag = localMovement.GetComponent(playerNameTagType);
+        Component nameText = playerNameTagType.GetField("nameText")?.GetValue(playerNameTag) as Component;
+        Assert.That(nameText, Is.Not.Null);
+        Assert.That(nameText.gameObject.activeSelf, Is.False,
+            "The stationary real Host nametag must be hidden during the cinematic.");
+        Type playerVisionType = Type.GetType("PlayerVision, Assembly-CSharp");
+        Behaviour realHostVision = localMovement.GetComponent(playerVisionType) as Behaviour;
+        Assert.That(realHostVision, Is.Not.Null);
+        Assert.That(realHostVision.enabled, Is.False,
+            "The stationary real Host Light2D/vision service must be suppressed during the cinematic.");
+        Type fogVisionType = Type.GetType("FogVisionController, Assembly-CSharp");
+        Assert.That(fogVisionType, Is.Not.Null);
+        Component fogVision = UnityEngine.Object.FindFirstObjectByType(fogVisionType) as Component;
+        Assert.That(fogVision, Is.Not.Null);
+        FieldInfo fogCinematicTarget = fogVisionType.GetField("cinematicVisionTarget",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(fogCinematicTarget.GetValue(fogVision), Is.SameAs(cinematicClone.transform),
+            "Fog of war must follow the cinematic visual instead of the stationary real Host.");
+        // The cinematic intentionally uses the serialized gameplay speeds
+        // (Player.prefab: walk 0.7, run 1.2), so its full authored route takes
+        // roughly 30 seconds rather than the former fast-glide duration.
+        float cinematicDeadline = Time.realtimeSinceStartup + 45f;
+        while (ReadProperty(military, "CurrentPhase").ToString() != "SiegeAndRepair" &&
+               Time.realtimeSinceStartup < cinematicDeadline)
+            yield return null;
         Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("SiegeAndRepair"));
+        Transform closedGate = FindInactiveTransform("CongRao");
+        Assert.That(closedGate, Is.Not.Null);
+        BoxCollider2D closedGateCollider = closedGate.Find("CongRao Collider [RUNTIME]")
+            ?.GetComponent<BoxCollider2D>();
+        Assert.That(closedGateCollider, Is.Not.Null);
+        Assert.That(closedGateCollider.enabled, Is.True,
+            "The authored gate must become a physical obstacle when the cinematic closes it.");
+        Assert.That(closedGateCollider.gameObject.layer, Is.EqualTo(LayerMask.NameToLayer("Obstacle")));
+        Assert.That((float)ReadProperty(military, "GateMaxHealth"), Is.EqualTo(5000f).Within(0.01f),
+            "Legacy Main.unity serialization must not lower the canonical gate HP back to 1,000.");
+        float gateHealthBefore = (float)ReadProperty(military, "GateCurrentHealth");
+        Type gateType = Type.GetType("MilitaryGateController, Assembly-CSharp");
+        Assert.That(gateType, Is.Not.Null);
+        MethodInfo tryGateHit = gateType.GetMethod("TryApplyHordeHit");
+        Assert.That(tryGateHit, Is.Not.Null);
+        for (int i = 0; i < 100; i++) tryGateHit.Invoke(closedGate.GetComponent(gateType), null);
+        float gateHealthAfter = (float)ReadProperty(military, "GateCurrentHealth");
+        Assert.That(gateHealthBefore - gateHealthAfter, Is.LessThanOrEqualTo(48.01f),
+            "Even 100 simultaneous attack requests must be capped to four 12-HP beats per second.");
+        Assert.That(gateHealthAfter, Is.GreaterThan(4500f),
+            "A 5,000 HP gate must not collapse at siege startup.");
 
-        // B6: generator → test parts → repaired vehicle.
+        // B6: the no-loot shortcut completes the same canonical five-action
+        // police-car state used by the real repair minigame.
         advanceBase.Invoke(military, null);
-        Assert.That(ReadBool(military, "IsGeneratorActive"), Is.True);
-        advanceBase.Invoke(military, null);
-        Assert.That(ReadBool(military, "HasAllParts"), Is.True);
-        advanceBase.Invoke(military, null);
+        Assert.That(ReadBool(military, "ArePoliceCarRepairsComplete"), Is.True);
+        Assert.That((float)ReadProperty(military, "PoliceCarOverallRepairProgress"), Is.EqualTo(100f));
         Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("ReadyToEscape"));
 
         // B7: extraction and authoritative journal completion.

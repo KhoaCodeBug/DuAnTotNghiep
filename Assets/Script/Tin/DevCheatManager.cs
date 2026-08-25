@@ -825,8 +825,6 @@ public class DevCheatManager : MonoBehaviour
                 {
                     MilitaryBaseQuestManager.Phase.NotReached => RouteBAudioCueId.MilitaryRouteRevealed,
                     MilitaryBaseQuestManager.Phase.Investigating => RouteBAudioCueId.MilitaryBaseApproach,
-                    MilitaryBaseQuestManager.Phase.SiegeAndRepair when military.IsGeneratorActive =>
-                        RouteBAudioCueId.GeneratorOnline,
                     MilitaryBaseQuestManager.Phase.SiegeAndRepair => RouteBAudioCueId.SiegeStarted,
                     MilitaryBaseQuestManager.Phase.ReadyToEscape => RouteBAudioCueId.EscapeVehicleReady,
                     MilitaryBaseQuestManager.Phase.Escaped => RouteBAudioCueId.MilitaryEvacuationComplete,

@@ -1,44 +1,79 @@
-using System.Collections;
+using System.Collections.Generic;
+using Pathfinding;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
-/// <summary>Physical/presentation gate whose canonical health is owned by MilitaryBaseQuestManager.</summary>
-[RequireComponent(typeof(BoxCollider2D))]
+/// <summary>
+/// Controls the authored CongRao gate. The fence tiles painted beside
+/// ViTriDongCong remain hidden until the cinematic closes the entrance; this
+/// component only supplies the missing physical blocker and damage bridge.
+/// </summary>
 public sealed class MilitaryGateController : MonoBehaviour
 {
-    [SerializeField] private float hordeDamagePerSecond = 22f;
-    [SerializeField] private float electricStunSeconds = 1.25f;
+    private struct AuthoredTile
+    {
+        public Vector3Int Cell;
+        public TileBase Tile;
+        public Matrix4x4 Transform;
+        public Color Color;
+        public TileFlags Flags;
+    }
 
+    [SerializeField, Min(0.1f)] private float gateDamagePerHit = 12f;
+    [SerializeField, Min(1)] private int maximumDamageHitsPerSecond = 4;
+
+    private readonly List<AuthoredTile> authoredTiles = new();
     private MilitaryBaseQuestManager manager;
     private BoxCollider2D gateCollider;
-    private SpriteRenderer sprite;
+    private Tilemap sourceTilemap;
+    private bool tilesVisible;
+    private bool graphBlocked;
+    private Vector2 gateCenter;
+    private Vector2 gateDirection = Vector2.right;
+    private float gateLength = 4.4f;
+    private float damageWindowStartedAt;
+    private int damageHitsThisWindow;
 
-    public static MilitaryGateController Create(Transform parent, Vector2 position,
+    public static MilitaryGateController Create(Transform runtimeParent, Vector2 position,
         MilitaryBaseQuestManager targetManager)
     {
-        GameObject gate = new GameObject("Military Iron Gate");
-        gate.transform.SetParent(parent, true);
-        gate.transform.position = position;
-        MilitaryGateController controller = gate.AddComponent<MilitaryGateController>();
+        _ = runtimeParent;
+        GameObject authoredGate = GameObject.Find("CongRao");
+        if (authoredGate == null)
+        {
+            Debug.LogError("[MILITARY GATE] Không tìm thấy CongRao trong scene. Chỉ tạo collider dự phòng, không tự vẽ hình.");
+            authoredGate = new GameObject("CongRao [MISSING AUTHORED OBJECT]");
+        }
+
+        MilitaryGateController controller = authoredGate.GetComponent<MilitaryGateController>();
+        if (controller == null) controller = authoredGate.AddComponent<MilitaryGateController>();
         controller.manager = targetManager;
-        controller.gateCollider = gate.GetComponent<BoxCollider2D>();
-        controller.gateCollider.size = new Vector2(5.5f, 0.65f);
-        controller.sprite = gate.AddComponent<SpriteRenderer>();
-        controller.sprite.sprite = CreateGateSprite();
-        controller.sprite.sortingOrder = 20;
+        controller.ResolveAuthoredFenceTiles(position);
+        controller.CreatePhysicalBlocker(position);
+        controller.SetGateVisible(false);
+        authoredGate.SetActive(false);
         return controller;
     }
 
     public void TakeGateDamage(float damage) => manager?.TakeGateDamage(damage);
 
-    public void ApplyHordePressure(float deltaSeconds, int attackerCount)
+    public bool TryApplyHordeHit()
     {
-        if (manager == null || !manager.HasStateAuthority || attackerCount <= 0) return;
-        TakeGateDamage(hordeDamagePerSecond * Mathf.Min(attackerCount, 8) * deltaSeconds);
+        if (manager == null || !manager.HasStateAuthority || manager.IsGateBroken) return false;
+        if (Time.time - damageWindowStartedAt >= 1f)
+        {
+            damageWindowStartedAt = Time.time;
+            damageHitsThisWindow = 0;
+        }
+        if (damageHitsThisWindow >= maximumDamageHitsPerSecond) return false;
+        damageHitsThisWindow++;
+        TakeGateDamage(gateDamagePerHit);
+        return true;
     }
 
     public void RefreshPresentation()
     {
-        if (manager == null || !manager.IsNetworkReady || sprite == null) return;
+        if (manager == null || !manager.IsNetworkReady) return;
         if (manager.IsGateBroken)
         {
             BreakGate();
@@ -47,72 +82,178 @@ public sealed class MilitaryGateController : MonoBehaviour
 
         bool shouldBeClosed = manager.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair ||
                               manager.CurrentPhase == MilitaryBaseQuestManager.Phase.ReadyToEscape;
-        if (gateCollider != null) gateCollider.enabled = shouldBeClosed;
-        if (!shouldBeClosed)
-        {
-            sprite.color = new Color(0.55f, 0.62f, 0.55f, 0.22f);
-            transform.localRotation = Quaternion.Euler(0f, 0f, 82f);
-            return;
-        }
-
-        transform.localRotation = Quaternion.identity;
-
-        float ratio = manager.GateMaxHealth > 0f ? manager.GateCurrentHealth / manager.GateMaxHealth : 0f;
-        sprite.color = manager.IsGeneratorActive
-            ? Color.Lerp(new Color(0.1f, 0.4f, 0.65f), new Color(0.25f, 0.95f, 1f), ratio)
-            : Color.Lerp(new Color(0.5f, 0.08f, 0.05f), new Color(0.55f, 0.62f, 0.55f), ratio);
+        if (gameObject.activeSelf != shouldBeClosed) gameObject.SetActive(shouldBeClosed);
+        SetGateVisible(shouldBeClosed);
+        SetColliderEnabled(shouldBeClosed);
     }
 
     public void BreakGate()
     {
-        if (gateCollider != null) gateCollider.enabled = false;
-        if (sprite != null)
+        SetColliderEnabled(false);
+        SetGateVisible(false);
+        if (gameObject.activeSelf) gameObject.SetActive(false);
+    }
+
+    private void ResolveAuthoredFenceTiles(Vector2 gatePosition)
+    {
+        authoredTiles.Clear();
+        Transform school = transform.parent;
+        Tilemap[] maps = school != null
+            ? school.GetComponentsInChildren<Tilemap>(true)
+            : FindObjectsByType<Tilemap>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < maps.Length; i++)
+            if (maps[i] != null && maps[i].name == "tuong1")
+            {
+                sourceTilemap = maps[i];
+                break;
+            }
+
+        if (sourceTilemap == null)
         {
-            sprite.color = new Color(0.25f, 0.2f, 0.16f, 0.75f);
-            transform.localRotation = Quaternion.Euler(0f, 0f, -12f);
+            Debug.LogWarning("[MILITARY GATE] CongRao chưa có renderer con và không tìm thấy Tilemap tuong1.");
+            return;
+        }
+
+        Vector3Int markerCell = sourceTilemap.WorldToCell(gatePosition);
+        int selectedX = markerCell.x;
+        int bestCount = -1;
+        for (int xOffset = -2; xOffset <= 1; xOffset++)
+        {
+            int count = 0;
+            for (int yOffset = -4; yOffset <= 1; yOffset++)
+                if (sourceTilemap.HasTile(new Vector3Int(markerCell.x + xOffset,
+                        markerCell.y + yOffset, markerCell.z)))
+                    count++;
+            if (count <= bestCount) continue;
+            bestCount = count;
+            selectedX = markerCell.x + xOffset;
+        }
+
+        for (int yOffset = -4; yOffset <= 1; yOffset++)
+        {
+            Vector3Int cell = new Vector3Int(selectedX, markerCell.y + yOffset, markerCell.z);
+            TileBase tile = sourceTilemap.GetTile(cell);
+            if (tile == null) continue;
+            authoredTiles.Add(new AuthoredTile
+            {
+                Cell = cell,
+                Tile = tile,
+                Transform = sourceTilemap.GetTransformMatrix(cell),
+                Color = sourceTilemap.GetColor(cell),
+                Flags = sourceTilemap.GetTileFlags(cell)
+            });
+        }
+
+        if (authoredTiles.Count < 3)
+            Debug.LogWarning($"[MILITARY GATE] Chỉ nhận diện được {authoredTiles.Count}/6 tile CongRao quanh ViTriDongCong.");
+        tilesVisible = authoredTiles.Count > 0;
+    }
+
+    private void CreatePhysicalBlocker(Vector2 fallbackPosition)
+    {
+        Transform previous = transform.Find("CongRao Collider [RUNTIME]");
+        if (previous != null) Destroy(previous.gameObject);
+        GameObject colliderObject = new GameObject("CongRao Collider [RUNTIME]");
+        colliderObject.transform.SetParent(transform, true);
+        Vector2 center = fallbackPosition;
+        Vector2 direction = new Vector2(-0.8944272f, 0.4472136f);
+        float length = 4.4f;
+
+        if (sourceTilemap != null && authoredTiles.Count > 1)
+        {
+            Vector2 first = sourceTilemap.GetCellCenterWorld(authoredTiles[0].Cell);
+            Vector2 last = sourceTilemap.GetCellCenterWorld(authoredTiles[^1].Cell);
+            center = (first + last) * 0.5f;
+            Vector2 delta = last - first;
+            if (delta.sqrMagnitude > 0.001f)
+            {
+                direction = delta.normalized;
+                length = delta.magnitude + 1.15f;
+            }
+        }
+
+        colliderObject.transform.position = center;
+        colliderObject.transform.rotation = Quaternion.Euler(0f, 0f,
+            Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
+        gateCollider = colliderObject.AddComponent<BoxCollider2D>();
+        gateCollider.size = new Vector2(length, 0.72f);
+        gateCollider.enabled = false;
+        int obstacleLayer = LayerMask.NameToLayer("Obstacle");
+        if (obstacleLayer >= 0) colliderObject.layer = obstacleLayer;
+        colliderObject.AddComponent<MilitaryGateVisionPassThrough>();
+        gateCenter = center;
+        gateDirection = direction.normalized;
+        gateLength = length;
+    }
+
+    public Vector2 GetAssaultPosition(int stableId)
+    {
+        // 13 lanes across the authored fence keep a large wave from collapsing
+        // into the single ViTriDongCong marker.
+        int lane = Mathf.Abs(stableId % 13);
+        float t = lane / 12f - 0.5f;
+        return gateCenter + gateDirection * (t * gateLength * 0.78f);
+    }
+
+    private void SetColliderEnabled(bool enabled)
+    {
+        if (gateCollider == null) return;
+        if (gateCollider.enabled != enabled) gateCollider.enabled = enabled;
+        if (graphBlocked == enabled) return;
+        graphBlocked = enabled;
+        Physics2D.SyncTransforms();
+        UpdateAstarGraph();
+    }
+
+    private void UpdateAstarGraph()
+    {
+        if (AstarPath.active == null || gateCollider == null) return;
+        Bounds bounds = gateCollider.bounds;
+        bounds.Expand(new Vector3(1.2f, 1.2f, 2f));
+        GraphUpdateObject update = new GraphUpdateObject(bounds) { updatePhysics = true };
+        AstarPath.active.UpdateGraphs(update);
+        AstarPath.active.FlushGraphUpdates();
+    }
+
+    private void SetGateVisible(bool visible)
+    {
+        if (tilesVisible == visible || sourceTilemap == null || authoredTiles.Count == 0) return;
+        tilesVisible = visible;
+        for (int i = 0; i < authoredTiles.Count; i++)
+        {
+            AuthoredTile authored = authoredTiles[i];
+            if (!visible)
+            {
+                sourceTilemap.SetTile(authored.Cell, null);
+                continue;
+            }
+
+            sourceTilemap.SetTile(authored.Cell, authored.Tile);
+            sourceTilemap.SetTileFlags(authored.Cell, TileFlags.None);
+            sourceTilemap.SetTransformMatrix(authored.Cell, authored.Transform);
+            sourceTilemap.SetColor(authored.Cell, authored.Color);
+            sourceTilemap.SetTileFlags(authored.Cell, authored.Flags);
+        }
+        sourceTilemap.RefreshAllTiles();
+    }
+
+    private void OnDestroy()
+    {
+        // Restore runtime-cleared cells when leaving Play Mode; no scene asset
+        // or authored tile data is saved by this controller.
+        SetGateVisible(true);
+        if (gateCollider != null && graphBlocked)
+        {
+            gateCollider.enabled = false;
+            graphBlocked = false;
+            Physics2D.SyncTransforms();
+            UpdateAstarGraph();
         }
     }
+}
 
-    public void ElectrifyZombie(GameObject zombie)
-    {
-        if (manager == null || !manager.HasStateAuthority || !manager.IsGeneratorActive || zombie == null) return;
-        SiegeZombieObjective objective = zombie.GetComponent<SiegeZombieObjective>();
-        if (objective != null) objective.ApplyElectricStun(electricStunSeconds);
-        else StartCoroutine(TemporarilyDisableZombieAI(zombie, electricStunSeconds));
-    }
-
-    private static IEnumerator TemporarilyDisableZombieAI(GameObject zombie, float duration)
-    {
-        MonoBehaviour[] behaviours = zombie.GetComponents<MonoBehaviour>();
-        for (int i = 0; i < behaviours.Length; i++)
-            if (IsZombieAI(behaviours[i])) behaviours[i].enabled = false;
-        yield return new WaitForSeconds(duration);
-        if (zombie == null) yield break;
-        for (int i = 0; i < behaviours.Length; i++)
-            if (behaviours[i] != null && IsZombieAI(behaviours[i])) behaviours[i].enabled = true;
-    }
-
-    private static bool IsZombieAI(MonoBehaviour behaviour) =>
-        behaviour is ZombieAI || behaviour is ZOmbieAI_Khoa || behaviour is ZombieAIKhoaRebuilt;
-
-    private static Sprite CreateGateSprite()
-    {
-        Texture2D texture = new Texture2D(96, 14, TextureFormat.RGBA32, false)
-        {
-            name = "MILITARY_GATE_RUNTIME",
-            filterMode = FilterMode.Point,
-            hideFlags = HideFlags.DontSave
-        };
-        Color32[] pixels = new Color32[96 * 14];
-        Color32 clear = new Color32(0, 0, 0, 0);
-        Color32 metal = new Color32(135, 148, 138, 255);
-        for (int y = 0; y < 14; y++)
-        for (int x = 0; x < 96; x++)
-            pixels[y * 96 + x] = y < 2 || y > 11 || x % 12 < 3 ? metal : clear;
-        texture.SetPixels32(pixels);
-        texture.Apply(false, true);
-        Sprite result = Sprite.Create(texture, new Rect(0, 0, 96, 14), new Vector2(0.5f, 0.5f), 18f);
-        result.hideFlags = HideFlags.DontSave;
-        return result;
-    }
+/// <summary>Physical/A* obstacle that intentionally does not block Player fog line-of-sight.</summary>
+[DisallowMultipleComponent]
+public sealed class MilitaryGateVisionPassThrough : MonoBehaviour
+{
 }

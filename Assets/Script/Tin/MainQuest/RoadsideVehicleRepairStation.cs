@@ -36,6 +36,15 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
 
     private void Update()
     {
+        bool storyInteraction = manager != null && manager.ShouldOfferStoryCarInteraction;
+        bool repairInteraction = manager != null && manager.CanUsePoliceRepairMinigame;
+        if (!storyInteraction && !repairInteraction)
+        {
+            SetFrontZoneVisible(false);
+            CancelInspection();
+            return;
+        }
+
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         bool inZone = player != null && IsPlayerInRepairPosition(player.transform.position);
         bool blocked = LocalGameplayUIState.BlocksWorldInteractionHints;
@@ -70,7 +79,10 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
 
         EndInspectionPresentation();
         inspectionRoutine = null;
-        inspectionUI?.Open(this);
+        if (manager != null && manager.ShouldOfferStoryCarInteraction)
+            manager.RequestInspectPoliceCarStory();
+        else if (manager != null && manager.CanUsePoliceRepairMinigame)
+            inspectionUI?.Open(this);
     }
 
     public bool IsPlayerInRepairPosition(Vector3 playerPosition) =>
@@ -179,6 +191,9 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
     {
         if (manager == null || !manager.IsNetworkReady || inspectionRoutine != null ||
             inspectionUI == null || inspectionUI.IsOpen || LocalGameplayUIState.BlocksWorldInteractionHints) return;
+        bool storyInteraction = manager.ShouldOfferStoryCarInteraction;
+        bool repairInteraction = manager.CanUsePoliceRepairMinigame;
+        if (!storyInteraction && !repairInteraction) return;
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         Camera camera = Camera.main;
         if (player == null || camera == null || !IsPlayerInRepairPosition(player.transform.position)) return;
@@ -193,6 +208,9 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
         prompt.normal.textColor = new Color(0.52f, 1f, 0.58f);
         float x = Mathf.Clamp(point.x - 150f, 8f, Screen.width - 308f);
         float y = Mathf.Clamp(Screen.height - point.y - 66f, 8f, Screen.height - 54f);
-        GUI.Box(new Rect(x, y, 300f, 46f), "KIỂM TRA TÌNH TRẠNG XE\nGIỮ [E]", prompt);
+        string label = storyInteraction
+            ? "KIỂM TRA XE CẢNH SÁT\nGIỮ [E]"
+            : "KIỂM TRA / SỬA XE\nGIỮ [E]";
+        GUI.Box(new Rect(x, y, 300f, 46f), label, prompt);
     }
 }

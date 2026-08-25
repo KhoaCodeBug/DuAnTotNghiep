@@ -30,7 +30,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         FuelCache,
         RepairKitCache,
         ExitPoint,
-        OfficeSafe
+        OfficeSafe,
+        School
     }
 
     public static MilitaryBaseQuestManager Instance { get; private set; }
@@ -46,6 +47,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [SerializeField] private Vector2 repairKitOffset = new Vector2(4f, 3f);
     [SerializeField] private Vector2 exitOffset = new Vector2(0f, 8f);
     [SerializeField, Min(0.5f)] private float interactionDistance = 1.35f;
+
+    [Header("School investigation and story commitment")]
+    [SerializeField, Min(0.5f)] private float schoolClueValidationDistance = 1.75f;
+    [SerializeField, Min(0.5f)] private float roofExitValidationPadding = 4f;
+    [SerializeField] private Vector2 schoolClueOffset0 = new Vector2(-9.5f, -3f);
+    [SerializeField] private Vector2 schoolClueOffset1 = new Vector2(5.5f, 0.25f);
+    [SerializeField] private Vector2 schoolClueOffset2 = new Vector2(11.5f, 4.5f);
+    [SerializeField, Min(0.1f)] private float cinematicGatherSpacing = 0.72f;
 
     [Header("Balance")]
     [SerializeField, Min(1f)] private float baseGateHealth = MilitaryQuestRules.BaseGateHealth;
@@ -97,6 +106,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Networked] public float PoliceFuelRepairProgress { get; private set; }
     [Networked] public float PoliceBatteryRepairProgress { get; private set; }
     [Networked] public float PoliceTireRepairProgress { get; private set; }
+    [Networked] public int SchoolClueMask { get; private set; }
+    [Networked] public NetworkBool HasExitedSchoolAfterClues { get; private set; }
+    [Networked] public NetworkBool IsPoliceCarStoryInspected { get; private set; }
+    [Networked] public NetworkBool IsMilitaryRouteVoteActive { get; private set; }
+    [Networked] public int MilitaryRouteVoteId { get; private set; }
+    [Networked] public int MilitaryRouteVoteApprovedCount { get; private set; }
+    [Networked] public int MilitaryRouteVoteRequiredCount { get; private set; }
+    [Networked] public NetworkBool IsMilitaryIntroCinematicActive { get; private set; }
 
     private bool hasSpawned;
     private GameObject presentationRoot;
@@ -105,7 +122,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private MilitaryEscapeVehicleRepair vehicleRepair;
     private RoadsideVehicleRepairStation roadsideRepairStation;
     private VehicleControllerFusion roadsideRepairVehicle;
-    private bool roadsideVehicleRelocated;
+    private bool roadsideVehiclePrepared;
+    private MilitaryRouteCinematicController cinematicController;
+    private PolygonCollider2D schoolRoofTrigger;
+    private PolygonCollider2D militaryAreaTrigger;
+    private readonly List<MilitarySchoolCluePoint> schoolCluePoints = new();
+    private readonly HashSet<PlayerRef> voteParticipants = new();
+    private readonly HashSet<PlayerRef> voteApprovals = new();
+    private Transform policeCarMarker;
+    private Transform gateClosingMarker;
+    private Transform schoolTeleportMarker;
 
     public bool IsNetworkReady => hasSpawned && Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
     public Phase CurrentPhase => IsNetworkReady ? (Phase)MilitaryPhase : Phase.NotReached;
@@ -120,6 +146,22 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     public float RepairSkillCheckSuccessArcDegrees => skillCheckSuccessArcDegrees;
     public float RepairSkillCheckPerfectArcDegrees => skillCheckPerfectArcDegrees;
     public bool ArePoliceCarRepairsComplete => IsNetworkReady && PoliceCarRepairRules.IsComplete(PoliceCarRepairMask);
+    public float PoliceCarOverallRepairProgress => IsNetworkReady
+        ? (PoliceEngineRepairProgress + PoliceHoodRepairProgress + PoliceFuelRepairProgress +
+           PoliceBatteryRepairProgress + PoliceTireRepairProgress) / 5f
+        : 0f;
+    public bool HasAllSchoolClues => IsNetworkReady && MilitaryStoryFlowRules.HasAllSchoolClues(SchoolClueMask);
+    public int SchoolClueCount => CountBits(SchoolClueMask);
+    public VehicleControllerFusion PoliceVehicle => roadsideRepairVehicle;
+    public Vector2 PoliceCarPosition => roadsideRepairVehicle != null
+        ? roadsideRepairVehicle.transform.position
+        : GetInteractionPosition(InteractionKind.Vehicle);
+    public Vector2 GateClosingPosition => GetInteractionPosition(InteractionKind.Gate);
+    public bool ShouldOfferStoryCarInteraction => IsNetworkReady && CurrentPhase == Phase.Investigating &&
+        HasExitedSchoolAfterClues && MainQuestManager.Instance != null &&
+        MainQuestManager.Instance.LockedEscapeRoute == EscapeEndingRoute.None && !IsMilitaryIntroCinematicActive;
+    public bool CanUsePoliceRepairMinigame => IsNetworkReady && CurrentPhase == Phase.SiegeAndRepair &&
+        !IsMilitaryIntroCinematicActive;
 
     private void Awake()
     {
@@ -132,10 +174,15 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (Instance == this) Instance = null;
         if (presentationRoot != null) Destroy(presentationRoot);
         if (roadsideRepairStation != null) Destroy(roadsideRepairStation);
+        MilitaryRouteVoteUI.Close();
+        cinematicController?.StopImmediate();
     }
 
     public override void Spawned()
     {
+        // Main.unity still contains the legacy serialized 1,000 HP value.
+        // Enforce the canonical minimum without saving over the user's scene.
+        baseGateHealth = Mathf.Max(baseGateHealth, MilitaryQuestRules.BaseGateHealth);
         hasSpawned = true;
         ResolveAnchor();
         BuildPresentation();
@@ -172,6 +219,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         PoliceFuelRepairProgress = 0f;
         PoliceBatteryRepairProgress = 0f;
         PoliceTireRepairProgress = 0f;
+        SchoolClueMask = 0;
+        HasExitedSchoolAfterClues = false;
+        IsPoliceCarStoryInspected = false;
+        IsMilitaryRouteVoteActive = false;
+        MilitaryRouteVoteId = 0;
+        MilitaryRouteVoteApprovedCount = 0;
+        MilitaryRouteVoteRequiredCount = 0;
+        IsMilitaryIntroCinematicActive = false;
+        voteParticipants.Clear();
+        voteApprovals.Clear();
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -179,25 +236,18 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         hasSpawned = false;
         if (presentationRoot != null) Destroy(presentationRoot);
         presentationRoot = null;
+        MilitaryRouteVoteUI.Close();
+        cinematicController?.StopImmediate();
     }
 
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
         TickRepairSkillCheck();
+        if (IsMilitaryRouteVoteActive) PruneDisconnectedVoters();
+        if (IsMilitaryIntroCinematicActive) LockAllLivingPlayersForCinematic();
         if (CurrentPhase != Phase.Escaped && CurrentPhase != Phase.Failed)
             SurvivalSeconds += Runner.DeltaTime;
-
-        if (CurrentPhase == Phase.NotReached && MainQuestManager.Instance != null &&
-            MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.CivilianCar &&
-            MainQuestManager.Instance.CurrentStage == MainQuestManager.QuestStage.CityMapFound &&
-            TryFindLivingPlayerNear(GetInteractionPosition(InteractionKind.Vehicle), 7f,
-                out PlayerRef approachPlayer))
-        {
-            MilitaryPhase = (int)Phase.Investigating;
-            RPC_ShowLocalizedQuestMessage("quest.military_arrived", 0);
-            RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.MilitaryBaseApproach, approachPlayer);
-        }
 
         if ((CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape) && !AnyLivingPlayer())
         {
@@ -222,8 +272,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         Vector2 origin = militaryBaseAnchor != null ? militaryBaseAnchor.position : Vector2.zero;
         return kind switch
         {
-            InteractionKind.Vehicle => origin + vehicleOffset,
-            InteractionKind.Gate => origin + gateOffset,
+            InteractionKind.Vehicle => roadsideRepairVehicle != null
+                ? (Vector2)roadsideRepairVehicle.transform.position
+                : policeCarMarker != null ? (Vector2)policeCarMarker.position : origin + vehicleOffset,
+            InteractionKind.Gate => gateClosingMarker != null
+                ? (Vector2)gateClosingMarker.position
+                : origin + gateOffset,
             InteractionKind.Generator => origin + generatorOffset,
             InteractionKind.Armory => origin + armoryOffset,
             InteractionKind.BatteryCache => origin + batteryOffset,
@@ -231,9 +285,262 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             InteractionKind.RepairKitCache => origin + repairKitOffset,
             InteractionKind.ExitPoint => origin + exitOffset,
             InteractionKind.OfficeSafe => GetOfficeSafePosition(),
+            InteractionKind.School => schoolTeleportMarker != null
+                ? (Vector2)schoolTeleportMarker.position
+                : origin,
             _ => origin
         };
     }
+
+    public bool CanCollectSchoolClue(int clueIndex)
+    {
+        if (!IsNetworkReady || clueIndex < 0 || clueIndex >= MilitaryStoryFlowRules.RequiredSchoolClues ||
+            CurrentPhase != Phase.NotReached || MainQuestManager.Instance == null ||
+            MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound ||
+            MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.None)
+            return false;
+        return (SchoolClueMask & (1 << clueIndex)) == 0;
+    }
+
+    public void RequestCollectSchoolClue(int clueIndex)
+    {
+        if (!CanCollectSchoolClue(clueIndex)) return;
+        if (HasStateAuthority) ServerCollectSchoolClue(Runner.LocalPlayer, clueIndex);
+        else RPC_RequestCollectSchoolClue(clueIndex);
+    }
+
+    public void RequestConfirmSchoolRoofExit()
+    {
+        if (!IsNetworkReady || !HasAllSchoolClues || HasExitedSchoolAfterClues) return;
+        if (HasStateAuthority) ServerConfirmSchoolRoofExit(Runner.LocalPlayer);
+        else RPC_RequestConfirmSchoolRoofExit();
+    }
+
+    public void RequestInspectPoliceCarStory()
+    {
+        if (!ShouldOfferStoryCarInteraction) return;
+        if (HasStateAuthority) ServerInspectPoliceCarStory(Runner.LocalPlayer);
+        else RPC_RequestInspectPoliceCarStory();
+    }
+
+    public void RequestSubmitMilitaryRouteVote(int voteId, bool approve)
+    {
+        if (!IsNetworkReady) return;
+        if (HasStateAuthority) ServerSubmitMilitaryRouteVote(Runner.LocalPlayer, voteId, approve);
+        else RPC_RequestSubmitMilitaryRouteVote(voteId, approve);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestCollectSchoolClue(int clueIndex, RpcInfo info = default) =>
+        ServerCollectSchoolClue(info.Source, clueIndex);
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestConfirmSchoolRoofExit(RpcInfo info = default) =>
+        ServerConfirmSchoolRoofExit(info.Source);
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestInspectPoliceCarStory(RpcInfo info = default) =>
+        ServerInspectPoliceCarStory(info.Source);
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestSubmitMilitaryRouteVote(int voteId, NetworkBool approve, RpcInfo info = default) =>
+        ServerSubmitMilitaryRouteVote(info.Source, voteId, approve);
+
+    private void ServerCollectSchoolClue(PlayerRef requester, int clueIndex)
+    {
+        if (!HasStateAuthority || !CanCollectSchoolClue(clueIndex) ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            clueIndex >= schoolCluePoints.Count || schoolCluePoints[clueIndex] == null ||
+            Vector2.Distance(player.transform.position, schoolCluePoints[clueIndex].transform.position) >
+            schoolClueValidationDistance)
+            return;
+
+        SchoolClueMask |= 1 << clueIndex;
+        RPC_ShowSchoolClueProgress(clueIndex, SchoolClueCount,
+            MilitaryStoryFlowRules.RequiredSchoolClues);
+    }
+
+    private void ServerConfirmSchoolRoofExit(PlayerRef requester)
+    {
+        if (!HasStateAuthority || CurrentPhase != Phase.NotReached || !HasAllSchoolClues ||
+            HasExitedSchoolAfterClues || !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            schoolRoofTrigger == null || schoolRoofTrigger.OverlapPoint(player.transform.position) ||
+            Vector2.Distance(player.transform.position, schoolRoofTrigger.bounds.ClosestPoint(player.transform.position)) >
+            roofExitValidationPadding)
+            return;
+
+        HasExitedSchoolAfterClues = true;
+        MilitaryPhase = (int)Phase.Investigating;
+        RPC_ShowPoliceCarObjective(requester);
+    }
+
+    private void ServerInspectPoliceCarStory(PlayerRef requester)
+    {
+        if (!HasStateAuthority || !ShouldOfferStoryCarInteraction || IsMilitaryRouteVoteActive ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) || roadsideRepairStation == null ||
+            !roadsideRepairStation.IsPlayerInRepairPosition(player.transform.position))
+            return;
+
+        IsPoliceCarStoryInspected = true;
+        BeginMilitaryRouteVote(requester);
+    }
+
+    private void BeginMilitaryRouteVote(PlayerRef requester)
+    {
+        if (!HasStateAuthority || IsMilitaryRouteVoteActive || IsMilitaryIntroCinematicActive) return;
+        voteParticipants.Clear();
+        voteApprovals.Clear();
+        foreach (PlayerRef player in Runner.ActivePlayers)
+            voteParticipants.Add(player);
+        if (voteParticipants.Count == 0 && requester != PlayerRef.None)
+            voteParticipants.Add(requester);
+        if (voteParticipants.Count == 0) return;
+
+        MilitaryRouteVoteId++;
+        IsMilitaryRouteVoteActive = true;
+        MilitaryRouteVoteApprovedCount = 0;
+        MilitaryRouteVoteRequiredCount = voteParticipants.Count;
+        RPC_OpenMilitaryRouteVote(MilitaryRouteVoteId, MilitaryRouteVoteRequiredCount);
+    }
+
+    private void ServerSubmitMilitaryRouteVote(PlayerRef requester, int voteId, bool approve)
+    {
+        if (!HasStateAuthority || !IsMilitaryRouteVoteActive || voteId != MilitaryRouteVoteId ||
+            !voteParticipants.Contains(requester)) return;
+
+        if (!approve)
+        {
+            CancelMilitaryRouteVote("Biểu quyết đã hủy. Có thể kiểm tra xe lại khi cả đội sẵn sàng.");
+            return;
+        }
+
+        voteApprovals.Add(requester);
+        MilitaryRouteVoteApprovedCount = voteApprovals.Count;
+        MilitaryRouteVoteRequiredCount = voteParticipants.Count;
+        RPC_UpdateMilitaryRouteVote(MilitaryRouteVoteId, MilitaryRouteVoteApprovedCount,
+            MilitaryRouteVoteRequiredCount);
+        if (voteApprovals.Count == voteParticipants.Count)
+            CommitMilitaryRouteVote();
+    }
+
+    private void PruneDisconnectedVoters()
+    {
+        HashSet<PlayerRef> active = new HashSet<PlayerRef>();
+        foreach (PlayerRef player in Runner.ActivePlayers) active.Add(player);
+        List<PlayerRef> removed = new List<PlayerRef>();
+        foreach (PlayerRef participant in voteParticipants)
+            if (!active.Contains(participant)) removed.Add(participant);
+        if (removed.Count == 0) return;
+
+        for (int i = 0; i < removed.Count; i++)
+        {
+            voteParticipants.Remove(removed[i]);
+            voteApprovals.Remove(removed[i]);
+        }
+        if (voteParticipants.Count == 0)
+        {
+            CancelMilitaryRouteVote("Biểu quyết đã hủy vì không còn người chơi hợp lệ.");
+            return;
+        }
+
+        MilitaryRouteVoteApprovedCount = voteApprovals.Count;
+        MilitaryRouteVoteRequiredCount = voteParticipants.Count;
+        RPC_UpdateMilitaryRouteVote(MilitaryRouteVoteId, MilitaryRouteVoteApprovedCount,
+            MilitaryRouteVoteRequiredCount);
+        if (voteApprovals.Count == voteParticipants.Count)
+            CommitMilitaryRouteVote();
+    }
+
+    private void CancelMilitaryRouteVote(string message)
+    {
+        int closedVoteId = MilitaryRouteVoteId;
+        IsMilitaryRouteVoteActive = false;
+        MilitaryRouteVoteApprovedCount = 0;
+        MilitaryRouteVoteRequiredCount = 0;
+        voteParticipants.Clear();
+        voteApprovals.Clear();
+        RPC_CloseMilitaryRouteVote(closedVoteId, message);
+    }
+
+    private void CommitMilitaryRouteVote()
+    {
+        if (!HasStateAuthority || !IsMilitaryRouteVoteActive || MainQuestManager.Instance == null ||
+            !MainQuestManager.Instance.AuthorityTryLockEscapeRoute(EscapeEndingRoute.MilitaryEvacuation))
+        {
+            CancelMilitaryRouteVote("Không thể khóa Tuyến B vì một tuyến kết thúc khác đã được chọn.");
+            return;
+        }
+
+        int closedVoteId = MilitaryRouteVoteId;
+        IsMilitaryRouteVoteActive = false;
+        MilitaryRouteVoteApprovedCount = voteApprovals.Count;
+        MilitaryRouteVoteRequiredCount = voteParticipants.Count;
+        voteParticipants.Clear();
+        voteApprovals.Clear();
+        IsMilitaryIntroCinematicActive = true;
+        ResolveMilitaryAreaTrigger();
+        int removedZombies = AuthorityClearZombiesInsideMilitaryArea();
+        Vector2 cinematicStart = GetCinematicStartPosition();
+        Debug.Log($"[MILITARY CINEMATIC] Dọn {removedZombies} zombie trong KhuVucQuanSu; " +
+                  $"Host visual bắt đầu tại {cinematicStart}.");
+        RPC_CloseMilitaryRouteVote(closedVoteId, string.Empty);
+        RPC_PlayMilitaryIntroCinematic(Runner.LocalPlayer, cinematicStart);
+    }
+
+    public void AuthorityCompleteMilitaryIntroCinematic(PlayerRef hostPlayer)
+    {
+        if (!HasStateAuthority || !IsMilitaryIntroCinematicActive || CurrentPhase != Phase.Investigating)
+            return;
+        GatherLivingPlayersNearClosedGate();
+        IsMilitaryIntroCinematicActive = false;
+        MilitaryPhase = (int)Phase.SiegeAndRepair;
+        GateMaxHealth = Mathf.Max(1f, baseGateHealth);
+        GateCurrentHealth = GateMaxHealth;
+        IsGeneratorActive = false;
+        ActiveRepairer = PlayerRef.None;
+        RPC_StartSiegePresentation();
+        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SiegeStarted, hostPlayer);
+        RPC_ShowLocalizedQuestMessage("quest.military_siege", 0);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowSchoolClueProgress(int clueIndex, int collected, int required)
+    {
+        string[] names = { "Hồ sơ trực ban", "Bản ghi tiếp vận", "Lệnh phong tỏa" };
+        string clueName = clueIndex >= 0 && clueIndex < names.Length ? names[clueIndex] : "Manh mối";
+        string body = collected >= required
+            ? $"Đã kiểm tra {clueName}. Đủ {collected}/{required} manh mối — hãy rời khỏi khu trường học."
+            : $"Đã kiểm tra {clueName}. Tiến độ manh mối: {collected}/{required}.";
+        AutoChatManager.Instance?.AddMessage("MANH MỐI QUÂN SỰ", body);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowPoliceCarObjective(PlayerRef focusPlayer)
+    {
+        _ = focusPlayer;
+        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ",
+            "Các manh mối đều nhắc tới chiếc xe cảnh sát trong sân. Hãy tới kiểm tra xe.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_OpenMilitaryRouteVote(int voteId, int requiredCount) =>
+        MilitaryRouteVoteUI.Show(this, voteId, 0, requiredCount);
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_UpdateMilitaryRouteVote(int voteId, int approvedCount, int requiredCount) =>
+        MilitaryRouteVoteUI.UpdateProgress(voteId, approvedCount, requiredCount);
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_CloseMilitaryRouteVote(int voteId, string message)
+    {
+        MilitaryRouteVoteUI.Close(voteId);
+        if (!string.IsNullOrWhiteSpace(message))
+            AutoChatManager.Instance?.AddMessage("BIỂU QUYẾT TUYẾN B", message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayMilitaryIntroCinematic(PlayerRef hostPlayer, Vector2 stagedStartPosition) =>
+        cinematicController?.Play(hostPlayer, stagedStartPosition);
 
     /// <summary>
     /// Developer presentation path used by F10/CheatMenu. It never creates
@@ -261,10 +568,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
                     Debug.LogWarning("[QUEST TEST] Hãy hoàn tất nửa đầu Tuyến B bằng F6/F7 trước.");
                     return;
                 }
+                SchoolClueMask = MilitaryStoryFlowRules.CompleteClueMask;
+                HasExitedSchoolAfterClues = true;
                 MilitaryPhase = (int)Phase.Investigating;
-                RPC_ShowLocalizedQuestMessage("quest.military_arrived", 0);
-                RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.MilitaryBaseApproach, requester);
-                Debug.Log("[QUEST TEST] F10: mô phỏng đã tới căn cứ quân sự.");
+                RPC_ShowPoliceCarObjective(requester);
+                Debug.Log("[QUEST TEST] F10: mô phỏng đủ 3 manh mối và đã rời trường; mở mục tiêu xe cảnh sát.");
                 break;
 
             case Phase.Investigating:
@@ -275,27 +583,17 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
                 break;
 
             case Phase.SiegeAndRepair:
-                if (!IsGeneratorActive)
-                {
-                    AuthorityActivateGenerator(requester);
-                    Debug.Log("[QUEST TEST] F10: máy phát điện đã hoạt động.");
-                    break;
-                }
-                if (!HasAllParts)
-                {
-                    HasBatteryInstalled = true;
-                    HasFuelInstalled = true;
-                    HasRepairKitInstalled = true;
-                    RPC_ShowLocalizedQuestMessage("quest.military_debug_parts", 0);
-                    Debug.Log("[QUEST TEST] F10: đã mô phỏng lắp đủ ba vật phẩm xe, không dùng LootContainer.");
-                    break;
-                }
-
-                VehicleRepairProgress = MilitaryQuestRules.MaxRepairProgress;
-                ActiveRepairer = PlayerRef.None;
+                ClearRepairSkillCheckSession();
+                PoliceEngineRepairProgress = VehicleRepairSkillCheckRules.MaxProgress;
+                PoliceHoodRepairProgress = VehicleRepairSkillCheckRules.MaxProgress;
+                PoliceFuelRepairProgress = VehicleRepairSkillCheckRules.MaxProgress;
+                PoliceBatteryRepairProgress = VehicleRepairSkillCheckRules.MaxProgress;
+                PoliceTireRepairProgress = VehicleRepairSkillCheckRules.MaxProgress;
+                PoliceCarRepairMask = (int)PoliceCarRepairState.RequiredComplete;
+                roadsideRepairVehicle?.SetRepairEntryLocked(false);
                 MilitaryPhase = (int)Phase.ReadyToEscape;
                 RPC_BroadcastVehicleReady(requester);
-                Debug.Log("[QUEST TEST] F10: xe sơ tán đã sẵn sàng.");
+                Debug.Log("[QUEST TEST] F10: mô phỏng hoàn tất 5/5 hạng mục Car; xe đã sẵn sàng.");
                 break;
 
             case Phase.ReadyToEscape:
@@ -331,25 +629,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         switch (CurrentPhase)
         {
             case Phase.NotReached:
-                target = InteractionKind.Vehicle;
-                targetName = "cổng vào/xe sơ tán tại căn cứ quân sự";
+                target = InteractionKind.School;
+                targetName = "lối vào trường học trong khu quân sự";
                 break;
             case Phase.Investigating:
                 target = InteractionKind.Vehicle;
                 targetName = "xe sơ tán cần kiểm tra";
                 break;
-            case Phase.SiegeAndRepair when !IsGeneratorActive:
-                target = InteractionKind.Generator;
-                targetName = "máy phát điện";
-                break;
-            case Phase.SiegeAndRepair when !HasAllParts:
-                Debug.LogWarning("[QUEST TEST] F12 không dịch chuyển: mục tiêu hiện tại liên quan các cache/LootContainer linh kiện.");
-                AutoChatManager.Instance?.AddMessage("QUEST TEST",
-                    "F12 bị bỏ qua: nhiệm vụ thu thập linh kiện dùng điểm loot.");
-                return;
             case Phase.SiegeAndRepair:
                 target = InteractionKind.Vehicle;
-                targetName = "xe sơ tán cần sửa";
+                targetName = "Car cần sửa 5 hạng mục";
                 break;
             case Phase.ReadyToEscape:
                 target = InteractionKind.Vehicle;
@@ -380,7 +669,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!IsNetworkReady || !HasStateAuthority || CurrentPhase != Phase.Investigating) return;
-        AuthorityStartSiege(Runner.LocalPlayer);
+        BeginMilitaryRouteVote(Runner.LocalPlayer);
+        if (IsMilitaryRouteVoteActive)
+            ServerSubmitMilitaryRouteVote(Runner.LocalPlayer, MilitaryRouteVoteId, true);
 #endif
     }
 
@@ -529,53 +820,24 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private void ServerTriggerAlarm(PlayerRef requester)
     {
-        if (!HasStateAuthority || (CurrentPhase != Phase.NotReached && CurrentPhase != Phase.Investigating)) return;
-        if (!TryGetRequestingPlayer(requester, out PlayerMovement player) ||
-            !IsNear(player.transform.position, InteractionKind.Vehicle)) return;
-        if (MainQuestManager.Instance == null ||
-            MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound) return;
-        AuthorityStartSiege(requester);
+        ServerInspectPoliceCarStory(requester);
     }
 
     private void AuthorityStartSiege(PlayerRef requester)
     {
-        if (!HasStateAuthority || (CurrentPhase != Phase.NotReached && CurrentPhase != Phase.Investigating) ||
-            MainQuestManager.Instance == null ||
-            MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound)
-            return;
-        if (!MainQuestManager.Instance.AuthorityTryLockEscapeRoute(EscapeEndingRoute.MilitaryEvacuation))
-        {
-            RPC_ShowLocalizedQuestMessage("quest.military_route_blocked", 0);
-            return;
-        }
-
-        MilitaryPhase = (int)Phase.SiegeAndRepair;
-        GateCurrentHealth = Mathf.Max(GateCurrentHealth, GateMaxHealth);
-        ActiveRepairer = PlayerRef.None;
-        RPC_StartSiegePresentation();
-        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SiegeStarted, requester);
-        RPC_ShowLocalizedQuestMessage("quest.military_siege", 0);
+        BeginMilitaryRouteVote(requester);
     }
 
     private void ServerActivateGenerator(PlayerRef requester)
     {
-        if (!HasStateAuthority || CurrentPhase != Phase.SiegeAndRepair || IsGeneratorActive) return;
-        if (!TryGetRequestingPlayer(requester, out PlayerMovement player) ||
-            !IsNear(player.transform.position, InteractionKind.Generator)) return;
-
-        AuthorityActivateGenerator(requester);
+        _ = requester;
+        // Generator/electric-gate behavior belonged to the discarded prototype
+        // and is deliberately unavailable in the canonical military flow.
     }
 
     private void AuthorityActivateGenerator(PlayerRef requester)
     {
-        if (!HasStateAuthority || CurrentPhase != Phase.SiegeAndRepair || IsGeneratorActive) return;
-        float oldMax = Mathf.Max(1f, GateMaxHealth);
-        float ratio = Mathf.Clamp01(GateCurrentHealth / oldMax);
-        GateMaxHealth = MilitaryQuestRules.GetElectrifiedGateHealth(baseGateHealth);
-        GateCurrentHealth = Mathf.Max(GateCurrentHealth, GateMaxHealth * ratio);
-        IsGeneratorActive = true;
-        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.GeneratorOnline, requester);
-        RPC_ShowLocalizedQuestMessage("quest.military_generator", 0);
+        _ = requester;
     }
 
     private void ServerUnlockArmory(PlayerRef requester)
@@ -667,7 +929,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private void ServerStartRepairSkillCheck(PlayerRef requester, PoliceCarRepairAction action)
     {
-        if (!HasStateAuthority || !enableRoadsideRepairTest || requester == PlayerRef.None) return;
+        if (!HasStateAuthority || !enableRoadsideRepairTest || requester == PlayerRef.None ||
+            CurrentPhase != Phase.SiegeAndRepair) return;
         EnsureRoadsideRepairTest();
         if (roadsideRepairStation == null ||
             !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
@@ -784,9 +1047,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
                 return;
             }
             PoliceCarRepairMask |= (int)PoliceCarRepairRules.GetStateBit(completedAction);
+            bool allComplete = PoliceCarRepairRules.IsComplete(PoliceCarRepairMask);
             ClearRepairSkillCheckSession();
             RPC_RepairCompleted(completedBy, (int)completedAction,
-                PoliceCarRepairRules.IsComplete(PoliceCarRepairMask));
+                allComplete);
+            if (allComplete)
+            {
+                roadsideRepairVehicle?.SetRepairEntryLocked(false);
+                MilitaryPhase = (int)Phase.ReadyToEscape;
+                RPC_BroadcastVehicleReady(completedBy);
+            }
             return;
         }
 
@@ -945,7 +1215,13 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_StartSiegePresentation() => hordeDirector?.BeginSiege();
+    private void RPC_StartSiegePresentation()
+    {
+        // Close the physical/A* gate before any existing or newly spawned
+        // zombie receives its siege objective on this peer.
+        gateController?.RefreshPresentation();
+        hordeDirector?.BeginSiege();
+    }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_BroadcastVehicleReady(PlayerRef focusPlayer)
@@ -962,6 +1238,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     public void RPC_TriggerVictoryCutscene(PlayerRef focusPlayer)
     {
         EscapeRouteDecisionUI.CloseIfOpen();
+        QuestFlowUIPrototype questJournal = FindFirstObjectByType<QuestFlowUIPrototype>(
+            FindObjectsInactive.Include);
+        questJournal?.ApplyMilitarySnapshot((int)Phase.Escaped, false, true, 100f,
+            GateCurrentHealth, GateMaxHealth, true);
         if (Runner != null && Runner.LocalPlayer == focusPlayer)
             RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryEvacuationComplete);
         hordeDirector?.StopSiege();
@@ -1061,18 +1341,43 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
         gateController = MilitaryGateController.Create(presentationRoot.transform,
             GetInteractionPosition(InteractionKind.Gate), this);
-        vehicleRepair = MilitaryEscapeVehicleRepair.Create(presentationRoot.transform,
-            GetInteractionPosition(InteractionKind.Vehicle), this);
         hordeDirector = presentationRoot.AddComponent<SiegeHordeDirector>();
         hordeDirector.Configure(this, gateController);
+        cinematicController = presentationRoot.AddComponent<MilitaryRouteCinematicController>();
+        cinematicController.Configure(this);
+        BuildSchoolInvestigationPresentation();
+    }
 
-        CreatePoint(InteractionKind.Generator, "MÁY PHÁT ĐIỆN", new Color(0.2f, 0.8f, 0.95f));
-        CreatePoint(InteractionKind.Armory, "KHO QUÂN NHU", new Color(0.9f, 0.7f, 0.18f));
-        CreatePoint(InteractionKind.BatteryCache, "ẮC QUY", new Color(0.2f, 0.8f, 0.95f));
-        CreatePoint(InteractionKind.FuelCache, "NHIÊN LIỆU", new Color(0.85f, 0.22f, 0.18f));
-        CreatePoint(InteractionKind.RepairKitCache, "BỘ SỬA CHỮA", new Color(0.9f, 0.9f, 0.8f));
-        CreatePoint(InteractionKind.ExitPoint, "EXIT", new Color(0.2f, 0.95f, 0.45f));
-        CreatePoint(InteractionKind.OfficeSafe, "KÉT SẮT VĂN PHÒNG", new Color(0.72f, 0.32f, 0.85f));
+    private void BuildSchoolInvestigationPresentation()
+    {
+        GameObject roofObject = GameObject.Find("__SchoolRoofTrigger_FIXED");
+        schoolRoofTrigger = roofObject != null ? roofObject.GetComponent<PolygonCollider2D>() : null;
+        if (schoolRoofTrigger == null)
+        {
+            Debug.LogError("[MILITARY STORY] Không tìm thấy PolygonCollider2D __SchoolRoofTrigger_FIXED.");
+            return;
+        }
+
+        MilitarySchoolRoofExitTrigger exitTrigger = roofObject.GetComponent<MilitarySchoolRoofExitTrigger>();
+        if (exitTrigger == null) exitTrigger = roofObject.AddComponent<MilitarySchoolRoofExitTrigger>();
+        exitTrigger.Configure(this);
+
+        schoolCluePoints.Clear();
+        Vector2 center = schoolRoofTrigger.bounds.center;
+        Vector2[] offsets = { schoolClueOffset0, schoolClueOffset1, schoolClueOffset2 };
+        string[] labels = { "HỒ SƠ TRỰC BAN", "BẢN GHI TIẾP VẬN", "LỆNH PHONG TỎA" };
+        for (int i = 0; i < MilitaryStoryFlowRules.RequiredSchoolClues; i++)
+        {
+            Vector2 position = center + offsets[i];
+            if (!schoolRoofTrigger.OverlapPoint(position))
+                position = center + new Vector2((i - 1) * 1.4f, 0f);
+            GameObject clue = new GameObject($"Military School Clue {i + 1} - {labels[i]}");
+            clue.transform.SetParent(presentationRoot.transform, true);
+            clue.transform.position = new Vector3(position.x, position.y, 0f);
+            MilitarySchoolCluePoint point = clue.AddComponent<MilitarySchoolCluePoint>();
+            point.Configure(this, i, labels[i]);
+            schoolCluePoints.Add(point);
+        }
     }
 
     private void EnsureRoadsideRepairTest()
@@ -1097,12 +1402,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             roadsideRepairStation.Configure(this, roadsideRepairVehicle);
         }
 
-        if (!HasStateAuthority || roadsideVehicleRelocated) return;
-        GameObject arrivalMarker = GameObject.Find("ViTriXeTest");
-        if (arrivalMarker == null) return;
-        roadsideRepairVehicle.AuthorityPrepareRepairTest(
-            arrivalMarker.transform.position);
-        roadsideVehicleRelocated = true;
+        if (!HasStateAuthority || roadsideVehiclePrepared) return;
+        roadsideRepairVehicle.AuthorityPrepareRepairAtCurrentPosition();
+        roadsideVehiclePrepared = true;
     }
 
 #if UNITY_EDITOR
@@ -1157,9 +1459,127 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private void ResolveAnchor()
     {
-        if (militaryBaseAnchor != null) return;
-        GameObject found = GameObject.Find("KhuVucQuanSu");
-        if (found != null) militaryBaseAnchor = found.transform;
+        ResolveMilitaryAreaTrigger();
+        if (militaryBaseAnchor == null)
+        {
+            if (militaryAreaTrigger != null)
+                militaryBaseAnchor = militaryAreaTrigger.transform;
+            else
+            {
+                GameObject found = GameObject.Find("KhuVucQuanSu");
+                if (found != null) militaryBaseAnchor = found.transform;
+            }
+        }
+        if (policeCarMarker == null)
+        {
+            GameObject found = GameObject.Find("SpawnXeCanhSat");
+            if (found != null) policeCarMarker = found.transform;
+        }
+        if (gateClosingMarker == null)
+        {
+            GameObject found = GameObject.Find("ViTriDongCong");
+            if (found != null) gateClosingMarker = found.transform;
+        }
+        if (schoolTeleportMarker == null)
+        {
+            GameObject found = GameObject.Find("TeleportToSchool");
+            if (found != null) schoolTeleportMarker = found.transform;
+        }
+    }
+
+    private void ResolveMilitaryAreaTrigger()
+    {
+        if (militaryAreaTrigger != null) return;
+
+        PolygonCollider2D[] polygons = FindObjectsByType<PolygonCollider2D>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < polygons.Length; i++)
+        {
+            PolygonCollider2D candidate = polygons[i];
+            if (candidate != null && candidate.name == "KhuVucQuanSu")
+            {
+                militaryAreaTrigger = candidate;
+                return;
+            }
+        }
+
+        Debug.LogWarning("[MILITARY CINEMATIC] Không tìm thấy PolygonCollider2D trên KhuVucQuanSu; " +
+                         "không thể xác định chính xác vùng dọn zombie.");
+    }
+
+    private Vector2 GetCinematicStartPosition()
+    {
+        ResolveMilitaryAreaTrigger();
+        Vector2 car = PoliceCarPosition;
+        Vector2[] candidates =
+        {
+            car + new Vector2(-3.5f, 1.5f),
+            car + new Vector2(-3f, -1.5f),
+            car + new Vector2(3f, 1.5f),
+            car + new Vector2(3f, -1.5f)
+        };
+
+        if (militaryAreaTrigger != null)
+        {
+            for (int i = 0; i < candidates.Length; i++)
+                if (militaryAreaTrigger.OverlapPoint(candidates[i]))
+                    return candidates[i];
+
+            Vector2 center = militaryAreaTrigger.bounds.center;
+            if (militaryAreaTrigger.OverlapPoint(center)) return center;
+
+            Vector2 closest = militaryAreaTrigger.ClosestPoint(car);
+            Vector2 inward = ((Vector2)militaryAreaTrigger.bounds.center - closest).normalized;
+            Vector2 inside = closest + inward * 0.5f;
+            if (militaryAreaTrigger.OverlapPoint(inside)) return inside;
+        }
+
+        // Scene chưa có vùng hợp lệ: vẫn bắt đầu gần xe để cinematic không kéo diễn viên từ ngoài đường vào.
+        return candidates[0];
+    }
+
+    private int AuthorityClearZombiesInsideMilitaryArea()
+    {
+        if (!HasStateAuthority) return 0;
+        ResolveMilitaryAreaTrigger();
+        if (militaryAreaTrigger == null) return 0;
+
+        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
+        HashSet<NetworkObject> handled = new HashSet<NetworkObject>();
+        int removed = 0;
+        for (int i = 0; i < enemies.Length; i++)
+        {
+            GameObject enemy = enemies[i];
+            if (enemy == null) continue;
+            NetworkObject networkObject = enemy.GetComponentInParent<NetworkObject>();
+            GameObject zombieRoot = networkObject != null ? networkObject.gameObject : enemy;
+            if (!IsMilitaryZombie(zombieRoot) ||
+                zombieRoot.GetComponentInParent<PlayerMovement>() != null ||
+                !militaryAreaTrigger.OverlapPoint(zombieRoot.transform.position))
+                continue;
+
+            if (networkObject != null)
+            {
+                if (!networkObject.IsValid || !networkObject.HasStateAuthority || !handled.Add(networkObject))
+                    continue;
+                Runner.Despawn(networkObject);
+            }
+            else
+            {
+                Destroy(zombieRoot);
+            }
+            removed++;
+        }
+        return removed;
+    }
+
+    private static bool IsMilitaryZombie(GameObject target)
+    {
+        return target != null &&
+               (target.GetComponent<ZombieAI>() != null ||
+                target.GetComponent<ZombieHealth>() != null ||
+                target.GetComponent<ZOmbieAI_Khoa>() != null ||
+                target.GetComponent<ZombieAIKhoaRebuilt>() != null);
     }
 
     private Vector2 GetOfficeSafePosition()
@@ -1192,6 +1612,54 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             }
         }
         return false;
+    }
+
+    private void LockAllLivingPlayersForCinematic()
+    {
+        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        for (int i = 0; i < players.Length; i++)
+        {
+            PlayerMovement movement = players[i];
+            if (movement == null || movement.Object == null || !movement.Object.IsValid ||
+                !movement.Object.HasStateAuthority) continue;
+            PlayerHealth health = movement.GetComponent<PlayerHealth>();
+            if (health != null && (health.isDead || health.isTransforming)) continue;
+            movement.LockMovement(Mathf.Max(0.2f, Runner.DeltaTime * 2f));
+        }
+    }
+
+    private void GatherLivingPlayersNearClosedGate()
+    {
+        Vector2 gatherCenter = GateClosingPosition + new Vector2(0f, 1.15f);
+        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        int gathered = 0;
+        for (int i = 0; i < players.Length; i++)
+        {
+            PlayerMovement movement = players[i];
+            if (movement == null || movement.Object == null || !movement.Object.IsValid ||
+                !movement.Object.HasStateAuthority) continue;
+            PlayerHealth health = movement.GetComponent<PlayerHealth>();
+            if (health != null && (health.isDead || health.isTransforming)) continue;
+
+            float angle = gathered * 137.50776f * Mathf.Deg2Rad;
+            float radius = gathered == 0 ? 0f : cinematicGatherSpacing * (1f + gathered / 7f);
+            Vector2 destination = gatherCenter + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            // Positive Y is the school/base side of the authored gate marker.
+            if (destination.y <= GateClosingPosition.y + 0.25f)
+                destination.y = GateClosingPosition.y + 0.45f;
+
+            PlayerInteraction interaction = movement.GetComponent<PlayerInteraction>();
+            if (interaction != null && interaction.IsInVehicle)
+            {
+                VehicleControllerFusion currentVehicle = interaction.CurrentVehicleController;
+                bool exitedNormally = currentVehicle != null && currentVehicle.AuthorityTryExit(movement.Object);
+                if (!exitedNormally)
+                    interaction.SetVehicleNetworkState(null, false, false, 0, destination);
+            }
+            TeleportPlayer(movement, destination);
+            gathered++;
+        }
+        Physics2D.SyncTransforms();
     }
 
     private void GatherLivingPlayersForExtraction()
@@ -1294,6 +1762,118 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
                 return slot.item;
         }
         return null;
+    }
+
+    private static int CountBits(int value)
+    {
+        int count = 0;
+        uint remaining = unchecked((uint)value);
+        while (remaining != 0)
+        {
+            remaining &= remaining - 1;
+            count++;
+        }
+        return count;
+    }
+
+    private void OnGUI()
+    {
+        if (!IsNetworkReady || TutorialSession.IsActive || IsMilitaryIntroCinematicActive ||
+            MainQuestManager.Instance == null ||
+            MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound)
+            return;
+
+        if (CurrentPhase == Phase.NotReached)
+        {
+            GUIStyle clueStyle = new GUIStyle(GUI.skin.box)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 15,
+                fontStyle = FontStyle.Bold
+            };
+            clueStyle.normal.textColor = new Color(1f, 0.84f, 0.3f);
+            string objective = HasAllSchoolClues
+                ? "ĐÃ ĐỦ 3/3 MANH MỐI  •  RỜI KHỎI TRƯỜNG HỌC"
+                : $"KHÁM PHÁ TRƯỜNG HỌC  •  MANH MỐI {SchoolClueCount}/3";
+            GUI.Box(new Rect((Screen.width - 430f) * 0.5f, 84f, 430f, 42f), objective, clueStyle);
+            return;
+        }
+
+        if (CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape)
+        {
+            DrawGateHealthBar();
+            return;
+        }
+
+        if (CurrentPhase != Phase.Investigating || !HasExitedSchoolAfterClues ||
+            MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.None)
+            return;
+        DrawPoliceCarWaypoint();
+    }
+
+    private void DrawGateHealthBar()
+    {
+        float ratio = GateMaxHealth > 0f ? Mathf.Clamp01(GateCurrentHealth / GateMaxHealth) : 0f;
+        float width = Mathf.Clamp(Screen.width * 0.46f, 520f, 820f);
+        const float height = 58f;
+        float x = (Screen.width - width) * 0.5f;
+        float y = Screen.height - 175f;
+        Rect outer = new Rect(x, y, width, height);
+        Rect track = new Rect(x + 8f, y + 29f, width - 16f, 19f);
+        Rect fill = new Rect(track.x + 2f, track.y + 2f,
+            Mathf.Max(0f, (track.width - 4f) * ratio), track.height - 4f);
+
+        Color oldColor = GUI.color;
+        int oldDepth = GUI.depth;
+        GUI.depth = -1200;
+        GUI.color = new Color(0.025f, 0.035f, 0.045f, 0.94f);
+        GUI.DrawTexture(outer, Texture2D.whiteTexture);
+        GUI.color = new Color(0.5f, 0.58f, 0.62f, 1f);
+        GUI.DrawTexture(track, Texture2D.whiteTexture);
+        GUI.color = new Color(0.035f, 0.045f, 0.055f, 1f);
+        GUI.DrawTexture(new Rect(track.x + 2f, track.y + 2f, track.width - 4f, track.height - 4f),
+            Texture2D.whiteTexture);
+        GUI.color = Color.Lerp(new Color(0.82f, 0.12f, 0.08f, 1f),
+            new Color(0.24f, 0.82f, 0.42f, 1f), ratio);
+        GUI.DrawTexture(fill, Texture2D.whiteTexture);
+
+        GUIStyle label = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 16,
+            fontStyle = FontStyle.Bold
+        };
+        label.normal.textColor = Color.white;
+        GUI.color = Color.white;
+        GUI.Label(new Rect(x + 8f, y + 3f, width - 16f, 25f),
+            $"CỔNG KHU QUÂN SỰ   {Mathf.CeilToInt(GateCurrentHealth):N0} / {Mathf.CeilToInt(GateMaxHealth):N0}   •   {ratio * 100f:0}%",
+            label);
+        GUI.depth = oldDepth;
+        GUI.color = oldColor;
+    }
+
+    private void DrawPoliceCarWaypoint()
+    {
+        Camera camera = Camera.main;
+        if (camera == null || roadsideRepairVehicle == null) return;
+        Vector3 screen3 = camera.WorldToScreenPoint(roadsideRepairVehicle.transform.position);
+        Vector2 screen = new Vector2(screen3.x, Screen.height - screen3.y);
+        float x = Mathf.Clamp(screen.x, 64f, Screen.width - 64f);
+        float y = Mathf.Clamp(screen.y, 96f, Screen.height - 72f);
+        float pulse = 0.72f + Mathf.Sin(Time.unscaledTime * 4f) * 0.18f;
+        GUIStyle style = new GUIStyle(GUI.skin.box)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 14,
+            fontStyle = FontStyle.Bold
+        };
+        style.normal.textColor = new Color(0.35f, 0.95f, 1f, pulse);
+        float distance = PlayerMovement.LocalPlayerInstance != null
+            ? Vector2.Distance(PlayerMovement.LocalPlayerInstance.transform.position,
+                roadsideRepairVehicle.transform.position)
+            : 0f;
+        GUI.Box(new Rect(x - 105f, y - 24f, 210f, 48f),
+            $"XE CẢNH SÁT  •  {distance:0} m\nHÃY KIỂM TRA", style);
     }
 
     private bool IsPartInstalled(MilitaryQuestItemKind kind) => kind switch

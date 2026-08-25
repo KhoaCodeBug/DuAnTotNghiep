@@ -44,6 +44,8 @@ public class PlayerVision : NetworkBehaviour
 
     private Collider2D[] zombiesInRadius = new Collider2D[100];
     private ContactFilter2D zombieFilter;
+    private ContactFilter2D obstacleFilter;
+    private readonly RaycastHit2D[] sightObstacleHits = new RaycastHit2D[16];
     private PlayerMovement pMove;
     private PlayerInteraction playerInteraction;
     private RoofDetector roofDetector;
@@ -84,6 +86,10 @@ public class PlayerVision : NetworkBehaviour
         zombieFilter.useLayerMask = true;
         zombieFilter.useTriggers = false; // Tối ưu: bỏ qua các collider dạng trigger
         zombieFilter.SetLayerMask(zombieLayer);
+        obstacleFilter = new ContactFilter2D();
+        obstacleFilter.useLayerMask = true;
+        obstacleFilter.useTriggers = false;
+        obstacleFilter.SetLayerMask(obstacleLayer);
 
         pMove = GetComponent<PlayerMovement>();
         playerInteraction = GetComponent<PlayerInteraction>();
@@ -358,8 +364,19 @@ public class PlayerVision : NetworkBehaviour
                 if (angleToZombie <= currentLogicAngle / 2f)
                 {
                     // Bắn tia Raycast kiểm tra xem có kẹt tường không
-                    RaycastHit2D hit = Physics2D.Raycast(visionOrigin, dirToZombie, dstToZombie, obstacleLayer);
-                    if (hit.collider == null)
+                    int hitCount = Physics2D.Raycast(visionOrigin, dirToZombie, obstacleFilter,
+                        sightObstacleHits, dstToZombie);
+                    bool blocked = false;
+                    for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+                    {
+                        Collider2D hitCollider = sightObstacleHits[hitIndex].collider;
+                        if (hitCollider == null ||
+                            hitCollider.GetComponent<MilitaryGateVisionPassThrough>() != null)
+                            continue;
+                        blocked = true;
+                        break;
+                    }
+                    if (!blocked)
                     {
                         isVisible = true;
                     }

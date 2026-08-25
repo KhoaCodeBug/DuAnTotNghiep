@@ -2,6 +2,17 @@
 
 Đây là file bàn giao chính dành cho người pull nhánh về tiếp tục phát triển. Tài liệu tổng kết gameplay sửa xe, flow Tuyến B, các quyết định thiết kế đã chốt, phần đang tạm hoãn và cách kiểm tra trạng thái hiện tại.
 
+## Addendum finale quân sự — 2026-08-25
+
+- Trường quân sự không tự phát event khi bước vào. Người chơi kiểm tra đúng `3` manh mối dạng quest-state, rồi rời `__SchoolRoofTrigger_FIXED` để mở waypoint trên `Car`.
+- Giữ `E` tại `Car` mở vote nhất trí toàn phòng. Bất kỳ Player nào cũng có thể khởi tạo; một phiếu từ chối hủy vote và có thể tương tác xe lại. Player disconnect được loại khỏi snapshot, late join không chen vào vote đang chạy.
+- Chỉ khi đủ phiếu mới khóa Ending B và chạy cinematic Host: dọn zombie trong Polygon `KhuVucQuanSu`, đặt visual Host ở điểm diễn xuất bên trong gần `Car`, ẩn toàn đội, khóa input, đi/chạy bằng Animator và tốc độ Player thật, thử xe thất bại, còi báo động, chạy tới `ViTriDongCong`, hiện hàng rào authored `CongRao` rồi gom toàn đội vào phía trong.
+- `Car` hoàn thiện có sẵn trong scene được tái sử dụng tại đúng vị trí đã author; runtime không chuyển xe tới marker khác. Sau cinematic, chính xe này dùng minigame sửa năm hạng mục.
+- Horde dùng bốn `ViTriSpawnZombie*`, kiểm tra mỗi `5 giây`: Solo sinh `8`/batch và dừng ở `24+`; từ hai Player sinh `16`/batch và dừng ở `50+`. Hard cap tương ứng `36/72`.
+- Không có Generator, không tăng cổng lên `150% HP` và không có điện giật/làm choáng zombie. Đây là ý tưởng prototype cũ đã bị loại khỏi flow canonical.
+- Cổng luôn dùng tối thiểu `5.000 HP`, collider runtime `Obstacle` cập nhật A* nhưng không chặn Fog/LOS, và thanh HP lớn phía trên hotbar. Zombie siege sinh cách cổng tối thiểu 18m, zombie cũ sát cổng được dọn, dùng chase speed thật và phân tán trên 13 lane. Damage theo animation beat `12 HP/hit`, tối đa `4 hit/giây` toàn cổng.
+- QA mới nhất: `51/51` EditMode liên quan và `2/2` PlayMode trọng tâm finale đạt; các script finale được Unity validation xác nhận `0` lỗi. Full nhóm PlayMode rộng hơn đạt `3/4`; bài còn lỗi là assertion cũ về trả Player từ ranh giới khu dân cư, không nằm trong finale quân sự.
+
 ## Addendum bệnh viện H1–H5 — 2026-08-25
 
 - Flow canonical hiện là `ShiftLog → ShiftLog2 → KeyLoot ngẫu nhiên/shared key → cửa Radio → khôi phục tín hiệu 14 giây/3 chặng → bản ghi bệnh viện → Mảnh bản đồ 2 → căn cứ phía Bắc`; không còn Tủ hồ sơ.
@@ -10,7 +21,7 @@
 - Tiến độ Radio do State Authority giữ, chỉ một operator; thả E/rời vùng giữ tiến độ và người khác tiếp tục được. Người ở xa không bị ép UI/audio.
 - Chặng 1 và 2 tự dừng, phát nhiễu `2,7 giây`; mỗi chặng sinh tại mỗi anchor lần lượt Dễ `3`, Thường `4`, Hardcore `5`, cách nhau `0,25 giây`. Không có kill gate và chặng 3 không sinh thêm.
 - Bốn xác zombie tĩnh chỉ làm breadcrumb môi trường, không collider, AI, networking, interaction hoặc loot.
-- QA tự động chốt H5: toàn bộ EditMode `96/96`; hai PlayMode trọng tâm scene/regression `2/2`. Regression Easy ghi nhận selected KeyLoot authoritative, shared key chỉ có sau bước loot, spawn counter `6 → 12`, rồi chặng 3 mới hoàn tất. Full PlayMode toàn project đạt `4/5`; test xe cảnh sát cũ còn fail vì scene hiện không lưu fixture `ViTriXeTest`/`VungKiemTraXeCanhSat`, ngoài phạm vi H5.
+- QA tự động chốt H5: toàn bộ EditMode `96/96`; hai PlayMode trọng tâm scene/regression `2/2`. Regression Easy ghi nhận selected KeyLoot authoritative, shared key chỉ có sau bước loot, spawn counter `6 → 12`, rồi chặng 3 mới hoàn tất. Test xe cảnh sát cũ sau đó đã được thay bằng assertion finale mới dùng `Car` tại chỗ; xem addendum quân sự để biết trạng thái chạy gần nhất.
 - Transcript đầy đủ được lưu trong Nhật ký; click thẻ phần thưởng ở phase chưa tới căn cứ để đọc lại. Bản ghi không khẳng định căn cứ còn người sống.
 - Cue05–08 dùng nội dung canonical mới trong khi chờ thu bốn voice thay thế (Cue05 subtitle; Cue06–08 subtitle + static). Cue09 đã có bản cắt sạch `09_MilitaryRouteRevealed_Clean.mp3` và phát sau cinematic, trước bảng chọn theo dõi lần hai.
 - QA tự động H3: compile sạch; `49/49` EditMode liên quan, PlayMode scene `1/1`, regression MainMenu → Ending B `1/1`.
@@ -80,18 +91,17 @@
 ## Scene authoring và polygon
 
 - Xe đầu game `Broken Arrival Car (from Intro)` hiện sẵn trong EditMode cùng polygon `VungKiemTraXeDauGame`.
-- `Car` cảnh sát thật giữ vị trí gốc trong scene và chỉ được chuyển tới `ViTriXeTest` khi chạy game.
-- `Police Car Preview [EDIT MODE]` hiển thị đúng sprite xe tại `ViTriXeTest` để chỉnh `VungKiemTraXeCanhSat` trực tiếp trong Scene View.
-- Khi vào PlayMode, chỉ SpriteRenderer của preview bị ẩn; polygon vẫn hoạt động và được trạm sửa xe sử dụng.
-- Xe cảnh sát runtime được khóa tại direction index `0`, trùng sprite `download_0` của preview, nên thân xe và polygon giữ đúng cùng một hướng.
-- Nếu polygon scene tồn tại, runtime ưu tiên dùng polygon đã căn tay và không sinh vùng `[AUTO]` thay thế.
+- `Car` cảnh sát thật giữ nguyên vị trí đã đặt trong scene; runtime tuyệt đối không chuyển nó tới `ViTriXeTest` hay marker khác.
+- Nếu scene không có vùng kiểm tra xe riêng, `RoadsideVehicleRepairStation` tạo polygon `[AUTO]` quanh chính `Car` ở runtime.
+- Xe được khóa hướng index `0` trong thời gian hỏng; đủ năm hạng mục mới mở lại khả năng lái có sẵn.
+- `ViTriDongCong`, `__SchoolRoofTrigger_FIXED` và bốn `ViTriSpawnZombie*` là các marker canonical của finale.
 
 ## Các thành phần chính
 
 | File | Thay đổi |
 | --- | --- |
-| `Assets/Hau/Script/VehicleController.cs` | Khóa xe test, đưa xe tới marker và cố định hướng runtime khớp preview. |
-| `Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs` | State authoritative cho phiên sửa, tiến độ 5 hạng mục, skill-check, ngắt phiên và phím test `F9`. |
+| `Assets/Hau/Script/VehicleController.cs` | Khóa/mở xe hỏng tại chỗ và cung cấp hiệu ứng cửa, đề máy, còi cho cinematic. |
+| `Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs` | State authoritative cho manh mối, roof-exit, vote, cinematic, siege và sửa xe 5 hạng mục. |
 | `Assets/Script/Tin/MainQuest/ArrivalCarInspectionUI.cs` | Tái sử dụng giao diện cơ khí cho chế độ xe cảnh sát. |
 | `Assets/Script/Tin/MainQuest/RoadsideVehicleRepairStation.cs` | Tương tác giữ `E`, polygon trước mũi xe và thông báo trạng thái sửa. |
 | `Assets/Script/Tin/MainQuest/VehicleRepairSkillCheckUI.cs` | Giao diện vòng skill-check, thanh tiến độ và điều phối input local. |
@@ -102,13 +112,15 @@
 | `Assets/Script/Tin/MainQuest/VehicleInspectionZoneAuthoring.cs` | Hỗ trợ nhìn và chỉnh polygon trực tiếp trong Scene View. |
 | `Assets/Script/Tin/Multiplayer/PlayerInputHandler2D.cs` | Chặn network input khi minigame đang mở. |
 | `Assets/Hau/Script/PlayerInteraction.cs` | Chặn tương tác gameplay trong minigame. |
-| `Assets/Scenes/Main.unity` | Bổ sung hai polygon authoring và preview xe cảnh sát tại marker test. |
+| `Assets/Script/Tin/MainQuest/MilitaryRouteCinematicController.cs` | Trình diễn Host/Car, fade, letterbox, khóa input và gom đội sau khi đóng cổng. |
+| `Assets/Script/Tin/MainQuest/SiegeHordeDirector.cs` | Wave co giãn Solo/Multiplayer từ bốn marker và giới hạn zombie gần cổng. |
+| `Assets/Scenes/Main.unity` | Chứa `Car` và các marker canonical do chủ dự án author; không được tự động lưu đè khi QA. |
 
 ## Kiểm thử
 
 - Có EditMode test cho luật tiến độ, giới hạn góc xuất hiện, Perfect, Success, Miss và clamp `0–100%`.
-- Có PlayMode flow test từ Main Menu tới scene Main, kiểm tra xe cảnh sát bị khóa, được đặt đúng marker, dùng polygon scene, hướng runtime khớp preview, quyền sửa authoritative và giữ tiến độ khi hủy.
-- Kết quả chốt phiên: test luật EditMode đạt `5/5`; flow PlayMode xe cảnh sát đạt `1/1`; Unity Console không có compile error.
+- Có PlayMode flow test từ Main Menu tới scene Main, kiểm tra xe cảnh sát bị khóa nhưng giữ nguyên vị trí author, ba manh mối, cổng, bốn spawn marker và flow Ending B.
+- Kết quả finale mới nhất: `51/51` EditMode liên quan và `2/2` PlayMode trọng tâm đạt. Full nhóm rộng hơn còn một regression ranh giới khu dân cư như ghi ở addendum.
 
 ## Cập nhật Tuyến B — audio, lựa chọn tuyến và input
 

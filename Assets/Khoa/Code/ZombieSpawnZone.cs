@@ -123,6 +123,13 @@ public class ZombieSpawnZone : NetworkBehaviour
                     Vector3 spawnPos = (Vector3)node.position;
 
                     NetworkObject spawnedObj = Runner.Spawn(zombiePrefabs[randomPrefabIndex], spawnPos, Quaternion.identity);
+                    if (spawnedObj == null)
+                    {
+                        // A concurrent story/horde spawn can consume the runner's
+                        // available spawn slot during this frame. Retry another
+                        // point instead of dereferencing a failed spawn.
+                        continue;
+                    }
 
                     if (spawnedObj.TryGetComponent(out ZOmbieAI_Khoa zScript))
                     {

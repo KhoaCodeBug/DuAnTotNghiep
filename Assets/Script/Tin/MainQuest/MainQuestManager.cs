@@ -396,10 +396,18 @@ public sealed class MainQuestManager : NetworkBehaviour
                 return;
 
             case QuestStage.LocateOffice:
+                GameObject hospitalTeleport = GameObject.Find("TeleportToHospital");
+                if (hospitalTeleport != null)
+                {
+                    destination = hospitalTeleport.transform.position;
+                    targetName = "điểm vào bệnh viện";
+                    break;
+                }
+
                 MainQuestStartTrigger office = FindFirstObjectByType<MainQuestStartTrigger>();
                 if (office == null)
                 {
-                    Debug.LogWarning("[QUEST TEST] Không tìm thấy vùng Khu Điều phối.");
+                    Debug.LogWarning("[QUEST TEST] Không tìm thấy TeleportToHospital hoặc vùng Khu Điều phối.");
                     return;
                 }
                 destination = office.transform.position;

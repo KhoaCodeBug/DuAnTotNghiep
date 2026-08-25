@@ -46,17 +46,17 @@ Bản ghi cầu cứu + lệnh phong tỏa → tọa độ/Mảnh bản đồ 2
     ↓
 Cue 05–09 được viết lại → map reveal → cinematic căn cứ → bảng đổi mục tiêu theo dõi lần 2
     ↓
-Đi tới căn cứ quân sự
+Vào trường học trong khu quân sự, tự do khám phá và kiểm tra 3 manh mối quest-state
     ↓
-Cue 10
+Đủ 3/3 rồi rời __SchoolRoofTrigger_FIXED → mở waypoint Car cảnh sát
     ↓
-Kiểm tra xe quân sự → Cue 11 → xác nhận điểm không thể quay lại
+Giữ E kiểm tra Car → vote nhất trí toàn phòng tại điểm không thể quay lại
     ↓
-Khóa Ending B cho toàn đội → Cue 12 → bắt đầu siege
+Toàn đội đồng ý → khóa Ending B → cinematic Host/Car → đóng cổng
     ↓
-Khởi động máy phát + tìm/lắp linh kiện + sửa xe trong lúc chống zombie
+Gom đội vào trong cổng → horde từ 4 điểm spawn → bảo vệ cổng và sửa Car 5 hạng mục
     ↓
-Cue 13 → Cue 14
+Hoàn tất đủ 5 hạng mục → Cue 14
     ↓
 Tập hợp đội → rời căn cứ
     ↓
@@ -203,26 +203,23 @@ Flow canonical mới:
 
 1. Bản đồ và marker quân sự được mở.
 2. Chỉ bản đồ nhiệm vụ toàn màn hình được mở khóa; minimap góc phải luôn giữ tắt.
-3. HUD/Journal đổi thành đi tới khu quân sự nếu người chơi đang theo dõi Tuyến B; marker bệnh viện không còn là mục tiêu active.
-4. Khi một người chơi sống tiến vào bán kính khoảng 7 đơn vị quanh xe quân sự, State Authority chuyển phase thành `Investigating`.
-5. Client tiếp cận nghe Cue 10 `MilitaryBaseApproach`.
-6. Người chơi vẫn có thể quay lại làm Tuyến A vì chưa xác nhận điểm không thể quay lại.
+3. Vào trường học không tự kích hoạt event. Ba điểm hồ sơ runtime là state nhiệm vụ, không thêm item vào inventory.
+4. Sau khi đủ `3/3`, một Player phải thật sự rời trigger `__SchoolRoofTrigger_FIXED`.
+5. State Authority chuyển phase sang `Investigating` và mở waypoint trên `Car` cảnh sát.
+6. Người chơi vẫn có thể quay lại Tuyến A vì chưa có vote khóa tuyến.
 
 ### Nhiệm vụ B5 — Điểm không thể quay lại
 
 **Military phase:** `Investigating`
 
-1. Người chơi đến gần xe quân sự và bấm `E` để kiểm tra.
-2. Phát Cue 11 `AlarmPointOfNoReturn`.
-3. Sau audio, mở bảng xác nhận cuối:
-   - Xác nhận Tuyến B: kích hoạt báo động và cuộc phòng thủ.
-   - Hủy/đóng: chưa khóa gì, người chơi có thể rời đi.
-4. Khi xác nhận, request đi tới State Authority.
-5. Server kiểm tra stage `CityMapFound`, vị trí người chơi và quy tắc khóa.
-6. `LockedEscapeRoute` được đặt thành `MilitaryEvacuation` cho toàn đội.
-7. Tuyến A bị khóa; không thể bắt đầu finale bằng xe dân sự.
-8. Military phase chuyển sang `SiegeAndRepair`.
-9. Phát Cue 12 `SiegeStarted`, đóng cổng và bắt đầu horde.
+1. Người chơi đứng trước `Car`, giữ `E` để kiểm tra. `Car` là xe hoàn thiện có sẵn trong scene và không còn bị chuyển tới `ViTriXeTest`.
+2. State Authority chụp snapshot toàn bộ `Runner.ActivePlayers`; bất kỳ Player nào cũng được khởi tạo vote.
+3. Vote yêu cầu nhất trí: đủ tất cả phiếu đồng ý mới khóa Tuyến B. Một phiếu từ chối/ESC hủy vote; xe được tương tác lại.
+4. Người disconnect bị loại khỏi snapshot; late join không được thêm vào vote đang diễn ra.
+5. Khi đủ phiếu, `LockedEscapeRoute = MilitaryEvacuation`; sau đó mới chạy cinematic.
+6. Khi cinematic bắt đầu, Host dọn toàn bộ zombie nằm trong PolygonCollider2D `KhuVucQuanSu`. Bản sao visual Host xuất phát từ một điểm hợp lệ **bên trong vùng, gần Car**; Host thật bị ẩn bằng `forceRenderingOff` + nametag Canvas + Light2D/PlayerVision suppression. Clone kế thừa Fog/vision/flashlight, chỉ dùng một nguồn footstep, và dùng đúng Animator + `walkSpeed/runSpeed` thật để đi tới xe → đề thất bại → còi liên tục → thoại → chạy tới `ViTriDongCong`.
+7. Trong fade đen, sáu tile hàng rào do scene author quanh `CongRao` hiện lên và collider runtime chặn cả Player/Zombie; không sinh hình hàng rào màu hoặc thay asset. Tất cả Player sống được tập hợp ở phía trong cổng.
+8. Cinematic kết thúc mới chuyển sang `SiegeAndRepair` và bắt đầu horde.
 
 Đây là **điểm mấu chốt khóa Ending B**, không phải bảng chọn đầu game hoặc bảng chọn sau bệnh viện.
 
@@ -230,39 +227,14 @@ Flow canonical mới:
 
 **Military phase:** `SiegeAndRepair`
 
-Các việc có thể chia cho nhiều người chơi:
-
-1. **Khởi động máy phát điện**
-   - Tương tác tại điểm Generator.
-   - Tăng sức chịu đựng tối đa của cổng và giữ tỉ lệ máu cổng hiện tại.
-   - Phát Cue 13 `GeneratorOnline`.
-
-2. **Tìm ba vật phẩm xe sơ tán hiện tại**
-   - Military Battery.
-   - Fuel Canister.
-   - Repair Kit.
-   - Mỗi cache chỉ được claim một lần authoritative.
-
-3. **Lắp vật phẩm vào xe**
-   - Người mang item đến gần xe quân sự và bấm `E`.
-   - Item bị tiêu thụ khi server xác nhận lắp thành công.
-
-4. **Loot hỗ trợ tùy chọn**
-   - Két an toàn văn phòng quân sự cho Armory Key, S12K và đạn nếu map quân sự đã được mở.
-   - Armory dùng key để mở AK47, S12K, đạn và backpack cấp 3.
-
-5. **Sửa xe**
-   - Code finale cũ hiện yêu cầu đủ ba vật phẩm rồi giữ `E` để tăng `VehicleRepairProgress`.
-   - Khi đạt 100%, phase chuyển thành `ReadyToEscape` và phát Cue 14 `EscapeVehicleReady` cho người hoàn thành.
-   - Zombie liên tục đánh cổng; nếu cổng vỡ, horde chuyển mục tiêu sang đội sống sót.
-   - Nếu toàn bộ người chơi chết trong `SiegeAndRepair` hoặc `ReadyToEscape`, phase chuyển `Failed`.
-
-**Lưu ý kiến trúc quan trọng:**
-
-- Hệ thống sửa xe kiểu Dead by Daylight 5 hạng mục hiện nằm trong `MilitaryBaseQuestManager` nhưng đang được dùng như **roadside police-car gameplay test**.
-- Nó có 5 hạng mục: động cơ, nắp capo, nhiên liệu, ắc quy, lốp; mỗi hạng mục có tiến độ riêng, skill-check 4–7 giây, Success/Perfect/Miss và không sinh skill-check từ 95% trở lên.
-- Trong minigame, chỉ người sửa bị khóa input; đồng đội vẫn hoạt động. State Authority quyết định tiến độ và chỉ một người sửa được tại một thời điểm.
-- Finale căn cứ đang chạy mechanic cũ ba vật phẩm + giữ `E`; chưa được hợp nhất hoàn toàn với minigame 5 hạng mục. Chat sau không được mặc định rằng việc tích hợp này đã hoàn tất.
+1. Horde dùng đúng bốn marker `ViTriSpawnZombie*`, kiểm tra mỗi `5 giây`.
+2. Solo: `2` zombie/điểm = `8` mỗi batch, tạm dừng khi có `24+` zombie siege gần cổng. Cả bốn điểm spawn cách cổng tối thiểu `18m` ở runtime; zombie ambient cũ trong `7,5m` sát cổng được dọn trước khi wave bắt đầu.
+3. Từ hai Player: `4` zombie/điểm = `16` mỗi batch, tạm dừng khi có `50+` gần cổng. Hard safety cap lần lượt `36/72` tránh spawn mất kiểm soát.
+4. Zombie siege dùng đúng chase speed của từng AI prefab (`ZombieAI`: `moveSpeed × chaseSpeedMultiplier`; hai AI Khoa: `speed`), không dùng tốc độ cinematic tùy ý. Zombie có sẵn gần cổng cũng được chuyển sang objective công thành; mục tiêu được rải trên 13 lane dọc cổng thay vì chồng tại một điểm. Khi cổng vỡ, các AI gốc được trả lại để săn Player.
+5. Không có Generator, không tăng `150% HP`, không điện giật/làm choáng zombie. Các đường gọi prototype Generator đã bị vô hiệu hóa.
+6. Cổng luôn có tối thiểu `5.000 HP` kể cả Scene còn serialize giá trị cũ `1.000`; thanh máu lớn nằm phía trên hotbar. Collider nằm trên layer `Obstacle`, cập nhật A* ngay khi đóng/mở nhưng được Player Fog/LOS bỏ qua để nhìn xuyên hàng rào. Damage chỉ xảy ra theo nhịp attack, `12 HP/hit`, tối đa `4 hit/giây` toàn cổng.
+6. `Car` dùng trực tiếp minigame năm hạng mục: động cơ, capo, nhiên liệu, ắc quy và lốp. State/progress authoritative, chỉ một người sửa, tiến độ từng hạng mục được giữ khi rời.
+7. Đủ `5/5` thì mở khóa khả năng lái sẵn có của `Car` và chuyển `ReadyToEscape`.
 
 ### Nhiệm vụ B7 — Sơ tán và Ending B
 
@@ -336,7 +308,7 @@ Chỉ khả dụng trong Unity Editor hoặc Development Build, và chỉ Solo/H
 | `F7` | Hoàn tất ngay `3/3` tài liệu khu dân cư bằng state authoritative, không sinh/đọc/sửa LootContainer |
 | `F10` | Tiến một beat ở căn cứ: tiếp cận → cảnh báo/xác nhận finale → máy phát → mô phỏng đủ ba part → xe sẵn sàng → extraction |
 | `F11` | Phát lại audio phù hợp với stage/phase Tuyến B hiện tại |
-| `F12` | Dịch chuyển Host/Solo tới điểm tương tác hiện tại; từ chối các objective liên quan LootContainer/cache loot |
+| `F12` | Dịch chuyển Host/Solo tới điểm tương tác hiện tại; tại `LocateOffice` ưu tiên marker `TeleportToHospital`; từ chối các objective liên quan LootContainer/cache loot |
 | `P` | Mở CheatMenu; năm thao tác trên nằm trong nhóm `ROUTE B FLOW TEST — NO LOOT CONTAINERS` |
 
 Quy trình test nhanh đã chốt:
@@ -372,11 +344,11 @@ Debug path gọi chung các hàm core authoritative với gameplay thật. Chỉ
 | Marker bệnh viện sau Mảnh 2 | Đã xóa khỏi map; chỉ còn marker căn cứ quân sự để tránh hai mục tiêu cạnh tranh |
 | Minimap sau bệnh viện | Đã tách khỏi map unlock; giữ tắt |
 | Điểm không thể quay lại và khóa Ending B | Có code authoritative |
-| Siege, generator, cache, armory, extraction | Có prototype/runtime code; debug path chỉ mô phỏng part còn thiếu, không tạo LootContainer |
+| Siege, sửa `Car`, extraction | Có runtime code; Generator/cache/armory cũ không thuộc flow canonical |
 | Journal phần căn cứ | Đã theo dõi `NotReached → Investigating → SiegeAndRepair → ReadyToEscape → Escaped/Failed`; chỉ chuyển Completed sau extraction |
 | CheatMenu/phím test không loot | Đã triển khai `F6/F7/F10/F11/F12` và nhóm nút riêng |
 | Test tự động toàn Tuyến B | Đã qua MainMenu → Main → Ending B không LootContainer |
-| Minigame sửa xe 5 hạng mục tích hợp vào finale căn cứ | Chưa hoàn tất; hiện là roadside police-car test |
+| Minigame sửa xe 5 hạng mục tích hợp vào finale căn cứ | Đã nối trực tiếp vào `Car` sau cinematic/siege |
 | Loot dùng chung Tuyến A/B trong bệnh viện | Không còn là blocker của chương Radio mới; nếu làm loot phụ thì là phạm vi riêng |
 
 ## 8. Việc cần làm khi tiếp tục
@@ -389,7 +361,7 @@ Debug path gọi chung các hàm core authoritative với gameplay thật. Chỉ
 4. **H4 — Cao trào/môi trường — ĐÃ TRIỂN KHAI 2026-08-25:** ba vạch; hai mốc tự dừng/nhiễu 2,7s; mỗi mốc 3/4/5 × 2 anchor, nhịp 0,25s; không kill gate; bốn xác tĩnh.
 5. **H5 — NETWORK/POLYGON/REGRESSION — ĐÃ TRIỂN KHAI:** shared state và request validation authoritative; scene/regression tự động pass. Test tay Host/Client hai máy là acceptance còn lại.
 6. Giữ bảng chọn lần hai sau Radio là lựa chọn theo dõi, chưa khóa ending.
-7. Sau khi H1–H5 đạt mới quay lại quyết định finale căn cứ dùng mechanic ba vật phẩm cũ hay minigame sửa xe 5 hạng mục.
+7. Finale căn cứ đã chốt dùng minigame sửa xe 5 hạng mục trên `Car`; mechanic Generator/ba vật phẩm prototype không còn canonical.
 
 ## 9. Kết quả và checklist test end-to-end
 
@@ -399,7 +371,7 @@ Kết quả tự động ngày 2026-08-24:
 - PlayMode `RouteBDebugFlowRunsFromMainMenuThroughMilitaryExtractionWithoutLootContainers`: **1/1 passed**, khoảng 10 giây.
 - Test này thực sự đi `MainMenu → Main`, spawn player/Fusion, chạy đủ stage bệnh viện, khóa Ending B tại xác nhận, chạy căn cứ và chỉ đánh dấu Journal Completed sau extraction.
 - Test cũng xác nhận sau `CityMapFound`: marker căn cứ xuất hiện trên bản đồ nhiệm vụ và Canvas minimap vẫn tắt.
-- Full PlayMode gần nhất đạt `4/5`. Test cũ `RoadsideRepairTestStationSpawnsOnLockedPoliceCarNearArrival` fail vì scene hiện không lưu fixture `ViTriXeTest`/`VungKiemTraXeCanhSat`. Đây là regression riêng của xe cảnh sát/DBD, không phải lỗi assertion trong flow bệnh viện; cần audit trong phiên finale quân sự và không được ghi nhận full-suite là đã pass.
+- Finale quân sự: `51/51` EditMode liên quan và `2/2` PlayMode trọng tâm đạt; Unity script validation báo `0` lỗi. Hai PlayMode xác nhận `Car` giữ nguyên vị trí author và flow MainMenu → Ending B. Full nhóm PlayMode rộng hơn đạt `3/4`; failure còn lại thuộc assertion trả Player về ranh giới khu dân cư, không thuộc finale quân sự.
 
 - [ ] Kiểm tra xe chỉ kích hoạt một lần.
 - [ ] Cue 01–02 đúng thứ tự; bảng chọn đầu không khóa ending.
@@ -423,7 +395,7 @@ Kết quả tự động ngày 2026-08-24:
 - [ ] Tiếp cận căn cứ phát Cue 10 một lần.
 - [ ] Cue 11 xuất hiện trước bảng xác nhận điểm không thể quay lại.
 - [ ] Chỉ nút xác nhận cuối mới khóa Ending B cho toàn đội.
-- [ ] Siege/generator/cache/install/repair đồng bộ Host và Client.
+- [ ] Siege/vote/cinematic/sửa `Car` đồng bộ Host và Client; xác nhận không còn Generator.
 - [ ] Chỉ active repairer bị khóa input; đồng đội không bị khóa.
 - [ ] Late join nhận đúng stage, item mask, phase, máu cổng và tiến độ sửa.
 - [ ] Cue 14 chỉ phát khi xe sẵn sàng; Cue 15 và Victory Summary xuất hiện khi extraction hoàn tất.
@@ -435,8 +407,12 @@ Kết quả tự động ngày 2026-08-24:
 - `Assets/Script/Tin/MainQuest/MainQuestStartTrigger.cs`
 - `Assets/Script/Tin/MainQuest/MainQuestSearchCabinet.cs`
 - `Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs`
-- `Assets/Script/Tin/MainQuest/MilitaryEscapeVehicleRepair.cs`
-- `Assets/Script/Tin/MainQuest/EscapeRouteDecisionUI.cs`
+- `Assets/Script/Tin/MainQuest/MilitarySchoolCluePoint.cs`
+- `Assets/Script/Tin/MainQuest/MilitaryRouteVoteUI.cs`
+- `Assets/Script/Tin/MainQuest/MilitaryRouteCinematicController.cs`
+- `Assets/Script/Tin/MainQuest/SiegeHordeDirector.cs`
+- `Assets/Script/Tin/MainQuest/RoadsideVehicleRepairStation.cs`
+- `Assets/Script/Tin/Prototype/MilitaryStoryFlowRules.cs`
 - `Assets/Script/Tin/DevCheatManager.cs`
 - `Assets/Script/Tin/MainQuest/RouteBRadioBroadcastUI.cs`
 - `Assets/Script/Tin/Prototype/PreMilitaryQuestProgress.cs`
@@ -457,4 +433,4 @@ Chủ dự án đã chọn C. Production hiện dùng thẻ tương tác riêng 
 
 ## 11. Câu lệnh bàn giao gợi ý cho chat Codex mới
 
-> Hãy đọc `HOSPITAL_H1_H5_IMPLEMENTATION_README.md` và `NEXT_SESSION_MILITARY_FINALE_PLAN.md`. H1–H5 bệnh viện đã triển khai; phiên tiếp theo phải thảo luận/chốt finale căn cứ với chủ dự án trước khi code. Giữ nguyên việc hai bảng chọn đầu chỉ theo dõi và Ending B chỉ khóa tại xác nhận báo động.
+> Hãy đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md`, đặc biệt B4–B7, và các file finale quân sự trong mục 10. H1–H5 bệnh viện đã triển khai; finale dùng 3 manh mối quest-state → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục. Không khôi phục Generator/150% HP/electric stun.

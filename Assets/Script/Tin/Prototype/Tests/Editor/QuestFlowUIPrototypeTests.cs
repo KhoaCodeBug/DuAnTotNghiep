@@ -403,7 +403,7 @@ public sealed class QuestFlowUIPrototypeTests
             false, false, 0f, 100f, 100f, false);
         prototype.SelectTabForPreview(0);
         prototype.SelectQuestForPreview(0);
-        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("ĐI TỚI CĂN CỨ QUÂN SỰ"));
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("KHÁM PHÁ TRƯỜNG HỌC BỎ HOANG"));
     }
 
     [Test]
@@ -502,7 +502,7 @@ public sealed class QuestFlowUIPrototypeTests
         prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.NotReached,
             false, false, 0f, 100f, 100f, false);
         prototype.SelectQuestForPreview(0);
-        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("ĐI TỚI CĂN CỨ QUÂN SỰ"));
+        Assert.That(prototype.CurrentDetailTitle, Is.EqualTo("KHÁM PHÁ TRƯỜNG HỌC BỎ HOANG"));
         Assert.That(prototype.IsMainQuestComplete, Is.False);
 
         prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.Investigating,
@@ -795,14 +795,28 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
-    public void MilitaryGeneratorRaisesGateCapacityToOneHundredFiftyPercent()
+    public void MilitaryHordeScalesOpeningBatchAndNearbyTargetForSoloAndMultiplayer()
     {
-        Assert.That(MilitaryQuestRules.GetElectrifiedGateHealth(1000f), Is.EqualTo(1500f));
+        Assert.That(MilitaryStoryFlowRules.GetBatchSize(1), Is.EqualTo(8));
+        Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(1), Is.EqualTo(24));
+        Assert.That(MilitaryStoryFlowRules.GetBatchSize(2), Is.EqualTo(16));
+        Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(2), Is.EqualTo(50));
+        Assert.That(MilitaryStoryFlowRules.ShouldSpawnBatch(2, 49), Is.True);
+        Assert.That(MilitaryStoryFlowRules.ShouldSpawnBatch(2, 50), Is.False);
+    }
+
+    [Test]
+    public void MilitarySchoolRequiresExactlyThreeQuestStateClues()
+    {
+        Assert.That(MilitaryStoryFlowRules.RequiredSchoolClues, Is.EqualTo(3));
+        Assert.That(MilitaryStoryFlowRules.HasAllSchoolClues(0b011), Is.False);
+        Assert.That(MilitaryStoryFlowRules.HasAllSchoolClues(0b111), Is.True);
     }
 
     [Test]
     public void MilitaryGateDamageNeverCreatesNegativeHealth()
     {
+        Assert.That(MilitaryQuestRules.BaseGateHealth, Is.EqualTo(5000f));
         Assert.That(MilitaryQuestRules.ApplyGateDamage(25f, 40f), Is.Zero);
         Assert.That(MilitaryQuestRules.ApplyGateDamage(25f, -10f), Is.EqualTo(25f));
     }

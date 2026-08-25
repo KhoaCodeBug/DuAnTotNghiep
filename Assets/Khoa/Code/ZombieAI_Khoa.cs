@@ -7,6 +7,7 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 {
     [Header("=== Movement (A* Pathfinding) ===")]
     [SerializeField] private float speed = 2.5f;
+    public float ChaseMovementSpeed => speed;
     [SerializeField] private float nextWaypointDistance = 0.5f;
 
     private Seeker seeker;
