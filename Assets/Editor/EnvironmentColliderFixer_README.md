@@ -86,3 +86,30 @@ Pipeline hiện còn có ba kiểm tra dành cho công trình lớn:
 Không được kết luận collider hoàn chỉnh chỉ vì object đã có `PolygonCollider2D`. Trước khi bỏ collider nguồn phải kiểm tra coverage theo hình học/cụm, bốn cạnh ngoài, các vách trong, từng nhóm kệ/quầy lớn và chạy lại A* scan. Bounds tổng và vài ray thưa không đủ; đây là bài học từ `cuahang` và `SieuThi_FIX`.
 
 Riêng `cuahang`, pipeline có thể tách các cell `Object2_E_7` thành `__ExternalEnvironment/cuahang_hangrao_visual`, giữ collider chân hàng rào authored trong nhóm vật cản toàn map. `tuongnha` hiện có đủ Physics Shape cho toàn bộ tile nên dùng trực tiếp `TilemapCollider2D`; không chuyển sang Polygon nhiều path. Công cụ loot hiện chỉ tạo marker ứng viên `Store*`; không tự biến toàn bộ quầy/kệ thành loot vì cùng tiền tố sprite có nhiều loại đồ vật khác nhau.
+
+## Hospital hai khối nhà
+
+`hospital` gốc vẽ 539 cell tường trực tiếp trên Tilemap của prefab root. Unity vẫn cho phép gắn `TilemapCollider2D` vào root; việc tách không phải giới hạn kỹ thuật. Pipeline tách thành `Hospital_Large_FIXED/tuongnha` (455 cell) và `Hospital_Small_FIXED/tuongnha` (84 cell) để mỗi khối có collider, trigger mái và `RoofVisibility` độc lập. Không Apply All instance này về `hospital.prefab` vì scene có hàng trăm override và một mái được thêm riêng.
+
+Các lệnh chuyên dụng nằm tại `Tools > Environment > Quick House Pipeline > hospital`:
+
+- `Rebuild Two-Building Structure`: chỉ dùng cho instance chưa tách; chia cell theo hai bounds mái, giữ tile matrix/color/flags và world position.
+- `Rebuild All Broad Wall Foot Patches`: dựng lại proxy và foot patch cho cả hai khối; nhà nhỏ được phép mượn donor cùng hướng từ nhà lớn.
+- `Repair Independent Roof Controllers`: đảm bảo mỗi trigger mái chỉ điều khiển đúng Tilemap mái của chính nó.
+- `Validate Fixed Structure`: bắt buộc PASS cả số cell, source/proxy state, layer `Obstacle`, broad shape, độ cao và vị trí foot patch, ownership của mái và sorting decor.
+
+Đối với cửa trong map isometric 2.5D, physics shape nằm hoàn toàn ở phần cao của sprite là **nóc cửa**, không phải vật cản gameplay. Hospital có 47 cell `Wall A5_N/W` loại này; pipeline phải loại hẳn chúng khỏi proxy, không được thay bằng foot patch. Vì collider của tile tường lân cận có thể rộng hơn một cell và chiếu chéo vào lòng cửa, pipeline còn cắt các path cạnh cửa tại biên cell và khoét đúng vùng giao trên vách chiếu chéo. Validator bắt buộc kiểm tra overlap tại tâm physics shape cũ của cả 47 nóc cửa và chỉ PASS khi `blocked=0`.
+
+Lưu ý tọa độ collider: vertex từ `Collider2D.GetShapes(PhysicsShapeGroup2D)` phải đổi sang world bằng `PhysicsShapeGroup2D.localToWorldMatrix`, sau đó mới đổi về local của Polygon output. Không dùng `temporary.transform.TransformPoint` cho Tilemap nằm dưới Grid; cách đó có thể áp offset công trình hai lần và đặt polygon chân tường lệch xa dù số path/độ cao vẫn đúng. Validator vì vậy phải kiểm tra cả `patch.bounds` nằm trong bounds collider công trình, không chỉ đếm path.
+
+## School
+
+`school` là một công trình lớn duy nhất: root Tilemap rỗng, `tuong1` có 617 cell tường và `nocnha` có 1197 cell mái; `noctruong` hiện rỗng. Không tách thành hai building và không Apply All scene instance về `school.prefab`.
+
+Các lệnh chuyên dụng nằm tại `Tools > Environment > Quick House Pipeline > school`:
+
+- `Audit Structure + Physics Bands`: ghi báo cáo cụm tile, sprite, sorting và dải physics shape vào `Assets/EnvironmentFixerReports/school_current_audit.txt`.
+- `Rebuild Collider + Roof + Layers`: giữ nguyên visual Tilemap, dựng proxy collider cho `tuong1`, thay 22 broad shape bằng foot patch, loại 9 `Wall A5_S` chỉ nằm trên phần cao của lối mở và cắt collider lân cận chiếu vào cửa. Trigger mái được dựng theo từng dải cell của cluster mái lớn nhất, không dùng convex hull phủ qua khoảng trống.
+- `Validate Fixed Structure`: chỉ PASS khi proxy không còn broad/nóc cửa, tâm 9 nóc cửa có overlap bằng 0, mẫu tường thường vẫn bị chặn, patch đúng vị trí/độ cao, trigger mái phủ đủ footprint và không có collider solid ngoài ý muốn trên decor/floor/roof.
+
+`Door11_W` là sprite cửa song sắt có physics shape thấp tại chân và được giữ làm vật cản; không được loại chỉ vì tên chứa `Door`. Quyết định collider phải dựa trên hình học và vai trò visual thực tế. Riêng `Wall A5_S` của school bắt đầu ở 44.5% chiều cao do một hàng padding trong sprite, nên được nhận diện bằng cả family `Wall A5` và dải shape cao; đây là ngoại lệ có chủ đích so với ngưỡng generic 45%.
