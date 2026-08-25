@@ -225,6 +225,45 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
+    public void HospitalH5SnapshotRestoresRandomKeyAndRadioReadyJournalForLateJoiner()
+    {
+        prototype.ApplyAuthoritativeSnapshot(
+            searchedHouseMask: 7, routeClueMask: 7,
+            officeDiscovered: true, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false,
+            authoritativeStage: (int)PreMilitaryQuestStage.FindCityMap,
+            hospitalInvestigationStage: 3);
+        prototype.SelectQuestForPreview(0);
+        prototype.ToggleSelectedQuestTrackingForPreview();
+
+        Assert.That(prototype.GetObjectiveStatusForPreview(2), Is.EqualTo("ĐÃ ĐÁNH DẤU VỊ TRÍ CHÌA"));
+        Assert.That(prototype.TryGetTrackedObjectiveText(out string findKeyObjective), Is.True);
+        Assert.That(findKeyObjective, Is.EqualTo("Tìm chìa khóa Radio tại vị trí được đánh dấu"));
+
+        prototype.ApplyAuthoritativeSnapshot(
+            searchedHouseMask: 7, routeClueMask: 7,
+            officeDiscovered: true, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false,
+            authoritativeStage: (int)PreMilitaryQuestStage.FindCityMap,
+            hospitalInvestigationStage: 4);
+        Assert.That(prototype.GetObjectiveStatusForPreview(2), Is.EqualTo("ĐÃ CÓ CHÌA KHÓA CHUNG"));
+        Assert.That(prototype.TryGetTrackedObjectiveText(out string unlockObjective), Is.True);
+        Assert.That(unlockObjective, Is.EqualTo("Dùng chìa khóa mở Trạm liên lạc phụ trợ phía sau bệnh viện"));
+
+        prototype.ApplyAuthoritativeSnapshot(
+            searchedHouseMask: 7, routeClueMask: 7,
+            officeDiscovered: true, officeInvestigationComplete: false,
+            hasMapFragment2: false, playTransitions: false,
+            authoritativeStage: (int)PreMilitaryQuestStage.FindCityMap,
+            hospitalInvestigationStage: 5, hospitalRadioProgress: 0.35f,
+            hospitalRadioCheckpointCount: 1);
+        Assert.That(prototype.GetObjectiveStatusForPreview(2), Is.EqualTo("ĐANG KHÔI PHỤC  35%"));
+        Assert.That(prototype.TryGetTrackedObjectiveText(out string readyObjective), Is.True);
+        Assert.That(readyObjective, Is.EqualTo("Giữ E để khôi phục tín hiệu Radio"));
+        Assert.That(prototype.CurrentObjectiveProgress, Is.EqualTo("CHẶNG  2/3  •  35%"));
+    }
+
+    [Test]
     public void MainTrackerUsesOnlyActuallyCollectedRouteClues()
     {
         prototype.ApplyAuthoritativeSnapshot(
@@ -445,7 +484,7 @@ public sealed class QuestFlowUIPrototypeTests
             false, false, 0f, 100f, 100f, false);
         prototype.SelectTabForPreview(0);
         prototype.SelectQuestForPreview(0);
-        Assert.That(prototype.CurrentRewardLabel, Is.EqualTo("PHẦN THƯỞNG NHIỆM VỤ"));
+        Assert.That(prototype.CurrentRewardLabel, Is.EqualTo("PHẦN THƯỞNG  •  NHẤN ĐỂ ĐỌC TRANSCRIPT"));
         Assert.That(prototype.CurrentRewardText, Is.EqualTo("Quyền tiếp cận căn cứ + đánh giá xe sơ tán"));
 
         prototype.ApplyMilitarySnapshot((int)RouteBMilitaryPresentationPhase.Escaped,
@@ -798,8 +837,14 @@ public sealed class QuestFlowUIPrototypeTests
             Assert.That(ids.Add(cue.Id), Is.True, "Route B cue IDs must be unique.");
             Assert.That(paths.Add(cue.AudioResourcePath), Is.True, "Recording resource paths must be unique.");
             Assert.That(cue.AudioResourcePath, Does.StartWith("Sound/Story/RouteB/"));
-            Assert.That(Resources.Load<AudioClip>(cue.AudioResourcePath), Is.Not.Null,
-                $"Missing Route B recording at Resources/{cue.AudioResourcePath}.");
+            AudioClip clip = Resources.Load<AudioClip>(cue.AudioResourcePath);
+            bool canonicalHospitalFallback = cue.Id == RouteBAudioCueId.ThirdCoordinationDocument ||
+                                             cue.Id == RouteBAudioCueId.OfficeLocated ||
+                                             cue.Id == RouteBAudioCueId.DispatchDeskLog ||
+                                             cue.Id == RouteBAudioCueId.OfficeRadioRecording;
+            if (!canonicalHospitalFallback)
+                Assert.That(clip, Is.Not.Null,
+                    $"Missing Route B recording at Resources/{cue.AudioResourcePath}.");
             Assert.That(cue.Vietnamese, Is.Not.Empty);
             Assert.That(cue.English, Is.Not.Empty);
             Assert.That(cue.FallbackDuration, Is.GreaterThan(0f));
@@ -815,6 +860,23 @@ public sealed class QuestFlowUIPrototypeTests
         Assert.That(RouteBAudioContent.OpeningSequence[1].Id,
             Is.EqualTo(RouteBAudioCueId.PlayerRouteReaction));
         Assert.That(RouteBAudioContent.OpeningSequence[1].Vietnamese, Does.Contain("cả hai hướng"));
+    }
+
+    [Test]
+    public void HospitalRecordingPreservesTheCanonicalStoryAndUncertainty()
+    {
+        Assert.That(RouteBAudioContent.HospitalRecordingSequence.Count, Is.EqualTo(3));
+        Assert.That(RouteBAudioContent.HospitalTranscriptVietnamese, Does.Contain("hai mươi sáu dân thường"));
+        Assert.That(RouteBAudioContent.HospitalTranscriptVietnamese, Does.Contain("không quay lại"));
+        Assert.That(RouteBAudioContent.HospitalTranscriptVietnamese, Does.Contain("Tôi không biết ở đó còn ai nữa"));
+        Assert.That(RouteBAudioContent.HospitalTranscriptVietnamese, Does.Contain("BRAVO–BẮC"));
+        Assert.That(RouteBAudioContent.Get(RouteBAudioCueId.MilitaryRouteRevealed).AudioResourcePath,
+            Does.EndWith("09_MilitaryRouteRevealed_Clean"));
+
+        prototype.RegisterMapFragment2AddedToInventoryForPreview();
+        prototype.ShowHospitalRadioTranscript();
+        Assert.That(prototype.IsClueReadingOpen, Is.True);
+        Assert.That(prototype.CurrentClueReadingBody, Does.Contain("BRAVO–BẮC"));
     }
 
     [Test]

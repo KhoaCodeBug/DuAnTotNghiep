@@ -30,7 +30,12 @@ public sealed class VictorySummaryUI : MonoBehaviour
     {
         if (instance == null)
         {
-            GameObject host = new GameObject("VictorySummaryUI");
+            // Build the required UI host before adding VictorySummaryUI. AddComponent
+            // invokes Awake immediately, so creating an empty GameObject first made
+            // Awake attempt to configure a Canvas that did not exist yet.
+            GameObject host = new GameObject("VictorySummaryUI",
+                typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler),
+                typeof(GraphicRaycaster), typeof(CanvasGroup));
             DontDestroyOnLoad(host);
             instance = host.AddComponent<VictorySummaryUI>();
             instance.Build();

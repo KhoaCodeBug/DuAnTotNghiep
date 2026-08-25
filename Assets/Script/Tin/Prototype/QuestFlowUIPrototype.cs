@@ -39,6 +39,9 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private readonly PreMilitaryQuestProgress mainQuestProgress = new PreMilitaryQuestProgress();
     private PreMilitaryQuestStage authoritativeQuestStage = PreMilitaryQuestStage.NotStarted;
     private bool hasAuthoritativeQuestStage;
+    private int authoritativeHospitalStage;
+    private float authoritativeHospitalRadioProgress;
+    private int authoritativeHospitalRadioCheckpointCount;
     private RouteBMilitaryPresentationPhase militaryPhase = RouteBMilitaryPresentationPhase.NotReached;
     private bool hasMilitarySnapshot;
     private bool militaryGeneratorActive;
@@ -199,6 +202,9 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     public int ActiveMapRestrictedFogCount => mapPrototype == null ? 0 : mapPrototype.ActiveRestrictedFogCount;
     public string CurrentRewardLabel => rewardLabel == null ? string.Empty : rewardLabel.text;
     public string CurrentRewardText => rewardText == null ? string.Empty : rewardText.text;
+    public string CurrentHospitalRadioTranscript => QuestUILocalization.IsVietnamese
+        ? RouteBAudioContent.HospitalTranscriptVietnamese
+        : RouteBAudioContent.HospitalTranscriptEnglish;
     public bool IsQuestOverlayOpen => IsJournalOpen || IsMapOpen || IsClueReadingOpen ||
                                       (completionRoot != null && completionRoot.activeSelf);
 
@@ -306,7 +312,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             return;
 
         built = true;
-        font = Resources.Load<TMP_FontAsset>("Fonts/VietnameseDynamic SDF") ?? TMP_Settings.defaultFontAsset;
+        font = Resources.Load<TMP_FontAsset>("Fonts/Vietnamese Static SDF") ?? TMP_Settings.defaultFontAsset;
         BuildCanvas();
         if (buildDemoBackdrop)
             BuildBackdrop();
@@ -435,7 +441,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         bool officeDiscovered, bool officeInvestigationComplete, bool hasMapFragment2,
         bool playTransitions, bool arrivalCarRepairUnlocked = false, bool arrivalCarRepaired = false,
         int arrivalCarRepairMask = 0, EscapeEndingRoute authoritativeLockedRoute = EscapeEndingRoute.None,
-        int authoritativeStage = -1)
+        int authoritativeStage = -1, int hospitalInvestigationStage = 0,
+        float hospitalRadioProgress = 0f, int hospitalRadioCheckpointCount = 0)
     {
         EnsureBuiltForTests();
         bool hadFragment1 = mainQuestProgress.HasMapFragment1;
@@ -449,6 +456,9 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             authoritativeQuestStage = (PreMilitaryQuestStage)authoritativeStage;
             hasAuthoritativeQuestStage = true;
         }
+        authoritativeHospitalStage = Mathf.Clamp(hospitalInvestigationStage, 0, 5);
+        authoritativeHospitalRadioProgress = Mathf.Clamp01(hospitalRadioProgress);
+        authoritativeHospitalRadioCheckpointCount = Mathf.Clamp(hospitalRadioCheckpointCount, 0, 3);
         lockedEscapeRoute = authoritativeLockedRoute;
         if (lockedEscapeRoute != EscapeEndingRoute.None)
             trackedQuestIndex = lockedEscapeRoute == EscapeEndingRoute.CivilianCar ? 2 : 0;
@@ -570,6 +580,24 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         fragmentCompletionPending = false;
         PlayMapFragmentOneCompletion();
+    }
+
+    public void ShowHospitalRadioTranscript()
+    {
+        EnsureBuiltForTests();
+        if (!mainQuestProgress.HasMapFragment2 && authoritativeQuestStage != PreMilitaryQuestStage.CityMapFound)
+            return;
+        SetJournalOpen(false);
+        if (mapPrototype != null) mapPrototype.SetOpen(false);
+        clueReadingEyebrow.text = L("HOSPITAL ARCHIVE  //  SAVED TRANSCRIPT",
+            "LƯU TRỮ BỆNH VIỆN  //  TRANSCRIPT ĐÃ LƯU");
+        clueReadingTitle.text = L("RECOVERED RADIO RECORDING", "BẢN GHI RADIO ĐÃ KHÔI PHỤC");
+        clueReadingBody.text = CurrentHospitalRadioTranscript;
+        clueReadingConclusion.text = L(
+            "Conclusion: the convoy withdrew to North Base; the recording does not confirm anyone is alive there.",
+            "Kết luận: đoàn xe đã rút về Căn cứ phía Bắc; bản ghi không xác nhận ở đó còn người sống.");
+        clueReadingRoot.SetActive(true);
+        clueReadingRoot.transform.SetAsLastSibling();
     }
 
     private void PlayMapFragmentOneCompletion()
@@ -987,25 +1015,25 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         StretchBox("Clue Reading Dimmer", clueReadingRoot.transform, new Color(0f, 0f, 0f, 0.74f));
         RectTransform panel = Box("Clue Reading Panel", clueReadingRoot.transform, new Vector2(0.5f, 0.5f),
-            new Vector2(820f, 430f), new Vector2(0f, 20f), Ink);
+            new Vector2(900f, 600f), new Vector2(0f, 20f), Ink);
         AddBorder(panel, new Color(Amber.r, Amber.g, Amber.b, 0.9f));
-        Box("Clue Reading Top Accent", panel, new Vector2(0.5f, 1f), new Vector2(820f, 6f),
+        Box("Clue Reading Top Accent", panel, new Vector2(0.5f, 1f), new Vector2(900f, 6f),
             new Vector2(0f, -3f), Amber);
 
         clueReadingEyebrow = Text(panel, "Clue Reading Eyebrow", string.Empty, 12f, Amber, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(740f, 24f), new Vector2(38f, -30f));
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(820f, 24f), new Vector2(38f, -30f));
         clueReadingTitle = Text(panel, "Clue Reading Title", string.Empty, 29f, Color.white, FontStyles.Bold,
-            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(740f, 46f), new Vector2(38f, -67f));
+            TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(820f, 46f), new Vector2(38f, -67f));
 
-        RectTransform paper = Box("Clue Document", panel, new Vector2(0.5f, 0.5f), new Vector2(742f, 208f),
-            new Vector2(0f, -15f), new Color(0.105f, 0.125f, 0.105f, 1f));
+        RectTransform paper = Box("Clue Document", panel, new Vector2(0.5f, 0.5f), new Vector2(822f, 378f),
+            new Vector2(0f, -25f), new Color(0.105f, 0.125f, 0.105f, 1f));
         AddBorder(paper, new Color(0.42f, 0.45f, 0.34f, 0.8f));
-        clueReadingBody = Text(paper, "Clue Reading Body", string.Empty, 18f,
+        clueReadingBody = Text(paper, "Clue Reading Body", string.Empty, 16f,
             new Color(0.93f, 0.91f, 0.78f, 1f), FontStyles.Normal, TextAlignmentOptions.TopLeft,
-            new Vector2(0f, 1f), new Vector2(674f, 126f), new Vector2(30f, -27f));
+            new Vector2(0f, 1f), new Vector2(754f, 282f), new Vector2(30f, -27f));
         clueReadingConclusion = Text(paper, "Clue Reading Conclusion", string.Empty, 15f, Mint,
             FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 0f),
-            new Vector2(674f, 44f), new Vector2(30f, 29f));
+            new Vector2(754f, 56f), new Vector2(30f, 29f));
 
         Text(panel, "Clue Reading Close Hint", "[SPACE / E]  CẤT MANH MỐI", 13f, Muted, FontStyles.Bold,
             TextAlignmentOptions.Right, new Vector2(1f, 0f), new Vector2(310f, 28f), new Vector2(-38f, 24f));
@@ -1323,6 +1351,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(180f, 18f), new Vector2(18f, -10f));
         rewardText = Text(reward, "Reward Text", string.Empty, 15f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(520f, 28f), new Vector2(18f, -34f));
+        MakeClickable(reward, ShowHospitalRadioTranscript);
 
         BuildCarRepairRequirements(right);
 
@@ -1632,10 +1661,10 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
                     "Ba hồ sơ sơ tán đều nhắc tới cùng một kênh điều phối của bệnh viện. Mảnh bản đồ vừa ghép đã đánh dấu Khu Điều phối bên trong bệnh viện đó.");
                 break;
             case PreMilitaryQuestStage.FindCityMap:
-                detailTitle.text = L("INVESTIGATE THE COORDINATION OFFICE", "ĐIỀU TRA VĂN PHÒNG ĐIỀU PHỐI");
+                detailTitle.text = L("RESTORE THE HOSPITAL RADIO ROUTE", "MỞ ĐƯỜNG TỚI TRẠM RADIO");
                 storyText.text = L(
-                    "The dispatch log names the last military convoy; its radio recording identifies the archive cabinet holding the convoy route. Follow that evidence in order.",
-                    "Nhật ký điều phối nhắc tới đoàn xe quân sự cuối cùng; bản ghi radio chỉ ra tủ hồ sơ đang giữ tuyến đường của đoàn xe. Hãy lần theo các chứng cứ theo thứ tự.");
+                    "The hospital shift records lead from reception to the chief-shift office and its shared spare key. Use it to open the auxiliary Radio station behind the hospital.",
+                    "Sổ trực bệnh viện dẫn từ quầy tiếp tân tới văn phòng trưởng ca và chìa khóa dự phòng dùng chung. Dùng chìa khóa mở Trạm Radio phụ trợ phía sau bệnh viện.");
                 break;
             case PreMilitaryQuestStage.CityMapFound:
                 detailTitle.text = L("MILITARY ROUTE IDENTIFIED", "ĐÃ XÁC ĐỊNH TUYẾN QUÂN SỰ");
@@ -1673,12 +1702,19 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         SetObjective(1, L("Find the Coordination Section inside the marked hospital", "Tìm Khu Điều phối bên trong bệnh viện được đánh dấu"), officeLocationStatus, locatingOffice,
             officeFound ? Mint : cluesComplete ? Purple : Muted);
 
+        int hospitalRadioPercent = Mathf.RoundToInt(authoritativeHospitalRadioProgress * 100f);
         string investigationStatus = militaryMapFound
             ? L("FRAGMENT 2 ACQUIRED", "ĐÃ CÓ MẢNH 2")
-            : mainQuestProgress.OfficeInvestigationComplete ? L("INVESTIGATED", "ĐÃ KIỂM TRA") :
-            officeFound ? L("FIND FRAGMENT 2", "TÌM MẢNH 2") : L("NOT OPEN", "CHƯA MỞ");
+            : hasAuthoritativeQuestStage && authoritativeHospitalStage >= 5 && hospitalRadioPercent > 0
+                ? L("RESTORING  ", "ĐANG KHÔI PHỤC  ") + hospitalRadioPercent + "%"
+            : hasAuthoritativeQuestStage && authoritativeHospitalStage >= 5 ? L("RADIO READY", "RADIO SẴN SÀNG") :
+            hasAuthoritativeQuestStage && authoritativeHospitalStage >= 4 ? L("SHARED KEY ACQUIRED", "ĐÃ CÓ CHÌA KHÓA CHUNG") :
+            hasAuthoritativeQuestStage && authoritativeHospitalStage >= 3 ? L("KEY LOCATION MARKED", "ĐÃ ĐÁNH DẤU VỊ TRÍ CHÌA") :
+            !hasAuthoritativeQuestStage && mainQuestProgress.OfficeInvestigationComplete ? L("INVESTIGATED", "ĐÃ KIỂM TRA") :
+            !hasAuthoritativeQuestStage && officeFound ? L("FIND FRAGMENT 2", "TÌM MẢNH 2") :
+            officeFound ? L("FOLLOW THE SHIFT LOGS", "LẦN THEO SỔ TRỰC") : L("NOT OPEN", "CHƯA MỞ");
         bool investigatingOffice = officeFound && !militaryMapFound;
-        SetObjective(2, L("Inspect the dispatch desk, radio and records cabinet", "Kiểm tra bàn điều phối, radio và tủ hồ sơ"), investigationStatus, investigatingOffice,
+        SetObjective(2, L("Follow the shift logs and open the Radio room", "Lần theo sổ trực và mở phòng Radio"), investigationStatus, investigatingOffice,
             militaryMapFound ? Mint : officeFound ? Purple : Muted);
 
         rewardLabel.text = L("MISSION REWARD", "PHẦN THƯỞNG NHIỆM VỤ");
@@ -1706,11 +1742,40 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             SetCurrentObjective(L("Find the Coordination Section inside the marked hospital", "Tìm Khu Điều phối bên trong bệnh viện được đánh dấu"),
                 L("IDENTIFIED", "ĐÃ XÁC ĐỊNH"), 0f, Purple);
         else if (stage == PreMilitaryQuestStage.FindCityMap || !militaryMapFound)
-            SetCurrentObjective(L("Follow the dispatch desk → radio → records cabinet", "Lần theo bàn điều phối → radio → tủ hồ sơ"), L("INVESTIGATING", "ĐANG ĐIỀU TRA"), 0f, Purple);
+            SetCurrentObjective(GetHospitalJournalObjective(), GetHospitalJournalStatus(),
+                authoritativeHospitalStage >= 5 ? authoritativeHospitalRadioProgress : 0f, Purple);
         else
             SetCurrentObjective(L("Travel to the marked military base", "Đi tới căn cứ quân sự được đánh dấu"), L("ROUTE OPEN", "ĐÃ MỞ TUYẾN"), 0f, Purple);
 
         UpdateTrackingPresentation();
+    }
+
+    private string GetHospitalJournalObjective()
+    {
+        return authoritativeHospitalStage switch
+        {
+            1 => L("Read the shift log at reception", "Đọc sổ trực tại quầy tiếp tân"),
+            2 => L("Check the chief-shift office behind reception", "Kiểm tra văn phòng trưởng ca phía sau quầy tiếp tân"),
+            3 => L("Find the backup Radio key at the marked location", "Tìm chìa khóa Radio tại vị trí được đánh dấu"),
+            4 => L("Use the shared key at the auxiliary Radio station", "Dùng chìa khóa mở Trạm liên lạc phụ trợ phía sau bệnh viện"),
+            5 => L("Hold E to restore the Radio signal", "Giữ E để khôi phục tín hiệu Radio"),
+            _ => L("Enter the hospital Coordination Section", "Đi vào Khu Điều phối trong bệnh viện")
+        };
+    }
+
+    private string GetHospitalJournalStatus()
+    {
+        return authoritativeHospitalStage switch
+        {
+            3 => L("SEARCHING", "ĐANG TÌM"),
+            4 => L("KEY ACQUIRED", "ĐÃ CÓ CHÌA KHÓA"),
+            5 when authoritativeHospitalRadioProgress > 0f =>
+                L("STAGE  ", "CHẶNG  ") +
+                Mathf.Clamp(authoritativeHospitalRadioCheckpointCount + 1, 1, 3) + "/3  •  " +
+                Mathf.RoundToInt(authoritativeHospitalRadioProgress * 100f) + "%",
+            5 => L("RADIO READY", "RADIO SẴN SÀNG"),
+            _ => L("INVESTIGATING", "ĐANG ĐIỀU TRA")
+        };
     }
 
     private void ShowMilitaryQuestDetails()
@@ -1730,8 +1795,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             case RouteBMilitaryPresentationPhase.NotReached:
                 detailTitle.text = L("REACH THE MILITARY BASE", "ĐI TỚI CĂN CỨ QUÂN SỰ");
                 storyText.text = L(
-                    "The recovered convoy map marks a military evacuation base. Reaching it will confirm whether its vehicle and defenses are still usable; both escape routes remain available.",
-                    "Bản đồ đoàn xe đã đánh dấu căn cứ sơ tán quân sự. Tới đó sẽ xác nhận xe và hệ thống phòng thủ còn sử dụng được hay không; cả hai hướng thoát vẫn còn khả dụng.");
+                    "The recovered recording says the convoy withdrew to North Base and left its beacon coordinates in the console. It does not confirm anyone survived there; both escape routes remain available.",
+                    "Bản ghi đã khôi phục cho biết đoàn xe rút về Căn cứ phía Bắc và để lại tọa độ đèn hiệu trong máy. Không có xác nhận ai còn sống ở đó; cả hai hướng thoát vẫn khả dụng.");
                 SetObjective(0, L("Travel to the marked military base", "Đi tới căn cứ quân sự được đánh dấu"),
                     L("ACTIVE", "ĐANG LÀM"), true, Amber);
                 SetObjective(1, L("Inspect the evacuation vehicle", "Kiểm tra xe sơ tán"), L("LOCKED", "ĐANG KHÓA"), false, Muted);
@@ -1809,7 +1874,11 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         }
 
         bool complete = militaryPhase == RouteBMilitaryPresentationPhase.Escaped;
-        rewardLabel.text = complete ? L("ESCAPE RESULT", "KẾT QUẢ THOÁT HIỂM") : L("MISSION REWARD", "PHẦN THƯỞNG NHIỆM VỤ");
+        rewardLabel.text = complete ? L("ESCAPE RESULT", "KẾT QUẢ THOÁT HIỂM") :
+            militaryPhase == RouteBMilitaryPresentationPhase.NotReached
+                ? L("MISSION REWARD  •  CLICK TO READ TRANSCRIPT",
+                    "PHẦN THƯỞNG  •  NHẤN ĐỂ ĐỌC TRANSCRIPT")
+                : L("MISSION REWARD", "PHẦN THƯỞNG NHIỆM VỤ");
         rewardText.text = militaryPhase switch
         {
             RouteBMilitaryPresentationPhase.NotReached => L("Military base access + vehicle assessment",
@@ -2008,7 +2077,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             PreMilitaryQuestStage.LocateOffice =>
                 L("Find the hospital Coordination Section", "Tìm Khu Điều phối trong bệnh viện"),
             PreMilitaryQuestStage.FindCityMap =>
-                L("Investigate the Coordination Office", "Điều tra Văn phòng Điều phối"),
+                L("Open the auxiliary Radio station", "Mở Trạm Radio phụ trợ"),
             PreMilitaryQuestStage.CityMapFound =>
                 L("Follow the military route", "Đi theo tuyến quân sự"),
             _ => L("Recover evacuation records", "Thu thập hồ sơ sơ tán")
@@ -2139,7 +2208,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
                     objective = L("Find the Coordination Section inside the marked hospital", "Tìm Khu Điều phối bên trong bệnh viện được đánh dấu");
                     break;
                 case PreMilitaryQuestStage.FindCityMap:
-                    objective = L("Follow the dispatch desk → radio → records cabinet", "Lần theo bàn điều phối → radio → tủ hồ sơ");
+                    objective = GetHospitalJournalObjective();
                     break;
                 case PreMilitaryQuestStage.CityMapFound:
                     if (!hasMilitarySnapshot || militaryPhase == RouteBMilitaryPresentationPhase.NotReached)

@@ -52,7 +52,16 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
     public static void ShowOpeningSequence(Action onCompleted)
     {
         RouteBRadioBroadcastUI ui = EnsureInstance();
-        ui.BeginOpeningSequence(onCompleted);
+        ui.BeginSequence(RouteBAudioContent.OpeningSequence, onCompleted);
+    }
+
+    public static void ShowHospitalRecording(Action onCompleted = null)
+    {
+        RouteBRadioBroadcastUI ui = EnsureInstance();
+        // This is an authoritative story milestone. Replace an incidental queued
+        // cue so the completion callback can never be lost behind stale UI.
+        if (IsVisible) ui.FinishSequence(false);
+        ui.BeginSequence(RouteBAudioContent.HospitalRecordingSequence, onCompleted);
     }
 
     public static void ShowCue(RouteBAudioCueId cueId)
@@ -139,7 +148,7 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
             skipRequested = true;
     }
 
-    private void BeginOpeningSequence(Action onCompleted)
+    private void BeginSequence(IReadOnlyList<RouteBAudioCue> cues, Action onCompleted)
     {
         if (sequenceRoutine != null) StopCoroutine(sequenceRoutine);
         audioSource.Stop();
@@ -148,7 +157,7 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         waitForInteractionKeyRelease = Input.GetKey(KeyCode.E);
         BeginLocalPresentation();
         canvas.enabled = true;
-        sequenceRoutine = StartCoroutine(PlayOpeningSequence());
+        sequenceRoutine = StartCoroutine(PlaySequence(cues));
     }
 
     private void BeginSingleCue(RouteBAudioCue cue, Action onCompleted)
@@ -177,9 +186,8 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         FinishSequence(true);
     }
 
-    private IEnumerator PlayOpeningSequence()
+    private IEnumerator PlaySequence(IReadOnlyList<RouteBAudioCue> cues)
     {
-        var cues = RouteBAudioContent.OpeningSequence;
         for (int i = 0; i < cues.Count; i++)
         {
             RouteBAudioCue cue = cues[i];
@@ -283,7 +291,7 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         panelRect.anchorMin = new Vector2(0.5f, 0f);
         panelRect.anchorMax = new Vector2(0.5f, 0f);
         panelRect.pivot = new Vector2(0.5f, 0f);
-        panelRect.sizeDelta = new Vector2(1120f, 176f);
+        panelRect.sizeDelta = new Vector2(1120f, 228f);
         panelRect.anchoredPosition = new Vector2(0f, 128f);
         panel.GetComponent<Image>().color = new Color(0.025f, 0.04f, 0.037f, 0.96f);
         panel.GetComponent<Outline>().effectColor = new Color(0.38f, 0.44f, 0.41f, 0.95f);
@@ -293,7 +301,7 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         titleText = Text(panelRect, "Radio Title", string.Empty, 23f, FontStyles.Bold,
             new Vector2(0f, 1f), new Vector2(930f, 34f), new Vector2(28f, -47f), TextAlignmentOptions.Left);
         bodyText = Text(panelRect, "Radio Subtitle", string.Empty, 15f, FontStyles.Normal,
-            new Vector2(0f, 1f), new Vector2(1040f, 64f), new Vector2(28f, -84f), TextAlignmentOptions.TopLeft);
+            new Vector2(0f, 1f), new Vector2(1040f, 116f), new Vector2(28f, -84f), TextAlignmentOptions.TopLeft);
         bodyText.color = new Color(0.82f, 0.86f, 0.84f);
         skipText = Text(panelRect, "Radio Skip", string.Empty, 11f, FontStyles.Bold,
             new Vector2(1f, 0f), new Vector2(170f, 22f), new Vector2(-24f, 16f), TextAlignmentOptions.Right);

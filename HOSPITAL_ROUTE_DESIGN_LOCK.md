@@ -68,7 +68,8 @@ Tất cả nằm dưới `==========Map========== /Map/hospital` trong scene `Ma
 | Anchor | Vai trò đã chốt |
 | --- | --- |
 | `HospitalQuest_ShiftLog` | Điểm đọc sổ tiếp nhận tại quầy tiếp tân. |
-| `HospitalQuest_ShiftLog2` | Văn phòng trưởng ca; trao chìa khóa dự phòng và lệnh phong tỏa. |
+| `HospitalQuest_ShiftLog2` | Văn phòng trưởng ca; tiết lộ lệnh phong tỏa và nơi giấu chìa khóa. |
+| `KeyLoot 1*` | Sáu candidate hiện tại cho chìa Radio; mỗi điểm có component và Polygon riêng, có thể duplicate thêm. |
 | `HospitalQuest_RadioRoom` | Root của trạm Radio phụ trợ. |
 | `HospitalQuest_RadioRoom/DoorInteraction` | Tương tác cửa khi phòng còn khóa. |
 | `HospitalQuest_RadioRoom/RadioInteraction` | Tương tác khôi phục Radio sau khi cửa đã mở. |
@@ -78,7 +79,7 @@ Tất cả nằm dưới `==========Map========== /Map/hospital` trong scene `Ma
 Khoảng cách đã kiểm tra trong Editor:
 
 - `ShiftLog → ShiftLog2`: khoảng 3,2 world-unit; phù hợp flow tiếp tân → văn phòng.
-- `ShiftLog2 → RadioRoom`: khoảng 19,8 world-unit; bắt buộc có chỉ dẫn và waypoint sau khi lấy chìa.
+- `ShiftLog2 → KeyLoot ngẫu nhiên → RadioRoom`: waypoint dùng ID do Host chọn và giữ nguyên cho mọi client/late join.
 - `DoorInteraction → RadioInteraction`: khoảng 1,76 world-unit; đủ tách nhưng phải dùng vùng nhỏ và state gating.
 - Chủ dự án xác nhận Player có thể đi một mạch từ bệnh viện tới phòng Radio, không có collider/tilemap chặn đường.
 
@@ -114,9 +115,9 @@ Journal toàn đội:
 
 Đây là bước bắt buộc. Người tương tác tìm thấy:
 
-- Chìa khóa dự phòng phòng Radio.
 - Lệnh phong tỏa cấp đỏ.
 - Ghi chú nhân viên Radio đã tự khóa mình tại trạm phụ trợ sau khi bị cắn.
+- Sổ bàn giao cho biết chìa dự phòng được giấu tại một vị trí trong khu văn phòng.
 
 Nội dung ngắn:
 
@@ -124,9 +125,13 @@ Nội dung ngắn:
 > Đoàn xe không được dừng tại bệnh viện.
 > Nhân viên liên lạc có dấu hiệu nhiễm bệnh và đã tự khóa mình tại Trạm phụ trợ để giữ kênh Radio hoạt động.
 
-Chìa khóa là quest state shared của toàn đội, không chiếm inventory và không thể mất do chết/disconnect.
+Sau khi đọc, State Authority chọn ngẫu nhiên một `HospitalRadioKeyLootPoint` và replicate stable ID. Chỉ điểm được chọn có prompt/waypoint; các điểm còn lại vô hiệu. Player giữ `E` trong Polygon của điểm được chọn để nhận chìa khóa shared. Chìa không chiếm inventory và không thể mất do chết/disconnect.
 
 Journal:
+
+> Tìm chìa khóa Radio tại vị trí được đánh dấu.
+
+Sau khi nhặt:
 
 > Dùng chìa khóa mở Trạm liên lạc phụ trợ phía sau bệnh viện.
 
@@ -146,31 +151,33 @@ Khi cửa đóng:
 
 - Chỉ `DoorInteraction` hoạt động.
 - `RadioInteraction` phải bị vô hiệu hoàn toàn, không chỉ ẩn prompt.
-- Vùng cửa khuyến nghị `0,55–0,7` world-unit.
-- Server kiểm tra stage, quest key, khoảng cách và target hợp lệ.
+- Mỗi điểm tương tác bệnh viện có child `InteractionZone` chứa `PolygonCollider2D` riêng, editable trực tiếp trong scene.
+- Client hiện prompt và server xác thực bằng cùng `PolygonCollider2D.OverlapPoint`; Polygon authored thay cho radius/line-of-sight dễ lỗi quanh quầy sâu.
+- Server vẫn kiểm tra stage, quest key, stable target ID và Player còn sống.
 
 Sau khi mở:
 
 - Tile/sprite cửa đổi sang mở và collider cửa tắt.
 - `DoorInteraction` tắt hoàn toàn.
 - `RadioInteraction` mới được bật.
-- Vùng Radio khuyến nghị `0,45–0,6` world-unit, đặt sát console và chỉ tiếp cận được từ trong phòng.
+- Polygon Radio đặt sát console và chỉ bao phủ vùng tiếp cận được từ trong phòng.
 - Resolver chỉ chọn interaction hợp lệ theo state để không hiện hai prompt hoặc bấm xuyên tường.
 
 State cửa đồng bộ Host/Client và late join.
 
 ### 5.6. Khôi phục Radio
 
-Mặc định thiết kế:
+Thiết kế đã duyệt và triển khai H4:
 
-- Thời gian cơ bản: khoảng 18 giây.
-- Chỉ một Player vận hành tại một thời điểm.
-- Thả `E` hoặc rời vùng: tạm dừng nhưng giữ tiến độ.
-- Người khác có thể tiếp tục.
-- Không khóa toàn đội; người khác được phòng thủ hoặc khám phá.
-- Radio phát noise để gọi zombie đang tồn tại.
-- Nếu vùng gần bệnh viện quá trống, Host dùng hai `HospitalQuest_ZombieEntry_*` để bổ sung một nhóm nhỏ.
-- Sự kiện xảy ra một lần, không tạo wave vô hạn và được cân theo số Player ở gần bệnh viện, không theo người đang ở xa.
+- Tổng thời gian cơ bản: `14 giây`, chia đều thành `3` chặng/vạch vàng.
+- Chỉ một Player vận hành tại một thời điểm. Thả `E` hoặc rời vùng thì tạm dừng nhưng giữ tiến độ; người khác có thể tiếp tục.
+- Khi hoàn tất chặng 1 hoặc chặng 2, thao tác tự dừng, Radio phát nhiễu và nhả operator. Player phải thả rồi giữ `E` lại để bắt đầu chặng kế tiếp.
+- Mỗi mốc đầu gọi theo độ khó tại cả A và B: Dễ `3/điểm`, Thường `4/điểm`, Hardcore `5/điểm`. Các con xuất hiện tuần tự cách nhau `0,25 giây`, trải đều trái/phải với spacing `0,8` world-unit.
+- Nhiễu Radio dài `2,7 giây` (hai chu kỳ) để còn nghe rõ trong lúc wave tuần tự xuất hiện.
+- Chặng 3 hoàn tất bản ghi và trao phần thưởng, không tạo thêm zombie.
+- Không có kill gate: Player được tiếp tục sửa ngay dù zombie của mốc trước còn sống. Ra ngoài kiểm tra/tiêu diệt chúng là lựa chọn chiến thuật.
+- Mỗi mốc chỉ kích hoạt một lần theo state authoritative; tổng H4 là `12/16/20` zombie tương ứng Dễ/Thường/Hardcore, không phụ thuộc số Player ở xa và không có wave vô hạn.
+- Người ở gần Radio nghe nhiễu/thấy cảnh báo; người ở xa không bị ép UI hoặc audio.
 
 ## 6. Nội dung Radio canonical
 
@@ -248,7 +255,7 @@ Sau Radio:
 ### H2 — Manh mối và chìa khóa shared
 
 - Nối ba tài liệu tới bệnh viện.
-- Nối ShiftLog → ShiftLog2 → quest key → mở cửa.
+- Nối ShiftLog → ShiftLog2 → KeyLoot ngẫu nhiên → shared quest key → mở cửa.
 - Đồng bộ Host/Client/disconnect/late join.
 
 ### H3 — Radio và cốt truyện
@@ -259,12 +266,14 @@ Sau Radio:
 
 ### H4 — Cao trào và môi trường
 
-- Bố trí xác chết tĩnh và dấu dẫn đường.
-- Nối noise và hai điểm zombie dự phòng.
-- Cân chỉnh Solo/Host/Client mà không biến thành horde vô hạn.
+- Bố trí bốn xác chết tĩnh làm dấu dẫn đường tới trạm phụ trợ.
+- Chia Radio thành ba chặng; nối noise và hai đợt zombie chắc chắn tại hai anchor.
+- Giữ lựa chọn tiếp tục sửa không cần diệt hết zombie; cân chỉnh Solo/Host/Client mà không biến thành horde vô hạn.
 
 ### H5 — QA toàn tuyến
 
+- Đã chuyển toàn bộ interaction bệnh viện sang Polygon riêng và thêm key random authoritative.
+- Đã khóa difficulty scaling/noise duration/spawn cadence bằng tests và regression production path.
 - Bắt đầu từ `MainMenu → Solo/Host → Main`.
 - Chạy ba tài liệu → bệnh viện → Radio → reveal căn cứ.
 - Test người chơi tách đội, đổi người vận hành, disconnect và late join.

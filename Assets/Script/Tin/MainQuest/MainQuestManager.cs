@@ -19,6 +19,16 @@ public sealed class MainQuestManager : NetworkBehaviour
         CityMapFound
     }
 
+    public enum HospitalInvestigationStage
+    {
+        NotStarted,
+        FindShiftLog,
+        FindShiftLog2,
+        FindRadioKey,
+        UnlockRadioRoom,
+        RadioReady
+    }
+
     public enum CivilianRouteStage
     {
         PreparingCar,
@@ -71,6 +81,16 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Tooltip("Cơ hội tủ hợp lệ đầu tiên sinh manh mối. Sau một lần trượt, tủ hợp lệ kế tiếp luôn được bảo hiểm.")]
     [SerializeField, Range(0f, 1f)] private float routeClueBaseDropChance = 0.7f;
 
+    [Header("Hospital Radio restoration")]
+    [Tooltip("Thời gian một hoặc nhiều người chơi cần giữ E tổng cộng để phục hồi tín hiệu.")]
+    [SerializeField, Min(1f)] private float hospitalRadioRestoreDuration = 14f;
+    [Tooltip("Chỉ người chơi ở gần Radio khi phục hồi xong mới nghe bản ghi; transcript vẫn lưu cho cả đội.")]
+    [SerializeField, Min(1f)] private float hospitalRadioHearingDistance = 8f;
+    [Tooltip("Bán kính tiếng nhiễu ở hai mốc đầu thu hút zombie đang có quanh bệnh viện.")]
+    [SerializeField, Min(1f)] private float hospitalRadioNoiseRadius = 28f;
+    [SerializeField, Min(0.05f)] private float hospitalRadioZombieSpawnDelay = 0.25f;
+    [SerializeField, Min(0.1f)] private float hospitalRadioZombieHorizontalSpacing = 0.8f;
+
     [Header("Arrival car completion")]
     [Tooltip("Fusion vehicle spawned over the broken story car after the required repair is complete.")]
     [SerializeField] private NetworkPrefabRef repairedArrivalCarPrefab;
@@ -112,6 +132,15 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Networked] public int RouteClueDryOpenCount { get; set; }
     [Networked] public NetworkBool IsOfficeDiscovered { get; set; }
     [Networked] public int CheckedCabinetMask { get; set; }
+    [Networked] public NetworkBool IsHospitalRadioDoorOpen { get; set; }
+    [Networked] public int NetworkHospitalInvestigationStage { get; set; }
+    [Networked] public NetworkBool HasHospitalRadioKey { get; set; }
+    [Networked] public int SelectedHospitalRadioKeyLootId { get; private set; }
+    [Networked] public float HospitalRadioRestoreSeconds { get; private set; }
+    [Networked] public PlayerRef HospitalRadioOperator { get; private set; }
+    [Networked] public NetworkBool IsHospitalRadioRecovered { get; private set; }
+    [Networked] public int HospitalRadioCheckpointCount { get; private set; }
+    [Networked] public int HospitalRadioThreatSpawnCount { get; private set; }
 
     private MapController cachedMapController;
     private MinimapController cachedMinimapController;
@@ -124,6 +153,12 @@ public sealed class MainQuestManager : NetworkBehaviour
     private string localQuestEventTitle = string.Empty;
     private string localQuestEventBody = string.Empty;
     private Coroutine questEventRoutine;
+    private Coroutine authorityHospitalRadioSpawnRoutine;
+    private Transform cachedHospitalZombieEntryA;
+    private Transform cachedHospitalZombieEntryB;
+    private readonly List<NetworkPrefabRef> cachedHospitalRadioZombiePrefabs = new List<NetworkPrefabRef>();
+    private readonly List<HospitalRadioKeyLootPoint> cachedHospitalRadioKeyLootPoints =
+        new List<HospitalRadioKeyLootPoint>();
     private readonly Dictionary<int, int> cabinetIndexById = new Dictionary<int, int>();
     private bool hasSpawned;
     private bool hasGeneratedCivilianEscapeFallback;
@@ -139,6 +174,25 @@ public sealed class MainQuestManager : NetworkBehaviour
         ? (QuestStage)NetworkQuestStage
         : QuestStage.NotStarted;
     public bool IsMapSearchActive => IsNetworkReady && CurrentStage == QuestStage.FindCityMap;
+    public bool IsHospitalRadioDoorOpenState => IsNetworkReady && IsHospitalRadioDoorOpen;
+    public HospitalInvestigationStage CurrentHospitalInvestigationStage => IsNetworkReady
+        ? (HospitalInvestigationStage)NetworkHospitalInvestigationStage
+        : HospitalInvestigationStage.NotStarted;
+    public bool HasHospitalRadioKeyState => IsNetworkReady && HasHospitalRadioKey;
+    public int SelectedHospitalRadioKeyLootIdState => IsNetworkReady ? SelectedHospitalRadioKeyLootId : 0;
+    public float HospitalRadioRestoreDuration => hospitalRadioRestoreDuration;
+    public float HospitalRadioRestoreSecondsState => IsNetworkReady ? HospitalRadioRestoreSeconds : 0f;
+    public float HospitalRadioRestoreNormalized => hospitalRadioRestoreDuration <= 0f
+        ? 0f
+        : Mathf.Clamp01(HospitalRadioRestoreSecondsState / hospitalRadioRestoreDuration);
+    public bool HasHospitalRadioOperator => IsNetworkReady && HospitalRadioOperator != PlayerRef.None;
+    public bool IsLocalPlayerHospitalRadioOperator => HasHospitalRadioOperator && Runner != null &&
+                                                       Runner.LocalPlayer == HospitalRadioOperator;
+    public bool IsHospitalRadioRecoveredState => IsNetworkReady && IsHospitalRadioRecovered;
+    public int HospitalRadioCheckpointCountState => IsNetworkReady
+        ? Mathf.Clamp(HospitalRadioCheckpointCount, 0, HospitalRadioRoomRules.RestoreSegmentCount)
+        : 0;
+    public int HospitalRadioThreatSpawnCountState => IsNetworkReady ? HospitalRadioThreatSpawnCount : 0;
     public bool IsQuestCutsceneActive => IsNetworkReady && IsMilitaryRevealPlaying;
     public bool IsNeighborhoodSearchActive => IsNetworkReady && CurrentStage == QuestStage.SearchNeighborhood;
     public int SearchedHouseCount => CountBits(SearchedHouseMask);
@@ -209,6 +263,15 @@ public sealed class MainQuestManager : NetworkBehaviour
             RouteClueDryOpenCount = 0;
             IsOfficeDiscovered = false;
             CheckedCabinetMask = 0;
+            IsHospitalRadioDoorOpen = false;
+            NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.NotStarted;
+            HasHospitalRadioKey = false;
+            SelectedHospitalRadioKeyLootId = 0;
+            HospitalRadioRestoreSeconds = 0f;
+            HospitalRadioOperator = PlayerRef.None;
+            IsHospitalRadioRecovered = false;
+            HospitalRadioCheckpointCount = 0;
+            HospitalRadioThreatSpawnCount = 0;
         }
 
         ApplyMapAccess();
@@ -220,8 +283,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         hasSpawned = false;
         if (focusRoutine != null) StopCoroutine(focusRoutine);
         if (authoritySafetyRoutine != null) StopCoroutine(authoritySafetyRoutine);
+        if (authorityHospitalRadioSpawnRoutine != null) StopCoroutine(authorityHospitalRadioSpawnRoutine);
         focusRoutine = null;
         authoritySafetyRoutine = null;
+        authorityHospitalRadioSpawnRoutine = null;
         localFadeAlpha = 0f;
         localClueNoticeAlpha = 0f;
         localLocationTitleAlpha = 0f;
@@ -242,8 +307,11 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!HasStateAuthority || !IsArrivalCarRepaired || RepairedArrivalCarObject == null ||
-            IsCivilianEscapeComplete)
+        if (!HasStateAuthority) return;
+
+        TickHospitalRadioRestore();
+
+        if (!IsArrivalCarRepaired || RepairedArrivalCarObject == null || IsCivilianEscapeComplete)
             return;
 
         float checkpointDistance = Vector2.Distance(RepairedArrivalCarObject.transform.position,
@@ -339,13 +407,14 @@ public sealed class MainQuestManager : NetworkBehaviour
                 break;
 
             case QuestStage.FindCityMap:
-                if (!MainQuestSearchCabinet.TryGet(MapCabinetId, out MainQuestSearchCabinet cabinet))
+                Transform hospitalTarget = ResolveCurrentHospitalObjective();
+                if (hospitalTarget == null)
                 {
-                    Debug.LogWarning("[QUEST TEST] Không tìm thấy điểm điều tra hiện tại trong bệnh viện.");
+                    Debug.LogWarning("[QUEST TEST] Không tìm thấy anchor H2 hiện tại trong bệnh viện.");
                     return;
                 }
-                destination = (Vector2)cabinet.transform.position + new Vector2(0f, -0.45f);
-                targetName = GetCurrentOfficeInteractionLabel();
+                destination = (Vector2)hospitalTarget.position + new Vector2(0f, -0.45f);
+                targetName = GetHospitalObjectiveLabel(CurrentHospitalInvestigationStage);
                 break;
 
             case QuestStage.CityMapFound:
@@ -380,6 +449,44 @@ public sealed class MainQuestManager : NetworkBehaviour
         }
         TeleportPlayer(player, destination);
         Physics2D.SyncTransforms();
+    }
+
+    private Transform ResolveCurrentHospitalObjective()
+    {
+        switch (CurrentHospitalInvestigationStage)
+        {
+            case HospitalInvestigationStage.FindShiftLog:
+                return HospitalQuestClueInteractionPoint.TryGetForRole(HospitalQuestClueRole.ShiftLog,
+                    out HospitalQuestClueInteractionPoint shiftLog) ? shiftLog.transform : null;
+            case HospitalInvestigationStage.FindShiftLog2:
+                return HospitalQuestClueInteractionPoint.TryGetForRole(HospitalQuestClueRole.ShiftLog2,
+                    out HospitalQuestClueInteractionPoint shiftLog2) ? shiftLog2.transform : null;
+            case HospitalInvestigationStage.FindRadioKey:
+                return HospitalRadioKeyLootPoint.TryGet(SelectedHospitalRadioKeyLootIdState,
+                    out HospitalRadioKeyLootPoint keyLoot) ? keyLoot.transform : null;
+            case HospitalInvestigationStage.UnlockRadioRoom:
+                return HospitalRadioInteractionPoint.TryGetForRole(HospitalRadioInteractionRole.Door,
+                    out HospitalRadioInteractionPoint door) ? door.transform : null;
+            case HospitalInvestigationStage.RadioReady:
+                return HospitalRadioInteractionPoint.TryGetForRole(HospitalRadioInteractionRole.Radio,
+                    out HospitalRadioInteractionPoint radio) ? radio.transform : null;
+            default:
+                return null;
+        }
+    }
+
+    private static string GetHospitalObjectiveLabel(HospitalInvestigationStage stage)
+    {
+        bool vietnamese = QuestUILocalization.IsVietnamese;
+        return stage switch
+        {
+            HospitalInvestigationStage.FindShiftLog => vietnamese ? "sổ trực tại quầy tiếp tân" : "reception shift log",
+            HospitalInvestigationStage.FindShiftLog2 => vietnamese ? "văn phòng trưởng ca" : "chief-shift office",
+            HospitalInvestigationStage.FindRadioKey => vietnamese ? "chìa khóa Radio dự phòng" : "backup Radio key",
+            HospitalInvestigationStage.UnlockRadioRoom => vietnamese ? "cửa Trạm Radio phụ trợ" : "auxiliary Radio room door",
+            HospitalInvestigationStage.RadioReady => vietnamese ? "thiết bị Radio" : "Radio console",
+            _ => vietnamese ? "Khu Điều phối" : "Coordination Section"
+        };
     }
 
     /// <summary>
@@ -427,10 +534,23 @@ public sealed class MainQuestManager : NetworkBehaviour
                 break;
 
             case QuestStage.FindCityMap:
-                if (MapCabinetId != 0)
+                switch (CurrentHospitalInvestigationStage)
                 {
-                    AuthorityCompleteOfficeStep(MapCabinetId, requester);
-                    Debug.Log("[QUEST TEST] F6: hoàn tất một điểm điều tra bệnh viện bằng marker test.");
+                    case HospitalInvestigationStage.FindShiftLog:
+                        AuthorityCompleteHospitalClue(HospitalQuestClueRole.ShiftLog, requester);
+                        break;
+                    case HospitalInvestigationStage.FindShiftLog2:
+                        AuthorityCompleteHospitalClue(HospitalQuestClueRole.ShiftLog2, requester);
+                        break;
+                    case HospitalInvestigationStage.FindRadioKey:
+                        AuthorityDebugCollectHospitalRadioKey(requester);
+                        break;
+                    case HospitalInvestigationStage.UnlockRadioRoom:
+                        AuthorityOpenHospitalRadioRoom(requester);
+                        break;
+                    case HospitalInvestigationStage.RadioReady:
+                        AuthorityDebugAdvanceHospitalRadioStage(requester);
+                        break;
                 }
                 break;
 
@@ -965,6 +1085,39 @@ public sealed class MainQuestManager : NetworkBehaviour
         else RPC_RequestSearchCabinet(cabinetId);
     }
 
+    /// <summary>
+    /// H1 vertical slice: clients may only request the interaction. State
+    /// Authority re-resolves the scene point and validates stage, role,
+    /// distance and line-of-sight before changing the replicated door state.
+    /// </summary>
+    public void RequestHospitalRadioInteraction(int interactionId)
+    {
+        if (!IsNetworkReady) return;
+        if (HasStateAuthority) ServerUseHospitalRadioInteraction(interactionId, Runner.LocalPlayer);
+        else RPC_RequestHospitalRadioInteraction(interactionId);
+    }
+
+    public void RequestSetHospitalRadioOperating(int interactionId, bool operating)
+    {
+        if (!IsNetworkReady) return;
+        if (HasStateAuthority) ServerSetHospitalRadioOperating(interactionId, operating, Runner.LocalPlayer);
+        else RPC_RequestSetHospitalRadioOperating(interactionId, operating);
+    }
+
+    public void RequestHospitalQuestClue(int interactionId)
+    {
+        if (!IsNetworkReady) return;
+        if (HasStateAuthority) ServerUseHospitalQuestClue(interactionId, Runner.LocalPlayer);
+        else RPC_RequestHospitalQuestClue(interactionId);
+    }
+
+    public void RequestHospitalRadioKeyLoot(int interactionId)
+    {
+        if (!IsNetworkReady) return;
+        if (HasStateAuthority) ServerCollectHospitalRadioKey(interactionId, Runner.LocalPlayer);
+        else RPC_RequestHospitalRadioKeyLoot(interactionId);
+    }
+
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_RequestStartMapSearch(int triggerId, RpcInfo info = default)
     {
@@ -975,6 +1128,243 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void RPC_RequestSearchCabinet(int cabinetId, RpcInfo info = default)
     {
         ServerSearchCabinet(cabinetId, info.Source);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestHospitalRadioInteraction(int interactionId, RpcInfo info = default)
+    {
+        ServerUseHospitalRadioInteraction(interactionId, info.Source);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestSetHospitalRadioOperating(int interactionId, bool operating, RpcInfo info = default)
+    {
+        ServerSetHospitalRadioOperating(interactionId, operating, info.Source);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestHospitalQuestClue(int interactionId, RpcInfo info = default)
+    {
+        ServerUseHospitalQuestClue(interactionId, info.Source);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestHospitalRadioKeyLoot(int interactionId, RpcInfo info = default)
+    {
+        ServerCollectHospitalRadioKey(interactionId, info.Source);
+    }
+
+    private void ServerUseHospitalQuestClue(int interactionId, PlayerRef requester)
+    {
+        if (!HasStateAuthority ||
+            !HospitalQuestClueInteractionPoint.TryGet(interactionId, out HospitalQuestClueInteractionPoint point) ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            !point.CanPlayerInteract(player.transform.position) ||
+            !HospitalInvestigationRules.IsClueAvailable(IsNetworkReady, CurrentStage,
+                CurrentHospitalInvestigationStage, point.Role))
+            return;
+
+        AuthorityCompleteHospitalClue(point.Role, requester);
+    }
+
+    private void ServerCollectHospitalRadioKey(int interactionId, PlayerRef requester)
+    {
+        if (!HasStateAuthority || CurrentStage != QuestStage.FindCityMap ||
+            CurrentHospitalInvestigationStage != HospitalInvestigationStage.FindRadioKey ||
+            HasHospitalRadioKey || interactionId == 0 || interactionId != SelectedHospitalRadioKeyLootId ||
+            !HospitalRadioKeyLootPoint.TryGet(interactionId, out HospitalRadioKeyLootPoint point) ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) || !IsLivingPlayer(player) ||
+            !point.CanPlayerInteract(player.transform.position)) return;
+
+        AuthorityGrantHospitalRadioKey(requester);
+    }
+
+    private void ServerUseHospitalRadioInteraction(int interactionId, PlayerRef requester)
+    {
+        if (!HasStateAuthority ||
+            !HospitalRadioInteractionPoint.TryGet(interactionId, out HospitalRadioInteractionPoint point) ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            !point.CanPlayerInteract(player.transform.position))
+            return;
+
+        if (point.Role == HospitalRadioInteractionRole.Door)
+        {
+            if (!HospitalInvestigationRules.CanOpenDoor(IsNetworkReady, CurrentStage,
+                    CurrentHospitalInvestigationStage, IsHospitalRadioDoorOpen, HasHospitalRadioKey))
+            {
+                if (HospitalInvestigationRules.IsDoorDiscoverable(IsNetworkReady, CurrentStage,
+                        CurrentHospitalInvestigationStage, IsHospitalRadioDoorOpen))
+                    RPC_ShowHospitalDoorLocked(requester, (int)CurrentHospitalInvestigationStage);
+                return;
+            }
+
+            AuthorityOpenHospitalRadioRoom(requester);
+            return;
+        }
+
+    }
+
+    private void ServerSetHospitalRadioOperating(int interactionId, bool operating, PlayerRef requester)
+    {
+        if (!HasStateAuthority) return;
+        if (!operating)
+        {
+            if (HospitalRadioOperator == requester) HospitalRadioOperator = PlayerRef.None;
+            return;
+        }
+
+        if (HospitalRadioOperator != PlayerRef.None && HospitalRadioOperator != requester) return;
+        if (!HospitalRadioRoomRules.CanOperateRadio(IsNetworkReady, CurrentStage,
+                CurrentHospitalInvestigationStage, IsHospitalRadioDoorOpen, IsHospitalRadioRecovered) ||
+            !HospitalRadioInteractionPoint.TryGet(interactionId, out HospitalRadioInteractionPoint point) ||
+            point.Role != HospitalRadioInteractionRole.Radio ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
+            !IsLivingPlayer(player) || !point.CanPlayerInteract(player.transform.position))
+            return;
+
+        HospitalRadioOperator = requester;
+    }
+
+    private void TickHospitalRadioRestore()
+    {
+        if (HospitalRadioOperator == PlayerRef.None) return;
+        if (!HospitalRadioRoomRules.CanOperateRadio(IsNetworkReady, CurrentStage,
+                CurrentHospitalInvestigationStage, IsHospitalRadioDoorOpen, IsHospitalRadioRecovered) ||
+            !HospitalRadioInteractionPoint.TryGetForRole(HospitalRadioInteractionRole.Radio,
+                out HospitalRadioInteractionPoint point) ||
+            !TryGetRequestingPlayer(HospitalRadioOperator, out PlayerMovement player) ||
+            !IsLivingPlayer(player) || !point.CanPlayerInteract(player.transform.position))
+        {
+            HospitalRadioOperator = PlayerRef.None;
+            return;
+        }
+
+        float segmentEnd = HospitalRadioRoomRules.GetSegmentEndSeconds(
+            HospitalRadioCheckpointCount, hospitalRadioRestoreDuration);
+        HospitalRadioRestoreSeconds = Mathf.Min(segmentEnd, HospitalRadioRoomRules.AdvanceRestore(
+            HospitalRadioRestoreSeconds, Runner.DeltaTime, hospitalRadioRestoreDuration));
+        if (HospitalRadioRestoreSeconds < segmentEnd) return;
+
+        PlayerRef completedBy = HospitalRadioOperator;
+        if (HospitalRadioCheckpointCount < HospitalRadioRoomRules.RestoreSegmentCount - 1)
+        {
+            HospitalRadioCheckpointCount++;
+            HospitalRadioOperator = PlayerRef.None;
+            AuthorityTriggerHospitalRadioThreat(completedBy, point.transform.position,
+                HospitalRadioCheckpointCount);
+            return;
+        }
+
+        HospitalRadioCheckpointCount = HospitalRadioRoomRules.RestoreSegmentCount;
+        AuthorityCompleteHospitalRadio(completedBy, point.transform.position);
+    }
+
+    private void AuthorityTriggerHospitalRadioThreat(PlayerRef completedBy, Vector3 radioPosition,
+        int completedSegment)
+    {
+        if (!HasStateAuthority || completedSegment < 1 || completedSegment >= HospitalRadioRoomRules.RestoreSegmentCount)
+            return;
+
+        if (TryGetRequestingPlayer(completedBy, out PlayerMovement operatorPlayer))
+            operatorPlayer.MakeNoise(hospitalRadioNoiseRadius, true, 100, hospitalRadioNoiseRadius, 1f);
+        RPC_ShowHospitalRadioThreat(radioPosition, completedSegment);
+        if (authorityHospitalRadioSpawnRoutine != null) StopCoroutine(authorityHospitalRadioSpawnRoutine);
+        authorityHospitalRadioSpawnRoutine = StartCoroutine(
+            AuthoritySpawnHospitalRadioThreat(completedBy, radioPosition, completedSegment));
+        int difficulty = Mathf.Clamp(PlayerPrefs.GetInt("GameDifficulty", 1), 0, 2);
+        int zombiesPerEntry = HospitalRadioRoomRules.GetThreatZombiesPerEntry(difficulty);
+        Debug.Log($"[HOSPITAL H4] Radio checkpoint {completedSegment}/3: noise + " +
+                  $"{zombiesPerEntry} zombies at each entry (difficulty {difficulty}).");
+    }
+
+    private IEnumerator AuthoritySpawnHospitalRadioThreat(PlayerRef completedBy, Vector3 radioPosition,
+        int completedSegment)
+    {
+        if (!ResolveHospitalRadioThreatSetup(radioPosition))
+        {
+            authorityHospitalRadioSpawnRoutine = null;
+            yield break;
+        }
+
+        int difficulty = Mathf.Clamp(PlayerPrefs.GetInt("GameDifficulty", 1), 0, 2);
+        int zombiesPerEntry = HospitalRadioRoomRules.GetThreatZombiesPerEntry(difficulty);
+        for (int spawnIndex = 0; spawnIndex < zombiesPerEntry; spawnIndex++)
+        {
+            float horizontalOffset = HospitalRadioRoomRules.GetThreatSpawnHorizontalOffset(
+                spawnIndex, zombiesPerEntry, hospitalRadioZombieHorizontalSpacing);
+            SpawnHospitalRadioZombie(cachedHospitalZombieEntryA.position +
+                                     Vector3.right * horizontalOffset);
+            SpawnHospitalRadioZombie(cachedHospitalZombieEntryB.position +
+                                     Vector3.right * horizontalOffset);
+
+            if (TryGetRequestingPlayer(completedBy, out PlayerMovement operatorPlayer))
+                operatorPlayer.MakeNoise(hospitalRadioNoiseRadius, true, 100, hospitalRadioNoiseRadius, 1f);
+            if (spawnIndex < zombiesPerEntry - 1)
+                yield return new WaitForSeconds(hospitalRadioZombieSpawnDelay);
+        }
+
+        Debug.Log($"[HOSPITAL H4] Spawned {zombiesPerEntry * 2} milestone zombies " +
+                  $"({zombiesPerEntry} per entry, difficulty {difficulty}) for checkpoint {completedSegment}/3.");
+        authorityHospitalRadioSpawnRoutine = null;
+    }
+
+    private bool ResolveHospitalRadioThreatSetup(Vector3 radioPosition)
+    {
+        if (cachedHospitalZombieEntryA == null)
+            cachedHospitalZombieEntryA = GameObject.Find("HospitalQuest_ZombieEntry_A")?.transform;
+        if (cachedHospitalZombieEntryB == null)
+            cachedHospitalZombieEntryB = GameObject.Find("HospitalQuest_ZombieEntry_B")?.transform;
+        if (cachedHospitalZombieEntryA == null || cachedHospitalZombieEntryB == null)
+        {
+            Debug.LogError("[HOSPITAL H4] Missing HospitalQuest_ZombieEntry_A/B; milestone wave cannot spawn.");
+            return false;
+        }
+
+        if (cachedHospitalRadioZombiePrefabs.Count > 0) return true;
+        ZombieSpawnZone[] zones = FindObjectsByType<ZombieSpawnZone>(FindObjectsSortMode.None);
+        ZombieSpawnZone closestZone = null;
+        float closestDistance = float.PositiveInfinity;
+        for (int i = 0; i < zones.Length; i++)
+        {
+            ZombieSpawnZone zone = zones[i];
+            if (zone == null || zone.zombiePrefabs == null || zone.zombiePrefabs.Count == 0) continue;
+            float distance = Vector2.Distance(zone.transform.position, radioPosition);
+            if (distance >= closestDistance) continue;
+            closestDistance = distance;
+            closestZone = zone;
+        }
+
+        if (closestZone != null)
+            for (int i = 0; i < closestZone.zombiePrefabs.Count; i++)
+                if (closestZone.zombiePrefabs[i].IsValid)
+                    cachedHospitalRadioZombiePrefabs.Add(closestZone.zombiePrefabs[i]);
+        if (cachedHospitalRadioZombiePrefabs.Count > 0) return true;
+
+        Debug.LogError("[HOSPITAL H4] No valid zombie NetworkPrefabRef found in scene spawn zones.");
+        return false;
+    }
+
+    private void SpawnHospitalRadioZombie(Vector3 position)
+    {
+        if (Runner == null || cachedHospitalRadioZombiePrefabs.Count == 0) return;
+        NetworkPrefabRef prefab = cachedHospitalRadioZombiePrefabs[
+            Random.Range(0, cachedHospitalRadioZombiePrefabs.Count)];
+        try
+        {
+            NetworkObject spawned = Runner.Spawn(prefab, position, Quaternion.identity);
+            if (spawned != null) HospitalRadioThreatSpawnCount++;
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogError("[HOSPITAL H4] Zombie spawn failed: " + exception.Message);
+        }
+    }
+
+    private static bool IsLivingPlayer(PlayerMovement player)
+    {
+        if (player == null) return false;
+        PlayerHealth health = player.GetComponent<PlayerHealth>();
+        return health == null || (!health.isDead && !health.isTransforming);
     }
 
     private void ServerStartMapSearch(int triggerId, PlayerRef requester)
@@ -990,42 +1380,163 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         if (!HasStateAuthority || CurrentStage != QuestStage.LocateOffice) return;
 
-        MainQuestSearchCabinet[] allCabinets = FindObjectsByType<MainQuestSearchCabinet>(
-            FindObjectsInactive.Exclude, FindObjectsSortMode.None);
-        List<MainQuestSearchCabinet> validCabinets = new List<MainQuestSearchCabinet>(allCabinets.Length);
-        for (int i = 0; i < allCabinets.Length; i++)
+        if (!HospitalQuestClueInteractionPoint.TryGetForRole(HospitalQuestClueRole.ShiftLog, out _) ||
+            !HospitalQuestClueInteractionPoint.TryGetForRole(HospitalQuestClueRole.ShiftLog2, out _) ||
+            !HospitalRadioInteractionPoint.TryGetForRole(HospitalRadioInteractionRole.Door, out _) ||
+            !HospitalRadioInteractionPoint.TryGetForRole(HospitalRadioInteractionRole.Radio, out _))
         {
-            if (allCabinets[i] != null && allCabinets[i].CabinetId != 0)
-                validCabinets.Add(allCabinets[i]);
-        }
-
-        if (validCabinets.Count == 0)
-        {
-            Debug.LogError("[MAIN QUEST] Không có MainQuestSearchCabinet nào để random bản đồ.");
-            RPC_ShowLocalizedQuestMessage("quest.office_no_points", 0, 0);
-            return;
-        }
-
-        validCabinets.Sort((left, right) => left.CabinetId.CompareTo(right.CabinetId));
-        if (validCabinets.Count > MaximumCabinetSearchPoints)
-            validCabinets.RemoveRange(MaximumCabinetSearchPoints,
-                validCabinets.Count - MaximumCabinetSearchPoints);
-        RebuildCabinetIndexCache(validCabinets);
-        CheckedCabinetMask = 0;
-
-        List<MainQuestSearchCabinet> investigationOrder = BuildOfficeInvestigationOrder(validCabinets);
-        if (investigationOrder.Count < 3)
-        {
-            Debug.LogError("[MAIN QUEST] Cần ít nhất ba điểm để dựng chuỗi bàn điều phối → radio → tủ hồ sơ.");
+            Debug.LogError("[HOSPITAL H2] Thiếu ShiftLog, ShiftLog2, Door hoặc Radio interaction anchor.");
             RPC_ShowLocalizedQuestMessage("quest.office_missing_points", 0, 0);
             return;
         }
 
-        MapCabinetId = investigationOrder[0].CabinetId;
+        // H2 replaces the temporary dispatch desk → radio → records cabinet path.
+        // The legacy fields remain serialized for compatibility but are no longer
+        // authoritative objectives in the hospital.
+        CheckedCabinetMask = 0;
+        MapCabinetId = 0;
         IsOfficeDiscovered = true;
+        HasHospitalRadioKey = false;
+        SelectedHospitalRadioKeyLootId = 0;
+        IsHospitalRadioDoorOpen = false;
+        HospitalRadioRestoreSeconds = 0f;
+        HospitalRadioOperator = PlayerRef.None;
+        IsHospitalRadioRecovered = false;
+        HospitalRadioCheckpointCount = 0;
+        HospitalRadioThreatSpawnCount = 0;
+        cachedHospitalRadioZombiePrefabs.Clear();
+        NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.FindShiftLog;
         NetworkQuestStage = (int)QuestStage.FindCityMap;
         RPC_ShowLocalizedQuestMessage("quest.office_new_objective", 0, 0);
         RPC_ShowOfficeSearchStarted(requester);
+    }
+
+    private void AuthorityCompleteHospitalClue(HospitalQuestClueRole role, PlayerRef requester)
+    {
+        if (!HasStateAuthority || CurrentStage != QuestStage.FindCityMap) return;
+
+        if (role == HospitalQuestClueRole.ShiftLog &&
+            CurrentHospitalInvestigationStage == HospitalInvestigationStage.FindShiftLog)
+        {
+            NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.FindShiftLog2;
+            RPC_ShowHospitalClueResult(requester, (int)role);
+            Debug.Log("[HOSPITAL H2] ShiftLog hoàn tất; waypoint chuyển tới văn phòng trưởng ca.");
+            return;
+        }
+
+        if (role == HospitalQuestClueRole.ShiftLog2 &&
+            CurrentHospitalInvestigationStage == HospitalInvestigationStage.FindShiftLog2)
+        {
+            if (!AuthoritySelectHospitalRadioKeyLoot(requester)) return;
+            NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.FindRadioKey;
+            RPC_ShowHospitalClueResult(requester, (int)role);
+            Debug.Log($"[HOSPITAL H5] ShiftLog2 hoàn tất; Host chọn KeyLoot ID " +
+                      $"{SelectedHospitalRadioKeyLootId} cho toàn đội.");
+        }
+    }
+
+    private bool AuthoritySelectHospitalRadioKeyLoot(PlayerRef requester)
+    {
+        if (!HasStateAuthority) return false;
+        HospitalRadioKeyLootPoint.GetAll(cachedHospitalRadioKeyLootPoints);
+        if (cachedHospitalRadioKeyLootPoints.Count == 0)
+        {
+            Debug.LogError("[HOSPITAL H5] Main.unity không có HospitalRadioKeyLootPoint hợp lệ.");
+            RPC_ShowLocalizedQuestMessage("quest.office_missing_points", 0, 0);
+            return false;
+        }
+
+        int selectedIndex = Random.Range(0, cachedHospitalRadioKeyLootPoints.Count);
+        SelectedHospitalRadioKeyLootId = cachedHospitalRadioKeyLootPoints[selectedIndex].InteractionId;
+        return SelectedHospitalRadioKeyLootId != 0;
+    }
+
+    private void AuthorityGrantHospitalRadioKey(PlayerRef requester)
+    {
+        if (!HasStateAuthority || CurrentStage != QuestStage.FindCityMap ||
+            CurrentHospitalInvestigationStage != HospitalInvestigationStage.FindRadioKey ||
+            HasHospitalRadioKey || SelectedHospitalRadioKeyLootId == 0) return;
+        HasHospitalRadioKey = true;
+        NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.UnlockRadioRoom;
+        RPC_ShowHospitalRadioKeyCollected(requester);
+        Debug.Log($"[HOSPITAL H5] Team nhặt shared key tại ID {SelectedHospitalRadioKeyLootId}.");
+    }
+
+    private void AuthorityDebugCollectHospitalRadioKey(PlayerRef requester)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        AuthorityGrantHospitalRadioKey(requester);
+#endif
+    }
+
+    private void AuthorityOpenHospitalRadioRoom(PlayerRef requester)
+    {
+        if (!HasStateAuthority ||
+            !HospitalInvestigationRules.CanOpenDoor(IsNetworkReady, CurrentStage,
+                CurrentHospitalInvestigationStage, IsHospitalRadioDoorOpen, HasHospitalRadioKey))
+            return;
+
+        IsHospitalRadioDoorOpen = true;
+        NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.RadioReady;
+        RPC_ShowHospitalRadioH1Result(requester, (int)HospitalRadioInteractionRole.Door);
+        Debug.Log("[HOSPITAL H2] Cửa Radio đã mở; H2 đạt RadioReady và H3 có thể bắt đầu.");
+    }
+
+    private void AuthorityDebugAdvanceHospitalRadioStage(PlayerRef requester)
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!HasStateAuthority || CurrentStage != QuestStage.FindCityMap ||
+            CurrentHospitalInvestigationStage != HospitalInvestigationStage.RadioReady) return;
+        Vector3 radioPosition = HospitalRadioInteractionPoint.TryGetForRole(
+            HospitalRadioInteractionRole.Radio, out HospitalRadioInteractionPoint radio)
+            ? radio.transform.position
+            : Vector3.zero;
+        HospitalRadioRestoreSeconds = HospitalRadioRoomRules.GetSegmentEndSeconds(
+            HospitalRadioCheckpointCount, hospitalRadioRestoreDuration);
+        HospitalRadioOperator = requester;
+        if (HospitalRadioCheckpointCount < HospitalRadioRoomRules.RestoreSegmentCount - 1)
+        {
+            HospitalRadioCheckpointCount++;
+            HospitalRadioOperator = PlayerRef.None;
+            AuthorityTriggerHospitalRadioThreat(requester, radioPosition, HospitalRadioCheckpointCount);
+            Debug.Log($"[QUEST TEST] F6 hoàn tất chặng Radio {HospitalRadioCheckpointCount}/3.");
+            return;
+        }
+
+        HospitalRadioCheckpointCount = HospitalRadioRoomRules.RestoreSegmentCount;
+        AuthorityCompleteHospitalRadio(requester, radioPosition);
+        Debug.Log("[QUEST TEST] F6 hoàn tất chặng Radio 3/3 qua production completion path.");
+#endif
+    }
+
+    private void AuthorityCompleteHospitalRadio(PlayerRef completedBy, Vector3 radioPosition)
+    {
+        if (!HasStateAuthority || IsHospitalRadioRecovered) return;
+
+        HospitalRadioRestoreSeconds = hospitalRadioRestoreDuration;
+        HospitalRadioOperator = PlayerRef.None;
+        IsHospitalRadioRecovered = true;
+        HospitalRadioCheckpointCount = HospitalRadioRoomRules.RestoreSegmentCount;
+        IsCityMapUnlocked = true;
+        MapCabinetId = 0;
+        NetworkQuestStage = (int)QuestStage.CityMapFound;
+        IsMilitaryRevealPlaying = false;
+
+        HashSet<PlayerRef> notified = new HashSet<PlayerRef>();
+        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        for (int i = 0; i < players.Length; i++)
+        {
+            PlayerMovement player = players[i];
+            if (player == null || player.Object == null || !player.Object.IsValid || !IsLivingPlayer(player)) continue;
+            PlayerRef target = player.Object.InputAuthority;
+            if (target == PlayerRef.None || notified.Contains(target)) continue;
+            if (target != completedBy &&
+                Vector2.Distance(player.transform.position, radioPosition) > hospitalRadioHearingDistance) continue;
+            notified.Add(target);
+            RPC_PlayHospitalRadioRecording(target, target == completedBy);
+        }
+
+        Debug.Log("[HOSPITAL H3] Radio recovered; Fragment 2 and the North Base route are now shared team state.");
     }
 
     private void ServerSearchCabinet(int cabinetId, PlayerRef requester)
@@ -1634,11 +2145,113 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowHospitalRadioH1Result(PlayerRef focusPlayer, int roleValue)
+    {
+        if (Runner == null || Runner.LocalPlayer != focusPlayer) return;
+        HospitalRadioInteractionRole role = (HospitalRadioInteractionRole)roleValue;
+        string message = role == HospitalRadioInteractionRole.Door
+            ? "Đã mở Trạm liên lạc phụ trợ. Radio hiện sẵn sàng để kiểm tra."
+            : "Radio đã sẵn sàng. Nội dung phát sóng và phục hồi tín hiệu sẽ bắt đầu ở H3.";
+        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ BỆNH VIỆN", message);
+        ShowLocalQuestEvent(role == HospitalRadioInteractionRole.Door
+                ? "TRẠM RADIO ĐÃ MỞ"
+                : "RADIO SẴN SÀNG",
+            message);
+        Debug.Log("[HOSPITAL H2] " + message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayHospitalRadioRecording([RpcTarget] PlayerRef targetPlayer, bool ownsMilitaryReveal)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        QuestFlowUIPrototype.Instance?.NotifyAuthoritativeQuestStage((int)QuestStage.CityMapFound);
+        AutoChatManager.Instance?.AddMessage("BẢN GHI RADIO ĐÃ KHÔI PHỤC",
+            "Transcript đã lưu trong Nhật ký. Bộ nhớ máy chứa tọa độ Căn cứ phía Bắc; chưa rõ ở đó còn ai sống.");
+        ShowLocalQuestEvent("MẢNH BẢN ĐỒ 2",
+            "Đã trích xuất tần số đèn hiệu và tọa độ từ bộ nhớ Radio.");
+        RouteBRadioBroadcastUI.ShowHospitalRecording(
+            ownsMilitaryReveal ? ShowMilitaryMapRewardThenReveal : null);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowHospitalRadioThreat(Vector3 radioPosition, int completedSegment)
+    {
+        PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+        if (localPlayer == null || Vector2.Distance(localPlayer.transform.position, radioPosition) > 24f) return;
+
+        HospitalRadioMilestonePresentation.Play(radioPosition);
+        AutoNoiseMeter.ReportTransientNoise(1f, "RADIO NHIỄU");
+        bool vietnamese = QuestUILocalization.IsVietnamese;
+        string title = vietnamese ? $"RADIO BÙNG NHIỄU  •  CHẶNG {completedSegment}/3"
+            : $"RADIO NOISE BURST  •  STAGE {completedSegment}/3";
+        string body = vietnamese
+            ? "Có tiếng động bên ngoài. Bạn có thể ra kiểm tra hoặc tiếp tục sửa Radio."
+            : "There is movement outside. You may investigate or continue repairing the Radio.";
+        AutoChatManager.Instance?.AddMessage(title, body);
+        ShowLocalQuestEvent(title, body);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowHospitalDoorLocked([RpcTarget] PlayerRef targetPlayer, int hospitalStageValue)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        HospitalInvestigationStage stage = (HospitalInvestigationStage)hospitalStageValue;
+        string message = stage switch
+        {
+            HospitalInvestigationStage.FindRadioKey =>
+                "Cửa bị khóa. Chìa dự phòng đã được đánh dấu trong khu văn phòng trưởng ca.",
+            HospitalInvestigationStage.FindShiftLog2 =>
+                "Cửa bị khóa. Kiểm tra văn phòng trưởng ca phía sau quầy tiếp tân.",
+            _ => "Cửa bị khóa. Kiểm tra sổ trực tại quầy tiếp tân để tìm nơi cất chìa dự phòng."
+        };
+        AutoChatManager.Instance?.AddMessage("CỬA TRẠM RADIO", message);
+        ShowLocalQuestEvent("CẦN CHÌA KHÓA", message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowHospitalClueResult([RpcTarget] PlayerRef targetPlayer, int roleValue)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        HospitalQuestClueRole role = (HospitalQuestClueRole)roleValue;
+        if (role == HospitalQuestClueRole.ShiftLog)
+        {
+            const string body = "Khu điều trị đã đóng.\n" +
+                                "Toàn bộ liên lạc khẩn cấp chuyển sang Trạm phụ trợ phía sau bệnh viện.\n" +
+                                "Chìa khóa dự phòng do trưởng ca giữ tại văn phòng hành chính.\n\n" +
+                                "Nhật ký: Kiểm tra văn phòng trưởng ca phía sau quầy tiếp tân.";
+            AutoChatManager.Instance?.AddMessage("SỔ TRỰC BỆNH VIỆN",
+                "Chìa khóa Trạm Radio do trưởng ca giữ tại văn phòng hành chính.");
+            ShowLocalQuestEvent("SỔ TRỰC BỆNH VIỆN", body);
+            return;
+        }
+
+        const string secondBody = "Lệnh phong tỏa cấp đỏ đã được xác nhận.\n" +
+                                  "Đoàn xe không được dừng tại bệnh viện.\n" +
+                                  "Nhân viên liên lạc có dấu hiệu nhiễm bệnh và đã tự khóa mình tại Trạm phụ trợ để giữ kênh Radio hoạt động.\n\n" +
+                                  "Sổ bàn giao cho biết chìa dự phòng được giấu trong khu văn phòng.\n" +
+                                  "Nhật ký: Tìm chìa khóa Radio tại vị trí đã được đánh dấu.";
+        AutoChatManager.Instance?.AddMessage("VĂN PHÒNG TRƯỞNG CA",
+            "Đã xác định một vị trí có thể cất chìa dự phòng. Waypoint đã được cập nhật.");
+        ShowLocalQuestEvent("LỆNH PHONG TỎA CẤP ĐỎ", secondBody);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowHospitalRadioKeyCollected([RpcTarget] PlayerRef targetPlayer)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        const string body = "Đã nhặt chìa khóa dự phòng của Trạm Radio.\n" +
+                            "Chìa khóa là trạng thái dùng chung của toàn đội và không chiếm ô inventory.\n\n" +
+                            "Nhật ký: Mở Trạm liên lạc phụ trợ phía sau bệnh viện.";
+        AutoChatManager.Instance?.AddMessage("CHÌA KHÓA RADIO",
+            "Đội đã nhận chìa khóa dùng chung. Waypoint chuyển tới Trạm Radio.");
+        ShowLocalQuestEvent("ĐÃ NHẶT CHÌA KHÓA RADIO", body);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowOfficeSearchStarted(PlayerRef focusPlayer)
     {
+        _ = focusPlayer;
         QuestFlowUIPrototype.Instance?.NotifyAuthoritativeQuestStage((int)QuestStage.FindCityMap);
-        if (Runner != null && Runner.LocalPlayer == focusPlayer)
-            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.OfficeLocated);
         ShowLocalQuestEvent(
             GameLocalization.Get("quest.office_area_title"),
             GameLocalization.Get("quest.office_area_body"));
@@ -1761,11 +2374,15 @@ public sealed class MainQuestManager : NetworkBehaviour
         {
             flow.PlayMilitaryMapRewardAfterDialogue(
                 () => flow.PlayMilitaryMapReveal(
-                    () => BeginLocalMilitaryReveal(EscapeRouteDecisionUI.ShowPreMilitaryChoice)));
+                    () => BeginLocalMilitaryReveal(
+                        () => RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
+                            EscapeRouteDecisionUI.ShowPreMilitaryChoice))));
             return;
         }
 
-        BeginLocalMilitaryReveal(EscapeRouteDecisionUI.ShowPreMilitaryChoice);
+        BeginLocalMilitaryReveal(
+            () => RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
+                EscapeRouteDecisionUI.ShowPreMilitaryChoice));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -2022,6 +2639,9 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (!showBuiltInQuestHud || TutorialSession.IsActive) return;
 
         QuestFlowUIPrototype journal = QuestFlowUIPrototype.Instance;
+        if (CurrentStage == QuestStage.FindCityMap && !IsQuestCutsceneActive &&
+            (journal == null || journal.IsMilitaryRouteTracked))
+            DrawHospitalDirectionMarker();
         if (CurrentStage == QuestStage.CityMapFound && !IsQuestCutsceneActive && localFadeAlpha < 0.001f &&
             (journal == null || journal.TrackedEscapeRoute != EscapeEndingRoute.CivilianCar))
             DrawMilitaryDirectionMarker();
@@ -2271,6 +2891,96 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         GUI.matrix = previousMatrix;
         GUI.color = previousColor;
+        GUI.depth = previousDepth;
+    }
+
+    private void DrawHospitalDirectionMarker()
+    {
+        Transform target = ResolveCurrentHospitalObjective();
+        if (target == null) return;
+
+        Camera sceneCamera = Camera.main;
+        if (sceneCamera == null && PZ_CameraController.Instance != null)
+            sceneCamera = PZ_CameraController.Instance.GetComponentInChildren<Camera>();
+        if (sceneCamera == null) return;
+
+        Vector3 screen3 = sceneCamera.WorldToScreenPoint(target.position);
+        Vector2 targetGui = new Vector2(screen3.x, Screen.height - screen3.y);
+        const float horizontalMargin = 68f;
+        const float topMargin = 92f;
+        const float bottomMargin = 74f;
+        bool isOnScreen = screen3.z > 0f && targetGui.x >= horizontalMargin &&
+                          targetGui.x <= Screen.width - horizontalMargin && targetGui.y >= topMargin &&
+                          targetGui.y <= Screen.height - bottomMargin;
+
+        int previousDepth = GUI.depth;
+        Color previousColor = GUI.color;
+        Color previousBackgroundColor = GUI.backgroundColor;
+        Color previousContentColor = GUI.contentColor;
+        Matrix4x4 previousMatrix = GUI.matrix;
+        GUI.depth = -900;
+        float pulse = 0.82f + (Mathf.Sin(Time.unscaledTime * 3.2f) + 1f) * 0.09f;
+        GUIStyle arrowStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 38,
+            fontStyle = FontStyle.Bold
+        };
+        GUIStyle markerStyle = new GUIStyle(GUI.skin.box)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 13,
+            fontStyle = FontStyle.Bold
+        };
+        markerStyle.normal.textColor = new Color(0.9f, 1f, 0.97f, 1f);
+
+        Vector2 markerPosition;
+        if (isOnScreen)
+        {
+            markerPosition = targetGui + new Vector2(0f, -42f + Mathf.Sin(Time.unscaledTime * 3.2f) * 4f);
+            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
+                "▼", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
+        }
+        else
+        {
+            Vector2 center = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+            Vector2 direction = targetGui - center;
+            if (screen3.z < 0f) direction = -direction;
+            if (direction.sqrMagnitude < 0.001f) direction = Vector2.up;
+            float availableX = Screen.width * 0.5f - horizontalMargin;
+            float availableY = Screen.height * 0.5f - bottomMargin;
+            float scaleX = availableX / Mathf.Max(0.001f, Mathf.Abs(direction.x));
+            float scaleY = availableY / Mathf.Max(0.001f, Mathf.Abs(direction.y));
+            markerPosition = center + direction * Mathf.Min(scaleX, scaleY);
+            markerPosition.y = Mathf.Clamp(markerPosition.y, topMargin, Screen.height - bottomMargin);
+            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            GUIUtility.RotateAroundPivot(angle, markerPosition);
+            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
+                "▶", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
+            GUI.matrix = previousMatrix;
+        }
+
+        float distance = PlayerMovement.LocalPlayerInstance != null
+            ? Vector2.Distance(PlayerMovement.LocalPlayerInstance.transform.position, target.position)
+            : 0f;
+        string markerText = GetHospitalObjectiveLabel(CurrentHospitalInvestigationStage);
+        if (distance > 0.1f) markerText += $"  •  {distance:0} m";
+        const float labelWidth = 230f;
+        float labelX = Mathf.Clamp(markerPosition.x - labelWidth * 0.5f, 8f, Screen.width - labelWidth - 8f);
+        float labelY = isOnScreen ? markerPosition.y - 34f : markerPosition.y + 31f;
+        labelY = Mathf.Clamp(labelY, 50f, Screen.height - 36f);
+        // GUI.color also multiplies textColor, which made this label nearly
+        // black. Tint only the box background and leave the text at full
+        // contrast.
+        GUI.color = Color.white;
+        GUI.backgroundColor = new Color(0.03f, 0.045f, 0.043f, 0.9f);
+        GUI.contentColor = Color.white;
+        GUI.Box(new Rect(labelX, labelY, labelWidth, 28f), markerText, markerStyle);
+
+        GUI.matrix = previousMatrix;
+        GUI.color = previousColor;
+        GUI.backgroundColor = previousBackgroundColor;
+        GUI.contentColor = previousContentColor;
         GUI.depth = previousDepth;
     }
 
