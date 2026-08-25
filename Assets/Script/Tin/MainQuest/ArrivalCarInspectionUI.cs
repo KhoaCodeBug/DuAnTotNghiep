@@ -52,6 +52,9 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private string selectedPartId;
     private int lastDisplayedRepairMask = int.MinValue;
     private bool lastDisplayedVehicleStarted;
+    private AudioSource hoodAudioSource;
+    private AudioClip hoodOpenClip;
+    private AudioClip hoodCloseClip;
 
     public static ArrivalCarInspectionUI ActiveInstance { get; private set; }
     public static bool IsAnyOpen => ActiveInstance != null && ActiveInstance.IsOpen;
@@ -160,6 +163,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         lastDisplayedVehicleStarted = false;
         ActiveInstance = this;
         waitForInteractionKeyRelease = true;
+        if (!policeMode) PlayHoodAudio(true);
         previousCursorVisible = Cursor.visible;
         previousCursorLockMode = Cursor.lockState;
 
@@ -190,7 +194,9 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     {
         if (!open) return;
 
+        bool wasCivilianInspection = !policeMode && owner != null;
         open = false;
+        if (wasCivilianInspection) PlayHoodAudio(false);
         if (ActiveInstance == this) ActiveInstance = null;
         if (overlayRoot != null) overlayRoot.SetActive(false);
         AutoUIManager.Instance?.SetQuestOverlayOpen(false);
@@ -211,6 +217,30 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             closedOwner?.NotifyInspectionUIClosed();
             closedPoliceOwner?.NotifyInspectionUIClosed();
         }
+    }
+
+    private void PlayHoodAudio(bool opening)
+    {
+        EnsureHoodAudio();
+        AudioClip clip = opening ? hoodOpenClip : hoodCloseClip;
+        if (hoodAudioSource == null || clip == null) return;
+        hoodAudioSource.Stop();
+        hoodAudioSource.PlayOneShot(clip,
+            Mathf.Clamp01(PlayerPrefs.GetFloat("GameSFXVolume", 0.8f)));
+    }
+
+    private void EnsureHoodAudio()
+    {
+        if (hoodAudioSource != null) return;
+        hoodOpenClip = Resources.Load<AudioClip>("Intro/VehicleAudio/CarHoodOpen");
+        hoodCloseClip = Resources.Load<AudioClip>("Intro/VehicleAudio/CarHoodClose");
+        GameObject audioObject = new GameObject("Arrival Car Hood Audio");
+        audioObject.transform.SetParent(transform, false);
+        hoodAudioSource = audioObject.AddComponent<AudioSource>();
+        GameplayAudioSpatializer.Configure(hoodAudioSource, GameplayAudioSpatializer.Profile.Body);
+        hoodAudioSource.playOnAwake = false;
+        hoodAudioSource.loop = false;
+        hoodAudioSource.volume = 1f;
     }
 
     private void EnsureBuilt()

@@ -693,6 +693,38 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
+    public void CivilianCarUnlockRevealsCityWithoutLeakingMilitaryDestination()
+    {
+        Texture2D texture = new Texture2D(128, 96, TextureFormat.RGBA32, false);
+        try
+        {
+            prototype.ConfigureRasterMap(texture, new Vector2(0.42f, 0.55f), new Vector2(0.2f, 0.2f));
+            prototype.ConfigureMilitaryDestination(new Vector2(0.86f, 0.78f));
+            prototype.ConfigureSearchZone(new Vector2(0.1f, 0.1f), new Vector2(0.35f, 0.45f), 6);
+            prototype.ConfigureCivilianEscapeRoute(new Vector2(0.75f, 0.4f), new Vector2(0.98f, 0.4f),
+                CivilianEscapePresentationStage.ExploringExits);
+            prototype.SetCivilianCityMapUnlocked(true);
+            prototype.SetMapOpenForPreview(true);
+
+            Assert.That(prototype.ActiveMapRestrictedFogCount, Is.Zero,
+                "Route A must reveal city terrain after the repaired car starts.");
+            Assert.That(prototype.IsMapMilitaryDestinationVisible, Is.False,
+                "Route A terrain access must not reveal Route B's military coordinates.");
+            Assert.That(GameObject.Find("Civilian Regroup Marker"), Is.Not.Null);
+            Assert.That(GameObject.Find("Civilian City Exit Marker"), Is.Null);
+
+            prototype.ConfigureCivilianEscapeRoute(new Vector2(0.75f, 0.4f), new Vector2(0.98f, 0.4f),
+                CivilianEscapePresentationStage.EscapeRun);
+            Assert.That(GameObject.Find("Civilian Regroup Marker"), Is.Null);
+            Assert.That(GameObject.Find("Civilian City Exit Marker"), Is.Not.Null);
+        }
+        finally
+        {
+            Object.DestroyImmediate(texture);
+        }
+    }
+
+    [Test]
     public void MilitaryMapRewardUsesTheSamePhysicalFragmentArtAsFragmentOne()
     {
         Texture2D texture = new Texture2D(256, 128, TextureFormat.RGBA32, false);
