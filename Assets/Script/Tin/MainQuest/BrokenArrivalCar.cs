@@ -90,7 +90,12 @@ public sealed class BrokenArrivalCar : MonoBehaviour
 
         if (inspectionRoutine == null && Time.unscaledTime >= nextInspectionAllowedAt &&
             Input.GetKeyDown(KeyCode.E))
-            inspectionRoutine = StartCoroutine(InspectionRoutine(player));
+        {
+            if (manager.IsArrivalCarInspected)
+                inspectionUI?.Open(this);
+            else
+                inspectionRoutine = StartCoroutine(InspectionRoutine(player));
+        }
     }
 
     private IEnumerator InspectionRoutine(PlayerMovement player)
@@ -255,7 +260,9 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         prompt.normal.textColor = accent;
         Rect textRect = new Rect(promptRect.x + 14f, promptRect.y + 4f,
             promptRect.width - 28f, promptRect.height - 8f);
-        GUI.Label(textRect, "GIỮ [E]\nKIỂM TRA XE", prompt);
+        GUI.Label(textRect, manager.IsArrivalCarInspected
+            ? "NHẤN [E]\nMỞ NẮP XE"
+            : "GIỮ [E]\nKIỂM TRA XE", prompt);
     }
 
     private static void DrawGuiLine(Vector2 start, Vector2 end, Color color, float width)

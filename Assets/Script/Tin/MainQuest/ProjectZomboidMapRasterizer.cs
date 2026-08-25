@@ -16,6 +16,7 @@ public static class ProjectZomboidMapRasterizer
         public Grid Grid;
         public Vector2Int MinCell;
         public Vector2Int Size;
+        public bool[] RoadMask;
 
         public Vector2 WorldToNormalized(Vector3 worldPosition)
         {
@@ -33,6 +34,73 @@ public static class ProjectZomboidMapRasterizer
                 0f);
             Vector3 localPosition = Grid.CellToLocalInterpolated(cellPosition);
             return Grid.transform.TransformPoint(localPosition);
+        }
+
+        /// <summary>
+        /// Finds an authored asphalt road nearest the outside of the raster and
+        /// prefers the candidate furthest from the repaired car. The checkpoint
+        /// therefore sits on a real road while the final point continues from
+        /// that road to the edge of the playable city.
+        /// </summary>
+        public bool TryFindCivilianRoadExit(Vector2 origin, out Vector2 checkpoint, out Vector2 cityExit)
+        {
+            checkpoint = origin;
+            cityExit = origin;
+            if (Grid == null || RoadMask == null || RoadMask.Length != Size.x * Size.y ||
+                Size.x <= 0 || Size.y <= 0)
+                return false;
+
+            int minimumRoadEdgeDistance = int.MaxValue;
+            for (int y = 0; y < Size.y; y++)
+            for (int x = 0; x < Size.x; x++)
+            {
+                if (!RoadMask[y * Size.x + x]) continue;
+                minimumRoadEdgeDistance = Mathf.Min(minimumRoadEdgeDistance,
+                    Mathf.Min(Mathf.Min(x, Size.x - 1 - x), Mathf.Min(y, Size.y - 1 - y)));
+            }
+            if (minimumRoadEdgeDistance == int.MaxValue) return false;
+
+            int candidateBand = minimumRoadEdgeDistance + 3;
+            float bestDistance = float.MinValue;
+            Vector2Int bestCell = default;
+            bool found = false;
+            for (int y = 0; y < Size.y; y++)
+            for (int x = 0; x < Size.x; x++)
+            {
+                if (!RoadMask[y * Size.x + x]) continue;
+                int edgeDistance = Mathf.Min(Mathf.Min(x, Size.x - 1 - x),
+                    Mathf.Min(y, Size.y - 1 - y));
+                if (edgeDistance > candidateBand) continue;
+
+                Vector2 normalized = new Vector2(
+                    x / (float)Mathf.Max(1, Size.x - 1),
+                    y / (float)Mathf.Max(1, Size.y - 1));
+                Vector2 world = NormalizedToWorld(normalized);
+                float distance = (world - origin).sqrMagnitude;
+                if (distance <= bestDistance) continue;
+                bestDistance = distance;
+                bestCell = new Vector2Int(x, y);
+                found = true;
+            }
+            if (!found) return false;
+
+            Vector2 checkpointNormalized = new Vector2(
+                bestCell.x / (float)Mathf.Max(1, Size.x - 1),
+                bestCell.y / (float)Mathf.Max(1, Size.y - 1));
+            checkpoint = NormalizedToWorld(checkpointNormalized);
+
+            int west = bestCell.x;
+            int east = Size.x - 1 - bestCell.x;
+            int south = bestCell.y;
+            int north = Size.y - 1 - bestCell.y;
+            int nearestEdge = Mathf.Min(Mathf.Min(west, east), Mathf.Min(south, north));
+            Vector2 exitNormalized = checkpointNormalized;
+            if (nearestEdge == west) exitNormalized.x = 0.01f;
+            else if (nearestEdge == east) exitNormalized.x = 0.99f;
+            else if (nearestEdge == south) exitNormalized.y = 0.01f;
+            else exitNormalized.y = 0.99f;
+            cityExit = NormalizedToWorld(exitNormalized);
+            return true;
         }
     }
 
@@ -196,7 +264,8 @@ public static class ProjectZomboidMapRasterizer
             Texture = texture,
             Grid = rootGrid,
             MinCell = min,
-            Size = new Vector2Int(width, height)
+            Size = new Vector2Int(width, height),
+            RoadMask = roadMask
         };
     }
 

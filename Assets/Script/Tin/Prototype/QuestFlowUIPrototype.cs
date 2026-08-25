@@ -710,6 +710,19 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         mapPrototype.ConfigureMilitaryDestination(militaryNormalized);
     }
 
+    public void SetCivilianCityMapUnlocked(bool unlocked)
+    {
+        EnsureBuiltForTests();
+        mapPrototype?.SetCivilianCityMapUnlocked(unlocked);
+    }
+
+    public void ConfigureCivilianEscapeRoute(Vector2 checkpointNormalized, Vector2 cityExitNormalized,
+        CivilianEscapePresentationStage stage)
+    {
+        EnsureBuiltForTests();
+        mapPrototype?.ConfigureCivilianEscapeRoute(checkpointNormalized, cityExitNormalized, stage);
+    }
+
     public void ConfigureSearchZone(Vector2 minimumNormalized, Vector2 maximumNormalized, int houseCount)
     {
         EnsureBuiltForTests();

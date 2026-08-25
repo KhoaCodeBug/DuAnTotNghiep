@@ -76,6 +76,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private GameObject exactRoute;
     private GameObject officeMarker;
     private GameObject militaryMarker;
+    private GameObject civilianCheckpointMarker;
+    private GameObject civilianCityExitMarker;
     private TextMeshProUGUI officeMarkerLabel;
     private TextMeshProUGUI militaryMarkerLabel;
     private GameObject unknownOfficeMarker;
@@ -100,6 +102,10 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private Coroutine militaryUnlockRevealRoutine;
     private bool militaryRevealPending;
     private bool militaryRegionRevealVisualComplete;
+    private bool civilianCityMapUnlocked;
+    private Vector2 civilianCheckpointNormalized;
+    private Vector2 civilianCityExitNormalized;
+    private CivilianEscapePresentationStage civilianRouteStage;
     private static bool escapeClosePending;
 
     public bool IsOpen => root != null && root.activeSelf;
@@ -110,7 +116,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     public Vector2 CurrentRasterPlayerPoint => rasterPlayerMarker == null ? Vector2.zero : rasterPlayerMarker.anchoredPosition;
     public int SearchZoneHouseCount => searchZoneHouseCount;
     public bool HasPendingUnlockReveal => unlockRevealPending;
-    public int ActiveRestrictedFogCount => activeRasterFogCount;
+    public int ActiveRestrictedFogCount => civilianCityMapUnlocked ? 0 : activeRasterFogCount;
     public bool IsMilitaryDestinationVisible => militaryMarker != null && militaryMarker.activeSelf;
     public bool IsOfficeDestinationVisible => officeMarker != null && officeMarker.activeSelf;
     public bool IsMilitaryUnlockRevealPlaying => militaryUnlockRevealRoutine != null;
@@ -177,6 +183,24 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         hasMilitaryDestination = true;
         if (root != null)
             BuildRasterMapIfNeeded();
+        UpdateRasterMapMarkers();
+        Refresh();
+    }
+
+    public void SetCivilianCityMapUnlocked(bool unlocked)
+    {
+        civilianCityMapUnlocked = unlocked;
+        UpdateRasterMapMarkers();
+        UpdateSearchRestrictionVisibility();
+        Refresh();
+    }
+
+    public void ConfigureCivilianEscapeRoute(Vector2 checkpointNormalized, Vector2 cityExitNormalized,
+        CivilianEscapePresentationStage stage)
+    {
+        civilianCheckpointNormalized = checkpointNormalized;
+        civilianCityExitNormalized = cityExitNormalized;
+        civilianRouteStage = stage;
         UpdateRasterMapMarkers();
         Refresh();
     }
@@ -744,6 +768,21 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             (searchZoneHouseCount > 0
                 ? L("\nArea  •  Nearby houses", "\nPhạm vi  •  Các ngôi nhà xung quanh")
                 : string.Empty);
+
+        if (civilianCityMapUnlocked)
+        {
+            bool escapeRun = civilianRouteStage >= CivilianEscapePresentationStage.EscapeRun;
+            stateLabel.text = escapeRun
+                ? L("POINT OF NO RETURN  •  CITY EXIT", "ĐIỂM KHÔNG THỂ QUAY LẠI  •  RA KHỎI THÀNH PHỐ")
+                : L("CITY ROAD NETWORK  •  CIVILIAN EXIT", "MẠNG LƯỚI ĐƯỜNG THÀNH PHỐ  •  LỐI THOÁT DÂN SỰ");
+            stateLabel.color = Mint;
+            officeKnowledgeText.text = escapeRun
+                ? L("Break through the final city boundary", "Vượt qua ranh giới cuối cùng của thành phố")
+                : L("Quarantine checkpoint  •  Marked", "Chốt vòng phong tỏa  •  Đã đánh dấu");
+            clueSummaryText.text = L(
+                "Full city terrain unlocked\nMilitary coordinates remain unknown",
+                "Đã mở toàn bộ địa hình thành phố\nTọa độ căn cứ quân sự vẫn chưa xác định");
+        }
     }
 
     private void ApplyLocalization()
@@ -992,6 +1031,9 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f), new Vector2(100f, 24f), Vector2.zero);
         militaryMarker.SetActive(false);
 
+        civilianCheckpointMarker = BuildCivilianMarker("Civilian Regroup Marker", "CHỐT TẬP KẾT");
+        civilianCityExitMarker = BuildCivilianMarker("Civilian City Exit Marker", "LỐI RA THÀNH PHỐ");
+
         // Mảnh 1 reveals a destination marker, not a fake straight road. The
         // old line implied a traversable route even when it crossed buildings.
         exactRoute = new GameObject("Exact Location Revealed", typeof(RectTransform));
@@ -1014,6 +1056,24 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             : visibleSize;
     }
 
+    private GameObject BuildCivilianMarker(string objectName, string vietnameseLabel)
+    {
+        GameObject routeMarker = new GameObject(objectName, typeof(RectTransform));
+        routeMarker.transform.SetParent(rasterArtRoot, false);
+        SetRect(routeMarker.GetComponent<RectTransform>(), new Vector2(142f, 38f), Vector2.zero);
+        RectTransform pin = Box(objectName + " Pin", routeMarker.transform, new Vector2(20f, 20f),
+            new Vector2(-57f, 0f), Mint);
+        pin.localRotation = Quaternion.Euler(0f, 0f, 45f);
+        RectTransform caption = Box(objectName + " Caption", routeMarker.transform, new Vector2(112f, 28f),
+            new Vector2(15f, 0f), new Color(0.025f, 0.19f, 0.14f, 0.96f));
+        Text(caption, objectName + " Label", L(
+                objectName.Contains("Exit") ? "CITY EXIT" : "REGROUP POINT", vietnameseLabel),
+            9f, Color.white, FontStyles.Bold, TextAlignmentOptions.Center,
+            new Vector2(0.5f, 0.5f), new Vector2(108f, 24f), Vector2.zero);
+        routeMarker.SetActive(false);
+        return routeMarker;
+    }
+
     private void ApplyRasterRotationLayout()
     {
         if (!useRasterMap || rasterArtRoot == null || rasterMapTexture == null)
@@ -1031,6 +1091,10 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             officeMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         if (militaryMarker != null)
             militaryMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
+        if (civilianCheckpointMarker != null)
+            civilianCheckpointMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
+        if (civilianCityExitMarker != null)
+            civilianCityExitMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         if (unknownOfficeMarker != null)
             unknownOfficeMarker.transform.localRotation = Quaternion.Euler(0f, 0f, 90f * rasterRotationQuarterTurns);
         if (rasterPlayerMarker != null)
@@ -1053,10 +1117,25 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Vector2 playerPoint = NormalizedToRasterPoint(rasterPlayerNormalized);
         Vector2 officePoint = NormalizedToRasterPoint(rasterOfficeNormalized);
         Vector2 militaryPoint = NormalizedToRasterPoint(rasterMilitaryNormalized);
+        Vector2 civilianCheckpointPoint = NormalizedToRasterPoint(civilianCheckpointNormalized);
+        Vector2 civilianCityExitPoint = NormalizedToRasterPoint(civilianCityExitNormalized);
         rasterPlayerMarker.anchoredPosition = playerPoint;
         officeMarker.GetComponent<RectTransform>().anchoredPosition = officePoint;
         if (militaryMarker != null)
             militaryMarker.GetComponent<RectTransform>().anchoredPosition = militaryPoint;
+        if (civilianCheckpointMarker != null)
+        {
+            civilianCheckpointMarker.GetComponent<RectTransform>().anchoredPosition = civilianCheckpointPoint;
+            civilianCheckpointMarker.SetActive(civilianCityMapUnlocked &&
+                civilianRouteStage < CivilianEscapePresentationStage.EscapeRun);
+        }
+        if (civilianCityExitMarker != null)
+        {
+            civilianCityExitMarker.GetComponent<RectTransform>().anchoredPosition = civilianCityExitPoint;
+            civilianCityExitMarker.SetActive(civilianCityMapUnlocked &&
+                civilianRouteStage >= CivilianEscapePresentationStage.EscapeRun &&
+                civilianRouteStage < CivilianEscapePresentationStage.Completed);
+        }
         approximateArea.GetComponent<RectTransform>().anchoredPosition = officePoint;
         if (hasOfficeSearchArea)
         {
@@ -1242,12 +1321,13 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
 
     private void UpdateSearchRestrictionVisibility()
     {
-        bool borderVisible = hasSearchZone && (progress == null || !progress.HasMapFragment1);
+        bool borderVisible = hasSearchZone && !civilianCityMapUnlocked &&
+                             (progress == null || !progress.HasMapFragment1);
         if (rasterSearchZone != null) rasterSearchZone.gameObject.SetActive(borderVisible);
 
         // Fog remains active and is cut into independent neighborhood/office
         // segments by UpdateRasterMapMarkers as regions are discovered.
-        bool fogVisible = hasSearchZone;
+        bool fogVisible = hasSearchZone && !civilianCityMapUnlocked;
         for (int i = 0; i < rasterRestrictedFog.Count; i++)
             if (rasterRestrictedFog[i] != null)
                 rasterRestrictedFog[i].gameObject.SetActive(fogVisible && i < activeRasterFogCount);

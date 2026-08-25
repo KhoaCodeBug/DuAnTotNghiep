@@ -32,6 +32,10 @@ public class PlayerInteraction : NetworkBehaviour
     private bool hasSittingParameter;
     private bool presentationApplied;
     private bool driverPresentationApplied;
+    private const float HornHoldThreshold = 0.28f;
+    private bool hornPressPending;
+    private bool hornHoldSent;
+    private float hornPressedAt;
 
     private void Awake()
     {
@@ -54,11 +58,16 @@ public class PlayerInteraction : NetworkBehaviour
     private void Update()
     {
         if (!Object.HasInputAuthority) return;
-        if (VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
         PlayerSurvival survival = GetComponent<PlayerSurvival>();
-        if (survival != null && survival.IsSleepInputLocked) return;
-        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return;
-        if (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) return;
+        bool gameplayBlocked = VehicleRepairSkillCheckUI.BlocksGameplayInput ||
+                               (survival != null && survival.IsSleepInputLocked) ||
+                               (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) ||
+                               (QuestFlowUIPrototype.Instance != null &&
+                                QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) ||
+                               (UnityEngine.EventSystems.EventSystem.current != null &&
+                                UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject());
+        HandleHornInput(gameplayBlocked);
+        if (gameplayBlocked) return;
         CheckNearbyVehicle();
 
         if (NetworkIsInVehicle && NetworkIsVehicleDriver && Input.GetKeyDown(KeyCode.L))
@@ -87,6 +96,41 @@ public class PlayerInteraction : NetworkBehaviour
             if (nearbyVehicle == null) nearbyVehicle = FindClosestVehicleFallback();
             if (nearbyVehicle != null) RPC_RequestEnterVehicle(nearbyVehicle.Object);
         }
+    }
+
+    private void HandleHornInput(bool blocked)
+    {
+        VehicleControllerFusion vehicle = CurrentVehicleController;
+        bool canUseHorn = !blocked && NetworkIsInVehicle && NetworkIsVehicleDriver && vehicle != null;
+        if (!canUseHorn)
+        {
+            if (hornHoldSent && vehicle != null) vehicle.RequestHornHold(Object, false);
+            hornPressPending = false;
+            hornHoldSent = false;
+            return;
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            hornPressPending = true;
+            hornPressedAt = Time.unscaledTime;
+        }
+
+        if (hornPressPending && Input.GetMouseButton(0) &&
+            Time.unscaledTime - hornPressedAt >= HornHoldThreshold)
+        {
+            hornPressPending = false;
+            hornHoldSent = true;
+            vehicle.RequestHornHold(Object, true);
+        }
+
+        if (!Input.GetMouseButtonUp(0)) return;
+        if (hornHoldSent)
+            vehicle.RequestHornHold(Object, false);
+        else if (hornPressPending)
+            vehicle.RequestHornSingle(Object);
+        hornPressPending = false;
+        hornHoldSent = false;
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
