@@ -3,14 +3,8 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 
-[InitializeOnLoad]
 public static class AK47AudioTrimmer
 {
-    static AK47AudioTrimmer()
-    {
-        EditorApplication.delayCall += TrimAK47AudioFiles;
-    }
-
     [MenuItem("Tools/Trim AK47 Audio Files")]
     public static void TrimAK47AudioFiles()
     {
@@ -18,26 +12,33 @@ public static class AK47AudioTrimmer
         if (!Directory.Exists(folder)) return;
 
         // 1. Single shot clip: Trim leading silence AND trim after 1st shot (~0.33s duration)
-        TrimClip(folder + "/ak47_single_raw.ogg", folder + "/ak47_single.wav", 0.012f, 0.330f);
+        bool allSucceeded = TrimClip(
+            folder + "/ak47_single_raw.ogg", folder + "/ak47_single.wav", 0.012f, 0.330f);
 
         // 2. Full auto clip: Trim leading silence
-        TrimClip(folder + "/ak47_auto_raw.ogg", folder + "/ak47_auto.wav", 0.012f, 0f);
+        allSucceeded &= TrimClip(
+            folder + "/ak47_auto_raw.ogg", folder + "/ak47_auto.wav", 0.012f, 0f);
 
         // 3. Reloading clip: Trim leading silence
-        TrimClip(folder + "/ak47_reload_raw.ogg", folder + "/ak47_reload.wav", 0.012f, 0f);
+        allSucceeded &= TrimClip(
+            folder + "/ak47_reload_raw.ogg", folder + "/ak47_reload.wav", 0.012f, 0f);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("[AK47AudioTrimmer] ALL 3 AK47 AUDIO FILES TRIMMED & OPTIMIZED SUCCESSFULLY!");
+        if (allSucceeded)
+            Debug.Log("[AK47AudioTrimmer] ALL 3 AK47 AUDIO FILES TRIMMED & OPTIMIZED SUCCESSFULLY!");
+        else
+            Debug.LogWarning("[AK47AudioTrimmer] Some files could not be updated. See the warning above.");
     }
 
-    private static void TrimClip(string inputPath, string outputPath, float silenceThreshold, float maxDurationSec)
+    private static bool TrimClip(
+        string inputPath, string outputPath, float silenceThreshold, float maxDurationSec)
     {
         AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(inputPath);
         if (clip == null)
         {
             Debug.LogWarning($"[AK47AudioTrimmer] AudioClip not found at: {inputPath}");
-            return;
+            return false;
         }
 
         float[] samples = new float[clip.samples * clip.channels];
@@ -86,44 +87,81 @@ public static class AK47AudioTrimmer
         }
 
         string fullOutputPath = Path.Combine(Application.dataPath, outputPath.Replace("Assets/", ""));
-        SaveWavFile(fullOutputPath, trimmedSamples, clip.frequency, clip.channels);
+        try
+        {
+            // Unity may retain memory-mapped handles for imported audio. Release
+            // them before atomically replacing the generated WAV file.
+            AssetDatabase.ReleaseCachedFileHandles();
+            SaveWavFile(fullOutputPath, trimmedSamples, clip.frequency, clip.channels);
+        }
+        catch (IOException exception)
+        {
+            Debug.LogWarning(
+                $"[AK47AudioTrimmer] Could not update {outputPath}. " +
+                $"Stop audio preview/Play Mode and run Tools > Trim AK47 Audio Files again. " +
+                exception.Message);
+            return false;
+        }
 
         float newDuration = (float)(newSampleCount / clip.channels) / clip.frequency;
         Debug.Log($"[AK47AudioTrimmer] Processed {Path.GetFileName(outputPath)}: Trimmed {trimmedLeadingSec:F3}s leading silence. Original: {originalDuration:F3}s -> New: {newDuration:F3}s");
+        return true;
     }
 
     private static void SaveWavFile(string filePath, float[] samples, int frequency, int channels)
     {
-        using (FileStream fs = new FileStream(filePath, FileMode.Create))
-        using (BinaryWriter writer = new BinaryWriter(fs))
+        // Keep the temporary file on the project's drive because File.Replace
+        // requires source and destination to reside on the same volume.
+        string temporaryDirectory = Path.Combine(
+            Directory.GetParent(Application.dataPath).FullName,
+            "Library", "AK47AudioTrimmerTemp");
+        Directory.CreateDirectory(temporaryDirectory);
+        string temporaryPath = Path.Combine(
+            temporaryDirectory,
+            $"{Path.GetFileNameWithoutExtension(filePath)}_{System.Guid.NewGuid():N}.wav");
+
+        try
         {
-            int sampleCount = samples.Length;
-            int byteRate = frequency * channels * 2;
-
-            // RIFF header
-            writer.Write(new char[4] { 'R', 'I', 'F', 'F' });
-            writer.Write(36 + sampleCount * 2);
-            writer.Write(new char[4] { 'W', 'A', 'V', 'E' });
-
-            // fmt subchunk
-            writer.Write(new char[4] { 'f', 'm', 't', ' ' });
-            writer.Write(16);
-            writer.Write((short)1); // PCM
-            writer.Write((short)channels);
-            writer.Write(frequency);
-            writer.Write(byteRate);
-            writer.Write((short)(channels * 2));
-            writer.Write((short)16);
-
-            // data subchunk
-            writer.Write(new char[4] { 'd', 'a', 't', 'a' });
-            writer.Write(sampleCount * 2);
-
-            for (int i = 0; i < sampleCount; i++)
+            using (FileStream fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write))
+            using (BinaryWriter writer = new BinaryWriter(fs))
             {
-                short intSample = (short)Mathf.Clamp(samples[i] * 32767f, -32768f, 32767f);
-                writer.Write(intSample);
+                int sampleCount = samples.Length;
+                int byteRate = frequency * channels * 2;
+
+                // RIFF header
+                writer.Write(new char[4] { 'R', 'I', 'F', 'F' });
+                writer.Write(36 + sampleCount * 2);
+                writer.Write(new char[4] { 'W', 'A', 'V', 'E' });
+
+                // fmt subchunk
+                writer.Write(new char[4] { 'f', 'm', 't', ' ' });
+                writer.Write(16);
+                writer.Write((short)1); // PCM
+                writer.Write((short)channels);
+                writer.Write(frequency);
+                writer.Write(byteRate);
+                writer.Write((short)(channels * 2));
+                writer.Write((short)16);
+
+                // data subchunk
+                writer.Write(new char[4] { 'd', 'a', 't', 'a' });
+                writer.Write(sampleCount * 2);
+
+                for (int i = 0; i < sampleCount; i++)
+                {
+                    short intSample = (short)Mathf.Clamp(samples[i] * 32767f, -32768f, 32767f);
+                    writer.Write(intSample);
+                }
             }
+
+            if (File.Exists(filePath))
+                File.Replace(temporaryPath, filePath, null);
+            else
+                File.Move(temporaryPath, filePath);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
         }
     }
 }

@@ -18,13 +18,30 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         new Vector2(-3.6f, 0.2f)
     };
 
+    // This follows the visible engine hood on IntroCar_UpperLeft. The gameplay
+    // interaction polygon remains invisible and can stay generous for input;
+    // only this small contour is presented to the player.
+    private static readonly Vector2[] DefaultHoodHighlightLocalPoints =
+    {
+        new Vector2(-4.76f, 1.67f),
+        new Vector2(-2.19f, 2.78f),
+        new Vector2(-1.57f, 2.15f),
+        new Vector2(-3.73f, 1.18f),
+        new Vector2(-4.79f, 1.32f)
+    };
+
     public static BrokenArrivalCar Instance { get; private set; }
 
     [Header("Front inspection zone")]
     [Tooltip("Optional authorable polygon. Assign one here, or create a child named VungKiemTraXe.")]
     [SerializeField] private PolygonCollider2D inspectionPolygon;
+    [Tooltip("Visual-only hood contour. Edit its collider points in Prefab Mode; it is disabled at runtime.")]
+    [SerializeField] private PolygonCollider2D hoodHighlightPolygon;
     [SerializeField, Min(0.2f)] private float inspectionDuration = 1.6f;
-    [SerializeField, Min(0.01f)] private float zoneLineWidth = 0.06f;
+    [SerializeField, Min(0.005f)] private float zoneLineWidth = 0.005f;
+    [SerializeField, Min(0.1f)] private float zonePulseSpeed = 1.2f;
+    [SerializeField, Range(0f, 1f)] private float zonePulseMinAlpha = 0.3f;
+    [SerializeField, Range(0f, 1f)] private float zonePulseMaxAlpha = 0.95f;
 
     private Coroutine inspectionRoutine;
     private ArrivalCarInspectionUI inspectionUI;
@@ -53,6 +70,7 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         bodyCollider.offset = new Vector2(0f, -0.35f);
 
         ResolveInspectionPolygon();
+        ResolveHoodHighlightPolygon();
         carRenderer = GetComponent<SpriteRenderer>();
         inspectionUI = GetComponent<ArrivalCarInspectionUI>();
         if (inspectionUI == null) inspectionUI = gameObject.AddComponent<ArrivalCarInspectionUI>();
@@ -176,13 +194,17 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         frontZoneLine.useWorldSpace = true;
         frontZoneLine.loop = true;
         frontZoneLine.positionCount = 0;
-        frontZoneLine.startWidth = zoneLineWidth;
-        frontZoneLine.endWidth = zoneLineWidth;
+        // Prefab Mode may retain an older serialized width while the contour
+        // points are being hand-edited. Cap the runtime stroke independently
+        // so saving those points can never make the hood outline thick again.
+        float effectiveLineWidth = Mathf.Min(zoneLineWidth, 0.005f);
+        frontZoneLine.startWidth = effectiveLineWidth;
+        frontZoneLine.endWidth = effectiveLineWidth;
         frontZoneLine.numCornerVertices = 2;
         frontZoneLine.sortingOrder = 40;
         Shader shader = Shader.Find("Sprites/Default");
         if (shader != null) frontZoneLine.material = new Material(shader);
-        Color green = new Color(0.22f, 1f, 0.36f, 0.92f);
+        Color green = new Color(0.22f, 1f, 0.36f, zonePulseMaxAlpha);
         frontZoneLine.startColor = green;
         frontZoneLine.endColor = green;
         UpdateFrontZoneLinePositions();
@@ -191,22 +213,45 @@ public sealed class BrokenArrivalCar : MonoBehaviour
 
     private void UpdateFrontZoneLinePositions()
     {
-        if (frontZoneLine == null || inspectionPolygon == null || inspectionPolygon.pathCount == 0) return;
+        if (frontZoneLine == null) return;
 
-        Vector2[] points = inspectionPolygon.GetPath(0);
-        frontZoneLine.positionCount = points.Length;
-        for (int i = 0; i < points.Length; i++)
+        if (hoodHighlightPolygon != null && hoodHighlightPolygon.pathCount > 0)
         {
-            Vector2 localPoint = points[i] + inspectionPolygon.offset;
-            frontZoneLine.SetPosition(i, inspectionPolygon.transform.TransformPoint(localPoint));
+            Vector2[] points = hoodHighlightPolygon.GetPath(0);
+            frontZoneLine.positionCount = points.Length;
+            for (int i = 0; i < points.Length; i++)
+            {
+                Vector2 localPoint = points[i] + hoodHighlightPolygon.offset;
+                frontZoneLine.SetPosition(i, hoodHighlightPolygon.transform.TransformPoint(localPoint));
+            }
+            return;
         }
+
+        frontZoneLine.positionCount = DefaultHoodHighlightLocalPoints.Length;
+        for (int i = 0; i < DefaultHoodHighlightLocalPoints.Length; i++)
+            frontZoneLine.SetPosition(i, transform.TransformPoint(DefaultHoodHighlightLocalPoints[i]));
     }
 
     private void SetFrontZoneVisible(bool visible)
     {
         if (frontZoneLine == null) return;
-        if (visible) UpdateFrontZoneLinePositions();
+        if (visible)
+        {
+            UpdateFrontZoneLinePositions();
+            UpdateFrontZonePulse();
+        }
         frontZoneLine.enabled = visible;
+    }
+
+    private void UpdateFrontZonePulse()
+    {
+        float pulse = 0.5f + 0.5f * Mathf.Sin(
+            Time.unscaledTime * zonePulseSpeed * Mathf.PI * 2f);
+        float minAlpha = Mathf.Min(zonePulseMinAlpha, zonePulseMaxAlpha);
+        float maxAlpha = Mathf.Max(zonePulseMinAlpha, zonePulseMaxAlpha);
+        Color green = new Color(0.22f, 1f, 0.36f, Mathf.Lerp(minAlpha, maxAlpha, pulse));
+        frontZoneLine.startColor = green;
+        frontZoneLine.endColor = green;
     }
 
     private void OnGUI()
@@ -214,6 +259,11 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         if (driveVehicleActivated || LocalGameplayUIState.BlocksWorldInteractionHints) return;
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady || inspectionUI == null || inspectionUI.IsOpen) return;
+
+        // Once the first inspection has taught this interaction, the hood
+        // highlight alone is enough. E still opens the hood, but the repeated
+        // instruction card no longer competes with the world presentation.
+        if (manager.IsArrivalCarInspected) return;
 
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         if (player == null || !CanInspect(player.transform.position) || inspectionRoutine != null) return;
@@ -260,9 +310,7 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         prompt.normal.textColor = accent;
         Rect textRect = new Rect(promptRect.x + 14f, promptRect.y + 4f,
             promptRect.width - 28f, promptRect.height - 8f);
-        GUI.Label(textRect, manager.IsArrivalCarInspected
-            ? "NHẤN [E]\nMỞ NẮP XE"
-            : "GIỮ [E]\nKIỂM TRA XE", prompt);
+        GUI.Label(textRect, "GIỮ [E]\nKIỂM TRA XE", prompt);
     }
 
     private static void DrawGuiLine(Vector2 start, Vector2 end, Color color, float width)
@@ -321,6 +369,26 @@ public sealed class BrokenArrivalCar : MonoBehaviour
 
         inspectionPolygon.isTrigger = true;
         inspectionPolygon.enabled = true;
+    }
+
+    private void ResolveHoodHighlightPolygon()
+    {
+        if (hoodHighlightPolygon == null)
+        {
+            PolygonCollider2D[] childPolygons = GetComponentsInChildren<PolygonCollider2D>(true);
+            for (int i = 0; i < childPolygons.Length; i++)
+            {
+                if (childPolygons[i].gameObject.name != "HoodHighlightShape") continue;
+                hoodHighlightPolygon = childPolygons[i];
+                break;
+            }
+        }
+
+        if (hoodHighlightPolygon == null) return;
+        hoodHighlightPolygon.isTrigger = true;
+        // This component is an authoring handle only. Runtime interaction keeps
+        // using inspectionPolygon, while the LineRenderer reads these points.
+        hoodHighlightPolygon.enabled = false;
     }
 
     private static bool IsInspectionZoneName(string objectName)
