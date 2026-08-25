@@ -313,7 +313,7 @@ public class DevCheatManager : MonoBehaviour
             new Vector2(0, -84), new Vector2(-24, 38));
 
         TextMeshProUGUI t1Txt, t2Txt, t3Txt;
-        MakeButton(tabHeaderGO.transform, "⚡ CHEATS", new Color32(30, 41, 59, 255), () => SelectTab("CHEATS"),
+        MakeButton(tabHeaderGO.transform, "CHEATS", new Color32(30, 41, 59, 255), () => SelectTab("CHEATS"),
             new Vector2(0.00f, 0f), new Vector2(0.32f, 1f), out t1Txt, out tabBtnCheatsImg);
 
         MakeButton(tabHeaderGO.transform, "🎒 BACKPACK TEST", new Color32(30, 41, 59, 255), () => SelectTab("BACKPACK"),
@@ -336,9 +336,9 @@ public class DevCheatManager : MonoBehaviour
         itemsTabRoot = CreateScrollTab("TabContent_Items", contentArea.transform, out itemsTabContent);
 
         // --- POPULATE TAB 1: PLAYER CHEATS ---
-        AddSectionHeader(cheatsTabContent.transform, "⚡ PLAYER QUICK CHEATS");
+        AddSectionHeader(cheatsTabContent.transform, "PLAYER QUICK CHEATS");
         AddGodModeRow(cheatsTabContent.transform);
-        AddActionRow(cheatsTabContent.transform, "❤️ RESTORE 100% HP & STATUS", "HEAL NOW", new Color32(16, 185, 129, 255), () => {
+        AddActionRow(cheatsTabContent.transform, "RESTORE 100% HP & STATUS", "HEAL NOW", new Color32(16, 185, 129, 255), () => {
             CachePlayer();
             if (cachedHealth != null && cachedHealth.Object != null && cachedHealth.Object.IsValid)
             {

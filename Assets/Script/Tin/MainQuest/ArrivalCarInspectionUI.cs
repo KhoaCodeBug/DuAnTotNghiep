@@ -218,7 +218,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (built) return;
         built = true;
 
-        font = Resources.Load<TMP_FontAsset>("Fonts/VietnameseDynamic SDF") ?? TMP_Settings.defaultFontAsset;
+        font = GameLocalization.GetRuntimeFont();
         canvasObject = new GameObject("Arrival Car Inspection Canvas", typeof(RectTransform), typeof(Canvas),
             typeof(CanvasScaler), typeof(GraphicRaycaster));
         Canvas canvas = canvasObject.GetComponent<Canvas>();

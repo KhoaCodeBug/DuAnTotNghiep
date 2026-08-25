@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -7,10 +8,148 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
+using UnityEngine.Tilemaps;
 using UnityEngine.UI;
 
 public sealed class MainMenuToMilitaryQuestFlowTests
 {
+    [UnityTest]
+    [Timeout(60000)]
+    public IEnumerator HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor()
+    {
+        yield return ShutdownExistingRunners();
+        AsyncOperation loadMain = SceneManager.LoadSceneAsync("Main");
+        while (!loadMain.isDone) yield return null;
+        yield return null;
+
+        Type controllerType = Type.GetType("HospitalRadioRoomController, Assembly-CSharp");
+        Assert.That(controllerType, Is.Not.Null);
+        Component controller = UnityEngine.Object.FindFirstObjectByType(controllerType) as Component;
+        Assert.That(controller, Is.Not.Null, "Main scene must contain the H1 radio-room controller.");
+
+        Type mainQuestType = Type.GetType("MainQuestManager, Assembly-CSharp");
+        Assert.That(mainQuestType, Is.Not.Null);
+        Component mainQuest = UnityEngine.Object.FindFirstObjectByType(mainQuestType) as Component;
+        Assert.That(mainQuest, Is.Not.Null);
+        FieldInfo restoreDuration = mainQuestType.GetField("hospitalRadioRestoreDuration",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        FieldInfo spawnDelay = mainQuestType.GetField("hospitalRadioZombieSpawnDelay",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(restoreDuration, Is.Not.Null);
+        Assert.That((float)restoreDuration.GetValue(mainQuest), Is.EqualTo(14f).Within(0.001f));
+        Assert.That((float)spawnDelay.GetValue(mainQuest), Is.EqualTo(0.25f).Within(0.001f));
+        Assert.That(GameObject.Find("HospitalQuest_ZombieEntry_A"), Is.Not.Null);
+        Assert.That(GameObject.Find("HospitalQuest_ZombieEntry_B"), Is.Not.Null);
+
+        GameObject environmentStory = GameObject.Find("HospitalQuest_EnvironmentalStory");
+        Assert.That(environmentStory, Is.Not.Null,
+            "H4 must keep the hospital breadcrumb corpses in the authored scene.");
+        Assert.That(environmentStory.transform.childCount, Is.EqualTo(4));
+        for (int i = 0; i < environmentStory.transform.childCount; i++)
+        {
+            GameObject corpse = environmentStory.transform.GetChild(i).gameObject;
+            Assert.That(corpse.GetComponent<SpriteRenderer>(), Is.Not.Null);
+            Assert.That(corpse.GetComponent<Collider2D>(), Is.Null,
+                "Environmental corpses are static story props and must not block movement.");
+            Assert.That(corpse.GetComponents<MonoBehaviour>(), Is.Empty,
+                "Environmental corpses must not own AI, interaction, networking or loot behaviour.");
+        }
+
+        Type clueType = Type.GetType("HospitalQuestClueInteractionPoint, Assembly-CSharp");
+        Assert.That(clueType, Is.Not.Null);
+        GameObject shiftLog = GameObject.Find("HospitalQuest_ShiftLog");
+        GameObject shiftLog2 = GameObject.Find("HospitalQuest_ShiftLog2");
+        Assert.That(shiftLog, Is.Not.Null);
+        Assert.That(shiftLog2, Is.Not.Null);
+        Component shiftLogPoint = shiftLog.GetComponent(clueType);
+        Component shiftLog2Point = shiftLog2.GetComponent(clueType);
+        Assert.That(shiftLogPoint, Is.Not.Null);
+        Assert.That(shiftLog2Point, Is.Not.Null);
+
+        const BindingFlags clueFields = BindingFlags.Instance | BindingFlags.NonPublic;
+        FieldInfo interactionDistance = clueType.GetField("interactionDistance", clueFields);
+        Assert.That(interactionDistance, Is.Not.Null);
+        Assert.That((float)interactionDistance.GetValue(shiftLogPoint), Is.EqualTo(1.5f).Within(0.001f),
+            "Reception ShiftLog must be reachable from the public side of the deep counter.");
+        Assert.That((float)interactionDistance.GetValue(shiftLog2Point), Is.EqualTo(0.85f).Within(0.001f),
+            "Only the deep reception counter should use the extended interaction distance.");
+        FieldInfo clueZoneField = clueType.GetField("interactionZone", clueFields);
+        Assert.That(clueZoneField?.GetValue(shiftLogPoint), Is.TypeOf<PolygonCollider2D>());
+        Assert.That(clueZoneField?.GetValue(shiftLog2Point), Is.TypeOf<PolygonCollider2D>());
+        Assert.That(clueZoneField.GetValue(shiftLogPoint), Is.Not.SameAs(clueZoneField.GetValue(shiftLog2Point)),
+            "Every hospital interaction point must own an independently editable polygon.");
+
+        Type keyLootType = Type.GetType("HospitalRadioKeyLootPoint, Assembly-CSharp");
+        Assert.That(keyLootType, Is.Not.Null);
+        UnityEngine.Object[] allKeyLoot = Resources.FindObjectsOfTypeAll(keyLootType);
+        HashSet<int> keyLootIds = new HashSet<int>();
+        int sceneKeyLootCount = 0;
+        PropertyInfo keyInteractionId = keyLootType.GetProperty("InteractionId");
+        PropertyInfo keyInteractionZone = keyLootType.GetProperty("InteractionZone");
+        for (int i = 0; i < allKeyLoot.Length; i++)
+        {
+            Component point = allKeyLoot[i] as Component;
+            if (point == null || !point.gameObject.scene.IsValid()) continue;
+            sceneKeyLootCount++;
+            int id = (int)keyInteractionId.GetValue(point);
+            PolygonCollider2D zone = keyInteractionZone.GetValue(point) as PolygonCollider2D;
+            Assert.That(id, Is.Not.EqualTo(0));
+            Assert.That(keyLootIds.Add(id), Is.True, "Every KeyLoot must have a unique stable network ID.");
+            Assert.That(zone, Is.Not.Null);
+            Assert.That(zone.transform.parent, Is.SameAs(point.transform));
+            Assert.That(zone.isTrigger, Is.True);
+        }
+        Assert.That(sceneKeyLootCount, Is.EqualTo(6));
+
+        PolygonCollider2D[] polygons = UnityEngine.Object.FindObjectsByType<PolygonCollider2D>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+        int hospitalInteractionZoneCount = 0;
+        for (int i = 0; i < polygons.Length; i++)
+            if (polygons[i] != null && polygons[i].name == "InteractionZone")
+                hospitalInteractionZoneCount++;
+        Assert.That(hospitalInteractionZoneCount, Is.EqualTo(10),
+            "ShiftLog, ShiftLog2, Door, Radio and all six KeyLoot points need separate polygons.");
+
+        Type legacyPointType = Type.GetType("MainQuestSearchCabinet, Assembly-CSharp");
+        Assert.That(legacyPointType, Is.Not.Null);
+        UnityEngine.Object[] legacyPoints = Resources.FindObjectsOfTypeAll(legacyPointType);
+        for (int i = 0; i < legacyPoints.Length; i++)
+        {
+            Behaviour point = legacyPoints[i] as Behaviour;
+            if (point != null && point.gameObject.scene.IsValid())
+                Assert.That(point.enabled, Is.False,
+                    "Temporary dispatch/radio/records-cabinet interactions must be disabled in H2.");
+        }
+
+        const BindingFlags fields = BindingFlags.Instance | BindingFlags.NonPublic;
+        Tilemap tilemap = controllerType.GetField("doorTilemap", fields)?.GetValue(controller) as Tilemap;
+        object cellValue = controllerType.GetField("doorCell", fields)?.GetValue(controller);
+        TileBase closedTile = controllerType.GetField("closedDoorTile", fields)?.GetValue(controller) as TileBase;
+        TileBase openTile = controllerType.GetField("openDoorTile", fields)?.GetValue(controller) as TileBase;
+        Collider2D blocker = controllerType.GetField("doorBlocker", fields)?.GetValue(controller) as Collider2D;
+        MethodInfo applyState = controllerType.GetMethod("ApplyState", fields);
+
+        Assert.That(tilemap, Is.Not.Null);
+        Assert.That(cellValue, Is.TypeOf<Vector3Int>());
+        Assert.That(closedTile, Is.Not.Null);
+        Assert.That(openTile, Is.Not.Null);
+        Assert.That(blocker, Is.Not.Null);
+        Assert.That(applyState, Is.Not.Null);
+        Vector3Int cell = (Vector3Int)cellValue;
+
+        Assert.That(tilemap.GetTile(cell), Is.SameAs(closedTile),
+            "Awake must close the authored open door before the first rendered frame.");
+        Assert.That(blocker.enabled, Is.True, "Closed door must have a solid blocker.");
+
+        applyState.Invoke(controller, new object[] { true, true });
+        Assert.That(tilemap.GetTile(cell), Is.SameAs(openTile));
+        Assert.That(blocker.enabled, Is.False, "Opening must remove the physical blocker.");
+
+        applyState.Invoke(controller, new object[] { false, true });
+        Assert.That(tilemap.GetTile(cell), Is.SameAs(closedTile));
+        Assert.That(blocker.enabled, Is.True);
+    }
+
     [UnityTest]
     [Timeout(120000)]
     public IEnumerator RoadsideRepairTestStationSpawnsOnLockedPoliceCarNearArrival()
@@ -739,15 +878,62 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That((int)ReadProperty(main, "RouteClueCount"), Is.EqualTo(3));
         Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("LocateOffice"));
 
-        // B2–B3: hospital marker path; it deliberately does not require a
-        // LootContainer until the authored hospital props are ready.
+        // H5 canonical path: arrive → ShiftLog → ShiftLog2 → randomized shared key → door.
         advanceStory.Invoke(main, null);
         Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("FindCityMap"));
+        Assert.That(ReadProperty(main, "CurrentHospitalInvestigationStage").ToString(),
+            Is.EqualTo("FindShiftLog"));
         advanceStory.Invoke(main, null);
+        Assert.That(ReadProperty(main, "CurrentHospitalInvestigationStage").ToString(),
+            Is.EqualTo("FindShiftLog2"));
         advanceStory.Invoke(main, null);
+        Assert.That(ReadBool(main, "HasHospitalRadioKeyState"), Is.False,
+            "ShiftLog2 must reveal a random key location instead of granting the key immediately.");
+        Assert.That(ReadProperty(main, "CurrentHospitalInvestigationStage").ToString(),
+            Is.EqualTo("FindRadioKey"));
+        Assert.That((int)ReadProperty(main, "SelectedHospitalRadioKeyLootIdState"), Is.Not.EqualTo(0));
+        advanceStory.Invoke(main, null);
+        Assert.That(ReadBool(main, "HasHospitalRadioKeyState"), Is.True,
+            "Collecting the selected KeyLoot must grant one replicated team key.");
+        Assert.That(ReadProperty(main, "CurrentHospitalInvestigationStage").ToString(),
+            Is.EqualTo("UnlockRadioRoom"));
+        advanceStory.Invoke(main, null);
+        Assert.That(ReadProperty(main, "CurrentHospitalInvestigationStage").ToString(),
+            Is.EqualTo("RadioReady"));
+        Assert.That(ReadBool(main, "IsHospitalRadioDoorOpenState"), Is.True);
+        Assert.That(ReadBool(main, "IsCityMapUnlocked"), Is.False,
+            "H2 must stop at RadioReady; Radio story and military-map recovery belong to H3.");
+
+        // Three further F6 presses exercise the H4 milestone path: each of the
+        // first two stages release the operator and, on Easy, spawn 3 zombies at A + 3 at B.
+        advanceStory.Invoke(main, null);
+        float firstThreatDeadline = Time.realtimeSinceStartup + 4f;
+        while ((int)ReadProperty(main, "HospitalRadioThreatSpawnCountState") < 6 &&
+               Time.realtimeSinceStartup < firstThreatDeadline)
+            yield return null;
+        Assert.That((int)ReadProperty(main, "HospitalRadioCheckpointCountState"), Is.EqualTo(1));
+        Assert.That((int)ReadProperty(main, "HospitalRadioThreatSpawnCountState"), Is.EqualTo(6));
+        Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("FindCityMap"));
+        Assert.That(ReadBool(main, "HasHospitalRadioOperator"), Is.False);
+
+        advanceStory.Invoke(main, null);
+        float secondThreatDeadline = Time.realtimeSinceStartup + 4f;
+        while ((int)ReadProperty(main, "HospitalRadioThreatSpawnCountState") < 12 &&
+               Time.realtimeSinceStartup < secondThreatDeadline)
+            yield return null;
+        Assert.That((int)ReadProperty(main, "HospitalRadioCheckpointCountState"), Is.EqualTo(2));
+        Assert.That((int)ReadProperty(main, "HospitalRadioThreatSpawnCountState"), Is.EqualTo(12));
+        Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("FindCityMap"));
+        Assert.That(ReadBool(main, "HasHospitalRadioOperator"), Is.False);
+
         advanceStory.Invoke(main, null);
         Assert.That(ReadProperty(main, "CurrentStage").ToString(), Is.EqualTo("CityMapFound"));
         Assert.That(ReadBool(main, "IsCityMapUnlocked"), Is.True);
+        Assert.That(ReadBool(main, "IsHospitalRadioRecoveredState"), Is.True);
+        Assert.That((float)ReadProperty(main, "HospitalRadioRestoreNormalized"), Is.EqualTo(1f));
+        Assert.That((int)ReadProperty(main, "HospitalRadioCheckpointCountState"), Is.EqualTo(3));
+        Assert.That(ReadBool(main, "HasHospitalRadioOperator"), Is.False,
+            "Completing H3 must release the shared Radio operator slot.");
         Assert.That(ReadProperty(main, "LockedEscapeRoute").ToString(), Is.EqualTo("None"),
             "The second tracking choice must not lock an ending.");
 
@@ -758,6 +944,8 @@ public sealed class MainMenuToMilitaryQuestFlowTests
                Time.realtimeSinceStartup < militaryMarkerDeadline)
             yield return null;
         Assert.That(journal, Is.Not.Null);
+        Assert.That(journal.CurrentHospitalRadioTranscript, Does.Contain("không quay lại"));
+        Assert.That(journal.CurrentHospitalRadioTranscript, Does.Contain("BRAVO–BẮC"));
         Assert.That(journal.IsMapMilitaryDestinationVisible, Is.True,
             "Fragment 2 must replace the active hospital destination with the military-base marker.");
 

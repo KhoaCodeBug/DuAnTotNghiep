@@ -591,12 +591,19 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         signature = signature * 397 ^ (manager.IsArrivalCarRepaired ? 1 : 0);
         signature = signature * 397 ^ manager.LockedEscapeRouteValue;
         signature = signature * 397 ^ manager.NetworkQuestStage;
+        signature = signature * 397 ^ manager.NetworkHospitalInvestigationStage;
+        signature = signature * 397 ^ (manager.HasHospitalRadioKeyState ? 1 : 0);
+        signature = signature * 397 ^ manager.SelectedHospitalRadioKeyLootIdState;
+        signature = signature * 397 ^ Mathf.RoundToInt(manager.HospitalRadioRestoreNormalized * 100f);
+        signature = signature * 397 ^ manager.HospitalRadioCheckpointCountState;
         if (signature != lastAuthoritativeSnapshotSignature)
         {
             questUI?.ApplyAuthoritativeSnapshot(manager.SearchedHouseMask, manager.RouteClueMask,
                 manager.IsOfficeDiscovered, mapFragment2Found, mapFragment2Found,
                 hasAppliedInitialAuthoritativeSnapshot, manager.IsArrivalCarInspected, manager.IsArrivalCarRepaired,
-                manager.ArrivalCarRepairMask, manager.LockedEscapeRoute, manager.NetworkQuestStage);
+                manager.ArrivalCarRepairMask, manager.LockedEscapeRoute, manager.NetworkQuestStage,
+                manager.NetworkHospitalInvestigationStage, manager.HospitalRadioRestoreNormalized,
+                manager.HospitalRadioCheckpointCountState);
             lastAuthoritativeSnapshotSignature = signature;
             hasAppliedInitialAuthoritativeSnapshot = true;
         }

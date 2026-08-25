@@ -167,9 +167,9 @@ public sealed class MilitaryEscapeVehicleRepair : MonoBehaviour
     }
 
     private string GetPartStatus() =>
-        $"Ắc quy {(manager.HasBatteryInstalled ? "✓" : "□")}  " +
-        $"Nhiên liệu {(manager.HasFuelInstalled ? "✓" : "□")}  " +
-        $"Bộ sửa {(manager.HasRepairKitInstalled ? "✓" : "□")}";
+        $"Ắc quy {(manager.HasBatteryInstalled ? "■" : "□")}  " +
+        $"Nhiên liệu {(manager.HasFuelInstalled ? "■" : "□")}  " +
+        $"Bộ sửa {(manager.HasRepairKitInstalled ? "■" : "□")}";
 
     private bool IsLocalPlayerNear()
     {

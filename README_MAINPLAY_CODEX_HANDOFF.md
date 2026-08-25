@@ -2,6 +2,20 @@
 
 Đây là file bàn giao chính dành cho người pull nhánh về tiếp tục phát triển. Tài liệu tổng kết gameplay sửa xe, flow Tuyến B, các quyết định thiết kế đã chốt, phần đang tạm hoãn và cách kiểm tra trạng thái hiện tại.
 
+## Addendum bệnh viện H1–H5 — 2026-08-25
+
+- Flow canonical hiện là `ShiftLog → ShiftLog2 → KeyLoot ngẫu nhiên/shared key → cửa Radio → khôi phục tín hiệu 14 giây/3 chặng → bản ghi bệnh viện → Mảnh bản đồ 2 → căn cứ phía Bắc`; không còn Tủ hồ sơ.
+- Scene có 6 `KeyLoot` candidate. Host chọn một stable ID, replicate cho Client/late join; chỉ điểm được chọn tương tác được. Có thể duplicate bất kỳ KeyLoot hiện tại để mở rộng danh sách.
+- `ShiftLog`, `ShiftLog2`, sáu KeyLoot, Door và Radio có tổng cộng 10 child `InteractionZone`, mỗi child chứa Polygon riêng để người thiết kế Edit Collider bằng tay. Prompt local và xác thực Host dùng chung Polygon.
+- Tiến độ Radio do State Authority giữ, chỉ một operator; thả E/rời vùng giữ tiến độ và người khác tiếp tục được. Người ở xa không bị ép UI/audio.
+- Chặng 1 và 2 tự dừng, phát nhiễu `2,7 giây`; mỗi chặng sinh tại mỗi anchor lần lượt Dễ `3`, Thường `4`, Hardcore `5`, cách nhau `0,25 giây`. Không có kill gate và chặng 3 không sinh thêm.
+- Bốn xác zombie tĩnh chỉ làm breadcrumb môi trường, không collider, AI, networking, interaction hoặc loot.
+- QA tự động chốt H5: toàn bộ EditMode `96/96`; hai PlayMode trọng tâm scene/regression `2/2`. Regression Easy ghi nhận selected KeyLoot authoritative, shared key chỉ có sau bước loot, spawn counter `6 → 12`, rồi chặng 3 mới hoàn tất. Full PlayMode toàn project đạt `4/5`; test xe cảnh sát cũ còn fail vì scene hiện không lưu fixture `ViTriXeTest`/`VungKiemTraXeCanhSat`, ngoài phạm vi H5.
+- Transcript đầy đủ được lưu trong Nhật ký; click thẻ phần thưởng ở phase chưa tới căn cứ để đọc lại. Bản ghi không khẳng định căn cứ còn người sống.
+- Cue05–08 dùng nội dung canonical mới trong khi chờ thu bốn voice thay thế (Cue05 subtitle; Cue06–08 subtitle + static). Cue09 đã có bản cắt sạch `09_MilitaryRouteRevealed_Clean.mp3` và phát sau cinematic, trước bảng chọn theo dõi lần hai.
+- QA tự động H3: compile sạch; `49/49` EditMode liên quan, PlayMode scene `1/1`, regression MainMenu → Ending B `1/1`.
+- Kế hoạch tiếp theo nằm trong `NEXT_SESSION_MILITARY_FINALE_PLAN.md`: thảo luận/chốt thiết kế finale căn cứ quân sự trước khi code.
+
 ## Đọc nhanh sau khi pull — cập nhật 2026-08-24
 
 1. Mở project bằng Unity `6000.0.69f1`.

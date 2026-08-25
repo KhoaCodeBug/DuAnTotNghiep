@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 /// <summary>Client-local language service. Network messages should carry keys/data, not translated text.</summary>
 public static class GameLocalization
@@ -9,6 +10,8 @@ public static class GameLocalization
     public enum Language { English = 0, Vietnamese = 1 }
 
     private const string PreferenceKey = "GameLanguage";
+    private const string StaticVietnameseFontResourcePath = "Fonts/Vietnamese Static SDF";
+    private static TMP_FontAsset staticVietnameseFont;
     public static event Action LanguageChanged;
     public static Language Current { get; private set; } = ReadInitialLanguage();
     public static bool IsVietnamese => Current == Language.Vietnamese;
@@ -157,21 +160,21 @@ public static class GameLocalization
         { "vehicle.seat.status", new[] {
             "SEAT {0} — {1}   |   SHIFT+1-4: SEAT   |   SPACE: BRAKE   |   F: EXIT",
             "GHẾ {0} — {1}   |   SHIFT+1-4: ĐỔI GHẾ   |   SPACE: PHANH   |   F: XUỐNG XE" } },
-        { "difficulty.easy.title", new[] { "★ EASY MODE ★", "★ CHẾ ĐỘ DỄ ★" } },
+        { "difficulty.easy.title", new[] { "* EASY MODE *", "* CHẾ ĐỘ DỄ *" } },
         { "difficulty.easy.stats", new[] {
             "<color=#99FF99>ZOMBIE DENSITY:</color> Low (-50% Spawn Rate)\n<color=#99FF99>RESOURCES:</color> Abundant (Loot rate 150%)\n<color=#99FF99>DAMAGE TAKEN:</color> Reduced (-30% Damage)\n<color=#99FF99>STARTING GEAR:</color> Pistol + Ammo & Canned Food\n<color=#99FF99>SURVIVAL RATE:</color> Very High (90%)",
             "<color=#99FF99>MẬT ĐỘ ZOMBIE:</color> Thấp (-50% tần suất xuất hiện)\n<color=#99FF99>TÀI NGUYÊN:</color> Dồi dào (tỉ lệ loot 150%)\n<color=#99FF99>SÁT THƯƠNG NHẬN:</color> Giảm (-30% sát thương)\n<color=#99FF99>TRANG BỊ ĐẦU:</color> Súng lục + đạn và đồ hộp\n<color=#99FF99>TỈ LỆ SINH TỒN:</color> Rất cao (90%)" } },
         { "difficulty.easy.desc", new[] {
             "<b>OVERVIEW:</b>\nZombie spawn count is reduced. Ideal for exploring, gathering resources, and learning basic survival mechanics without heavy pressure.",
             "<b>TỔNG QUAN:</b>\nSố zombie xuất hiện được giảm. Phù hợp để khám phá, thu thập tài nguyên và làm quen cơ chế sinh tồn mà không chịu quá nhiều áp lực." } },
-        { "difficulty.normal.title", new[] { "✦ SURVIVAL MODE ✦", "✦ CHẾ ĐỘ SINH TỒN ✦" } },
+        { "difficulty.normal.title", new[] { "• SURVIVAL MODE •", "• CHẾ ĐỘ SINH TỒN •" } },
         { "difficulty.normal.stats", new[] {
             "<color=#FFFF99>ZOMBIE DENSITY:</color> Standard (100% Spawn Rate)\n<color=#FFFF99>RESOURCES:</color> Balanced distribution\n<color=#FFFF99>DAMAGE TAKEN:</color> Normal (100% Damage)\n<color=#FFFF99>STARTING GEAR:</color> Flashlight & Bandage\n<color=#FFFF99>SURVIVAL RATE:</color> Balanced (50%)",
             "<color=#FFFF99>MẬT ĐỘ ZOMBIE:</color> Tiêu chuẩn (100% tần suất)\n<color=#FFFF99>TÀI NGUYÊN:</color> Phân bố cân bằng\n<color=#FFFF99>SÁT THƯƠNG NHẬN:</color> Bình thường (100%)\n<color=#FFFF99>TRANG BỊ ĐẦU:</color> Đèn pin và băng gạc\n<color=#FFFF99>TỈ LỆ SINH TỒN:</color> Cân bằng (50%)" } },
         { "difficulty.normal.desc", new[] {
             "<b>OVERVIEW:</b>\nThe standard zombie survival experience. Spawn rates and cooldown values use their balanced defaults. Requires strategic thinking.",
             "<b>TỔNG QUAN:</b>\nTrải nghiệm sinh tồn zombie tiêu chuẩn. Tần suất xuất hiện và thời gian hồi dùng các giá trị cân bằng mặc định. Người chơi cần suy nghĩ chiến thuật." } },
-        { "difficulty.hard.title", new[] { "☠ HARDCORE MODE ☠", "☠ CHẾ ĐỘ KHẮC NGHIỆT ☠" } },
+        { "difficulty.hard.title", new[] { "! HARDCORE MODE !", "! CHẾ ĐỘ KHẮC NGHIỆT !" } },
         { "difficulty.hard.stats", new[] {
             "<color=#FF9999>ZOMBIE DENSITY:</color> Extreme (+150% Spawn Rate)\n<color=#FF9999>RESOURCES:</color> Scarce & Depleted (Loot rate 40%)\n<color=#FF9999>DAMAGE TAKEN:</color> Increased (+50% Damage)\n<color=#FF9999>STARTING GEAR:</color> None (Empty hands)\n<color=#FF9999>SURVIVAL RATE:</color> Near Zero (<10%)",
             "<color=#FF9999>MẬT ĐỘ ZOMBIE:</color> Cực cao (+150% tần suất)\n<color=#FF9999>TÀI NGUYÊN:</color> Khan hiếm (tỉ lệ loot 40%)\n<color=#FF9999>SÁT THƯƠNG NHẬN:</color> Tăng (+50% sát thương)\n<color=#FF9999>TRANG BỊ ĐẦU:</color> Không có (tay không)\n<color=#FF9999>TỈ LỆ SINH TỒN:</color> Gần bằng không (<10%)" } },
@@ -240,14 +243,13 @@ public static class GameLocalization
 
     public static TMP_FontAsset GetRuntimeFont(TMP_FontAsset preferred = null)
     {
-        TMP_FontAsset vietnameseFallback = Resources.Load<TMP_FontAsset>("Fonts/VietnameseDynamic SDF");
-        if (preferred == null) return vietnameseFallback;
+        if (preferred != null) return preferred;
 
-        // Keep the project's visual font, but let the dynamic fallback supply
-        // Vietnamese glyphs that are absent from the static VCR atlas.
-        if (vietnameseFallback != null && !preferred.fallbackFontAssetTable.Contains(vietnameseFallback))
-            preferred.fallbackFontAssetTable.Add(vietnameseFallback);
-        return preferred;
+        // Font fallbacks are serialized by VietnameseStaticFontSetup. Runtime
+        // code must never mutate shared TMP_FontAsset instances or their atlases.
+        if (staticVietnameseFont == null)
+            staticVietnameseFont = Resources.Load<TMP_FontAsset>(StaticVietnameseFontResourcePath);
+        return staticVietnameseFont != null ? staticVietnameseFont : TMP_Settings.defaultFontAsset;
     }
 
     private static Language ReadInitialLanguage()
@@ -444,8 +446,6 @@ public static class GameLocalization
 
 public sealed class RuntimeLocalizationDriver : MonoBehaviour
 {
-    private float nextRefresh;
-
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Bootstrap()
     {
@@ -455,24 +455,27 @@ public sealed class RuntimeLocalizationDriver : MonoBehaviour
         go.AddComponent<RuntimeLocalizationDriver>();
     }
 
-    private void OnEnable() => GameLocalization.LanguageChanged += RefreshAll;
-    private void OnDisable() => GameLocalization.LanguageChanged -= RefreshAll;
+    private void OnEnable()
+    {
+        GameLocalization.LanguageChanged += RefreshAll;
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        GameLocalization.LanguageChanged -= RefreshAll;
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
 
     private void Awake() => RefreshAll();
 
-    private void Update()
-    {
-        if (Time.unscaledTime < nextRefresh) return;
-        nextRefresh = Time.unscaledTime + 0.4f;
-        RefreshAll();
-    }
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode) => RefreshAll();
 
     private void RefreshAll()
     {
         foreach (TMP_Text label in Resources.FindObjectsOfTypeAll<TMP_Text>())
         {
             if (label == null || !label.gameObject.scene.IsValid()) continue;
-            label.font = GameLocalization.GetRuntimeFont(label.font);
             label.text = GameLocalization.TranslateLiteral(label.text);
         }
 

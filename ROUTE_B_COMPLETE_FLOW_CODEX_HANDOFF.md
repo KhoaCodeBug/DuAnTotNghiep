@@ -2,7 +2,7 @@
 
 > Cập nhật: 2026-08-25
 > Mục đích: tài liệu bàn giao canonical để mở chat Codex mới và tiếp tục Tuyến B mà không phải đọc lại toàn bộ lịch sử.
-> Trạng thái hiện tại: **Toàn bộ state machine, Nhật ký, 15 audio, lựa chọn ending và đường test Tuyến B cũ đã chạy được từ MainMenu tới Ending B mà không cần LootContainer. Ngày 2026-08-25, chương bệnh viện mới `ShiftLog → ShiftLog2/chìa khóa → phòng Radio → cao trào → tọa độ căn cứ` đã được khóa thiết kế trong `HOSPITAL_ROUTE_DESIGN_LOCK.md` nhưng chưa triển khai. Runtime/debug hiện vẫn dùng flow marker cũ và phải được thay theo checkpoint H1–H5.**
+> Trạng thái hiện tại: **Toàn bộ state machine, Nhật ký, lựa chọn ending và đường test Tuyến B đã chạy được từ MainMenu tới Ending B mà không cần LootContainer. Ngày 2026-08-25, H1–H5 của chương bệnh viện đã triển khai: `ShiftLog → ShiftLog2 → KeyLoot ngẫu nhiên/shared key → mở cửa Radio → khôi phục 14 giây/3 chặng → hai đợt cao trào theo độ khó → bản ghi → Mảnh 2/map reveal`. Acceptance Host/Client hai máy vẫn phải test tay.**
 
 ## 1. Quyết định thiết kế đã chốt
 
@@ -14,7 +14,7 @@
 - Người chơi có thể chuẩn bị cả hai tuyến song song trước điểm không thể quay lại.
 - Ending B chỉ bị khóa khi người chơi tới xe quân sự, nghe cảnh báo và **xác nhận kích hoạt báo động/phòng thủ**. Việc khóa áp dụng cho toàn đội.
 - Bệnh viện là địa điểm chính. Quầy tiếp tân và văn phòng trưởng ca nằm trong bệnh viện; **Trạm liên lạc phụ trợ nằm phía sau, ngoài khu nhà chính nhưng thuộc cùng cụm `hospital`**.
-- Chương bệnh viện mới không phụ thuộc LootContainer: `ShiftLog tại tiếp tân → ShiftLog2 tại văn phòng/lấy chìa khóa shared → mở phòng Radio → khôi phục tín hiệu → nhận Mảnh bản đồ 2`.
+- Chương bệnh viện mới không phụ thuộc LootContainer: `ShiftLog tại tiếp tân → ShiftLog2 tại văn phòng → một trong các KeyLoot được Host chọn → shared key → mở phòng Radio → khôi phục tín hiệu → nhận Mảnh bản đồ 2`.
 - Không còn bước `RecordsCabinet`/Tủ hồ sơ riêng. Radio trao trực tiếp tọa độ và Mảnh bản đồ 2.
 - Cốt truyện đã chốt: quân đội phong tỏa bệnh viện và rút đoàn xe về căn cứ; beacon còn phát nhưng không chứng minh quân đội còn sống. Player tới căn cứ để lấy phương tiện tự thoát, không phải chờ cứu viện.
 - Thiết kế chi tiết, anchor, lời Radio, multiplayer và tiêu chí chấp nhận nằm trong `HOSPITAL_ROUTE_DESIGN_LOCK.md`.
@@ -36,7 +36,7 @@ Mở vị trí bệnh viện trên bản đồ
     ↓
 Tới quầy tiếp tân → đọc ShiftLog
     ↓
-Kiểm tra văn phòng trưởng ca (ShiftLog2) → nhận chìa khóa shared
+Kiểm tra văn phòng trưởng ca (ShiftLog2) → tìm KeyLoot ngẫu nhiên → nhận chìa khóa shared
     ↓
 Theo waypoint ra Trạm liên lạc phụ trợ → mở cửa
     ↓
@@ -143,7 +143,7 @@ Ba loại manh mối:
 ### Nhiệm vụ B3 — Điều tra Khu Điều phối trong bệnh viện
 
 **Stage authoritative:** `FindCityMap`
-**TRẠNG THÁI:** thiết kế mới đã khóa; runtime, debug, audio và test vẫn là flow cũ cho tới khi H1–H5 được triển khai.
+**TRẠNG THÁI:** H1–H5 đã triển khai và có regression tự động tới Ending B; còn acceptance Host/Client thực trên hai máy.
 
 Flow canonical mới:
 
@@ -155,20 +155,22 @@ Flow canonical mới:
 
 2. **Văn phòng trưởng ca / ShiftLog2**
    - Anchor: `HospitalQuest_ShiftLog2`.
-   - Trao chìa khóa dự phòng dưới dạng quest state shared, không chiếm inventory.
+   - Không trao key trực tiếp. Host chọn ngẫu nhiên một trong các `HospitalRadioKeyLootPoint` và replicate stable ID.
    - Tiết lộ lệnh phong tỏa đỏ và việc nhân viên Radio bị cắn, tự khóa mình tại trạm phụ trợ.
-   - Journal/waypoint dẫn rõ tới `HospitalQuest_RadioRoom` nằm phía sau bệnh viện.
+   - Journal/waypoint dẫn tới đúng KeyLoot được chọn; chỉ Polygon của điểm đó nhận tương tác.
+   - Nhặt key mới tạo quest state shared, không chiếm inventory; sau đó waypoint mới chuyển tới Radio.
 
 3. **Mở phòng Radio**
    - Root: `HospitalQuest_RadioRoom`.
    - `DoorInteraction` chỉ hoạt động khi cửa đóng; `RadioInteraction` bị vô hiệu tuyệt đối.
    - Sau khi Host xác nhận chìa khóa và khoảng cách, cửa mở đồng bộ, collider cửa tắt, Door interaction tắt và Radio mới bật.
-   - Vùng tương tác phải nhỏ và state-gated vì Door/Radio nằm gần nhau trong căn phòng nhỏ.
+   - Mỗi ShiftLog/KeyLoot/Door/Radio có `InteractionZone` Polygon riêng; prompt và server dùng cùng `OverlapPoint`.
 
 4. **Khôi phục Radio**
-   - Một Player giữ `E` khoảng 18 giây; thả/rời vùng thì giữ tiến độ, người khác có thể tiếp tục.
+   - Một Player giữ `E` tổng cộng khoảng 14 giây, chia ba chặng vàng; thả/rời vùng thì giữ tiến độ, người khác có thể tiếp tục.
    - Chỉ một người vận hành tại một thời điểm; đồng đội không bị khóa gameplay.
-   - Radio phát noise gọi zombie hiện có. Khi khu vực quá trống, Host dùng `HospitalQuest_ZombieEntry_A/B` để bổ sung nhóm nhỏ một lần.
+   - Chặng 1 và 2 tự dừng, phát nhiễu 2,7 giây và nhả operator. Mỗi chặng sinh tại cả A/B: Dễ 3, Thường 4, Hardcore 5 zombie mỗi điểm; nhịp 0,25 giây, trải đều trái/phải.
+   - Không có kill gate. Chặng 3 không spawn thêm; tổng H4 là 12/16/20 tùy độ khó.
    - Bản ghi cho thấy bệnh viện bị quân đội bỏ theo lệnh phong tỏa, đoàn xe đã rút về căn cứ và beacon `BRAVO–BẮC / CỔNG NAM` vẫn phát tự động.
 
 5. **Nhận tọa độ và Mảnh bản đồ 2**
@@ -330,7 +332,7 @@ Chỉ khả dụng trong Unity Editor hoặc Development Build, và chỉ Solo/H
 
 | Phím/CheatMenu | Tác dụng |
 | --- | --- |
-| `F6` | Hiện vẫn tiến theo flow bệnh viện cũ. H1–H3 phải cập nhật thành: kiểm tra xe → từng tài liệu → ShiftLog → ShiftLog2/key → Door → Radio |
+| `F6` | Tiến flow: kiểm tra xe → từng tài liệu → ShiftLog → ShiftLog2/chọn KeyLoot → nhặt shared key → Door/RadioReady. Tại RadioReady, ba lần tiếp theo chạy chặng 1, 2, 3; hai lần đầu kích hoạt H4 |
 | `F7` | Hoàn tất ngay `3/3` tài liệu khu dân cư bằng state authoritative, không sinh/đọc/sửa LootContainer |
 | `F10` | Tiến một beat ở căn cứ: tiếp cận → cảnh báo/xác nhận finale → máy phát → mô phỏng đủ ba part → xe sẵn sàng → extraction |
 | `F11` | Phát lại audio phù hợp với stage/phase Tuyến B hiện tại |
@@ -342,9 +344,9 @@ Quy trình test nhanh đã chốt:
 1. Luôn vào game bằng `MainMenu → Solo → Easy → Main` để player và Fusion runner spawn đúng.
 2. Nhấn `F6` để mô phỏng kiểm tra xe; nghe/skip Cue 01–02 rồi chọn tuyến đang theo dõi.
 3. Dùng `F6` ba lần để xem từng tài liệu, hoặc `F7` để đưa thẳng tiến độ lên 3/3. Cả hai cách đều không chạm LootContainer trong đường test.
-4. **Cho tới khi H1–H3 hoàn tất**, debug vẫn chạy thứ tự marker cũ và chỉ có giá trị regression. Không dùng nó để xác nhận flow bệnh viện mới.
-5. Sau H1–H3, cập nhật `F6/F12` để đi đúng `ShiftLog → ShiftLog2/key → Door → Radio`; không tạo hoặc mô phỏng Records Cabinet.
-6. Sau Radio/Cue 09, kiểm tra thẻ thưởng dùng ảnh giấy rách `Mảnh bản đồ 2`, sau đó map tự mở và reveal riêng vùng căn cứ quân sự. Khi map đóng mới chạy cinematic lia tới căn cứ và bảng đổi waypoint lần hai; dùng `F12` để tới căn cứ hoặc `F10` để mô phỏng phase tiếp cận.
+4. H2/H5 chạy `ShiftLog → ShiftLog2 → FindRadioKey → shared key → Door → RadioReady`; F12 tới đúng selected KeyLoot rồi Radio.
+5. Nhấn F6 ba lần ở `RadioReady`: lần 1/2 dừng tại checkpoint và sinh theo độ khó; lần 3 mới hoàn tất. Gameplay thật yêu cầu ba lần giữ E, tổng 14 giây.
+6. Sau chuỗi Radio, kiểm tra thẻ thưởng dùng ảnh giấy rách `Mảnh bản đồ 2`, map tự mở/reveal riêng căn cứ, rồi cinematic. Cue 09 clean phát sau cinematic và trước bảng đổi waypoint lần hai; dùng `F12` để tới căn cứ hoặc `F10` để mô phỏng phase tiếp cận.
 7. `F10` lần kế tiếp phát Cue 11 rồi mở bảng xác nhận. Ending chỉ khóa khi click **XÁC NHẬN TUYẾN B**.
 8. Sau khi xác nhận, tiếp tục `F10`: máy phát → mô phỏng đủ part → xe sẵn sàng → extraction/Cue 15/Victory Summary.
 
@@ -359,12 +361,14 @@ Debug path gọi chung các hàm core authoritative với gameplay thật. Chỉ
 | Loot 3 tài liệu trong nhà + pity/insurance | Đã triển khai |
 | Ranh giới sương, cảnh báo, trả player sau 2 giây | Đã triển khai cho nhiệm vụ khu dân cư |
 | Cue 03–05, map fragment 1, cập nhật journal | Đã triển khai; cần regression test khi sửa tiếp |
-| Thiết kế chương bệnh viện mới | Đã khóa trong `HOSPITAL_ROUTE_DESIGN_LOCK.md`; chưa triển khai |
-| Trigger vào bệnh viện | Có code cũ; cần nối objective mới tới `HospitalQuest_ShiftLog` |
-| ShiftLog → ShiftLog2/key → Door → Radio | Anchor đã có, đường đi được chủ dự án xác nhận; chưa có component/logic mới |
-| Flow cũ Bàn Điều phối → Radio → Tủ hồ sơ | Vẫn tồn tại trong runtime/debug để regression; phải được thay, không phải yêu cầu production |
-| Cue 05–09 và bảng chọn lần 2 | Wiring cũ đã test; nội dung Cue 05–09 phải viết lại, bảng chọn lần hai vẫn giữ nguyên nghĩa “theo dõi” |
-| Reward Mảnh bản đồ 2 + map reveal + cinematic | Đã nối theo thứ tự sau Cue 09; reward dùng cùng art giấy rách với Mảnh 1, map thật chỉ xuất hiện trong màn hình bản đồ |
+| Thiết kế chương bệnh viện mới | Đã khóa trong `HOSPITAL_ROUTE_DESIGN_LOCK.md`; H1–H4 đã triển khai |
+| Trigger vào bệnh viện | Đã nối objective mới tới `HospitalQuest_ShiftLog` |
+| ShiftLog → ShiftLog2 → random KeyLoot → Door → RadioReady | 6 candidate, stable selected ID `[Networked]`, shared key và Journal/waypoint authoritative; 10 Polygon riêng thay cho range/LOS dễ lỗi |
+| Flow cũ Bàn Điều phối → Radio → Tủ hồ sơ | 5 interaction marker đã vô hiệu hóa; H3 không còn phụ thuộc Tủ hồ sơ |
+| H3 Radio 14 giây/3 chặng + operator handoff | Đã triển khai authoritative; pause/rời vùng giữ tiến độ, chỉ một operator, người khác tiếp tục được |
+| H4 noise, zombie và kể chuyện môi trường | Nhiễu 2,7s; mỗi mốc sinh 3/4/5 zombie × 2 anchor theo Easy/Normal/Hardcore, nhịp 0,25s; không kill gate. Bốn xác tĩnh làm breadcrumb |
+| Cue 05–09 và bảng chọn lần 2 | Cue 06–08 đã thay bằng transcript canonical + static chờ thu voice mới; Cue09 clean 6,65s; bảng chọn lần hai vẫn chỉ “theo dõi” |
+| Reward Mảnh bản đồ 2 + map reveal + cinematic | Đã nối theo thứ tự Radio → reward → map reveal → cinematic → Cue09 → bảng chọn; map thật chỉ xuất hiện trong màn hình bản đồ |
 | Marker bệnh viện sau Mảnh 2 | Đã xóa khỏi map; chỉ còn marker căn cứ quân sự để tránh hai mục tiêu cạnh tranh |
 | Minimap sau bệnh viện | Đã tách khỏi map unlock; giữ tắt |
 | Điểm không thể quay lại và khóa Ending B | Có code authoritative |
@@ -379,11 +383,11 @@ Debug path gọi chung các hàm core authoritative với gameplay thật. Chỉ
 
 Đọc `HOSPITAL_ROUTE_DESIGN_LOCK.md` trước khi sửa. Triển khai đúng thứ tự:
 
-1. **H1 — Cửa và interaction:** chốt tile/sprite cửa, state cửa, vùng Door/Radio nhỏ và chống bấm xuyên tường.
-2. **H2 — Manh mối và chìa khóa:** nối tài liệu → ShiftLog → ShiftLog2/shared key → cửa; test Host/Client/late join.
-3. **H3 — Radio và cốt truyện:** tiến độ chuyển người vận hành, viết lại Cue 05–09, transcript, Mảnh bản đồ 2 và map reveal.
-4. **H4 — Cao trào/môi trường:** xác chết tĩnh, biển/dấu dẫn đường, noise và hai điểm zombie dự phòng.
-5. **H5 — QA toàn tuyến:** `MainMenu → Main`, Solo → Host/Client → disconnect/late join → reveal căn cứ.
+1. **H1 — Cửa và interaction — ĐÃ XONG 2026-08-25:** `Door13_W` đóng, `Door14_W` mở, network state authoritative, blocker riêng và vùng Door/Radio nhỏ chống bấm xuyên tường. `89/89` EditMode, H1 PlayMode `1/1`, regression Tuyến B `1/1` pass. Test tay Solo đã pass toàn tuyến spawn → cheat bệnh viện → mở cửa → dùng Radio; multiplayer chưa xác nhận.
+2. **H2/H5 — Manh mối và chìa khóa — ĐÃ TRIỂN KHAI 2026-08-25:** ShiftLog → ShiftLog2 → random KeyLoot/shared key → cửa → RadioReady; stable ID và state replicate cho late join.
+3. **H3 — Radio và cốt truyện — ĐÃ TRIỂN KHAI 2026-08-25:** 14 giây shared progress/handoff, transcript, Mảnh 2, map reveal, Cue09 clean và bảng chọn lần hai. Chờ test tay Solo + Host/Client/late join.
+4. **H4 — Cao trào/môi trường — ĐÃ TRIỂN KHAI 2026-08-25:** ba vạch; hai mốc tự dừng/nhiễu 2,7s; mỗi mốc 3/4/5 × 2 anchor, nhịp 0,25s; không kill gate; bốn xác tĩnh.
+5. **H5 — NETWORK/POLYGON/REGRESSION — ĐÃ TRIỂN KHAI:** shared state và request validation authoritative; scene/regression tự động pass. Test tay Host/Client hai máy là acceptance còn lại.
 6. Giữ bảng chọn lần hai sau Radio là lựa chọn theo dõi, chưa khóa ending.
 7. Sau khi H1–H5 đạt mới quay lại quyết định finale căn cứ dùng mechanic ba vật phẩm cũ hay minigame sửa xe 5 hạng mục.
 
@@ -395,7 +399,7 @@ Kết quả tự động ngày 2026-08-24:
 - PlayMode `RouteBDebugFlowRunsFromMainMenuThroughMilitaryExtractionWithoutLootContainers`: **1/1 passed**, khoảng 10 giây.
 - Test này thực sự đi `MainMenu → Main`, spawn player/Fusion, chạy đủ stage bệnh viện, khóa Ending B tại xác nhận, chạy căn cứ và chỉ đánh dấu Journal Completed sau extraction.
 - Test cũng xác nhận sau `CityMapFound`: marker căn cứ xuất hiện trên bản đồ nhiệm vụ và Canvas minimap vẫn tắt.
-- Khi chạy chung cả class PlayMode, test cũ `RoadsideRepairTestStationSpawnsOnLockedPoliceCarNearArrival` vẫn báo không tìm thấy manager/station ở lần chạy đó. Đây là regression test riêng của xe cảnh sát/DBD, không phải lỗi assertion trong test Tuyến B mới; cần điều tra riêng, không được ghi nhận là đã pass.
+- Full PlayMode gần nhất đạt `4/5`. Test cũ `RoadsideRepairTestStationSpawnsOnLockedPoliceCarNearArrival` fail vì scene hiện không lưu fixture `ViTriXeTest`/`VungKiemTraXeCanhSat`. Đây là regression riêng của xe cảnh sát/DBD, không phải lỗi assertion trong flow bệnh viện; cần audit trong phiên finale quân sự và không được ghi nhận full-suite là đã pass.
 
 - [ ] Kiểm tra xe chỉ kích hoạt một lần.
 - [ ] Cue 01–02 đúng thứ tự; bảng chọn đầu không khóa ending.
@@ -409,12 +413,12 @@ Kết quả tự động ngày 2026-08-24:
 - [x] Sau Fragment 2, marker bệnh viện bị gỡ và chỉ marker căn cứ còn hoạt động.
 - [ ] Bản đồ chỉ lộ đúng vùng được phép theo từng stage khi quan sát trực tiếp trên nhiều độ phân giải.
 - [ ] Trigger bệnh viện không chạy sớm và chỉ chạy khi player thật sự ở trong collider.
-- [ ] ShiftLog dẫn rõ tới ShiftLog2; ShiftLog2 trao key shared và dẫn rõ tới Radio ngoài khu chính.
+- [ ] ShiftLog dẫn tới ShiftLog2; ShiftLog2 chọn đúng một KeyLoot; nhặt key mới dẫn tới Radio.
 - [ ] Tìm cửa Radio trước không soft-lock; prompt hướng về văn phòng trưởng ca.
 - [ ] Door/Radio không chồng prompt và không thể bấm Radio xuyên cửa.
 - [ ] Radio giữ tiến độ khi đổi người vận hành; người ở xa không bị khóa UI/gameplay.
 - [ ] Cue 05–09 mới và notification không chồng UI; transcript có trong Journal cho người ở xa/late join.
-- [ ] Cao trào chỉ xảy ra một lần, không tạo horde vô hạn và không spawn sai khi khu vực đã đủ zombie.
+- [ ] Hai mốc cao trào chỉ xảy ra đúng một lần/mốc; đủ 3/4/5 zombie tại A và B theo độ khó, không wave lặp/kill gate.
 - [ ] Bảng chọn lần hai không khóa ending.
 - [ ] Tiếp cận căn cứ phát Cue 10 một lần.
 - [ ] Cue 11 xuất hiện trước bảng xác nhận điểm không thể quay lại.
@@ -453,4 +457,4 @@ Chủ dự án đã chọn C. Production hiện dùng thẻ tương tác riêng 
 
 ## 11. Câu lệnh bàn giao gợi ý cho chat Codex mới
 
-> Hãy đọc toàn bộ `HOSPITAL_ROUTE_DESIGN_LOCK.md`, `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` và `README_MAINPLAY_CODEX_HANDOFF.md`, rồi kiểm tra code hiện tại trước khi sửa. Chương bệnh viện mới đã khóa thiết kế nhưng chưa triển khai; runtime/debug vẫn dùng flow cũ Bàn Điều phối → Radio → Tủ hồ sơ. Bắt đầu checkpoint H1, không phụ thuộc LootContainer, không tự di chuyển các anchor đã đặt. Giữ nguyên quyết định rằng hai bảng chọn đầu chỉ theo dõi và Ending B chỉ khóa tại xác nhận kích hoạt báo động ở căn cứ.
+> Hãy đọc `HOSPITAL_H1_H5_IMPLEMENTATION_README.md` và `NEXT_SESSION_MILITARY_FINALE_PLAN.md`. H1–H5 bệnh viện đã triển khai; phiên tiếp theo phải thảo luận/chốt finale căn cứ với chủ dự án trước khi code. Giữ nguyên việc hai bảng chọn đầu chỉ theo dõi và Ending B chỉ khóa tại xác nhận báo động.

@@ -73,25 +73,28 @@ public static class RouteBAudioContent
             "The bus schedule was cancelled, but its route code matches the supply records. Everything leads to the same office.",
             "04_SecondEvacuationDocument", 5.2f, false),
         Cue(RouteBAudioCueId.ThirdCoordinationDocument, "NGƯỜI SỐNG SÓT", "ĐỊA CHỈ ĐIỀU PHỐI",
-            "Ghi chú này có địa chỉ cổng tím và tần số liên lạc dự phòng. Đủ ba tài liệu rồi; mình có thể xác định chính xác Văn phòng Điều phối.",
-            "This note contains the purple-gate address and a backup frequency. With all three records, I can pinpoint the Coordination Office.",
-            "05_ThirdCoordinationDocument", 5.8f, false),
-        Cue(RouteBAudioCueId.OfficeLocated, "NGƯỜI SỐNG SÓT", "VĂN PHÒNG ĐIỀU PHỐI",
-            "Đúng địa chỉ rồi. Trước khi lục tủ hồ sơ, mình nên kiểm tra bàn trực và tìm xem ai đã rời khỏi đây cuối cùng.",
-            "This is the address. Before searching the cabinets, I should inspect the dispatch desk and find out who left last.",
-            "06_OfficeLocated", 5.2f, false),
-        Cue(RouteBAudioCueId.DispatchDeskLog, "NHẬT KÝ ĐIỀU PHỐI", "BẢN GHI BÀN TRỰC",
-            "Ca trực cuối đã khóa bản đồ trong tủ hồ sơ. Chìa khóa được để cạnh máy vô tuyến; bản liên lạc cuối cùng chưa được phát hết.",
-            "The final shift locked the map in the records cabinet. The key was left beside the radio; the last transmission was never fully played.",
-            "07_DispatchDeskLog", 6.2f, true),
-        Cue(RouteBAudioCueId.OfficeRadioRecording, "BẢN GHI VÔ TUYẾN", "LIÊN LẠC CUỐI CÙNG",
-            "Điểm tập kết quân sự vẫn hoạt động. Cổng ngoài sẽ không mở nếu chưa kích hoạt báo động sơ tán. Khi còi vang lên, mọi tiếng động trong khu vực sẽ bị thu hút về căn cứ.",
-            "The military rally point is still operational. The outer gate will not open until the evacuation alarm is activated. Once the siren sounds, every threat nearby will be drawn to the base.",
-            "08_OfficeRadioRecording", 7.2f, true),
+            "Ba tài liệu khớp nhau: Khu Điều phối của bệnh viện từng giữ một tần số sơ tán quân sự dự phòng. Mảnh bản đồ này đánh dấu đúng bệnh viện; có thể Radio ở đó còn lưu đầu mối tiếp theo.",
+            "The three records match: the hospital Coordination Section once maintained a backup military evacuation frequency. This map fragment marks the hospital; its Radio may still hold the next lead.",
+            "05_HospitalRadioLead", 6.5f, false),
+        // These three legacy enum slots now form the canonical hospital recording.
+        // Their resource names deliberately do not match the obsolete 06-08 clips:
+        // until replacement voice acting is recorded, the subtitles play over radio static.
+        Cue(RouteBAudioCueId.OfficeLocated, "TRẠM Y TẾ MƯỜI BỐN", "CUỘC GỌI CẦU CỨU",
+            "Trạm Y tế Mười Bốn gọi Căn cứ phía Bắc. Khu điều trị đã bị xuyên thủng. Chúng tôi còn hai mươi sáu dân thường và bảy nhân viên. Yêu cầu một hành lang sơ tán. Xin xác nhận.",
+            "Medical Station Fourteen calling North Base. The treatment wing has been breached. We have twenty-six civilians and seven staff remaining. Requesting an evacuation corridor. Please confirm.",
+            "06_HospitalEmergencyCall", 10.5f, true),
+        Cue(RouteBAudioCueId.DispatchDeskLog, "TẦN SỐ QUÂN SỰ", "PHẢN HỒI BỊ ĐỨT QUÃNG",
+            "…lệnh phong tỏa cấp đỏ… …mọi phương tiện vận tải rút về căn cứ… …không dừng tại các cơ sở y tế có ca nhiễm… …duy trì im lặng vô tuyến…",
+            "…red quarantine order… …all transport vehicles return to base… …do not stop at medical facilities with infected cases… …maintain radio silence…",
+            "07_MilitaryQuarantineReply", 9.5f, true),
+        Cue(RouteBAudioCueId.OfficeRadioRecording, "NHÂN VIÊN RADIO", "LỜI NHẮN CUỐI",
+            "Các anh đã nghe thấy chúng tôi. Các anh chỉ không quay lại. Nếu có ai tìm được bản ghi này… đoàn xe đã rút về căn cứ phía Bắc. Tần số đèn hiệu và tọa độ vẫn còn trong bộ nhớ máy. Tôi không biết ở đó còn ai nữa. BRAVO–BẮC… CỔNG NAM… BRAVO–BẮC…",
+            "You heard us. You simply did not come back. If anyone finds this recording… the convoy withdrew to North Base. The beacon frequency and coordinates remain in the console memory. I do not know if anyone is still there. BRAVO–NORTH… SOUTH GATE… BRAVO–NORTH…",
+            "08_HospitalOperatorFinal", 14.5f, true),
         Cue(RouteBAudioCueId.MilitaryRouteRevealed, "NGƯỜI SỐNG SÓT", "ĐÃ XÁC ĐỊNH TUYẾN QUÂN SỰ",
             "Bản đồ chỉ rõ đường tới căn cứ. Báo động sẽ là điểm không thể quay lại; trước lúc đó mình vẫn có thể chọn chiếc xe dân sự.",
             "The map shows the road to the base. Activating the alarm will be the point of no return; until then, the civilian car remains an option.",
-            "09_MilitaryRouteRevealed", 5.8f, false),
+            "09_MilitaryRouteRevealed_Clean", 6.5f, false),
         Cue(RouteBAudioCueId.MilitaryBaseApproach, "HỆ THỐNG CĂN CỨ", "KHU QUÂN SỰ",
             "Nguồn điện dự phòng đang ngoại tuyến. Xe sơ tán thiếu ắc quy, nhiên liệu và bộ sửa chữa. Kích hoạt báo động để bắt đầu quy trình di tản.",
             "Backup power is offline. The evacuation vehicle requires a battery, fuel and a repair kit. Activate the alarm to begin evacuation protocol.",
@@ -119,9 +122,17 @@ public static class RouteBAudioContent
     };
 
     private static readonly RouteBAudioCue[] Opening = { Cues[0], Cues[1] };
+    private static readonly RouteBAudioCue[] HospitalRecording = { Cues[5], Cues[6], Cues[7] };
 
     public static IReadOnlyList<RouteBAudioCue> All => Cues;
     public static IReadOnlyList<RouteBAudioCue> OpeningSequence => Opening;
+    public static IReadOnlyList<RouteBAudioCue> HospitalRecordingSequence => HospitalRecording;
+    public static string HospitalTranscriptVietnamese =>
+        HospitalRecording[0].Vietnamese + "\n\n" + HospitalRecording[1].Vietnamese + "\n\n" +
+        HospitalRecording[2].Vietnamese;
+    public static string HospitalTranscriptEnglish =>
+        HospitalRecording[0].English + "\n\n" + HospitalRecording[1].English + "\n\n" +
+        HospitalRecording[2].English;
 
     public static RouteBAudioCue Get(RouteBAudioCueId id)
     {
@@ -138,9 +149,10 @@ public static class RouteBAudioContent
             RouteBAudioCueId.OpeningEmergencyBroadcast => "EMERGENCY BROADCAST",
             RouteBAudioCueId.PlayerRouteReaction or RouteBAudioCueId.FirstSupplyDocument or
                 RouteBAudioCueId.SecondEvacuationDocument or RouteBAudioCueId.ThirdCoordinationDocument or
-                RouteBAudioCueId.OfficeLocated or RouteBAudioCueId.MilitaryRouteRevealed => "SURVIVOR",
-            RouteBAudioCueId.DispatchDeskLog => "COORDINATION LOG",
-            RouteBAudioCueId.OfficeRadioRecording => "RADIO RECORDING",
+                RouteBAudioCueId.MilitaryRouteRevealed => "SURVIVOR",
+            RouteBAudioCueId.OfficeLocated => "MEDICAL STATION FOURTEEN",
+            RouteBAudioCueId.DispatchDeskLog => "MILITARY FREQUENCY",
+            RouteBAudioCueId.OfficeRadioRecording => "RADIO OPERATOR",
             RouteBAudioCueId.AlarmPointOfNoReturn => "WARNING SYSTEM",
             RouteBAudioCueId.MilitaryEvacuationComplete => "SYSTEM LOG",
             _ => "BASE SYSTEM"
@@ -157,9 +169,9 @@ public static class RouteBAudioContent
             RouteBAudioCueId.FirstSupplyDocument => "SUPPLY RECORD",
             RouteBAudioCueId.SecondEvacuationDocument => "EVACUATION SCHEDULE",
             RouteBAudioCueId.ThirdCoordinationDocument => "COORDINATION ADDRESS",
-            RouteBAudioCueId.OfficeLocated => "COORDINATION OFFICE",
-            RouteBAudioCueId.DispatchDeskLog => "DISPATCH DESK LOG",
-            RouteBAudioCueId.OfficeRadioRecording => "FINAL TRANSMISSION",
+            RouteBAudioCueId.OfficeLocated => "DISTRESS CALL",
+            RouteBAudioCueId.DispatchDeskLog => "BROKEN RESPONSE",
+            RouteBAudioCueId.OfficeRadioRecording => "FINAL MESSAGE",
             RouteBAudioCueId.MilitaryRouteRevealed => "MILITARY ROUTE IDENTIFIED",
             RouteBAudioCueId.MilitaryBaseApproach => "MILITARY BASE",
             RouteBAudioCueId.AlarmPointOfNoReturn => "POINT OF NO RETURN",
