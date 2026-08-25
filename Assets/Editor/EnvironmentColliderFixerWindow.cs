@@ -18,7 +18,9 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
     private const string PatchObjectName = "__ColliderPatches";
     private const string ProxyPrefix = "__ColliderProxy_";
     private const string BroadWallPatchPrefix = "__BroadWallFootPatches_";
+    private const string DoorSidePatchPrefix = "__DoorSideFootPatches_";
     private const string ExternalObjectsName = "__ExternalEnvironment";
+    private const string SchoolRoofTriggerName = "__SchoolRoofTrigger_FIXED";
 
     private sealed class TilemapAudit
     {
@@ -513,6 +515,7 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         int enabledProxyColliders = 0;
         int effectiveShapeCount = 0;
         int repairedBroadCells = 0;
+        int excludedDoorHeadCells = 0;
         bool colliderError = false;
         bool wrongWallLayer = false;
         bool invalidEffectiveNetwork = false;
@@ -538,11 +541,13 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             colliderError |= effectiveCollider.errorState != ColliderErrorState2D.None;
             wrongWallLayer |= effectiveCollider.gameObject.layer != LayerMask.NameToLayer("Obstacle");
             int effectiveBroad = AuditTilemap(effectiveMap).FullBoundsShapeCells.Count;
-            invalidEffectiveNetwork |= effectiveBroad > 0;
+            int effectiveDoorHeads = CountElevatedOnlyPhysicsShapeCells(effectiveMap);
+            invalidEffectiveNetwork |= effectiveBroad > 0 || effectiveDoorHeads > 0;
             if (proxyEnabled)
             {
                 int sourceBroadCells = AuditTilemap(source).FullBoundsShapeCells.Count;
                 repairedBroadCells += sourceBroadCells;
+                excludedDoorHeadCells += CountElevatedOnlyPhysicsShapeCells(source);
                 TilemapRenderer proxyRenderer = proxy.GetComponent<TilemapRenderer>();
                 invalidEffectiveNetwork |= proxyRenderer == null || proxyRenderer.enabled;
                 Transform patchTransform = source.transform.parent?.Find(BroadWallPatchPrefix + source.name);
@@ -565,9 +570,10 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         lines.Add($"- Wall sources: {wallSources.Length} Tilemap, {totalWallCells} cell tổng, " +
                   $"{shapedWallCells} cell có physics shape, " +
                   $"{doorCells} cell cửa được chừa, source collider ON={enabledSourceColliders}, " +
-                  $"proxy collider ON={enabledProxyColliders}, repaired broad={repairedBroadCells}, " +
+                   $"proxy collider ON={enabledProxyColliders}, repaired broad={repairedBroadCells}, " +
+                   $"excluded door-head={excludedDoorHeadCells}, " +
                   $"effective shapes={effectiveShapeCount}, Obstacle={!wrongWallLayer}, " +
-                  $"errorStateNone={!colliderError}, noBroadEffective={!invalidEffectiveNetwork}, " +
+                   $"errorStateNone={!colliderError}, noBroadOrDoorHeadEffective={!invalidEffectiveNetwork}, " +
                   $"noStrayPolygon={!strayWallPolygon}");
         lines.Add("- Wall sprites: " + string.Join(", ", wallSprites.OrderBy(pair => pair.Key)
             .Select(pair => $"{pair.Key} x{pair.Value}")));
@@ -1067,6 +1073,1029 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         Debug.Log($"[Environment Fixer] Đã tạo {count} marker Store* dưới __LootCandidates_REVIEW. Chỉ dùng để duyệt, chưa tách/xóa Tilemap.", rootObject);
     }
 
+    [MenuItem("Tools/Environment/Quick House Pipeline/school/Audit Structure + Physics Bands")]
+    public static void AuditSchoolStructureAndPhysicsBands()
+    {
+        GameObject school = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "school" && candidate.scene.IsValid());
+        if (school == null)
+        {
+            Debug.LogError("[Environment Fixer] Không tìm thấy root 'school' trong Scene hiện tại.");
+            return;
+        }
+
+        string prefabPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(school);
+        List<string> lines = new List<string>
+        {
+            $"Root world={school.transform.position}, local={school.transform.localPosition}, prefab='{prefabPath}'",
+            DescribePrefabOverrides(school).TrimStart()
+        };
+
+        foreach (Tilemap map in school.GetComponentsInChildren<Tilemap>(true)
+                     .Where(candidate => !candidate.name.StartsWith(ProxyPrefix, StringComparison.Ordinal) &&
+                                         !candidate.name.StartsWith("__", StringComparison.Ordinal)))
+        {
+            List<Vector3Int> occupied = new List<Vector3Int>();
+            foreach (Vector3Int cell in map.cellBounds.allPositionsWithin)
+                if (map.HasTile(cell)) occupied.Add(cell);
+            List<List<Vector3Int>> clusters = FindTileClusters(occupied)
+                .OrderByDescending(cluster => cluster.Count).ToList();
+            TilemapAudit audit = AuditTilemap(map);
+            TilemapRenderer renderer = map.GetComponent<TilemapRenderer>();
+            string topSprites = string.Join(", ", occupied
+                .Select(map.GetSprite).Where(sprite => sprite != null)
+                .GroupBy(sprite => sprite.name).OrderByDescending(group => group.Count()).Take(12)
+                .Select(group => $"{group.Key}×{group.Count()}"));
+            string clusterSummary = string.Join(" | ", clusters.Take(12).Select(cluster =>
+            {
+                int minX = cluster.Min(cell => cell.x);
+                int maxX = cluster.Max(cell => cell.x);
+                int minY = cluster.Min(cell => cell.y);
+                int maxY = cluster.Max(cell => cell.y);
+                Vector3 center = GetClusterCenterWorld(map, cluster);
+                return $"{cluster.Count}cell[{minX}..{maxX},{minY}..{maxY}]@({center.x:0.##},{center.y:0.##})";
+            }));
+            int elevated = CountElevatedOnlyPhysicsShapeCells(map);
+            lines.Add($"• {GetRelativePath(school.transform, map.transform)}: tiles={occupied.Count}, " +
+                      $"clusters={clusters.Count}, collider Sprite/Grid/None={audit.SpriteColliderCount}/" +
+                      $"{audit.GridColliderCount}/{audit.NoneColliderCount}, broad={audit.FullBoundsShapeCells.Count}, " +
+                      $"elevated-only={elevated}, component={(audit.HasEnabledTilemapCollider ? "ON" : audit.HasTilemapCollider ? "disabled" : "off")}, " +
+                      $"sorting={(renderer != null ? renderer.sortingLayerName + "/" + renderer.sortingOrder + "/" + renderer.mode : "none")}\n" +
+                      $"  clusters: {clusterSummary}\n  sprites: {topSprites}");
+            if (map.name.Equals("tuong1", StringComparison.OrdinalIgnoreCase))
+            {
+                lines.Add("  wall physics bands:");
+                foreach (IGrouping<Sprite, Vector3Int> group in occupied
+                             .Where(cell => map.GetSprite(cell) != null)
+                             .GroupBy(map.GetSprite)
+                             .OrderBy(group => group.Key.name))
+                {
+                    string sampleCells = string.Join(",", group.Take(10));
+                    lines.Add($"    - {group.Key.name}×{group.Count()}: {DescribeSpritePhysicsBand(group.Key)}; " +
+                              $"cells={sampleCells}{(group.Count() > 10 ? ",..." : string.Empty)}");
+                }
+            }
+        }
+
+        string report = "[Environment Fixer] SCHOOL AUDIT\n" + string.Join("\n", lines);
+        const string reportDirectory = "Assets/EnvironmentFixerReports";
+        if (!Directory.Exists(reportDirectory)) Directory.CreateDirectory(reportDirectory);
+        const string reportPath = reportDirectory + "/school_current_audit.txt";
+        File.WriteAllText(reportPath, report);
+        AssetDatabase.ImportAsset(reportPath);
+        Debug.Log(report + $"\nReport: {reportPath}", school);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/school/Rebuild Collider + Roof + Layers")]
+    public static void RebuildSchoolColliderRoofAndLayers()
+    {
+        GameObject school = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "school" && candidate.scene.IsValid());
+        if (school == null)
+        {
+            Debug.LogError("[Environment Fixer] Không tìm thấy root 'school' trong Scene hiện tại.");
+            return;
+        }
+
+        Tilemap walls = school.transform.Find("tuong1")?.GetComponent<Tilemap>();
+        Tilemap roof = school.transform.Find("nocnha")?.GetComponent<Tilemap>();
+        Tilemap emptySchoolRoof = school.transform.Find("noctruong")?.GetComponent<Tilemap>();
+        Tilemap rootMap = school.GetComponent<Tilemap>();
+        if (walls == null || roof == null || rootMap == null || CountOccupiedTiles(walls) != 617 ||
+            CountOccupiedTiles(roof) != 1197 || CountOccupiedTiles(rootMap) != 0)
+        {
+            Debug.LogError("[Environment Fixer] school không còn đúng cấu trúc đã audit " +
+                           "(root rỗng, tuong1=617, nocnha=1197). Dừng để không sửa nhầm dữ liệu mới.", school);
+            return;
+        }
+
+        int obstacleLayer = LayerMask.NameToLayer("Obstacle");
+        if (obstacleLayer < 0)
+        {
+            Debug.LogError("[Environment Fixer] Project chưa có layer Obstacle.", school);
+            return;
+        }
+
+        int undoGroup = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Rebuild school collider roof and layers");
+
+        Undo.RecordObject(school, "Keep school root as container");
+        school.layer = LayerMask.NameToLayer("Default");
+        TilemapRenderer rootRenderer = school.GetComponent<TilemapRenderer>();
+        if (rootRenderer != null)
+        {
+            Undo.RecordObject(rootRenderer, "Disable empty school renderer");
+            rootRenderer.enabled = false;
+            EditorUtility.SetDirty(rootRenderer);
+        }
+
+        Undo.RecordObject(walls.gameObject, "Set school wall obstacle layer");
+        walls.gameObject.layer = obstacleLayer;
+        TilemapCollider2D sourceCollider = walls.GetComponent<TilemapCollider2D>();
+        if (sourceCollider == null)
+            sourceCollider = Undo.AddComponent<TilemapCollider2D>(walls.gameObject);
+        Undo.RecordObject(sourceCollider, "Configure school source wall collider");
+        sourceCollider.isTrigger = false;
+        sourceCollider.enabled = true;
+        sourceCollider.ProcessTilemapChanges();
+        EditorUtility.SetDirty(sourceCollider);
+
+        NormalizeSchoolVisualLayers(school, walls, roof, emptySchoolRoof);
+        bool repaired = RepairBroadColliderCellsUsingDonor(walls);
+        if (!repaired)
+        {
+            Debug.LogError("[Environment Fixer] Không dựng được proxy/patch collider cho school. Hãy Undo thao tác này.", school);
+            Undo.RevertAllDownToGroup(undoGroup);
+            return;
+        }
+
+        PolygonCollider2D roofTrigger = BuildSchoolRoofTrigger(school, roof);
+        if (roofTrigger == null || roofTrigger.pathCount == 0)
+        {
+            Debug.LogError("[Environment Fixer] Không dựng được trigger mái school. Đã Undo toàn bộ thao tác.", school);
+            Undo.RevertAllDownToGroup(undoGroup);
+            return;
+        }
+
+        Undo.CollapseUndoOperations(undoGroup);
+        Selection.activeGameObject = school;
+        EditorSceneManager.MarkSceneDirty(school.scene);
+        Debug.Log($"[Environment Fixer] SCHOOL REBUILD hoàn tất: wall source 617 cell, " +
+                  $"roof trigger {roofTrigger.pathCount} dải tile. Scene đang dirty, chưa tự Save.", school);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/school/Validate Fixed Structure")]
+    public static void ValidateSchoolFixedStructure()
+    {
+        GameObject school = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "school" && candidate.scene.IsValid());
+        Tilemap walls = school != null ? school.transform.Find("tuong1")?.GetComponent<Tilemap>() : null;
+        Tilemap roof = school != null ? school.transform.Find("nocnha")?.GetComponent<Tilemap>() : null;
+        Tilemap proxy = school != null ? school.transform.Find(ProxyPrefix + "tuong1")?.GetComponent<Tilemap>() : null;
+        PolygonCollider2D broadPatch = school != null
+            ? school.transform.Find(BroadWallPatchPrefix + "tuong1")?.GetComponent<PolygonCollider2D>()
+            : null;
+        PolygonCollider2D doorSidePatch = school != null
+            ? school.transform.Find(DoorSidePatchPrefix + "tuong1")?.GetComponent<PolygonCollider2D>()
+            : null;
+        Transform roofTriggerTransform = school != null ? school.transform.Find(SchoolRoofTriggerName) : null;
+        PolygonCollider2D roofTrigger = roofTriggerTransform != null
+            ? roofTriggerTransform.GetComponent<PolygonCollider2D>()
+            : null;
+        RoofVisibility roofController = roofTriggerTransform != null
+            ? roofTriggerTransform.GetComponent<RoofVisibility>()
+            : null;
+        if (school == null || walls == null || roof == null || proxy == null)
+        {
+            Debug.LogError("[Environment Fixer] SCHOOL VALIDATION: FAIL - structure _FIXED chưa đầy đủ.", school);
+            return;
+        }
+
+        Physics2D.SyncTransforms();
+        int obstacleLayer = LayerMask.NameToLayer("Obstacle");
+        TilemapCollider2D sourceCollider = walls.GetComponent<TilemapCollider2D>();
+        TilemapCollider2D proxyCollider = proxy.GetComponent<TilemapCollider2D>();
+        TilemapRenderer proxyRenderer = proxy.GetComponent<TilemapRenderer>();
+        int sourceBroad = AuditTilemap(walls).FullBoundsShapeCells.Count;
+        int effectiveBroad = AuditTilemap(proxy).FullBoundsShapeCells.Count;
+        int sourceDoorHeads = CountElevatedOnlyPhysicsShapeCells(walls);
+        int effectiveDoorHeads = CountElevatedOnlyPhysicsShapeCells(proxy);
+        int blockedDoorHeads = CountBlockedElevatedDoorHeadSamples(school.transform, walls);
+        (int ordinaryTested, int ordinaryBlocked) = CountBlockedOrdinaryWallSamples(school, walls);
+
+        Bounds expandedProxyBounds = proxyCollider != null ? proxyCollider.bounds : new Bounds();
+        expandedProxyBounds.Expand(2f);
+        bool broadPatchPlacement = broadPatch != null && proxyCollider != null &&
+                                   expandedProxyBounds.Contains(broadPatch.bounds.min) &&
+                                   expandedProxyBounds.Contains(broadPatch.bounds.max);
+        int roofClusterCells = 0;
+        int roofTriggerMisses = CountSchoolRoofTriggerMisses(roof, roofTrigger, out roofClusterCells);
+
+        TilemapRenderer wallRenderer = walls.GetComponent<TilemapRenderer>();
+        TilemapRenderer roofRenderer = roof.GetComponent<TilemapRenderer>();
+        bool sortingValid = wallRenderer != null && wallRenderer.sortingLayerName == "Gameplay" &&
+                            wallRenderer.mode == TilemapRenderer.Mode.Individual &&
+                            roofRenderer != null && roofRenderer.sortingLayerName == "Foreground" &&
+                            roofRenderer.sortingOrder == 20;
+        bool roofOwnership = roofTrigger != null && roofTrigger.enabled && roofTrigger.isTrigger &&
+                             roofTrigger.errorState == ColliderErrorState2D.None && roofController != null &&
+                             roofController.roofTilemaps != null && roofController.roofTilemaps.Length == 1 &&
+                             roofController.roofTilemaps[0] == roof && roofTriggerMisses == 0;
+
+        Collider2D[] unintendedSolids = school.GetComponentsInChildren<Collider2D>(true)
+            .Where(collider => collider.enabled && !collider.isTrigger &&
+                               collider != proxyCollider && collider != broadPatch && collider != doorSidePatch)
+            .ToArray();
+        bool colliderNetwork = walls.gameObject.layer == obstacleLayer &&
+                               sourceCollider != null && !sourceCollider.enabled &&
+                               proxy.gameObject.layer == obstacleLayer && proxyCollider != null &&
+                               proxyCollider.enabled && !proxyCollider.isTrigger &&
+                               proxyCollider.errorState == ColliderErrorState2D.None &&
+                               proxyRenderer != null && !proxyRenderer.enabled &&
+                               sourceBroad == 22 && effectiveBroad == 0 &&
+                               sourceDoorHeads == 9 && effectiveDoorHeads == 0 && blockedDoorHeads == 0 &&
+                               broadPatch != null && broadPatch.enabled && !broadPatch.isTrigger &&
+                               broadPatch.errorState == ColliderErrorState2D.None && broadPatch.pathCount == 22 &&
+                               broadPatch.gameObject.layer == obstacleLayer &&
+                               GetMaximumPathHeight(broadPatch) <= 0.16f && broadPatchPlacement &&
+                               doorSidePatch != null && doorSidePatch.enabled && !doorSidePatch.isTrigger &&
+                               doorSidePatch.errorState == ColliderErrorState2D.None &&
+                               doorSidePatch.gameObject.layer == obstacleLayer && doorSidePatch.pathCount > 0 &&
+                               ordinaryTested >= 16 && ordinaryBlocked == ordinaryTested &&
+                               unintendedSolids.Length == 0;
+        bool structureValid = CountOccupiedTiles(school.GetComponent<Tilemap>()) == 0 &&
+                              CountOccupiedTiles(walls) == 617 && CountOccupiedTiles(roof) == 1197;
+        bool valid = structureValid && colliderNetwork && roofOwnership && sortingValid;
+
+        List<string> lines = new List<string>
+        {
+            $"- Structure: rootEmpty={CountOccupiedTiles(school.GetComponent<Tilemap>()) == 0}, walls={CountOccupiedTiles(walls)}/617, roof={CountOccupiedTiles(roof)}/1197",
+            $"- Wall proxy: shapes={proxyCollider?.shapeCount ?? 0}, error={proxyCollider?.errorState}, broad={sourceBroad}->effective {effectiveBroad}",
+            $"- Broad patches: {broadPatch?.pathCount ?? 0}/22, maxHeight={(broadPatch != null ? GetMaximumPathHeight(broadPatch) : -1f):0.###}, placement={broadPatchPlacement}",
+            $"- Door lintels: {sourceDoorHeads}/9->effective {effectiveDoorHeads}, blockedCenters={blockedDoorHeads}/9, sidePaths={doorSidePatch?.pathCount ?? 0}",
+            $"- Ordinary wall samples: blocked={ordinaryBlocked}/{ordinaryTested}",
+            $"- Roof: paths={roofTrigger?.pathCount ?? 0}, coverage={roofClusterCells - roofTriggerMisses}/{roofClusterCells}, ownership={roofOwnership}",
+            $"- Sorting: wall={wallRenderer?.sortingLayerName}/{wallRenderer?.sortingOrder}/{wallRenderer?.mode}, roof={roofRenderer?.sortingLayerName}/{roofRenderer?.sortingOrder}/{roofRenderer?.mode}",
+            $"- Unintended enabled solid colliders: {unintendedSolids.Length}" +
+            (unintendedSolids.Length > 0 ? $" [{string.Join(", ", unintendedSolids.Select(collider => collider.gameObject.name))}]" : string.Empty),
+            $"- Prefab remains scene instance: '{PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(school)}' (không Apply All)"
+        };
+        Debug.Log($"[Environment Fixer] SCHOOL FIXED VALIDATION: {(valid ? "PASS" : "FAIL")}\n" +
+                  string.Join("\n", lines), school);
+    }
+
+    private static int CountOccupiedTiles(Tilemap map)
+    {
+        if (map == null) return 0;
+        int count = 0;
+        foreach (Vector3Int cell in map.cellBounds.allPositionsWithin)
+            if (map.HasTile(cell)) count++;
+        return count;
+    }
+
+    private static void NormalizeSchoolVisualLayers(
+        GameObject school, Tilemap walls, Tilemap roof, Tilemap emptySchoolRoof)
+    {
+        foreach (Tilemap map in school.GetComponentsInChildren<Tilemap>(true))
+        {
+            if (map.name.StartsWith(ProxyPrefix, StringComparison.Ordinal) ||
+                map.name.StartsWith("__", StringComparison.Ordinal))
+                continue;
+            TilemapRenderer renderer = map.GetComponent<TilemapRenderer>();
+            if (renderer == null) continue;
+            Undo.RecordObject(renderer, "Normalize school renderer");
+            if (map == roof)
+            {
+                renderer.sortingLayerName = "Foreground";
+                renderer.sortingOrder = 20;
+                renderer.mode = TilemapRenderer.Mode.Chunk;
+            }
+            else if (map.name.Equals("nennha", StringComparison.OrdinalIgnoreCase))
+            {
+                renderer.sortingLayerName = "Default";
+                renderer.sortingOrder = 0;
+                renderer.mode = TilemapRenderer.Mode.Individual;
+            }
+            else if (map == emptySchoolRoof)
+            {
+                renderer.enabled = false;
+            }
+            else
+            {
+                renderer.sortingLayerName = "Gameplay";
+                renderer.mode = TilemapRenderer.Mode.Individual;
+            }
+            EditorUtility.SetDirty(renderer);
+        }
+    }
+
+    private static PolygonCollider2D BuildSchoolRoofTrigger(GameObject school, Tilemap roof)
+    {
+        Transform oldTrigger = school.transform.Find(SchoolRoofTriggerName);
+        if (oldTrigger != null) Undo.DestroyObjectImmediate(oldTrigger.gameObject);
+
+        List<Vector3Int> occupied = new List<Vector3Int>();
+        foreach (Vector3Int cell in roof.cellBounds.allPositionsWithin)
+            if (roof.HasTile(cell)) occupied.Add(cell);
+        List<Vector3Int> footprint = FindTileClusters(occupied)
+            .OrderByDescending(cluster => cluster.Count).FirstOrDefault();
+        if (footprint == null || footprint.Count == 0) return null;
+
+        GameObject triggerObject = new GameObject(SchoolRoofTriggerName);
+        Undo.RegisterCreatedObjectUndo(triggerObject, "Create exact school roof trigger");
+        Undo.SetTransformParent(triggerObject.transform, school.transform, "Parent school roof trigger");
+        triggerObject.transform.localPosition = Vector3.zero;
+        triggerObject.transform.localRotation = Quaternion.identity;
+        triggerObject.transform.localScale = Vector3.one;
+        triggerObject.layer = LayerMask.NameToLayer("Default");
+
+        PolygonCollider2D trigger = Undo.AddComponent<PolygonCollider2D>(triggerObject);
+        trigger.pathCount = 0;
+        trigger.isTrigger = true;
+        foreach (IGrouping<int, Vector3Int> row in footprint.GroupBy(cell => cell.y).OrderBy(group => group.Key))
+        {
+            List<int> xs = row.Select(cell => cell.x).Distinct().OrderBy(x => x).ToList();
+            int start = xs[0];
+            int previous = xs[0];
+            for (int index = 1; index <= xs.Count; index++)
+            {
+                bool closesRun = index == xs.Count || xs[index] != previous + 1;
+                if (closesRun)
+                {
+                    Vector3Int minCell = new Vector3Int(start, row.Key, 0);
+                    Vector3Int maxCell = new Vector3Int(previous, row.Key, 0);
+                    Vector2[] path =
+                    {
+                        triggerObject.transform.InverseTransformPoint(roof.CellToWorld(minCell)),
+                        triggerObject.transform.InverseTransformPoint(roof.CellToWorld(maxCell + Vector3Int.right)),
+                        triggerObject.transform.InverseTransformPoint(roof.CellToWorld(maxCell + Vector3Int.right + Vector3Int.up)),
+                        triggerObject.transform.InverseTransformPoint(roof.CellToWorld(minCell + Vector3Int.up))
+                    };
+                    int pathIndex = trigger.pathCount;
+                    trigger.pathCount++;
+                    trigger.SetPath(pathIndex, path);
+                    if (index < xs.Count) start = xs[index];
+                }
+                if (index < xs.Count) previous = xs[index];
+            }
+        }
+
+        RoofVisibility controller = Undo.AddComponent<RoofVisibility>(triggerObject);
+        controller.roofTilemaps = new[] { roof };
+        controller.fadeDuration = 0.3f;
+        controller.targetAlpha = 0f;
+        EditorUtility.SetDirty(trigger);
+        EditorUtility.SetDirty(controller);
+        EditorUtility.SetDirty(triggerObject);
+        return trigger;
+    }
+
+    private static (int tested, int blocked) CountBlockedOrdinaryWallSamples(GameObject rootObject, Tilemap source)
+    {
+        HashSet<Vector3Int> excluded = new HashSet<Vector3Int>(AuditTilemap(source).FullBoundsShapeCells);
+        HashSet<Vector3Int> doorHeads = FindElevatedOnlyPhysicsShapeCells(source);
+        excluded.UnionWith(doorHeads);
+        excluded.UnionWith(FindDoorSideConstraints(source, doorHeads).Keys);
+        excluded.UnionWith(FindDoorProjectionClearances(source, doorHeads).Keys);
+        List<Vector3Int> candidates = new List<Vector3Int>();
+        foreach (Vector3Int cell in source.cellBounds.allPositionsWithin)
+            if (source.HasTile(cell) && source.GetColliderType(cell) != Tile.ColliderType.None &&
+                !excluded.Contains(cell)) candidates.Add(cell);
+        candidates = candidates.OrderBy(cell => cell.y).ThenBy(cell => cell.x).ToList();
+        int step = Mathf.Max(1, candidates.Count / 24);
+        int tested = 0;
+        int blocked = 0;
+        for (int index = 0; index < candidates.Count && tested < 24; index += step)
+        {
+            List<Vector2> samples = GetSingleCellShapeCentroidsWorld(source, candidates[index]);
+            if (samples.Count == 0) continue;
+            tested++;
+            if (Physics2D.OverlapPointAll(samples[0]).Any(collider => collider.enabled && !collider.isTrigger &&
+                    collider.transform.IsChildOf(rootObject.transform)))
+                blocked++;
+        }
+        return (tested, blocked);
+    }
+
+    private static int CountSchoolRoofTriggerMisses(
+        Tilemap roof, PolygonCollider2D trigger, out int footprintCells)
+    {
+        footprintCells = 0;
+        if (roof == null || trigger == null) return int.MaxValue / 4;
+        List<Vector3Int> occupied = new List<Vector3Int>();
+        foreach (Vector3Int cell in roof.cellBounds.allPositionsWithin)
+            if (roof.HasTile(cell)) occupied.Add(cell);
+        List<Vector3Int> footprint = FindTileClusters(occupied)
+            .OrderByDescending(cluster => cluster.Count).FirstOrDefault();
+        if (footprint == null) return int.MaxValue / 4;
+        footprintCells = footprint.Count;
+        return footprint.Count(cell => !trigger.OverlapPoint(roof.GetCellCenterWorld(cell)));
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/hospital/Rebuild Two-Building Structure")]
+    public static void RebuildHospitalTwoBuildingStructure()
+    {
+        GameObject hospital = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "hospital" && candidate.scene.IsValid());
+        if (hospital == null)
+        {
+            Debug.LogError("[Environment Fixer] Không tìm thấy root 'hospital' trong Scene hiện tại.");
+            return;
+        }
+
+        if (hospital.transform.Find("Hospital_Large_FIXED") != null ||
+            hospital.transform.Find("Hospital_Small_FIXED") != null)
+        {
+            Debug.LogError("[Environment Fixer] hospital đã có structure _FIXED. Dừng để không ghi đè kết quả đang review.", hospital);
+            return;
+        }
+
+        Tilemap sourceWalls = hospital.GetComponent<Tilemap>();
+        TilemapRenderer sourceWallRenderer = hospital.GetComponent<TilemapRenderer>();
+        TilemapCollider2D sourceWallCollider = hospital.GetComponent<TilemapCollider2D>();
+        if (sourceWalls == null || sourceWallRenderer == null || sourceWallCollider == null)
+        {
+            Debug.LogError("[Environment Fixer] hospital root phải có Tilemap + TilemapRenderer + TilemapCollider2D trước khi tách.", hospital);
+            return;
+        }
+
+        Tilemap[] roofMaps = hospital.GetComponentsInChildren<Tilemap>(true)
+            .Where(map => map.name.StartsWith("nocnha", StringComparison.OrdinalIgnoreCase) &&
+                          map.GetComponent<PolygonCollider2D>() != null &&
+                          map.GetComponent<PolygonCollider2D>().isTrigger)
+            .OrderByDescending(map =>
+            {
+                Bounds bounds = map.GetComponent<PolygonCollider2D>().bounds;
+                return bounds.size.x * bounds.size.y;
+            })
+            .ToArray();
+        if (roofMaps.Length != 2)
+        {
+            Debug.LogError($"[Environment Fixer] hospital cần đúng 2 mái có Polygon trigger; hiện tìm thấy {roofMaps.Length}.", hospital);
+            return;
+        }
+
+        int obstacleLayer = LayerMask.NameToLayer("Obstacle");
+        if (obstacleLayer < 0)
+        {
+            Debug.LogError("[Environment Fixer] Project chưa có layer Obstacle.");
+            return;
+        }
+
+        List<Vector3Int> occupiedWallCells = new List<Vector3Int>();
+        foreach (Vector3Int cell in sourceWalls.cellBounds.allPositionsWithin)
+        {
+            if (sourceWalls.HasTile(cell))
+                occupiedWallCells.Add(cell);
+        }
+        if (occupiedWallCells.Count == 0)
+        {
+            Debug.LogError("[Environment Fixer] Tilemap root hospital không có tile tường để tách.", hospital);
+            return;
+        }
+
+        string[] nonStructuralSprites = occupiedWallCells
+            .Select(sourceWalls.GetSprite)
+            .Where(sprite => sprite != null &&
+                             !ContainsAny(sprite.name.ToLowerInvariant(), "wall", "hospital"))
+            .Select(sprite => sprite.name)
+            .Distinct()
+            .OrderBy(name => name)
+            .ToArray();
+        if (nonStructuralSprites.Length > 0)
+        {
+            Debug.LogError("[Environment Fixer] Root hospital còn sprite không chắc là tường: " +
+                           string.Join(", ", nonStructuralSprites) + ". Dừng để review.", hospital);
+            return;
+        }
+
+        RoofVisibility oldRoofVisibility = hospital.GetComponent<RoofVisibility>();
+        float fadeDuration = oldRoofVisibility != null ? oldRoofVisibility.fadeDuration : 0.3f;
+        float targetAlpha = oldRoofVisibility != null ? oldRoofVisibility.targetAlpha : 0f;
+        Material litMaterial = roofMaps
+            .Select(map => map.GetComponent<TilemapRenderer>())
+            .Where(renderer => renderer != null && renderer.sharedMaterial != null)
+            .Select(renderer => renderer.sharedMaterial)
+            .FirstOrDefault();
+
+        int undoGroup = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Rebuild hospital two-building structure");
+
+        GameObject largeRoot = CreateHospitalGroup(hospital.transform, "Hospital_Large_FIXED");
+        GameObject smallRoot = CreateHospitalGroup(hospital.transform, "Hospital_Small_FIXED");
+        Tilemap largeWalls = CreateHospitalTilemapClone(sourceWalls, sourceWallRenderer, largeRoot.transform,
+            "tuongnha", obstacleLayer, litMaterial);
+        Tilemap smallWalls = CreateHospitalTilemapClone(sourceWalls, sourceWallRenderer, smallRoot.transform,
+            "tuongnha", obstacleLayer, litMaterial);
+
+        Bounds largeRoofBounds = roofMaps[0].GetComponent<PolygonCollider2D>().bounds;
+        Bounds smallRoofBounds = roofMaps[1].GetComponent<PolygonCollider2D>().bounds;
+        int largeCount = 0;
+        int smallCount = 0;
+        float maximumWorldDrift = 0f;
+        foreach (Vector3Int cell in occupiedWallCells)
+        {
+            Vector3 originalWorld = sourceWalls.GetCellCenterWorld(cell);
+            float largeDistance = DistanceToBounds2D(largeRoofBounds, originalWorld);
+            float smallDistance = DistanceToBounds2D(smallRoofBounds, originalWorld);
+            Tilemap destination = largeDistance <= smallDistance ? largeWalls : smallWalls;
+            CopyHospitalTileCell(sourceWalls, destination, cell);
+            maximumWorldDrift = Mathf.Max(maximumWorldDrift,
+                Vector2.Distance(originalWorld, destination.GetCellCenterWorld(cell)));
+            if (destination == largeWalls) largeCount++;
+            else smallCount++;
+        }
+
+        if (largeCount == 0 || smallCount == 0 || largeCount + smallCount != occupiedWallCells.Count ||
+            maximumWorldDrift > 0.001f)
+        {
+            Undo.RevertAllDownToGroup(undoGroup);
+            Debug.LogError($"[Environment Fixer] Hospital split validation thất bại: large={largeCount}, " +
+                           $"small={smallCount}, source={occupiedWallCells.Count}, drift={maximumWorldDrift:0.#####}. " +
+                           "Đã Undo toàn bộ thao tác.", hospital);
+            return;
+        }
+
+        Undo.RecordObject(sourceWalls, "Clear mixed hospital wall tilemap");
+        sourceWalls.ClearAllTiles();
+        sourceWalls.CompressBounds();
+        Undo.RecordObject(sourceWallRenderer, "Disable empty hospital root renderer");
+        sourceWallRenderer.enabled = false;
+        Undo.RecordObject(sourceWallCollider, "Disable mixed hospital root collider");
+        sourceWallCollider.enabled = false;
+        Undo.RecordObject(hospital, "Reset hospital container layer");
+        hospital.layer = LayerMask.NameToLayer("Default");
+
+        ConfigureHospitalWallCollider(largeWalls);
+        ConfigureHospitalWallCollider(smallWalls);
+        MoveHospitalRoofToIndependentController(roofMaps[0], largeRoot, fadeDuration, targetAlpha);
+        MoveHospitalRoofToIndependentController(roofMaps[1], smallRoot, fadeDuration, targetAlpha);
+        if (oldRoofVisibility != null)
+            Undo.DestroyObjectImmediate(oldRoofVisibility);
+
+        NormalizeHospitalVisualLayers(hospital, litMaterial, sourceWalls);
+        int extractedFarTiles = ExtractHospitalFarVisualCells(hospital, largeRoofBounds, smallRoofBounds);
+
+        bool repairedLarge = RepairBroadColliderCellsUsingDonor(largeWalls);
+        bool repairedSmall = RepairBroadColliderCellsUsingDonor(smallWalls, largeWalls);
+        largeWalls.GetComponent<TilemapCollider2D>()?.ProcessTilemapChanges();
+        smallWalls.GetComponent<TilemapCollider2D>()?.ProcessTilemapChanges();
+
+        Undo.CollapseUndoOperations(undoGroup);
+        EditorSceneManager.MarkSceneDirty(hospital.scene);
+        Selection.activeGameObject = smallRoot;
+        Debug.Log(
+            $"[Environment Fixer] HOSPITAL SPLIT hoàn tất: wall {occupiedWallCells.Count} cell -> " +
+            $"large {largeCount}, small {smallCount}, world drift {maximumWorldDrift:0.#####}; " +
+            $"broad repair large={repairedLarge}, small={repairedSmall}; " +
+            $"far visual tách review={extractedFarTiles}. Hai RoofVisibility hoạt động độc lập. " +
+            "Scene đã dirty nhưng chưa tự Save.", hospital);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/hospital/Repair Small Walls From Large Donor")]
+    public static void RepairHospitalSmallWallsFromLargeDonor()
+    {
+        GameObject hospital = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "hospital" && candidate.scene.IsValid());
+        Transform largeRoot = hospital != null ? hospital.transform.Find("Hospital_Large_FIXED") : null;
+        Transform smallRoot = hospital != null ? hospital.transform.Find("Hospital_Small_FIXED") : null;
+        Tilemap largeWalls = largeRoot != null ? largeRoot.GetComponentInChildren<Tilemap>(true) : null;
+        Tilemap smallWalls = smallRoot != null ? smallRoot.GetComponentInChildren<Tilemap>(true) : null;
+        if (largeWalls == null || smallWalls == null)
+        {
+            Debug.LogError("[Environment Fixer] Không tìm thấy hai Tilemap tường hospital _FIXED.", hospital);
+            return;
+        }
+
+        bool repaired = RepairBroadColliderCellsUsingDonor(smallWalls, largeWalls);
+        EditorSceneManager.MarkSceneDirty(hospital.scene);
+        Selection.activeGameObject = smallWalls.gameObject;
+        Debug.Log($"[Environment Fixer] HOSPITAL SMALL CROSS-DONOR repair={repaired}.", smallWalls);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/hospital/Rebuild All Broad Wall Foot Patches")]
+    public static void RebuildHospitalBroadWallFootPatches()
+    {
+        GameObject hospital = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "hospital" && candidate.scene.IsValid());
+        Transform largeRoot = hospital != null ? hospital.transform.Find("Hospital_Large_FIXED") : null;
+        Transform smallRoot = hospital != null ? hospital.transform.Find("Hospital_Small_FIXED") : null;
+        Tilemap largeWalls = largeRoot != null
+            ? largeRoot.GetComponentsInChildren<Tilemap>(true).FirstOrDefault(map => map.name == "tuongnha")
+            : null;
+        Tilemap smallWalls = smallRoot != null
+            ? smallRoot.GetComponentsInChildren<Tilemap>(true).FirstOrDefault(map => map.name == "tuongnha")
+            : null;
+        if (largeWalls == null || smallWalls == null)
+        {
+            Debug.LogError("[Environment Fixer] Không tìm thấy hai Tilemap tường hospital _FIXED.", hospital);
+            return;
+        }
+
+        int undoGroup = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Rebuild hospital broad wall foot patches");
+        bool repairedLarge = RepairBroadColliderCellsUsingDonor(largeWalls);
+        bool repairedSmall = RepairBroadColliderCellsUsingDonor(smallWalls, largeWalls);
+        Undo.CollapseUndoOperations(undoGroup);
+        EditorSceneManager.MarkSceneDirty(hospital.scene);
+        Debug.Log($"[Environment Fixer] HOSPITAL ALL BROAD PATCHES: large={repairedLarge}, small={repairedSmall}.", hospital);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/hospital/Audit Wall Sprite Physics Shape Bands")]
+    public static void AuditHospitalWallSpritePhysicsShapeBands()
+    {
+        GameObject hospital = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "hospital" && candidate.scene.IsValid());
+        Tilemap[] walls = hospital != null
+            ? hospital.GetComponentsInChildren<Tilemap>(true).Where(map => map.name == "tuongnha").ToArray()
+            : Array.Empty<Tilemap>();
+        Dictionary<Sprite, List<string>> usage = new Dictionary<Sprite, List<string>>();
+        foreach (Tilemap wall in walls)
+        {
+            foreach (Vector3Int cell in wall.cellBounds.allPositionsWithin)
+            {
+                if (!wall.HasTile(cell)) continue;
+                Sprite sprite = wall.GetSprite(cell);
+                if (sprite == null) continue;
+                if (!usage.TryGetValue(sprite, out List<string> cells))
+                {
+                    cells = new List<string>();
+                    usage.Add(sprite, cells);
+                }
+                cells.Add($"{wall.transform.parent?.name}/{cell}@{wall.GetCellCenterWorld(cell)}");
+            }
+        }
+
+        List<string> lines = new List<string>();
+        List<Vector2> points = new List<Vector2>();
+        foreach (KeyValuePair<Sprite, List<string>> pair in usage.OrderBy(item => item.Key.name, StringComparer.Ordinal))
+        {
+            Sprite sprite = pair.Key;
+            float spriteMinY = sprite.bounds.min.y;
+            float spriteHeight = Mathf.Max(sprite.bounds.size.y, 0.0001f);
+            List<string> shapes = new List<string>();
+            bool hasElevatedBand = false;
+            for (int shapeIndex = 0; shapeIndex < sprite.GetPhysicsShapeCount(); shapeIndex++)
+            {
+                points.Clear();
+                sprite.GetPhysicsShape(shapeIndex, points);
+                if (points.Count == 0) continue;
+                float minY = points.Min(point => point.y);
+                float maxY = points.Max(point => point.y);
+                float minRatio = (minY - spriteMinY) / spriteHeight;
+                float maxRatio = (maxY - spriteMinY) / spriteHeight;
+                hasElevatedBand |= minRatio >= 0.4f || maxRatio >= 0.5f;
+                shapes.Add($"#{shapeIndex}[y={minY:0.###}..{maxY:0.###}, ratio={minRatio:0.##}..{maxRatio:0.##}]");
+            }
+            lines.Add($"- {sprite.name} x{pair.Value.Count}, boundsY={sprite.bounds.min.y:0.###}..{sprite.bounds.max.y:0.###}: " +
+                      string.Join(" ", shapes) +
+                      (hasElevatedBand ? " | ELEVATED cells=" + string.Join(", ", pair.Value) : string.Empty));
+        }
+        Debug.Log("[Environment Fixer] HOSPITAL WALL SHAPE BANDS\n" + string.Join("\n", lines), hospital);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/hospital/Repair Independent Roof Controllers")]
+    public static void RepairHospitalIndependentRoofControllers()
+    {
+        GameObject hospital = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "hospital" && candidate.scene.IsValid());
+        if (hospital == null)
+        {
+            Debug.LogError("[Environment Fixer] Không tìm thấy hospital để sửa roof controller.");
+            return;
+        }
+
+        RoofVisibility[] existingControllers = hospital.GetComponentsInChildren<RoofVisibility>(true);
+        float fadeDuration = existingControllers.FirstOrDefault() != null
+            ? existingControllers.First().fadeDuration
+            : 0.3f;
+        float targetAlpha = existingControllers.FirstOrDefault() != null
+            ? existingControllers.First().targetAlpha
+            : 0f;
+        foreach (RoofVisibility controller in existingControllers)
+        {
+            if (!controller.gameObject.name.StartsWith("nocnha", StringComparison.OrdinalIgnoreCase))
+                Undo.DestroyObjectImmediate(controller);
+        }
+
+        Tilemap[] roofs = hospital.GetComponentsInChildren<Tilemap>(true)
+            .Where(map => map.name.StartsWith("nocnha", StringComparison.OrdinalIgnoreCase) &&
+                          map.GetComponent<PolygonCollider2D>() != null &&
+                          map.GetComponent<PolygonCollider2D>().isTrigger)
+            .ToArray();
+        foreach (Tilemap roof in roofs)
+            ConfigureHospitalRoofControllerOnTilemap(roof, fadeDuration, targetAlpha);
+
+        EditorSceneManager.MarkSceneDirty(hospital.scene);
+        Debug.Log($"[Environment Fixer] HOSPITAL ROOF ownership: {roofs.Length} mái, mỗi mái có controller riêng trên trigger.", hospital);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/hospital/Validate Fixed Structure")]
+    public static void ValidateHospitalFixedStructure()
+    {
+        GameObject hospital = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "hospital" && candidate.scene.IsValid());
+        Transform largeRoot = hospital != null ? hospital.transform.Find("Hospital_Large_FIXED") : null;
+        Transform smallRoot = hospital != null ? hospital.transform.Find("Hospital_Small_FIXED") : null;
+        if (hospital == null || largeRoot == null || smallRoot == null)
+        {
+            Debug.LogError("[Environment Fixer] Hospital fixed structure chưa đầy đủ.", hospital);
+            return;
+        }
+
+        List<string> lines = new List<string>();
+        bool valid = true;
+        Tilemap emptyRoot = hospital.GetComponent<Tilemap>();
+        TilemapRenderer emptyRenderer = hospital.GetComponent<TilemapRenderer>();
+        TilemapCollider2D emptyCollider = hospital.GetComponent<TilemapCollider2D>();
+        int rootCells = CountTilemapCells(emptyRoot);
+        bool emptySourceDisabled = rootCells == 0 && emptyRenderer != null && !emptyRenderer.enabled &&
+                                   emptyCollider != null && !emptyCollider.enabled;
+        valid &= emptySourceDisabled;
+        lines.Add($"- Mixed root cleared: cells={rootCells}, rendererOff={emptyRenderer != null && !emptyRenderer.enabled}, " +
+                  $"colliderOff={emptyCollider != null && !emptyCollider.enabled}");
+
+        Tilemap largeWalls = largeRoot.GetComponentsInChildren<Tilemap>(true)
+            .FirstOrDefault(map => map.name == "tuongnha");
+        Tilemap smallWalls = smallRoot.GetComponentsInChildren<Tilemap>(true)
+            .FirstOrDefault(map => map.name == "tuongnha");
+        int largeCells = CountTilemapCells(largeWalls);
+        int smallCells = CountTilemapCells(smallWalls);
+        valid &= largeCells == 455 && smallCells == 84;
+        lines.Add($"- Wall split: large={largeCells}/455, small={smallCells}/84");
+
+        foreach (Transform building in new[] { largeRoot, smallRoot })
+        {
+            Tilemap walls = building.GetComponentsInChildren<Tilemap>(true)
+                .FirstOrDefault(map => map.name == "tuongnha");
+            Tilemap proxy = building.GetComponentsInChildren<Tilemap>(true)
+                .FirstOrDefault(map => map.name == ProxyPrefix + "tuongnha");
+            PolygonCollider2D patch = building.GetComponentsInChildren<PolygonCollider2D>(true)
+                .FirstOrDefault(collider => collider.gameObject.name == BroadWallPatchPrefix + "tuongnha");
+            PolygonCollider2D doorSidePatch = building.GetComponentsInChildren<PolygonCollider2D>(true)
+                .FirstOrDefault(collider => collider.gameObject.name == DoorSidePatchPrefix + "tuongnha");
+            TilemapCollider2D sourceCollider = walls != null ? walls.GetComponent<TilemapCollider2D>() : null;
+            TilemapCollider2D proxyCollider = proxy != null ? proxy.GetComponent<TilemapCollider2D>() : null;
+            TilemapRenderer proxyRenderer = proxy != null ? proxy.GetComponent<TilemapRenderer>() : null;
+            int broadEffective = proxy != null ? AuditTilemap(proxy).FullBoundsShapeCells.Count : int.MaxValue;
+            int sourceDoorHeads = CountElevatedOnlyPhysicsShapeCells(walls);
+            int effectiveDoorHeads = proxy != null ? CountElevatedOnlyPhysicsShapeCells(proxy) : int.MaxValue;
+            int expectedPatches = building == largeRoot ? 13 : 3;
+            int expectedDoorHeads = building == largeRoot ? 36 : 11;
+            int expectedDoorSidePaths = building == largeRoot ? 244 : 41;
+            Bounds expandedProxyBounds = proxyCollider != null ? proxyCollider.bounds : new Bounds();
+            expandedProxyBounds.Expand(2f);
+            bool patchPlacement = patch != null && proxyCollider != null &&
+                                  expandedProxyBounds.Contains(patch.bounds.min) &&
+                                  expandedProxyBounds.Contains(patch.bounds.max);
+            bool buildingValid = walls != null && walls.gameObject.layer == LayerMask.NameToLayer("Obstacle") &&
+                                 sourceCollider != null && !sourceCollider.enabled &&
+                                 proxyCollider != null && proxyCollider.enabled && !proxyCollider.isTrigger &&
+                                 proxyCollider.errorState == ColliderErrorState2D.None &&
+                                 proxyRenderer != null && !proxyRenderer.enabled && broadEffective == 0 &&
+                                 sourceDoorHeads == expectedDoorHeads && effectiveDoorHeads == 0 &&
+                                 patch != null && patch.enabled && !patch.isTrigger &&
+                                  patch.pathCount == expectedPatches &&
+                                 patch.gameObject.layer == LayerMask.NameToLayer("Obstacle") &&
+                                 GetMaximumPathHeight(patch) <= 0.16f && patchPlacement &&
+                                 doorSidePatch != null && doorSidePatch.enabled && !doorSidePatch.isTrigger &&
+                                 doorSidePatch.errorState == ColliderErrorState2D.None &&
+                                 doorSidePatch.gameObject.layer == LayerMask.NameToLayer("Obstacle") &&
+                                 doorSidePatch.pathCount == expectedDoorSidePaths;
+            valid &= buildingValid;
+            lines.Add($"- {building.name}: proxy={(proxyCollider != null && proxyCollider.enabled)}, " +
+                      $"shapes={proxyCollider?.shapeCount ?? 0}, error={proxyCollider?.errorState}, " +
+                       $"broad={broadEffective}, patches={patch?.pathCount ?? 0}/{expectedPatches}, " +
+                       $"doorHeads={sourceDoorHeads}/{expectedDoorHeads}->effective {effectiveDoorHeads}, " +
+                       $"doorSidePaths={doorSidePatch?.pathCount ?? 0}/{expectedDoorSidePaths}, " +
+                       $"maxPatchHeight={(patch != null ? GetMaximumPathHeight(patch) : -1f):0.###}, " +
+                       $"placement={patchPlacement}");
+        }
+
+        int blockedDoorHeadSamples = CountBlockedElevatedDoorHeadSamples(largeRoot, largeWalls) +
+                                     CountBlockedElevatedDoorHeadSamples(smallRoot, smallWalls);
+        valid &= blockedDoorHeadSamples == 0;
+        lines.Add($"- Door-head center overlap: blocked={blockedDoorHeadSamples}/47");
+
+        Tilemap[] roofs = hospital.GetComponentsInChildren<Tilemap>(true)
+            .Where(map => map.name.StartsWith("nocnha", StringComparison.OrdinalIgnoreCase) &&
+                          map.GetComponent<PolygonCollider2D>() != null &&
+                          map.GetComponent<PolygonCollider2D>().isTrigger)
+            .ToArray();
+        bool roofOwnership = roofs.Length == 2 && hospital.GetComponent<RoofVisibility>() == null &&
+                             roofs.All(roof =>
+                             {
+                                 RoofVisibility controller = roof.GetComponent<RoofVisibility>();
+                                 return controller != null && controller.roofTilemaps != null &&
+                                        controller.roofTilemaps.Length == 1 && controller.roofTilemaps[0] == roof;
+                             });
+        valid &= roofOwnership;
+        lines.Add($"- Independent roofs: count={roofs.Length}, ownership={roofOwnership}");
+
+        Tilemap decor = hospital.GetComponentsInChildren<Tilemap>(true).FirstOrDefault(map => map.name == "decord");
+        TilemapRenderer decorRenderer = decor != null ? decor.GetComponent<TilemapRenderer>() : null;
+        bool decorSorting = decorRenderer != null && decorRenderer.sortingLayerName == "Gameplay" &&
+                            decorRenderer.sortingOrder == 0 && decorRenderer.mode == TilemapRenderer.Mode.Individual;
+        valid &= decorSorting;
+        string decorSortingDescription = decorRenderer != null
+            ? decorRenderer.sortingLayerName + "/" + decorRenderer.sortingOrder + "/" + decorRenderer.mode
+            : "missing";
+        lines.Add("- Decor Y-sort: " + decorSortingDescription);
+
+        string verdict = valid ? "PASS" : "FAIL";
+        Debug.Log($"[Environment Fixer] HOSPITAL FIXED VALIDATION: {verdict}\n" + string.Join("\n", lines), hospital);
+
+        UnityEngine.Object previousSelection = Selection.activeObject;
+        Selection.activeGameObject = largeRoot.gameObject;
+        ValidateMergedFootprints();
+        Selection.activeGameObject = smallRoot.gameObject;
+        ValidateMergedFootprints();
+        Selection.activeObject = previousSelection;
+    }
+
+    private static int CountTilemapCells(Tilemap tilemap)
+    {
+        if (tilemap == null)
+            return 0;
+        int count = 0;
+        foreach (Vector3Int cell in tilemap.cellBounds.allPositionsWithin)
+        {
+            if (tilemap.HasTile(cell))
+                count++;
+        }
+        return count;
+    }
+
+    private static GameObject CreateHospitalGroup(Transform parent, string name)
+    {
+        GameObject group = new GameObject(name);
+        Undo.RegisterCreatedObjectUndo(group, "Create hospital building group");
+        Undo.SetTransformParent(group.transform, parent, "Parent hospital building group");
+        group.transform.localPosition = Vector3.zero;
+        group.transform.localRotation = Quaternion.identity;
+        group.transform.localScale = Vector3.one;
+        return group;
+    }
+
+    private static Tilemap CreateHospitalTilemapClone(
+        Tilemap source,
+        TilemapRenderer sourceRenderer,
+        Transform parent,
+        string name,
+        int layer,
+        Material materialOverride)
+    {
+        GameObject destinationObject = new GameObject(name, typeof(Tilemap), typeof(TilemapRenderer));
+        Undo.RegisterCreatedObjectUndo(destinationObject, "Create hospital tilemap");
+        Undo.SetTransformParent(destinationObject.transform, parent, "Parent hospital tilemap");
+        destinationObject.transform.position = source.transform.position;
+        destinationObject.transform.rotation = source.transform.rotation;
+        destinationObject.transform.localScale = source.transform.lossyScale;
+        destinationObject.layer = layer;
+
+        Tilemap destination = destinationObject.GetComponent<Tilemap>();
+        destination.animationFrameRate = source.animationFrameRate;
+        destination.tileAnchor = source.tileAnchor;
+        destination.orientation = source.orientation;
+        destination.orientationMatrix = source.orientationMatrix;
+        destination.color = source.color;
+
+        TilemapRenderer renderer = destinationObject.GetComponent<TilemapRenderer>();
+        renderer.sortingLayerName = "Gameplay";
+        renderer.sortingOrder = 0;
+        renderer.mode = TilemapRenderer.Mode.Individual;
+        renderer.sortOrder = sourceRenderer.sortOrder;
+        renderer.sharedMaterial = materialOverride != null ? materialOverride : sourceRenderer.sharedMaterial;
+        return destination;
+    }
+
+    private static void CopyHospitalTileCell(Tilemap source, Tilemap destination, Vector3Int cell)
+    {
+        TileBase tile = source.GetTile(cell);
+        TileFlags flags = source.GetTileFlags(cell);
+        destination.SetTile(cell, tile);
+        destination.SetTileFlags(cell, TileFlags.None);
+        destination.SetTransformMatrix(cell, source.GetTransformMatrix(cell));
+        destination.SetColor(cell, source.GetColor(cell));
+        destination.SetTileFlags(cell, flags);
+    }
+
+    private static float DistanceToBounds2D(Bounds bounds, Vector3 point)
+    {
+        Vector3 closest = bounds.ClosestPoint(point);
+        return Vector2.Distance(new Vector2(closest.x, closest.y), new Vector2(point.x, point.y));
+    }
+
+    private static void ConfigureHospitalWallCollider(Tilemap walls)
+    {
+        TilemapCollider2D collider = Undo.AddComponent<TilemapCollider2D>(walls.gameObject);
+        collider.isTrigger = false;
+        collider.ProcessTilemapChanges();
+        EditorUtility.SetDirty(walls);
+        EditorUtility.SetDirty(collider);
+    }
+
+    private static void MoveHospitalRoofToIndependentController(
+        Tilemap roof,
+        GameObject buildingRoot,
+        float fadeDuration,
+        float targetAlpha)
+    {
+        ConfigureHospitalRoofControllerOnTilemap(roof, fadeDuration, targetAlpha);
+    }
+
+    private static void ConfigureHospitalRoofControllerOnTilemap(
+        Tilemap roof,
+        float fadeDuration,
+        float targetAlpha)
+    {
+        RoofVisibility controller = roof.GetComponent<RoofVisibility>();
+        if (controller == null)
+            controller = Undo.AddComponent<RoofVisibility>(roof.gameObject);
+        Undo.RecordObject(controller, "Configure independent hospital roof controller");
+        controller.roofTilemaps = new[] { roof };
+        controller.fadeDuration = fadeDuration;
+        controller.targetAlpha = targetAlpha;
+        EditorUtility.SetDirty(controller);
+    }
+
+    private static void NormalizeHospitalVisualLayers(GameObject hospital, Material litMaterial, Tilemap emptyRoot)
+    {
+        foreach (Tilemap map in hospital.GetComponentsInChildren<Tilemap>(true))
+        {
+            if (map == emptyRoot || map.name.StartsWith(ProxyPrefix, StringComparison.Ordinal))
+                continue;
+            TilemapRenderer renderer = map.GetComponent<TilemapRenderer>();
+            if (renderer == null)
+                continue;
+
+            Undo.RecordObject(renderer, "Normalize hospital renderer");
+            string lowerName = map.name.ToLowerInvariant();
+            bool isRoof = lowerName.StartsWith("nocnha");
+            bool isFloor = lowerName.Contains("trangtrigiay");
+            if (isRoof)
+            {
+                renderer.sortingLayerName = "Foreground";
+                renderer.sortingOrder = 20;
+                renderer.mode = TilemapRenderer.Mode.Chunk;
+            }
+            else if (isFloor)
+            {
+                renderer.sortingLayerName = "Default";
+                renderer.sortingOrder = -30;
+                renderer.mode = TilemapRenderer.Mode.Individual;
+            }
+            else
+            {
+                renderer.sortingLayerName = "Gameplay";
+                renderer.sortingOrder = 0;
+                renderer.mode = TilemapRenderer.Mode.Individual;
+            }
+
+            if (litMaterial != null)
+                renderer.sharedMaterial = litMaterial;
+            EditorUtility.SetDirty(renderer);
+        }
+    }
+
+    private static int ExtractHospitalFarVisualCells(GameObject hospital, Bounds largeRoof, Bounds smallRoof)
+    {
+        Tilemap source = hospital.GetComponentsInChildren<Tilemap>(true)
+            .FirstOrDefault(map => map.name == "trangtrisautuong");
+        if (source == null)
+            return 0;
+
+        List<Vector3Int> farCells = new List<Vector3Int>();
+        foreach (Vector3Int cell in source.cellBounds.allPositionsWithin)
+        {
+            if (!source.HasTile(cell))
+                continue;
+            Vector3 world = source.GetCellCenterWorld(cell);
+            if (Mathf.Min(DistanceToBounds2D(largeRoof, world), DistanceToBounds2D(smallRoof, world)) > 20f)
+                farCells.Add(cell);
+        }
+        if (farCells.Count == 0)
+            return 0;
+
+        Transform mapRoot = hospital.transform.parent;
+        Transform externalRoot = mapRoot != null ? mapRoot.Find(ExternalObjectsName) : null;
+        if (externalRoot == null)
+        {
+            GameObject externalObject = new GameObject(ExternalObjectsName);
+            Undo.RegisterCreatedObjectUndo(externalObject, "Create external environment group");
+            if (mapRoot != null)
+                Undo.SetTransformParent(externalObject.transform, mapRoot, "Parent external environment group");
+            externalObject.transform.localPosition = Vector3.zero;
+            externalObject.transform.localRotation = Quaternion.identity;
+            externalObject.transform.localScale = Vector3.one;
+            externalRoot = externalObject.transform;
+        }
+
+        TilemapRenderer sourceRenderer = source.GetComponent<TilemapRenderer>();
+        Tilemap destination = CreateHospitalTilemapClone(source, sourceRenderer, externalRoot,
+            "hospital_far_visual_REVIEW", source.gameObject.layer,
+            sourceRenderer != null ? sourceRenderer.sharedMaterial : null);
+        TilemapRenderer destinationRenderer = destination.GetComponent<TilemapRenderer>();
+        if (sourceRenderer != null)
+        {
+            destinationRenderer.sortingLayerID = sourceRenderer.sortingLayerID;
+            destinationRenderer.sortingOrder = sourceRenderer.sortingOrder;
+            destinationRenderer.mode = sourceRenderer.mode;
+        }
+
+        Undo.RecordObject(source, "Extract far hospital visual cells");
+        foreach (Vector3Int cell in farCells)
+        {
+            CopyHospitalTileCell(source, destination, cell);
+            source.SetTile(cell, null);
+        }
+        source.CompressBounds();
+        destination.CompressBounds();
+        EditorUtility.SetDirty(source);
+        EditorUtility.SetDirty(destination);
+        return farCells.Count;
+    }
+
     private static GameObject ResolveEnvironmentRoot(GameObject selected)
     {
         if (selected == null)
@@ -1545,29 +2574,48 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         RepairBroadColliderCellsUsingDonor(source);
     }
 
-    private static bool RepairBroadColliderCellsUsingDonor(Tilemap source)
+    private static bool RepairBroadColliderCellsUsingDonor(Tilemap source, Tilemap fallbackDonorSource = null)
     {
         TilemapAudit audit = AuditTilemap(source);
         HashSet<Vector3Int> broadCells = new HashSet<Vector3Int>(audit.FullBoundsShapeCells);
-        if (broadCells.Count == 0)
+        HashSet<Vector3Int> elevatedDoorHeadCells = FindElevatedOnlyPhysicsShapeCells(source);
+        Dictionary<Vector3Int, List<Vector3Int>> doorSideConstraints =
+            FindDoorSideConstraints(source, elevatedDoorHeadCells);
+        Dictionary<Vector3Int, List<Rect>> doorProjectionClearances =
+            FindDoorProjectionClearances(source, elevatedDoorHeadCells);
+        HashSet<Vector3Int> excludedCells = new HashSet<Vector3Int>(broadCells);
+        excludedCells.UnionWith(elevatedDoorHeadCells);
+        excludedCells.UnionWith(doorSideConstraints.Keys);
+        excludedCells.UnionWith(doorProjectionClearances.Keys);
+        if (excludedCells.Count == 0)
         {
-            Debug.Log($"[Environment Fixer] '{source.name}' không có broad collider cell cần donor.");
+            Debug.Log($"[Environment Fixer] '{source.name}' không có broad hoặc collider nóc cửa cần sửa.");
             return false;
         }
 
-        Dictionary<Vector3Int, Vector3Int> replacements = new Dictionary<Vector3Int, Vector3Int>();
+        Dictionary<Vector3Int, KeyValuePair<Tilemap, Vector3Int>> replacements =
+            new Dictionary<Vector3Int, KeyValuePair<Tilemap, Vector3Int>>();
+        HashSet<Vector3Int> fallbackRejected = fallbackDonorSource != null
+            ? new HashSet<Vector3Int>(AuditTilemap(fallbackDonorSource).FullBoundsShapeCells)
+            : new HashSet<Vector3Int>();
+        if (fallbackDonorSource != null)
+            fallbackRejected.UnionWith(FindElevatedOnlyPhysicsShapeCells(fallbackDonorSource));
         foreach (Vector3Int badCell in broadCells)
         {
-            if (TryFindNearestDonor(source, badCell, broadCells, out Vector3Int donorCell))
-                replacements[badCell] = donorCell;
+            if (TryFindNearestDonor(source, badCell, excludedCells, out Vector3Int donorCell))
+                replacements[badCell] = new KeyValuePair<Tilemap, Vector3Int>(source, donorCell);
+            else if (fallbackDonorSource != null &&
+                     TryFindDonorForSprite(fallbackDonorSource, badCell, source.GetSprite(badCell),
+                         fallbackRejected, out donorCell))
+                replacements[badCell] = new KeyValuePair<Tilemap, Vector3Int>(fallbackDonorSource, donorCell);
             else
                 Debug.LogWarning($"[Environment Fixer] Không tìm được donor cùng hướng cho cell {badCell} ({source.GetSprite(badCell)?.name}).");
         }
 
-        if (replacements.Count == 0)
+        if (replacements.Count == 0 && broadCells.Count > 0)
             return false;
 
-        Tilemap proxy = BuildCollisionProxy(source, replacements.Keys.ToHashSet(), source.gameObject.layer, true, out int copied);
+        Tilemap proxy = BuildCollisionProxy(source, excludedCells, source.gameObject.layer, true, out int copied);
         if (proxy == null)
             return false;
 
@@ -1587,9 +2635,12 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         patchCollider.pathCount = 0;
 
         List<string> mapping = new List<string>();
-        foreach (KeyValuePair<Vector3Int, Vector3Int> pair in replacements)
+        foreach (KeyValuePair<Vector3Int, KeyValuePair<Tilemap, Vector3Int>> pair in replacements)
         {
-            Vector2[] footPath = ExtractBottomFootPathAtCell(source, pair.Key, pair.Value, patchObject.transform);
+            Tilemap donorSource = pair.Value.Key;
+            Vector3Int donorCell = pair.Value.Value;
+            Vector2[] footPath = ExtractBottomFootPathAtCell(
+                source, pair.Key, donorSource, donorCell, patchObject.transform);
             if (footPath == null || footPath.Length < 3)
             {
                 Debug.LogWarning($"[Environment Fixer] Không trích được chân tường cho cell {pair.Key}; " +
@@ -1599,16 +2650,22 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             int pathIndex = patchCollider.pathCount;
             patchCollider.pathCount++;
             patchCollider.SetPath(pathIndex, footPath);
-            mapping.Add($"{pair.Key}:{source.GetSprite(pair.Key)?.name} <- {pair.Value}:{source.GetSprite(pair.Value)?.name}");
+            mapping.Add($"{pair.Key}:{source.GetSprite(pair.Key)?.name} <- " +
+                        $"{donorSource.transform.parent?.name}/{donorCell}:{donorSource.GetSprite(donorCell)?.name}");
         }
         proxy.GetComponent<TilemapCollider2D>()?.ProcessTilemapChanges();
         EditorUtility.SetDirty(proxy);
         EditorUtility.SetDirty(patchCollider);
         EditorUtility.SetDirty(patchObject);
+        PolygonCollider2D doorSidePatch = BuildDoorSideFootPatches(
+            source, doorSideConstraints, doorProjectionClearances);
         Selection.activeGameObject = proxy.gameObject;
         Debug.Log(
             $"[Environment Fixer] Donor repair hoàn tất trên '{source.name}': proxy {copied} cell tốt + " +
-            $"{patchCollider.pathCount} Polygon chân tường; donor chỉ cung cấp dải thấp nhất, không copy shape lơ lửng. " +
+            $"{patchCollider.pathCount} Polygon chân tường; đã loại hẳn {elevatedDoorHeadCells.Count} cell nóc cửa lơ lửng. " +
+            $"Đã cắt {doorSideConstraints.Count} cell cạnh cửa thành {doorSidePatch?.pathCount ?? 0} path không lấn lòng cửa. " +
+            $"Đã khoét clearance trên {doorProjectionClearances.Count} cell tường chiếu chéo qua cửa. " +
+            "Donor chỉ cung cấp dải thấp nhất, không copy shape lơ lửng. " +
             string.Join(" | ", mapping), proxy);
         return true;
     }
@@ -1718,17 +2775,27 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         ISet<Vector3Int> rejectedCells,
         out Vector3Int donorCell)
     {
-        donorCell = default;
         Sprite badSprite = tilemap.GetSprite(badCell);
+        return TryFindDonorForSprite(tilemap, badCell, badSprite, rejectedCells, out donorCell);
+    }
+
+    private static bool TryFindDonorForSprite(
+        Tilemap tilemap,
+        Vector3Int targetCell,
+        Sprite badSprite,
+        ISet<Vector3Int> rejectedCells,
+        out Vector3Int donorCell)
+    {
+        donorCell = default;
         string direction = GetSpriteDirectionSuffix(badSprite != null ? badSprite.name : string.Empty);
         List<Vector3Int> candidates = new List<Vector3Int>();
         foreach (Vector3Int candidate in tilemap.cellBounds.allPositionsWithin)
         {
-            if (candidate == badCell || rejectedCells.Contains(candidate) || !tilemap.HasTile(candidate) ||
+            if (rejectedCells.Contains(candidate) || !tilemap.HasTile(candidate) ||
                 tilemap.GetColliderType(candidate) == Tile.ColliderType.None)
                 continue;
             Sprite sprite = tilemap.GetSprite(candidate);
-            if (sprite == null || IsBroadPhysicsShape(sprite) ||
+            if (sprite == null || IsBroadPhysicsShape(sprite) || IsElevatedOnlyPhysicsShape(sprite) ||
                 (!string.IsNullOrEmpty(direction) && GetSpriteDirectionSuffix(sprite.name) != direction))
                 continue;
             candidates.Add(candidate);
@@ -1743,7 +2810,7 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             .First().Key;
         donorCell = candidates
             .Where(candidate => tilemap.GetSprite(candidate).name == preferredSprite)
-            .OrderBy(candidate => Mathf.Abs(candidate.x - badCell.x) + Mathf.Abs(candidate.y - badCell.y))
+            .OrderBy(candidate => Mathf.Abs(candidate.x - targetCell.x) + Mathf.Abs(candidate.y - targetCell.y))
             .First();
         return true;
     }
@@ -1916,6 +2983,35 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         return audit;
     }
 
+    private static string DescribeSpritePhysicsBand(Sprite sprite)
+    {
+        if (sprite == null || sprite.GetPhysicsShapeCount() == 0)
+            return "shape=none";
+
+        float minY = float.PositiveInfinity;
+        float maxY = float.NegativeInfinity;
+        float area = 0f;
+        List<Vector2> points = new List<Vector2>();
+        for (int shapeIndex = 0; shapeIndex < sprite.GetPhysicsShapeCount(); shapeIndex++)
+        {
+            points.Clear();
+            sprite.GetPhysicsShape(shapeIndex, points);
+            foreach (Vector2 point in points)
+            {
+                minY = Mathf.Min(minY, point.y);
+                maxY = Mathf.Max(maxY, point.y);
+            }
+            area += Mathf.Abs(SignedPolygonArea(points));
+        }
+        float height = Mathf.Max(sprite.bounds.size.y, Mathf.Epsilon);
+        float normalizedMin = (minY - sprite.bounds.min.y) / height;
+        float normalizedMax = (maxY - sprite.bounds.min.y) / height;
+        float boundsArea = Mathf.Max(Mathf.Abs(sprite.bounds.size.x * sprite.bounds.size.y), Mathf.Epsilon);
+        return $"shapes={sprite.GetPhysicsShapeCount()}, y={normalizedMin:0.###}..{normalizedMax:0.###}, " +
+               $"height={(normalizedMax - normalizedMin):0.###}, area={area / boundsArea:0.###}, " +
+               $"broad={IsBroadPhysicsShape(sprite)}, elevated={IsElevatedOnlyPhysicsShape(sprite)}";
+    }
+
     private static bool IsBroadPhysicsShape(Sprite sprite)
     {
         float boundsArea = Mathf.Abs(sprite.bounds.size.x * sprite.bounds.size.y);
@@ -1958,6 +3054,365 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             ? 0f
             : (shapeMaxY - shapeMinY) / Mathf.Max(sprite.bounds.size.y, Mathf.Epsilon);
         return shapeArea / boundsArea >= 0.85f || heightRatio >= 0.55f;
+    }
+
+    private static bool IsElevatedOnlyPhysicsShape(Sprite sprite)
+    {
+        if (sprite == null || sprite.GetPhysicsShapeCount() == 0 || sprite.bounds.size.y <= Mathf.Epsilon)
+            return false;
+
+        float minimumShapeY = float.PositiveInfinity;
+        List<Vector2> points = new List<Vector2>();
+        for (int shapeIndex = 0; shapeIndex < sprite.GetPhysicsShapeCount(); shapeIndex++)
+        {
+            points.Clear();
+            sprite.GetPhysicsShape(shapeIndex, points);
+            foreach (Vector2 point in points)
+                minimumShapeY = Mathf.Min(minimumShapeY, point.y);
+        }
+        if (float.IsInfinity(minimumShapeY))
+            return false;
+
+        float normalizedMinimum = (minimumShapeY - sprite.bounds.min.y) / sprite.bounds.size.y;
+        // Wall A5 is the authored lintel/overhead strip used above openings. The S
+        // sprite in school starts at 0.445 because of one row of transparent padding,
+        // while the hospital variants start above 0.45. Keep the generic threshold
+        // conservative and explicitly include that known lintel family.
+        return normalizedMinimum >= 0.45f ||
+               (normalizedMinimum >= 0.40f &&
+                sprite.name.StartsWith("Wall A5", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static HashSet<Vector3Int> FindElevatedOnlyPhysicsShapeCells(Tilemap tilemap)
+    {
+        HashSet<Vector3Int> result = new HashSet<Vector3Int>();
+        if (tilemap == null)
+            return result;
+        foreach (Vector3Int cell in tilemap.cellBounds.allPositionsWithin)
+        {
+            if (tilemap.HasTile(cell) && IsElevatedOnlyPhysicsShape(tilemap.GetSprite(cell)))
+                result.Add(cell);
+        }
+        return result;
+    }
+
+    private static int CountElevatedOnlyPhysicsShapeCells(Tilemap tilemap)
+    {
+        return FindElevatedOnlyPhysicsShapeCells(tilemap).Count;
+    }
+
+    private static Dictionary<Vector3Int, List<Vector3Int>> FindDoorSideConstraints(
+        Tilemap source,
+        ISet<Vector3Int> doorHeadCells)
+    {
+        Dictionary<Vector3Int, List<Vector3Int>> result = new Dictionary<Vector3Int, List<Vector3Int>>();
+        foreach (Vector3Int doorCell in doorHeadCells)
+        {
+            string direction = GetSpriteDirectionSuffix(source.GetSprite(doorCell)?.name ?? string.Empty);
+            Vector3Int[] offsets = direction == "W" || direction == "E"
+                ? new[] { Vector3Int.left, Vector3Int.right }
+                : new[] { Vector3Int.down, Vector3Int.up };
+            foreach (Vector3Int offset in offsets)
+            {
+                // Hospital wall sprites are wider than one isometric cell, so a tile two or
+                // three cells away can still project into the doorway. Trim the contiguous
+                // wall run, not only the immediately adjacent cell.
+                for (int distance = 1; distance <= 3; distance++)
+                {
+                    Vector3Int sideCell = doorCell + offset * distance;
+                    if (!source.HasTile(sideCell))
+                        break;
+                    if (doorHeadCells.Contains(sideCell))
+                        continue;
+                    Sprite sideSprite = source.GetSprite(sideCell);
+                    if (sideSprite == null || IsBroadPhysicsShape(sideSprite) ||
+                        IsElevatedOnlyPhysicsShape(sideSprite) || source.GetColliderType(sideCell) == Tile.ColliderType.None)
+                        continue;
+                    if (!result.TryGetValue(sideCell, out List<Vector3Int> doors))
+                    {
+                        doors = new List<Vector3Int>();
+                        result.Add(sideCell, doors);
+                    }
+                    if (!doors.Contains(doorCell))
+                        doors.Add(doorCell);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static PolygonCollider2D BuildDoorSideFootPatches(
+        Tilemap source,
+        IReadOnlyDictionary<Vector3Int, List<Vector3Int>> constraints,
+        IReadOnlyDictionary<Vector3Int, List<Rect>> projectionClearances)
+    {
+        Transform parent = source.transform.parent;
+        Transform oldPatch = parent != null ? parent.Find(DoorSidePatchPrefix + source.name) : null;
+        if (oldPatch != null)
+            Undo.DestroyObjectImmediate(oldPatch.gameObject);
+
+        GameObject patchObject = new GameObject(DoorSidePatchPrefix + source.name);
+        Undo.RegisterCreatedObjectUndo(patchObject, "Create door-side foot patches");
+        if (parent != null)
+            Undo.SetTransformParent(patchObject.transform, parent, "Parent door-side foot patches");
+        patchObject.transform.localPosition = Vector3.zero;
+        patchObject.transform.localRotation = Quaternion.identity;
+        patchObject.transform.localScale = Vector3.one;
+        patchObject.layer = source.gameObject.layer;
+        PolygonCollider2D collider = Undo.AddComponent<PolygonCollider2D>(patchObject);
+        collider.pathCount = 0;
+
+        HashSet<Vector3Int> cells = new HashSet<Vector3Int>(constraints.Keys);
+        cells.UnionWith(projectionClearances.Keys);
+        foreach (Vector3Int cell in cells)
+        {
+            List<List<Vector2>> paths = GetSingleCellShapePathsWorld(source, cell);
+            foreach (List<Vector2> originalPath in paths)
+            {
+                List<Vector2> clipped = new List<Vector2>(originalPath);
+                Vector2 sideCenter = source.GetCellCenterWorld(cell);
+                if (constraints.TryGetValue(cell, out List<Vector3Int> adjacentDoors))
+                {
+                    foreach (Vector3Int doorCell in adjacentDoors)
+                    {
+                        Vector2 doorCenter = source.GetCellCenterWorld(doorCell);
+                        Vector2 normalTowardDoor = (doorCenter - sideCenter).normalized;
+                        Vector2 boundary = (doorCenter + sideCenter) * 0.5f;
+                        clipped = ClipPolygonToHalfPlane(clipped, boundary, normalTowardDoor);
+                        if (clipped.Count < 3)
+                            break;
+                    }
+                }
+                if (clipped.Count < 3 || Mathf.Abs(SignedPolygonArea(clipped)) < 0.002f)
+                    continue;
+                List<List<Vector2>> pieces = new List<List<Vector2>> { clipped };
+                if (projectionClearances.TryGetValue(cell, out List<Rect> clearances))
+                {
+                    foreach (Rect clearance in clearances)
+                        pieces = pieces.SelectMany(piece => SubtractAxisAlignedRect(piece, clearance)).ToList();
+                }
+                foreach (List<Vector2> piece in pieces)
+                {
+                    if (piece.Count < 3 || Mathf.Abs(SignedPolygonArea(piece)) < 0.002f)
+                        continue;
+                    Vector2[] localPath = piece
+                        .Select(point => (Vector2)patchObject.transform.InverseTransformPoint(point))
+                        .ToArray();
+                    int pathIndex = collider.pathCount;
+                    collider.pathCount++;
+                    collider.SetPath(pathIndex, localPath);
+                }
+            }
+        }
+        EditorUtility.SetDirty(collider);
+        EditorUtility.SetDirty(patchObject);
+        return collider;
+    }
+
+    private static Dictionary<Vector3Int, List<Rect>> FindDoorProjectionClearances(
+        Tilemap source,
+        ISet<Vector3Int> doorHeadCells)
+    {
+        Dictionary<Vector3Int, List<Rect>> result = new Dictionary<Vector3Int, List<Rect>>();
+        foreach (Vector3Int doorCell in doorHeadCells)
+        {
+            foreach (List<Vector2> doorPath in GetSingleCellShapePathsWorld(source, doorCell))
+            {
+                if (doorPath.Count < 3) continue;
+                float minX = doorPath.Min(point => point.x) - 0.04f;
+                float maxX = doorPath.Max(point => point.x) + 0.04f;
+                float minY = doorPath.Min(point => point.y) - 0.04f;
+                float maxY = doorPath.Max(point => point.y) + 0.04f;
+                Rect clearance = Rect.MinMaxRect(minX, minY, maxX, maxY);
+                Vector2 sample = doorPath.Aggregate(Vector2.zero, (sum, point) => sum + point) / doorPath.Count;
+                for (int y = -3; y <= 3; y++)
+                {
+                    for (int x = -3; x <= 3; x++)
+                    {
+                        Vector3Int candidate = doorCell + new Vector3Int(x, y, 0);
+                        if (candidate == doorCell || !source.HasTile(candidate) ||
+                            doorHeadCells.Contains(candidate))
+                            continue;
+                        Sprite sprite = source.GetSprite(candidate);
+                        if (sprite == null || IsBroadPhysicsShape(sprite) || IsElevatedOnlyPhysicsShape(sprite))
+                            continue;
+                        if (!GetSingleCellShapePathsWorld(source, candidate)
+                                .Any(path => PointInPolygon(sample, path)))
+                            continue;
+                        if (!result.TryGetValue(candidate, out List<Rect> clearances))
+                        {
+                            clearances = new List<Rect>();
+                            result.Add(candidate, clearances);
+                        }
+                        clearances.Add(clearance);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private static List<List<Vector2>> SubtractAxisAlignedRect(IReadOnlyList<Vector2> polygon, Rect rect)
+    {
+        List<List<Vector2>> pieces = new List<List<Vector2>>();
+        void AddIfValid(List<Vector2> piece)
+        {
+            if (piece.Count >= 3 && Mathf.Abs(SignedPolygonArea(piece)) >= 0.002f)
+                pieces.Add(piece);
+        }
+
+        AddIfValid(ClipPolygonToHalfPlane(polygon, new Vector2(rect.xMin, 0f), Vector2.right));
+        AddIfValid(ClipPolygonToHalfPlane(polygon, new Vector2(rect.xMax, 0f), Vector2.left));
+
+        List<Vector2> middle = ClipPolygonToHalfPlane(polygon, new Vector2(rect.xMin, 0f), Vector2.left);
+        middle = ClipPolygonToHalfPlane(middle, new Vector2(rect.xMax, 0f), Vector2.right);
+        AddIfValid(ClipPolygonToHalfPlane(middle, new Vector2(0f, rect.yMin), Vector2.up));
+        AddIfValid(ClipPolygonToHalfPlane(middle, new Vector2(0f, rect.yMax), Vector2.down));
+        return pieces;
+    }
+
+    private static List<Vector2> ClipPolygonToHalfPlane(
+        IReadOnlyList<Vector2> polygon,
+        Vector2 pointOnBoundary,
+        Vector2 outwardNormal)
+    {
+        List<Vector2> output = new List<Vector2>();
+        if (polygon == null || polygon.Count == 0)
+            return output;
+        Vector2 previous = polygon[polygon.Count - 1];
+        float previousDistance = Vector2.Dot(previous - pointOnBoundary, outwardNormal);
+        bool previousInside = previousDistance <= 0.0001f;
+        foreach (Vector2 current in polygon)
+        {
+            float currentDistance = Vector2.Dot(current - pointOnBoundary, outwardNormal);
+            bool currentInside = currentDistance <= 0.0001f;
+            if (currentInside != previousInside)
+            {
+                float denominator = previousDistance - currentDistance;
+                if (Mathf.Abs(denominator) > 0.000001f)
+                {
+                    float t = previousDistance / denominator;
+                    output.Add(Vector2.Lerp(previous, current, t));
+                }
+            }
+            if (currentInside)
+                output.Add(current);
+            previous = current;
+            previousDistance = currentDistance;
+            previousInside = currentInside;
+        }
+        return output;
+    }
+
+    private static int CountBlockedElevatedDoorHeadSamples(Transform buildingRoot, Tilemap source)
+    {
+        if (buildingRoot == null || source == null)
+            return int.MaxValue / 4;
+
+        int blocked = 0;
+        foreach (Vector3Int cell in FindElevatedOnlyPhysicsShapeCells(source))
+        {
+            foreach (Vector2 sample in GetSingleCellShapeCentroidsWorld(source, cell))
+            {
+                Physics2D.SyncTransforms();
+                Collider2D[] hospitalWallHits = Physics2D.OverlapPointAll(sample).Where(collider =>
+                    collider != null && collider.enabled && !collider.isTrigger &&
+                    collider.transform.IsChildOf(buildingRoot)).ToArray();
+                if (hospitalWallHits.Length > 0)
+                {
+                    blocked++;
+                    List<string> sourceCellsAtSample = FindSourceCellsContainingPoint(source, cell, sample);
+                    Debug.LogWarning($"[Environment Fixer] DOOR-HEAD BLOCKED {buildingRoot.name}/{cell} " +
+                                     $"sample={sample}: {string.Join(", ", hospitalWallHits.Select(hit => hit.gameObject.name))}" +
+                                     $" | sourceCells={string.Join(", ", sourceCellsAtSample)}" +
+                                     DescribeNeighborhoods(source, new List<Vector3Int> { cell }),
+                        buildingRoot);
+                }
+            }
+        }
+        return blocked;
+    }
+
+    private static List<string> FindSourceCellsContainingPoint(Tilemap source, Vector3Int aroundCell, Vector2 point)
+    {
+        List<string> result = new List<string>();
+        for (int y = -3; y <= 3; y++)
+        {
+            for (int x = -3; x <= 3; x++)
+            {
+                Vector3Int candidate = aroundCell + new Vector3Int(x, y, 0);
+                if (!source.HasTile(candidate)) continue;
+                if (GetSingleCellShapePathsWorld(source, candidate).Any(path => PointInPolygon(point, path)))
+                    result.Add($"{candidate}:{source.GetSprite(candidate)?.name}");
+            }
+        }
+        return result;
+    }
+
+    private static bool PointInPolygon(Vector2 point, IReadOnlyList<Vector2> polygon)
+    {
+        bool inside = false;
+        for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
+        {
+            Vector2 a = polygon[i];
+            Vector2 b = polygon[j];
+            bool crosses = (a.y > point.y) != (b.y > point.y) &&
+                           point.x < (b.x - a.x) * (point.y - a.y) /
+                           (b.y - a.y) + a.x;
+            if (crosses) inside = !inside;
+        }
+        return inside;
+    }
+
+    private static List<Vector2> GetSingleCellShapeCentroidsWorld(Tilemap source, Vector3Int cell)
+    {
+        return GetSingleCellShapePathsWorld(source, cell)
+            .Where(path => path.Count > 0)
+            .Select(path => path.Aggregate(Vector2.zero, (sum, point) => sum + point) / path.Count)
+            .ToList();
+    }
+
+    private static List<List<Vector2>> GetSingleCellShapePathsWorld(Tilemap source, Vector3Int cell)
+    {
+        List<List<Vector2>> result = new List<List<Vector2>>();
+        GameObject temporary = new GameObject("__TEMP_DoorHeadShapeSample",
+            typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
+        temporary.hideFlags = HideFlags.HideAndDontSave;
+        temporary.transform.SetParent(source.transform.parent, false);
+        temporary.transform.localPosition = source.transform.localPosition;
+        temporary.transform.localRotation = source.transform.localRotation;
+        temporary.transform.localScale = source.transform.localScale;
+        try
+        {
+            Tilemap temporaryMap = temporary.GetComponent<Tilemap>();
+            temporaryMap.animationFrameRate = source.animationFrameRate;
+            temporaryMap.tileAnchor = source.tileAnchor;
+            temporaryMap.orientation = source.orientation;
+            temporaryMap.orientationMatrix = source.orientationMatrix;
+            temporaryMap.SetTile(cell, source.GetTile(cell));
+            temporaryMap.SetTransformMatrix(cell, source.GetTransformMatrix(cell));
+            temporary.GetComponent<TilemapRenderer>().enabled = false;
+            TilemapCollider2D temporaryCollider = temporary.GetComponent<TilemapCollider2D>();
+            temporaryCollider.ProcessTilemapChanges();
+
+            PhysicsShapeGroup2D shapes = new PhysicsShapeGroup2D();
+            temporaryCollider.GetShapes(shapes);
+            Matrix4x4 localToWorld = shapes.localToWorldMatrix;
+            List<Vector2> vertices = new List<Vector2>();
+            for (int shapeIndex = 0; shapeIndex < shapes.shapeCount; shapeIndex++)
+            {
+                vertices.Clear();
+                shapes.GetShapeVertices(shapeIndex, vertices);
+                if (vertices.Count == 0) continue;
+                result.Add(vertices.Select(vertex =>
+                    (Vector2)localToWorld.MultiplyPoint3x4(vertex)).ToList());
+            }
+        }
+        finally
+        {
+            DestroyImmediate(temporary);
+        }
+        return result;
     }
 
     private void DrawSummary()
@@ -2556,6 +4011,16 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         Vector3Int donorCell,
         Transform outputTransform)
     {
+        return ExtractBottomFootPathAtCell(source, targetCell, source, donorCell, outputTransform);
+    }
+
+    private static Vector2[] ExtractBottomFootPathAtCell(
+        Tilemap source,
+        Vector3Int targetCell,
+        Tilemap donorSource,
+        Vector3Int donorCell,
+        Transform outputTransform)
+    {
         GameObject temporary = new GameObject("__TEMP_BroadWallFootSource",
             typeof(Tilemap), typeof(TilemapRenderer), typeof(TilemapCollider2D));
         temporary.hideFlags = HideFlags.HideAndDontSave;
@@ -2571,8 +4036,8 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             temporaryMap.tileAnchor = source.tileAnchor;
             temporaryMap.orientation = source.orientation;
             temporaryMap.orientationMatrix = source.orientationMatrix;
-            temporaryMap.SetTile(targetCell, source.GetTile(donorCell));
-            temporaryMap.SetTransformMatrix(targetCell, source.GetTransformMatrix(donorCell));
+            temporaryMap.SetTile(targetCell, donorSource.GetTile(donorCell));
+            temporaryMap.SetTransformMatrix(targetCell, donorSource.GetTransformMatrix(donorCell));
             temporaryMap.CompressBounds();
             temporary.GetComponent<TilemapRenderer>().enabled = false;
 
@@ -2587,9 +4052,14 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
                 vertices.Clear();
                 shapes.GetShapeVertices(shapeIndex, vertices);
                 if (vertices.Count < 3) continue;
+                // Collider2D.GetShapes stores the transform that maps returned local vertices
+                // to world space on the PhysicsShapeGroup2D. A TilemapCollider2D can inherit
+                // its Grid transform, so using temporary.transform here can double-apply the
+                // hospital offset and place the repair polygons far away from the walls.
+                Matrix4x4 shapeLocalToWorld = shapes.localToWorldMatrix;
                 allShapes.Add(vertices.Select(point =>
                 {
-                    Vector3 world = temporary.transform.TransformPoint(point);
+                    Vector3 world = shapeLocalToWorld.MultiplyPoint3x4(point);
                     return (Vector2)outputTransform.InverseTransformPoint(world);
                 }).ToList());
             }
@@ -3251,4 +4721,5 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
         EditorGUIUtility.PingObject(gameObject);
         SceneView.lastActiveSceneView?.FrameSelected();
     }
+
 }
