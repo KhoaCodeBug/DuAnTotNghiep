@@ -1793,16 +1793,16 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         switch (militaryPhase)
         {
             case RouteBMilitaryPresentationPhase.NotReached:
-                detailTitle.text = L("REACH THE MILITARY BASE", "ĐI TỚI CĂN CỨ QUÂN SỰ");
+                detailTitle.text = L("SEARCH THE ABANDONED SCHOOL", "KHÁM PHÁ TRƯỜNG HỌC BỎ HOANG");
                 storyText.text = L(
-                    "The recovered recording says the convoy withdrew to North Base and left its beacon coordinates in the console. It does not confirm anyone survived there; both escape routes remain available.",
-                    "Bản ghi đã khôi phục cho biết đoàn xe rút về Căn cứ phía Bắc và để lại tọa độ đèn hiệu trong máy. Không có xác nhận ai còn sống ở đó; cả hai hướng thoát vẫn khả dụng.");
-                SetObjective(0, L("Travel to the marked military base", "Đi tới căn cứ quân sự được đánh dấu"),
+                    "The school inside the military zone is quiet. Search it for three traces of the evacuation without triggering an automatic event on entry.",
+                    "Ngôi trường trong khu quân sự đang im lặng. Hãy tự do khám phá và kiểm tra ba dấu vết sơ tán; bước vào trường không tự kích hoạt sự kiện.");
+                SetObjective(0, L("Search the school for three clues", "Tìm ba manh mối trong trường học"),
                     L("ACTIVE", "ĐANG LÀM"), true, Amber);
-                SetObjective(1, L("Inspect the evacuation vehicle", "Kiểm tra xe sơ tán"), L("LOCKED", "ĐANG KHÓA"), false, Muted);
+                SetObjective(1, L("Leave the school after finding all clues", "Rời trường sau khi đủ manh mối"), L("WAITING", "ĐANG CHỜ"), false, Muted);
                 SetObjective(2, L("Activate the evacuation plan", "Kích hoạt kế hoạch sơ tán"), L("LOCKED", "ĐANG KHÓA"), false, Muted);
-                SetCurrentObjective(L("Reach the military base", "Đi tới căn cứ quân sự"),
-                    L("FOLLOW MAP", "ĐI THEO BẢN ĐỒ"), 0f, Amber);
+                SetCurrentObjective(L("Explore the school", "Khám phá trường học"),
+                    L("3 CLUES", "3 MANH MỐI"), 0f, Amber);
                 break;
 
             case RouteBMilitaryPresentationPhase.Investigating:
@@ -1820,33 +1820,26 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             case RouteBMilitaryPresentationPhase.SiegeAndRepair:
                 detailTitle.text = L("DEFEND AND RESTORE THE ESCAPE VEHICLE", "PHÒNG THỦ VÀ KHÔI PHỤC XE THOÁT HIỂM");
                 storyText.text = L(
-                    "The evacuation alarm has called the horde and sealed this plan. Restore power to reinforce the gate, install the vehicle parts and finish repairs before the defense collapses.",
-                    "Báo động sơ tán đã kéo bầy zombie tới và chốt kế hoạch này. Khôi phục điện để gia cố cổng, lắp linh kiện và sửa xong xe trước khi tuyến phòng thủ sụp đổ.");
-                SetObjective(0, L("Activate the generator and defend the gate", "Khởi động máy phát và bảo vệ cổng"),
-                    militaryGeneratorActive ? L("ONLINE", "ĐÃ HOẠT ĐỘNG") : L("OFFLINE", "CHƯA HOẠT ĐỘNG"),
-                    !militaryGeneratorActive, militaryGeneratorActive ? Mint : Amber);
-                SetObjective(1, L("Install battery, fuel and repair kit", "Lắp ắc quy, nhiên liệu và bộ sửa chữa"),
-                    militaryHasAllParts ? L("3 / 3 INSTALLED", "ĐÃ LẮP 3 / 3") : L("INCOMPLETE", "CHƯA ĐỦ"),
-                    militaryGeneratorActive && !militaryHasAllParts, militaryHasAllParts ? Mint : Purple);
-                SetObjective(2, L("Repair the evacuation vehicle", "Sửa xe sơ tán"),
+                    "The police-car alarm has drawn the horde. Hold the closed gate while the team completes all five repair jobs.",
+                    "Còi báo động xe cảnh sát đã kéo bầy zombie tới. Hãy giữ cổng đóng trong lúc cả đội hoàn thành đủ năm hạng mục sửa xe.");
+                SetObjective(0, L("Defend the closed gate", "Bảo vệ cổng đã đóng"),
+                    L("HORDE ACTIVE", "HORDE ĐANG TẤN CÔNG"), true, Amber);
+                SetObjective(1, L("Complete all five police-car repairs", "Hoàn thành đủ năm hạng mục sửa xe"),
+                    militaryHasAllParts ? L("5 / 5 COMPLETE", "HOÀN THÀNH 5 / 5") : L("IN PROGRESS", "ĐANG THỰC HIỆN"),
+                    !militaryHasAllParts, militaryHasAllParts ? Mint : Purple);
+                SetObjective(2, L("Prepare to escape", "Chuẩn bị tẩu thoát"),
                     Mathf.RoundToInt(militaryVehicleRepairProgress) + "%",
-                    militaryHasAllParts, militaryVehicleRepairProgress >= 100f ? Mint : Amber);
-
-                if (!militaryGeneratorActive)
-                    SetCurrentObjective(L("Start the generator", "Khởi động máy phát điện"), L("OFFLINE", "CHƯA HOẠT ĐỘNG"), 0f, Amber);
-                else if (!militaryHasAllParts)
-                    SetCurrentObjective(L("Collect and install all vehicle parts", "Thu thập và lắp đủ linh kiện xe"), L("0–3 / 3", "0–3 / 3"), 0f, Purple);
-                else
-                    SetCurrentObjective(L("Repair the evacuation vehicle", "Sửa xe sơ tán"),
-                        Mathf.RoundToInt(militaryVehicleRepairProgress) + "%",
-                        militaryVehicleRepairProgress / 100f, Amber);
+                    false, militaryVehicleRepairProgress >= 100f ? Mint : Amber);
+                SetCurrentObjective(L("Defend the gate and repair the police car", "Bảo vệ cổng và sửa xe cảnh sát"),
+                    Mathf.RoundToInt(militaryVehicleRepairProgress) + "%",
+                    militaryVehicleRepairProgress / 100f, Amber);
                 break;
 
             case RouteBMilitaryPresentationPhase.ReadyToEscape:
                 detailTitle.text = L("EVACUATION VEHICLE READY", "XE SƠ TÁN ĐÃ SẴN SÀNG");
                 storyText.text = L("The vehicle is operational. Regroup the living team at the vehicle and leave the base.",
                     "Xe đã hoạt động. Tập hợp những người còn sống tại xe và rời khỏi căn cứ.");
-                SetObjective(0, L("Restore base power", "Khôi phục điện căn cứ"), L("COMPLETE", "HOÀN THÀNH"), false, Mint);
+                SetObjective(0, L("Defend the gate", "Bảo vệ cổng"), L("COMPLETE", "HOÀN THÀNH"), false, Mint);
                 SetObjective(1, L("Prepare the evacuation vehicle", "Chuẩn bị xe sơ tán"), L("COMPLETE", "HOÀN THÀNH"), false, Mint);
                 SetObjective(2, L("Regroup and escape", "Tập hợp và thoát khỏi căn cứ"), L("ACTIVE", "ĐANG LÀM"), true, Amber);
                 SetCurrentObjective(L("Regroup at the vehicle and press E", "Tập hợp tại xe và nhấn E"),
@@ -1885,10 +1878,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
                 "Quyền tiếp cận căn cứ + đánh giá xe sơ tán"),
             RouteBMilitaryPresentationPhase.Investigating => L("Evacuation checklist + final warning",
                 "Danh sách chuẩn bị sơ tán + cảnh báo cuối"),
-            RouteBMilitaryPresentationPhase.SiegeAndRepair when !militaryGeneratorActive =>
-                L("Generator online — gate durability 150%", "Máy phát hoạt động — độ bền cổng 150%"),
             RouteBMilitaryPresentationPhase.SiegeAndRepair when !militaryHasAllParts =>
-                L("All parts installed — vehicle repair unlocked", "Lắp đủ linh kiện — mở sửa xe"),
+                L("Complete all five repairs", "Hoàn thành đủ năm hạng mục sửa xe"),
             RouteBMilitaryPresentationPhase.SiegeAndRepair =>
                 L("Vehicle restored — extraction point unlocked", "Khôi phục xe — mở điểm tập kết"),
             RouteBMilitaryPresentationPhase.ReadyToEscape =>
@@ -2063,7 +2054,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         {
             return militaryPhase switch
             {
-                RouteBMilitaryPresentationPhase.NotReached => L("Reach the military base", "Đi tới căn cứ quân sự"),
+                RouteBMilitaryPresentationPhase.NotReached => L("Search the abandoned school", "Khám phá trường học bỏ hoang"),
                 RouteBMilitaryPresentationPhase.Investigating => L("Inspect the evacuation vehicle", "Kiểm tra xe sơ tán"),
                 RouteBMilitaryPresentationPhase.SiegeAndRepair => L("Defend and restore the vehicle", "Phòng thủ và khôi phục xe"),
                 RouteBMilitaryPresentationPhase.ReadyToEscape => L("Regroup and evacuate", "Tập hợp và sơ tán"),
@@ -2090,7 +2081,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         {
             return militaryPhase switch
             {
-                RouteBMilitaryPresentationPhase.NotReached => L("REACH BASE", "TỚI CĂN CỨ"),
+                RouteBMilitaryPresentationPhase.NotReached => L("SEARCH SCHOOL", "KHÁM PHÁ TRƯỜNG"),
                 RouteBMilitaryPresentationPhase.Investigating => L("FINAL CHECK", "KIỂM TRA CUỐI"),
                 RouteBMilitaryPresentationPhase.SiegeAndRepair => L("FINALE ACTIVE", "FINALE ĐANG CHẠY"),
                 RouteBMilitaryPresentationPhase.ReadyToEscape => L("ESCAPE READY", "SẴN SÀNG THOÁT"),
@@ -2212,19 +2203,13 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
                     break;
                 case PreMilitaryQuestStage.CityMapFound:
                     if (!hasMilitarySnapshot || militaryPhase == RouteBMilitaryPresentationPhase.NotReached)
-                        objective = L("Reach the military base marked on the map", "Đi tới căn cứ quân sự được đánh dấu trên bản đồ");
+                        objective = L("Search the school for three military clues", "Tìm ba manh mối quân sự trong trường học");
                     else if (militaryPhase == RouteBMilitaryPresentationPhase.Investigating)
                         objective = L("Inspect the military evacuation vehicle", "Kiểm tra xe sơ tán quân sự");
                     else if (militaryPhase == RouteBMilitaryPresentationPhase.SiegeAndRepair)
-                    {
-                        if (!militaryGeneratorActive)
-                            objective = L("Start the generator and defend the gate", "Khởi động máy phát và bảo vệ cổng");
-                        else if (!militaryHasAllParts)
-                            objective = L("Collect and install all vehicle parts", "Thu thập và lắp đủ linh kiện xe");
-                        else
-                            objective = L("Repair the evacuation vehicle  •  ", "Sửa xe sơ tán  •  ") +
-                                        Mathf.RoundToInt(militaryVehicleRepairProgress) + "%";
-                    }
+                        objective = L("Defend the gate and repair the police car  •  ",
+                                        "Bảo vệ cổng và sửa xe cảnh sát  •  ") +
+                                    Mathf.RoundToInt(militaryVehicleRepairProgress) + "%";
                     else if (militaryPhase == RouteBMilitaryPresentationPhase.ReadyToEscape)
                         objective = L("Regroup at the vehicle and escape", "Tập hợp tại xe và thoát khỏi căn cứ");
                     else

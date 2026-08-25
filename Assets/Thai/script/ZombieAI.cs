@@ -70,6 +70,7 @@ public class ZombieAI : NetworkBehaviour
     [Header("--- Tấn công & Tốc độ ---")]
     public float moveSpeed = 2.5f;
     [SerializeField] private float chaseSpeedMultiplier = 1.7f;
+    public float ChaseMovementSpeed => moveSpeed * chaseSpeedMultiplier;
     public float attackRange = 0.12f;
     public float damageRadius = 0.12f;
     public float attackCooldown = 1.5f;

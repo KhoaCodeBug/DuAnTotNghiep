@@ -104,6 +104,9 @@ public class FogVisionController : MonoBehaviour
     private Material overlayMaterial;
     private Texture2D fogBankTexture;
     private PlayerVision targetVision;
+    private Transform cinematicVisionTarget;
+    private PlayerVision cinematicVisionSource;
+    private Vector2 cinematicVisionDirection = Vector2.down;
     private PlayerMovement targetMovement;
     private Transform tutorialRevealTarget;
     private float tutorialRevealRadius;
@@ -184,6 +187,28 @@ public class FogVisionController : MonoBehaviour
         tutorialRevealRadius = 0f;
     }
 
+    public void SetMilitaryCinematicVision(PlayerVision source, Transform visualTarget, Vector2 direction)
+    {
+        cinematicVisionSource = source;
+        cinematicVisionTarget = visualTarget;
+        cinematicVisionDirection = direction.sqrMagnitude > 0.001f ? direction.normalized : Vector2.down;
+        targetVision = null;
+        targetMovement = null;
+    }
+
+    public void UpdateMilitaryCinematicVisionDirection(Vector2 direction)
+    {
+        if (direction.sqrMagnitude > 0.001f) cinematicVisionDirection = direction.normalized;
+    }
+
+    public void ClearMilitaryCinematicVision()
+    {
+        cinematicVisionTarget = null;
+        cinematicVisionSource = null;
+        targetVision = null;
+        targetMovement = null;
+    }
+
     /// <summary>
     /// Defines the client-local story search area as a world-space parallelogram.
     /// Fog outside the area is visual guidance only; server authority performs
@@ -253,6 +278,13 @@ public class FogVisionController : MonoBehaviour
 
     private void ResolveCameraTarget()
     {
+        if (cinematicVisionTarget != null && cinematicVisionSource != null)
+        {
+            targetVision = cinematicVisionSource;
+            targetMovement = cinematicVisionSource.GetComponent<PlayerMovement>();
+            return;
+        }
+
         Transform cameraTarget = PZ_CameraController.Instance != null ? PZ_CameraController.Instance.CurrentTarget : null;
         if (cameraTarget == null && TutorialSession.IsActive)
         {
@@ -286,17 +318,22 @@ public class FogVisionController : MonoBehaviour
 
     private void UpdateMaterial()
     {
-        Vector3 playerPosition = targetVision.VisionWorldPosition;
+        Vector3 playerPosition = cinematicVisionTarget != null
+            ? cinematicVisionTarget.position
+            : (Vector3)targetVision.VisionWorldPosition;
         float fogPlaneDistance = Mathf.Abs(playerPosition.z - worldCamera.transform.position.z);
         Vector3 fogWorldBottomLeft = worldCamera.ViewportToWorldPoint(new Vector3(0f, 0f, fogPlaneDistance));
         Vector3 fogWorldRight = worldCamera.ViewportToWorldPoint(new Vector3(1f, 0f, fogPlaneDistance)) - fogWorldBottomLeft;
         Vector3 fogWorldUp = worldCamera.ViewportToWorldPoint(new Vector3(0f, 1f, fogPlaneDistance)) - fogWorldBottomLeft;
 
-        Vector2 lookDirection = targetVision.VisionWorldDirection;
+        Vector2 lookDirection = cinematicVisionTarget != null
+            ? cinematicVisionDirection
+            : targetVision.VisionWorldDirection;
 
         bool isTutorialReveal = tutorialRevealTarget != null;
         Vector3 visionCenter = isTutorialReveal ? tutorialRevealTarget.position : playerPosition;
-        bool isIndoor = !isTutorialReveal && targetVision.ActiveIndoorCollider != null;
+        bool isIndoor = !isTutorialReveal && cinematicVisionTarget == null &&
+                        targetVision.ActiveIndoorCollider != null;
         int indoorPointCount = isIndoor ? BuildIndoorWorldPolygon(targetVision.ActiveIndoorCollider) : 0;
         isIndoor &= indoorPointCount >= 3;
 

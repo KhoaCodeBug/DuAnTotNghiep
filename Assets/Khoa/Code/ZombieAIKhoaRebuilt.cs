@@ -26,6 +26,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
 
     [Header("=== Movement (same gameplay values) ===")]
     [SerializeField] private float speed = 2.5f;
+    public float ChaseMovementSpeed => speed;
     [SerializeField] private float nextWaypointDistance = 0.5f;
     [SerializeField] private float trackingDuration = 3f;
 

@@ -120,7 +120,7 @@ Mục tiêu: thêm căng thẳng mà không biến bệnh viện thành horde b�
 - Không khóa cửa, không ép tập hợp toàn đội và không kill gate: Player có thể giữ E lại ngay để tiếp tục dù zombie còn sống.
 - F6 tại `RadioReady` nay tiến từng chặng, nên cần ba lần để hoàn tất H3/H4 debug flow.
 
-Kết quả H5 chốt phiên: compile sạch; toàn bộ EditMode `96/96`; hai PlayMode trọng tâm scene/regression `2/2`. Scene test xác nhận 6 stable KeyLoot ID và đúng 10 Polygon riêng; regression Easy xác nhận key chưa được cấp sau ShiftLog2, selected ID hợp lệ, chỉ bước loot mới có shared key, spawn counter `6 → 12` và chặng 3 mới hoàn tất Radio. Full PlayMode toàn project đạt `4/5`; test xe cảnh sát cũ còn fail do scene hiện thiếu fixture `ViTriXeTest`/`VungKiemTraXeCanhSat`, không phải assertion của flow bệnh viện.
+Kết quả H5 chốt phiên: compile sạch; toàn bộ EditMode `96/96`; hai PlayMode trọng tâm scene/regression `2/2`. Scene test xác nhận 6 stable KeyLoot ID và đúng 10 Polygon riêng; regression Easy xác nhận key chưa được cấp sau ShiftLog2, selected ID hợp lệ, chỉ bước loot mới có shared key, spawn counter `6 → 12` và chặng 3 mới hoàn tất Radio. Ghi chú finale mới: test xe cảnh sát đã được viết lại để dùng `Car` tại đúng vị trí author, không còn phụ thuộc `ViTriXeTest`/`VungKiemTraXeCanhSat`; xem `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` để biết trạng thái QA hiện tại.
 
 **Bài test bàn giao H4:**
 
@@ -141,14 +141,14 @@ Kết quả H5 chốt phiên: compile sạch; toàn bộ EditMode `96/96`; hai P
 - Regression tự động đi MainMenu → random key → Radio → Ending B không cần LootContainer.
 - Test tay Host/Client hai máy vẫn là acceptance cuối cho cảm giác waypoint, disconnect thật và âm lượng không gian.
 
-## Backlog sau bệnh viện
+## Backlog sau bệnh viện — cập nhật finale quân sự
 
-1. Quyết định finale căn cứ dùng ba vật phẩm + giữ `E` cũ hay minigame năm hạng mục.
-2. Tích hợp gameplay sửa xe vào căn cứ quân sự sau khi bố cục/asset được chốt.
-3. QA siege, generator, cổng, late join và extraction.
-4. QA thủ công Host + Client cho trạm sửa xe cảnh sát ven đường.
-5. Silhouette local Player và sprite xe nhiều hướng là phần mở rộng sau gameplay chính.
+1. Finale đã chốt và tích hợp minigame năm hạng mục trực tiếp trên `Car`; ba vật phẩm/Generator prototype đã loại.
+2. QA tay Solo toàn flow: 3 manh mối, roof-exit, vote, cinematic, cổng, horde và sửa xe.
+3. QA tay Host + Client: vote nhất trí/từ chối/tương tác lại, disconnect, cinematic đồng bộ và gather không lọt ngoài cổng.
+4. QA tải horde thực tế ở ngưỡng Solo `24` và Multiplayer `50`, rồi tinh chỉnh nếu FPS tụt.
+5. Animation đi/chạy của bản sao Host đã dùng Animator và tốc độ thật; cần QA tay cảm giác chuyển động, camera và nhịp dựng cảnh.
 
 ## Prompt mở chat triển khai
 
-> Đọc `HOSPITAL_H1_H5_IMPLEMENTATION_README.md` và `NEXT_SESSION_MILITARY_FINALE_PLAN.md` trước. H1–H5 bệnh viện đã triển khai; phiên tiếp theo phải thảo luận và được chủ dự án xác nhận thiết kế finale căn cứ quân sự trước khi code. Không tự đổi flow bệnh viện hoặc hai điểm khóa ending.
+> Đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` B4–B7 và các file finale trong mục 10. Finale đã triển khai theo flow 3 manh mối → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục. Không khôi phục Generator/150% HP/electric stun.

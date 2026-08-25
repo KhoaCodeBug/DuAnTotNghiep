@@ -49,6 +49,7 @@ public class PlayerMovement : NetworkBehaviour
     public AudioSource footstepAudioSource;
     public AudioClip walkSFX;
     public AudioClip runSFX;
+    private bool cinematicPresentationSuppressed;
 
     private Rigidbody2D rb;
     private PlayerStamina staminaSystem;
@@ -381,7 +382,7 @@ public class PlayerMovement : NetworkBehaviour
         if (!isParanoiaZombie)
         {
             UpdateAnimation();
-            UpdateFootstepAudio();
+            if (!cinematicPresentationSuppressed) UpdateFootstepAudio();
         }
 
         if (flashlightTransform != null && NetLastLookDir != Vector2.zero)
@@ -525,6 +526,7 @@ public class PlayerMovement : NetworkBehaviour
 
     private void PlaySpecificFootstep(AudioClip clip, float baseVol)
     {
+        if (cinematicPresentationSuppressed) return;
         // 🔥 CHỈ PHÁT ÂM THANH CHO PLAYER BẢN THÂN (Tránh máy khách/proxy phát đúp 2 lần)
         if (footstepAudioSource == null) footstepAudioSource = GetComponent<AudioSource>();
         if (footstepAudioSource == null) return;
@@ -563,6 +565,13 @@ public class PlayerMovement : NetworkBehaviour
         footstepAudioSource.volume = finalVol;
         footstepAudioSource.pitch = 1.0f;
         footstepAudioSource.Play();
+    }
+
+    public void SetCinematicPresentationSuppressed(bool suppressed)
+    {
+        cinematicPresentationSuppressed = suppressed;
+        if (suppressed && footstepAudioSource != null && footstepAudioSource.isPlaying)
+            footstepAudioSource.Stop();
     }
 
     public void LockMovement(float duration)

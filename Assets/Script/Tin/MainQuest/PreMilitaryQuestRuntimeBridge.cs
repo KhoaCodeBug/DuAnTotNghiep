@@ -637,15 +637,14 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         if (military == null || !military.IsNetworkReady || questUI == null) return;
 
         int signature = (int)military.CurrentPhase;
-        signature = signature * 397 ^ (military.IsGeneratorActive ? 1 : 0);
-        signature = signature * 397 ^ (military.HasAllParts ? 1 : 0);
-        signature = signature * 397 ^ Mathf.RoundToInt(military.VehicleRepairProgress * 10f);
+        signature = signature * 397 ^ (military.ArePoliceCarRepairsComplete ? 1 : 0);
+        signature = signature * 397 ^ Mathf.RoundToInt(military.PoliceCarOverallRepairProgress * 10f);
         signature = signature * 397 ^ Mathf.RoundToInt(military.GateCurrentHealth * 10f);
         signature = signature * 397 ^ Mathf.RoundToInt(military.GateMaxHealth * 10f);
         if (signature == lastMilitarySnapshotSignature) return;
 
-        questUI.ApplyMilitarySnapshot((int)military.CurrentPhase, military.IsGeneratorActive,
-            military.HasAllParts, military.VehicleRepairProgress, military.GateCurrentHealth,
+        questUI.ApplyMilitarySnapshot((int)military.CurrentPhase, false,
+            military.ArePoliceCarRepairsComplete, military.PoliceCarOverallRepairProgress, military.GateCurrentHealth,
             military.GateMaxHealth, hasAppliedInitialMilitarySnapshot);
         lastMilitarySnapshotSignature = signature;
         hasAppliedInitialMilitarySnapshot = true;

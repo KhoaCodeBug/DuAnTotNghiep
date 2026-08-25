@@ -213,6 +213,18 @@ public class VehicleControllerFusion : NetworkBehaviour
         return true;
     }
 
+    public void PlayCinematicDoorSequence()
+    {
+        if (doorSequence != null) StopCoroutine(doorSequence);
+        doorSequence = StartCoroutine(PlayDoorSequence());
+    }
+
+    public void PlayCinematicFailedStarter() =>
+        GetComponent<VehicleEngineAudioController>()?.PlayStarterConfirmation(null);
+
+    public void SetCinematicAlarm(bool active) =>
+        GetComponent<VehicleHornAudioController>()?.SetCinematicAlarm(active);
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayStarterConfirmation(NetworkObject sourcePlayer)
     {
@@ -222,18 +234,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     public void AuthorityPrepareRepairTest(Vector2 position)
     {
         if (!HasStateAuthority) return;
-        entryLockedForRepair = true;
-        HornHeld = false;
-        EngineRunning = false;
-        StopVehicle();
-
-        // The EditMode authoring preview uses directionSprites[0]. Keep the
-        // locked roadside test car on that exact frame so its nose and the
-        // scene-authored interaction polygon stay aligned in PlayMode.
-        DirectionIndex = ClampDirectionIndex(RepairTestDirectionIndex);
-        HeadingDegrees = DirectionIndexToHeading(DirectionIndex);
-        displayedDirection = -1;
-        ApplyDirectionalVisual();
+        AuthorityPrepareRepairAtCurrentPosition();
 
         if (rb != null)
         {
@@ -243,6 +244,22 @@ public class VehicleControllerFusion : NetworkBehaviour
         }
         transform.position = new Vector3(position.x, position.y, transform.position.z);
         Physics2D.SyncTransforms();
+    }
+
+    public void AuthorityPrepareRepairAtCurrentPosition()
+    {
+        if (!HasStateAuthority) return;
+        entryLockedForRepair = true;
+        HornHeld = false;
+        EngineRunning = false;
+        StopVehicle();
+
+        // The authored police car already sits at SpawnXeCanhSat. Lock its
+        // canonical preview direction without relocating the scene vehicle.
+        DirectionIndex = ClampDirectionIndex(RepairTestDirectionIndex);
+        HeadingDegrees = DirectionIndexToHeading(DirectionIndex);
+        displayedDirection = -1;
+        ApplyDirectionalVisual();
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
