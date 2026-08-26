@@ -35,6 +35,13 @@ public enum ArrivalCarRepairState
 /// </summary>
 public static class ArrivalCarRepairRules
 {
+    // These durations follow the supplied repair recordings exactly. Keeping
+    // them in the shared rules lets Fusion authority and the local clock use
+    // the same timeline without adding serialized data to Main.unity.
+    public const float FuelRepairDurationSeconds = 4.884875f;
+    public const float TireRepairDurationSeconds = 3.8f;
+    public const float HammerRepairDurationSeconds = 9.432f;
+
     public static bool TryGetAction(string partId, out ArrivalCarRepairAction action)
     {
         switch (partId)
@@ -80,4 +87,13 @@ public static class ArrivalCarRepairRules
         action == ArrivalCarRepairAction.AddFuel ||
         action == ArrivalCarRepairAction.ReplaceBattery ||
         action == ArrivalCarRepairAction.ReplaceTire;
+
+    public static float GetRepairDurationSeconds(ArrivalCarRepairAction action) => action switch
+    {
+        ArrivalCarRepairAction.AddFuel => FuelRepairDurationSeconds,
+        ArrivalCarRepairAction.ReplaceTire => TireRepairDurationSeconds,
+        // The engine/hood and battery are both inside the engine bay and use
+        // the supplied hammer recording.
+        _ => HammerRepairDurationSeconds
+    };
 }

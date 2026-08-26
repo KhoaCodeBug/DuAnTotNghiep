@@ -483,6 +483,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     private void OnGUI()
     {
         if (!showDirectionDebug || directionLayout != DirectionLayout.EightWayIsometric) return;
+        if (CivilianRoutePresentationController.BlocksGameplayInput || VictorySummaryUI.IsShowing) return;
 
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
         PlayerInteraction interaction = localPlayer != null

@@ -305,6 +305,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (isTyping || isUIMenuOpen || isQuestOverlayOpen || isHealthOpen || isDead || isSleepLocked ||
             RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
             VehicleRepairSkillCheckUI.BlocksGameplayInput ||
+            CivilianRoutePresentationController.BlocksGameplayInput ||
             MainQuestSearchCabinet.IsLocalSearchInProgress)
         {
             input.Set(new PlayerNetworkInput());

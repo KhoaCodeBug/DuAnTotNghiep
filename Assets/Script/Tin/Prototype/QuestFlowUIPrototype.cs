@@ -714,6 +714,13 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         mapPrototype?.QueueUnlockReveal(onFinished);
     }
 
+    public void OpenCivilianRouteMapReveal(Action onFinished = null)
+    {
+        EnsureBuiltForTests();
+        SetJournalOpen(false);
+        mapPrototype?.OpenWithCivilianRouteReveal(onFinished);
+    }
+
     public void ConfigureWorldMap(Camera mapCameraTemplate, Transform officeTarget, Transform playerTarget = null)
     {
         EnsureBuiltForTests();
