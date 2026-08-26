@@ -12,11 +12,11 @@ public sealed class SiegeHordeDirector : MonoBehaviour
     [SerializeField, Min(1)] private int soloHardSafetyCap = 36;
     [SerializeField, Min(0f)] private float spawnJitterRadius = 0.55f;
     [SerializeField, Min(5f)] private float minimumSpawnDistanceFromGate = 18f;
-    [SerializeField, Min(0f)] private float clearExistingZombieRadiusAtGate = 7.5f;
 
     private readonly List<SiegeZombieObjective> activeObjectives = new();
     private readonly List<NetworkPrefabRef> zombiePrefabs = new();
     private readonly List<Transform> spawnPoints = new();
+    private PolygonCollider2D protectedMilitaryArea;
     private MilitaryBaseQuestManager manager;
     private MilitaryGateController gate;
     private Coroutine siegeRoutine;
@@ -29,6 +29,7 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         gate = targetGate;
         CacheZombiePrefabs();
         CacheAuthoredSpawnPoints();
+        CacheProtectedMilitaryArea();
     }
 
     public void BeginSiege()
@@ -36,7 +37,6 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         siegeActive = true;
         releasedToPlayers = false;
         if (manager == null || !manager.HasStateAuthority || siegeRoutine != null) return;
-        RegisterExistingZombiesNearGate();
         siegeRoutine = StartCoroutine(SiegeRoutine());
     }
 
@@ -111,7 +111,12 @@ public sealed class SiegeHordeDirector : MonoBehaviour
                 Vector2 fromGate = spawnBase - gatePosition;
                 if (fromGate.magnitude < minimumSpawnDistanceFromGate && fromGate.sqrMagnitude > 0.001f)
                     spawnBase = gatePosition + fromGate.normalized * minimumSpawnDistanceFromGate;
-                Vector2 position = spawnBase + Random.insideUnitCircle * spawnJitterRadius;
+                if (!TryGetExteriorSpawnPosition(spawnBase, out Vector2 position))
+                {
+                    Debug.LogWarning($"[MILITARY HORDE] Bỏ qua marker '{spawnPoint.name}' vì điểm spawn " +
+                                     "nằm trong khu vực trường được bảo vệ.");
+                    continue;
+                }
                 // Cycle through every configured zombie type in each batch so
                 // both authored variants receive the same siege lifecycle.
                 NetworkPrefabRef prefab = zombiePrefabs[(prefabOffset + spawnedCount) % zombiePrefabs.Count];
@@ -149,46 +154,18 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         return Mathf.Max(1, count);
     }
 
-    private void RegisterExistingZombiesNearGate()
+    private bool TryGetExteriorSpawnPosition(Vector2 spawnBase, out Vector2 position)
     {
-        GameObject[] enemies = GameObject.FindGameObjectsWithTag("Enemy");
-        Vector2 gatePosition = manager.GetInteractionPosition(MilitaryBaseQuestManager.InteractionKind.Gate);
-        int adopted = 0;
-        int cleared = 0;
-        HashSet<GameObject> handledRoots = new HashSet<GameObject>();
-        for (int i = 0; i < enemies.Length; i++)
+        for (int attempt = 0; attempt < 8; attempt++)
         {
-            GameObject enemy = enemies[i];
-            if (enemy == null) continue;
-            NetworkObject networkObject = enemy.GetComponentInParent<NetworkObject>();
-            GameObject root = networkObject != null ? networkObject.gameObject : enemy;
-            if (!handledRoots.Add(root)) continue;
-            float gateDistance = Vector2.Distance(root.transform.position, gatePosition);
-            if (gateDistance > nearGateRadius) continue;
-            if (root.GetComponent<PlayerMovement>() != null) continue;
-            if (root.GetComponent<ZombieAI>() == null && root.GetComponent<ZOmbieAI_Khoa>() == null &&
-                root.GetComponent<ZombieAIKhoaRebuilt>() == null)
-                continue;
-
-            if (gateDistance < clearExistingZombieRadiusAtGate)
-            {
-                if (networkObject != null && networkObject.IsValid && networkObject.HasStateAuthority)
-                    manager.Runner.Despawn(networkObject);
-                else if (networkObject == null)
-                    Destroy(root);
-                cleared++;
-                continue;
-            }
-
-            SiegeZombieObjective objective = root.GetComponent<SiegeZombieObjective>();
-            if (objective == null) objective = root.AddComponent<SiegeZombieObjective>();
-            if (activeObjectives.Contains(objective)) continue;
-            objective.Configure(manager, gate);
-            activeObjectives.Add(objective);
-            adopted++;
+            Vector2 candidate = spawnBase + Random.insideUnitCircle * spawnJitterRadius;
+            if (protectedMilitaryArea != null && protectedMilitaryArea.OverlapPoint(candidate)) continue;
+            position = candidate;
+            return true;
         }
-        Debug.Log($"[MILITARY HORDE] Dọn {cleared} zombie cũ sát cổng; chuyển {adopted} zombie " +
-                  "ở vành ngoài sang mục tiêu công thành.");
+
+        position = default;
+        return false;
     }
 
     private void CacheAuthoredSpawnPoints()
@@ -196,11 +173,29 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         spawnPoints.Clear();
         Transform[] transforms = FindObjectsByType<Transform>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         for (int i = 0; i < transforms.Length; i++)
-            if (transforms[i] != null && transforms[i].name.StartsWith("ViTriSpawnZombie"))
+            if (transforms[i] != null && IsAuthoredSiegeSpawnName(transforms[i].name))
                 spawnPoints.Add(transforms[i]);
         spawnPoints.Sort((left, right) => string.CompareOrdinal(left.name, right.name));
         if (spawnPoints.Count != MilitaryStoryFlowRules.SpawnPointCount)
             Debug.LogWarning($"[MILITARY HORDE] Cần đúng 4 marker ViTriSpawnZombie, hiện tìm thấy {spawnPoints.Count}.");
+    }
+
+    private static bool IsAuthoredSiegeSpawnName(string objectName) =>
+        objectName == "ViTriSpawnZombie" || objectName == "ViTriSpawnZombie (1)" ||
+        objectName == "ViTriSpawnZombie (2)" || objectName == "ViTriSpawnZombie (3)";
+
+    private void CacheProtectedMilitaryArea()
+    {
+        protectedMilitaryArea = null;
+        PolygonCollider2D[] polygons = FindObjectsByType<PolygonCollider2D>(FindObjectsSortMode.None);
+        for (int i = 0; i < polygons.Length; i++)
+        {
+            if (polygons[i] == null || polygons[i].name != "KhuVucQuanSu") continue;
+            protectedMilitaryArea = polygons[i];
+            break;
+        }
+        if (protectedMilitaryArea == null)
+            Debug.LogWarning("[MILITARY HORDE] Không tìm thấy PolygonCollider2D KhuVucQuanSu để chặn spawn trong trường.");
     }
 
     private void CacheZombiePrefabs()
@@ -240,6 +235,7 @@ public sealed class SiegeZombieObjective : MonoBehaviour
     private bool released;
     private float gateAttackCooldown;
     private float attackAnimationRemaining;
+    private float releasedRetargetCooldown;
     private int attackIndex;
 
     public bool IsZombieDead
@@ -272,7 +268,12 @@ public sealed class SiegeZombieObjective : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (released || manager == null || gate == null || !manager.HasStateAuthority) return;
+        if (manager == null || gate == null || !manager.HasStateAuthority) return;
+        if (released)
+        {
+            TickReleasedPlayerTarget();
+            return;
+        }
         if (IsZombieDead)
         {
             RetireDeadZombie();
@@ -314,16 +315,41 @@ public sealed class SiegeZombieObjective : MonoBehaviour
 
     public void ReleaseToPlayers()
     {
-        if (released) return;
+        if (released)
+        {
+            releasedRetargetCooldown = 0f;
+            return;
+        }
         if (IsZombieDead)
         {
             RetireDeadZombie();
             return;
         }
         released = true;
+        releasedRetargetCooldown = 0f;
         SetGateAttackAnimation(false);
         ApplyAnimationState(Vector2.zero);
         SetZombieAIEnabled(true);
+        ForceClosestLivingPlayerTarget();
+    }
+
+    private void TickReleasedPlayerTarget()
+    {
+        if (IsZombieDead)
+        {
+            RetireDeadZombie();
+            return;
+        }
+        if (!manager.IsGateBroken) return;
+
+        releasedRetargetCooldown -= Time.fixedDeltaTime;
+        if (releasedRetargetCooldown > 0f) return;
+        releasedRetargetCooldown = 1f;
+        ForceClosestLivingPlayerTarget();
+    }
+
+    private void ForceClosestLivingPlayerTarget()
+    {
         PlayerHealth target = FindClosestLivingPlayer();
         if (target == null) return;
         thaiZombie?.ForceSiegeTarget(target);

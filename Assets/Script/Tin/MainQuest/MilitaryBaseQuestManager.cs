@@ -537,7 +537,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         // Lock the mode for this entire siege. A disconnect must not turn an
         // already multiplayer finale into Solo and invalidate its respawn pool.
         IsMultiplayerSiege = activePlayers > 1;
-        GateMaxHealth = Mathf.Max(1f, MilitaryQuestRules.ComputeSiegeGateMaxHealth(activePlayers));
+        GateMaxHealth = Mathf.Max(1f, MilitaryQuestRules.ComputeSiegeGateMaxHealthForDifficulty(activePlayers,
+            GetSelectedDifficulty()));
         GateCurrentHealth = GateMaxHealth;
         TeamRespawnsRemaining = IsMultiplayerSiege ? MilitaryQuestRules.TeamRespawnChargeTotal : 0;
         IsSoloGateDpsActive = false;
@@ -1248,7 +1249,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     /// <summary>
-    /// Solo begins its three-minute deterministic gate countdown only when a
+    /// Solo begins its difficulty-scaled deterministic gate countdown only when a
     /// zombie visibly reaches and attacks the gate for the first time.
     /// </summary>
     public bool TryStartSoloGateDps()
@@ -1259,9 +1260,27 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         {
             IsSoloGateDpsActive = true;
             SoloGateDpsElapsed = 0f;
-            Debug.Log("[MILITARY GATE] Zombie đã chạm cổng: bắt đầu DPS Solo 3 phút.");
+            float holdSeconds = MilitaryQuestRules.GetSoloGateHoldSeconds(GetSelectedDifficulty());
+            Debug.Log($"[MILITARY GATE] Zombie đã chạm cổng: bắt đầu DPS Solo {holdSeconds / 60f:0} phút.");
         }
         return true;
+    }
+
+    /// <summary>Host-only developer action. A broken gate is intentionally not resurrected.</summary>
+    public bool DebugHealGate()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        if (!HasStateAuthority || CurrentPhase != Phase.SiegeAndRepair || IsGateBroken) return false;
+        GateCurrentHealth = GateMaxHealth;
+        if (IsSoloSiege)
+        {
+            SoloGateDpsElapsed = 0f;
+        }
+        Debug.Log("[MILITARY GATE] Cheat healed the intact gate to full health and reset its Solo timer.");
+        return true;
+#else
+        return false;
+#endif
     }
 
     public void NotifyPlayerDamaged(PlayerRef player, bool zombieAttack)
@@ -1799,11 +1818,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (!IsSoloGateDpsActive || !IsSoloSiege || CurrentPhase != Phase.SiegeAndRepair || IsGateBroken)
             return;
 
-        SoloGateDpsElapsed = Mathf.Min(MilitaryQuestRules.SoloGateHoldSeconds,
+        int difficulty = GetSelectedDifficulty();
+        float holdSeconds = MilitaryQuestRules.GetSoloGateHoldSeconds(difficulty);
+        SoloGateDpsElapsed = Mathf.Min(holdSeconds,
             SoloGateDpsElapsed + Runner.DeltaTime);
-        GateCurrentHealth = MilitaryQuestRules.GetSoloGateHealthAtElapsed(GateMaxHealth, SoloGateDpsElapsed);
+        GateCurrentHealth = MilitaryQuestRules.GetSoloGateHealthAtElapsedForDifficulty(GateMaxHealth, SoloGateDpsElapsed,
+            difficulty);
         if (GateCurrentHealth <= 0f) RPC_GateBroken();
     }
+
+    private static int GetSelectedDifficulty() => Mathf.Clamp(PlayerPrefs.GetInt("GameDifficulty", 1), 0, 2);
 
     public int CountActivePlayers()
     {

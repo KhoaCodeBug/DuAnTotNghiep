@@ -14,9 +14,14 @@ public static class MilitaryQuestRules
     public const int TeamRespawnChargeTotal = 3;
     public const float RespawnDelaySeconds = 10f;
 
-    // Once the first zombie reaches the gate, Solo uses this fixed-duration
-    // countdown so the player can divide attention between defense and repairs.
-    public const float SoloGateHoldSeconds = 180f;
+    // Once the first zombie reaches the gate, Solo uses a deterministic
+    // difficulty-scaled countdown so the player can divide attention between
+    // defense and repairs. Difficulty IDs follow MainMenuManager/PlayerPrefs:
+    // Easy = 0, Normal = 1, Hard = 2.
+    public const float SoloGateHoldSecondsEasy = 300f;
+    public const float SoloGateHoldSecondsNormal = 240f;
+    public const float SoloGateHoldSecondsHard = 180f;
+    public const float SoloGateHoldSeconds = SoloGateHoldSecondsNormal;
 
     public static bool HasAllParts(bool hasBattery, bool hasFuel, bool hasRepairKit) =>
         hasBattery && hasFuel && hasRepairKit;
@@ -24,15 +29,28 @@ public static class MilitaryQuestRules
     public static float ApplyGateDamage(float currentHealth, float damage) =>
         Mathf.Max(0f, currentHealth - Mathf.Max(0f, damage));
 
-    /// <summary>Solo receives a pool that a fixed three-minute DPS timer drains.</summary>
-    public static float ComputeSiegeGateMaxHealth(int activePlayerCount) =>
-        activePlayerCount > 1 ? BaseGateHealth :
-        Mathf.Max(BaseGateHealth, GateDamagePerHit * GateMaxHitsPerSecond * SoloGateHoldSeconds);
+    public static float GetSoloGateHoldSeconds(int difficulty) => difficulty switch
+    {
+        0 => SoloGateHoldSecondsEasy,
+        2 => SoloGateHoldSecondsHard,
+        _ => SoloGateHoldSecondsNormal
+    };
 
-    public static float GetSoloGateHealthAtElapsed(float maxHealth, float elapsedSeconds)
+    /// <summary>Solo receives a pool that the selected difficulty timer drains.</summary>
+    public static float ComputeSiegeGateMaxHealth(int activePlayerCount) =>
+        ComputeSiegeGateMaxHealthForDifficulty(activePlayerCount, 1);
+
+    public static float ComputeSiegeGateMaxHealthForDifficulty(int activePlayerCount, int difficulty) =>
+        activePlayerCount > 1 ? BaseGateHealth :
+        Mathf.Max(BaseGateHealth, GateDamagePerHit * GateMaxHitsPerSecond * GetSoloGateHoldSeconds(difficulty));
+
+    public static float GetSoloGateHealthAtElapsed(float maxHealth, float elapsedSeconds) =>
+        GetSoloGateHealthAtElapsedForDifficulty(maxHealth, elapsedSeconds, 1);
+
+    public static float GetSoloGateHealthAtElapsedForDifficulty(float maxHealth, float elapsedSeconds, int difficulty)
     {
         if (maxHealth <= 0f) return 0f;
-        float normalizedElapsed = Mathf.Clamp01(elapsedSeconds / SoloGateHoldSeconds);
+        float normalizedElapsed = Mathf.Clamp01(elapsedSeconds / GetSoloGateHoldSeconds(difficulty));
         return Mathf.Max(0f, maxHealth * (1f - normalizedElapsed));
     }
 

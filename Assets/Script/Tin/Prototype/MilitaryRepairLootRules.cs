@@ -8,6 +8,11 @@ using System.Collections.Generic;
 public static class MilitaryRepairLootRules
 {
     public const int RequiredContainerCount = 5;
+    public const int RegularAkAmmoAmount = 90;
+    public const int RegularShotgunAmmoAmount = 15;
+    public const int VipWeaponCopiesPerType = 2;
+    public const int VipAkAmmoAmount = 360;
+    public const int VipShotgunAmmoAmount = 60;
 
     public readonly struct ContainerManifest
     {
@@ -56,7 +61,7 @@ public static class MilitaryRepairLootRules
             string weaponId = WeaponIds[random.Next(WeaponIds.Length)];
             bool shotgun = string.Equals(weaponId, "S12K", StringComparison.Ordinal);
             string ammoId = shotgun ? "Ammo12Gauge" : "Ammo762";
-            int ammoAmount = shotgun ? random.Next(8, 21) : random.Next(30, 91);
+            int ammoAmount = shotgun ? RegularShotgunAmmoAmount : RegularAkAmmoAmount;
             result[i] = new ContainerManifest(shuffledItems[i], weaponId, ammoId, ammoAmount);
         }
         return result;
