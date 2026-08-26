@@ -312,6 +312,19 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
+    public void ArrivalCarRepairDurationsMatchTheSuppliedAudioMapping()
+    {
+        Assert.That(ArrivalCarRepairRules.GetRepairDurationSeconds(ArrivalCarRepairAction.AddFuel),
+            Is.EqualTo(ArrivalCarRepairRules.FuelRepairDurationSeconds));
+        Assert.That(ArrivalCarRepairRules.GetRepairDurationSeconds(ArrivalCarRepairAction.ReplaceTire),
+            Is.EqualTo(ArrivalCarRepairRules.TireRepairDurationSeconds));
+        Assert.That(ArrivalCarRepairRules.GetRepairDurationSeconds(ArrivalCarRepairAction.RepairCore),
+            Is.EqualTo(ArrivalCarRepairRules.HammerRepairDurationSeconds));
+        Assert.That(ArrivalCarRepairRules.GetRepairDurationSeconds(ArrivalCarRepairAction.ReplaceBattery),
+            Is.EqualTo(ArrivalCarRepairRules.HammerRepairDurationSeconds));
+    }
+
+    [Test]
     public void CompletedCluesCanQueueUnlockForTheNextManualMapOpen()
     {
         prototype.QueueMapUnlockReveal();

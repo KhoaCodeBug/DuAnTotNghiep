@@ -20,6 +20,7 @@ public sealed class VictorySummaryUI : MonoBehaviour
     private Button mainMenuButton;
 
     public bool IsVisible => canvas != null && canvas.enabled && gameObject.activeSelf;
+    public static bool IsShowing => instance != null && instance.IsVisible;
 
     public static void ShowForCurrentMatch(float survivalSeconds)
     {

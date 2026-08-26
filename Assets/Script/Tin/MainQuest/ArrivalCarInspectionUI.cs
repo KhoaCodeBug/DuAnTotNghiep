@@ -49,6 +49,9 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private Image startEngineBackground;
     private TextMeshProUGUI startEngineText;
     private Button startEngineButton;
+    private GameObject repairClockRoot;
+    private RectTransform repairClockHand;
+    private Texture2D repairClockRingTexture;
     private string selectedPartId;
     private int lastDisplayedRepairMask = int.MinValue;
     private bool lastDisplayedVehicleStarted;
@@ -57,6 +60,15 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private AudioClip hoodCloseClip;
     [SerializeField, Range(0f, 1.5f)] private float hoodOpenVolumeMultiplier = 1.25f;
     [SerializeField, Range(0f, 1.5f)] private float hoodCloseVolumeMultiplier = 0.5f;
+    private AudioSource repairAudioSource;
+    private AudioClip fuelRepairClip;
+    private AudioClip tireRepairClip;
+    private AudioClip hammerRepairClip;
+    private bool localRepairPending;
+    private bool localRepairActive;
+    private string localRepairPartId;
+    private float localRepairStartedAt;
+    private float localRepairDuration;
 
     public static ArrivalCarInspectionUI ActiveInstance { get; private set; }
     public static bool IsAnyOpen => ActiveInstance != null && ActiveInstance.IsOpen;
@@ -112,6 +124,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             hoodDamageGraphic.color = new Color(0.82f, 0.055f, 0.04f, Mathf.Lerp(0.3f, 0.5f, pulse));
         }
 
+        if (localRepairActive) UpdateRepairClock();
+
         if (waitForInteractionKeyRelease)
         {
             if (!Input.GetKey(KeyCode.E)) waitForInteractionKeyRelease = false;
@@ -136,8 +150,10 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
     private void OnDestroy()
     {
+        EndLocalRepairPresentation();
         if (ActiveInstance == this) ActiveInstance = null;
         if (canvasObject != null) Destroy(canvasObject);
+        if (repairClockRingTexture != null) Destroy(repairClockRingTexture);
     }
 
     public void Open(BrokenArrivalCar target)
@@ -197,6 +213,15 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (!open) return;
 
         bool wasCivilianInspection = !policeMode && owner != null;
+        if (localRepairActive)
+        {
+            MainQuestManager.Instance?.RequestCancelArrivalCarRepair();
+            EndLocalRepairPresentation();
+        }
+        else
+        {
+            localRepairPending = false;
+        }
         open = false;
         if (wasCivilianInspection) PlayHoodAudio(false);
         if (ActiveInstance == this) ActiveInstance = null;
@@ -223,6 +248,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
     private void PlayHoodAudio(bool opening)
     {
+        if (!isActiveAndEnabled) return;
         EnsureHoodAudio();
         AudioClip clip = opening ? hoodOpenClip : hoodCloseClip;
         if (hoodAudioSource == null || clip == null) return;
@@ -300,6 +326,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         EnsureVehiclePartDefinitions();
         BuildVehicleDiagram(shell);
         BuildConditionPanel(shell);
+        BuildRepairClock(shell);
         SelectVehiclePart("engine");
 
         Text(shell, "Footer Hint", "[E] ĐÓNG     •     [ESC] ĐÓNG     •     HOẶC BẤM  ×", 13f, Muted,
@@ -403,6 +430,85 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         selectedPartActionButton = MakeClickable(action, InvokeSelectedPartAction);
     }
 
+    private void BuildRepairClock(Transform shell)
+    {
+        repairClockRoot = new GameObject("Repair Clock Overlay", typeof(RectTransform), typeof(Image));
+        repairClockRoot.transform.SetParent(shell, false);
+        RectTransform overlay = repairClockRoot.GetComponent<RectTransform>();
+        Stretch(overlay);
+        Image blocker = repairClockRoot.GetComponent<Image>();
+        blocker.color = new Color(0f, 0f, 0f, 0.68f);
+        blocker.raycastTarget = true;
+
+        RectTransform panel = Box("Repair Clock Panel", repairClockRoot.transform,
+            new Vector2(0.5f, 0.5f), new Vector2(250f, 250f), Vector2.zero,
+            new Color(0.025f, 0.03f, 0.028f, 0.98f));
+        AddBorder(panel, new Color(0.32f, 0.9f, 0.47f, 0.9f), 2f);
+        Text(panel, "Repair Clock Label", "ĐANG SỬA", 15f, Color.white, FontStyles.Bold,
+            TextAlignmentOptions.Center, new Vector2(0.5f, 1f), new Vector2(200f, 28f),
+            new Vector2(0f, -20f));
+
+        repairClockRingTexture = CreateRepairClockRingTexture(128);
+        GameObject ringObject = new GameObject("Repair Clock Ring", typeof(RectTransform), typeof(RawImage));
+        ringObject.transform.SetParent(panel, false);
+        RectTransform ring = ringObject.GetComponent<RectTransform>();
+        SetRect(ring, new Vector2(0.5f, 0.5f), new Vector2(142f, 142f), new Vector2(0f, -8f));
+        RawImage ringImage = ringObject.GetComponent<RawImage>();
+        ringImage.texture = repairClockRingTexture;
+        ringImage.color = Color.white;
+        ringImage.raycastTarget = false;
+
+        RectTransform hand = Box("Repair Clock Hand", ring, new Vector2(0.5f, 0.5f),
+            new Vector2(5f, 57f), Vector2.zero, new Color(0.26f, 1f, 0.42f, 1f));
+        hand.pivot = new Vector2(0.5f, 0f);
+        hand.anchoredPosition = Vector2.zero;
+        repairClockHand = hand;
+
+        Box("Repair Clock Center", ring, new Vector2(0.5f, 0.5f),
+            new Vector2(12f, 12f), Vector2.zero, new Color(0.9f, 1f, 0.92f, 1f));
+        Text(panel, "Repair Clock Cancel Hint", "[E] / [ESC]  HỦY", 11f, Muted, FontStyles.Bold,
+            TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(200f, 24f),
+            new Vector2(0f, 15f));
+
+        repairClockRoot.SetActive(false);
+    }
+
+    private static Texture2D CreateRepairClockRingTexture(int size)
+    {
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            name = "ARRIVAL_CAR_REPAIR_CLOCK_RING",
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp,
+            hideFlags = HideFlags.DontSave
+        };
+        Color32[] pixels = new Color32[size * size];
+        Vector2 center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
+        float outerRadius = size * 0.47f;
+        float innerRadius = size * 0.41f;
+        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
+        {
+            Vector2 delta = new Vector2(x, y) - center;
+            float radius = delta.magnitude;
+            if (radius < innerRadius || radius > outerRadius)
+            {
+                pixels[y * size + x] = new Color32(0, 0, 0, 0);
+                continue;
+            }
+
+            float angle = Mathf.Repeat(Mathf.Atan2(delta.y, delta.x) * Mathf.Rad2Deg, 360f);
+            float nearestQuarter = Mathf.Abs(Mathf.DeltaAngle(angle, Mathf.Round(angle / 90f) * 90f));
+            bool cardinalTick = nearestQuarter <= 2.5f && radius >= size * 0.38f;
+            pixels[y * size + x] = cardinalTick
+                ? new Color32(88, 255, 128, 255)
+                : new Color32(178, 190, 181, 230);
+        }
+        texture.SetPixels32(pixels);
+        texture.Apply(false, true);
+        return texture;
+    }
+
     private void BuildPartGroup(Transform parent, string title, string[] partIds, float x, float y)
     {
         Text(parent, "Group " + title, title, 13f, Color.white, FontStyles.Bold,
@@ -426,6 +532,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
     private void SelectVehiclePart(string partId)
     {
+        if (localRepairPending && partId != selectedPartId) return;
+        if (localRepairActive && partId != localRepairPartId) return;
         VehiclePartView part = FindPart(partId);
         if (part == null) return;
         selectedPartId = part.Id;
@@ -466,22 +574,31 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
         Color conditionColor = GetConditionColor(part.Condition);
         bool actionApplied = IsPartApplied(part.Id);
+        bool repairingSelectedPart = localRepairActive && part.Id == localRepairPartId;
         if (selectedPartTitle != null)
         {
             int displayedCondition = actionApplied ? 100 : part.Condition;
             selectedPartTitle.text = part.Label.ToUpperInvariant() + "  (" + displayedCondition + "%)";
             selectedPartTitle.color = actionApplied ? Green : conditionColor;
             selectedPartDescription.text = part.Description;
-            selectedPartRecommendation.text = actionApplied
+            selectedPartRecommendation.text = repairingSelectedPart
+                ? "ĐANG THỰC HIỆN SỬA CHỮA. GIỮ NGUYÊN VỊ TRÍ CHO TỚI KHI KIM QUAY ĐỦ MỘT VÒNG."
+                : actionApplied
                 ? "TRẠNG THÁI: HẠNG MỤC ĐÃ HOÀN THÀNH VÀ ĐƯỢC SERVER XÁC NHẬN."
                 : BuildRecommendation(part);
-            selectedPartActionText.text = actionApplied ? "ĐÃ HOÀN THÀNH" : part.Action.ToUpperInvariant();
-            selectedPartActionBackground.color = actionApplied
+            selectedPartActionText.text = repairingSelectedPart
+                ? "ĐANG SỬA..."
+                : actionApplied ? "ĐÃ HOÀN THÀNH" : part.Action.ToUpperInvariant();
+            selectedPartActionBackground.color = repairingSelectedPart
+                ? new Color(0.08f, 0.32f, 0.17f, 1f)
+                : actionApplied
                 ? new Color(0.08f, 0.28f, 0.16f, 1f)
                 : part.Action == "Kiểm tra"
                 ? new Color(0.18f, 0.19f, 0.185f, 1f)
                 : new Color(0.28f, 0.16f, 0.075f, 1f);
-            if (selectedPartActionButton != null) selectedPartActionButton.interactable = !actionApplied;
+            if (selectedPartActionButton != null)
+                selectedPartActionButton.interactable = !actionApplied && !localRepairActive &&
+                                                        !localRepairPending;
         }
 
         RefreshStartEngineButton(manager);
@@ -489,6 +606,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
     private void InvokeSelectedPartAction()
     {
+        if (localRepairActive || localRepairPending) return;
         VehiclePartView part = FindPart(selectedPartId);
         if (part == null || selectedPartRecommendation == null) return;
 
@@ -522,12 +640,15 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         }
 
         selectedPartRecommendation.text = "ĐANG XÁC NHẬN VẬT PHẨM VỚI SERVER...";
+        localRepairPending = true;
+        if (selectedPartActionButton != null) selectedPartActionButton.interactable = false;
+        if (selectedPartActionText != null) selectedPartActionText.text = "ĐANG XÁC NHẬN...";
         manager.RequestRepairArrivalCarPart(part.Id);
     }
 
     private void InvokeStartEngine()
     {
-        if (policeMode) return;
+        if (policeMode || localRepairActive || localRepairPending) return;
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady)
         {
@@ -570,7 +691,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         bool networkReady = manager != null && manager.IsNetworkReady;
         bool started = networkReady && manager.IsArrivalCarRepaired;
         bool ready = networkReady && manager.AreArrivalCarRequiredRepairsComplete;
-        startEngineButton.interactable = ready && !started;
+        startEngineButton.interactable = ready && !started && !localRepairActive && !localRepairPending;
         startEngineText.text = started
             ? "XE ĐÃ KHỞI ĐỘNG"
             : ready ? "KHỞI ĐỘNG XE" : "CHƯA THỂ KHỞI ĐỘNG";
@@ -580,11 +701,120 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             : ready ? new Color(0.2f, 0.36f, 0.12f, 1f) : new Color(0.12f, 0.13f, 0.125f, 1f);
     }
 
+    public void NotifyRepairStartResult(ArrivalCarRepairAction action, bool accepted,
+        float durationSeconds, string message)
+    {
+        localRepairPending = false;
+        if (!open || policeMode)
+        {
+            if (accepted) MainQuestManager.Instance?.RequestCancelArrivalCarRepair();
+            return;
+        }
+
+        if (!accepted)
+        {
+            SelectVehiclePart(selectedPartId);
+            if (selectedPartRecommendation != null)
+                selectedPartRecommendation.text = "KHÔNG THỂ THỰC HIỆN: " + message;
+            return;
+        }
+
+        localRepairActive = true;
+        localRepairPartId = selectedPartId;
+        localRepairDuration = Mathf.Max(0.1f, durationSeconds);
+        localRepairStartedAt = Time.unscaledTime;
+        if (repairClockHand != null) repairClockHand.localEulerAngles = Vector3.zero;
+        if (repairClockRoot != null)
+        {
+            repairClockRoot.SetActive(true);
+            repairClockRoot.transform.SetAsLastSibling();
+        }
+        SelectVehiclePart(localRepairPartId);
+    }
+
+    public void NotifyRepairInterrupted(string message)
+    {
+        string partId = localRepairPartId;
+        EndLocalRepairPresentation();
+        if (!open || selectedPartRecommendation == null) return;
+        SelectVehiclePart(string.IsNullOrEmpty(partId) ? selectedPartId : partId);
+        selectedPartRecommendation.text = "ĐÃ DỪNG: " + message;
+    }
+
     public void NotifyRepairResult(ArrivalCarRepairAction action, bool success, string message)
     {
+        string partId = localRepairPartId;
+        EndLocalRepairPresentation();
         if (!open || selectedPartRecommendation == null) return;
-        if (success) SelectVehiclePart(selectedPartId);
+        SelectVehiclePart(string.IsNullOrEmpty(partId) ? selectedPartId : partId);
         selectedPartRecommendation.text = (success ? "HOÀN TẤT: " : "KHÔNG THỂ THỰC HIỆN: ") + message;
+    }
+
+    private void UpdateRepairClock()
+    {
+        float progress = Mathf.Clamp01(
+            (Time.unscaledTime - localRepairStartedAt) / Mathf.Max(0.1f, localRepairDuration));
+        if (repairClockHand != null)
+            repairClockHand.localEulerAngles = new Vector3(0f, 0f, -360f * Mathf.Clamp01(progress));
+    }
+
+    public void PlayRepairAudioForNetwork(ArrivalCarRepairAction action, float durationSeconds)
+    {
+        PlayRepairAudio(action, durationSeconds);
+    }
+
+    public void StopRepairAudioForNetwork()
+    {
+        if (repairAudioSource == null) return;
+        repairAudioSource.Stop();
+        repairAudioSource.clip = null;
+        repairAudioSource.pitch = 1f;
+    }
+
+    private void PlayRepairAudio(ArrivalCarRepairAction action, float durationSeconds)
+    {
+        EnsureRepairAudio();
+        if (repairAudioSource == null) return;
+        AudioClip clip = action switch
+        {
+            ArrivalCarRepairAction.AddFuel => fuelRepairClip,
+            ArrivalCarRepairAction.ReplaceTire => tireRepairClip,
+            _ => hammerRepairClip
+        };
+        if (clip == null) return;
+
+        repairAudioSource.Stop();
+        repairAudioSource.clip = clip;
+        repairAudioSource.pitch = Mathf.Clamp(clip.length / Mathf.Max(0.1f, durationSeconds), 0.75f, 1.25f);
+        repairAudioSource.volume = Mathf.Clamp(PlayerPrefs.GetFloat("GameSFXVolume", 0.8f), 0f, 1f);
+        repairAudioSource.time = 0f;
+        repairAudioSource.Play();
+    }
+
+    private void EnsureRepairAudio()
+    {
+        if (repairAudioSource != null) return;
+        fuelRepairClip = Resources.Load<AudioClip>("Sound/Vehicles/Repair/GarPump");
+        tireRepairClip = Resources.Load<AudioClip>("Sound/Vehicles/Repair/Drill");
+        hammerRepairClip = Resources.Load<AudioClip>("Sound/Vehicles/Repair/hammer");
+        GameObject audioObject = new GameObject("Arrival Car Repair Audio");
+        audioObject.transform.SetParent(transform, false);
+        repairAudioSource = audioObject.AddComponent<AudioSource>();
+        GameplayAudioSpatializer.Configure(repairAudioSource, GameplayAudioSpatializer.Profile.Body);
+        repairAudioSource.playOnAwake = false;
+        repairAudioSource.loop = false;
+    }
+
+    private void EndLocalRepairPresentation()
+    {
+        localRepairPending = false;
+        localRepairActive = false;
+        localRepairPartId = null;
+        localRepairDuration = 0f;
+        localRepairStartedAt = 0f;
+        if (repairAudioSource != null)
+            StopRepairAudioForNetwork();
+        if (repairClockRoot != null) repairClockRoot.SetActive(false);
     }
 
     public void NotifyStartResult(bool success, string message)
