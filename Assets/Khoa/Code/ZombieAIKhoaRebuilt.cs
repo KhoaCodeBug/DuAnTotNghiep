@@ -721,6 +721,25 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         InvalidatePath();
     }
 
+    public void ForceSiegeTarget(PlayerHealth player)
+    {
+        if (!HasStateAuthority || NetIsDead || player == null || player.isDead ||
+            PlayerInteraction.IsProtectedOccupant(player)) return;
+        Collider2D collider = player.GetComponent<Collider2D>();
+        if (collider == null) return;
+
+        TutorialStationary = false;
+        tutorialStationary = false;
+        AssignTarget(player.gameObject);
+        Vector2 targetPosition = collider.bounds.center;
+        previousSeenPosition = targetPosition;
+        lastSeenPosition = targetPosition;
+        movementGoal = targetPosition;
+        memoryRemaining = trackingDuration;
+        targetVisible = true;
+        ChangeState(BrainState.Chasing);
+    }
+
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public void RPC_HearSound(Vector2 soundPosition)
     {

@@ -238,6 +238,9 @@ public class VehicleControllerFusion : NetworkBehaviour
     public void SetCinematicAlarm(bool active) =>
         GetComponent<VehicleHornAudioController>()?.SetCinematicAlarm(active);
 
+    public void SetCinematicAlarmBackground() =>
+        GetComponent<VehicleHornAudioController>()?.SetCinematicAlarmBackground();
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayStarterConfirmation(NetworkObject sourcePlayer)
     {

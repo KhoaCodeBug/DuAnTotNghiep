@@ -30,4 +30,6 @@ public static class MilitaryStoryFlowRules
 
     public static bool ShouldSpawnBatch(int activePlayerCount, int nearbySiegeZombieCount) =>
         Mathf.Max(0, nearbySiegeZombieCount) < GetNearbyTarget(activePlayerCount);
+
+    public static bool ShouldInterruptVehicleRepair(bool isDirectZombieAttack) => isDirectZombieAttack;
 }

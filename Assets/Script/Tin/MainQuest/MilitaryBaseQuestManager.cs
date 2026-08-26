@@ -129,6 +129,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private bool hasSpawned;
     private GameObject presentationRoot;
     private SiegeHordeDirector hordeDirector;
+    private MilitaryRepairLootCoordinator repairLootCoordinator;
     private MilitaryGateController gateController;
     private MilitaryEscapeVehicleRepair vehicleRepair;
     private RoadsideVehicleRepairStation roadsideRepairStation;
@@ -506,6 +507,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         voteParticipants.Clear();
         voteApprovals.Clear();
         IsMilitaryIntroCinematicActive = true;
+        DayNightManager.Instance?.AuthorityLockMilitaryFinaleTime();
         // Route B is committed: save the team respawn checkpoint around the
         // police car so later deaths respawn inside the closed base.
         IsRespawnCheckpointActive = true;
@@ -526,6 +528,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GatherLivingPlayersNearClosedGate();
         IsMilitaryIntroCinematicActive = false;
         MilitaryPhase = (int)Phase.SiegeAndRepair;
+        // Establish the authoritative loot set as part of the phase transition.
+        // The coordinator's Update retry remains as recovery for temporarily
+        // unavailable prefab/marker data, but normal gameplay does not depend
+        // on a later MonoBehaviour frame happening to run.
+        repairLootCoordinator?.AuthorityTrySetup();
         int activePlayers = CountActivePlayers();
         // Lock the mode for this entire siege. A disconnect must not turn an
         // already multiplayer finale into Solo and invalidate its respawn pool.
@@ -539,7 +546,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         IsGeneratorActive = false;
         ActiveRepairer = PlayerRef.None;
         RPC_StartSiegePresentation();
-        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SiegeStarted, hostPlayer);
         RPC_ShowLocalizedQuestMessage("quest.military_siege", 0);
     }
 
@@ -1261,13 +1267,13 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     public void NotifyPlayerDamaged(PlayerRef player, bool zombieAttack)
     {
         if (!HasStateAuthority || player == PlayerRef.None || ActiveRepairer != player) return;
+        if (!MilitaryStoryFlowRules.ShouldInterruptVehicleRepair(zombieAttack)) return;
         if (RepairSkillCheckSessionActive)
         {
-            AuthorityInterruptRepair(player, "Việc sửa xe bị gián đoạn vì bạn vừa nhận sát thương.");
+            AuthorityInterruptRepair(player, "Việc sửa xe bị gián đoạn vì zombie tấn công.");
             return;
         }
 
-        if (!zombieAttack) return;
         ActiveRepairer = PlayerRef.None;
         RPC_InterruptRepair(player);
     }
@@ -1284,6 +1290,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_BroadcastVehicleReady(PlayerRef focusPlayer)
     {
+        roadsideRepairVehicle?.SetCinematicAlarm(false);
         vehicleRepair?.SetVehicleReadyPresentation(true);
         if (Runner != null && Runner.LocalPlayer == focusPlayer)
             RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.EscapeVehicleReady);
@@ -1401,6 +1408,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             GetInteractionPosition(InteractionKind.Gate), this);
         hordeDirector = presentationRoot.AddComponent<SiegeHordeDirector>();
         hordeDirector.Configure(this, gateController);
+        repairLootCoordinator = presentationRoot.AddComponent<MilitaryRepairLootCoordinator>();
+        repairLootCoordinator.Configure(this);
         cinematicController = presentationRoot.AddComponent<MilitaryRouteCinematicController>();
         cinematicController.Configure(this);
         BuildSchoolInvestigationPresentation();

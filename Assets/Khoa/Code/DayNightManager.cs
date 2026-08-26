@@ -22,6 +22,7 @@ public class DayNightManager : NetworkBehaviour
     public float realMinutesPerDay = 10f;
 
     [Networked] public float CurrentTime { get; set; }
+    [Networked] public NetworkBool IsMilitaryFinaleTimeLocked { get; private set; }
 
     [Header("=== Môi trường (Global Light) ===")]
     public Light2D globalLight;
@@ -119,6 +120,17 @@ public class DayNightManager : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
+
+        if (IsMilitaryFinaleTimeLocked)
+        {
+            CurrentTime = 16f;
+            NetworkSleepPhase = (int)SleepPhase.None;
+            SleepPhaseTimer = TickTimer.None;
+            List<PlayerSurvival> finalePlayers = GetAlivePlayers();
+            for (int i = 0; i < finalePlayers.Count; i++)
+                finalePlayers[i].ServerForceAwakeForMilitaryFinale();
+            return;
+        }
 
         if (TutorialSession.IsActive)
         {
@@ -439,8 +451,23 @@ public class DayNightManager : NetworkBehaviour
 
     public bool CanUseBedNow()
     {
+        if (IsMilitaryFinaleTimeLocked) return false;
         if (IsSleepTransitionActive) return false;
         return CurrentTime >= 20f || CurrentTime < 3f;
+    }
+
+    public void AuthorityLockMilitaryFinaleTime()
+    {
+        if (!HasStateAuthority) return;
+        IsMilitaryFinaleTimeLocked = true;
+        CurrentTime = 16f;
+        NetworkSleepPhase = (int)SleepPhase.None;
+        SleepPhaseTimer = TickTimer.None;
+        pendingAmbushPlayers.Clear();
+
+        List<PlayerSurvival> players = GetAlivePlayers();
+        for (int i = 0; i < players.Count; i++)
+            players[i].ServerForceAwakeForMilitaryFinale();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -497,6 +524,12 @@ public class DayNightManager : NetworkBehaviour
     private void UpdateUI()
     {
         if (AutoUIManager.Instance == null || AutoUIManager.Instance.clockText == null) return;
+        GameObject clockObject = AutoUIManager.Instance.clockText.transform.parent != null
+            ? AutoUIManager.Instance.clockText.transform.parent.gameObject
+            : AutoUIManager.Instance.clockText.gameObject;
+        if (clockObject.activeSelf == IsMilitaryFinaleTimeLocked)
+            clockObject.SetActive(!IsMilitaryFinaleTimeLocked);
+        if (IsMilitaryFinaleTimeLocked) return;
         int hours = Mathf.FloorToInt(CurrentTime);
         int minutes = Mathf.FloorToInt((CurrentTime - hours) * 60f);
         AutoUIManager.Instance.clockText.text = $"{hours:00}:{minutes:00}";

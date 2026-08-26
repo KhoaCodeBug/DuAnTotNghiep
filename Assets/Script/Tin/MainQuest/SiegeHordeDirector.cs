@@ -63,8 +63,20 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         while (siegeActive && manager != null && manager.IsNetworkReady &&
                manager.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair)
         {
-            activeObjectives.RemoveAll(item => item == null);
-            if (!releasedToPlayers) TrySpawnBatch();
+            for (int i = activeObjectives.Count - 1; i >= 0; i--)
+            {
+                SiegeZombieObjective objective = activeObjectives[i];
+                if (objective == null)
+                {
+                    activeObjectives.RemoveAt(i);
+                    continue;
+                }
+
+                if (!objective.IsZombieDead) continue;
+                objective.RetireDeadZombie();
+                activeObjectives.RemoveAt(i);
+            }
+            TrySpawnBatch();
             yield return new WaitForSeconds(secondsBetweenChecks);
         }
         siegeRoutine = null;
@@ -88,6 +100,7 @@ public sealed class SiegeHordeDirector : MonoBehaviour
 
         int perPoint = MilitaryStoryFlowRules.GetSpawnPerPoint(playerCount);
         int spawnedCount = 0;
+        int prefabOffset = Random.Range(0, zombiePrefabs.Count);
         for (int pointIndex = 0; pointIndex < spawnPoints.Count && availableSlots > 0; pointIndex++)
         {
             Transform spawnPoint = spawnPoints[pointIndex];
@@ -99,12 +112,16 @@ public sealed class SiegeHordeDirector : MonoBehaviour
                 if (fromGate.magnitude < minimumSpawnDistanceFromGate && fromGate.sqrMagnitude > 0.001f)
                     spawnBase = gatePosition + fromGate.normalized * minimumSpawnDistanceFromGate;
                 Vector2 position = spawnBase + Random.insideUnitCircle * spawnJitterRadius;
-                NetworkPrefabRef prefab = zombiePrefabs[Random.Range(0, zombiePrefabs.Count)];
+                // Cycle through every configured zombie type in each batch so
+                // both authored variants receive the same siege lifecycle.
+                NetworkPrefabRef prefab = zombiePrefabs[(prefabOffset + spawnedCount) % zombiePrefabs.Count];
                 NetworkObject spawned = manager.Runner.Spawn(prefab, position, Quaternion.identity);
                 if (spawned == null) continue;
                 SiegeZombieObjective objective = spawned.GetComponent<SiegeZombieObjective>();
                 if (objective == null) objective = spawned.gameObject.AddComponent<SiegeZombieObjective>();
                 objective.Configure(manager, gate);
+                if (releasedToPlayers || manager.IsGateBroken)
+                    objective.ReleaseToPlayers();
                 activeObjectives.Add(objective);
                 spawnedCount++;
                 availableSlots--;
@@ -216,6 +233,7 @@ public sealed class SiegeZombieObjective : MonoBehaviour
     private Rigidbody2D body;
     private Animator animator;
     private ZombieAI thaiZombie;
+    private ZombieHealth thaiZombieHealth;
     private ZOmbieAI_Khoa khoaZombie;
     private ZombieAIKhoaRebuilt rebuiltZombie;
     private MonoBehaviour[] zombieBehaviours;
@@ -224,6 +242,16 @@ public sealed class SiegeZombieObjective : MonoBehaviour
     private float attackAnimationRemaining;
     private int attackIndex;
 
+    public bool IsZombieDead
+    {
+        get
+        {
+            if (thaiZombieHealth != null && IsSpawned(thaiZombieHealth) && thaiZombieHealth.isDead) return true;
+            if (khoaZombie != null && IsSpawned(khoaZombie) && khoaZombie.NetIsDead) return true;
+            return rebuiltZombie != null && IsSpawned(rebuiltZombie) && rebuiltZombie.NetIsDead;
+        }
+    }
+
     public void Configure(MilitaryBaseQuestManager targetManager, MilitaryGateController targetGate)
     {
         manager = targetManager;
@@ -231,6 +259,7 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         body = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         thaiZombie = GetComponent<ZombieAI>();
+        thaiZombieHealth = GetComponent<ZombieHealth>();
         khoaZombie = GetComponent<ZOmbieAI_Khoa>();
         rebuiltZombie = GetComponent<ZombieAIKhoaRebuilt>();
         if (thaiZombie != null) assaultMoveSpeed = thaiZombie.ChaseMovementSpeed;
@@ -244,6 +273,11 @@ public sealed class SiegeZombieObjective : MonoBehaviour
     private void FixedUpdate()
     {
         if (released || manager == null || gate == null || !manager.HasStateAuthority) return;
+        if (IsZombieDead)
+        {
+            RetireDeadZombie();
+            return;
+        }
         if (manager.IsGateBroken)
         {
             ReleaseToPlayers();
@@ -281,10 +315,60 @@ public sealed class SiegeZombieObjective : MonoBehaviour
     public void ReleaseToPlayers()
     {
         if (released) return;
+        if (IsZombieDead)
+        {
+            RetireDeadZombie();
+            return;
+        }
         released = true;
         SetGateAttackAnimation(false);
         ApplyAnimationState(Vector2.zero);
         SetZombieAIEnabled(true);
+        PlayerHealth target = FindClosestLivingPlayer();
+        if (target == null) return;
+        thaiZombie?.ForceSiegeTarget(target);
+        khoaZombie?.ForceSiegeTarget(target);
+        rebuiltZombie?.ForceSiegeTarget(target);
+    }
+
+    public void RetireDeadZombie()
+    {
+        if (released && !enabled) return;
+        released = true;
+        SetGateAttackAnimation(false);
+        ApplyAnimationState(Vector2.zero);
+        if (body != null) body.linearVelocity = Vector2.zero;
+        // Khoa variants replicate collider/death Animator state from Render(),
+        // which stops running when their NetworkBehaviour is disabled. Keep
+        // those dead AIs enabled: their own FixedUpdateNetwork exits on
+        // NetIsDead, while Render continues to hold the corpse pose.
+        if (thaiZombie != null) thaiZombie.enabled = false;
+        if (khoaZombie != null) khoaZombie.enabled = true;
+        if (rebuiltZombie != null) rebuiltZombie.enabled = true;
+        enabled = false;
+    }
+
+    private PlayerHealth FindClosestLivingPlayer()
+    {
+        PlayerHealth[] players = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+        PlayerHealth closest = null;
+        float closestDistance = float.PositiveInfinity;
+        for (int i = 0; i < players.Length; i++)
+        {
+            PlayerHealth candidate = players[i];
+            if (candidate == null || candidate.Object == null || !candidate.Object.IsValid || candidate.isDead ||
+                candidate.isTransforming || PlayerInteraction.IsProtectedOccupant(candidate)) continue;
+            float distance = Vector2.SqrMagnitude((Vector2)candidate.transform.position - (Vector2)transform.position);
+            if (distance >= closestDistance) continue;
+            closestDistance = distance;
+            closest = candidate;
+        }
+        return closest;
+    }
+
+    private static bool IsSpawned(NetworkBehaviour behaviour)
+    {
+        return behaviour != null && behaviour.Object != null && behaviour.Object.IsValid;
     }
 
     private void SetGateAttackAnimation(bool active)

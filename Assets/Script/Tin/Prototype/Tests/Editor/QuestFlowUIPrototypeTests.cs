@@ -806,6 +806,14 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
+    public void MilitaryRepairOnlyStopsForDirectZombieAttack()
+    {
+        Assert.That(MilitaryStoryFlowRules.ShouldInterruptVehicleRepair(true), Is.True);
+        Assert.That(MilitaryStoryFlowRules.ShouldInterruptVehicleRepair(false), Is.False,
+            "Hunger, thirst, bleeding and other damage-over-time must not interrupt the finale repair.");
+    }
+
+    [Test]
     public void MilitarySchoolRequiresExactlyThreeQuestStateClues()
     {
         Assert.That(MilitaryStoryFlowRules.RequiredSchoolClues, Is.EqualTo(3));

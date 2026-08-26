@@ -236,7 +236,9 @@ Flow canonical mới:
 7. Multi dùng checkpoint quanh `Car`: team chung `3` lượt hồi sinh tự động sau `10 giây`; mode Multi được khóa lúc siege bắt đầu, spawn fail không mất lượt, inventory/hotbar và ammo đang dùng được snapshot/restore. Solo chết một lần là Failed; cả đội Multi chết cùng lúc cũng Failed.
 8. `Car` dùng trực tiếp minigame năm hạng mục: động cơ, capo, nhiên liệu, ắc quy và lốp. State/progress authoritative, chỉ một người sửa, tiến độ từng hạng mục được giữ khi rời.
 9. Đủ `5/5` thì mở khóa khả năng lái sẵn có của `Car` và chuyển `ReadyToEscape`.
-10. **Nguồn loot cho năm hạng mục chưa triển khai:** task tiếp theo sẽ dùng các thùng Route B tại marker author, tái sử dụng `LootContainer`, random authoritative nhưng luôn bảo đảm đủ năm item riêng của `PoliceCarItemCatalog`, kèm súng/đạn bonus. Implementation Ox Alpha đã discard về checkpoint `f2551d1cb`; không khôi phục code runtime-placement/fallback Editor của bản thử đó.
+10. **Nguồn loot cho năm hạng mục đã triển khai chính thức:** khi authority chuyển sang `SiegeAndRepair`, đúng năm prefab Fusion `MilitaryRepairLootContainer` được sinh tại năm marker author ID `1..5` trong `Main.unity`. Manifest random theo seed nhưng luôn có đủ Toolbox, Hammer, FuelCan, Battery và Tire của `PoliceCarItemCatalog`; mỗi tủ kèm AK47/Ammo762 hoặc S12K/Ammo12Gauge. Tủ tái sử dụng UI/giao dịch `LootContainer`, chỉ khả dụng trong siege, highlight đỏ toàn sprite và server kiểm tra PlayerRef/phase/khoảng cách/vật cản/inventory/slot. Setup thiếu dữ liệu sẽ rollback và retry, không công bố trạng thái một phần. Bản Ox Alpha cũ vẫn bị discard; bản này không dùng runtime-placement quanh xe/cổng và không dùng fallback Editor.
+11. QA tự động 2026-08-26: build Assembly-CSharp `0 error`; loot EditMode `4/4`; PlayMode full MainMenu → cinematic → siege → năm tủ → inventory-full → chống double-claim → sửa `5/5` → extraction `1/1` pass (`35,34s`); test bảo toàn vị trí `Car` authored `1/1` pass (`7,39s`). Acceptance Host + Client hai máy và kiểm tra tay lối đi/collider tại marker vẫn còn mở.
+12. Hotfix UI cinematic: `SiegeStarted` được phát sau khi `MilitaryRouteCinematicController` trả `AutoCanvas` và input về gameplay. Không phát radio trong lúc canvas đang bị cinematic khóa, tránh radio ghi nhớ rồi khôi phục inventory/loot canvas ở trạng thái disabled.
 
 ### Nhiệm vụ B7 — Sơ tán và Ending B
 
@@ -401,6 +403,21 @@ Kết quả tự động ngày 2026-08-24:
 - [ ] Chỉ active repairer bị khóa input; đồng đội không bị khóa.
 - [ ] Late join nhận đúng stage, item mask, phase, máu cổng và tiến độ sửa.
 - [ ] Cue 14 chỉ phát khi xe sẵn sàng; Cue 15 và Victory Summary xuất hiện khi extraction hoàn tất.
+
+### Hotfix regression 2026-08-26
+
+- Zombie siege không bất tử do loot xác. Nguyên nhân là `SiegeZombieObjective` tiếp tục ghi movement/attack lên zombie đã chết; objective nay retire ngay theo replicated death state, còn `ZombieCorpseLoot` tiếp tục giữ xác để lục.
+- UI mất sau cinematic có hai nguồn chồng nhau: canvas snapshot của radio và callback reward/map/chọn tuyến cũ. Radio nay reconcile canvas theo logical modal state; mọi bước giới thiệu route cũ dừng ngay khi ending đã khóa.
+- PlayMode `RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction`: `1/1 passed`, `41,40s`. Test bao gồm zombie chết không đứng dậy/đánh cổng, corpse loot còn tồn tại, AutoCanvas phục hồi, inventory mở được và tủ Route B mở bằng interaction thật.
+
+### Finale siege hardening sau test tay 2026-08-26
+
+- Biến thể áo vàng là `ZombieKhoaRebuilt`. Death state của nó được trình bày trong `Render()`, nên không được disable component như zombie Thai; objective công thành nay dừng còn Render dead-only vẫn giữ `IsDead` và collider tắt.
+- Horde batch luân phiên hai prefab. Khi cổng vỡ, objective bật AI gốc và force target Player sống gần nhất; loop spawn không còn bị điều kiện `releasedToPlayers` chặn, zombie sinh sau vỡ cổng được release ngay.
+- Finale time lock bắt đầu ngay khi vote chốt: `16:00`, không trôi giờ, không sleep transition/forced collapse, sleepiness và fatigue luôn 0, panel đồng hồ góc màn hình ẩn.
+- `NotifyPlayerDamaged` chỉ interrupt repair khi nguồn damage được đánh dấu direct zombie attack. Starvation, thirst và bleeding/DOT vẫn trừ máu nhưng không hủy minigame.
+- Còi xe: 100% trong cinematic → loop 20% sau cinematic → dừng khi `ArePoliceCarRepairsComplete` chuyển true.
+- QA mới: EditMode rule `1/1 passed`; full Route B PlayMode `1/1 passed` trong `37,27s`; Unity compile/Console trước test không có compile error. Test tự động bao phủ riêng zombie áo vàng, target + spawn sau vỡ cổng, time/sleep/clock, vòng đời còi và điều kiện interrupt.
 
 ## 10. File chính cần đọc trong chat mới
 

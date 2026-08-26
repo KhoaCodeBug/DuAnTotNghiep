@@ -2520,9 +2520,10 @@ public class AutoUIManager : MonoBehaviour
     /// </summary>
     public void SetQuestOverlayOpen(bool open)
     {
-        if (questOverlayOpen == open)
-            return;
-
+        // Multiple story presenters temporarily suppress AutoCanvas directly.
+        // Always reconcile the physical Canvas state even when the logical flag
+        // already matches; otherwise an out-of-order close can leave gameplay
+        // UI disabled permanently after a cinematic or radio presentation.
         questOverlayOpen = open;
         if (open)
         {
@@ -2551,6 +2552,12 @@ public class AutoUIManager : MonoBehaviour
                 HotbarHUDManager.Instance.SetHUDVisible(true);
             AutoNoiseMeter.SetHUDVisible(true);
         }
+    }
+
+    public void ReconcileGameplayCanvasVisibility()
+    {
+        if (mainCanvas != null)
+            mainCanvas.enabled = !questOverlayOpen;
     }
     #endregion
 }

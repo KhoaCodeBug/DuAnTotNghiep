@@ -168,6 +168,17 @@ public class ZombieAI : NetworkBehaviour
         }
     }
 
+    public void ForceSiegeTarget(PlayerHealth targetHealth)
+    {
+        if (!HasStateAuthority || healthScript == null || healthScript.isDead || targetHealth == null ||
+            targetHealth.isDead || PlayerInteraction.IsProtectedOccupant(targetHealth)) return;
+        Collider2D targetCollider = GetMainTargetCollider(targetHealth.gameObject);
+        if (targetCollider == null) return;
+
+        AcquirePlayer(targetHealth.gameObject, targetHealth, targetCollider,
+            targetCollider.bounds.center, Mathf.Max(hearMemoryDuration, 30f));
+    }
+
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
         if (healthScript != null)
