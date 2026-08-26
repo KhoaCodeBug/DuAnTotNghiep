@@ -998,8 +998,17 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(closedGateCollider.enabled, Is.True,
             "The authored gate must become a physical obstacle when the cinematic closes it.");
         Assert.That(closedGateCollider.gameObject.layer, Is.EqualTo(LayerMask.NameToLayer("Obstacle")));
-        Assert.That((float)ReadProperty(military, "GateMaxHealth"), Is.EqualTo(5000f).Within(0.01f),
-            "Legacy Main.unity serialization must not lower the canonical gate HP back to 1,000.");
+        // MilitaryQuestRules lives in the QuestUI prototype assembly, not Assembly-CSharp.
+        Type respawnRulesType = Type.GetType("MilitaryQuestRules, ProjectZomboiNhai.QuestUI");
+        Assert.That(respawnRulesType, Is.Not.Null);
+        MethodInfo computeSiegeGateMaxHealth = respawnRulesType.GetMethod("ComputeSiegeGateMaxHealth",
+            BindingFlags.Public | BindingFlags.Static);
+        Assert.That(computeSiegeGateMaxHealth, Is.Not.Null);
+        float expectedSoloGateMaxHealth =
+            (float)computeSiegeGateMaxHealth.Invoke(null, new object[] { 1 });
+        Assert.That((float)ReadProperty(military, "GateMaxHealth"),
+            Is.EqualTo(expectedSoloGateMaxHealth).Within(0.01f),
+            "Solo siege must use the enlarged 3-minute hold pool; legacy serialization must not lower it.");
         float gateHealthBefore = (float)ReadProperty(military, "GateCurrentHealth");
         Type gateType = Type.GetType("MilitaryGateController, Assembly-CSharp");
         Assert.That(gateType, Is.Not.Null);
@@ -1010,7 +1019,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(gateHealthBefore - gateHealthAfter, Is.LessThanOrEqualTo(48.01f),
             "Even 100 simultaneous attack requests must be capped to four 12-HP beats per second.");
         Assert.That(gateHealthAfter, Is.GreaterThan(4500f),
-            "A 5,000 HP gate must not collapse at siege startup.");
+            "A full-HP gate must not collapse at siege startup.");
 
         // B6: the no-loot shortcut completes the same canonical five-action
         // police-car state used by the real repair minigame.

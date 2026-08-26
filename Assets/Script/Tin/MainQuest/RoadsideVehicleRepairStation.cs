@@ -23,7 +23,11 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
     {
         manager = targetManager;
         vehicle = targetVehicle;
-        vehicle?.SetRepairEntryLocked(true);
+        // Only State Authority may mutate the replicated vehicle lock. Other
+        // peers receive it from VehicleControllerFusion; they still build the
+        // local inspection presentation below.
+        if (vehicle != null && vehicle.HasStateAuthority)
+            vehicle.SetRepairEntryLocked(true);
         BuildInspectionPolygon();
         if (inspectionUI == null)
         {

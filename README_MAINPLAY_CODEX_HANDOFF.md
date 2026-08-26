@@ -2,6 +2,19 @@
 
 Đây là file bàn giao chính dành cho người pull nhánh về tiếp tục phát triển. Tài liệu tổng kết gameplay sửa xe, flow Tuyến B, các quyết định thiết kế đã chốt, phần đang tạm hoãn và cách kiểm tra trạng thái hiện tại.
 
+## Addendum hồi sinh đội quân sự — 2026-08-26
+
+- Khi vote Tuyến B được chấp thuận (bắt đầu cinematic), hệ thống lưu checkpoint hồi sinh tại vị trí `Car` trong scene (`IsRespawnCheckpointActive`, `RespawnCheckpointPosition` là state Fusion networked trên `MilitaryBaseQuestManager`). Runtime không tự di chuyển checkpoint.
+- Multiplayer: cả đội dùng chung `3` lượt hồi sinh (`TeamRespawnsRemaining`). Chế độ Multi/Solo được **khóa tại lúc siege bắt đầu**, nên disconnect không làm mất pool. Chết `10` giây thì hồi sinh **tự động** tại checkpoint (vòng tròn nhỏ quanh xe), không cần bấm nút; nút respawn thủ công bị Host từ chối trong giai đoạn `SiegeAndRepair`/`ReadyToEscape`. Chỉ spawn thành công mới tiêu tốn một lượt; spawn lỗi sẽ retry mà không mất lượt.
+- Solo: không có lượt hồi sinh nào; chết một lần là toàn đội Failed ngay lập tức (dựa trên cơ chế `!AnyLivingPlayer()` đã có).
+- Cả đội chết đồng thời trong siege/escape vẫn Failed ngay kể cả khi còn lượt — thiết kế đã được chủ dự án chốt.
+- Inventory được snapshot theo từng slot hotbar/balo trước khi avatar chết despawn và restore vào avatar mới; vũ khí đang cầm cùng số đạn trong băng hiện tại cũng được giữ.
+- Cổng Solo nhận pool HP `8.640`, nhưng **chỉ bắt đầu giảm khi zombie đánh cổng lần đầu**. Từ thời điểm đó State Authority trừ DPS đều để về `0` đúng 180 giây; Multi giữ `5.000 HP` và damage theo hit cap. Xem `MilitaryQuestRules.ComputeSiegeGateMaxHealth` và `GetSoloGateHealthAtElapsed`.
+- Khi cổng vỡ, horde được `ReleaseHordeToPlayers()` bật lại AI gốc và tự quay về săn Player như bình thường.
+- UI màn chết (`AutoUIManager`) nhận mốc countdown do State Authority phát, hiển thị đếm ngược tự động hồi sinh và số lượt của đội; ẩn nút bấm tay.
+- Code chính: `Assets/Script/Tin/Prototype/MilitaryQuestRules.cs`, `Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs` (`TickAuthorityAutoRespawn`), `Assets/Script/Tin/Multiplayer/HostModeSpawner.cs` (`AuthorityRespawnAtCheckpoint`), `Assets/Script/Tin/AutoUIManager.cs`.
+- QA tự động: EditMode toàn project `105/105` đạt (gồm 7 bài mới `MilitaryRespawnRulesTests`). PlayMode nhóm finale đạt `3/4`; bài fail duy nhất là regression cũ ranh giới khu dân cư như ghi dưới đây. Bài test `RouteBDebugFlow...` đã cập nhật assert cổng theo luật Solo 3 phút mới.
+
 ## Addendum finale quân sự — 2026-08-25
 
 - Trường quân sự không tự phát event khi bước vào. Người chơi kiểm tra đúng `3` manh mối dạng quest-state, rồi rời `__SchoolRoofTrigger_FIXED` để mở waypoint trên `Car`.

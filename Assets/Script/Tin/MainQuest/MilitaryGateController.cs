@@ -60,6 +60,9 @@ public sealed class MilitaryGateController : MonoBehaviour
     public bool TryApplyHordeHit()
     {
         if (manager == null || !manager.HasStateAuthority || manager.IsGateBroken) return false;
+        // Solo damage becomes a deterministic three-minute DPS countdown after
+        // the first visible zombie strike. Later strikes remain visual beats.
+        if (manager.IsSoloSiege) return manager.TryStartSoloGateDps();
         if (Time.time - damageWindowStartedAt >= 1f)
         {
             damageWindowStartedAt = Time.time;

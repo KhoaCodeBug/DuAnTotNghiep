@@ -5,6 +5,18 @@ using System.Collections.Generic;
 
 public class PlayerCombat : NetworkBehaviour
 {
+    public readonly struct MilitaryRespawnCombatSnapshot
+    {
+        public readonly string EquippedWeaponId;
+        public readonly int CurrentAmmo;
+
+        public MilitaryRespawnCombatSnapshot(string equippedWeaponId, int currentAmmo)
+        {
+            EquippedWeaponId = equippedWeaponId;
+            CurrentAmmo = Mathf.Max(0, currentAmmo);
+        }
+    }
+
     [Header("--- Hiệu ứng Lửa đạn (Muzzle Flash) ---")]
     public Animator muzzleAnimator;
     public SpriteRenderer muzzleFlashRenderer;
@@ -61,10 +73,22 @@ public class PlayerCombat : NetworkBehaviour
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
 
-        if (HasStateAuthority) currentAmmo = 0;
+        if (HasStateAuthority && HostModeSpawner.Instance != null &&
+            HostModeSpawner.Instance.TryTakeMilitaryCombatSnapshot(Object.InputAuthority, out MilitaryRespawnCombatSnapshot snapshot))
+        {
+            EquippedWeaponId = snapshot.EquippedWeaponId;
+            currentAmmo = snapshot.CurrentAmmo;
+            lastEquippedWeaponName = snapshot.EquippedWeaponId;
+            if (!string.IsNullOrWhiteSpace(snapshot.EquippedWeaponId))
+                weaponAmmoCache[snapshot.EquippedWeaponId] = snapshot.CurrentAmmo;
+        }
+        else if (HasStateAuthority) currentAmmo = 0;
 
         AutoAssignAK47AudioClips();
     }
+
+    public MilitaryRespawnCombatSnapshot CaptureMilitaryRespawnCombatSnapshot() =>
+        new MilitaryRespawnCombatSnapshot(EquippedWeaponId.ToString(), currentAmmo);
 
     void Update()
     {

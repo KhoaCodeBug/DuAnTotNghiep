@@ -141,14 +141,16 @@ Kết quả H5 chốt phiên: compile sạch; toàn bộ EditMode `96/96`; hai P
 - Regression tự động đi MainMenu → random key → Radio → Ending B không cần LootContainer.
 - Test tay Host/Client hai máy vẫn là acceptance cuối cho cảm giác waypoint, disconnect thật và âm lượng không gian.
 
-## Backlog sau bệnh viện — cập nhật finale quân sự
+## Backlog sau bệnh viện — cập nhật hồi sinh quân sự 2026-08-26
 
 1. Finale đã chốt và tích hợp minigame năm hạng mục trực tiếp trên `Car`; ba vật phẩm/Generator prototype đã loại.
-2. QA tay Solo toàn flow: 3 manh mối, roof-exit, vote, cinematic, cổng, horde và sửa xe.
-3. QA tay Host + Client: vote nhất trí/từ chối/tương tác lại, disconnect, cinematic đồng bộ và gather không lọt ngoài cổng.
-4. QA tải horde thực tế ở ngưỡng Solo `24` và Multiplayer `50`, rồi tinh chỉnh nếu FPS tụt.
-5. Animation đi/chạy của bản sao Host đã dùng Animator và tốc độ thật; cần QA tay cảm giác chuyển động, camera và nhịp dựng cảnh.
+2. Hệ thống hồi sinh đội quân sự đã triển khai: checkpoint quanh `Car` lưu khi vote chốt; Multi khóa mode lúc siege bắt đầu, dùng chung 3 lượt tự động sau 10 giây và giữ nguyên inventory/hotbar; Solo chết một lần là thua. Cổng Solo chỉ bắt đầu DPS 3 phút khi zombie đánh cổng lần đầu. Xem addendum trong `README_MAINPLAY_CODEX_HANDOFF.md`.
+3. QA tay Solo toàn flow: 3 manh mối, roof-exit, vote, cinematic, chờ zombie chạm cổng rồi đo 3 phút DPS, chết một lần → Failed ngay.
+4. QA tay Host + Client: vote nhất trí/từ chối/tương tác lại, disconnect, cinematic đồng bộ; riêng hồi sinh: chết 10s tự sống tại xe với đúng inventory/hotbar, đủ 3 lượt thì hết, cả đội chết cùng lúc → Failed, disconnect người đang chờ hồi sinh không kẹt state.
+5. QA tải horde thực tế ở ngưỡng Solo `24` và Multiplayer `50`, rồi tinh chỉnh nếu FPS tụt.
+6. Animation đi/chạy của bản sao Host đã dùng Animator và tốc độ thật; cần QA tay cảm giác chuyển động, camera và nhịp dựng cảnh.
+7. Regression cũ còn fail tự động: assertion trả Player từ ranh giới khu dân cư (`SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap`); chưa thuộc phạm vi finale.
 
 ## Prompt mở chat triển khai
 
-> Đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` B4–B7 và các file finale trong mục 10. Finale đã triển khai theo flow 3 manh mối → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục. Không khôi phục Generator/150% HP/electric stun.
+> Đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` B4–B7 và các file finale trong mục 10. Finale đã triển khai theo flow 3 manh mối → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục; hồi sinh đội theo luật 10s/3 lượt dùng chung/Solo chết là thua. Không khôi phục Generator/150% HP/electric stun.

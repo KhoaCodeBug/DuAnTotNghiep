@@ -47,6 +47,17 @@ public class InventorySystem : NetworkBehaviour
     [Networked] private NetworkBool HasStartingFlashlight { get; set; }
     private bool hasAppliedStartingFlashlightLocally;
 
+    /// <summary>
+    /// Exact fixed-slot inventory state captured by State Authority before a
+    /// military-finale avatar is despawned. Keeping slot order also preserves
+    /// the player's equipped hotbar layout.
+    /// </summary>
+    public sealed class MilitaryRespawnSnapshot
+    {
+        public readonly string[] ItemIds = new string[FixedTotalSlots];
+        public readonly int[] Amounts = new int[FixedTotalSlots];
+    }
+
     private void Awake()
     {
         maxSlots = FixedTotalSlots;
@@ -78,6 +89,16 @@ public class InventorySystem : NetworkBehaviour
 
     public override void Spawned()
     {
+        // A military checkpoint respawn replaces the NetworkObject. Restore
+        // its saved inventory before the normal random starting-loadout path
+        // can add duplicate gear.
+        if (HasStateAuthority && HostModeSpawner.Instance != null &&
+            HostModeSpawner.Instance.TryTakeMilitaryInventorySnapshot(Object.InputAuthority, out MilitaryRespawnSnapshot snapshot))
+        {
+            ApplyMilitaryRespawnSnapshot(snapshot);
+            return;
+        }
+
         // Only the server chooses the random starting weapon.  A regular
         // client must never roll independently, otherwise its inventory can
         // disagree with the host and other players.
@@ -247,6 +268,62 @@ public class InventorySystem : NetworkBehaviour
         }
 
         Debug.LogWarning("[FLASHLIGHT] Backpack is full; starting flashlight could not be placed.");
+    }
+
+    public MilitaryRespawnSnapshot CaptureMilitaryRespawnSnapshot()
+    {
+        MilitaryRespawnSnapshot snapshot = new MilitaryRespawnSnapshot();
+        int count = Mathf.Min(FixedTotalSlots, slots.Count);
+        for (int i = 0; i < count; i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot == null || slot.item == null || slot.amount <= 0) continue;
+            snapshot.ItemIds[i] = slot.item.name;
+            snapshot.Amounts[i] = slot.amount;
+        }
+        return snapshot;
+    }
+
+    private void ApplyMilitaryRespawnSnapshot(MilitaryRespawnSnapshot snapshot)
+    {
+        if (snapshot == null) return;
+        while (slots.Count < FixedTotalSlots) slots.Add(new InventorySlot(null, 0));
+        for (int i = 0; i < FixedTotalSlots; i++)
+        {
+            string itemId = snapshot.ItemIds[i];
+            ItemData item = string.IsNullOrWhiteSpace(itemId) ? null : ItemDataLoader.LoadItem(itemId);
+            if (slots[i] == null) slots[i] = new InventorySlot(item, Mathf.Max(0, snapshot.Amounts[i]));
+            else
+            {
+                slots[i].item = item;
+                slots[i].amount = item == null ? 0 : Mathf.Max(0, snapshot.Amounts[i]);
+            }
+
+            if (HasStateAuthority && !HasInputAuthority)
+                RPC_ApplyMilitaryRespawnSlot(i, itemId, item == null ? 0 : Mathf.Max(0, snapshot.Amounts[i]));
+        }
+        UpdateUI();
+        if (HasStateAuthority && !HasInputAuthority) RPC_CompleteMilitaryRespawnSnapshot();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_ApplyMilitaryRespawnSlot(int index, NetworkString<_64> itemId, int amount)
+    {
+        if (index < 0 || index >= FixedTotalSlots) return;
+        while (slots.Count < FixedTotalSlots) slots.Add(new InventorySlot(null, 0));
+        ItemData item = string.IsNullOrWhiteSpace(itemId.ToString()) ? null : ItemDataLoader.LoadItem(itemId.ToString());
+        if (slots[index] == null) slots[index] = new InventorySlot(item, item == null ? 0 : Mathf.Max(0, amount));
+        else
+        {
+            slots[index].item = item;
+            slots[index].amount = item == null ? 0 : Mathf.Max(0, amount);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_CompleteMilitaryRespawnSnapshot()
+    {
+        UpdateUI();
     }
 
     public int GetWeaponItemCount()

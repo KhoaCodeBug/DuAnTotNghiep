@@ -232,9 +232,10 @@ Flow canonical mới:
 3. Từ hai Player: `4` zombie/điểm = `16` mỗi batch, tạm dừng khi có `50+` gần cổng. Hard safety cap lần lượt `36/72` tránh spawn mất kiểm soát.
 4. Zombie siege dùng đúng chase speed của từng AI prefab (`ZombieAI`: `moveSpeed × chaseSpeedMultiplier`; hai AI Khoa: `speed`), không dùng tốc độ cinematic tùy ý. Zombie có sẵn gần cổng cũng được chuyển sang objective công thành; mục tiêu được rải trên 13 lane dọc cổng thay vì chồng tại một điểm. Khi cổng vỡ, các AI gốc được trả lại để săn Player.
 5. Không có Generator, không tăng `150% HP`, không điện giật/làm choáng zombie. Các đường gọi prototype Generator đã bị vô hiệu hóa.
-6. Cổng luôn có tối thiểu `5.000 HP` kể cả Scene còn serialize giá trị cũ `1.000`; thanh máu lớn nằm phía trên hotbar. Collider nằm trên layer `Obstacle`, cập nhật A* ngay khi đóng/mở nhưng được Player Fog/LOS bỏ qua để nhìn xuyên hàng rào. Damage chỉ xảy ra theo nhịp attack, `12 HP/hit`, tối đa `4 hit/giây` toàn cổng.
-6. `Car` dùng trực tiếp minigame năm hạng mục: động cơ, capo, nhiên liệu, ắc quy và lốp. State/progress authoritative, chỉ một người sửa, tiến độ từng hạng mục được giữ khi rời.
-7. Đủ `5/5` thì mở khóa khả năng lái sẵn có của `Car` và chuyển `ReadyToEscape`.
+6. Multi giữ cổng `5.000 HP`, damage theo nhịp attack `12 HP/hit`, tối đa `4 hit/giây` toàn cổng. Solo dùng pool `8.640`: chỉ khi zombie đánh cổng lần đầu mới bắt đầu DPS authority đều, vỡ sau đúng `180 giây`. Thanh máu lớn nằm phía trên hotbar. Collider nằm trên layer `Obstacle`, cập nhật A* ngay khi đóng/mở nhưng được Player Fog/LOS bỏ qua để nhìn xuyên hàng rào.
+7. Multi dùng checkpoint quanh `Car`: team chung `3` lượt hồi sinh tự động sau `10 giây`; mode Multi được khóa lúc siege bắt đầu, spawn fail không mất lượt, inventory/hotbar và ammo đang dùng được snapshot/restore. Solo chết một lần là Failed; cả đội Multi chết cùng lúc cũng Failed.
+8. `Car` dùng trực tiếp minigame năm hạng mục: động cơ, capo, nhiên liệu, ắc quy và lốp. State/progress authoritative, chỉ một người sửa, tiến độ từng hạng mục được giữ khi rời.
+9. Đủ `5/5` thì mở khóa khả năng lái sẵn có của `Car` và chuyển `ReadyToEscape`.
 
 ### Nhiệm vụ B7 — Sơ tán và Ending B
 
