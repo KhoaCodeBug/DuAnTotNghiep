@@ -151,6 +151,19 @@ Kết quả H5 chốt phiên: compile sạch; toàn bộ EditMode `96/96`; hai P
 6. Animation đi/chạy của bản sao Host đã dùng Animator và tốc độ thật; cần QA tay cảm giác chuyển động, camera và nhịp dựng cảnh.
 7. Regression cũ còn fail tự động: assertion trả Player từ ranh giới khu dân cư (`SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap`); chưa thuộc phạm vi finale.
 
+## Task lớn tiếp theo — loot sửa `Car` cảnh sát (CHƯA TRIỂN KHAI)
+
+Implementation thử nghiệm của Ox Alpha đã bị loại hoàn toàn và working tree quay về checkpoint an toàn `f2551d1cb`. Chỉ giữ lại ba nguyên tắc thiết kế đáng dùng: luôn bảo đảm đủ năm vật phẩm, State Authority quyết định loot, và tái sử dụng UI/giao dịch của `LootContainer` hiện có.
+
+1. Tạo prefab loot Route B chính thức, được Fusion đăng ký và hoạt động trong cả Editor lẫn standalone build; không dùng `UnityEditor.AssetDatabase` làm fallback runtime.
+2. Vị trí thùng dùng marker được author trong `Main.unity` và kiểm tra collider/lối đi rõ ràng; không tự đoán bằng vòng tròn quanh `Car`/cổng.
+3. Thùng chỉ khả dụng từ `SiegeAndRepair`, dùng hình/UX loot hiện có và đỏ toàn bộ sprite khi Player hợp lệ đến gần; Host và Client phải thấy giống nhau.
+4. State Authority random phân phối nhưng tổng loot của match luôn có đúng bộ tối thiểu: Toolbox, Hammer, FuelCan, Battery và Tire từ `PoliceCarItemCatalog`. Không dùng item Tuyến A và không để RNG tạo soft-lock.
+5. Súng/đạn là bonus riêng, chỉ chọn ID thật đang tồn tại (`AK47`, `S12K`, `Ammo762`, `Ammo12Gauge`); bonus không được chiếm chỗ hoặc thay thế năm item bắt buộc.
+6. Server xác thực PlayerRef, phase, khoảng cách, vật cản, inventory và trạng thái slot ở cả open/take/store; hai Player tranh cùng item không được duplicate. Late join phải nhận đúng nội dung còn lại.
+7. Nếu không tìm đủ marker/prefab/slot hợp lệ, hệ thống phải fail có kiểm soát và retry/ghi lỗi rõ ràng; không throw giữa flow, không đánh dấu setup hoàn tất trước khi spawn đủ năm món.
+8. Quality gate trước khi giao test tay: build các assembly `0 error`; EditMode rules; PlayMode spawn prefab + đủ năm item + inventory đầy + double-claim; smoke MainMenu → cinematic → siege; cuối cùng mới QA Host/Client hai máy.
+
 ## Prompt mở chat triển khai
 
 > Đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` B4–B7 và các file finale trong mục 10. Finale đã triển khai theo flow 3 manh mối → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục; hồi sinh đội theo luật 10s/3 lượt dùng chung/Solo chết là thua. Không khôi phục Generator/150% HP/electric stun.

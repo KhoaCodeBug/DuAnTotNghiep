@@ -236,6 +236,7 @@ Flow canonical mới:
 7. Multi dùng checkpoint quanh `Car`: team chung `3` lượt hồi sinh tự động sau `10 giây`; mode Multi được khóa lúc siege bắt đầu, spawn fail không mất lượt, inventory/hotbar và ammo đang dùng được snapshot/restore. Solo chết một lần là Failed; cả đội Multi chết cùng lúc cũng Failed.
 8. `Car` dùng trực tiếp minigame năm hạng mục: động cơ, capo, nhiên liệu, ắc quy và lốp. State/progress authoritative, chỉ một người sửa, tiến độ từng hạng mục được giữ khi rời.
 9. Đủ `5/5` thì mở khóa khả năng lái sẵn có của `Car` và chuyển `ReadyToEscape`.
+10. **Nguồn loot cho năm hạng mục chưa triển khai:** task tiếp theo sẽ dùng các thùng Route B tại marker author, tái sử dụng `LootContainer`, random authoritative nhưng luôn bảo đảm đủ năm item riêng của `PoliceCarItemCatalog`, kèm súng/đạn bonus. Implementation Ox Alpha đã discard về checkpoint `f2551d1cb`; không khôi phục code runtime-placement/fallback Editor của bản thử đó.
 
 ### Nhiệm vụ B7 — Sơ tán và Ending B
 
