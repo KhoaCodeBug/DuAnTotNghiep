@@ -141,14 +141,51 @@ Kết quả H5 chốt phiên: compile sạch; toàn bộ EditMode `96/96`; hai P
 - Regression tự động đi MainMenu → random key → Radio → Ending B không cần LootContainer.
 - Test tay Host/Client hai máy vẫn là acceptance cuối cho cảm giác waypoint, disconnect thật và âm lượng không gian.
 
-## Backlog sau bệnh viện — cập nhật finale quân sự
+## Backlog sau bệnh viện — cập nhật hồi sinh quân sự 2026-08-26
 
 1. Finale đã chốt và tích hợp minigame năm hạng mục trực tiếp trên `Car`; ba vật phẩm/Generator prototype đã loại.
-2. QA tay Solo toàn flow: 3 manh mối, roof-exit, vote, cinematic, cổng, horde và sửa xe.
-3. QA tay Host + Client: vote nhất trí/từ chối/tương tác lại, disconnect, cinematic đồng bộ và gather không lọt ngoài cổng.
-4. QA tải horde thực tế ở ngưỡng Solo `24` và Multiplayer `50`, rồi tinh chỉnh nếu FPS tụt.
-5. Animation đi/chạy của bản sao Host đã dùng Animator và tốc độ thật; cần QA tay cảm giác chuyển động, camera và nhịp dựng cảnh.
+2. Hệ thống hồi sinh đội quân sự đã triển khai: checkpoint quanh `Car` lưu khi vote chốt; Multi khóa mode lúc siege bắt đầu, dùng chung 3 lượt tự động sau 10 giây và giữ nguyên inventory/hotbar; Solo chết một lần là thua. Cổng Solo chỉ bắt đầu DPS 3 phút khi zombie đánh cổng lần đầu. Xem addendum trong `README_MAINPLAY_CODEX_HANDOFF.md`.
+3. QA tay Solo toàn flow: 3 manh mối, roof-exit, vote, cinematic, chờ zombie chạm cổng rồi đo 3 phút DPS, chết một lần → Failed ngay.
+4. QA tay Host + Client: vote nhất trí/từ chối/tương tác lại, disconnect, cinematic đồng bộ; riêng hồi sinh: chết 10s tự sống tại xe với đúng inventory/hotbar, đủ 3 lượt thì hết, cả đội chết cùng lúc → Failed, disconnect người đang chờ hồi sinh không kẹt state.
+5. QA tải horde thực tế ở ngưỡng Solo `24` và Multiplayer `50`, rồi tinh chỉnh nếu FPS tụt.
+6. Animation đi/chạy của bản sao Host đã dùng Animator và tốc độ thật; cần QA tay cảm giác chuyển động, camera và nhịp dựng cảnh.
+7. Regression cũ còn fail tự động: assertion trả Player từ ranh giới khu dân cư (`SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap`); chưa thuộc phạm vi finale.
+
+## Loot sửa `Car` cảnh sát — ĐÃ TRIỂN KHAI 2026-08-26
+
+Implementation thử nghiệm của Ox Alpha vẫn bị loại hoàn toàn; bản hiện tại được làm sạch từ checkpoint an toàn `f2551d1cb`. Bản chính thức giữ ba nguyên tắc: luôn bảo đảm đủ năm vật phẩm, State Authority quyết định loot, và tái sử dụng UI/giao dịch của `LootContainer` hiện có.
+
+1. Tạo prefab loot Route B chính thức, được Fusion đăng ký và hoạt động trong cả Editor lẫn standalone build; không dùng `UnityEditor.AssetDatabase` làm fallback runtime.
+2. Vị trí thùng dùng marker được author trong `Main.unity` và kiểm tra collider/lối đi rõ ràng; không tự đoán bằng vòng tròn quanh `Car`/cổng.
+3. Thùng chỉ khả dụng từ `SiegeAndRepair`, dùng hình/UX loot hiện có và đỏ toàn bộ sprite khi Player hợp lệ đến gần; Host và Client phải thấy giống nhau.
+4. State Authority random phân phối nhưng tổng loot của match luôn có đúng bộ tối thiểu: Toolbox, Hammer, FuelCan, Battery và Tire từ `PoliceCarItemCatalog`. Không dùng item Tuyến A và không để RNG tạo soft-lock.
+5. Súng/đạn là bonus riêng, chỉ chọn ID thật đang tồn tại (`AK47`, `S12K`, `Ammo762`, `Ammo12Gauge`); bonus không được chiếm chỗ hoặc thay thế năm item bắt buộc.
+6. Server xác thực PlayerRef, phase, khoảng cách, vật cản, inventory và trạng thái slot ở cả open/take/store; hai Player tranh cùng item không được duplicate. Late join phải nhận đúng nội dung còn lại.
+7. Nếu không tìm đủ marker/prefab/slot hợp lệ, hệ thống phải fail có kiểm soát và retry/ghi lỗi rõ ràng; không throw giữa flow, không đánh dấu setup hoàn tất trước khi spawn đủ năm món.
+8. Quality gate trước khi giao test tay: build các assembly `0 error`; EditMode rules; PlayMode spawn prefab + đủ năm item + inventory đầy + double-claim; smoke MainMenu → cinematic → siege; cuối cùng mới QA Host/Client hai máy.
+
+### Kết quả triển khai và QA tự động
+
+- Có prefab chính thức `Resources/NetworkPrefabs/MilitaryRepairLootContainer.prefab`, mang `NetworkObject`, nhãn `FusionPrefab`, không có fallback `AssetDatabase` runtime.
+- `Main.unity` có đúng năm `MilitaryRepairLootMarker` ID `1..5`; authority sinh đúng năm tủ khi chuyển sang `SiegeAndRepair`. Thiếu/sai marker hoặc prefab sẽ log lỗi, rollback phần đã sinh và retry sau 2 giây.
+- Mỗi match xáo trộn có seed nhưng luôn đủ Toolbox, Hammer, FuelCan, Battery, Tire; mỗi tủ có thêm một cặp AK47 + Ammo762 hoặc S12K + Ammo12Gauge. Đạn có thể tách nhiều stack theo `maxStack` của ItemData.
+- Open/take/store dùng validation authority hiện có cho PlayerRef, phase, khoảng cách, vật cản, inventory và slot. Túi đầy không làm mất món; request cũ sau lần lấy đầu bị từ chối nên không duplicate.
+- `Assembly-CSharp.csproj`: build `0 error` (6 warning hiện hữu). EditMode loot rules: `4/4` pass; bộ EditMode liên quan đã chạy trước đó: `12/12` pass. PlayMode full Route B: `1/1` pass trong `35,34s`; authored police car preservation: `1/1` pass trong `7,39s`.
+- Chưa chốt acceptance cuối: QA tay vị trí/collider/lối đi của năm marker và QA Host + Client hai máy (đồng bộ highlight, tranh cùng item, late join) vẫn phải thực hiện trong Unity/build thật.
+- Hotfix UI sau cinematic: cue `SiegeStarted` không còn khởi động giữa lúc cinematic đang disable `AutoCanvas`; cue được phát sau khi camera/UI gameplay đã restore để radio không snapshot rồi khôi phục canvas về trạng thái tắt. Regression full flow đã bổ sung assertion mở inventory và mở tủ qua local interaction path sau cinematic.
+- Hotfix hoàn chỉnh UI: chuỗi reward/map/chọn tuyến bị trễ nay tự hủy nếu một ending đã khóa; radio reconcile `AutoCanvas` theo modal state hiện tại. Không còn map cũ âm thầm giữ `questOverlayOpen=true` sau cinematic.
+- Hotfix zombie công thành: `SiegeZombieObjective` đọc trạng thái chết của cả ba implementation zombie, dừng vận tốc/attack, không trừ máu cổng nữa, không bật lại AI khi thả horde và rời danh sách objective. `ZombieCorpseLoot` vẫn giữ nguyên quyền quản lý xác/loot/despawn.
+- Unity PlayMode full Route B sau hai hotfix: `1/1` pass trong `41,40s`; test hạ thật một zombie siege và xác nhận dead state bền, objective tắt, xác đứng yên/có corpse loot, sau đó xác nhận Tab và tủ loot mở được sau cinematic.
+
+### Hotfix finale sau test tay — 2026-08-26
+
+- Zombie áo vàng (`ZombieKhoaRebuilt`) không còn đứng dậy: gate objective retire nhưng giữ AI component ở trạng thái dead-only để `Render()` tiếp tục khóa collider và Animator `IsDead`. Mỗi batch nay luân phiên đủ hai prefab, tránh bỏ sót một biến thể.
+- Ngay lúc vote chốt và cinematic bắt đầu, authority đặt giờ `16:00`, hủy sleep transition, khóa cứng thời gian, ép mọi Player luôn rested và ẩn cả panel đồng hồ góc màn hình cho tới hết finale.
+- Vỡ cổng không dừng horde: zombie đang có được bật native AI và nhận Player sống gần nhất làm target; các batch sau vẫn spawn từ bốn marker và sinh ra ở trạng thái truy đuổi Player ngay.
+- Sửa xe chỉ bị hủy bởi `isZombieAttack=true`; đói, khát, bleeding và các nguồn damage-over-time khác không còn hủy phiên sửa.
+- Còi xe tiếp tục loop sau cinematic ở `20%` âm lượng ban đầu và chỉ dừng khi đủ `5/5` hạng mục sửa.
+- QA: `Assembly-CSharp` build `0 error`; assembly PlayMode/EditMode build `0 error`; rule ngắt sửa EditMode `1/1`; full Route B PlayMode `1/1` pass trong `37,27s`, có assertion riêng cho 16:00/time lock/clock, còi 20%, zombie áo vàng chết bền, chuyển target khi cổng vỡ, spawn hậu-vỡ-cổng và còi dừng sau sửa xong.
 
 ## Prompt mở chat triển khai
 
-> Đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` B4–B7 và các file finale trong mục 10. Finale đã triển khai theo flow 3 manh mối → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục. Không khôi phục Generator/150% HP/electric stun.
+> Đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` B4–B7 và các file finale trong mục 10. Finale đã triển khai theo flow 3 manh mối → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục; hồi sinh đội theo luật 10s/3 lượt dùng chung/Solo chết là thua. Không khôi phục Generator/150% HP/electric stun.

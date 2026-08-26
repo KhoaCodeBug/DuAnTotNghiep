@@ -352,6 +352,11 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         foreach (KeyValuePair<Canvas, bool> entry in suppressedCanvases)
             if (entry.Key != null) entry.Key.enabled = entry.Value;
         suppressedCanvases.Clear();
+        // AutoCanvas is shared by several modal presenters. Its snapshot can
+        // legitimately be stale when a cinematic changes modal ownership while
+        // this radio sequence is open, so let AutoUIManager restore from its
+        // current logical state instead of preserving that stale value.
+        AutoUIManager.Instance?.ReconcileGameplayCanvasVisibility();
     }
 
     private static TextMeshProUGUI Text(Transform parent, string name, string value, float size,

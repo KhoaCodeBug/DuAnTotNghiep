@@ -157,6 +157,29 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         pathRecalcTimer = 0f;
     }
 
+    public void ForceSiegeTarget(PlayerHealth targetHealth)
+    {
+        if (!HasStateAuthority || NetIsDead || targetHealth == null || targetHealth.isDead ||
+            PlayerInteraction.IsProtectedOccupant(targetHealth)) return;
+        Collider2D targetCollider = targetHealth.GetComponent<Collider2D>();
+        if (targetCollider == null) return;
+
+        TutorialStationary = false;
+        tutorialSpawnStationary = false;
+        player = targetHealth.transform;
+        playerCol = targetCollider;
+        playerHealth = targetHealth;
+        lastKnownPlayerPos = targetCollider.bounds.center;
+        lastObservedPosition = lastKnownPlayerPos;
+        currentTrackingTimer = trackingDuration;
+        isChasing = true;
+        isInvestigating = false;
+        isSearching = false;
+        path = null;
+        currentWaypoint = 0;
+        pathRecalcTimer = 0f;
+    }
+
     [Header("=== Local Avoidance ===")]
     [SerializeField] private float obstacleProbeDistance = 0.8f;
     [SerializeField] private float obstacleAvoidanceWeight = 1.8f;

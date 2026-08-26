@@ -781,7 +781,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
 
     [UnityTest]
     [Timeout(180000)]
-    public IEnumerator RouteBDebugFlowRunsFromMainMenuThroughMilitaryExtractionWithoutLootContainers()
+    public IEnumerator RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction()
     {
         yield return ShutdownExistingRunners();
         PlayerPrefs.SetInt("GameLanguage", 1);
@@ -952,6 +952,14 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Component localMovement = playerMovementType.GetField("LocalPlayerInstance",
             BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as Component;
         Assert.That(localMovement, Is.Not.Null);
+        // The production horde is intentionally active during this end-to-end
+        // smoke. Give the automation a large health pool so random ambient
+        // attacks cannot destroy its Player halfway through loot assertions.
+        Type playerHealthType = Type.GetType("PlayerHealth, Assembly-CSharp");
+        Component localHealth = localMovement.GetComponent(playerHealthType);
+        Assert.That(localHealth, Is.Not.Null);
+        SetAnyField(localHealth, "maxHealth", 100000f);
+        SetProperty(localHealth, "currentHealth", 100000f);
         FieldInfo presentationSuppressed = playerMovementType.GetField("cinematicPresentationSuppressed",
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.That((bool)presentationSuppressed.GetValue(localMovement), Is.True,
@@ -990,6 +998,36 @@ public sealed class MainMenuToMilitaryQuestFlowTests
                Time.realtimeSinceStartup < cinematicDeadline)
             yield return null;
         Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("SiegeAndRepair"));
+        Type dayNightType = Type.GetType("DayNightManager, Assembly-CSharp");
+        Assert.That(dayNightType, Is.Not.Null);
+        Component dayNight = UnityEngine.Object.FindFirstObjectByType(dayNightType) as Component;
+        Assert.That(dayNight, Is.Not.Null);
+        Assert.That(ReadBool(dayNight, "IsMilitaryFinaleTimeLocked"), Is.True);
+        Assert.That((float)ReadProperty(dayNight, "CurrentTime"), Is.EqualTo(16f).Within(0.001f));
+        Component localSurvival = localMovement.GetComponent(Type.GetType("PlayerSurvival, Assembly-CSharp"));
+        Assert.That(localSurvival, Is.Not.Null);
+        float sleepiness = (float)localSurvival.GetType().GetMethod("GetSleepiness01")?.Invoke(localSurvival, null);
+        Assert.That(sleepiness, Is.Zero, "Military finale must keep every player fully awake.");
+        Component earlyAutoUI = UnityEngine.Object.FindFirstObjectByType(Type.GetType("AutoUIManager, Assembly-CSharp")) as Component;
+        Component clockText = ReadProperty(earlyAutoUI, "clockText") as Component;
+        Assert.That(clockText, Is.Not.Null);
+        Assert.That(clockText.transform.parent.gameObject.activeSelf, Is.False,
+            "The corner clock panel must be hidden after the military cinematic begins.");
+
+        Component policeVehicle = ReadProperty(military, "PoliceVehicle") as Component;
+        Assert.That(policeVehicle, Is.Not.Null);
+        Type hornType = Type.GetType("VehicleHornAudioController, Assembly-CSharp");
+        Component horn = policeVehicle.GetComponent(hornType);
+        Assert.That(horn, Is.Not.Null);
+        float alarmDuckDeadline = Time.realtimeSinceStartup + 3f;
+        while ((float)ReadPrivateField(horn, "cinematicAlarmVolumeScale") > 0.201f &&
+               Time.realtimeSinceStartup < alarmDuckDeadline)
+            yield return null;
+        Assert.That((float)ReadPrivateField(horn, "cinematicAlarmVolumeScale"), Is.EqualTo(0.2f).Within(0.001f));
+        AudioSource alarmSource = ReadPrivateField(horn, "holdSource") as AudioSource;
+        Assert.That(alarmSource, Is.Not.Null);
+        Assert.That(alarmSource.isPlaying, Is.True,
+            "The alarm must continue as low-volume siege ambience after the cinematic.");
         Transform closedGate = FindInactiveTransform("CongRao");
         Assert.That(closedGate, Is.Not.Null);
         BoxCollider2D closedGateCollider = closedGate.Find("CongRao Collider [RUNTIME]")
@@ -998,8 +1036,17 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(closedGateCollider.enabled, Is.True,
             "The authored gate must become a physical obstacle when the cinematic closes it.");
         Assert.That(closedGateCollider.gameObject.layer, Is.EqualTo(LayerMask.NameToLayer("Obstacle")));
-        Assert.That((float)ReadProperty(military, "GateMaxHealth"), Is.EqualTo(5000f).Within(0.01f),
-            "Legacy Main.unity serialization must not lower the canonical gate HP back to 1,000.");
+        // MilitaryQuestRules lives in the QuestUI prototype assembly, not Assembly-CSharp.
+        Type respawnRulesType = Type.GetType("MilitaryQuestRules, ProjectZomboiNhai.QuestUI");
+        Assert.That(respawnRulesType, Is.Not.Null);
+        MethodInfo computeSiegeGateMaxHealth = respawnRulesType.GetMethod("ComputeSiegeGateMaxHealth",
+            BindingFlags.Public | BindingFlags.Static);
+        Assert.That(computeSiegeGateMaxHealth, Is.Not.Null);
+        float expectedSoloGateMaxHealth =
+            (float)computeSiegeGateMaxHealth.Invoke(null, new object[] { 1 });
+        Assert.That((float)ReadProperty(military, "GateMaxHealth"),
+            Is.EqualTo(expectedSoloGateMaxHealth).Within(0.01f),
+            "Solo siege must use the enlarged 3-minute hold pool; legacy serialization must not lower it.");
         float gateHealthBefore = (float)ReadProperty(military, "GateCurrentHealth");
         Type gateType = Type.GetType("MilitaryGateController, Assembly-CSharp");
         Assert.That(gateType, Is.Not.Null);
@@ -1010,7 +1057,343 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(gateHealthBefore - gateHealthAfter, Is.LessThanOrEqualTo(48.01f),
             "Even 100 simultaneous attack requests must be capped to four 12-HP beats per second.");
         Assert.That(gateHealthAfter, Is.GreaterThan(4500f),
-            "A 5,000 HP gate must not collapse at siege startup.");
+            "A full-HP gate must not collapse at siege startup.");
+
+        // A siege objective temporarily owns locomotion while zombies assault
+        // the closed gate. It must permanently stand down as soon as the real
+        // zombie health component reports death; otherwise it can overwrite
+        // the death animation, move the corpse and keep damaging the gate.
+        Type siegeObjectiveType = Type.GetType("SiegeZombieObjective, Assembly-CSharp");
+        Type corpseLootType = Type.GetType("ZombieCorpseLoot, Assembly-CSharp");
+        Assert.That(siegeObjectiveType, Is.Not.Null);
+        Assert.That(corpseLootType, Is.Not.Null);
+        UnityEngine.Object[] siegeObjectives = Array.Empty<UnityEngine.Object>();
+        float siegeZombieDeadline = Time.realtimeSinceStartup + 8f;
+        while (Time.realtimeSinceStartup < siegeZombieDeadline)
+        {
+            siegeObjectives = UnityEngine.Object.FindObjectsByType(siegeObjectiveType,
+                FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            if (siegeObjectives.Length > 0) break;
+            yield return null;
+        }
+        Assert.That(siegeObjectives.Length, Is.GreaterThan(0),
+            "The siege must spawn or adopt at least one zombie objective.");
+
+        Behaviour killedSiegeObjective = siegeObjectives[0] as Behaviour;
+        Assert.That(killedSiegeObjective, Is.Not.Null);
+        Component killedZombie = killedSiegeObjective.GetComponent(
+            Type.GetType("ZombieAIKhoaRebuilt, Assembly-CSharp"));
+        string deadProperty = "NetIsDead";
+        MethodInfo lethalDamage = killedZombie?.GetType().GetMethod("RPC_TakeDamage");
+        if (killedZombie == null)
+        {
+            killedZombie = killedSiegeObjective.GetComponent(Type.GetType("ZOmbieAI_Khoa, Assembly-CSharp"));
+            lethalDamage = killedZombie?.GetType().GetMethod("RPC_TakeDamage");
+        }
+        if (killedZombie == null)
+        {
+            killedZombie = killedSiegeObjective.GetComponent(Type.GetType("ZombieHealth, Assembly-CSharp"));
+            deadProperty = "isDead";
+            lethalDamage = killedZombie?.GetType().GetMethod("RPC_TakeDamage");
+        }
+        Assert.That(killedZombie, Is.Not.Null, "Siege objective must retain a supported zombie health implementation.");
+        Assert.That(lethalDamage, Is.Not.Null);
+        ParameterInfo[] damageParameters = lethalDamage.GetParameters();
+        object[] lethalArguments = new object[damageParameters.Length];
+        lethalArguments[0] = 100000f;
+        for (int i = 1; i < lethalArguments.Length; i++)
+            lethalArguments[i] = Activator.CreateInstance(damageParameters[i].ParameterType);
+        lethalDamage.Invoke(killedZombie, lethalArguments);
+
+        yield return new WaitForFixedUpdate();
+        yield return new WaitForFixedUpdate();
+        Assert.That(ReadBool(killedZombie, deadProperty), Is.True,
+            "Lethal damage must remain authoritative after the siege objective ticks.");
+        Assert.That(killedSiegeObjective.enabled, Is.False,
+            "A corpse must permanently retire its gate-assault objective.");
+        Component corpseLoot = killedSiegeObjective.GetComponent(corpseLootType);
+        Assert.That(corpseLoot, Is.Not.Null);
+        Assert.That(ReadBool(corpseLoot, "IsCorpse"), Is.True,
+            "Retiring the siege objective must preserve zombie-corpse loot.");
+        Vector3 corpsePosition = killedSiegeObjective.transform.position;
+        for (int i = 0; i < 4; i++) yield return new WaitForFixedUpdate();
+        Assert.That(Vector3.Distance(killedSiegeObjective.transform.position, corpsePosition), Is.LessThan(0.01f),
+            "The siege controller must not move a dead zombie back toward the gate.");
+
+        // The yellow-shirt prefab is ZombieKhoaRebuilt. Unlike the Thai
+        // variant, its death pose and local collider are maintained in the
+        // AI's Render callback, so that callback must remain enabled after the
+        // temporary gate objective retires.
+        Type rebuiltZombieType = Type.GetType("ZombieAIKhoaRebuilt, Assembly-CSharp");
+        Assert.That(rebuiltZombieType, Is.Not.Null);
+        Behaviour yellowObjective = null;
+        Component yellowZombie = null;
+        siegeObjectives = UnityEngine.Object.FindObjectsByType(siegeObjectiveType,
+            FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        for (int i = 0; i < siegeObjectives.Length; i++)
+        {
+            Behaviour candidateObjective = siegeObjectives[i] as Behaviour;
+            Component candidateZombie = candidateObjective?.GetComponent(rebuiltZombieType);
+            if (candidateZombie == null) continue;
+            yellowObjective = candidateObjective;
+            yellowZombie = candidateZombie;
+            break;
+        }
+        Assert.That(yellowZombie, Is.Not.Null,
+            "Every siege batch must include the yellow-shirt rebuilt zombie variant.");
+        if (!ReadBool(yellowZombie, "NetIsDead"))
+        {
+            MethodInfo yellowDamage = rebuiltZombieType.GetMethod("RPC_TakeDamage");
+            ParameterInfo[] yellowParameters = yellowDamage.GetParameters();
+            object[] yellowArguments = new object[yellowParameters.Length];
+            yellowArguments[0] = 100000f;
+            for (int i = 1; i < yellowArguments.Length; i++)
+                yellowArguments[i] = Activator.CreateInstance(yellowParameters[i].ParameterType);
+            yellowDamage.Invoke(yellowZombie, yellowArguments);
+            yield return new WaitForFixedUpdate();
+            yield return null;
+        }
+        Assert.That(ReadBool(yellowZombie, "NetIsDead"), Is.True);
+        Assert.That(yellowObjective.enabled, Is.False,
+            "Yellow zombie must retire its gate objective permanently after lethal damage.");
+        Assert.That((yellowZombie as Behaviour).enabled, Is.True,
+            "Its dead-only Render callback must remain enabled to hold the corpse pose and collider state.");
+        Animator yellowAnimator = yellowObjective.GetComponent<Animator>();
+        Assert.That(yellowAnimator.GetBool("IsDead"), Is.True,
+            "Yellow zombie must remain in the death animation instead of standing back up.");
+
+        // Gate destruction releases every survivor to a concrete Player
+        // target, and later batches must still spawn already released instead
+        // of freezing at the now-missing gate.
+        Component hordeDirector = ReadPrivateField(military, "hordeDirector") as Component;
+        Assert.That(hordeDirector, Is.Not.Null);
+        var preBreakObjectiveIds = new HashSet<int>();
+        siegeObjectives = UnityEngine.Object.FindObjectsByType(siegeObjectiveType,
+            FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        for (int i = 0; i < siegeObjectives.Length; i++)
+            if (siegeObjectives[i] != null) preBreakObjectiveIds.Add(siegeObjectives[i].GetInstanceID());
+
+        SetProperty(military, "GateCurrentHealth", 0f);
+        MethodInfo gateBrokenRpc = militaryType.GetMethod("RPC_GateBroken",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(gateBrokenRpc, Is.Not.Null);
+        gateBrokenRpc.Invoke(military, null);
+        yield return new WaitForFixedUpdate();
+        Assert.That((bool)ReadPrivateField(hordeDirector, "releasedToPlayers"), Is.True);
+
+        MethodInfo spawnBatch = hordeDirector.GetType().GetMethod("TrySpawnBatch",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(spawnBatch, Is.Not.Null);
+        // The production loop refills only below its safety target. Empty the
+        // director's registry to model the released wave having moved deep
+        // into the school before asking for the next post-break batch.
+        IList objectiveRegistry = ReadPrivateField(hordeDirector, "activeObjectives") as IList;
+        Assert.That(objectiveRegistry, Is.Not.Null);
+        objectiveRegistry.Clear();
+        spawnBatch.Invoke(hordeDirector, null);
+        yield return new WaitForFixedUpdate();
+
+        siegeObjectives = UnityEngine.Object.FindObjectsByType(siegeObjectiveType,
+            FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        Behaviour postBreakSpawn = null;
+        for (int i = 0; i < siegeObjectives.Length; i++)
+        {
+            Behaviour candidate = siegeObjectives[i] as Behaviour;
+            if (candidate == null || preBreakObjectiveIds.Contains(candidate.GetInstanceID())) continue;
+            postBreakSpawn = candidate;
+            break;
+        }
+        Assert.That(postBreakSpawn, Is.Not.Null,
+            "The horde director must keep spawning from authored points after the gate breaks.");
+        Assert.That((bool)ReadPrivateField(postBreakSpawn, "released"), Is.True,
+            "A post-break zombie must skip the destroyed gate and immediately target a Player.");
+        Behaviour postBreakNativeAI = postBreakSpawn.GetComponent(rebuiltZombieType) as Behaviour;
+        if (postBreakNativeAI == null)
+            postBreakNativeAI = postBreakSpawn.GetComponent(Type.GetType("ZombieAI, Assembly-CSharp")) as Behaviour;
+        Assert.That(postBreakNativeAI, Is.Not.Null);
+        Assert.That(postBreakNativeAI.enabled, Is.True,
+            "Released zombies must have their native chase/attack AI enabled.");
+
+        // Route B repair loot is now real gameplay: five authored Fusion
+        // containers appear only after the cinematic, and their aggregate
+        // manifest always contains all five police-car items.
+        float repairLootDeadline = Time.realtimeSinceStartup + 8f;
+        Type lootContainerType = Type.GetType("LootContainer, Assembly-CSharp");
+        Assert.That(lootContainerType, Is.Not.Null);
+        UnityEngine.Object[] repairLoot = Array.Empty<UnityEngine.Object>();
+        while (Time.realtimeSinceStartup < repairLootDeadline)
+        {
+            repairLoot = UnityEngine.Object.FindObjectsByType(lootContainerType,
+                FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+            repairLoot = Array.FindAll(repairLoot, container =>
+                container != null && ReadBool(container, "IsMilitaryRepairLootContainer"));
+            if (repairLoot.Length == MilitaryRepairLootRules.RequiredContainerCount) break;
+            yield return null;
+        }
+        Assert.That(repairLoot.Length, Is.EqualTo(5));
+        var foundRepairItemIds = new HashSet<string>();
+        for (int i = 0; i < repairLoot.Length; i++)
+        {
+            Component container = repairLoot[i] as Component;
+            Assert.That(container, Is.Not.Null);
+            Assert.That(ReadBool(container, "IsGameplayAvailable"), Is.True);
+            IList contents = ReadAnyField(container, "itemsInContainer") as IList;
+            Assert.That(contents, Is.Not.Null);
+            Assert.That(contents.Count, Is.GreaterThanOrEqualTo(3),
+                "Each container must contain one repair item, one weapon, and one or more ammo stacks.");
+            UnityEngine.Object repairItem = ReadAnyField(contents[0], "item") as UnityEngine.Object;
+            UnityEngine.Object weapon = ReadAnyField(contents[1], "item") as UnityEngine.Object;
+            UnityEngine.Object ammo = ReadAnyField(contents[2], "item") as UnityEngine.Object;
+            Assert.That(repairItem, Is.Not.Null);
+            Assert.That(repairItem.name, Does.StartWith("PoliceCar"));
+            foundRepairItemIds.Add(repairItem.name);
+            Assert.That(ReadAnyField(weapon, "category")?.ToString(), Is.EqualTo("Weapon"));
+            Assert.That(MilitaryRepairLootRules.IsApprovedBonusId(weapon.name), Is.True);
+            Assert.That(MilitaryRepairLootRules.IsApprovedBonusId(ammo.name), Is.True);
+            for (int slotIndex = 2; slotIndex < contents.Count; slotIndex++)
+            {
+                UnityEngine.Object ammoStack = ReadAnyField(contents[slotIndex], "item") as UnityEngine.Object;
+                Assert.That(ammoStack, Is.Not.Null);
+                Assert.That(ammoStack.name, Is.EqualTo(ammo.name),
+                    "Amounts above an ItemData stack limit may occupy multiple slots, but must stay the paired ammo type.");
+            }
+        }
+        Assert.That(foundRepairItemIds.Count, Is.EqualTo(5));
+
+        // The siege cue used to start while the cinematic still had AutoCanvas
+        // disabled. Its modal-canvas snapshot then restored AutoCanvas as
+        // disabled permanently: Tab and loot panels changed state but stayed
+        // invisible. Verify the real local interaction path after both modal
+        // presentations have released ownership.
+        Type autoUIType = Type.GetType("AutoUIManager, Assembly-CSharp");
+        Type radioBroadcastType = Type.GetType("RouteBRadioBroadcastUI, Assembly-CSharp");
+        Assert.That(autoUIType, Is.Not.Null);
+        Assert.That(radioBroadcastType, Is.Not.Null);
+        Component autoUI = UnityEngine.Object.FindFirstObjectByType(autoUIType) as Component;
+        Assert.That(autoUI, Is.Not.Null);
+        Component militaryCinematic = ReadPrivateField(military, "cinematicController") as Component;
+        Assert.That(militaryCinematic, Is.Not.Null);
+        float cinematicRestoreDeadline = Time.realtimeSinceStartup + 8f;
+        while (ReadBool(militaryCinematic, "IsPlaying") && Time.realtimeSinceStartup < cinematicRestoreDeadline)
+            yield return null;
+        Assert.That(ReadBool(militaryCinematic, "IsPlaying"), Is.False,
+            "The gameplay canvas is only expected after the military cinematic has released presentation ownership.");
+        PropertyInfo radioVisible = radioBroadcastType.GetProperty("IsVisible",
+            BindingFlags.Public | BindingFlags.Static);
+        MethodInfo skipRadio = radioBroadcastType.GetMethod("SkipIfOpen",
+            BindingFlags.Public | BindingFlags.Static);
+        Assert.That(radioVisible, Is.Not.Null);
+        Assert.That(skipRadio, Is.Not.Null);
+        if ((bool)radioVisible.GetValue(null)) skipRadio.Invoke(null, null);
+        float radioRestoreDeadline = Time.realtimeSinceStartup + 8f;
+        while ((bool)radioVisible.GetValue(null) && Time.realtimeSinceStartup < radioRestoreDeadline)
+            yield return null;
+        Assert.That((bool)radioVisible.GetValue(null), Is.False,
+            "The post-cinematic siege cue must release local gameplay input.");
+        float uiRestoreDeadline = Time.realtimeSinceStartup + 8f;
+        while (ReadBool(autoUI, "IsQuestOverlayOpen") && Time.realtimeSinceStartup < uiRestoreDeadline)
+            yield return null;
+        GameObject completionOverlay = ReadPrivateField(journal, "completionRoot") as GameObject;
+        Type routeChoiceType = Type.GetType("EscapeRouteDecisionUI, Assembly-CSharp");
+        bool routeChoiceVisible = routeChoiceType != null &&
+            (bool)routeChoiceType.GetProperty("IsVisible", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+        Assert.That(ReadBool(autoUI, "IsQuestOverlayOpen"), Is.False,
+            $"Cinematic, queued route callbacks and the siege cue must all release the quest-overlay input lock. " +
+            $"journal={journal.IsJournalOpen}, map={journal.IsMapOpen}, clue={journal.IsClueReadingOpen}, " +
+            $"completion={completionOverlay != null && completionOverlay.activeSelf}, routeChoice={routeChoiceVisible}.");
+
+        Canvas gameplayCanvas = ReadPrivateField(autoUI, "mainCanvas") as Canvas;
+        Assert.That(gameplayCanvas, Is.Not.Null);
+        Component radioInstance = UnityEngine.Object.FindFirstObjectByType(radioBroadcastType,
+            FindObjectsInactive.Include) as Component;
+        bool radioPresentationActive = radioInstance != null &&
+            (bool)ReadPrivateField(radioInstance, "localPresentationActive");
+        ICollection pendingRadioCues = radioInstance != null
+            ? ReadPrivateField(radioInstance, "pendingCues") as ICollection
+            : null;
+        Assert.That(gameplayCanvas.enabled, Is.True,
+            $"AutoCanvas must be enabled after cinematic and siege radio presentation. " +
+            $"questOverlay={ReadBool(autoUI, "IsQuestOverlayOpen")}, radioVisible={radioVisible.GetValue(null)}, " +
+            $"radioPresentation={radioPresentationActive}, pendingRadio={pendingRadioCues?.Count ?? -1}.");
+        autoUIType.GetMethod("ForceShowInventoryOnly")?.Invoke(autoUI, null);
+        GameObject inventoryPanelObject = ReadPrivateField(autoUI, "inventoryPanel") as GameObject;
+        Assert.That(inventoryPanelObject, Is.Not.Null);
+        Assert.That(inventoryPanelObject.activeInHierarchy, Is.True,
+            "Inventory must be visibly openable after the cinematic.");
+        autoUIType.GetMethod("ForceHideInventoryOnly")?.Invoke(autoUI, null);
+
+        Component transactionContainer = repairLoot[0] as Component;
+        localMovement.transform.position = transactionContainer.transform.position;
+        MethodInfo tryOpenContainer = lootContainerType.GetMethod("TryOpenForLocalPlayer");
+        Assert.That((bool)tryOpenContainer.Invoke(transactionContainer, null), Is.True,
+            "The local E-interaction path must open a military loot container after the cinematic.");
+        yield return null;
+        MethodInfo isContainerOpen = autoUIType.GetMethod("IsContainerOpen");
+        Assert.That((bool)isContainerOpen.Invoke(autoUI, new object[] { transactionContainer }), Is.True);
+        autoUIType.GetMethod("CloseContainerUI")?.Invoke(autoUI, null);
+
+        // Full inventory must leave the canonical container slot untouched.
+        // Once one slot is freed, the first authority claim succeeds exactly
+        // once; replaying the stale request cannot duplicate the item.
+        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
+        Type itemDataType = Type.GetType("ItemData, Assembly-CSharp");
+        Assert.That(inventoryType, Is.Not.Null);
+        Assert.That(itemDataType, Is.Not.Null);
+        Component localInventory = localMovement.GetComponent(inventoryType);
+        Assert.That(localInventory, Is.Not.Null);
+        ScriptableObject filler = ScriptableObject.CreateInstance(itemDataType);
+        filler.name = "MilitaryLootCapacityFiller";
+        SetAnyField(filler, "itemName", "MilitaryLootCapacityFiller");
+        SetAnyField(filler, "isStackable", false);
+        SetAnyField(filler, "maxStack", 1);
+        MethodInfo addItem = inventoryType.GetMethod("AddItem");
+        MethodInfo consumeItem = inventoryType.GetMethod("ConsumeItem");
+        MethodInfo getItemCount = inventoryType.GetMethod("GetItemCount");
+        Assert.That(addItem, Is.Not.Null);
+        Assert.That(consumeItem, Is.Not.Null);
+        Assert.That(getItemCount, Is.Not.Null);
+        while ((bool)addItem.Invoke(localInventory, new object[] { filler, 1 })) { }
+
+        localMovement.transform.position = transactionContainer.transform.position;
+        IList transactionContents = ReadAnyField(transactionContainer, "itemsInContainer") as IList;
+        UnityEngine.Object claimedRepairItem = ReadAnyField(transactionContents[0], "item") as UnityEngine.Object;
+        string claimedRepairItemName = ReadAnyField(claimedRepairItem, "itemName") as string;
+        int beforeClaim = (int)getItemCount.Invoke(localInventory, new object[] { claimedRepairItem });
+        Type networkObjectType = Type.GetType("Fusion.NetworkObject, Fusion.Runtime");
+        Assert.That(networkObjectType, Is.Not.Null);
+        Component localNetworkObject = localMovement.GetComponent(networkObjectType);
+        Assert.That(localNetworkObject, Is.Not.Null);
+        object localPlayerRef = ReadProperty(localNetworkObject, "InputAuthority");
+        MethodInfo requestTakeItem = lootContainerType.GetMethod("RPC_RequestTakeItem");
+        Assert.That(requestTakeItem, Is.Not.Null);
+        Type rpcInfoType = Type.GetType("Fusion.RpcInfo, Fusion.Runtime");
+        Assert.That(rpcInfoType, Is.Not.Null);
+        object defaultRpcInfo = Activator.CreateInstance(rpcInfoType);
+        requestTakeItem.Invoke(transactionContainer,
+            new[] { (object)0, claimedRepairItemName, localPlayerRef, defaultRpcInfo });
+        yield return null;
+        Assert.That(ReadAnyField(transactionContents[0], "item"), Is.SameAs(claimedRepairItem),
+            "A full inventory must not deplete authoritative loot.");
+
+        Assert.That((int)consumeItem.Invoke(localInventory, new object[] { filler, 1 }), Is.EqualTo(1));
+        // A raw Transform move is reconciled by NetworkRigidbody2D on the next
+        // simulation tick. Keep this transaction-focused test beside the
+        // container before every direct authority RPC invocation.
+        localMovement.transform.position = transactionContainer.transform.position;
+        requestTakeItem.Invoke(transactionContainer,
+            new[] { (object)0, claimedRepairItemName, localPlayerRef, defaultRpcInfo });
+        yield return null;
+        yield return null;
+        Assert.That((int)getItemCount.Invoke(localInventory, new object[] { claimedRepairItem }),
+            Is.EqualTo(beforeClaim + 1));
+        localMovement.transform.position = transactionContainer.transform.position;
+        requestTakeItem.Invoke(transactionContainer,
+            new[] { (object)0, claimedRepairItemName, localPlayerRef, defaultRpcInfo });
+        yield return null;
+        Assert.That((int)getItemCount.Invoke(localInventory, new object[] { claimedRepairItem }),
+            Is.EqualTo(beforeClaim + 1),
+            "A stale/double claim must not duplicate the repair item.");
+        UnityEngine.Object.Destroy(filler);
 
         // B6: the no-loot shortcut completes the same canonical five-action
         // police-car state used by the real repair minigame.
@@ -1018,6 +1401,10 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(ReadBool(military, "ArePoliceCarRepairsComplete"), Is.True);
         Assert.That((float)ReadProperty(military, "PoliceCarOverallRepairProgress"), Is.EqualTo(100f));
         Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("ReadyToEscape"));
+        Assert.That(alarmSource.isPlaying, Is.False,
+            "The alarm must stop only after all five police-car repairs are complete.");
+        Assert.That((float)ReadProperty(dayNight, "CurrentTime"), Is.EqualTo(16f).Within(0.001f),
+            "Military finale time must remain frozen throughout repairs.");
 
         // B7: extraction and authoritative journal completion.
         advanceBase.Invoke(military, null);
@@ -1139,7 +1526,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
     private static object ReadProperty(object target, string propertyName)
     {
         PropertyInfo property = target.GetType().GetProperty(propertyName,
-            BindingFlags.Public | BindingFlags.Instance);
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.That(property, Is.Not.Null, "Missing property: " + propertyName);
         return property.GetValue(target);
     }
@@ -1158,6 +1545,22 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.That(field, Is.Not.Null, "Missing field: " + fieldName);
         return field.GetValue(target);
+    }
+
+    private static object ReadAnyField(object target, string fieldName)
+    {
+        FieldInfo field = target?.GetType().GetField(fieldName,
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(field, Is.Not.Null, "Missing field: " + fieldName);
+        return field.GetValue(target);
+    }
+
+    private static void SetAnyField(object target, string fieldName, object value)
+    {
+        FieldInfo field = target?.GetType().GetField(fieldName,
+            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(field, Is.Not.Null, "Missing field: " + fieldName);
+        field.SetValue(target, value);
     }
 
     private static void SetPrivateField(object target, string fieldName, object value)

@@ -2612,19 +2612,49 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void ShowMilitaryMapRewardThenReveal()
     {
         QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
+        if (LockedEscapeRoute != EscapeEndingRoute.None)
+        {
+            CloseStaleRouteIntroduction(flow);
+            return;
+        }
         if (flow != null)
         {
             flow.PlayMilitaryMapRewardAfterDialogue(
-                () => flow.PlayMilitaryMapReveal(
-                    () => BeginLocalMilitaryReveal(
-                        () => RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
-                            EscapeRouteDecisionUI.ShowPreMilitaryChoice))));
+                () => ContinueMilitaryMapReveal(flow));
             return;
         }
 
         BeginLocalMilitaryReveal(
             () => RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
                 EscapeRouteDecisionUI.ShowPreMilitaryChoice));
+    }
+
+    private void ContinueMilitaryMapReveal(QuestFlowUIPrototype flow)
+    {
+        if (LockedEscapeRoute != EscapeEndingRoute.None)
+        {
+            CloseStaleRouteIntroduction(flow);
+            return;
+        }
+
+        flow.PlayMilitaryMapReveal(() =>
+        {
+            if (LockedEscapeRoute != EscapeEndingRoute.None)
+            {
+                CloseStaleRouteIntroduction(flow);
+                return;
+            }
+            BeginLocalMilitaryReveal(
+                () => RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
+                    EscapeRouteDecisionUI.ShowPreMilitaryChoice));
+        });
+    }
+
+    private static void CloseStaleRouteIntroduction(QuestFlowUIPrototype flow)
+    {
+        flow?.CloseAllQuestOverlays();
+        EscapeRouteDecisionUI.CloseIfOpen();
+        AutoUIManager.Instance?.SetQuestOverlayOpen(false);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -2717,6 +2747,11 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     public void BeginLocalMilitaryReveal(System.Action onFinished = null)
     {
+        if (LockedEscapeRoute != EscapeEndingRoute.None)
+        {
+            CloseStaleRouteIntroduction(QuestFlowUIPrototype.Instance);
+            return;
+        }
         PreMilitaryQuestRuntimeBridge.NotifyMapFragment2Found();
         if (khuVucQuanSuFocus == null || PZ_CameraController.Instance == null)
         {

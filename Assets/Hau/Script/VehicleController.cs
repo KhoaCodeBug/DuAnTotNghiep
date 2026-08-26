@@ -98,6 +98,10 @@ public class VehicleControllerFusion : NetworkBehaviour
     [Networked] public NetworkBool EngineRunning { get; private set; }
     [Networked] public NetworkBool HornHeld { get; private set; }
     [Networked] public NetworkBool HeadlightsOn { get; private set; }
+    // This lock is story state, not a local presentation flag. Keeping it
+    // replicated prevents clients from seeing the police car as enterable
+    // while the State Authority is still holding it for repair.
+    [Networked] private NetworkBool RepairEntryLocked { get; set; }
     [Networked] public int DirectionIndex { get; private set; }
     [Networked] private float HeadingDegrees { get; set; }
 
@@ -118,7 +122,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     public Vector2 VisionDirection => DirectionIndexToWorldVector(DirectionIndex);
     public float VisionRadius => HeadlightsOn ? headlightVisionRadius : lightsOffVisionRadius;
     public float VisionAngle => HeadlightsOn ? EffectiveHeadlightAngle : 360f;
-    public bool IsEntryLockedForRepair => entryLockedForRepair;
+    public bool IsEntryLockedForRepair => networkSpawned ? RepairEntryLocked : entryLockedForRepair;
     public bool IsNetworkSpawned => networkSpawned;
     public bool IsEngineRunning => EngineRunning;
     public bool IsHornHeld => HornHeld;
@@ -160,6 +164,7 @@ public class VehicleControllerFusion : NetworkBehaviour
         EngineRunning = false;
         HornHeld = false;
         HeadlightsOn = false;
+        RepairEntryLocked = entryLockedForRepair;
         UpdateBodyCollider(DirectionIndex);
     }
 
@@ -177,7 +182,7 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     public bool AuthorityTryEnter(NetworkObject player)
     {
-        if (!HasStateAuthority || player == null || entryLockedForRepair) return false;
+        if (!HasStateAuthority || player == null || IsEntryLockedForRepair) return false;
         PlayerInteraction interaction = player.GetComponent<PlayerInteraction>();
         if (interaction == null || interaction.IsInVehicle) return false;
 
@@ -189,7 +194,15 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     public void SetRepairEntryLocked(bool locked)
     {
-        entryLockedForRepair = locked;
+        if (networkSpawned)
+        {
+            if (!HasStateAuthority) return;
+            RepairEntryLocked = locked;
+        }
+        else
+        {
+            entryLockedForRepair = locked;
+        }
         if (locked && HasStateAuthority)
         {
             HornHeld = false;
@@ -200,14 +213,14 @@ public class VehicleControllerFusion : NetworkBehaviour
 
     public bool AuthorityStartEngine()
     {
-        if (!HasStateAuthority || entryLockedForRepair) return false;
+        if (!HasStateAuthority || IsEntryLockedForRepair) return false;
         EngineRunning = true;
         return true;
     }
 
     public bool AuthorityPlayStarterConfirmation(NetworkObject sourcePlayer)
     {
-        if (!HasStateAuthority || entryLockedForRepair) return false;
+        if (!HasStateAuthority || IsEntryLockedForRepair) return false;
         EmitVehicleNoise(sourcePlayer, starterNoiseRadius, 18, 0.78f);
         RPC_PlayStarterConfirmation(sourcePlayer);
         return true;
@@ -225,12 +238,18 @@ public class VehicleControllerFusion : NetworkBehaviour
     public void SetCinematicAlarm(bool active) =>
         GetComponent<VehicleHornAudioController>()?.SetCinematicAlarm(active);
 
+    public void SetCinematicAlarmBackground() =>
+        GetComponent<VehicleHornAudioController>()?.SetCinematicAlarmBackground();
+
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_PlayStarterConfirmation(NetworkObject sourcePlayer)
     {
         GetComponent<VehicleEngineAudioController>()?.PlayStarterConfirmation(sourcePlayer);
     }
 
+    /// <summary>Development-only placement helper. The canonical repair flow
+    /// uses <see cref="AuthorityPrepareRepairAtCurrentPosition"/> and never
+    /// relocates the authored police car.</summary>
     public void AuthorityPrepareRepairTest(Vector2 position)
     {
         if (!HasStateAuthority) return;
@@ -249,7 +268,7 @@ public class VehicleControllerFusion : NetworkBehaviour
     public void AuthorityPrepareRepairAtCurrentPosition()
     {
         if (!HasStateAuthority) return;
-        entryLockedForRepair = true;
+        SetRepairEntryLocked(true);
         HornHeld = false;
         EngineRunning = false;
         StopVehicle();

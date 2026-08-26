@@ -24,6 +24,14 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     // Lives for the current room/session.  A respawn creates a new player
     // NetworkObject, but the same PlayerRef keeps its original starting gun.
     private Dictionary<PlayerRef, string> startingWeaponByPlayer = new Dictionary<PlayerRef, string>();
+    // Last known look/name per player so the authority can auto-respawn them
+    // at the military checkpoint without asking the (dead) client first.
+    private Dictionary<PlayerRef, int> characterIdByPlayer = new Dictionary<PlayerRef, int>();
+    private Dictionary<PlayerRef, string> playerNameByPlayer = new Dictionary<PlayerRef, string>();
+    private Dictionary<PlayerRef, InventorySystem.MilitaryRespawnSnapshot> militaryInventoryByPlayer =
+        new Dictionary<PlayerRef, InventorySystem.MilitaryRespawnSnapshot>();
+    private Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot> militaryCombatByPlayer =
+        new Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot>();
     private bool spawnRoutineStarted;
 
     // 🔥 CÁC BIẾN ĐỒNG BỘ MẠNG
@@ -99,6 +107,15 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             return;
         }
 
+        // During the military finale the authority auto-respawn governs deaths;
+        // manual requests would bypass the 10s delay and team charge pool.
+        MilitaryBaseQuestManager questManager = MilitaryBaseQuestManager.Instance;
+        if (questManager != null && questManager.GovernsRespawn)
+        {
+            Debug.Log("[SPAWNER] Từ chối respawn thủ công: hệ thống hồi sinh quân sự đang điều phối.");
+            return;
+        }
+
         if (spawnedPlayers.TryGetValue(player, out NetworkObject currentObject)
             && currentObject != null && currentObject.IsValid)
         {
@@ -120,7 +137,78 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         SpawnCharacter(player, characterID, playerName);
     }
 
-    private void SpawnCharacter(PlayerRef player, int characterID, string playerName)
+    /// <summary>
+    /// Server-side respawn used by the military auto-respawn system. Spawns at
+    /// the given checkpoint position instead of a random scene spawn point.
+    /// Returns false when the player already has a living avatar.
+    /// </summary>
+    public bool AuthorityRespawnAtCheckpoint(PlayerRef player, Vector2 position)
+    {
+        if (!Runner.IsServer) return false;
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject currentObject)
+            && currentObject != null && currentObject.IsValid)
+        {
+            PlayerHealth currentHealth = currentObject.GetComponent<PlayerHealth>();
+            if (currentHealth != null && !currentHealth.isDead && !currentHealth.isTransforming)
+                return false;
+        }
+
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject oldNetObj) && oldNetObj != null)
+        {
+            Runner.Despawn(oldNetObj);
+            spawnedPlayers.Remove(player);
+        }
+
+        characterIdByPlayer.TryGetValue(player, out int characterID);
+        string playerName = playerNameByPlayer.TryGetValue(player, out string cachedName)
+            ? cachedName : PlayerPrefs.GetString("MyPlayerName", "Survivor");
+        SpawnCharacter(player, characterID, playerName, position);
+        return true;
+    }
+
+    /// <summary>Captures the authoritative avatar state before its death-transform despawns it.</summary>
+    public void CaptureMilitaryRespawnState(PlayerRef player)
+    {
+        if (!Runner.IsServer || player == PlayerRef.None) return;
+        if (!spawnedPlayers.TryGetValue(player, out NetworkObject playerObject) ||
+            playerObject == null || !playerObject.IsValid)
+            return;
+
+        InventorySystem inventory = playerObject.GetComponent<InventorySystem>();
+        if (inventory != null)
+            militaryInventoryByPlayer[player] = inventory.CaptureMilitaryRespawnSnapshot();
+
+        PlayerCombat combat = playerObject.GetComponent<PlayerCombat>();
+        if (combat != null)
+            militaryCombatByPlayer[player] = combat.CaptureMilitaryRespawnCombatSnapshot();
+    }
+
+    public bool TryTakeMilitaryInventorySnapshot(PlayerRef player,
+        out InventorySystem.MilitaryRespawnSnapshot snapshot)
+    {
+        if (militaryInventoryByPlayer.TryGetValue(player, out snapshot))
+        {
+            militaryInventoryByPlayer.Remove(player);
+            return true;
+        }
+        snapshot = null;
+        return false;
+    }
+
+    public bool TryTakeMilitaryCombatSnapshot(PlayerRef player,
+        out PlayerCombat.MilitaryRespawnCombatSnapshot snapshot)
+    {
+        if (militaryCombatByPlayer.TryGetValue(player, out snapshot))
+        {
+            militaryCombatByPlayer.Remove(player);
+            return true;
+        }
+        snapshot = default;
+        return false;
+    }
+
+    private void SpawnCharacter(PlayerRef player, int characterID, string playerName,
+        Vector2? forcedPosition = null)
     {
         if (spawnedPlayers.ContainsKey(player) && spawnedPlayers[player] != null)
         {
@@ -136,21 +224,30 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         // so place it beside the broken car. Only death respawns are allowed to
         // use the scene's four random spawn points.
         bool isInitialArrival = !playersGivenArrivalSpawn.Contains(player);
-        bool useArrivalSpawn = isInitialArrival &&
-            MainArrivalStoryBootstrap.TryGetInitialSpawnPose(playersGivenArrivalSpawn.Count,
-                out safeSpawnPos, out safeSpawnRot);
-
-        if (!useArrivalSpawn && spawnPoints != null && spawnPoints.Length > 0)
+        if (forcedPosition.HasValue)
         {
-            int randomIndex = Random.Range(0, spawnPoints.Length);
-            safeSpawnPos = spawnPoints[randomIndex].position;
-            safeSpawnRot = spawnPoints[randomIndex].rotation;
+            safeSpawnPos = forcedPosition.Value;
+        }
+        else
+        {
+            bool useArrivalSpawn = isInitialArrival &&
+                MainArrivalStoryBootstrap.TryGetInitialSpawnPose(playersGivenArrivalSpawn.Count,
+                    out safeSpawnPos, out safeSpawnRot);
+
+            if (!useArrivalSpawn && spawnPoints != null && spawnPoints.Length > 0)
+            {
+                int randomIndex = Random.Range(0, spawnPoints.Length);
+                safeSpawnPos = spawnPoints[randomIndex].position;
+                safeSpawnRot = spawnPoints[randomIndex].rotation;
+            }
         }
 
         NetworkObject netObj = Runner.Spawn(playerPrefabs[characterID], safeSpawnPos, safeSpawnRot, player);
 
         // 🔥 FIX LỖI 2: Dùng chép đè để tránh Crash nếu người chơi gửi lệnh đẻ 2 lần do lag
         spawnedPlayers[player] = netObj;
+        characterIdByPlayer[player] = characterID;
+        playerNameByPlayer[player] = playerName;
         if (isInitialArrival) playersGivenArrivalSpawn.Add(player);
         Runner.SetPlayerObject(player, netObj);
 
@@ -326,6 +423,10 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             }
             startingWeaponByPlayer.Remove(player);
             playersGivenArrivalSpawn.Remove(player);
+            characterIdByPlayer.Remove(player);
+            playerNameByPlayer.Remove(player);
+            militaryInventoryByPlayer.Remove(player);
+            militaryCombatByPlayer.Remove(player);
 
             // 🔥 FIX LỖI 1: Kẹt Loading. Nếu có đứa rớt mạng lúc đang ở sảnh chờ load, tự động check và cho những người còn lại vào game!
             if (!IsMatchStarted)

@@ -120,7 +120,7 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
             manager.AuthorityCompleteMilitaryIntroCinematic(hostPlayer);
         yield return new WaitForSecondsRealtime(0.7f);
 
-        manager?.PoliceVehicle?.SetCinematicAlarm(false);
+        manager?.PoliceVehicle?.SetCinematicAlarmBackground();
         RestorePlayers();
         FogVisionController.Instance?.ClearMilitaryCinematicVision();
         RestoreLocalCamera();
@@ -133,6 +133,13 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
         letterboxAlpha = 0f;
         AutoUIManager.Instance?.SetQuestOverlayOpen(false);
         routine = null;
+
+        // Start the siege radio only after the cinematic has restored the
+        // gameplay canvas. RouteBRadioBroadcastUI snapshots foreign Canvas
+        // states while it owns presentation; starting it earlier captured the
+        // intentionally-disabled AutoCanvas and restored it disabled forever.
+        if (manager != null && manager.Runner != null && manager.Runner.LocalPlayer == hostPlayer)
+            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.SiegeStarted);
     }
 
     private Transform ResolvePlayerTransform(PlayerRef player)

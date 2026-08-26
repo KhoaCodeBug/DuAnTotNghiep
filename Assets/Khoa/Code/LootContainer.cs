@@ -31,6 +31,11 @@ public class LootContainer : NetworkBehaviour
     [Header("Hệ Thống Random Đồ (Chỉ Host xử lý)")]
     public LootTableSO lootTable;
 
+    [Header("Route B Military Repair Loot")]
+    [SerializeField]
+    [Tooltip("Only the military siege may open or transact with this container.")]
+    private bool militaryRepairLootContainer;
+
     [Header("Weapon Loot (Chỉ Host xử lý)")]
     [Range(0f, 100f)]
     [Tooltip("Cơ hội một Loot Container sinh tối đa một weapon ngẫu nhiên từ Resources/Items.")]
@@ -47,6 +52,12 @@ public class LootContainer : NetworkBehaviour
     private PlayerMovement cachedLocalPlayer;
     private InventorySystem cachedLocalInventory;
     private int lastOpenFrame = -1;
+
+    public bool IsMilitaryRepairLootContainer => militaryRepairLootContainer;
+    public bool IsGameplayAvailable => !militaryRepairLootContainer ||
+        (MilitaryBaseQuestManager.Instance != null &&
+         MilitaryBaseQuestManager.Instance.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair &&
+         !MilitaryBaseQuestManager.Instance.IsMilitaryIntroCinematicActive);
 
     [System.Serializable]
     public class LootSpawnData
@@ -69,10 +80,24 @@ public class LootContainer : NetworkBehaviour
 
     public override void Spawned()
     {
-        if (HasStateAuthority && !hasGeneratedLoot)
+        if (HasStateAuthority && !hasGeneratedLoot && !militaryRepairLootContainer)
         {
             GenerateRandomLoot();
         }
+    }
+
+    /// <summary>Authority-only setup API used before a Route B container becomes playable.</summary>
+    public void AuthorityClearContents()
+    {
+        if (!HasStateAuthority || !militaryRepairLootContainer) return;
+        itemsInContainer.Clear();
+        hasGeneratedLoot = true;
+    }
+
+    public bool AuthorityAddConfiguredItem(ItemData itemData, int amount)
+    {
+        return HasStateAuthority && militaryRepairLootContainer && hasGeneratedLoot &&
+               StoreItemLocal(itemData, amount);
     }
 
     private void GenerateRandomLoot()
@@ -252,6 +277,14 @@ public class LootContainer : NetworkBehaviour
 
     private void Update()
     {
+        if (!IsGameplayAvailable)
+        {
+            if (spriteRenderer != null) spriteRenderer.color = originalColor;
+            if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsContainerOpen(this))
+                AutoUIManager.Instance.CloseContainerUI();
+            return;
+        }
+
         PlayerMovement localPlayer = GetLocalPlayerCached();
         if (localPlayer == null) return;
 
@@ -307,6 +340,7 @@ public class LootContainer : NetworkBehaviour
     /// </summary>
     public bool TryOpenForLocalPlayer()
     {
+        if (!IsGameplayAvailable) return false;
         if (lastOpenFrame == Time.frameCount) return true;
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return false;
 
@@ -340,6 +374,7 @@ public class LootContainer : NetworkBehaviour
     /// </summary>
     public bool CanPlayerOpenFrom(Vector3 playerPosition)
     {
+        if (!IsGameplayAvailable) return false;
         Collider2D containerCollider = GetComponent<Collider2D>();
         if (containerCollider == null) return false;
 
@@ -369,6 +404,11 @@ public class LootContainer : NetworkBehaviour
         if (info.Source != PlayerRef.None && info.Source != requestingPlayer)
         {
             Debug.LogWarning($"[LOOT SERVER] Rejected spoofed container sync: source={info.Source}, requested={requestingPlayer}.");
+            return;
+        }
+        if (!AuthorityValidateMilitaryLootRequest(requestingPlayer, out string denial))
+        {
+            RPC_NotifyLootDenied(requestingPlayer, denial);
             return;
         }
         MainQuestManager.Instance?.AuthorityRegisterOpenedContainer(this, requestingPlayer);
@@ -414,6 +454,11 @@ public class LootContainer : NetworkBehaviour
         if (info.Source != PlayerRef.None && info.Source != playerTryingToLoot)
         {
             Debug.LogWarning($"[LOOT SERVER] Rejected spoofed loot request: source={info.Source}, requested={playerTryingToLoot}.");
+            return;
+        }
+        if (!AuthorityValidateMilitaryLootRequest(playerTryingToLoot, out string denial))
+        {
+            RPC_NotifyLootDenied(playerTryingToLoot, denial);
             return;
         }
         if (slotIndex < 0 || slotIndex >= itemsInContainer.Count)
@@ -574,6 +619,11 @@ public class LootContainer : NetworkBehaviour
             Debug.LogWarning($"[LOOT SERVER] Rejected spoofed store request: source={info.Source}, requested={playerTryingToStore}.");
             return;
         }
+        if (!AuthorityValidateMilitaryLootRequest(playerTryingToStore, out string denial))
+        {
+            RPC_NotifyLootDenied(playerTryingToStore, denial);
+            return;
+        }
 
         ItemData itemData = ItemDataLoader.LoadItem(itemName);
         if (itemData == null || amount <= 0) return;
@@ -604,6 +654,35 @@ public class LootContainer : NetworkBehaviour
         }
 
         RPC_SyncAddItem(itemName, amount, false);
+    }
+
+    private bool AuthorityValidateMilitaryLootRequest(PlayerRef player, out string reason)
+    {
+        reason = string.Empty;
+        if (!militaryRepairLootContainer) return true;
+        if (!HasStateAuthority || !IsGameplayAvailable)
+        {
+            reason = "Thùng tiếp tế sửa xe chỉ khả dụng trong giai đoạn phòng thủ.";
+            return false;
+        }
+        if (!TryGetServerInventory(player, out InventorySystem inventory) || inventory == null)
+        {
+            reason = "Không tìm thấy Player authoritative cho giao dịch loot.";
+            return false;
+        }
+
+        PlayerHealth health = inventory.GetComponent<PlayerHealth>();
+        if (health != null && (health.isDead || health.isTransforming))
+        {
+            reason = "Không thể dùng thùng tiếp tế trong trạng thái hiện tại.";
+            return false;
+        }
+        if (!CanPlayerOpenFrom(inventory.transform.position))
+        {
+            reason = "Bạn đang quá xa hoặc có vật cản giữa Player và thùng tiếp tế.";
+            return false;
+        }
+        return true;
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

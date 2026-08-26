@@ -183,6 +183,14 @@ public class PlayerSurvival : NetworkBehaviour
         RestedThisNight = true;
     }
 
+    public void ServerForceAwakeForMilitaryFinale()
+    {
+        if (!HasStateAuthority) return;
+        IsWaitingForSleep = false;
+        SleepBedId = 0;
+        RestedThisNight = true;
+    }
+
     public void ServerResetRestForNextNight(float currentHour)
     {
         if (!HasStateAuthority) return;
@@ -199,7 +207,8 @@ public class PlayerSurvival : NetworkBehaviour
 
     public float GetSleepiness01()
     {
-        if (RestedThisNight || DayNightManager.Instance == null || TutorialSession.IsActive) return 0f;
+        if (RestedThisNight || DayNightManager.Instance == null || TutorialSession.IsActive ||
+            DayNightManager.Instance.IsMilitaryFinaleTimeLocked) return 0f;
         float elapsed = GetNightElapsedSince22(DayNightManager.Instance.CurrentTime);
         return elapsed < 0f ? 0f : Mathf.Clamp01((elapsed + 0.01f) / 5f);
     }
@@ -231,7 +240,8 @@ public class PlayerSurvival : NetworkBehaviour
 
     private float GetFatigueDebuff01()
     {
-        if (RestedThisNight || DayNightManager.Instance == null) return 0f;
+        if (RestedThisNight || DayNightManager.Instance == null ||
+            DayNightManager.Instance.IsMilitaryFinaleTimeLocked) return 0f;
         float elapsed = GetNightElapsedSince22(DayNightManager.Instance.CurrentTime);
         // 01:00 là 3 giờ sau 22:00; debuff nặng dần đến lúc bất tỉnh lúc 03:00.
         return elapsed <= 3f ? 0f : Mathf.InverseLerp(3f, 5f, elapsed);

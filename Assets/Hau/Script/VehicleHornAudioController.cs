@@ -13,6 +13,8 @@ public sealed class VehicleHornAudioController : MonoBehaviour
     private AudioSource holdSource;
     private bool wasHeld;
     private bool initialized;
+    private bool cinematicAlarmActive;
+    private float cinematicAlarmVolumeScale = 1f;
     private float nextNoiseMeterPulseAt;
 
     [SerializeField, Range(0f, 1f)] private float hornVolume = 0.92f;
@@ -99,8 +101,20 @@ public sealed class VehicleHornAudioController : MonoBehaviour
     public void SetCinematicAlarm(bool active)
     {
         if (!initialized) Initialize(GetComponent<VehicleControllerFusion>());
+        cinematicAlarmActive = active;
+        cinematicAlarmVolumeScale = 1f;
         if (active) StartHold();
         else StopHold();
+    }
+
+    public void SetCinematicAlarmBackground()
+    {
+        if (!initialized) Initialize(GetComponent<VehicleControllerFusion>());
+        cinematicAlarmActive = true;
+        cinematicAlarmVolumeScale = 0.2f;
+        if (holdSource == null || holdClip == null) return;
+        holdSource.volume = EffectiveVolume * cinematicAlarmVolumeScale;
+        if (!holdSource.isPlaying) StartHold();
     }
 
     private void StartHold()
@@ -109,7 +123,7 @@ public sealed class VehicleHornAudioController : MonoBehaviour
         holdSource.Stop();
         holdSource.clip = holdClip;
         holdSource.loop = true;
-        holdSource.volume = EffectiveVolume;
+        holdSource.volume = EffectiveVolume * (cinematicAlarmActive ? cinematicAlarmVolumeScale : 1f);
         holdSource.Play();
         nextNoiseMeterPulseAt = 0f;
     }
@@ -117,6 +131,8 @@ public sealed class VehicleHornAudioController : MonoBehaviour
     private void StopHold()
     {
         if (holdSource != null) holdSource.Stop();
+        cinematicAlarmActive = false;
+        cinematicAlarmVolumeScale = 1f;
         nextNoiseMeterPulseAt = 0f;
     }
 

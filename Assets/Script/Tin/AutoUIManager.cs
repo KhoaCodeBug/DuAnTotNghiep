@@ -48,6 +48,8 @@ public class AutoUIManager : MonoBehaviour
     private bool respawnPending;
     private float respawnRequestedAt;
     private const float RespawnTimeout = 6f;
+    private bool militaryDeathClockRunning;
+    private float militaryDeathClockStartedAt;
     #endregion
 
     #region Biến UI - Tủ Đồ
@@ -267,9 +269,13 @@ public class AutoUIManager : MonoBehaviour
                     wasSpectating = true;
                     SetGameplayHUDVisible(false);
                 }
+
+                UpdateMilitaryRespawnUI();
             }
             else
             {
+                militaryDeathClockRunning = false;
+                RestoreManualRespawnButton();
                 if (spectatorPanel != null && spectatorPanel.activeSelf)
                 {
                     spectatorPanel.SetActive(false);
@@ -295,6 +301,64 @@ public class AutoUIManager : MonoBehaviour
                 SetGameplayHUDVisible(true);
             }
         }
+    }
+
+    private void UpdateMilitaryRespawnUI()
+    {
+        MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        bool militaryGoverned = military != null && military.GovernsRespawn;
+        if (!militaryGoverned)
+        {
+            militaryDeathClockRunning = false;
+            RestoreManualRespawnButton();
+            return;
+        }
+
+        // The authority auto-respawn governs: hide the manual button and show
+        // a countdown until the team checkpoint respawn fires.
+        if (btnRespawn != null && btnRespawn.gameObject.activeSelf) btnRespawn.gameObject.SetActive(false);
+        if (!militaryDeathClockRunning)
+        {
+            militaryDeathClockRunning = true;
+            militaryDeathClockStartedAt = Time.unscaledTime;
+        }
+
+        bool vietnamese = GameLocalization.IsVietnamese;
+        float elapsed = Time.unscaledTime - militaryDeathClockStartedAt;
+        int charges = military.TeamRespawnsRemaining;
+        if (charges <= 0)
+        {
+            spectatorText.text = vietnamese
+                ? "ĐỘI ĐÃ HẾT LƯỢT HỒI SINH."
+                : "THE TEAM IS OUT OF RESPAWNS.";
+        }
+        else if (MilitaryQuestRules.IsRespawnDelayElapsed(elapsed))
+        {
+            spectatorText.text = vietnamese ? "ĐANG HỒI SINH TẠI CĂN CỨ..." : "RESPAWNING AT THE BASE...";
+        }
+        else
+        {
+            float remaining = MilitaryQuestRules.GetRemainingRespawnSeconds(elapsed);
+            spectatorText.text = vietnamese
+                ? $"TỰ ĐỘNG HỒI SINH SAU {remaining:0} GIÂY\nCòn {charges} lượt hồi sinh của đội"
+                : $"AUTO RESPAWN IN {remaining:0}s\n{charges} team respawns remaining";
+        }
+    }
+
+    /// <summary>
+    /// The server announces the accepted death tick. UI only renders this
+    /// countdown; it never decides whether a respawn may happen.
+    /// </summary>
+    public void BeginMilitaryRespawnCountdown(float seconds)
+    {
+        _ = seconds;
+        militaryDeathClockRunning = true;
+        militaryDeathClockStartedAt = Time.unscaledTime;
+    }
+
+    private void RestoreManualRespawnButton()
+    {
+        if (btnRespawn != null && !btnRespawn.gameObject.activeSelf) btnRespawn.gameObject.SetActive(true);
     }
 
     public void SetGameplayHUDVisible(bool visible)
@@ -2352,6 +2416,7 @@ public class AutoUIManager : MonoBehaviour
     private void CompleteRespawnUI()
     {
         respawnPending = false;
+        militaryDeathClockRunning = false;
         if (btnRespawn != null) btnRespawn.interactable = true;
         if (spectatorPanel != null) spectatorPanel.SetActive(false);
         wasSpectating = false;
@@ -2455,9 +2520,10 @@ public class AutoUIManager : MonoBehaviour
     /// </summary>
     public void SetQuestOverlayOpen(bool open)
     {
-        if (questOverlayOpen == open)
-            return;
-
+        // Multiple story presenters temporarily suppress AutoCanvas directly.
+        // Always reconcile the physical Canvas state even when the logical flag
+        // already matches; otherwise an out-of-order close can leave gameplay
+        // UI disabled permanently after a cinematic or radio presentation.
         questOverlayOpen = open;
         if (open)
         {
@@ -2486,6 +2552,12 @@ public class AutoUIManager : MonoBehaviour
                 HotbarHUDManager.Instance.SetHUDVisible(true);
             AutoNoiseMeter.SetHUDVisible(true);
         }
+    }
+
+    public void ReconcileGameplayCanvasVisibility()
+    {
+        if (mainCanvas != null)
+            mainCanvas.enabled = !questOverlayOpen;
     }
     #endregion
 }

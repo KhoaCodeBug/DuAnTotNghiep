@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Fusion;
 using Fusion.Addons.Physics;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// State-authoritative second half of the Main-scene quest. It intentionally
@@ -60,8 +61,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [SerializeField, Min(1f)] private float baseGateHealth = MilitaryQuestRules.BaseGateHealth;
     [SerializeField, Min(1f)] private float repairDurationSeconds = 12f;
 
-    [Header("Roadside repair gameplay test")]
-    [SerializeField] private bool enableRoadsideRepairTest = true;
+    [Header("Police car repair gameplay")]
+    [FormerlySerializedAs("enableRoadsideRepairTest")]
+    [SerializeField] private bool enablePoliceCarRepairGameplay = true;
     [SerializeField, Min(1f)] private float skillRepairDurationSeconds = 45f;
     [SerializeField, Min(0.1f)] private float skillCheckIntervalMinSeconds = 4f;
     [SerializeField, Min(0.1f)] private float skillCheckIntervalMaxSeconds = 7f;
@@ -115,9 +117,19 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Networked] public int MilitaryRouteVoteRequiredCount { get; private set; }
     [Networked] public NetworkBool IsMilitaryIntroCinematicActive { get; private set; }
 
+    // Team respawn checkpoint for the military finale. Saved when the Route B
+    // vote commits (cinematic starts) and consumed by the authority auto-respawn.
+    [Networked] public NetworkBool IsRespawnCheckpointActive { get; private set; }
+    [Networked] public Vector2 RespawnCheckpointPosition { get; private set; }
+    [Networked] public int TeamRespawnsRemaining { get; private set; }
+    [Networked] public NetworkBool IsMultiplayerSiege { get; private set; }
+    [Networked] public NetworkBool IsSoloGateDpsActive { get; private set; }
+    [Networked] public float SoloGateDpsElapsed { get; private set; }
+
     private bool hasSpawned;
     private GameObject presentationRoot;
     private SiegeHordeDirector hordeDirector;
+    private MilitaryRepairLootCoordinator repairLootCoordinator;
     private MilitaryGateController gateController;
     private MilitaryEscapeVehicleRepair vehicleRepair;
     private RoadsideVehicleRepairStation roadsideRepairStation;
@@ -162,6 +174,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         MainQuestManager.Instance.LockedEscapeRoute == EscapeEndingRoute.None && !IsMilitaryIntroCinematicActive;
     public bool CanUsePoliceRepairMinigame => IsNetworkReady && CurrentPhase == Phase.SiegeAndRepair &&
         !IsMilitaryIntroCinematicActive;
+    /// <summary>True once the military respawn system governs deaths (siege/escape phases).</summary>
+    public bool GovernsRespawn => IsNetworkReady && IsRespawnCheckpointActive &&
+        (CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape);
+    public bool IsSoloSiege => IsNetworkReady && !IsMultiplayerSiege;
+
+    private readonly Dictionary<PlayerRef, float> militaryDeathObservedAt = new();
 
     private void Awake()
     {
@@ -186,7 +204,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         hasSpawned = true;
         ResolveAnchor();
         BuildPresentation();
-        EnsureRoadsideRepairTest();
+        EnsurePoliceCarRepairGameplay();
 
         if (!HasStateAuthority) return;
         MilitaryPhase = (int)Phase.NotReached;
@@ -227,6 +245,13 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         MilitaryRouteVoteApprovedCount = 0;
         MilitaryRouteVoteRequiredCount = 0;
         IsMilitaryIntroCinematicActive = false;
+        IsRespawnCheckpointActive = false;
+        RespawnCheckpointPosition = Vector2.zero;
+        TeamRespawnsRemaining = 0;
+        IsMultiplayerSiege = false;
+        IsSoloGateDpsActive = false;
+        SoloGateDpsElapsed = 0f;
+        militaryDeathObservedAt.Clear();
         voteParticipants.Clear();
         voteApprovals.Clear();
     }
@@ -249,6 +274,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (CurrentPhase != Phase.Escaped && CurrentPhase != Phase.Failed)
             SurvivalSeconds += Runner.DeltaTime;
 
+        TickSoloGateDps();
+
         if ((CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape) && !AnyLivingPlayer())
         {
             MilitaryPhase = (int)Phase.Failed;
@@ -257,11 +284,13 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             else ActiveRepairer = PlayerRef.None;
             RPC_ShowLocalizedQuestMessage("quest.military_failed", 0);
         }
+
+        if (GovernsRespawn) TickAuthorityAutoRespawn();
     }
 
     public override void Render()
     {
-        EnsureRoadsideRepairTest();
+        EnsurePoliceCarRepairGameplay();
         gateController?.RefreshPresentation();
         vehicleRepair?.RefreshPresentation();
     }
@@ -478,6 +507,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         voteParticipants.Clear();
         voteApprovals.Clear();
         IsMilitaryIntroCinematicActive = true;
+        DayNightManager.Instance?.AuthorityLockMilitaryFinaleTime();
+        // Route B is committed: save the team respawn checkpoint around the
+        // police car so later deaths respawn inside the closed base.
+        IsRespawnCheckpointActive = true;
+        RespawnCheckpointPosition = GetInteractionPosition(InteractionKind.Vehicle);
         ResolveMilitaryAreaTrigger();
         int removedZombies = AuthorityClearZombiesInsideMilitaryArea();
         Vector2 cinematicStart = GetCinematicStartPosition();
@@ -494,12 +528,24 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GatherLivingPlayersNearClosedGate();
         IsMilitaryIntroCinematicActive = false;
         MilitaryPhase = (int)Phase.SiegeAndRepair;
-        GateMaxHealth = Mathf.Max(1f, baseGateHealth);
+        // Establish the authoritative loot set as part of the phase transition.
+        // The coordinator's Update retry remains as recovery for temporarily
+        // unavailable prefab/marker data, but normal gameplay does not depend
+        // on a later MonoBehaviour frame happening to run.
+        repairLootCoordinator?.AuthorityTrySetup();
+        int activePlayers = CountActivePlayers();
+        // Lock the mode for this entire siege. A disconnect must not turn an
+        // already multiplayer finale into Solo and invalidate its respawn pool.
+        IsMultiplayerSiege = activePlayers > 1;
+        GateMaxHealth = Mathf.Max(1f, MilitaryQuestRules.ComputeSiegeGateMaxHealth(activePlayers));
         GateCurrentHealth = GateMaxHealth;
+        TeamRespawnsRemaining = IsMultiplayerSiege ? MilitaryQuestRules.TeamRespawnChargeTotal : 0;
+        IsSoloGateDpsActive = false;
+        SoloGateDpsElapsed = 0f;
+        militaryDeathObservedAt.Clear();
         IsGeneratorActive = false;
         ActiveRepairer = PlayerRef.None;
         RPC_StartSiegePresentation();
-        RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SiegeStarted, hostPlayer);
         RPC_ShowLocalizedQuestMessage("quest.military_siege", 0);
     }
 
@@ -929,9 +975,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private void ServerStartRepairSkillCheck(PlayerRef requester, PoliceCarRepairAction action)
     {
-        if (!HasStateAuthority || !enableRoadsideRepairTest || requester == PlayerRef.None ||
+        if (!HasStateAuthority || !enablePoliceCarRepairGameplay || requester == PlayerRef.None ||
             CurrentPhase != Phase.SiegeAndRepair) return;
-        EnsureRoadsideRepairTest();
+        EnsurePoliceCarRepairGameplay();
         if (roadsideRepairStation == null ||
             !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             !roadsideRepairStation.IsPlayerInRepairPosition(player.transform.position))
@@ -1196,20 +1242,38 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     public void TakeGateDamage(float damage)
     {
         if (!HasStateAuthority || CurrentPhase != Phase.SiegeAndRepair || GateCurrentHealth <= 0f) return;
+        if (IsSoloSiege) return;
         GateCurrentHealth = MilitaryQuestRules.ApplyGateDamage(GateCurrentHealth, damage);
         if (GateCurrentHealth <= 0f) RPC_GateBroken();
+    }
+
+    /// <summary>
+    /// Solo begins its three-minute deterministic gate countdown only when a
+    /// zombie visibly reaches and attacks the gate for the first time.
+    /// </summary>
+    public bool TryStartSoloGateDps()
+    {
+        if (!HasStateAuthority || !IsSoloSiege || CurrentPhase != Phase.SiegeAndRepair || IsGateBroken)
+            return false;
+        if (!IsSoloGateDpsActive)
+        {
+            IsSoloGateDpsActive = true;
+            SoloGateDpsElapsed = 0f;
+            Debug.Log("[MILITARY GATE] Zombie đã chạm cổng: bắt đầu DPS Solo 3 phút.");
+        }
+        return true;
     }
 
     public void NotifyPlayerDamaged(PlayerRef player, bool zombieAttack)
     {
         if (!HasStateAuthority || player == PlayerRef.None || ActiveRepairer != player) return;
+        if (!MilitaryStoryFlowRules.ShouldInterruptVehicleRepair(zombieAttack)) return;
         if (RepairSkillCheckSessionActive)
         {
-            AuthorityInterruptRepair(player, "Việc sửa xe bị gián đoạn vì bạn vừa nhận sát thương.");
+            AuthorityInterruptRepair(player, "Việc sửa xe bị gián đoạn vì zombie tấn công.");
             return;
         }
 
-        if (!zombieAttack) return;
         ActiveRepairer = PlayerRef.None;
         RPC_InterruptRepair(player);
     }
@@ -1226,6 +1290,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_BroadcastVehicleReady(PlayerRef focusPlayer)
     {
+        roadsideRepairVehicle?.SetCinematicAlarm(false);
         vehicleRepair?.SetVehicleReadyPresentation(true);
         if (Runner != null && Runner.LocalPlayer == focusPlayer)
             RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.EscapeVehicleReady);
@@ -1343,6 +1408,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             GetInteractionPosition(InteractionKind.Gate), this);
         hordeDirector = presentationRoot.AddComponent<SiegeHordeDirector>();
         hordeDirector.Configure(this, gateController);
+        repairLootCoordinator = presentationRoot.AddComponent<MilitaryRepairLootCoordinator>();
+        repairLootCoordinator.Configure(this);
         cinematicController = presentationRoot.AddComponent<MilitaryRouteCinematicController>();
         cinematicController.Configure(this);
         BuildSchoolInvestigationPresentation();
@@ -1380,9 +1447,13 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         }
     }
 
-    private void EnsureRoadsideRepairTest()
+    /// <summary>
+    /// Attaches the canonical five-action repair loop to the authored scene
+    /// object named Car. The vehicle stays exactly where the scene places it.
+    /// </summary>
+    private void EnsurePoliceCarRepairGameplay()
     {
-        if (!enableRoadsideRepairTest) return;
+        if (!enablePoliceCarRepairGameplay) return;
 
         if (roadsideRepairStation == null)
         {
@@ -1721,6 +1792,119 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         for (int i = 0; i < players.Length; i++)
             if (players[i] != null && !players[i].isDead && !players[i].isTransforming) return true;
         return false;
+    }
+
+    private void TickSoloGateDps()
+    {
+        if (!IsSoloGateDpsActive || !IsSoloSiege || CurrentPhase != Phase.SiegeAndRepair || IsGateBroken)
+            return;
+
+        SoloGateDpsElapsed = Mathf.Min(MilitaryQuestRules.SoloGateHoldSeconds,
+            SoloGateDpsElapsed + Runner.DeltaTime);
+        GateCurrentHealth = MilitaryQuestRules.GetSoloGateHealthAtElapsed(GateMaxHealth, SoloGateDpsElapsed);
+        if (GateCurrentHealth <= 0f) RPC_GateBroken();
+    }
+
+    public int CountActivePlayers()
+    {
+        if (!IsNetworkReady || Runner == null) return 1;
+        int count = 0;
+        foreach (PlayerRef _ in Runner.ActivePlayers) count++;
+        return Mathf.Max(1, count);
+    }
+
+    /// <summary>
+    /// Authority-side military respawn: track deaths, wait the canonical delay,
+    /// then respawn the player at the team checkpoint while charges remain.
+    /// Entries persist through avatar despawn (zombie transformation) and are
+    /// pruned only when the player returns alive or leaves the session.
+    /// </summary>
+    private void TickAuthorityAutoRespawn()
+    {
+        HashSet<PlayerRef> activeSessionPlayers = new HashSet<PlayerRef>();
+        foreach (PlayerRef player in Runner.ActivePlayers) activeSessionPlayers.Add(player);
+
+        PlayerHealth[] avatars = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+        float now = Time.time;
+        for (int i = 0; i < avatars.Length; i++)
+        {
+            PlayerHealth health = avatars[i];
+            if (health == null || health.Object == null || !health.Object.IsValid) continue;
+            PlayerRef owner = health.Object.InputAuthority;
+            if (owner == PlayerRef.None) continue;
+            if (health.isDead || health.isTransforming)
+            {
+                if (!militaryDeathObservedAt.ContainsKey(owner))
+                {
+                    militaryDeathObservedAt[owner] = now;
+                    HostModeSpawner.Instance?.CaptureMilitaryRespawnState(owner);
+                    RPC_BeginMilitaryRespawnCountdown(owner, MilitaryQuestRules.RespawnDelaySeconds);
+                }
+            }
+            else
+            {
+                militaryDeathObservedAt.Remove(owner);
+            }
+        }
+
+        List<PlayerRef> departed = null;
+        List<PlayerRef> readyToRespawn = null;
+        foreach (KeyValuePair<PlayerRef, float> entry in militaryDeathObservedAt)
+        {
+            if (!activeSessionPlayers.Contains(entry.Key))
+            {
+                if (departed == null) departed = new List<PlayerRef>();
+                departed.Add(entry.Key);
+                continue;
+            }
+            if (!MilitaryQuestRules.IsRespawnDelayElapsed(now - entry.Value)) continue;
+            if (!MilitaryQuestRules.CanUseTeamRespawn(IsSoloSiege, TeamRespawnsRemaining)) continue;
+
+            if (readyToRespawn == null) readyToRespawn = new List<PlayerRef>();
+            readyToRespawn.Add(entry.Key);
+        }
+
+        if (departed != null)
+            for (int i = 0; i < departed.Count; i++) militaryDeathObservedAt.Remove(departed[i]);
+
+        if (readyToRespawn == null) return;
+        for (int i = 0; i < readyToRespawn.Count; i++)
+        {
+            PlayerRef player = readyToRespawn[i];
+            Vector2 destination = RespawnCheckpointPosition +
+                new Vector2(Mathf.Cos(player.PlayerId * 137.5f * Mathf.Deg2Rad),
+                    Mathf.Sin(player.PlayerId * 137.5f * Mathf.Deg2Rad)) * 0.65f;
+            HostModeSpawner spawner = HostModeSpawner.Instance;
+            bool respawned = spawner != null && spawner.AuthorityRespawnAtCheckpoint(player, destination);
+            if (!respawned)
+            {
+                Debug.LogWarning($"[MILITARY RESPAWN] Chưa thể hồi sinh {player}; sẽ thử lại, không trừ lượt.");
+                continue;
+            }
+
+            TeamRespawnsRemaining = MilitaryQuestRules.ConsumeTeamRespawnCharge(TeamRespawnsRemaining);
+            militaryDeathObservedAt.Remove(player);
+            Debug.Log($"[MILITARY RESPAWN] {player} hồi sinh tại checkpoint; còn " +
+                      $"{TeamRespawnsRemaining} lượt đội. Kết quả: {respawned}.");
+            RPC_AnnounceTeamRespawnUsed(TeamRespawnsRemaining);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_BeginMilitaryRespawnCountdown(PlayerRef player, float seconds)
+    {
+        if (Runner != null && Runner.LocalPlayer == player)
+            AutoUIManager.Instance?.BeginMilitaryRespawnCountdown(seconds);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_AnnounceTeamRespawnUsed(int remainingCharges)
+    {
+        bool vietnamese = GameLocalization.IsVietnamese;
+        string body = vietnamese
+            ? $"Đồng đội đã hồi sinh tại căn cứ. Còn {remainingCharges} lượt hồi sinh của đội."
+            : $"A teammate respawned at the base. {remainingCharges} team respawns remaining.";
+        AutoChatManager.Instance?.AddMessage("HỒI SINH QUÂN SỰ", body);
     }
 
     private static bool TryGetRequestingPlayer(PlayerRef requester, out PlayerMovement player)

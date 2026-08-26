@@ -27,14 +27,29 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
 
     public static void ShowInitialChoice()
     {
+        if (!CanShowRouteIntroduction()) return;
         EscapeRouteDecisionUI ui = EnsureInstance();
         ui.ShowIntroduction(false);
     }
 
     public static void ShowPreMilitaryChoice()
     {
+        if (!CanShowRouteIntroduction()) return;
         EscapeRouteDecisionUI ui = EnsureInstance();
         ui.ShowIntroduction(true);
+    }
+
+    private static bool CanShowRouteIntroduction()
+    {
+        MainQuestManager quest = MainQuestManager.Instance;
+        if (quest == null || quest.LockedEscapeRoute == EscapeEndingRoute.None) return true;
+
+        // Radio callbacks can complete after the player has already committed
+        // an ending. Never let that stale introduction reopen the shared modal
+        // gate and leave AutoCanvas disabled during the active finale.
+        CloseIfOpen();
+        AutoUIManager.Instance?.SetQuestOverlayOpen(false);
+        return false;
     }
 
     public static void ShowFinaleConfirmation(EscapeEndingRoute route, Action onConfirmed)

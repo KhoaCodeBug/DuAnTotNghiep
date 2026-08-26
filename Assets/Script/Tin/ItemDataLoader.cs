@@ -30,6 +30,9 @@ public static class ItemDataLoader
         if (ArrivalCarItemCatalog.TryLoad(itemIdentifier, out ItemData arrivalCarItem))
             return arrivalCarItem;
 
+        if (PoliceCarItemCatalog.TryLoad(itemIdentifier, out ItemData policeCarItem))
+            return policeCarItem;
+
         if (MilitaryQuestItemCatalog.TryLoad(itemIdentifier, out ItemData militaryItem))
             return militaryItem;
 
