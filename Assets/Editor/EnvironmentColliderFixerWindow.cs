@@ -21,6 +21,20 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
     private const string DoorSidePatchPrefix = "__DoorSideFootPatches_";
     private const string ExternalObjectsName = "__ExternalEnvironment";
     private const string SchoolRoofTriggerName = "__SchoolRoofTrigger_FIXED";
+    private static readonly string[] SchoolMilitaryLootNames =
+    {
+        "LootQuanSu1",
+        "LootQuanSu2",
+        "LootQuanSu3",
+        "LootQuanSuVjp"
+    };
+    private static readonly string[] SchoolMilitaryLootPrefabPaths =
+    {
+        "Assets/Khoa/Loot/KhuQuanSu/LootQuanSu1.prefab",
+        "Assets/Khoa/Loot/KhuQuanSu/LootQuanSu2.prefab",
+        "Assets/Khoa/Loot/KhuQuanSu/LootQuanSu3.prefab",
+        "Assets/Khoa/Loot/KhuQuanSu/LootQuanSuVjp.prefab"
+    };
 
     private sealed class TilemapAudit
     {
@@ -1224,6 +1238,218 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
                   $"roof trigger {roofTrigger.pathCount} dải tile. Scene đang dirty, chưa tự Save.", school);
     }
 
+    [MenuItem("Tools/Environment/Quick House Pipeline/school/Fix Decor Y-Sorting Only")]
+    public static void FixSchoolDecorYSortingOnly()
+    {
+        GameObject school = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "school" && candidate.scene.IsValid());
+        Tilemap classroomDecor = school != null
+            ? school.transform.Find("decordlophoc")?.GetComponent<Tilemap>()
+            : null;
+        Tilemap nestedDecor = classroomDecor != null
+            ? classroomDecor.transform.Find("decord")?.GetComponent<Tilemap>()
+            : null;
+        if (school == null || classroomDecor == null || nestedDecor == null)
+        {
+            Debug.LogError("[Environment Fixer] Không tìm thấy đúng school/decordlophoc/decord. " +
+                           "Dừng để không sửa nhầm Tilemap khác.", school);
+            return;
+        }
+
+        int classroomTiles = CountOccupiedTiles(classroomDecor);
+        int nestedTiles = CountOccupiedTiles(nestedDecor);
+        if (classroomTiles <= 0 || nestedTiles <= 0)
+        {
+            Debug.LogError($"[Environment Fixer] Một lớp decor school đang rỗng " +
+                           $"({classroomTiles}, {nestedTiles}). Dừng để audit lại trước khi sửa.", school);
+            return;
+        }
+
+        int undoGroup = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Fix school decor Y-sorting only");
+        foreach (Tilemap decor in new[] { classroomDecor, nestedDecor })
+        {
+            TilemapRenderer renderer = decor.GetComponent<TilemapRenderer>();
+            if (renderer == null)
+            {
+                Debug.LogError($"[Environment Fixer] '{decor.name}' thiếu TilemapRenderer. Đã Undo.", decor);
+                Undo.RevertAllDownToGroup(undoGroup);
+                return;
+            }
+            Undo.RecordObject(renderer, "Set school decor to shared Y-sort order");
+            renderer.sortingLayerName = "Gameplay";
+            renderer.sortingOrder = 0;
+            renderer.mode = TilemapRenderer.Mode.Individual;
+            EditorUtility.SetDirty(renderer);
+        }
+
+        Undo.CollapseUndoOperations(undoGroup);
+        EditorSceneManager.MarkSceneDirty(school.scene);
+        Debug.Log($"[Environment Fixer] SCHOOL DECOR Y-SORT FIX: " +
+                  $"decordlophoc={classroomTiles} tile -> Gameplay/0/Individual, " +
+                  $"decord={nestedTiles} tile -> Gameplay/0/Individual. " +
+                  "Không đổi Transform, tile, collider, wall, floor, door hoặc roof.", school);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/school/Fix LootQuanSu Prefab Sorting")]
+    public static void FixSchoolMilitaryLootPrefabSorting()
+    {
+        GameObject school = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "school" && candidate.scene.IsValid());
+        if (school == null)
+        {
+            Debug.LogError("[Environment Fixer] Không tìm thấy root 'school'. Dừng để không sửa nhầm prefab loot.");
+            return;
+        }
+
+        Dictionary<string, Transform> sceneLoot = school.transform.Cast<Transform>()
+            .Where(child => SchoolMilitaryLootNames.Contains(child.name))
+            .ToDictionary(child => child.name, child => child);
+        string[] missingInstances = SchoolMilitaryLootNames.Where(name => !sceneLoot.ContainsKey(name)).ToArray();
+        string[] missingAssets = SchoolMilitaryLootPrefabPaths
+            .Where(path => AssetDatabase.LoadAssetAtPath<GameObject>(path) == null)
+            .ToArray();
+        if (missingInstances.Length > 0 || missingAssets.Length > 0)
+        {
+            Debug.LogError(
+                "[Environment Fixer] LOOT QUAN SU: thiếu dữ liệu, dừng trước khi ghi. " +
+                $"Scene=[{string.Join(", ", missingInstances)}], Prefab=[{string.Join(", ", missingAssets)}].",
+                school);
+            return;
+        }
+
+        string backupDirectory =
+            $"Assets/EnvironmentFixerBackups/LootQuanSu_pre_sort_{DateTime.Now:yyyyMMdd_HHmmss}";
+        Directory.CreateDirectory(backupDirectory);
+        AssetDatabase.Refresh();
+        foreach (string prefabPath in SchoolMilitaryLootPrefabPaths)
+        {
+            string backupPath = $"{backupDirectory}/{System.IO.Path.GetFileName(prefabPath)}";
+            if (!AssetDatabase.CopyAsset(prefabPath, backupPath))
+            {
+                Debug.LogError($"[Environment Fixer] Không tạo được backup '{backupPath}'. Dừng trước khi sửa.", school);
+                return;
+            }
+        }
+
+        int prefabRenderers = 0;
+        foreach (string prefabPath in SchoolMilitaryLootPrefabPaths)
+        {
+            string yaml = File.ReadAllText(prefabPath);
+            int centerCount = CountTextOccurrences(yaml, "m_SpriteSortPoint: 0");
+            int pivotCount = CountTextOccurrences(yaml, "m_SpriteSortPoint: 1");
+            int gameplayCount = CountTextOccurrences(yaml, "m_SortingLayerID: 2104091855");
+            int orderZeroCount = CountTextOccurrences(yaml, "m_SortingOrder: 0");
+            if (centerCount + pivotCount != 1 || gameplayCount != 1 || orderZeroCount != 1)
+            {
+                Debug.LogError(
+                    $"[Environment Fixer] Prefab '{prefabPath}' không còn đúng cấu trúc đã audit " +
+                    $"(sortPoint={centerCount + pivotCount}, Gameplay={gameplayCount}, order0={orderZeroCount}). " +
+                    "Dừng để không reserialize LootContainer/NetworkObject.",
+                    school);
+                return;
+            }
+            if (centerCount == 1)
+                File.WriteAllText(prefabPath, yaml.Replace("m_SpriteSortPoint: 0", "m_SpriteSortPoint: 1"));
+            AssetDatabase.ImportAsset(prefabPath, ImportAssetOptions.ForceUpdate);
+            prefabRenderers++;
+        }
+        AssetDatabase.SaveAssets();
+
+        int sceneRenderers = 0;
+        int undoGroup = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("Fix school LootQuanSu sprite sorting");
+        foreach (string lootName in SchoolMilitaryLootNames)
+        {
+            Transform loot = sceneLoot[lootName];
+            foreach (SpriteRenderer renderer in loot.GetComponentsInChildren<SpriteRenderer>(true))
+            {
+                Undo.RecordObject(renderer, "Set LootQuanSu to foot-pivot Y-sort");
+                renderer.sortingLayerName = "Gameplay";
+                renderer.sortingOrder = 0;
+                renderer.spriteSortPoint = SpriteSortPoint.Pivot;
+                PrefabUtility.RecordPrefabInstancePropertyModifications(renderer);
+                EditorUtility.SetDirty(renderer);
+                sceneRenderers++;
+            }
+        }
+        Undo.CollapseUndoOperations(undoGroup);
+        EditorSceneManager.MarkSceneDirty(school.scene);
+
+        Debug.Log(
+            $"[Environment Fixer] LOOT QUAN SU SORT FIX: 4 prefab/{prefabRenderers} renderer và " +
+            $"4 instance school/{sceneRenderers} renderer -> Gameplay/0/Pivot. " +
+            $"Backup prefab: '{backupDirectory}'. Giữ nguyên Transform, sprite, material, collider, " +
+            "LootContainer, loot table và NetworkObject. Scene đang dirty, chưa tự Save.",
+            school);
+    }
+
+    [MenuItem("Tools/Environment/Quick House Pipeline/school/Validate LootQuanSu Prefab Sorting")]
+    public static void ValidateSchoolMilitaryLootPrefabSorting()
+    {
+        GameObject school = FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None)
+            .FirstOrDefault(candidate => candidate.name == "school" && candidate.scene.IsValid());
+        List<string> lines = new List<string>();
+        bool valid = school != null;
+        int prefabRendererCount = 0;
+        int sceneRendererCount = 0;
+
+        foreach (string prefabPath in SchoolMilitaryLootPrefabPaths)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            SpriteRenderer[] renderers = prefab != null
+                ? prefab.GetComponentsInChildren<SpriteRenderer>(true)
+                : Array.Empty<SpriteRenderer>();
+            bool prefabValid = renderers.Length > 0 && renderers.All(IsMilitaryLootSortingValid);
+            valid &= prefabValid;
+            prefabRendererCount += renderers.Length;
+            lines.Add($"- Prefab {System.IO.Path.GetFileNameWithoutExtension(prefabPath)}: " +
+                      $"renderers={renderers.Length}, sorting={(prefabValid ? "Gameplay/0/Pivot" : "INVALID")}");
+        }
+
+        foreach (string lootName in SchoolMilitaryLootNames)
+        {
+            Transform loot = school != null ? school.transform.Find(lootName) : null;
+            SpriteRenderer[] renderers = loot != null
+                ? loot.GetComponentsInChildren<SpriteRenderer>(true)
+                : Array.Empty<SpriteRenderer>();
+            string assetPath = loot != null
+                ? PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(loot.gameObject)
+                : string.Empty;
+            string expectedPath = SchoolMilitaryLootPrefabPaths
+                .First(path => System.IO.Path.GetFileNameWithoutExtension(path) == lootName);
+            bool instanceValid = renderers.Length > 0 && renderers.All(IsMilitaryLootSortingValid) &&
+                                 assetPath == expectedPath;
+            valid &= instanceValid;
+            sceneRendererCount += renderers.Length;
+            lines.Add($"- Scene school/{lootName}: renderers={renderers.Length}, " +
+                      $"sorting={(instanceValid ? "Gameplay/0/Pivot" : "INVALID")}, prefab='{assetPath}'");
+        }
+
+        lines.Add($"- Scope guard: prefabRenderers={prefabRendererCount}, sceneRenderers={sceneRendererCount}; " +
+                  "không kiểm tra/thay đổi Transform, collider, loot data hoặc network data");
+        Debug.Log($"[Environment Fixer] LOOT QUAN SU SORT VALIDATION: {(valid ? "PASS" : "FAIL")}\n" +
+                  string.Join("\n", lines), school);
+    }
+
+    private static bool IsMilitaryLootSortingValid(SpriteRenderer renderer)
+    {
+        return renderer != null && renderer.sortingLayerName == "Gameplay" &&
+               renderer.sortingOrder == 0 && renderer.spriteSortPoint == SpriteSortPoint.Pivot;
+    }
+
+    private static int CountTextOccurrences(string text, string value)
+    {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+        {
+            count++;
+            index += value.Length;
+        }
+        return count;
+    }
+
     [MenuItem("Tools/Environment/Quick House Pipeline/school/Validate Fixed Structure")]
     public static void ValidateSchoolFixedStructure()
     {
@@ -1273,10 +1499,27 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
 
         TilemapRenderer wallRenderer = walls.GetComponent<TilemapRenderer>();
         TilemapRenderer roofRenderer = roof.GetComponent<TilemapRenderer>();
+        Tilemap classroomDecor = school.transform.Find("decordlophoc")?.GetComponent<Tilemap>();
+        Tilemap nestedDecor = classroomDecor != null
+            ? classroomDecor.transform.Find("decord")?.GetComponent<Tilemap>()
+            : null;
+        TilemapRenderer classroomDecorRenderer = classroomDecor != null
+            ? classroomDecor.GetComponent<TilemapRenderer>()
+            : null;
+        TilemapRenderer nestedDecorRenderer = nestedDecor != null
+            ? nestedDecor.GetComponent<TilemapRenderer>()
+            : null;
+        bool decorSortingValid = classroomDecorRenderer != null && nestedDecorRenderer != null &&
+                                 classroomDecorRenderer.sortingLayerName == "Gameplay" &&
+                                 classroomDecorRenderer.sortingOrder == 0 &&
+                                 classroomDecorRenderer.mode == TilemapRenderer.Mode.Individual &&
+                                 nestedDecorRenderer.sortingLayerName == "Gameplay" &&
+                                 nestedDecorRenderer.sortingOrder == 0 &&
+                                 nestedDecorRenderer.mode == TilemapRenderer.Mode.Individual;
         bool sortingValid = wallRenderer != null && wallRenderer.sortingLayerName == "Gameplay" &&
                             wallRenderer.mode == TilemapRenderer.Mode.Individual &&
                             roofRenderer != null && roofRenderer.sortingLayerName == "Foreground" &&
-                            roofRenderer.sortingOrder == 20;
+                            roofRenderer.sortingOrder == 20 && decorSortingValid;
         bool roofOwnership = roofTrigger != null && roofTrigger.enabled && roofTrigger.isTrigger &&
                              roofTrigger.errorState == ColliderErrorState2D.None && roofController != null &&
                              roofController.roofTilemaps != null && roofController.roofTilemaps.Length == 1 &&
@@ -1316,6 +1559,8 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             $"- Ordinary wall samples: blocked={ordinaryBlocked}/{ordinaryTested}",
             $"- Roof: paths={roofTrigger?.pathCount ?? 0}, coverage={roofClusterCells - roofTriggerMisses}/{roofClusterCells}, ownership={roofOwnership}",
             $"- Sorting: wall={wallRenderer?.sortingLayerName}/{wallRenderer?.sortingOrder}/{wallRenderer?.mode}, roof={roofRenderer?.sortingLayerName}/{roofRenderer?.sortingOrder}/{roofRenderer?.mode}",
+            $"- Decor Y-sort: decordlophoc={classroomDecorRenderer?.sortingLayerName}/{classroomDecorRenderer?.sortingOrder}/{classroomDecorRenderer?.mode}, " +
+            $"decord={nestedDecorRenderer?.sortingLayerName}/{nestedDecorRenderer?.sortingOrder}/{nestedDecorRenderer?.mode}",
             $"- Unintended enabled solid colliders: {unintendedSolids.Length}" +
             (unintendedSolids.Length > 0 ? $" [{string.Join(", ", unintendedSolids.Select(collider => collider.gameObject.name))}]" : string.Empty),
             $"- Prefab remains scene instance: '{PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(school)}' (không Apply All)"
@@ -1363,6 +1608,9 @@ public sealed class EnvironmentColliderFixerWindow : EditorWindow
             else
             {
                 renderer.sortingLayerName = "Gameplay";
+                if (map.name.Equals("decordlophoc", StringComparison.OrdinalIgnoreCase) ||
+                    map.name.Equals("decord", StringComparison.OrdinalIgnoreCase))
+                    renderer.sortingOrder = 0;
                 renderer.mode = TilemapRenderer.Mode.Individual;
             }
             EditorUtility.SetDirty(renderer);
