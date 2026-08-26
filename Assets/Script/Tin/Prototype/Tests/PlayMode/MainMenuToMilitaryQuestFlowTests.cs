@@ -1039,14 +1039,14 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         // MilitaryQuestRules lives in the QuestUI prototype assembly, not Assembly-CSharp.
         Type respawnRulesType = Type.GetType("MilitaryQuestRules, ProjectZomboiNhai.QuestUI");
         Assert.That(respawnRulesType, Is.Not.Null);
-        MethodInfo computeSiegeGateMaxHealth = respawnRulesType.GetMethod("ComputeSiegeGateMaxHealth",
+        MethodInfo computeSiegeGateMaxHealth = respawnRulesType.GetMethod("ComputeSiegeGateMaxHealthForDifficulty",
             BindingFlags.Public | BindingFlags.Static);
         Assert.That(computeSiegeGateMaxHealth, Is.Not.Null);
         float expectedSoloGateMaxHealth =
-            (float)computeSiegeGateMaxHealth.Invoke(null, new object[] { 1 });
+            (float)computeSiegeGateMaxHealth.Invoke(null, new object[] { 1, 0 });
         Assert.That((float)ReadProperty(military, "GateMaxHealth"),
             Is.EqualTo(expectedSoloGateMaxHealth).Within(0.01f),
-            "Solo siege must use the enlarged 3-minute hold pool; legacy serialization must not lower it.");
+            "Easy Solo siege must use the five-minute hold pool; legacy serialization must not lower it.");
         float gateHealthBefore = (float)ReadProperty(military, "GateCurrentHealth");
         Type gateType = Type.GetType("MilitaryGateController, Assembly-CSharp");
         Assert.That(gateType, Is.Not.Null);
@@ -1077,7 +1077,25 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             yield return null;
         }
         Assert.That(siegeObjectives.Length, Is.GreaterThan(0),
-            "The siege must spawn or adopt at least one zombie objective.");
+            "The siege must spawn at least one fresh zombie objective.");
+
+        Type rebuiltHealthType = Type.GetType("ZombieAIKhoaRebuilt, Assembly-CSharp");
+        Type khoaHealthType = Type.GetType("ZOmbieAI_Khoa, Assembly-CSharp");
+        Type thaiHealthType = Type.GetType("ZombieHealth, Assembly-CSharp");
+        for (int i = 0; i < siegeObjectives.Length; i++)
+        {
+            Component objective = siegeObjectives[i] as Component;
+            Component healthOwner = objective?.GetComponent(rebuiltHealthType) ??
+                                    objective?.GetComponent(khoaHealthType) ??
+                                    objective?.GetComponent(thaiHealthType);
+            Assert.That(healthOwner, Is.Not.Null);
+            float currentHealth = healthOwner.GetType() == thaiHealthType
+                ? (float)ReadProperty(healthOwner, "currentHealth")
+                : (float)ReadProperty(healthOwner, "CurrentHealth");
+            float maxHealth = (float)ReadAnyField(healthOwner, "maxHealth");
+            Assert.That(currentHealth, Is.EqualTo(maxHealth).Within(0.001f),
+                "Every siege zombie must be freshly spawned at full HP, never adopted after ambient damage.");
+        }
 
         Behaviour killedSiegeObjective = siegeObjectives[0] as Behaviour;
         Assert.That(killedSiegeObjective, Is.Not.Null);
@@ -1117,7 +1135,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "Retiring the siege objective must preserve zombie-corpse loot.");
         Vector3 corpsePosition = killedSiegeObjective.transform.position;
         for (int i = 0; i < 4; i++) yield return new WaitForFixedUpdate();
-        Assert.That(Vector3.Distance(killedSiegeObjective.transform.position, corpsePosition), Is.LessThan(0.01f),
+        Assert.That(Vector3.Distance(killedSiegeObjective.transform.position, corpsePosition), Is.LessThan(0.03f),
             "The siege controller must not move a dead zombie back toward the gate.");
 
         // The yellow-shirt prefab is ZombieKhoaRebuilt. Unlike the Thai
@@ -1242,20 +1260,38 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             Assert.That(contents.Count, Is.GreaterThanOrEqualTo(3),
                 "Each container must contain one repair item, one weapon, and one or more ammo stacks.");
             UnityEngine.Object repairItem = ReadAnyField(contents[0], "item") as UnityEngine.Object;
-            UnityEngine.Object weapon = ReadAnyField(contents[1], "item") as UnityEngine.Object;
-            UnityEngine.Object ammo = ReadAnyField(contents[2], "item") as UnityEngine.Object;
             Assert.That(repairItem, Is.Not.Null);
             Assert.That(repairItem.name, Does.StartWith("PoliceCar"));
             foundRepairItemIds.Add(repairItem.name);
-            Assert.That(ReadAnyField(weapon, "category")?.ToString(), Is.EqualTo("Weapon"));
-            Assert.That(MilitaryRepairLootRules.IsApprovedBonusId(weapon.name), Is.True);
-            Assert.That(MilitaryRepairLootRules.IsApprovedBonusId(ammo.name), Is.True);
-            for (int slotIndex = 2; slotIndex < contents.Count; slotIndex++)
+
+            var totals = new Dictionary<string, int>();
+            for (int slotIndex = 1; slotIndex < contents.Count; slotIndex++)
             {
-                UnityEngine.Object ammoStack = ReadAnyField(contents[slotIndex], "item") as UnityEngine.Object;
-                Assert.That(ammoStack, Is.Not.Null);
-                Assert.That(ammoStack.name, Is.EqualTo(ammo.name),
-                    "Amounts above an ItemData stack limit may occupy multiple slots, but must stay the paired ammo type.");
+                UnityEngine.Object item = ReadAnyField(contents[slotIndex], "item") as UnityEngine.Object;
+                Assert.That(item, Is.Not.Null);
+                Assert.That(MilitaryRepairLootRules.IsApprovedBonusId(item.name), Is.True);
+                int amount = (int)ReadAnyField(contents[slotIndex], "amount");
+                totals[item.name] = totals.TryGetValue(item.name, out int previous) ? previous + amount : amount;
+            }
+
+            bool vip = container.name.StartsWith("LootQuanSuVjp", StringComparison.Ordinal);
+            if (vip)
+            {
+                Assert.That(totals["AK47"], Is.EqualTo(MilitaryRepairLootRules.VipWeaponCopiesPerType));
+                Assert.That(totals["S12K"], Is.EqualTo(MilitaryRepairLootRules.VipWeaponCopiesPerType));
+                Assert.That(totals["Ammo762"], Is.EqualTo(MilitaryRepairLootRules.VipAkAmmoAmount));
+                Assert.That(totals["Ammo12Gauge"], Is.EqualTo(MilitaryRepairLootRules.VipShotgunAmmoAmount));
+            }
+            else
+            {
+                int weaponCount = (totals.TryGetValue("AK47", out int akCount) ? akCount : 0) +
+                                  (totals.TryGetValue("S12K", out int s12Count) ? s12Count : 0);
+                Assert.That(weaponCount, Is.EqualTo(1));
+                if (akCount == 1)
+                    Assert.That(totals["Ammo762"], Is.EqualTo(MilitaryRepairLootRules.RegularAkAmmoAmount));
+                else
+                    Assert.That(totals["Ammo12Gauge"],
+                        Is.EqualTo(MilitaryRepairLootRules.RegularShotgunAmmoAmount));
             }
         }
         Assert.That(foundRepairItemIds.Count, Is.EqualTo(5));

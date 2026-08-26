@@ -47,6 +47,7 @@ public class LootContainer : NetworkBehaviour
     // Each physical cabinet rolls quest loot at most once on State Authority.
     // Opening a house or an ordinary cabinet never advances quest progress.
     [Networked] private NetworkBool RouteClueRollResolved { get; set; }
+    [Networked] private NetworkBool MilitaryLootHasItems { get; set; }
 
     private bool hasGeneratedLoot = false;
     private PlayerMovement cachedLocalPlayer;
@@ -54,6 +55,8 @@ public class LootContainer : NetworkBehaviour
     private int lastOpenFrame = -1;
 
     public bool IsMilitaryRepairLootContainer => militaryRepairLootContainer;
+    public bool IsMilitaryLootVip => militaryRepairLootContainer && name.StartsWith("LootQuanSuVjp");
+    public bool ShouldShowMilitaryWaypoint => IsGameplayAvailable && MilitaryLootHasItems;
     public bool IsGameplayAvailable => !militaryRepairLootContainer ||
         (MilitaryBaseQuestManager.Instance != null &&
          MilitaryBaseQuestManager.Instance.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair &&
@@ -92,12 +95,15 @@ public class LootContainer : NetworkBehaviour
         if (!HasStateAuthority || !militaryRepairLootContainer) return;
         itemsInContainer.Clear();
         hasGeneratedLoot = true;
+        MilitaryLootHasItems = false;
     }
 
     public bool AuthorityAddConfiguredItem(ItemData itemData, int amount)
     {
-        return HasStateAuthority && militaryRepairLootContainer && hasGeneratedLoot &&
-               StoreItemLocal(itemData, amount);
+        if (!HasStateAuthority || !militaryRepairLootContainer || !hasGeneratedLoot ||
+            !StoreItemLocal(itemData, amount)) return false;
+        MilitaryLootHasItems = true;
+        return true;
     }
 
     private void GenerateRandomLoot()
@@ -516,6 +522,7 @@ public class LootContainer : NetworkBehaviour
         bool isRouteClue = QuestRouteClueItemCatalog.TryGetKind(slot.item, out QuestRouteClueKind routeClueKind);
 
         itemsInContainer.RemoveAt(slotIndex);
+        if (militaryRepairLootContainer && itemsInContainer.Count == 0) MilitaryLootHasItems = false;
         RPC_SyncRemoveItem(slotIndex);
         if (isRouteClue)
         {
@@ -653,7 +660,28 @@ public class LootContainer : NetworkBehaviour
             return;
         }
 
+        if (militaryRepairLootContainer) MilitaryLootHasItems = true;
         RPC_SyncAddItem(itemName, amount, false);
+    }
+
+    private void OnGUI()
+    {
+        if (!ShouldShowMilitaryWaypoint || LocalGameplayUIState.BlocksWorldInteractionHints) return;
+        Camera camera = Camera.main;
+        if (camera == null) return;
+        Vector3 screenPoint = camera.WorldToScreenPoint(transform.position + new Vector3(0f, 0.65f, 0f));
+        if (screenPoint.z <= 0f) return;
+
+        GUIStyle markerStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = IsMilitaryLootVip ? 32 : 27,
+            fontStyle = FontStyle.Bold
+        };
+        markerStyle.normal.textColor = new Color(1f, 0.88f, 0.1f, 1f);
+        string marker = IsMilitaryLootVip ? "◆" : "●";
+        GUI.Label(new Rect(screenPoint.x - 22f, Screen.height - screenPoint.y - 22f, 44f, 44f), marker,
+            markerStyle);
     }
 
     private bool AuthorityValidateMilitaryLootRequest(PlayerRef player, out string reason)

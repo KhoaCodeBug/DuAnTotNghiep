@@ -5,8 +5,13 @@ using UnityEngine;
 
 public sealed class MilitaryRepairLootRulesTests
 {
-    private const string PrefabPath =
-        "Assets/Resources/NetworkPrefabs/MilitaryRepairLootContainer.prefab";
+    private static readonly string[] AuthoredPrefabPaths =
+    {
+        "Assets/Khoa/Loot/KhuQuanSu/LootQuanSu1.prefab",
+        "Assets/Khoa/Loot/KhuQuanSu/LootQuanSu2.prefab",
+        "Assets/Khoa/Loot/KhuQuanSu/LootQuanSu3.prefab",
+        "Assets/Khoa/Loot/KhuQuanSu/LootQuanSuVjp.prefab"
+    };
 
     [Test]
     public void EverySeedContainsExactlyTheFiveRequiredPoliceRepairItems()
@@ -38,6 +43,9 @@ public sealed class MilitaryRepairLootRulesTests
                 Assert.That(MilitaryRepairLootRules.IsApprovedBonusId(entry.BonusWeaponId), Is.True);
                 Assert.That(MilitaryRepairLootRules.IsApprovedBonusId(entry.BonusAmmoId), Is.True);
                 Assert.That(entry.BonusAmmoAmount, Is.GreaterThan(0));
+                Assert.That(entry.BonusAmmoAmount, Is.EqualTo(entry.BonusWeaponId == "S12K"
+                    ? MilitaryRepairLootRules.RegularShotgunAmmoAmount
+                    : MilitaryRepairLootRules.RegularAkAmmoAmount));
                 Assert.That(entry.BonusWeaponId == "S12K" ? entry.BonusAmmoId : "Ammo762",
                     Is.EqualTo(entry.BonusAmmoId));
                 System.Type loaderType = System.Type.GetType("ItemDataLoader, Assembly-CSharp");
@@ -64,21 +72,28 @@ public sealed class MilitaryRepairLootRulesTests
     }
 
     [Test]
-    public void OfficialPrefabIsARegisteredRouteBOnlyFusionPrefab()
+    public void AuthoredMilitaryPrefabsAreRegisteredRouteBOnlyFusionPrefabs()
     {
-        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath);
-        Assert.That(prefab, Is.Not.Null);
         System.Type networkObjectType = System.Type.GetType("Fusion.NetworkObject, Fusion.Runtime");
         Assert.That(networkObjectType, Is.Not.Null);
-        Assert.That(prefab.GetComponent(networkObjectType), Is.Not.Null);
         System.Type containerType = System.Type.GetType("LootContainer, Assembly-CSharp");
         Assert.That(containerType, Is.Not.Null);
-        Component container = prefab.GetComponent(containerType);
-        Assert.That(container, Is.Not.Null);
-        Assert.That((bool)containerType.GetProperty("IsMilitaryRepairLootContainer")?.GetValue(container), Is.True);
-        Color highlight = (Color)containerType.GetField("highlightColor")?.GetValue(container);
-        Assert.That(highlight.r, Is.EqualTo(1f).Within(0.001f));
-        Assert.That(highlight.g, Is.LessThan(0.2f));
-        Assert.That(AssetDatabase.GetLabels(prefab), Does.Contain("FusionPrefab"));
+        for (int i = 0; i < AuthoredPrefabPaths.Length; i++)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AuthoredPrefabPaths[i]);
+            Assert.That(prefab, Is.Not.Null, AuthoredPrefabPaths[i]);
+            Assert.That(prefab.GetComponent(networkObjectType), Is.Not.Null);
+            Component container = prefab.GetComponent(containerType);
+            Assert.That(container, Is.Not.Null);
+            Assert.That((bool)containerType.GetProperty("IsMilitaryRepairLootContainer")?.GetValue(container),
+                Is.True);
+            Color highlight = (Color)containerType.GetField("highlightColor")?.GetValue(container);
+            Assert.That(highlight.r, Is.EqualTo(1f).Within(0.001f));
+            Assert.That(highlight.g, Is.EqualTo(0.88f).Within(0.001f));
+            Assert.That(AssetDatabase.GetLabels(prefab), Does.Contain("FusionPrefab"));
+        }
+        Assert.That(AssetDatabase.LoadAssetAtPath<GameObject>(
+            "Assets/Resources/NetworkPrefabs/MilitaryRepairLootContainer.prefab"), Is.Null,
+            "The obsolete post-cinematic runtime loot prefab must stay deleted.");
     }
 }

@@ -4,27 +4,32 @@ using UnityEngine;
 public sealed class MilitaryRespawnRulesTests
 {
     [Test]
-    public void SoloGatePoolReachesZeroAtThreeMinutesUnderFullAssault()
+    public void SoloGatePoolUsesSelectedDifficultyDeadline()
     {
-        float soloPool = MilitaryQuestRules.ComputeSiegeGateMaxHealth(1);
         float fullAssaultDamagePerSecond = MilitaryQuestRules.GateDamagePerHit *
             MilitaryQuestRules.GateMaxHitsPerSecond;
-        Assert.That(soloPool, Is.EqualTo(fullAssaultDamagePerSecond * MilitaryQuestRules.SoloGateHoldSeconds)
-            .Within(0.001f));
-        Assert.That(soloPool / fullAssaultDamagePerSecond,
-            Is.EqualTo(MilitaryQuestRules.SoloGateHoldSeconds).Within(0.001f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(0), Is.EqualTo(300f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(1), Is.EqualTo(240f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(2), Is.EqualTo(180f));
+        for (int difficulty = 0; difficulty <= 2; difficulty++)
+        {
+            float deadline = MilitaryQuestRules.GetSoloGateHoldSeconds(difficulty);
+            float soloPool = MilitaryQuestRules.ComputeSiegeGateMaxHealthForDifficulty(1, difficulty);
+            Assert.That(soloPool, Is.EqualTo(fullAssaultDamagePerSecond * deadline).Within(0.001f));
+        }
     }
 
     [Test]
     public void SoloGateDpsDoesNotStartDepletedAndReachesZeroExactlyAtDeadline()
     {
-        float pool = MilitaryQuestRules.ComputeSiegeGateMaxHealth(1);
-        Assert.That(MilitaryQuestRules.GetSoloGateHealthAtElapsed(pool, 0f), Is.EqualTo(pool).Within(0.001f));
-        Assert.That(MilitaryQuestRules.GetSoloGateHealthAtElapsed(pool, 90f), Is.EqualTo(pool * 0.5f).Within(0.001f));
-        Assert.That(MilitaryQuestRules.GetSoloGateHealthAtElapsed(pool,
-            MilitaryQuestRules.SoloGateHoldSeconds), Is.EqualTo(0f).Within(0.001f));
-        Assert.That(MilitaryQuestRules.GetSoloGateHealthAtElapsed(pool,
-            MilitaryQuestRules.SoloGateHoldSeconds + 30f), Is.EqualTo(0f).Within(0.001f));
+        float pool = MilitaryQuestRules.ComputeSiegeGateMaxHealthForDifficulty(1, 1);
+        float deadline = MilitaryQuestRules.SoloGateHoldSecondsNormal;
+        Assert.That(MilitaryQuestRules.GetSoloGateHealthAtElapsedForDifficulty(pool, 0f, 1), Is.EqualTo(pool).Within(0.001f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHealthAtElapsedForDifficulty(pool, deadline * 0.5f, 1),
+            Is.EqualTo(pool * 0.5f).Within(0.001f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHealthAtElapsedForDifficulty(pool, deadline, 1), Is.EqualTo(0f).Within(0.001f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHealthAtElapsedForDifficulty(pool, deadline + 30f, 1),
+            Is.EqualTo(0f).Within(0.001f));
     }
 
     [Test]

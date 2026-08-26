@@ -348,6 +348,12 @@ public class DevCheatManager : MonoBehaviour
                 Debug.Log("[CHEAT] ❤️ Health & status fully restored!");
             }
         });
+        AddActionRow(cheatsTabContent.transform, "HEAL MILITARY GATE + RESET SOLO TIMER", "HEAL GATE",
+            new Color32(34, 197, 94, 255), () => {
+                MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+                if (military == null || !military.DebugHealGate())
+                    Debug.LogWarning("[CHEAT] Gate heal requires an intact gate during the military siege.");
+            });
         AddActionRow(cheatsTabContent.transform, "📦 GIVE +100 ALL AMMO TYPES", "ADD AMMO", new Color32(245, 158, 11, 255), () => {
             CachePlayer();
             if (cachedInventory != null)
