@@ -1376,12 +1376,17 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "A full inventory must not deplete authoritative loot.");
 
         Assert.That((int)consumeItem.Invoke(localInventory, new object[] { filler, 1 }), Is.EqualTo(1));
+        // A raw Transform move is reconciled by NetworkRigidbody2D on the next
+        // simulation tick. Keep this transaction-focused test beside the
+        // container before every direct authority RPC invocation.
+        localMovement.transform.position = transactionContainer.transform.position;
         requestTakeItem.Invoke(transactionContainer,
             new[] { (object)0, claimedRepairItemName, localPlayerRef, defaultRpcInfo });
         yield return null;
         yield return null;
         Assert.That((int)getItemCount.Invoke(localInventory, new object[] { claimedRepairItem }),
             Is.EqualTo(beforeClaim + 1));
+        localMovement.transform.position = transactionContainer.transform.position;
         requestTakeItem.Invoke(transactionContainer,
             new[] { (object)0, claimedRepairItemName, localPlayerRef, defaultRpcInfo });
         yield return null;

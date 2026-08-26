@@ -100,6 +100,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private Action unlockRevealFinished;
     private bool officeRegionRevealVisualComplete;
     private Coroutine militaryUnlockRevealRoutine;
+    private Coroutine civilianUnlockRevealRoutine;
     private bool militaryRevealPending;
     private bool militaryRegionRevealVisualComplete;
     private bool civilianCityMapUnlocked;
@@ -120,6 +121,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     public bool IsMilitaryDestinationVisible => militaryMarker != null && militaryMarker.activeSelf;
     public bool IsOfficeDestinationVisible => officeMarker != null && officeMarker.activeSelf;
     public bool IsMilitaryUnlockRevealPlaying => militaryUnlockRevealRoutine != null;
+    public bool IsCivilianUnlockRevealPlaying => civilianUnlockRevealRoutine != null;
 
     private static string L(string english, string vietnamese) =>
         QuestUILocalization.IsVietnamese ? vietnamese : english;
@@ -302,6 +304,133 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             StartUnlockReveal();
     }
 
+    public void OpenWithCivilianRouteReveal(Action onFinished = null)
+    {
+        SetOpen(true);
+        if (!Application.isPlaying || civilianCheckpointMarker == null || unlockRevealRoot == null)
+        {
+            onFinished?.Invoke();
+            return;
+        }
+
+        if (civilianUnlockRevealRoutine != null)
+            StopCoroutine(civilianUnlockRevealRoutine);
+        civilianUnlockRevealRoutine = StartCoroutine(CivilianRouteRevealRoutine(onFinished));
+    }
+
+    private IEnumerator CivilianRouteRevealRoutine(Action onFinished)
+    {
+        // If another map discovery is already using the shared scan graphics,
+        // let it finish instead of layering two full-screen reveals together.
+        while (unlockRevealRoutine != null || militaryUnlockRevealRoutine != null)
+            yield return null;
+
+        Refresh();
+        civilianCheckpointMarker.SetActive(true);
+        CanvasGroup markerGroup = civilianCheckpointMarker.GetComponent<CanvasGroup>();
+        if (markerGroup == null) markerGroup = civilianCheckpointMarker.AddComponent<CanvasGroup>();
+        markerGroup.alpha = 0f;
+        civilianCheckpointMarker.transform.localScale = Vector3.one * 0.68f;
+
+        unlockRevealRoot.SetActive(true);
+        unlockRevealRoot.transform.SetAsLastSibling();
+        unlockRevealGroup.alpha = 1f;
+        SetUnlockRevealDarkness(0.42f);
+        TintUnlockReveal(Mint);
+        unlockRevealTitle.text = L("CIVILIAN ROUTE FOUND", "ĐÃ XÁC ĐỊNH TUYẾN DÂN SỰ");
+        unlockRevealBody.text = L(
+            "Scanning the city road network for a viable escape corridor...",
+            "Đang quét mạng lưới đường thành phố để tìm hành lang thoát hiểm...");
+        unlockRevealPulse.localScale = Vector3.one * 0.28f;
+        unlockRevealCore.localScale = Vector3.one * 0.65f;
+        unlockRevealCore.gameObject.SetActive(!useRasterMap);
+        AlignUnlockRevealToMarker(civilianCheckpointMarker);
+
+        Vector2 startContentPosition = mapContent != null ? mapContent.anchoredPosition : Vector2.zero;
+        float startZoom = mapContent != null ? mapContent.localScale.x : 1f;
+        const float targetZoom = 1.52f;
+        Vector2 targetContentPosition = CalculateFocusPosition(
+            civilianCheckpointMarker, startContentPosition, startZoom, targetZoom);
+
+        float elapsed = 0f;
+        const float scanDuration = 1.15f;
+        while (elapsed < scanDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / scanDuration);
+            float eased = t * t * (3f - 2f * t);
+            unlockRevealPulse.localScale = Vector3.one * Mathf.Lerp(0.28f, 1.2f, eased);
+            unlockRevealPulse.localRotation = Quaternion.Euler(0f, 0f, elapsed * 95f);
+            unlockRevealCore.localRotation = Quaternion.Euler(0f, 0f, -elapsed * 120f);
+            SetUnlockRevealDarkness(Mathf.Lerp(0.42f, 0.18f, eased));
+            AlignUnlockRevealToMarker(civilianCheckpointMarker);
+            yield return null;
+        }
+
+        unlockRevealTitle.text = L("REGROUP POINT MARKED", "ĐÃ ĐÁNH DẤU ĐIỂM TẬP KẾT");
+        unlockRevealBody.text = L(
+            "Drive the repaired car to the pulsing mint marker.",
+            "Lái chiếc xe vừa sửa tới điểm màu xanh đang nhấp nháy.");
+        elapsed = 0f;
+        const float impactDuration = 1.85f;
+        while (elapsed < impactDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / impactDuration);
+            float eased = t * t * (3f - 2f * t);
+            markerGroup.alpha = Mathf.Clamp01(Mathf.Lerp(0.2f, 1f, eased) +
+                                               Mathf.Sin(t * Mathf.PI * 5f) * 0.12f);
+            float markerScale = Mathf.Lerp(0.68f, 1f, eased) +
+                                Mathf.Sin(t * Mathf.PI * 5f) * 0.08f * (1f - t);
+            civilianCheckpointMarker.transform.localScale = Vector3.one * markerScale;
+            unlockRevealPulse.localScale = Vector3.one * Mathf.Lerp(1.2f, 1.62f, eased);
+            SetUnlockRevealDarkness(Mathf.Lerp(0.18f, 0f, eased));
+            if (mapContent != null)
+            {
+                zoom = Mathf.Lerp(startZoom, targetZoom, eased);
+                mapContent.localScale = Vector3.one * zoom;
+                mapContent.anchoredPosition = Vector2.Lerp(
+                    startContentPosition, targetContentPosition, eased);
+            }
+            AlignUnlockRevealToMarker(civilianCheckpointMarker);
+            yield return null;
+        }
+
+        civilianCheckpointMarker.transform.localScale = Vector3.one;
+        markerGroup.alpha = 1f;
+        elapsed = 0f;
+        const float fadeDuration = 0.35f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            unlockRevealGroup.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
+            yield return null;
+        }
+        unlockRevealRoot.SetActive(false);
+        unlockRevealGroup.alpha = 0f;
+        civilianUnlockRevealRoutine = null;
+        onFinished?.Invoke();
+    }
+
+    private Vector2 CalculateFocusPosition(GameObject marker, Vector2 startPosition,
+        float startScale, float targetScale)
+    {
+        if (mapContent == null || viewport == null || marker == null) return startPosition;
+        Vector2 markerInViewport = viewport.InverseTransformPoint(marker.transform.position);
+        Vector2 unscaledPoint = (markerInViewport - startPosition) / Mathf.Max(0.001f, startScale);
+        Vector2 requestedPosition = -unscaledPoint * targetScale;
+
+        zoom = targetScale;
+        mapContent.localScale = Vector3.one * targetScale;
+        mapContent.anchoredPosition = requestedPosition;
+        ClampPan();
+        Vector2 clampedPosition = mapContent.anchoredPosition;
+        zoom = startScale;
+        mapContent.localScale = Vector3.one * startScale;
+        mapContent.anchoredPosition = startPosition;
+        return clampedPosition;
+    }
+
     private void StartUnlockReveal()
     {
         unlockRevealPending = false;
@@ -479,6 +608,14 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             return;
 
         Vector2 markerPoint = viewport.InverseTransformPoint(officeMarker.transform.position);
+        unlockRevealPulse.anchoredPosition = markerPoint;
+        if (unlockRevealCore != null) unlockRevealCore.anchoredPosition = markerPoint;
+    }
+
+    private void AlignUnlockRevealToMarker(GameObject marker)
+    {
+        if (viewport == null || marker == null || unlockRevealPulse == null) return;
+        Vector2 markerPoint = viewport.InverseTransformPoint(marker.transform.position);
         unlockRevealPulse.anchoredPosition = markerPoint;
         if (unlockRevealCore != null) unlockRevealCore.anchoredPosition = markerPoint;
     }

@@ -141,3 +141,18 @@ Sau khi merge phải chạy lại vì kết quả trên chỉ chứng minh trạ
 - Không báo hoàn thành nếu chưa có build/test tương xứng.
 - Khi bàn giao phải đưa test tay theo thứ tự và kết quả mong đợi cụ thể.
 - Không push thẳng `main`; push feature branch và để review/PR xử lý bước hợp nhất cuối.
+
+## Kết quả Git integration — 2026-08-26
+
+- Đã tạo nhánh an toàn `codex/route-b-integration-20260826` và commit toàn bộ Route B tại `197b51371`; bốn ảnh `opencode-screen*.png` không được stage.
+- Đã fetch `origin`; `origin/main` mới nhất tại thời điểm tích hợp là `13b1c575e`, gồm Route A repair/outro và nhóm prefab loot mới.
+- Merge chỉ conflict tại `Assets/Scenes/Main.unity`: Route B thêm năm `MilitaryRepairLootMarker`, Route A thêm `CivilianRouteCheckpoint`, `CivilianCityExit` và `CivilianOutroEnd`. Resolution giữ đủ cả tám root và toàn bộ serialized reference của hai tuyến.
+- Unity 6.0.69f1 refresh/compile thành công. `Main.unity` validate sạch: không missing script hoặc broken prefab; kiểm tra live hierarchy thấy đúng một object cho từng marker/mốc của cả hai tuyến.
+- `dotnet build Assembly-CSharp.csproj --no-restore -v:q`: 0 error, 8 warning hiện hữu từ project/dependency.
+- Build `ProjectZomboiNhai.QuestUI.Tests.Editor.csproj` và `ProjectZomboiNhai.QuestFlow.Tests.PlayMode.csproj`: 0 error, 0 warning.
+- Toàn bộ EditMode assembly: `112/112` pass trong `7,34s`.
+- Full Route B PlayMode `RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction`: `1/1` pass trong `38,51s`.
+- PlayMode giữ nguyên police `Car` author: `1/1` pass trong `10,28s`.
+- Sau test, Unity Console đã clear và đọc lại: 0 error.
+- Một test transaction được làm ổn định sau merge: trước từng direct authority loot RPC, test đặt lại Player cạnh container vì `NetworkRigidbody2D` sẽ reconcile raw `transform.position` sau network tick. Production validation phase/distance/LOS/inventory/double-claim không thay đổi.
+- Acceptance Host + Client hai máy và cảm giác thực tế của Route A outro/Route B finale vẫn là QA tay cuối, không được suy diễn từ PlayMode Solo.

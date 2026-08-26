@@ -61,6 +61,7 @@ public class PlayerInteraction : NetworkBehaviour
         if (!Object.HasInputAuthority) return;
         PlayerSurvival survival = GetComponent<PlayerSurvival>();
         bool gameplayBlocked = VehicleRepairSkillCheckUI.BlocksGameplayInput ||
+                               CivilianRoutePresentationController.BlocksGameplayInput ||
                                (survival != null && survival.IsSleepInputLocked) ||
                                (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) ||
                                (QuestFlowUIPrototype.Instance != null &&
@@ -211,6 +212,7 @@ public class PlayerInteraction : NetworkBehaviour
     private void OnGUI()
     {
         if (Object == null || !Object.IsValid || !Object.HasInputAuthority) return;
+        if (CivilianRoutePresentationController.BlocksGameplayInput || VictorySummaryUI.IsShowing) return;
 
         if (NetworkIsInVehicle)
         {

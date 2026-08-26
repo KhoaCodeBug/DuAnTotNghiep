@@ -98,11 +98,14 @@ public sealed class MainQuestManager : NetworkBehaviour
     [SerializeField, Range(0f, 1f)] private float arrivalCarDuplicateItemChance = 0.35f;
 
     [Header("Civilian escape finale")]
-    [Tooltip("Điểm bắt đầu finale tuyến A. Nếu bỏ trống, code tìm GameObject tên CivilianEscapeExit.")]
+    [Tooltip("Điểm tập kết đầu tiên của tuyến A. Có thể kéo CivilianRouteCheckpoint trong scene Main.")]
     [SerializeField] private Transform civilianEscapeExit;
+    [Tooltip("Mốc chỉ hướng con đường rời thành phố. Outro bắt đầu tại Checkpoint; xe không cần chạm mốc này.")]
+    [SerializeField] private Transform civilianCityExit;
+    [Tooltip("Điểm chiếc xe chạy tới trong cảnh outro. Đây chỉ là mốc trình diễn, không phải trigger gameplay.")]
+    [SerializeField] private Transform civilianOutroEnd;
     [SerializeField] private Vector2 civilianEscapeFallbackOffset = new Vector2(30f, 0f);
     [SerializeField, Min(1f)] private float civilianEscapeTriggerRadius = 2.75f;
-    [SerializeField, Min(1f)] private float civilianCityExitTriggerRadius = 3.5f;
     [SerializeField, Min(1f)] private float civilianTeamGatherRadius = 6f;
 
     [Networked] public int NetworkQuestStage { get; set; }
@@ -111,6 +114,11 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Networked] public NetworkBool IsMilitaryRevealPlaying { get; set; }
     [Networked] public NetworkBool IsArrivalCarInspected { get; set; }
     [Networked] public int ArrivalCarRepairMask { get; set; }
+    [Networked] public NetworkBool ArrivalCarRepairSessionActive { get; private set; }
+    [Networked] public int ActiveArrivalCarRepairActionValue { get; private set; }
+    [Networked] public PlayerRef ActiveArrivalCarRepairer { get; private set; }
+    [Networked] public TickTimer ArrivalCarRepairTimer { get; private set; }
+    [Networked] public float ArrivalCarRepairDurationSeconds { get; private set; }
     [Networked] public NetworkBool IsArrivalCarRepaired { get; set; }
     [Networked] public NetworkObject RepairedArrivalCarObject { get; set; }
     [Networked] public int LockedEscapeRouteValue { get; private set; }
@@ -201,6 +209,19 @@ public sealed class MainQuestManager : NetworkBehaviour
     public bool HasMapFragment1 => RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues;
     public bool AreArrivalCarRequiredRepairsComplete => IsNetworkReady &&
         ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask);
+    public bool IsLocalPlayerRepairingArrivalCar => IsNetworkReady && ArrivalCarRepairSessionActive &&
+                                                    ActiveArrivalCarRepairer != PlayerRef.None &&
+                                                    Runner.LocalPlayer == ActiveArrivalCarRepairer;
+    public float ArrivalCarRepairProgressNormalized
+    {
+        get
+        {
+            if (!IsNetworkReady || !ArrivalCarRepairSessionActive || ArrivalCarRepairDurationSeconds <= 0f)
+                return 0f;
+            float remaining = ArrivalCarRepairTimer.RemainingTime(Runner) ?? 0f;
+            return 1f - Mathf.Clamp01(remaining / ArrivalCarRepairDurationSeconds);
+        }
+    }
     public EscapeEndingRoute LockedEscapeRoute => IsNetworkReady
         ? (EscapeEndingRoute)LockedEscapeRouteValue
         : EscapeEndingRoute.None;
@@ -215,8 +236,17 @@ public sealed class MainQuestManager : NetworkBehaviour
         ? CivilianCheckpointPosition
         : ResolveCivilianEscapeExit().position;
     public float CivilianEscapeTriggerRadius => civilianEscapeTriggerRadius;
-    public float CivilianCityExitTriggerRadius => civilianCityExitTriggerRadius;
     public float CivilianTeamGatherRadius => civilianTeamGatherRadius;
+    public Vector2 CivilianOutroEndPosition
+    {
+        get
+        {
+            if (civilianOutroEnd != null) return civilianOutroEnd.position;
+            Vector2 direction = CivilianCityExitPosition - CivilianCheckpointPosition;
+            if (direction.sqrMagnitude < 0.01f) direction = Vector2.right;
+            return CivilianCityExitPosition + direction.normalized * 14f;
+        }
+    }
 
     private void Awake()
     {
@@ -242,6 +272,11 @@ public sealed class MainQuestManager : NetworkBehaviour
             IsMilitaryRevealPlaying = false;
             IsArrivalCarInspected = false;
             ArrivalCarRepairMask = 0;
+            ArrivalCarRepairSessionActive = false;
+            ActiveArrivalCarRepairActionValue = -1;
+            ActiveArrivalCarRepairer = PlayerRef.None;
+            ArrivalCarRepairTimer = TickTimer.None;
+            ArrivalCarRepairDurationSeconds = 0f;
             IsArrivalCarRepaired = false;
             RepairedArrivalCarObject = null;
             LockedEscapeRouteValue = (int)EscapeEndingRoute.None;
@@ -276,6 +311,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         ApplyMapAccess();
         CivilianEscapeRouteController.Attach(this);
+        CivilianRoutePresentationController.Attach(this);
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -309,6 +345,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         if (!HasStateAuthority) return;
 
+        TickArrivalCarRepair();
         TickHospitalRadioRestore();
 
         if (!IsArrivalCarRepaired || RepairedArrivalCarObject == null || IsCivilianEscapeComplete)
@@ -331,11 +368,6 @@ public sealed class MainQuestManager : NetworkBehaviour
             case CivilianRouteStage.AwaitingTeam:
                 if (checkpointDistance > civilianEscapeTriggerRadius * 1.75f)
                     CivilianRouteStageValue = (int)CivilianRouteStage.ExploringExits;
-                break;
-            case CivilianRouteStage.EscapeRun:
-                if (Vector2.Distance(RepairedArrivalCarObject.transform.position,
-                        CivilianCityExitPosition) <= civilianCityExitTriggerRadius)
-                    ServerCompleteCivilianEscape();
                 break;
         }
     }
@@ -737,6 +769,13 @@ public sealed class MainQuestManager : NetworkBehaviour
         else RPC_RequestRepairArrivalCarPart((int)action);
     }
 
+    public void RequestCancelArrivalCarRepair()
+    {
+        if (!IsNetworkReady) return;
+        if (HasStateAuthority) ServerCancelArrivalCarRepair(Runner.LocalPlayer);
+        else RPC_RequestCancelArrivalCarRepair();
+    }
+
     public void RequestStartArrivalCar()
     {
         if (!IsNetworkReady || IsArrivalCarRepaired) return;
@@ -794,6 +833,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (!AuthorityTryLockEscapeRoute(EscapeEndingRoute.CivilianCar)) return;
         CivilianRouteStageValue = (int)CivilianRouteStage.EscapeRun;
         RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0);
+        // The authored city exit sits beside the gray edge of Main. Begin the
+        // visual road loop here at the safe regroup point instead of asking the
+        // real network vehicle to drive into the unrendered edge first.
+        ServerCompleteCivilianEscape();
     }
 
     private void ServerCompleteCivilianEscape()
@@ -810,7 +853,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void RPC_TriggerCivilianVictory(float survivalSeconds)
     {
         EscapeRouteDecisionUI.CloseIfOpen();
-        VictorySummaryUI.ShowForCurrentMatch(survivalSeconds, EscapeEndingRoute.CivilianCar);
+        CivilianRoutePresentationController.Attach(this)?.PlayOutro(
+            RepairedArrivalCarObject, CivilianOutroEndPosition, survivalSeconds);
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -821,6 +865,12 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestCancelArrivalCarRepair(RpcInfo info = default)
+    {
+        ServerCancelArrivalCarRepair(info.Source);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_RequestStartArrivalCar(RpcInfo info = default)
     {
         ServerStartArrivalCar(info.Source);
@@ -828,21 +878,112 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void ServerRepairArrivalCarPart(PlayerRef requester, ArrivalCarRepairAction action)
     {
-        if (!HasStateAuthority || !IsArrivalCarInspected ||
-            ArrivalCarRepairRules.IsApplied(ArrivalCarRepairMask, action))
+        if (!HasStateAuthority || !IsArrivalCarInspected) return;
+
+        if (ArrivalCarRepairRules.IsApplied(ArrivalCarRepairMask, action))
+        {
+            RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f,
+                "Hạng mục này đã được sửa hoàn tất.");
             return;
+        }
+
+        if (ArrivalCarRepairSessionActive)
+        {
+            if (ActiveArrivalCarRepairer == requester &&
+                ActiveArrivalCarRepairActionValue == (int)action)
+            {
+                RPC_ShowArrivalCarRepairStartResult(requester, true, (int)action,
+                    ArrivalCarRepairDurationSeconds, string.Empty);
+                return;
+            }
+
+            string message = ActiveArrivalCarRepairer == requester
+                ? "Bạn đang sửa một hạng mục khác."
+                : "Một người chơi khác đang sửa chiếc xe này.";
+            RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f, message);
+            return;
+        }
 
         BrokenArrivalCar car = BrokenArrivalCar.Instance;
         if (car == null || !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             !car.CanInspect(player.transform.position))
+        {
+            RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f,
+                "Hãy đứng trong vùng kiểm tra trước capo để sửa xe.");
             return;
+        }
+
+        PlayerHealth health = player.GetComponent<PlayerHealth>();
+        if (health != null && (health.isDead || health.isTransforming))
+        {
+            RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f,
+                "Không thể sửa xe trong trạng thái hiện tại.");
+            return;
+        }
 
         InventorySystem inventory = player.GetComponent<InventorySystem>();
         ArrivalCarItemKind[] requirements = ArrivalCarItemCatalog.GetRequiredItems(action);
         if (inventory == null || !HasEveryArrivalCarItem(inventory, requirements))
         {
-            RPC_ShowArrivalCarRepairResult(requester, false, (int)action,
+            RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f,
                 "Thiếu vật phẩm phù hợp. Mở nhật ký [J] để xem checklist.");
+            return;
+        }
+
+        float duration = ArrivalCarRepairRules.GetRepairDurationSeconds(action);
+        ArrivalCarRepairSessionActive = true;
+        ActiveArrivalCarRepairActionValue = (int)action;
+        ActiveArrivalCarRepairer = requester;
+        ArrivalCarRepairDurationSeconds = duration;
+        ArrivalCarRepairTimer = TickTimer.CreateFromSeconds(Runner, duration);
+        RPC_PlayArrivalCarRepairAudio((int)action, duration);
+        RPC_ShowArrivalCarRepairStartResult(requester, true, (int)action, duration, string.Empty);
+    }
+
+    private void ServerCancelArrivalCarRepair(PlayerRef requester)
+    {
+        if (!HasStateAuthority || !ArrivalCarRepairSessionActive ||
+            ActiveArrivalCarRepairer != requester) return;
+        RPC_StopArrivalCarRepairAudio();
+        ClearArrivalCarRepairSession();
+        RPC_ShowArrivalCarRepairInterrupted(requester, "Đã dừng sửa xe.");
+    }
+
+    private void TickArrivalCarRepair()
+    {
+        if (!ArrivalCarRepairSessionActive || ActiveArrivalCarRepairer == PlayerRef.None) return;
+
+        PlayerRef repairer = ActiveArrivalCarRepairer;
+        if (!TryGetRequestingPlayer(repairer, out PlayerMovement player))
+        {
+            AuthorityInterruptArrivalCarRepair(repairer, "Người sửa xe đã rời trận.");
+            return;
+        }
+
+        player.LockMovement(Mathf.Max(0.2f, Runner.DeltaTime * 2f));
+        PlayerHealth health = player.GetComponent<PlayerHealth>();
+        BrokenArrivalCar car = BrokenArrivalCar.Instance;
+        if ((health != null && (health.isDead || health.isTransforming)) || car == null ||
+            !car.CanInspect(player.transform.position))
+        {
+            AuthorityInterruptArrivalCarRepair(repairer, "Việc sửa xe đã bị gián đoạn.");
+            return;
+        }
+
+        if (!ArrivalCarRepairTimer.Expired(Runner)) return;
+        if (!System.Enum.IsDefined(typeof(ArrivalCarRepairAction), ActiveArrivalCarRepairActionValue))
+        {
+            AuthorityInterruptArrivalCarRepair(repairer, "Dữ liệu hạng mục sửa xe không hợp lệ.");
+            return;
+        }
+
+        ArrivalCarRepairAction action = (ArrivalCarRepairAction)ActiveArrivalCarRepairActionValue;
+        InventorySystem inventory = player.GetComponent<InventorySystem>();
+        ArrivalCarItemKind[] requirements = ArrivalCarItemCatalog.GetRequiredItems(action);
+        if (inventory == null || !HasEveryArrivalCarItem(inventory, requirements))
+        {
+            AuthorityInterruptArrivalCarRepair(repairer,
+                "Vật phẩm sửa chữa không còn trong túi đồ.");
             return;
         }
 
@@ -851,17 +992,36 @@ public sealed class MainQuestManager : NetworkBehaviour
             ItemData consumable = FindArrivalCarItem(inventory, requirements[0]);
             if (consumable == null || inventory.ConsumeItem(consumable, 1) != 1)
             {
-                RPC_ShowArrivalCarRepairResult(requester, false, (int)action,
+                AuthorityInterruptArrivalCarRepair(repairer,
                     "Vật phẩm vừa thay đổi trong túi đồ. Hãy kiểm tra lại [J].");
                 return;
             }
         }
 
         ArrivalCarRepairMask |= (int)ArrivalCarRepairRules.GetStateBit(action);
-        RPC_ShowArrivalCarRepairResult(requester, true, (int)action,
+        RPC_StopArrivalCarRepairAudio();
+        ClearArrivalCarRepairSession();
+        RPC_ShowArrivalCarRepairResult(repairer, true, (int)action,
             GetArrivalCarActionSuccessMessage(action));
         if (ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask))
             RPC_ShowLocalizedQuestMessage("quest.route_a_ready", 0, 0);
+    }
+
+    private void AuthorityInterruptArrivalCarRepair(PlayerRef repairer, string message)
+    {
+        if (!HasStateAuthority || repairer == PlayerRef.None) return;
+        RPC_StopArrivalCarRepairAudio();
+        ClearArrivalCarRepairSession();
+        RPC_ShowArrivalCarRepairInterrupted(repairer, message);
+    }
+
+    private void ClearArrivalCarRepairSession()
+    {
+        ArrivalCarRepairSessionActive = false;
+        ActiveArrivalCarRepairActionValue = -1;
+        ActiveArrivalCarRepairer = PlayerRef.None;
+        ArrivalCarRepairTimer = TickTimer.None;
+        ArrivalCarRepairDurationSeconds = 0f;
     }
 
     private void ServerStartArrivalCar(PlayerRef requester)
@@ -2031,13 +2191,22 @@ public sealed class MainQuestManager : NetworkBehaviour
             cityExit = roadExit;
         }
 
-        Transform configuredExit = hasGeneratedCivilianEscapeFallback ? null : civilianEscapeExit;
-        if (configuredExit == null && !hasGeneratedCivilianEscapeFallback)
+        Transform configuredCheckpoint = hasGeneratedCivilianEscapeFallback ? null : civilianEscapeExit;
+        if (configuredCheckpoint == null && !hasGeneratedCivilianEscapeFallback)
         {
-            GameObject configuredObject = GameObject.Find("CivilianEscapeExit");
-            if (configuredObject != null) configuredExit = configuredObject.transform;
+            GameObject configuredObject = GameObject.Find("CivilianRouteCheckpoint");
+            if (configuredObject == null) configuredObject = GameObject.Find("CivilianEscapeExit");
+            if (configuredObject != null) configuredCheckpoint = configuredObject.transform;
         }
-        if (configuredExit != null) checkpoint = configuredExit.position;
+        if (configuredCheckpoint != null) checkpoint = configuredCheckpoint.position;
+
+        Transform configuredCityExit = civilianCityExit;
+        if (configuredCityExit == null)
+        {
+            GameObject configuredObject = GameObject.Find("CivilianCityExit");
+            if (configuredObject != null) configuredCityExit = configuredObject.transform;
+        }
+        if (configuredCityExit != null) cityExit = configuredCityExit.position;
 
         CivilianCheckpointPosition = checkpoint;
         CivilianCityExitPosition = cityExit;
@@ -2322,6 +2491,48 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayArrivalCarRepairAudio(int actionValue, float durationSeconds)
+    {
+        if (!System.Enum.IsDefined(typeof(ArrivalCarRepairAction), actionValue)) return;
+        BrokenArrivalCar car = BrokenArrivalCar.Instance;
+        ArrivalCarInspectionUI inspection = car != null
+            ? car.GetComponent<ArrivalCarInspectionUI>()
+            : null;
+        inspection?.PlayRepairAudioForNetwork(
+            (ArrivalCarRepairAction)actionValue, durationSeconds);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_StopArrivalCarRepairAudio()
+    {
+        BrokenArrivalCar car = BrokenArrivalCar.Instance;
+        ArrivalCarInspectionUI inspection = car != null
+            ? car.GetComponent<ArrivalCarInspectionUI>()
+            : null;
+        inspection?.StopRepairAudioForNetwork();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowArrivalCarRepairStartResult([RpcTarget] PlayerRef targetPlayer, bool accepted,
+        int actionValue, float durationSeconds, string message)
+    {
+        if (Runner.LocalPlayer != targetPlayer) return;
+        ArrivalCarInspectionUI inspection = ArrivalCarInspectionUI.ActiveInstance;
+        if (inspection != null)
+            inspection.NotifyRepairStartResult(
+                (ArrivalCarRepairAction)actionValue, accepted, durationSeconds, message);
+        else if (accepted)
+            RequestCancelArrivalCarRepair();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowArrivalCarRepairInterrupted([RpcTarget] PlayerRef targetPlayer, string message)
+    {
+        if (Runner.LocalPlayer != targetPlayer) return;
+        ArrivalCarInspectionUI.ActiveInstance?.NotifyRepairInterrupted(message);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowArrivalCarRepairResult([RpcTarget] PlayerRef targetPlayer, bool success,
         int actionValue, string message)
     {
@@ -2343,12 +2554,35 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void RPC_ShowCivilianMapUnlocked(Vector2 checkpointPosition, Vector2 cityExitPosition)
     {
         QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
-        if (flow == null) return;
         PreMilitaryQuestRuntimeBridge bridge = PreMilitaryQuestRuntimeBridge.Instance;
         bridge?.ConfigureCivilianRouteMap(checkpointPosition, cityExitPosition,
             CivilianRouteStage.CarReady);
-        flow.SetCivilianCityMapUnlocked(true);
-        flow.SetMapOpenForPreview(true);
+        flow?.SetCivilianCityMapUnlocked(true);
+        CivilianRoutePresentationController.Attach(this)?.PlayCarReadySequence(
+            checkpointPosition, cityExitPosition);
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (civilianEscapeExit != null)
+        {
+            Gizmos.color = new Color(0.25f, 0.95f, 0.72f, 0.95f);
+            Gizmos.DrawWireSphere(civilianEscapeExit.position, civilianEscapeTriggerRadius);
+        }
+        if (civilianCityExit != null)
+        {
+            Gizmos.color = new Color(1f, 0.72f, 0.18f, 0.95f);
+            Gizmos.DrawWireCube(civilianCityExit.position, Vector3.one * 1.2f);
+            if (civilianEscapeExit != null)
+                Gizmos.DrawLine(civilianEscapeExit.position, civilianCityExit.position);
+        }
+        if (civilianOutroEnd != null)
+        {
+            Gizmos.color = new Color(0.4f, 0.75f, 1f, 0.95f);
+            Gizmos.DrawWireCube(civilianOutroEnd.position, Vector3.one * 1.2f);
+            if (civilianCityExit != null)
+                Gizmos.DrawLine(civilianCityExit.position, civilianOutroEnd.position);
+        }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

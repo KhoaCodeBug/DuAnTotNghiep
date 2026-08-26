@@ -90,6 +90,7 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
 
     private void OnGUI()
     {
+        if (CivilianRoutePresentationController.BlocksGameplayInput || VictorySummaryUI.IsShowing) return;
         if ((!localDriverAtCheckpoint && !localTeamReady) || EscapeRouteDecisionUI.IsVisible) return;
         GUIStyle style = new GUIStyle(GUI.skin.box)
         {
