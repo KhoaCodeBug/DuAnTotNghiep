@@ -85,6 +85,17 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         ui.BeginSingleCue(RouteBAudioContent.Get(cueId), onCompleted);
     }
 
+    /// <summary>
+    /// Shows a local, non-timed inner-monologue line. Unlike recorded Route B
+    /// cues it remains visible until the player dismisses it with E or Escape.
+    /// </summary>
+    public static void ShowSelfDialogue(string vietnamese, string english = null, Action onCompleted = null)
+    {
+        RouteBRadioBroadcastUI ui = EnsureInstance();
+        if (IsVisible) ui.FinishSequence(false);
+        ui.BeginSelfDialogue(vietnamese, string.IsNullOrWhiteSpace(english) ? vietnamese : english, onCompleted);
+    }
+
     public static void SkipIfOpen()
     {
         if (instance != null && IsVisible) instance.skipRequested = true;
@@ -170,6 +181,30 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         BeginLocalPresentation();
         canvas.enabled = true;
         sequenceRoutine = StartCoroutine(PlaySingleCue(cue));
+    }
+
+    private void BeginSelfDialogue(string vietnamese, string english, Action onCompleted)
+    {
+        if (sequenceRoutine != null) StopCoroutine(sequenceRoutine);
+        audioSource.Stop();
+        sequenceCompleted = onCompleted;
+        skipRequested = false;
+        waitForInteractionKeyRelease = Input.GetKey(KeyCode.E);
+        BeginLocalPresentation();
+        canvas.enabled = true;
+        eyebrowText.text = GameLocalization.IsVietnamese ? "NGƯỜI SỐNG SÓT" : "SURVIVOR";
+        eyebrowText.color = new Color(0.28f, 0.88f, 0.7f);
+        titleText.text = GameLocalization.IsVietnamese ? "SUY NGHĨ" : "THOUGHT";
+        bodyText.text = GameLocalization.IsVietnamese ? vietnamese : english;
+        skipText.text = GameLocalization.IsVietnamese ? "[E] / [ESC]  KẾT THÚC" : "[E] / [ESC]  CLOSE";
+        sequenceRoutine = StartCoroutine(WaitForSelfDialogueDismissal());
+    }
+
+    private IEnumerator WaitForSelfDialogueDismissal()
+    {
+        while (!skipRequested) yield return null;
+        sequenceRoutine = null;
+        FinishSequence(true);
     }
 
     private IEnumerator PlaySingleCue(RouteBAudioCue cue)

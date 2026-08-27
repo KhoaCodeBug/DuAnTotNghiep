@@ -270,9 +270,10 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "CongRao must stay hidden before the military cinematic closes the entrance.");
         Assert.That(GameObject.Find("Car"), Is.Not.Null,
             "The authored completed Car is reused as the police repair vehicle.");
-        Assert.That(GameObject.Find("Military School Clue 1 - HỒ SƠ TRỰC BAN"), Is.Not.Null);
-        Assert.That(GameObject.Find("Military School Clue 2 - BẢN GHI TIẾP VẬN"), Is.Not.Null);
-        Assert.That(GameObject.Find("Military School Clue 3 - LỆNH PHONG TỎA"), Is.Not.Null);
+        Assert.That(GameObject.Find("ManhMoi1"), Is.Not.Null);
+        Assert.That(GameObject.Find("ManhMoi2"), Is.Not.Null);
+        Assert.That(GameObject.Find("ManhMoi3"), Is.Not.Null,
+            "The military investigation must use the three authored school clue anchors.");
         GameObject gateMarker = GameObject.Find("ViTriDongCong");
         Assert.That(gateMarker, Is.Not.Null);
         Transform gateCollider = authoredGate.Find("CongRao Collider [RUNTIME]");
@@ -591,16 +592,28 @@ public sealed class MainMenuToMilitaryQuestFlowTests
 
         MethodInfo requestRepair = mainQuestType.GetMethod("RequestRepairArrivalCarPart");
         Assert.That(requestRepair, Is.Not.Null);
+        ((Component)localPlayer).transform.position = inspectionPoint;
+        Physics2D.SyncTransforms();
+        inspectionUIType.GetMethod("Open", BindingFlags.Public | BindingFlags.Instance, null,
+            new[] { arrivalCarType }, null)?.Invoke(inspectionUI, new object[] { arrivalCarComponent });
+        yield return null;
         requestRepair.Invoke(mainQuest, new object[] { "engine" });
         yield return null;
+        Assert.That(ReadBool(mainQuest, "ArrivalCarRepairSessionActive"), Is.True,
+            $"Engine repair did not start at {((Component)localPlayer).transform.position}; " +
+            $"inspection point is {inspectionPoint}, inspected={ReadBool(mainQuest, "IsArrivalCarInspected")}.");
+        while (ReadBool(mainQuest, "ArrivalCarRepairSessionActive")) yield return null;
         Assert.That(ReadBool(mainQuest, "IsArrivalCarRepaired"), Is.False,
             "Core repair alone must not complete the optional quest.");
         requestRepair.Invoke(mainQuest, new object[] { "fuel" });
         yield return null;
+        while (ReadBool(mainQuest, "ArrivalCarRepairSessionActive")) yield return null;
         requestRepair.Invoke(mainQuest, new object[] { "battery" });
         yield return null;
+        while (ReadBool(mainQuest, "ArrivalCarRepairSessionActive")) yield return null;
         requestRepair.Invoke(mainQuest, new object[] { "front_left" });
         yield return null;
+        while (ReadBool(mainQuest, "ArrivalCarRepairSessionActive")) yield return null;
         Assert.That(ReadBool(mainQuest, "AreArrivalCarRequiredRepairsComplete"), Is.True);
         Assert.That(ReadBool(mainQuest, "IsArrivalCarRepaired"), Is.False,
             "Completing the parts must not bypass the approved Start Engine button.");
@@ -655,6 +668,10 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(sedanVisual.GetComponent<SpriteRenderer>()?.enabled, Is.True);
         Assert.That(repairedArrivalCar.GetComponent<SpriteRenderer>()?.enabled, Is.False,
             "The duplicated police renderer must stay disabled; only sedan art may be visible.");
+
+        // Isolate the opening-district boundary regression after validating the
+        // optional car-ready flow, which intentionally disables that boundary.
+        SetProperty(mainQuest, "CivilianRouteStageValue", 0); // PreparingCar
 
         Type bridgeType = Type.GetType("PreMilitaryQuestRuntimeBridge, Assembly-CSharp");
         Assert.That(bridgeType, Is.Not.Null);

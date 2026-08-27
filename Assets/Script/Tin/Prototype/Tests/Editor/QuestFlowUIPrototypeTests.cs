@@ -325,6 +325,24 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
+    public void PoliceCarUsesOpeningCarInteractionOnlyForFuelAndTire()
+    {
+        Assert.That(PoliceCarRepairRules.UsesTimedArrivalCarInteraction(PoliceCarRepairAction.AddFuel), Is.True);
+        Assert.That(PoliceCarRepairRules.UsesTimedArrivalCarInteraction(PoliceCarRepairAction.ReplaceTire), Is.True);
+        Assert.That(PoliceCarRepairRules.UsesTimedArrivalCarInteraction(PoliceCarRepairAction.RepairEngine), Is.False);
+        Assert.That(PoliceCarRepairRules.UsesTimedArrivalCarInteraction(PoliceCarRepairAction.RepairHood), Is.False);
+        Assert.That(PoliceCarRepairRules.UsesTimedArrivalCarInteraction(PoliceCarRepairAction.ReplaceBattery), Is.False);
+        Assert.That(PoliceCarRepairRules.GetTimedInteractionDurationSeconds(PoliceCarRepairAction.AddFuel),
+            Is.EqualTo(ArrivalCarRepairRules.FuelRepairDurationSeconds));
+        Assert.That(PoliceCarRepairRules.GetTimedInteractionDurationSeconds(PoliceCarRepairAction.ReplaceTire),
+            Is.EqualTo(ArrivalCarRepairRules.TireRepairDurationSeconds));
+        Assert.That(PoliceCarRepairRules.ToArrivalCarRepairAction(PoliceCarRepairAction.AddFuel),
+            Is.EqualTo(ArrivalCarRepairAction.AddFuel));
+        Assert.That(PoliceCarRepairRules.ToArrivalCarRepairAction(PoliceCarRepairAction.ReplaceTire),
+            Is.EqualTo(ArrivalCarRepairAction.ReplaceTire));
+    }
+
+    [Test]
     public void CompletedCluesCanQueueUnlockForTheNextManualMapOpen()
     {
         prototype.QueueMapUnlockReveal();

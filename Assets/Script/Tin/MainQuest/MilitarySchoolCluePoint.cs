@@ -23,7 +23,7 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
 
     private void Update()
     {
-        if (manager == null || !manager.CanCollectSchoolClue(clueIndex) ||
+        if (manager == null || !manager.CanInvestigateSchoolClue(clueIndex) ||
             LocalGameplayUIState.BlocksWorldInteractionHints)
         {
             CancelSearch();
@@ -62,7 +62,7 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
 
         EndSearchPresentation();
         searchRoutine = null;
-        manager.RequestCollectSchoolClue(clueIndex);
+        manager.RequestInvestigateSchoolClue(clueIndex);
     }
 
     private void CancelSearch()
@@ -91,7 +91,7 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
 
     private void OnGUI()
     {
-        if (manager == null || !manager.CanCollectSchoolClue(clueIndex) || searchRoutine != null ||
+        if (manager == null || !manager.CanInvestigateSchoolClue(clueIndex) || searchRoutine != null ||
             LocalGameplayUIState.BlocksWorldInteractionHints) return;
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         Camera camera = Camera.main;
@@ -151,6 +151,6 @@ public sealed class MilitarySchoolRoofExitTrigger : MonoBehaviour
         PlayerMovement player = other != null ? other.GetComponentInParent<PlayerMovement>() : null;
         if (player == null || player.Object == null || !player.Object.IsValid || !player.Object.HasInputAuthority)
             return;
-        manager.RequestConfirmSchoolRoofExit();
+        manager.RequestHandleSchoolRoofExit();
     }
 }

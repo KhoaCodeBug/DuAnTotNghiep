@@ -57,6 +57,24 @@ public static class PoliceCarRepairRules
         _ => ArrivalCarItemKind.Tire
     };
 
+    public static bool UsesTimedArrivalCarInteraction(PoliceCarRepairAction action) =>
+        action == PoliceCarRepairAction.AddFuel || action == PoliceCarRepairAction.ReplaceTire;
+
+    public static float GetTimedInteractionDurationSeconds(PoliceCarRepairAction action) => action switch
+    {
+        PoliceCarRepairAction.AddFuel => ArrivalCarRepairRules.FuelRepairDurationSeconds,
+        PoliceCarRepairAction.ReplaceTire => ArrivalCarRepairRules.TireRepairDurationSeconds,
+        _ => 0f
+    };
+
+    public static ArrivalCarRepairAction ToArrivalCarRepairAction(PoliceCarRepairAction action) => action switch
+    {
+        PoliceCarRepairAction.AddFuel => ArrivalCarRepairAction.AddFuel,
+        PoliceCarRepairAction.ReplaceTire => ArrivalCarRepairAction.ReplaceTire,
+        PoliceCarRepairAction.ReplaceBattery => ArrivalCarRepairAction.ReplaceBattery,
+        _ => ArrivalCarRepairAction.RepairCore
+    };
+
     public static bool IsApplied(int stateMask, PoliceCarRepairAction action) =>
         (((PoliceCarRepairState)stateMask) & GetStateBit(action)) != 0;
 

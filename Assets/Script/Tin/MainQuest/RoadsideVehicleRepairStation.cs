@@ -104,6 +104,20 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
 
     public void ReopenInspection(string message) => inspectionUI?.ReopenPoliceInspection(this, message);
 
+    public void NotifyTimedRepairStart(PoliceCarRepairAction action, bool accepted, float duration, string message) =>
+        inspectionUI?.NotifyPoliceTimedRepairStart(action, accepted, duration, message);
+
+    public void NotifyTimedRepairInterrupted(string message) =>
+        inspectionUI?.NotifyPoliceTimedRepairInterrupted(message);
+
+    public void NotifyTimedRepairCompleted(bool allComplete) =>
+        inspectionUI?.NotifyPoliceTimedRepairCompleted(allComplete);
+
+    public void PlayTimedRepairAudio(PoliceCarRepairAction action, float duration) =>
+        inspectionUI?.PlayRepairAudioForNetwork(PoliceCarRepairRules.ToArrivalCarRepairAction(action), duration);
+
+    public void StopTimedRepairAudio() => inspectionUI?.StopRepairAudioForNetwork();
+
     private void BuildInspectionPolygon()
     {
         if (inspectionPolygon == null)

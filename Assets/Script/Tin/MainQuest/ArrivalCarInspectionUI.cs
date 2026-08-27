@@ -215,7 +215,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         bool wasCivilianInspection = !policeMode && owner != null;
         if (localRepairActive)
         {
-            MainQuestManager.Instance?.RequestCancelArrivalCarRepair();
+            if (policeMode) MilitaryBaseQuestManager.Instance?.RequestCancelRepairSkillCheck();
+            else MainQuestManager.Instance?.RequestCancelArrivalCarRepair();
             EndLocalRepairPresentation();
         }
         else
@@ -625,9 +626,11 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
                 selectedPartRecommendation.text = "CHƯA THỂ KẾT NỐI VỚI TRẠNG THÁI XE CẢNH SÁT.";
                 return;
             }
-            if (!PoliceCarRepairRules.TryGetAction(part.Id, out _)) return;
+            if (!PoliceCarRepairRules.TryGetAction(part.Id, out PoliceCarRepairAction policeAction)) return;
             selectedPartRecommendation.text = "ĐANG XÁC NHẬN VẬT PHẨM VỚI SERVER...";
-            VehicleRepairSkillCheckUI.PrepareFromInspection(policeManager, policeOwner);
+            localRepairPending = true;
+            if (!PoliceCarRepairRules.UsesTimedArrivalCarInteraction(policeAction))
+                VehicleRepairSkillCheckUI.PrepareFromInspection(policeManager, policeOwner);
             policeManager.RequestStartPoliceCarRepair(part.Id);
             return;
         }
@@ -730,6 +733,56 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             repairClockRoot.transform.SetAsLastSibling();
         }
         SelectVehiclePart(localRepairPartId);
+    }
+
+    public void NotifyPoliceTimedRepairStart(PoliceCarRepairAction action, bool accepted,
+        float durationSeconds, string message)
+    {
+        localRepairPending = false;
+        if (!open || !policeMode)
+        {
+            if (accepted) MilitaryBaseQuestManager.Instance?.RequestCancelRepairSkillCheck();
+            return;
+        }
+        if (!accepted)
+        {
+            SelectVehiclePart(selectedPartId);
+            if (selectedPartRecommendation != null)
+                selectedPartRecommendation.text = "KHÔNG THỂ THỰC HIỆN: " + message;
+            return;
+        }
+
+        localRepairActive = true;
+        localRepairPartId = selectedPartId;
+        localRepairDuration = Mathf.Max(0.1f, durationSeconds);
+        localRepairStartedAt = Time.unscaledTime;
+        if (repairClockHand != null) repairClockHand.localEulerAngles = Vector3.zero;
+        if (repairClockRoot != null)
+        {
+            repairClockRoot.SetActive(true);
+            repairClockRoot.transform.SetAsLastSibling();
+        }
+        SelectVehiclePart(localRepairPartId);
+    }
+
+    public void NotifyPoliceTimedRepairInterrupted(string message)
+    {
+        string partId = localRepairPartId;
+        EndLocalRepairPresentation();
+        if (!open || !policeMode || selectedPartRecommendation == null) return;
+        SelectVehiclePart(string.IsNullOrEmpty(partId) ? selectedPartId : partId);
+        selectedPartRecommendation.text = "ĐÃ DỪNG: " + message;
+    }
+
+    public void NotifyPoliceTimedRepairCompleted(bool allComplete)
+    {
+        string partId = localRepairPartId;
+        EndLocalRepairPresentation();
+        if (!open || !policeMode || selectedPartRecommendation == null) return;
+        SelectVehiclePart(string.IsNullOrEmpty(partId) ? selectedPartId : partId);
+        selectedPartRecommendation.text = allComplete
+            ? "HOÀN TẤT: XE ĐÃ SỬA ĐỦ 5 HẠNG MỤC."
+            : "HOÀN TẤT HẠNG MỤC SỬA CHỮA.";
     }
 
     public void NotifyRepairInterrupted(string message)

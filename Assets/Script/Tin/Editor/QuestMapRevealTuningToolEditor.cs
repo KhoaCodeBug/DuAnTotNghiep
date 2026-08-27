@@ -8,6 +8,11 @@ public sealed class QuestMapRevealTuningToolEditor : Editor
     private SerializedProperty beforeSize;
     private SerializedProperty afterCenter;
     private SerializedProperty afterSize;
+    private SerializedProperty militaryCenter;
+    private SerializedProperty militarySize;
+    private SerializedProperty militaryMarkerPosition;
+    private SerializedProperty countrysideCenter;
+    private SerializedProperty countrysideSize;
 
     private void OnEnable()
     {
@@ -15,6 +20,11 @@ public sealed class QuestMapRevealTuningToolEditor : Editor
         beforeSize = serializedObject.FindProperty("beforeQuestSize");
         afterCenter = serializedObject.FindProperty("afterQuestCenter");
         afterSize = serializedObject.FindProperty("afterQuestSize");
+        militaryCenter = serializedObject.FindProperty("militaryCenter");
+        militarySize = serializedObject.FindProperty("militarySize");
+        militaryMarkerPosition = serializedObject.FindProperty("militaryMarkerPosition");
+        countrysideCenter = serializedObject.FindProperty("countrysideCenter");
+        countrysideSize = serializedObject.FindProperty("countrysideSize");
     }
 
     public override void OnInspectorGUI()
@@ -23,12 +33,19 @@ public sealed class QuestMapRevealTuningToolEditor : Editor
 
         EditorGUILayout.HelpBox(
             "PLAY MODE: mở bản đồ bằng M, sau đó chỉnh các thanh bên dưới. " +
-            "Map cập nhật trực tiếp. AFTER QUEST là ô văn phòng mở thêm, không phải vùng gộp.",
+            "Map cập nhật trực tiếp. Mỗi vùng là một ô reveal độc lập; hãy chụp lại các giá trị sau khi chỉnh.",
             MessageType.Info);
 
         DrawRegion("BEFORE QUEST  •  KHU SPAWN", beforeCenter, beforeSize, new Color(1f, 0.68f, 0.08f));
         EditorGUILayout.Space(8f);
-        DrawRegion("AFTER QUEST  •  KHU VĂN PHÒNG", afterCenter, afterSize, new Color(0.72f, 0.32f, 1f));
+        DrawRegion("HOSPITAL  •  SAU 3 MANH MỐI ĐẦU GAME", afterCenter, afterSize, new Color(0.72f, 0.32f, 1f));
+        EditorGUILayout.Space(8f);
+        DrawRegion("MILITARY  •  SAU SỰ KIỆN RADIO", militaryCenter, militarySize, new Color(1f, 0.67f, 0.14f));
+        militaryMarkerPosition.vector2Value = EditorGUILayout.Vector2Field(
+            "Military Marker X/Y", militaryMarkerPosition.vector2Value);
+        EditorGUILayout.Space(8f);
+        DrawRegion("COUNTRYSIDE  •  SAU MANH MỐI 3", countrysideCenter, countrysideSize,
+            new Color(0.28f, 0.88f, 0.7f));
         EditorGUILayout.Space(10f);
         DrawPreview();
 
@@ -74,7 +91,11 @@ public sealed class QuestMapRevealTuningToolEditor : Editor
         DrawPreviewRegion(canvas, ToRect(beforeCenter.vector2Value, beforeSize.vector2Value),
             new Color(1f, 0.68f, 0.08f), "BEFORE");
         DrawPreviewRegion(canvas, ToRect(afterCenter.vector2Value, afterSize.vector2Value),
-            new Color(0.72f, 0.32f, 1f), "AFTER");
+            new Color(0.72f, 0.32f, 1f), "HOSPITAL");
+        DrawPreviewRegion(canvas, ToRect(militaryCenter.vector2Value, militarySize.vector2Value),
+            new Color(1f, 0.67f, 0.14f), "MILITARY");
+        DrawPreviewRegion(canvas, ToRect(countrysideCenter.vector2Value, countrysideSize.vector2Value),
+            new Color(0.28f, 0.88f, 0.7f), "COUNTRYSIDE");
     }
 
     private static Rect ToRect(Vector2 center, Vector2 size)

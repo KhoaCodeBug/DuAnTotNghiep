@@ -288,13 +288,23 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             Vector2 playerPosition = rasterMap.WorldToNormalized(configuredPlayerTarget != null ? configuredPlayerTarget.position : Vector3.zero);
             questUI.ConfigureRasterMap(rasterMap.Texture, officePosition, playerPosition);
             if (militaryTarget != null)
-                questUI.ConfigureMilitaryDestination(rasterMap.WorldToNormalized(militaryTarget.position));
+            {
+                Vector2 authoredMilitaryPosition = rasterMap.WorldToNormalized(militaryTarget.position);
+                revealTuningTool?.InitializeRuntimeMilitaryPosition(authoredMilitaryPosition);
+                questUI.ConfigureMilitaryDestination(revealTuningTool != null
+                    ? revealTuningTool.MilitaryMarkerPosition
+                    : authoredMilitaryPosition);
+            }
             if (officeTarget != null)
             {
                 if (revealTuningTool != null)
                 {
                     Rect officeReveal = revealTuningTool.AfterQuestRect;
                     questUI.ConfigureOfficeSearchArea(officeReveal.min, officeReveal.max);
+                    Rect militaryReveal = revealTuningTool.MilitaryRect;
+                    questUI.ConfigureMilitaryRevealArea(militaryReveal.min, militaryReveal.max);
+                    Rect countrysideReveal = revealTuningTool.CountrysideRect;
+                    questUI.ConfigureCountrysideRevealArea(countrysideReveal.min, countrysideReveal.max);
                 }
                 else
                 {
@@ -493,6 +503,11 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
         Rect officeReveal = revealTuningTool.AfterQuestRect;
         questUI.ConfigureOfficeSearchArea(officeReveal.min, officeReveal.max);
+        Rect militaryReveal = revealTuningTool.MilitaryRect;
+        questUI.ConfigureMilitaryDestination(revealTuningTool.MilitaryMarkerPosition);
+        questUI.ConfigureMilitaryRevealArea(militaryReveal.min, militaryReveal.max);
+        Rect countrysideReveal = revealTuningTool.CountrysideRect;
+        questUI.ConfigureCountrysideRevealArea(countrysideReveal.min, countrysideReveal.max);
 
         if (!searchZoneConfigured || activeSearchHouseIds.Count == 0) return;
         Rect neighborhoodReveal = revealTuningTool.BeforeQuestRect;
@@ -925,11 +940,10 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
     private void HandleMapFragment1Acquired()
     {
-        questUI?.QueueMapUnlockReveal(HandleMapUnlockRevealFinished);
-        // The completion reward has already faded out before this callback.
-        // Open the map immediately so the player sees the newly revealed
-        // office location without needing to discover the [M] shortcut.
-        questUI?.SetMapOpenForPreview(true);
+        questUI?.QueueMapUnlockReveal();
+        AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
+            "Phát hiện manh mối mới - bấm M để kiểm tra");
+        locateOfficeNotificationPending = true;
     }
 
     private void HandleMapUnlockRevealFinished()

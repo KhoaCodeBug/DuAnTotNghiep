@@ -7,6 +7,7 @@ using UnityEngine.Rendering.Universal;
 [DisallowMultipleComponent]
 public sealed class MilitaryRouteCinematicController : MonoBehaviour
 {
+    private const float EnergyDrinkRunSpeedMultiplier = 1.5f;
     private readonly List<(Renderer renderer, bool enabled, bool forceRenderingOff)> hiddenRenderers = new();
     private readonly HashSet<Renderer> hiddenRendererSet = new();
     private readonly List<PlayerMovement> suppressedPlayers = new();
@@ -112,7 +113,7 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
 
         Vector2 insideGate = gatePosition + new Vector2(0f, 1.15f);
         yield return MoveCloneAtGameplaySpeed(insideGate,
-            hostMovement != null ? hostMovement.runSpeed : 7f, true);
+            (hostMovement != null ? hostMovement.runSpeed : 7f) * EnergyDrinkRunSpeedMultiplier, true);
         Debug.Log("[MILITARY CINEMATIC] Host đã chạy tới vị trí đóng cổng.");
         yield return Fade(0f, 1f, 0.5f);
 

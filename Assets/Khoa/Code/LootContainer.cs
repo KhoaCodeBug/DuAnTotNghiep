@@ -56,7 +56,8 @@ public class LootContainer : NetworkBehaviour
 
     public bool IsMilitaryRepairLootContainer => militaryRepairLootContainer;
     public bool IsMilitaryLootVip => militaryRepairLootContainer && name.StartsWith("LootQuanSuVjp");
-    public bool ShouldShowMilitaryWaypoint => IsGameplayAvailable && MilitaryLootHasItems;
+    public bool ShouldShowMilitaryWaypoint => Object != null && Object.IsValid &&
+        IsGameplayAvailable && MilitaryLootHasItems;
     public bool IsGameplayAvailable => !militaryRepairLootContainer ||
         (MilitaryBaseQuestManager.Instance != null &&
          MilitaryBaseQuestManager.Instance.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair &&
