@@ -2346,8 +2346,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             "Transcript đã lưu trong Nhật ký. Bộ nhớ máy chứa tọa độ Căn cứ phía Bắc; chưa rõ ở đó còn ai sống.");
         ShowLocalQuestEvent("MẢNH BẢN ĐỒ 2",
             "Đã trích xuất tần số đèn hiệu và tọa độ từ bộ nhớ Radio.");
-        RouteBRadioBroadcastUI.ShowHospitalRecording(
-            ownsMilitaryReveal ? ShowMilitaryMapRewardThenReveal : null);
+        RouteBRadioBroadcastUI.ShowHospitalRecording(() => HandleMilitaryMapFragmentFound(ownsMilitaryReveal));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -2611,22 +2610,52 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void ShowMilitaryMapRewardThenReveal()
     {
-        QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
-        if (LockedEscapeRoute != EscapeEndingRoute.None)
-        {
-            CloseStaleRouteIntroduction(flow);
-            return;
-        }
-        if (flow != null)
-        {
-            flow.PlayMilitaryMapRewardAfterDialogue(
-                () => ContinueMilitaryMapReveal(flow));
-            return;
-        }
+        HandleMilitaryMapFragmentFound(true);
+    }
 
-        BeginLocalMilitaryReveal(
-            () => RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
-                EscapeRouteDecisionUI.ShowPreMilitaryChoice));
+    public void DebugUnlockHospitalAndMilitaryMapRegions()
+    {
+#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
+        return;
+#else
+        if (!IsNetworkReady || !HasStateAuthority)
+        {
+            Debug.LogWarning("[QUEST TEST] Cheat mở bản đồ cần Solo/Host authority.");
+            return;
+        }
+        int completeClueMask = (1 << PreMilitaryQuestProgress.RequiredRouteClues) - 1;
+        RouteClueMask = completeClueMask;
+        InsuredRouteClueMask |= completeClueMask;
+        IsOfficeDiscovered = true;
+        IsHospitalRadioDoorOpen = true;
+        NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.RadioReady;
+        IsHospitalRadioRecovered = true;
+        HospitalRadioRestoreSeconds = hospitalRadioRestoreDuration;
+        HospitalRadioCheckpointCount = HospitalRadioRoomRules.RestoreSegmentCount;
+        IsCityMapUnlocked = true;
+        NetworkQuestStage = (int)QuestStage.CityMapFound;
+        RPC_DebugUnlockHospitalAndMilitaryMapRegions();
+#endif
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_DebugUnlockHospitalAndMilitaryMapRegions()
+    {
+        QuestFlowUIPrototype.Instance?.DebugUnlockHospitalAndMilitaryMapRegions();
+        AutoChatManager.Instance?.AddMessage("QUEST TEST",
+            "Đã mở toàn bộ hai vùng bản đồ Bệnh viện và Quân sự.");
+    }
+
+    private void HandleMilitaryMapFragmentFound(bool introduceRouteChoice)
+    {
+        QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
+        flow?.QueueMilitaryMapUnlockReveal();
+        AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
+            "Phát hiện manh mối mới - bấm M để kiểm tra");
+        ShowLocalQuestEvent("MẢNH BẢN ĐỒ 2", "Vị trí căn cứ quân sự đã được ghi vào bản đồ.");
+        if (!introduceRouteChoice || LockedEscapeRoute != EscapeEndingRoute.None) return;
+        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
+            EscapeRouteDecisionUI.ShowPreMilitaryChoice);
     }
 
     private void ContinueMilitaryMapReveal(QuestFlowUIPrototype flow)
@@ -2664,13 +2693,14 @@ public sealed class MainQuestManager : NetworkBehaviour
         QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
         flow?.NotifyAuthoritativeQuestStage((int)QuestStage.LocateOffice);
         flow?.PrepareForMapFragmentDialogue();
-        flow?.QueueMapUnlockReveal();
-
-        // Every client follows the same ordered presentation. Skipping the
-        // dialogue still invokes its completion callback and continues to the
-        // reward instead of jumping directly to the map.
         RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.ThirdCoordinationDocument,
-            () => QuestFlowUIPrototype.Instance?.PlayMapFragmentOneRewardAfterDialogue());
+            () =>
+            {
+                QuestFlowUIPrototype.Instance?.QueueMapUnlockReveal();
+                AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
+                    "Phát hiện manh mối mới - bấm M để kiểm tra");
+                ShowLocateOfficeObjectiveNotification();
+            });
     }
 
     public void ShowLocateOfficeObjectiveNotification()

@@ -745,6 +745,44 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         mapPrototype.ConfigureMilitaryDestination(militaryNormalized);
     }
 
+    public void ConfigureMilitaryRevealArea(Vector2 minimumNormalized, Vector2 maximumNormalized)
+    {
+        EnsureBuiltForTests();
+        mapPrototype.ConfigureMilitaryRevealArea(minimumNormalized, maximumNormalized);
+    }
+
+    public void ConfigureCountrysideRevealArea(Vector2 minimumNormalized, Vector2 maximumNormalized)
+    {
+        EnsureBuiltForTests();
+        mapPrototype.ConfigureCountrysideRevealArea(minimumNormalized, maximumNormalized);
+    }
+
+    public void RegisterFinalMapFragmentForLocalPlayer()
+    {
+        EnsureBuiltForTests();
+        mapPrototype.RegisterFinalMapFragmentForLocalPlayer();
+    }
+
+    public void QueueMilitaryMapUnlockReveal()
+    {
+        EnsureBuiltForTests();
+        mapPrototype.QueueMilitaryDestinationReveal();
+    }
+
+    public void DebugUnlockHospitalAndMilitaryMapRegions()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        EnsureBuiltForTests();
+        for (int i = 0; i < PreMilitaryQuestProgress.RequiredRouteClues; i++)
+            mainQuestProgress.RegisterRouteClue("DEBUG_MAP_CLUE_" + i);
+        mainQuestProgress.RegisterOfficeDiscovered();
+        mainQuestProgress.RegisterOfficeMapCabinetOpened();
+        mainQuestProgress.RegisterMapFragment2AddedToInventory();
+        mapPrototype.DebugRevealHospitalAndMilitaryImmediately();
+        RefreshQuestPresentation();
+#endif
+    }
+
     public void SetCivilianCityMapUnlocked(bool unlocked)
     {
         EnsureBuiltForTests();

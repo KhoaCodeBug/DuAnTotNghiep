@@ -52,9 +52,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Header("School investigation and story commitment")]
     [SerializeField, Min(0.5f)] private float schoolClueValidationDistance = 1.75f;
     [SerializeField, Min(0.5f)] private float roofExitValidationPadding = 4f;
-    [SerializeField] private Vector2 schoolClueOffset0 = new Vector2(-9.5f, -3f);
-    [SerializeField] private Vector2 schoolClueOffset1 = new Vector2(5.5f, 0.25f);
-    [SerializeField] private Vector2 schoolClueOffset2 = new Vector2(11.5f, 4.5f);
     [SerializeField, Min(0.1f)] private float cinematicGatherSpacing = 0.72f;
 
     [Header("Balance")]
@@ -139,6 +136,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private PolygonCollider2D schoolRoofTrigger;
     private PolygonCollider2D militaryAreaTrigger;
     private readonly List<MilitarySchoolCluePoint> schoolCluePoints = new();
+    private readonly HashSet<PlayerRef> finalMapFragmentRecipients = new();
     private readonly HashSet<PlayerRef> voteParticipants = new();
     private readonly HashSet<PlayerRef> voteApprovals = new();
     private Transform policeCarMarker;
@@ -238,6 +236,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         PoliceBatteryRepairProgress = 0f;
         PoliceTireRepairProgress = 0f;
         SchoolClueMask = 0;
+        finalMapFragmentRecipients.Clear();
         HasExitedSchoolAfterClues = false;
         IsPoliceCarStoryInspected = false;
         IsMilitaryRouteVoteActive = false;
@@ -321,28 +320,28 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         };
     }
 
-    public bool CanCollectSchoolClue(int clueIndex)
+    public bool CanInvestigateSchoolClue(int clueIndex)
     {
         if (!IsNetworkReady || clueIndex < 0 || clueIndex >= MilitaryStoryFlowRules.RequiredSchoolClues ||
             CurrentPhase != Phase.NotReached || MainQuestManager.Instance == null ||
             MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound ||
             MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.None)
             return false;
-        return (SchoolClueMask & (1 << clueIndex)) == 0;
+        return true;
     }
 
-    public void RequestCollectSchoolClue(int clueIndex)
+    public void RequestInvestigateSchoolClue(int clueIndex)
     {
-        if (!CanCollectSchoolClue(clueIndex)) return;
-        if (HasStateAuthority) ServerCollectSchoolClue(Runner.LocalPlayer, clueIndex);
-        else RPC_RequestCollectSchoolClue(clueIndex);
+        if (!CanInvestigateSchoolClue(clueIndex)) return;
+        if (HasStateAuthority) ServerInvestigateSchoolClue(Runner.LocalPlayer, clueIndex);
+        else RPC_RequestInvestigateSchoolClue(clueIndex);
     }
 
-    public void RequestConfirmSchoolRoofExit()
+    public void RequestHandleSchoolRoofExit()
     {
-        if (!IsNetworkReady || !HasAllSchoolClues || HasExitedSchoolAfterClues) return;
-        if (HasStateAuthority) ServerConfirmSchoolRoofExit(Runner.LocalPlayer);
-        else RPC_RequestConfirmSchoolRoofExit();
+        if (!IsNetworkReady || HasExitedSchoolAfterClues) return;
+        if (HasStateAuthority) ServerHandleSchoolRoofExit(Runner.LocalPlayer);
+        else RPC_RequestHandleSchoolRoofExit();
     }
 
     public void RequestInspectPoliceCarStory()
@@ -360,12 +359,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestCollectSchoolClue(int clueIndex, RpcInfo info = default) =>
-        ServerCollectSchoolClue(info.Source, clueIndex);
+    private void RPC_RequestInvestigateSchoolClue(int clueIndex, RpcInfo info = default) =>
+        ServerInvestigateSchoolClue(info.Source, clueIndex);
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestConfirmSchoolRoofExit(RpcInfo info = default) =>
-        ServerConfirmSchoolRoofExit(info.Source);
+    private void RPC_RequestHandleSchoolRoofExit(RpcInfo info = default) =>
+        ServerHandleSchoolRoofExit(info.Source);
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     private void RPC_RequestInspectPoliceCarStory(RpcInfo info = default) =>
@@ -375,28 +374,42 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private void RPC_RequestSubmitMilitaryRouteVote(int voteId, NetworkBool approve, RpcInfo info = default) =>
         ServerSubmitMilitaryRouteVote(info.Source, voteId, approve);
 
-    private void ServerCollectSchoolClue(PlayerRef requester, int clueIndex)
+    private void ServerInvestigateSchoolClue(PlayerRef requester, int clueIndex)
     {
-        if (!HasStateAuthority || !CanCollectSchoolClue(clueIndex) ||
+        if (!HasStateAuthority || !CanInvestigateSchoolClue(clueIndex) ||
             !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             clueIndex >= schoolCluePoints.Count || schoolCluePoints[clueIndex] == null ||
             Vector2.Distance(player.transform.position, schoolCluePoints[clueIndex].transform.position) >
             schoolClueValidationDistance)
             return;
 
-        SchoolClueMask |= 1 << clueIndex;
-        RPC_ShowSchoolClueProgress(clueIndex, SchoolClueCount,
-            MilitaryStoryFlowRules.RequiredSchoolClues);
+        int clueBit = 1 << clueIndex;
+        bool firstTeamDiscovery = (SchoolClueMask & clueBit) == 0;
+        if (firstTeamDiscovery) SchoolClueMask |= clueBit;
+        bool grantsFinalMapFragment = clueIndex == 2 && finalMapFragmentRecipients.Add(requester);
+        RPC_ShowSchoolClueDialogue(requester, clueIndex, firstTeamDiscovery, SchoolClueCount,
+            MilitaryStoryFlowRules.RequiredSchoolClues, grantsFinalMapFragment);
     }
 
-    private void ServerConfirmSchoolRoofExit(PlayerRef requester)
+    private void ServerHandleSchoolRoofExit(PlayerRef requester)
     {
-        if (!HasStateAuthority || CurrentPhase != Phase.NotReached || !HasAllSchoolClues ||
-            HasExitedSchoolAfterClues || !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
-            schoolRoofTrigger == null || schoolRoofTrigger.OverlapPoint(player.transform.position) ||
+        if (!HasStateAuthority || CurrentPhase != Phase.NotReached || HasExitedSchoolAfterClues ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) || schoolRoofTrigger == null ||
+            schoolRoofTrigger.OverlapPoint(player.transform.position) ||
             Vector2.Distance(player.transform.position, schoolRoofTrigger.bounds.ClosestPoint(player.transform.position)) >
             roofExitValidationPadding)
             return;
+
+        if (!HasAllSchoolClues)
+        {
+            Vector2 closest = schoolRoofTrigger.bounds.ClosestPoint(player.transform.position);
+            Vector2 towardCenter = ((Vector2)schoolRoofTrigger.bounds.center - closest).normalized;
+            Vector2 returnPoint = closest + towardCenter * 0.75f;
+            if (!schoolRoofTrigger.OverlapPoint(returnPoint)) returnPoint = schoolRoofTrigger.bounds.center;
+            TeleportPlayer(player, returnPoint);
+            RPC_ShowSchoolExitBlocked(requester, SchoolClueCount, MilitaryStoryFlowRules.RequiredSchoolClues);
+            return;
+        }
 
         HasExitedSchoolAfterClues = true;
         MilitaryPhase = (int)Phase.Investigating;
@@ -551,14 +564,37 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowSchoolClueProgress(int clueIndex, int collected, int required)
+    private void RPC_ShowSchoolClueDialogue([RpcTarget] PlayerRef targetPlayer, int clueIndex,
+        NetworkBool firstTeamDiscovery, int collected, int required, NetworkBool grantsFinalMapFragment)
     {
-        string[] names = { "Hồ sơ trực ban", "Bản ghi tiếp vận", "Lệnh phong tỏa" };
-        string clueName = clueIndex >= 0 && clueIndex < names.Length ? names[clueIndex] : "Manh mối";
-        string body = collected >= required
-            ? $"Đã kiểm tra {clueName}. Đủ {collected}/{required} manh mối — hãy rời khỏi khu trường học."
-            : $"Đã kiểm tra {clueName}. Tiến độ manh mối: {collected}/{required}.";
-        AutoChatManager.Instance?.AddMessage("MANH MỐI QUÂN SỰ", body);
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        string[] dialogue =
+        {
+            "Nhiều xác chết quá... Liệu trong này thật sự còn ai sống sót không?",
+            "Đây có vẻ là một nhà kho. Quân đội đã tích trữ đủ thứ ở đây, từ đạn dược đến dụng cụ sửa chữa.",
+            "Một mảnh bản đồ mới... Có vẻ căn cứ này đã thất thủ. Quân đội hẳn đã rút toàn bộ lực lượng về vùng nông thôn."
+        };
+        string line = clueIndex >= 0 && clueIndex < dialogue.Length ? dialogue[clueIndex] : "Không có gì khác thường.";
+        RouteBRadioBroadcastUI.ShowSelfDialogue(line);
+        if (firstTeamDiscovery)
+            AutoChatManager.Instance?.AddMessage("MANH MỐI QUÂN SỰ",
+                collected >= required
+                    ? $"Tiến độ chung: {collected}/{required}. Đã đủ manh mối để rời trường."
+                    : $"Tiến độ chung: {collected}/{required} manh mối.");
+        if (grantsFinalMapFragment)
+        {
+            QuestFlowUIPrototype.Instance?.RegisterFinalMapFragmentForLocalPlayer();
+            AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
+                "Phát hiện manh mối mới - bấm M để kiểm tra");
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowSchoolExitBlocked([RpcTarget] PlayerRef targetPlayer, int collected, int required)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ",
+            $"Chưa thể rời trường. Hãy kiểm tra đủ manh mối ({collected}/{required}).");
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -983,26 +1019,26 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             !roadsideRepairStation.IsPlayerInRepairPosition(player.transform.position))
         {
-            RPC_RepairSessionResponse(requester, false, "Hãy đứng trước mũi xe để sửa chữa.");
+            SendRepairSessionResponse(requester, action, false, "Hãy đứng trước mũi xe để sửa chữa.");
             return;
         }
 
         PlayerHealth health = player.GetComponent<PlayerHealth>();
         if (health != null && (health.isDead || health.isTransforming))
         {
-            RPC_RepairSessionResponse(requester, false, "Không thể sửa xe trong trạng thái hiện tại.");
+            SendRepairSessionResponse(requester, action, false, "Không thể sửa xe trong trạng thái hiện tại.");
             return;
         }
 
         if (PoliceCarRepairRules.IsApplied(PoliceCarRepairMask, action))
         {
-            RPC_RepairSessionResponse(requester, false, "Hạng mục này đã được sửa hoàn tất.");
+            SendRepairSessionResponse(requester, action, false, "Hạng mục này đã được sửa hoàn tất.");
             return;
         }
 
         if (RepairSkillCheckSessionActive && ActiveRepairer != PlayerRef.None && ActiveRepairer != requester)
         {
-            RPC_RepairSessionResponse(requester, false,
+            SendRepairSessionResponse(requester, action, false,
                 "XE ĐANG ĐƯỢC SỬA BỞI: " + GetPlayerDisplayName(ActiveRepairer));
             return;
         }
@@ -1010,7 +1046,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (RepairSkillCheckSessionActive && ActiveRepairer == requester &&
             ActivePoliceRepairAction != (int)action)
         {
-            RPC_RepairSessionResponse(requester, false, "Bạn đang sửa một hạng mục khác.");
+            SendRepairSessionResponse(requester, action, false, "Bạn đang sửa một hạng mục khác.");
             return;
         }
 
@@ -1018,27 +1054,42 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         ArrivalCarItemKind requiredKind = PoliceCarRepairRules.GetRequiredItem(action);
         if (FindPoliceCarItem(inventory, requiredKind) == null)
         {
-            RPC_RepairSessionResponse(requester, false,
+            SendRepairSessionResponse(requester, action, false,
                 "Cần vật phẩm: " + PoliceCarItemCatalog.GetDisplayName(requiredKind) + ".");
             return;
         }
 
         ActiveRepairer = requester;
         ActivePoliceRepairAction = (int)action;
-        RepairSkillCheckProgress = GetPoliceRepairProgress(action);
+        bool timedInteraction = PoliceCarRepairRules.UsesTimedArrivalCarInteraction(action);
+        RepairSkillCheckProgress = timedInteraction ? 0f : GetPoliceRepairProgress(action);
         RepairSkillCheckSessionActive = true;
         RepairSkillCheckEventActive = false;
         RepairSkillCheckElapsed = 0f;
         RepairPenaltyRemaining = 0f;
-        NextRepairSkillCheckSeconds = RandomSkillCheckInterval();
-        RPC_RepairSessionResponse(requester, true, string.Empty);
+        NextRepairSkillCheckSeconds = timedInteraction ? 0f : RandomSkillCheckInterval();
+        if (timedInteraction)
+            RPC_PlayPoliceTimedRepairAudio((int)action,
+                PoliceCarRepairRules.GetTimedInteractionDurationSeconds(action));
+        SendRepairSessionResponse(requester, action, true, string.Empty);
+    }
+
+    private void SendRepairSessionResponse(PlayerRef requester, PoliceCarRepairAction action,
+        bool accepted, string message)
+    {
+        bool timed = PoliceCarRepairRules.UsesTimedArrivalCarInteraction(action);
+        float duration = timed ? PoliceCarRepairRules.GetTimedInteractionDurationSeconds(action) : 0f;
+        RPC_RepairSessionResponse(requester, (int)action, accepted, timed, duration, message);
     }
 
     private void ServerCancelRepairSkillCheck(PlayerRef requester)
     {
         if (!HasStateAuthority || !RepairSkillCheckSessionActive || ActiveRepairer != requester) return;
+        PoliceCarRepairAction action = (PoliceCarRepairAction)ActivePoliceRepairAction;
+        bool timed = PoliceCarRepairRules.UsesTimedArrivalCarInteraction(action);
         ClearRepairSkillCheckSession();
-        RPC_RepairCancelled(requester);
+        if (timed) RPC_StopPoliceTimedRepairAudio();
+        RPC_RepairCancelled(requester, (int)action, timed);
     }
 
     private void ServerResolveRepairSkillCheck(PlayerRef requester, int sequence, float needleAngle)
@@ -1075,11 +1126,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         }
 
         float delta = Runner.DeltaTime;
+        PoliceCarRepairAction activeAction = (PoliceCarRepairAction)ActivePoliceRepairAction;
+        bool timedInteraction = PoliceCarRepairRules.UsesTimedArrivalCarInteraction(activeAction);
+        float activeDuration = timedInteraction
+            ? PoliceCarRepairRules.GetTimedInteractionDurationSeconds(activeAction)
+            : skillRepairDurationSeconds;
         if (RepairPenaltyRemaining > 0f)
             RepairPenaltyRemaining = Mathf.Max(0f, RepairPenaltyRemaining - delta);
         else
             RepairSkillCheckProgress = VehicleRepairSkillCheckRules.AdvanceBaseProgress(
-                RepairSkillCheckProgress, delta, skillRepairDurationSeconds);
+                RepairSkillCheckProgress, delta, activeDuration);
         StoreActivePoliceRepairProgress();
 
         if (RepairSkillCheckProgress >= VehicleRepairSkillCheckRules.MaxProgress)
@@ -1096,6 +1152,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             PoliceCarRepairMask |= (int)PoliceCarRepairRules.GetStateBit(completedAction);
             bool allComplete = PoliceCarRepairRules.IsComplete(PoliceCarRepairMask);
             ClearRepairSkillCheckSession();
+            if (timedInteraction) RPC_StopPoliceTimedRepairAudio();
             RPC_RepairCompleted(completedBy, (int)completedAction,
                 allComplete);
             if (allComplete)
@@ -1104,6 +1161,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
                 MilitaryPhase = (int)Phase.ReadyToEscape;
                 RPC_BroadcastVehicleReady(completedBy);
             }
+            return;
+        }
+
+        if (timedInteraction)
+        {
+            RepairSkillCheckEventActive = false;
+            RepairSkillCheckElapsed = 0f;
+            NextRepairSkillCheckSeconds = 0f;
             return;
         }
 
@@ -1170,9 +1235,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private void AuthorityInterruptRepair(PlayerRef player, string message)
     {
         if (!HasStateAuthority || player == PlayerRef.None || ActiveRepairer != player) return;
+        PoliceCarRepairAction action = (PoliceCarRepairAction)ActivePoliceRepairAction;
+        bool timed = PoliceCarRepairRules.UsesTimedArrivalCarInteraction(action);
         ClearRepairSkillCheckSession();
+        if (timed) RPC_StopPoliceTimedRepairAudio();
         RPC_InterruptRepair(player);
-        RPC_RepairInterrupted(player, message);
+        RPC_RepairInterrupted(player, (int)action, timed, message);
     }
 
     private void ClearRepairSkillCheckSession()
@@ -1353,10 +1421,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_RepairSessionResponse(PlayerRef target, NetworkBool accepted, string message)
+    private void RPC_RepairSessionResponse(PlayerRef target, int action, NetworkBool accepted,
+        NetworkBool timedInteraction, float duration, string message)
     {
         if (Runner == null || Runner.LocalPlayer != target) return;
-        VehicleRepairSkillCheckUI.NotifyStartResponse(accepted, message);
+        if (timedInteraction)
+            roadsideRepairStation?.NotifyTimedRepairStart((PoliceCarRepairAction)action, accepted, duration, message);
+        else
+            VehicleRepairSkillCheckUI.NotifyStartResponse(accepted, message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1369,28 +1441,47 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_RepairCancelled(PlayerRef target)
+    private void RPC_RepairCancelled(PlayerRef target, int action, NetworkBool timedInteraction)
     {
         if (Runner == null || Runner.LocalPlayer != target) return;
-        VehicleRepairSkillCheckUI.NotifyCancelled();
+        if (timedInteraction)
+            roadsideRepairStation?.NotifyTimedRepairInterrupted("Đã dừng sửa xe.");
+        else
+            VehicleRepairSkillCheckUI.NotifyCancelled();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_RepairInterrupted(PlayerRef target, string message)
+    private void RPC_RepairInterrupted(PlayerRef target, int action, NetworkBool timedInteraction, string message)
     {
         if (Runner == null || Runner.LocalPlayer != target) return;
-        VehicleRepairSkillCheckUI.NotifyInterrupted(message);
+        if (timedInteraction)
+            roadsideRepairStation?.NotifyTimedRepairInterrupted(message);
+        else
+            VehicleRepairSkillCheckUI.NotifyInterrupted(message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_RepairCompleted(PlayerRef target, int action, NetworkBool allComplete)
     {
         if (Runner != null && Runner.LocalPlayer == target)
-            VehicleRepairSkillCheckUI.NotifyCompleted((PoliceCarRepairAction)action, allComplete);
+        {
+            PoliceCarRepairAction completedAction = (PoliceCarRepairAction)action;
+            if (PoliceCarRepairRules.UsesTimedArrivalCarInteraction(completedAction))
+                roadsideRepairStation?.NotifyTimedRepairCompleted(allComplete);
+            else
+                VehicleRepairSkillCheckUI.NotifyCompleted(completedAction, allComplete);
+        }
         AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", allComplete
             ? "Xe cảnh sát đã hoàn tất đủ 5 hạng mục sửa chữa."
             : "Đã hoàn tất một hạng mục sửa xe cảnh sát.");
     }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_PlayPoliceTimedRepairAudio(int action, float duration) =>
+        roadsideRepairStation?.PlayTimedRepairAudio((PoliceCarRepairAction)action, duration);
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_StopPoliceTimedRepairAudio() => roadsideRepairStation?.StopTimedRepairAudio();
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowQuestMessage(string message) =>
@@ -1449,18 +1540,18 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         exitTrigger.Configure(this);
 
         schoolCluePoints.Clear();
-        Vector2 center = schoolRoofTrigger.bounds.center;
-        Vector2[] offsets = { schoolClueOffset0, schoolClueOffset1, schoolClueOffset2 };
-        string[] labels = { "HỒ SƠ TRỰC BAN", "BẢN GHI TIẾP VẬN", "LỆNH PHONG TỎA" };
+        string[] labels = { "KHU VỰC TỬ THƯƠNG", "NHÀ KHO QUÂN NHU", "MẢNH BẢN ĐỒ CUỐI" };
         for (int i = 0; i < MilitaryStoryFlowRules.RequiredSchoolClues; i++)
         {
-            Vector2 position = center + offsets[i];
-            if (!schoolRoofTrigger.OverlapPoint(position))
-                position = center + new Vector2((i - 1) * 1.4f, 0f);
-            GameObject clue = new GameObject($"Military School Clue {i + 1} - {labels[i]}");
-            clue.transform.SetParent(presentationRoot.transform, true);
-            clue.transform.position = new Vector3(position.x, position.y, 0f);
-            MilitarySchoolCluePoint point = clue.AddComponent<MilitarySchoolCluePoint>();
+            GameObject clue = GameObject.Find($"ManhMoi{i + 1}");
+            if (clue == null)
+            {
+                Debug.LogError($"[MILITARY STORY] Không tìm thấy object scene ManhMoi{i + 1}.");
+                schoolCluePoints.Add(null);
+                continue;
+            }
+            MilitarySchoolCluePoint point = clue.GetComponent<MilitarySchoolCluePoint>();
+            if (point == null) point = clue.AddComponent<MilitarySchoolCluePoint>();
             point.Configure(this, i, labels[i]);
             schoolCluePoints.Add(point);
         }

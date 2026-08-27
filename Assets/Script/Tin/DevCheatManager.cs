@@ -371,6 +371,8 @@ public class DevCheatManager : MonoBehaviour
             () => RunRouteBCheat(AdvanceRouteBStory));
         AddActionRow(cheatsTabContent.transform, "COMPLETE RESIDENTIAL CLUES  [F7]", "3 / 3", new Color32(217, 119, 6, 255),
             () => RunRouteBCheat(CompleteRouteBClues));
+        AddActionRow(cheatsTabContent.transform, "UNLOCK HOSPITAL + MILITARY MAP REGIONS", "UNLOCK MAP",
+            new Color32(147, 51, 234, 255), () => RunRouteBCheat(UnlockHospitalAndMilitaryMapRegions));
         AddActionRow(cheatsTabContent.transform, "NEXT MILITARY-BASE STEP  [F10]", "ADVANCE", new Color32(5, 150, 105, 255),
             () => RunRouteBCheat(AdvanceRouteBBase));
         AddActionRow(cheatsTabContent.transform, "REPLAY CURRENT STORY AUDIO  [F11]", "REPLAY", new Color32(2, 132, 199, 255),
@@ -773,6 +775,17 @@ public class DevCheatManager : MonoBehaviour
             return;
         }
         manager.DebugCompleteClueSearch();
+    }
+
+    private static void UnlockHospitalAndMilitaryMapRegions()
+    {
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager == null || !manager.IsNetworkReady)
+        {
+            Debug.LogWarning("[CHEAT] MainQuestManager is not ready. Start Main from MainMenu first.");
+            return;
+        }
+        manager.DebugUnlockHospitalAndMilitaryMapRegions();
     }
 
     private static void AdvanceRouteBBase()

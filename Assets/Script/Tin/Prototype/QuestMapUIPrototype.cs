@@ -55,10 +55,15 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private Image rasterOfficeRevealFogImage;
     private RectTransform rasterMilitaryRevealFog;
     private Image rasterMilitaryRevealFogImage;
+    private RectTransform rasterCountrysideRevealFog;
+    private Image rasterCountrysideRevealFogImage;
     private readonly List<RectTransform> rasterRestrictedFog = new List<RectTransform>();
     private int activeRasterFogCount;
     private Vector2 rasterOfficeNormalized;
     private Vector2 rasterMilitaryNormalized;
+    private Vector2 rasterCountrysideAreaMin;
+    private Vector2 rasterCountrysideAreaMax;
+    private Rect rasterMilitaryRevealNormalized;
     private Vector2 rasterPlayerNormalized;
     private Vector2 rasterSearchZoneMin;
     private Vector2 rasterSearchZoneMax;
@@ -68,6 +73,9 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private bool hasSearchZone;
     private bool hasOfficeSearchArea;
     private bool hasMilitaryDestination;
+    private bool hasMilitaryRevealArea;
+    private bool hasCountrysideRevealArea;
+    private bool hasFinalMapFragment;
     // Main is tall in Grid space, so the readable cartographic default is the
     // 90-degree landscape orientation used by the reference town maps.
     private int rasterRotationQuarterTurns = 1;
@@ -103,6 +111,10 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     private Coroutine civilianUnlockRevealRoutine;
     private bool militaryRevealPending;
     private bool militaryRegionRevealVisualComplete;
+    private bool militaryRevealQueued;
+    private Coroutine countrysideUnlockRevealRoutine;
+    private bool countrysideRevealQueued;
+    private bool countrysideRegionRevealVisualComplete;
     private bool civilianCityMapUnlocked;
     private Vector2 civilianCheckpointNormalized;
     private Vector2 civilianCityExitNormalized;
@@ -187,6 +199,55 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             BuildRasterMapIfNeeded();
         UpdateRasterMapMarkers();
         Refresh();
+    }
+
+    public void ConfigureMilitaryRevealArea(Vector2 minimumNormalized, Vector2 maximumNormalized)
+    {
+        Vector2 minimum = Vector2.Min(minimumNormalized, maximumNormalized);
+        Vector2 maximum = Vector2.Max(minimumNormalized, maximumNormalized);
+        rasterMilitaryRevealNormalized = Rect.MinMaxRect(minimum.x, minimum.y, maximum.x, maximum.y);
+        hasMilitaryRevealArea = true;
+        UpdateRasterMapMarkers();
+    }
+
+    public void ConfigureCountrysideRevealArea(Vector2 minimumNormalized, Vector2 maximumNormalized)
+    {
+        rasterCountrysideAreaMin = Vector2.Min(minimumNormalized, maximumNormalized);
+        rasterCountrysideAreaMax = Vector2.Max(minimumNormalized, maximumNormalized);
+        hasCountrysideRevealArea = true;
+        UpdateRasterMapMarkers();
+    }
+
+    public void RegisterFinalMapFragmentForLocalPlayer()
+    {
+        if (hasFinalMapFragment) return;
+        hasFinalMapFragment = true;
+        countrysideRevealQueued = true;
+        UpdateRasterMapMarkers();
+        Debug.Log("[QUEST MAP] Countryside reveal queued for the next manual map open.");
+    }
+
+    public void QueueMilitaryDestinationReveal()
+    {
+        if (militaryRegionRevealVisualComplete || militaryRevealQueued) return;
+        militaryRevealQueued = true;
+        Debug.Log("[QUEST MAP] Military reveal queued for the next manual map open.");
+    }
+
+    public void DebugRevealHospitalAndMilitaryImmediately()
+    {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        unlockRevealPending = false;
+        unlockRevealCompleted = true;
+        officeRegionRevealVisualComplete = true;
+        militaryRevealQueued = false;
+        militaryRevealPending = false;
+        militaryRegionRevealVisualComplete = true;
+        SetRasterOfficeRevealProgress(1f);
+        SetRasterMilitaryRevealProgress(1f);
+        UpdateRasterMapMarkers();
+        Refresh();
+#endif
     }
 
     public void SetCivilianCityMapUnlocked(bool unlocked)
@@ -281,7 +342,28 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
                 unlockRevealPending = true;
                 StartUnlockReveal();
             }
+            else if (Application.isPlaying)
+            {
+                StartNextPendingReveal();
+            }
         }
+    }
+
+    private void StartNextPendingReveal()
+    {
+        if (!IsOpen || unlockRevealRoutine != null || militaryUnlockRevealRoutine != null ||
+            countrysideUnlockRevealRoutine != null) return;
+        if (progress != null && progress.HasMapFragment2 && !militaryRegionRevealVisualComplete)
+            militaryRevealQueued = true;
+        if (militaryRevealQueued)
+        {
+            StartMilitaryDestinationReveal();
+            return;
+        }
+        if (hasFinalMapFragment && !countrysideRegionRevealVisualComplete)
+            countrysideRevealQueued = true;
+        if (countrysideRevealQueued)
+            StartCountrysideReveal();
     }
 
     public void QueueUnlockReveal(Action onFinished = null)
@@ -592,6 +674,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Action finished = unlockRevealFinished;
         unlockRevealFinished = null;
         finished?.Invoke();
+        StartNextPendingReveal();
     }
 
     private void SetUnlockRevealDarkness(float alpha)
@@ -650,9 +733,21 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             return;
         }
 
+        SetOpen(true);
+        StartMilitaryDestinationReveal(onFinished);
+    }
+
+    private void StartMilitaryDestinationReveal(Action onFinished = null)
+    {
+        if (root == null || progress == null || !progress.HasMapFragment2 ||
+            militaryMarker == null || !hasMilitaryDestination || !Application.isPlaying)
+        {
+            onFinished?.Invoke();
+            return;
+        }
+        militaryRevealQueued = false;
         militaryRevealPending = true;
         militaryRegionRevealVisualComplete = false;
-        SetOpen(true);
         SetRasterMilitaryRevealProgress(0f);
         militaryMarker.SetActive(false);
         militaryUnlockRevealRoutine = StartCoroutine(MilitaryDestinationRevealRoutine(onFinished));
@@ -796,6 +891,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Refresh();
         militaryUnlockRevealRoutine = null;
         onFinished?.Invoke();
+        StartNextPendingReveal();
     }
 
     private void AlignUnlockRevealToMilitaryMarker()
@@ -817,6 +913,101 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         Color color = rasterMilitaryRevealFogImage.color;
         color.a = 1f - progressValue;
         rasterMilitaryRevealFogImage.color = color;
+    }
+
+    private void StartCountrysideReveal()
+    {
+        if (!hasFinalMapFragment || !hasCountrysideRevealArea || unlockRevealRoot == null ||
+            !Application.isPlaying) return;
+        countrysideRevealQueued = false;
+        countrysideUnlockRevealRoutine = StartCoroutine(CountrysideRevealRoutine());
+    }
+
+    private IEnumerator CountrysideRevealRoutine()
+    {
+        while (unlockRevealRoutine != null || militaryUnlockRevealRoutine != null)
+            yield return null;
+
+        Refresh();
+        unlockRevealRoot.SetActive(true);
+        unlockRevealRoot.transform.SetAsLastSibling();
+        unlockRevealGroup.alpha = 1f;
+        SetUnlockRevealDarkness(0f);
+        SetRasterCountrysideRevealProgress(0f);
+        TintUnlockReveal(Mint);
+        unlockRevealTitle.text = L("FINAL ESCAPE REGION FOUND", "ĐÃ XÁC ĐỊNH KHU VỰC TẨU THOÁT");
+        unlockRevealBody.text = L(
+            "The final fragment reveals the road toward the countryside.",
+            "Mảnh bản đồ cuối đã mở tuyến đường dẫn về vùng nông thôn.");
+        unlockRevealPulse.localScale = Vector3.one * 0.3f;
+        unlockRevealCore.localScale = Vector3.one * 0.7f;
+        unlockRevealCore.gameObject.SetActive(false);
+        AlignUnlockRevealToCountrysideArea();
+
+        float elapsed = 0f;
+        const float scanDuration = 1.35f;
+        while (elapsed < scanDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / scanDuration);
+            float eased = t * t * (3f - 2f * t);
+            unlockRevealPulse.localScale = Vector3.one * Mathf.Lerp(0.3f, 1.2f, eased);
+            unlockRevealPulse.localRotation = Quaternion.Euler(0f, 0f, elapsed * 60f);
+            AlignUnlockRevealToCountrysideArea();
+            SetRasterCountrysideRevealProgress(Mathf.Lerp(0f, 0.45f, eased));
+            yield return null;
+        }
+
+        elapsed = 0f;
+        const float revealDuration = 1.8f;
+        while (elapsed < revealDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / revealDuration);
+            float eased = t * t * (3f - 2f * t);
+            unlockRevealPulse.localScale = Vector3.one * Mathf.Lerp(1.2f, 1.6f, eased);
+            unlockRevealPulse.localRotation = Quaternion.Euler(0f, 0f, 80f + elapsed * 85f);
+            AlignUnlockRevealToCountrysideArea();
+            SetRasterCountrysideRevealProgress(Mathf.Lerp(0.45f, 1f, eased));
+            yield return null;
+        }
+
+        elapsed = 0f;
+        const float fadeDuration = 0.35f;
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            unlockRevealGroup.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
+            yield return null;
+        }
+
+        unlockRevealRoot.SetActive(false);
+        unlockRevealGroup.alpha = 0f;
+        countrysideRegionRevealVisualComplete = true;
+        SetRasterCountrysideRevealProgress(1f);
+        countrysideUnlockRevealRoutine = null;
+        Refresh();
+    }
+
+    private void AlignUnlockRevealToCountrysideArea()
+    {
+        if (rasterArtRoot == null || viewport == null || unlockRevealPulse == null) return;
+        Vector2 center = (rasterCountrysideAreaMin + rasterCountrysideAreaMax) * 0.5f;
+        Vector2 rasterPoint = NormalizedToRasterPoint(center);
+        Vector3 worldPoint = rasterArtRoot.TransformPoint(rasterPoint);
+        unlockRevealPulse.anchoredPosition = viewport.InverseTransformPoint(worldPoint);
+        if (unlockRevealCore != null) unlockRevealCore.anchoredPosition = unlockRevealPulse.anchoredPosition;
+    }
+
+    private void SetRasterCountrysideRevealProgress(float revealProgress)
+    {
+        if (rasterCountrysideRevealFog == null || rasterCountrysideRevealFogImage == null) return;
+        float progressValue = Mathf.Clamp01(revealProgress);
+        rasterCountrysideRevealFog.gameObject.SetActive(
+            !countrysideRegionRevealVisualComplete && progressValue < 1f);
+        Color color = rasterCountrysideRevealFogImage.color;
+        color.a = 1f - progressValue;
+        rasterCountrysideRevealFogImage.color = color;
     }
 
     private void TintUnlockReveal(Color accent)
@@ -1137,6 +1328,12 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         rasterMilitaryRevealFogImage.raycastTarget = false;
         rasterMilitaryRevealFog.gameObject.SetActive(false);
 
+        rasterCountrysideRevealFog = Box("Countryside Region Reveal Fog", rasterArtRoot,
+            new Vector2(140f, 140f), Vector2.zero, Color.black);
+        rasterCountrysideRevealFogImage = rasterCountrysideRevealFog.GetComponent<Image>();
+        rasterCountrysideRevealFogImage.raycastTarget = false;
+        rasterCountrysideRevealFog.gameObject.SetActive(false);
+
         approximateArea = Box("Approximate Office Area", rasterArtRoot, new Vector2(72f, 72f), Vector2.zero,
             new Color(Amber.r, Amber.g, Amber.b, 0.22f)).gameObject;
         Border(approximateArea.GetComponent<RectTransform>(), new Color(Amber.r, Amber.g, Amber.b, 0.95f));
@@ -1296,6 +1493,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             Rect neighborhoodOpening = RectFromPoints(minPoint, maxPoint);
             Rect? officeOpening = null;
             Rect? militaryOpening = null;
+            Rect? countrysideOpening = null;
 
             // Fragment 1 opens a second landmark-aligned rectangle around the
             // office. It deliberately stays independent from the neighborhood
@@ -1320,11 +1518,25 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
 
             if (progress != null && progress.HasMapFragment2 && hasMilitaryDestination)
             {
-                const float militaryRevealPadding = 62f;
-                militaryOpening = RectFromPoints(
-                    militaryPoint - Vector2.one * militaryRevealPadding,
-                    militaryPoint + Vector2.one * militaryRevealPadding);
+                if (hasMilitaryRevealArea)
+                {
+                    militaryOpening = RectFromPoints(
+                        NormalizedToRasterPoint(rasterMilitaryRevealNormalized.min),
+                        NormalizedToRasterPoint(rasterMilitaryRevealNormalized.max));
+                }
+                else
+                {
+                    const float militaryRevealPadding = 62f;
+                    militaryOpening = RectFromPoints(
+                        militaryPoint - Vector2.one * militaryRevealPadding,
+                        militaryPoint + Vector2.one * militaryRevealPadding);
+                }
             }
+
+            if (hasFinalMapFragment && hasCountrysideRevealArea)
+                countrysideOpening = RectFromPoints(
+                    NormalizedToRasterPoint(rasterCountrysideAreaMin),
+                    NormalizedToRasterPoint(rasterCountrysideAreaMax));
 
             if (rasterOfficeRevealFog != null && officeOpening.HasValue)
             {
@@ -1351,7 +1563,20 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
                 rasterMilitaryRevealFog.gameObject.SetActive(false);
             }
 
-            UpdateRasterRestrictionFog(neighborhoodOpening, officeOpening, militaryOpening);
+            if (rasterCountrysideRevealFog != null && countrysideOpening.HasValue)
+            {
+                Rect revealRect = countrysideOpening.Value;
+                rasterCountrysideRevealFog.anchoredPosition = revealRect.center;
+                rasterCountrysideRevealFog.sizeDelta = revealRect.size;
+                rasterCountrysideRevealFog.gameObject.SetActive(
+                    countrysideRevealQueued && !countrysideRegionRevealVisualComplete);
+            }
+            else if (rasterCountrysideRevealFog != null)
+            {
+                rasterCountrysideRevealFog.gameObject.SetActive(false);
+            }
+
+            UpdateRasterRestrictionFog(neighborhoodOpening, officeOpening, militaryOpening, countrysideOpening);
             UpdateSearchRestrictionVisibility();
         }
     }
@@ -1368,7 +1593,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         UpdateSearchRestrictionVisibility();
     }
 
-    private void UpdateRasterRestrictionFog(Rect neighborhoodOpening, Rect? officeOpening, Rect? militaryOpening)
+    private void UpdateRasterRestrictionFog(Rect neighborhoodOpening, Rect? officeOpening, Rect? militaryOpening,
+        Rect? countrysideOpening)
     {
         if (rasterArtRoot == null) return;
         float halfWidth = rasterArtRoot.rect.width * 0.5f;
@@ -1380,6 +1606,8 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             SubtractOpening(fogRects, ClampRect(officeOpening.Value, mapRect));
         if (militaryOpening.HasValue)
             SubtractOpening(fogRects, ClampRect(militaryOpening.Value, mapRect));
+        if (countrysideOpening.HasValue)
+            SubtractOpening(fogRects, ClampRect(countrysideOpening.Value, mapRect));
 
         EnsureRasterFogCount(Mathf.Max(8, fogRects.Count));
         activeRasterFogCount = fogRects.Count;
