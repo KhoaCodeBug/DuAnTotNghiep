@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using Fusion;
 using Fusion.Addons.Physics;
@@ -646,8 +647,33 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
         ResolveMilitaryAreaTrigger();
         AuthorityClearZombiesInsideMilitaryArea();
-        RPC_PlayMilitaryIntroCinematic(requester, spawnPosition);
-        Debug.Log("[MILITARY RETRY] Đã reset trắng Route B Solo và phát lại cinematic từ checkpoint.");
+        StartCoroutine(AuthorityReplaySoloCinematicWhenAvatarReady(requester, spawnPosition));
+        Debug.Log("[MILITARY RETRY] Đã reset trắng Route B Solo; đang chờ avatar mới trước khi phát cinematic.");
+    }
+
+    private IEnumerator AuthorityReplaySoloCinematicWhenAvatarReady(PlayerRef requester, Vector2 spawnPosition)
+    {
+        float deadline = Time.realtimeSinceStartup + 5f;
+        while (Time.realtimeSinceStartup < deadline)
+        {
+            if (Runner != null && Runner.TryGetPlayerObject(requester, out NetworkObject playerObject) &&
+                playerObject != null && playerObject.IsValid &&
+                playerObject.TryGetComponent(out PlayerMovement movement) && movement != null &&
+                playerObject.TryGetComponent(out PlayerHealth health) && !health.isDead && !health.isTransforming)
+            {
+                // Let Spawned/Render initialize the replacement avatar before
+                // any peer snapshots its renderers for the cinematic clone.
+                yield return null;
+                yield return null;
+                RPC_PlayMilitaryIntroCinematic(requester, spawnPosition);
+                yield break;
+            }
+            yield return null;
+        }
+
+        IsMilitaryIntroCinematicActive = false;
+        MilitaryPhase = (int)Phase.Failed;
+        Debug.LogError("[MILITARY RETRY] Avatar mới không sẵn sàng sau 5 giây; giữ màn hình Chơi lại để thử lại.");
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

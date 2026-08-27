@@ -10,7 +10,6 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
     private MilitaryBaseQuestManager manager;
     private int clueIndex;
     private string clueName;
-    private SpriteRenderer marker;
     private Coroutine searchRoutine;
 
     public void Configure(MilitaryBaseQuestManager targetManager, int index, string displayName)
@@ -18,7 +17,6 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
         manager = targetManager;
         clueIndex = index;
         clueName = displayName;
-        BuildMarker();
     }
 
     private void Update()
@@ -80,19 +78,12 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
         AutoUIManager.Instance.isDoingAction = false;
     }
 
-    private void BuildMarker()
-    {
-        if (marker != null) return;
-        marker = gameObject.AddComponent<SpriteRenderer>();
-        marker.sprite = CreateMarkerSprite();
-        marker.color = Color.white;
-        marker.sortingOrder = 35;
-    }
-
     private void OnGUI()
     {
-        if (manager == null || !manager.CanInvestigateSchoolClue(clueIndex) || searchRoutine != null ||
+        if (manager == null || !manager.CanInvestigateSchoolClue(clueIndex) ||
             LocalGameplayUIState.BlocksWorldInteractionHints) return;
+        LootContainer.DrawMilitaryWaypointDot(transform.position);
+        if (searchRoutine != null) return;
         PlayerMovement player = PlayerMovement.LocalPlayerInstance;
         Camera camera = Camera.main;
         if (player == null || camera == null ||
@@ -112,33 +103,6 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
         GUI.Box(new Rect(x, y, 290f, 46f), $"{clueName}\nGIỮ [E] ĐỂ KIỂM TRA", style);
     }
 
-    private static Sprite CreateMarkerSprite()
-    {
-        const int size = 10;
-        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
-        {
-            name = "MILITARY_CLUE_MARKER_RUNTIME",
-            filterMode = FilterMode.Point,
-            hideFlags = HideFlags.DontSave
-        };
-        Color32[] pixels = new Color32[size * size];
-        Color32 fill = new Color32(255, 205, 38, 255);
-        Color32 edge = new Color32(119, 83, 5, 255);
-        Vector2 center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
-        for (int y = 0; y < size; y++)
-        for (int x = 0; x < size; x++)
-        {
-            float radius = Vector2.Distance(new Vector2(x, y), center);
-            pixels[y * size + x] = radius > 4.5f
-                ? new Color32(0, 0, 0, 0)
-                : radius > 3.65f ? edge : fill;
-        }
-        texture.SetPixels32(pixels);
-        texture.Apply(false, true);
-        Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 20f);
-        sprite.hideFlags = HideFlags.DontSave;
-        return sprite;
-    }
 }
 
 [DisallowMultipleComponent]
