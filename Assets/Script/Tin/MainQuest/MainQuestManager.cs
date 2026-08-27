@@ -47,6 +47,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Header("Military-zone reveal")]
     [Tooltip("Điểm KhuVucQuanSu mà camera của mọi người chơi sẽ nhìn tới sau khi tìm thấy bản đồ.")]
     [SerializeField] private Transform khuVucQuanSuFocus;
+    [SerializeField, Min(1f)] private float militaryMarkerArrivalDistance = 15f;
     [Tooltip("Khoảng nghỉ để người chơi kịp đọc thông báo tìm thấy manh mối trước khi camera rời đi.")]
     [SerializeField, Min(0.5f)] private float clueLeadInSeconds = 2f;
     [Tooltip("Thời gian lia camera. Dùng smoother-step để có cảm giác Easy Ease/F9.")]
@@ -170,6 +171,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     private readonly Dictionary<int, int> cabinetIndexById = new Dictionary<int, int>();
     private bool hasSpawned;
     private bool hasGeneratedCivilianEscapeFallback;
+    private bool localMilitaryDestinationReached;
 
     /// <summary>
     /// Fusion networked properties are not legal to access between Awake and
@@ -3121,6 +3123,13 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void DrawMilitaryDirectionMarker()
     {
         if (khuVucQuanSuFocus == null) return;
+        PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+        if (localMilitaryDestinationReached || localPlayer != null &&
+            Vector2.Distance(localPlayer.transform.position, khuVucQuanSuFocus.position) <= militaryMarkerArrivalDistance)
+        {
+            localMilitaryDestinationReached = true;
+            return;
+        }
 
         Camera sceneCamera = Camera.main;
         if (sceneCamera == null && PZ_CameraController.Instance != null)

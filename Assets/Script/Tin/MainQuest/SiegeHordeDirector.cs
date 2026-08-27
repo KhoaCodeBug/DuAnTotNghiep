@@ -47,6 +47,31 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         siegeRoutine = null;
     }
 
+    public void AuthorityResetAndDespawnAll()
+    {
+        StopSiege();
+        releasedToPlayers = false;
+        if (manager == null || !manager.HasStateAuthority || manager.Runner == null)
+        {
+            activeObjectives.Clear();
+            return;
+        }
+
+        SiegeZombieObjective[] objectives = FindObjectsByType<SiegeZombieObjective>(
+            FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int i = 0; i < objectives.Length; i++)
+        {
+            SiegeZombieObjective objective = objectives[i];
+            if (objective == null) continue;
+            NetworkObject networkObject = objective.GetComponent<NetworkObject>();
+            if (networkObject != null && networkObject.IsValid)
+                manager.Runner.Despawn(networkObject);
+            else
+                Destroy(objective.gameObject);
+        }
+        activeObjectives.Clear();
+    }
+
     public void ReleaseHordeToPlayers()
     {
         releasedToPlayers = true;

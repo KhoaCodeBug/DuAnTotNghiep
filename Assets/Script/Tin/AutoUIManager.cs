@@ -306,6 +306,22 @@ public class AutoUIManager : MonoBehaviour
     private void UpdateMilitaryRespawnUI()
     {
         MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        if (military != null && military.CanOfferSoloRetry)
+        {
+            militaryDeathClockRunning = false;
+            RestoreManualRespawnButton();
+            bool retryVietnamese = GameLocalization.IsVietnamese;
+            if (spectatorText != null && !respawnPending)
+                spectatorText.text = retryVietnamese
+                    ? "BẠN ĐÃ CHẾT. CHƠI LẠI TỪ TRƯỚC CINEMATIC?"
+                    : "YOU DIED. RETRY FROM BEFORE THE CINEMATIC?";
+            TextMeshProUGUI retryLabel = btnRespawn != null
+                ? btnRespawn.GetComponentInChildren<TextMeshProUGUI>() : null;
+            if (retryLabel != null)
+                retryLabel.text = respawnPending ? (retryVietnamese ? "ĐANG CHƠI LẠI..." : "RETRYING...")
+                    : (retryVietnamese ? "CHƠI LẠI" : "RETRY");
+            return;
+        }
         bool militaryGoverned = military != null && military.GovernsRespawn;
         if (!militaryGoverned)
         {
@@ -2398,6 +2414,20 @@ public class AutoUIManager : MonoBehaviour
             if (health != null && !health.isDead) return;
         }
 
+        MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        if (military != null && military.CanOfferSoloRetry)
+        {
+            respawnPending = true;
+            respawnRequestedAt = Time.unscaledTime;
+            if (btnRespawn != null) btnRespawn.interactable = false;
+            if (spectatorText != null)
+                spectatorText.text = GameLocalization.IsVietnamese
+                    ? "ĐANG RESET TOÀN BỘ SỰ KIỆN QUÂN SỰ..."
+                    : "RESETTING THE MILITARY FINALE...";
+            military.RequestSoloMilitaryRetry();
+            return;
+        }
+
         var spawner = FindAnyObjectByType<HostModeSpawner>();
         if (spawner != null)
         {
@@ -2428,13 +2458,22 @@ public class AutoUIManager : MonoBehaviour
     {
         gameFont = GameLocalization.GetRuntimeFont(gameFont);
         if (spectatorText != null && !respawnPending)
-            spectatorText.text = GameLocalization.Get("spectator.dead");
+            spectatorText.text = MilitaryBaseQuestManager.Instance != null &&
+                                 MilitaryBaseQuestManager.Instance.CanOfferSoloRetry
+                ? (GameLocalization.IsVietnamese
+                    ? "BẠN ĐÃ CHẾT. CHƠI LẠI TỪ TRƯỚC CINEMATIC?"
+                    : "YOU DIED. RETRY FROM BEFORE THE CINEMATIC?")
+                : GameLocalization.Get("spectator.dead");
         if (btnRespawn != null)
         {
             TextMeshProUGUI label = btnRespawn.GetComponentInChildren<TextMeshProUGUI>();
-            if (label != null) label.text = respawnPending
-                ? GameLocalization.Get("respawn.waiting")
-                : GameLocalization.Get("respawn.action");
+            bool soloRetry = MilitaryBaseQuestManager.Instance != null &&
+                             MilitaryBaseQuestManager.Instance.CanOfferSoloRetry;
+            if (label != null) label.text = soloRetry
+                ? (respawnPending
+                    ? (GameLocalization.IsVietnamese ? "ĐANG CHƠI LẠI..." : "RETRYING...")
+                    : (GameLocalization.IsVietnamese ? "CHƠI LẠI" : "RETRY"))
+                : respawnPending ? GameLocalization.Get("respawn.waiting") : GameLocalization.Get("respawn.action");
         }
     }
     #endregion
