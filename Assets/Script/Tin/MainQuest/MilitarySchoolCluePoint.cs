@@ -85,7 +85,7 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
         if (marker != null) return;
         marker = gameObject.AddComponent<SpriteRenderer>();
         marker.sprite = CreateMarkerSprite();
-        marker.color = new Color(0.98f, 0.78f, 0.2f, 0.9f);
+        marker.color = Color.white;
         marker.sortingOrder = 35;
     }
 
@@ -114,25 +114,28 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
 
     private static Sprite CreateMarkerSprite()
     {
-        Texture2D texture = new Texture2D(18, 14, TextureFormat.RGBA32, false)
+        const int size = 10;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
         {
             name = "MILITARY_CLUE_MARKER_RUNTIME",
             filterMode = FilterMode.Point,
             hideFlags = HideFlags.DontSave
         };
-        Color32[] pixels = new Color32[18 * 14];
-        Color32 paper = new Color32(232, 216, 164, 255);
-        Color32 ink = new Color32(72, 66, 53, 255);
-        for (int y = 0; y < 14; y++)
-        for (int x = 0; x < 18; x++)
+        Color32[] pixels = new Color32[size * size];
+        Color32 fill = new Color32(255, 205, 38, 255);
+        Color32 edge = new Color32(119, 83, 5, 255);
+        Vector2 center = new Vector2((size - 1) * 0.5f, (size - 1) * 0.5f);
+        for (int y = 0; y < size; y++)
+        for (int x = 0; x < size; x++)
         {
-            bool inside = x >= 1 && x <= 16 && y >= 1 && y <= 12;
-            bool line = inside && y >= 4 && y <= 10 && y % 2 == 0 && x >= 4 && x <= 13;
-            pixels[y * 18 + x] = !inside ? new Color32(0, 0, 0, 0) : line ? ink : paper;
+            float radius = Vector2.Distance(new Vector2(x, y), center);
+            pixels[y * size + x] = radius > 4.5f
+                ? new Color32(0, 0, 0, 0)
+                : radius > 3.65f ? edge : fill;
         }
         texture.SetPixels32(pixels);
         texture.Apply(false, true);
-        Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, 18f, 14f), new Vector2(0.5f, 0.5f), 18f);
+        Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), 20f);
         sprite.hideFlags = HideFlags.DontSave;
         return sprite;
     }

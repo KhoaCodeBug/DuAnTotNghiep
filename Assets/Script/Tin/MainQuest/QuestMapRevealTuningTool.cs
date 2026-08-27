@@ -17,13 +17,13 @@ public sealed class QuestMapRevealTuningTool : MonoBehaviour
     [SerializeField] private Vector2 afterQuestSize = new Vector2(0.284f, 0.138f);
 
     [Header("Military - unlocked after the Hospital Radio")]
-    [SerializeField] private Vector2 militaryCenter = new Vector2(0.72f, 0.72f);
-    [SerializeField] private Vector2 militarySize = new Vector2(0.16f, 0.16f);
-    [SerializeField] private Vector2 militaryMarkerPosition = new Vector2(0.72f, 0.72f);
+    [SerializeField] private Vector2 militaryCenter = new Vector2(0.794f, 0.4f);
+    [SerializeField] private Vector2 militarySize = new Vector2(0.311f, 0.311f);
+    [SerializeField] private Vector2 militaryMarkerPosition = new Vector2(0.792553f, 0.481889f);
 
     [Header("Countryside route - unlocked by ManhMoi3")]
-    [SerializeField] private Vector2 countrysideCenter = new Vector2(0.84f, 0.48f);
-    [SerializeField] private Vector2 countrysideSize = new Vector2(0.18f, 0.22f);
+    [SerializeField] private Vector2 countrysideCenter = new Vector2(0.737f, 0.746f);
+    [SerializeField] private Vector2 countrysideSize = new Vector2(0.423f, 0.389f);
 
     private bool militaryPositionInitialized;
 
@@ -37,8 +37,9 @@ public sealed class QuestMapRevealTuningTool : MonoBehaviour
     {
         if (militaryPositionInitialized) return;
         militaryPositionInitialized = true;
-        militaryMarkerPosition = ClampPoint(normalizedPosition);
-        militaryCenter = militaryMarkerPosition;
+        // The authored tuning values are intentionally authoritative. The
+        // previous runtime projection moved both the marker and reveal rect on
+        // every launch, making values saved from the tuning tool ineffective.
     }
 
     public int LayoutSignature
@@ -67,10 +68,11 @@ public sealed class QuestMapRevealTuningTool : MonoBehaviour
         beforeQuestSize = new Vector2(0.288f, 0.176f);
         afterQuestCenter = new Vector2(0.505f, 0.485f);
         afterQuestSize = new Vector2(0.284f, 0.138f);
-        militaryCenter = militaryMarkerPosition;
-        militarySize = new Vector2(0.16f, 0.16f);
-        countrysideCenter = new Vector2(0.84f, 0.48f);
-        countrysideSize = new Vector2(0.18f, 0.22f);
+        militaryCenter = new Vector2(0.794f, 0.4f);
+        militarySize = new Vector2(0.311f, 0.311f);
+        militaryMarkerPosition = new Vector2(0.792553f, 0.481889f);
+        countrysideCenter = new Vector2(0.737f, 0.746f);
+        countrysideSize = new Vector2(0.423f, 0.389f);
         ClampValues();
     }
 

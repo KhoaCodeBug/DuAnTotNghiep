@@ -77,6 +77,7 @@ public class PlayerHealth : NetworkBehaviour
     private Canvas paranoiaCanvas;
     private Image paranoiaImage;
     private bool isBlinking = false;
+    private bool biteTerminalOverlayActive;
 
     private bool hasTriggeredSpectate = false;
 
@@ -144,7 +145,7 @@ public class PlayerHealth : NetworkBehaviour
         // Death is authored by StateAuthority and reaches the owning client through
         // Fusion replication. Clean local-only hallucination visuals as soon as that
         // replicated state arrives instead of waiting for the old avatar to despawn.
-        if (isDead && (isBlinking || isFakeZombieVisible))
+        if (isDead && (isBlinking || isFakeZombieVisible || biteTerminalOverlayActive))
             CleanupParanoia();
 
         if (isDead && !hasTriggeredSpectate)
@@ -161,51 +162,8 @@ public class PlayerHealth : NetworkBehaviour
 
         if (isBitten && !isDead)
         {
-            if (blinkCooldown > 0) blinkCooldown -= Time.deltaTime;
-
-            if (!isBlinking && blinkCooldown <= 0)
-            {
-                if (infectionTimer <= 420f && infectionTimer > 240f)
-                {
-                    StartCoroutine(nameof(ParanoiaBlinkRoutine));
-                    blinkCooldown = 20f;
-                }
-                else if (infectionTimer <= 240f && infectionTimer > 180f)
-                {
-                    StartCoroutine(nameof(ParanoiaBlinkRoutine));
-                    blinkCooldown = 8f;
-                }
-                else if (infectionTimer <= 180f && infectionTimer > 0f)
-                {
-                    StartCoroutine(nameof(ParanoiaBlinkRoutine));
-                    blinkCooldown = Random.Range(5f, 7f);
-                }
-            }
-        }
-
-        if (isFakeZombieVisible && originalTeammateControllers.Count > 0)
-        {
-            foreach (var kvp in originalTeammateControllers)
-            {
-                Animator teammateAnim = kvp.Key;
-                if (teammateAnim != null)
-                {
-                    Vector3 currentPos = teammateAnim.transform.position;
-                    Vector3 lastPos = lastTeammatePositions.ContainsKey(teammateAnim) ? lastTeammatePositions[teammateAnim] : currentPos;
-                    Vector3 movementDelta = currentPos - lastPos;
-                    Vector3 velocity = movementDelta / Time.deltaTime;
-
-                    lastTeammatePositions[teammateAnim] = currentPos;
-                    float speed = velocity.magnitude;
-                    teammateAnim.SetFloat(paramSpeed, speed);
-
-                    if (speed > 0.1f)
-                    {
-                        teammateAnim.SetFloat(paramMoveX, velocity.normalized.x);
-                        teammateAnim.SetFloat(paramMoveY, velocity.normalized.y);
-                    }
-                }
-            }
+            if (!isBlinking && !biteTerminalOverlayActive && infectionTimer <= 180f && infectionTimer > 0f)
+                StartCoroutine(nameof(BiteTerminalOverlayRoutine));
         }
     }
 
@@ -284,7 +242,8 @@ public class PlayerHealth : NetworkBehaviour
 
         ApplyTutorialHealthFloor();
 
-        if (!isBleeding && currentHealth < maxHealth && survivalSystem != null)
+        bool hasTerminalBiteDrain = isBitten && infectionTimer <= 180f;
+        if (!isBleeding && !hasTerminalBiteDrain && currentHealth < maxHealth && survivalSystem != null)
         {
             int wellFedTier = survivalSystem.GetWellFedTier();
             if (wellFedTier > 0)
@@ -628,35 +587,18 @@ public class PlayerHealth : NetworkBehaviour
         if (spriteRend != null) spriteRend.enabled = false;
     }
 
-    private IEnumerator ParanoiaBlinkRoutine()
+    private IEnumerator BiteTerminalOverlayRoutine()
     {
         if (paranoiaImage == null) yield break;
 
         isBlinking = true;
-
-        Color clear = new Color(0, 0, 0, 0f);
         Color black = new Color(0, 0, 0, 1f);
-        Color bloodRed = new Color(0.6f, 0f, 0f, 0.2f);
+        Color permanentRed = new Color(0.65f, 0f, 0f, 0.35f);
 
         yield return StartCoroutine(FadeColor(black, 0.5f));
         yield return new WaitForSeconds(0.1f);
-
-        SwapTeammatesToZombies();
-
-        yield return new WaitForSeconds(0.2f);
-
-        yield return StartCoroutine(FadeColor(bloodRed, 0.5f));
-        yield return new WaitForSeconds(4.5f);
-
-        yield return StartCoroutine(FadeColor(black, 0.5f));
-        yield return new WaitForSeconds(0.1f);
-
-        RestoreTeammatesSprites();
-
-        yield return new WaitForSeconds(0.2f);
-
-        yield return StartCoroutine(FadeColor(clear, 0.55f));
-
+        yield return StartCoroutine(FadeColor(permanentRed, 0.5f));
+        biteTerminalOverlayActive = true;
         isBlinking = false;
     }
 
@@ -735,9 +677,10 @@ public class PlayerHealth : NetworkBehaviour
 
     private void CleanupParanoia()
     {
-        StopCoroutine(nameof(ParanoiaBlinkRoutine));
+        StopCoroutine(nameof(BiteTerminalOverlayRoutine));
         RestoreTeammatesSprites();
         isBlinking = false;
+        biteTerminalOverlayActive = false;
         blinkCooldown = 0f;
         if (paranoiaImage != null) paranoiaImage.color = Color.clear;
     }

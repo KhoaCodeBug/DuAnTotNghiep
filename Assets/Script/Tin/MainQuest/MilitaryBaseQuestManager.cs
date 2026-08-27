@@ -122,6 +122,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Networked] public NetworkBool IsMultiplayerSiege { get; private set; }
     [Networked] public NetworkBool IsSoloGateDpsActive { get; private set; }
     [Networked] public float SoloGateDpsElapsed { get; private set; }
+    [Networked] public NetworkBool IsSoloRetryCheckpointReady { get; private set; }
 
     private bool hasSpawned;
     private GameObject presentationRoot;
@@ -174,10 +175,13 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         !IsMilitaryIntroCinematicActive;
     /// <summary>True once the military respawn system governs deaths (siege/escape phases).</summary>
     public bool GovernsRespawn => IsNetworkReady && IsRespawnCheckpointActive &&
-        (CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape);
+        IsMultiplayerSiege && (CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape);
     public bool IsSoloSiege => IsNetworkReady && !IsMultiplayerSiege;
+    public bool CanOfferSoloRetry => IsNetworkReady && IsRespawnCheckpointActive &&
+        IsSoloRetryCheckpointReady && !IsMultiplayerSiege && CurrentPhase == Phase.Failed;
 
     private readonly Dictionary<PlayerRef, float> militaryDeathObservedAt = new();
+    private float soloRetryCheckpointSurvivalSeconds;
 
     private void Awake()
     {
@@ -250,6 +254,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         IsMultiplayerSiege = false;
         IsSoloGateDpsActive = false;
         SoloGateDpsElapsed = 0f;
+        IsSoloRetryCheckpointReady = false;
+        soloRetryCheckpointSurvivalSeconds = 0f;
         militaryDeathObservedAt.Clear();
         voteParticipants.Clear();
         voteApprovals.Clear();
@@ -525,6 +531,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         // police car so later deaths respawn inside the closed base.
         IsRespawnCheckpointActive = true;
         RespawnCheckpointPosition = GetInteractionPosition(InteractionKind.Vehicle);
+        int activePlayers = CountActivePlayers();
+        IsMultiplayerSiege = activePlayers > 1;
+        IsSoloRetryCheckpointReady = !IsMultiplayerSiege &&
+            HostModeSpawner.Instance != null &&
+            HostModeSpawner.Instance.CaptureSoloMilitaryCheckpoint(Runner.LocalPlayer);
+        soloRetryCheckpointSurvivalSeconds = SurvivalSeconds;
         ResolveMilitaryAreaTrigger();
         int removedZombies = AuthorityClearZombiesInsideMilitaryArea();
         Vector2 cinematicStart = GetCinematicStartPosition();
@@ -561,6 +573,95 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         ActiveRepairer = PlayerRef.None;
         RPC_StartSiegePresentation();
         RPC_ShowLocalizedQuestMessage("quest.military_siege", 0);
+    }
+
+    public void RequestSoloMilitaryRetry()
+    {
+        if (!IsNetworkReady || Runner.LocalPlayer == PlayerRef.None) return;
+        if (HasStateAuthority) AuthorityRetrySoloMilitaryFinale(Runner.LocalPlayer);
+        else RPC_RequestSoloMilitaryRetry(Runner.LocalPlayer);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestSoloMilitaryRetry(PlayerRef requester, RpcInfo info = default)
+    {
+        if (info.Source != PlayerRef.None && info.Source != requester) return;
+        AuthorityRetrySoloMilitaryFinale(requester);
+    }
+
+    private void AuthorityRetrySoloMilitaryFinale(PlayerRef requester)
+    {
+        if (!HasStateAuthority || !CanOfferSoloRetry || requester == PlayerRef.None || requester != Runner.LocalPlayer)
+            return;
+
+        HostModeSpawner spawner = HostModeSpawner.Instance;
+        if (spawner == null || !spawner.PrepareSoloMilitaryCheckpointRespawn(requester))
+        {
+            Debug.LogError("[MILITARY RETRY] Không tìm thấy snapshot Solo trước cinematic; từ chối reset để tránh mất đồ.");
+            return;
+        }
+
+        hordeDirector?.AuthorityResetAndDespawnAll();
+        repairLootCoordinator?.AuthorityResetForRetry();
+        ClearRepairSkillCheckSession();
+        militaryDeathObservedAt.Clear();
+
+        MilitaryPhase = (int)Phase.Investigating;
+        GateMaxHealth = Mathf.Max(1f, baseGateHealth);
+        GateCurrentHealth = GateMaxHealth;
+        VehicleRepairProgress = 0f;
+        IsGeneratorActive = false;
+        IsArmoryUnlocked = false;
+        IsOfficeSafeClaimed = false;
+        HasBatteryInstalled = false;
+        HasFuelInstalled = false;
+        HasRepairKitInstalled = false;
+        IsBatteryCacheClaimed = false;
+        IsFuelCacheClaimed = false;
+        IsRepairKitCacheClaimed = false;
+        RepairSkillCheckProgress = 0f;
+        RepairSkillCheckSequence = 0;
+        PoliceCarRepairMask = 0;
+        PoliceEngineRepairProgress = 0f;
+        PoliceHoodRepairProgress = 0f;
+        PoliceFuelRepairProgress = 0f;
+        PoliceBatteryRepairProgress = 0f;
+        PoliceTireRepairProgress = 0f;
+        SurvivalSeconds = soloRetryCheckpointSurvivalSeconds;
+        TeamRespawnsRemaining = 0;
+        IsMultiplayerSiege = false;
+        IsSoloGateDpsActive = false;
+        SoloGateDpsElapsed = 0f;
+        IsMilitaryIntroCinematicActive = true;
+
+        RPC_ResetSoloRetryPresentation();
+        Vector2 spawnPosition = GetCinematicStartPosition();
+        if (!spawner.AuthorityRespawnAtCheckpoint(requester, spawnPosition))
+        {
+            IsMilitaryIntroCinematicActive = false;
+            MilitaryPhase = (int)Phase.Failed;
+            Debug.LogError("[MILITARY RETRY] Không thể tạo lại avatar tại checkpoint.");
+            return;
+        }
+
+        ResolveMilitaryAreaTrigger();
+        AuthorityClearZombiesInsideMilitaryArea();
+        RPC_PlayMilitaryIntroCinematic(requester, spawnPosition);
+        Debug.Log("[MILITARY RETRY] Đã reset trắng Route B Solo và phát lại cinematic từ checkpoint.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ResetSoloRetryPresentation()
+    {
+        cinematicController?.StopImmediate();
+        hordeDirector?.StopSiege();
+        vehicleRepair?.SetVehicleReadyPresentation(false);
+        roadsideRepairVehicle?.SetCinematicAlarm(false);
+        roadsideRepairVehicle?.SetRepairEntryLocked(true);
+        roadsideRepairStation?.StopTimedRepairAudio();
+        VehicleRepairSkillCheckUI.NotifyInterrupted(string.Empty);
+        EscapeRouteDecisionUI.CloseIfOpen();
+        gateController?.RefreshPresentation();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

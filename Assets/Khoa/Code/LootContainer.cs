@@ -97,6 +97,15 @@ public class LootContainer : NetworkBehaviour
         itemsInContainer.Clear();
         hasGeneratedLoot = true;
         MilitaryLootHasItems = false;
+        RPC_ClearMilitaryContainerForRetry();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ClearMilitaryContainerForRetry()
+    {
+        if (!HasStateAuthority) itemsInContainer.Clear();
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsContainerOpen(this))
+            AutoUIManager.Instance.CloseContainerUI();
     }
 
     public bool AuthorityAddConfiguredItem(ItemData itemData, int amount)

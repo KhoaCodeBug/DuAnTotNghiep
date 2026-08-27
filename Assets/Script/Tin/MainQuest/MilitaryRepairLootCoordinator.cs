@@ -83,6 +83,14 @@ public sealed class MilitaryRepairLootCoordinator : MonoBehaviour
         return true;
     }
 
+    public void AuthorityResetForRetry()
+    {
+        if (manager == null || !manager.IsNetworkReady || !manager.HasStateAuthority) return;
+        CacheAuthoredContainers();
+        ClearAllContainers();
+        nextRetryAt = 0f;
+    }
+
     private void CacheAuthoredContainers()
     {
         authoredContainers.Clear();

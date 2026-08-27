@@ -32,6 +32,10 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         new Dictionary<PlayerRef, InventorySystem.MilitaryRespawnSnapshot>();
     private Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot> militaryCombatByPlayer =
         new Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot>();
+    private readonly Dictionary<PlayerRef, InventorySystem.MilitaryRespawnSnapshot> soloMilitaryCheckpointInventory =
+        new Dictionary<PlayerRef, InventorySystem.MilitaryRespawnSnapshot>();
+    private readonly Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot> soloMilitaryCheckpointCombat =
+        new Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot>();
     private bool spawnRoutineStarted;
 
     // 🔥 CÁC BIẾN ĐỒNG BỘ MẠNG
@@ -110,7 +114,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         // During the military finale the authority auto-respawn governs deaths;
         // manual requests would bypass the 10s delay and team charge pool.
         MilitaryBaseQuestManager questManager = MilitaryBaseQuestManager.Instance;
-        if (questManager != null && questManager.GovernsRespawn)
+        if (questManager != null && (questManager.GovernsRespawn || questManager.CanOfferSoloRetry))
         {
             Debug.Log("[SPAWNER] Từ chối respawn thủ công: hệ thống hồi sinh quân sự đang điều phối.");
             return;
@@ -181,6 +185,34 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         PlayerCombat combat = playerObject.GetComponent<PlayerCombat>();
         if (combat != null)
             militaryCombatByPlayer[player] = combat.CaptureMilitaryRespawnCombatSnapshot();
+    }
+
+    /// <summary>Persists the Solo loadout exactly as it was when Route B committed.</summary>
+    public bool CaptureSoloMilitaryCheckpoint(PlayerRef player)
+    {
+        if (!Runner.IsServer || player == PlayerRef.None ||
+            !spawnedPlayers.TryGetValue(player, out NetworkObject playerObject) ||
+            playerObject == null || !playerObject.IsValid)
+            return false;
+
+        InventorySystem inventory = playerObject.GetComponent<InventorySystem>();
+        PlayerCombat combat = playerObject.GetComponent<PlayerCombat>();
+        if (inventory == null || combat == null) return false;
+        soloMilitaryCheckpointInventory[player] = inventory.CaptureMilitaryRespawnSnapshot();
+        soloMilitaryCheckpointCombat[player] = combat.CaptureMilitaryRespawnCombatSnapshot();
+        return true;
+    }
+
+    /// <summary>Copies the persistent checkpoint into the one-shot spawn restore queues.</summary>
+    public bool PrepareSoloMilitaryCheckpointRespawn(PlayerRef player)
+    {
+        if (!Runner.IsServer ||
+            !soloMilitaryCheckpointInventory.TryGetValue(player, out InventorySystem.MilitaryRespawnSnapshot inventory) ||
+            !soloMilitaryCheckpointCombat.TryGetValue(player, out PlayerCombat.MilitaryRespawnCombatSnapshot combat))
+            return false;
+        militaryInventoryByPlayer[player] = inventory;
+        militaryCombatByPlayer[player] = combat;
+        return true;
     }
 
     public bool TryTakeMilitaryInventorySnapshot(PlayerRef player,
@@ -427,6 +459,8 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             playerNameByPlayer.Remove(player);
             militaryInventoryByPlayer.Remove(player);
             militaryCombatByPlayer.Remove(player);
+            soloMilitaryCheckpointInventory.Remove(player);
+            soloMilitaryCheckpointCombat.Remove(player);
 
             // 🔥 FIX LỖI 1: Kẹt Loading. Nếu có đứa rớt mạng lúc đang ở sảnh chờ load, tự động check và cho những người còn lại vào game!
             if (!IsMatchStarted)
