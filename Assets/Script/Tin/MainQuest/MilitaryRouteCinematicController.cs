@@ -65,7 +65,20 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
         }
         AutoHealthPanel.Instance?.SetOpenState(false);
 
-        Transform hostVisual = ResolvePlayerTransform(hostPlayer);
+        Transform hostVisual = null;
+        float avatarDeadline = Time.realtimeSinceStartup + 5f;
+        while (hostVisual == null && Time.realtimeSinceStartup < avatarDeadline)
+        {
+            hostVisual = ResolvePlayerTransform(hostPlayer);
+            if (hostVisual == null) yield return null;
+        }
+        if (hostVisual == null)
+        {
+            Debug.LogError("[MILITARY CINEMATIC] Không tìm thấy avatar sống để tạo visual sau 5 giây.");
+            AutoUIManager.Instance?.SetQuestOverlayOpen(false);
+            routine = null;
+            yield break;
+        }
         hostMovement = hostVisual != null ? hostVisual.GetComponent<PlayerMovement>() : null;
         Vector2 carPosition = manager != null ? manager.PoliceCarPosition : Vector2.zero;
         Vector2 gatePosition = manager != null ? manager.GateClosingPosition : carPosition + Vector2.left * 4f;
@@ -146,9 +159,14 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
     private Transform ResolvePlayerTransform(PlayerRef player)
     {
         if (manager != null && manager.Runner != null && manager.Runner.TryGetPlayerObject(player, out NetworkObject obj) &&
-            obj != null)
-            return obj.transform;
-        return PlayerMovement.LocalPlayerInstance != null ? PlayerMovement.LocalPlayerInstance.transform : null;
+            obj != null && obj.IsValid)
+        {
+            PlayerHealth health = obj.GetComponent<PlayerHealth>();
+            PlayerMovement movement = obj.GetComponent<PlayerMovement>();
+            if (movement != null && health != null && !health.isDead && !health.isTransforming)
+                return obj.transform;
+        }
+        return null;
     }
 
     private static GameObject CreatePlayerVisualClone(Transform source, PlayerMovement movement)

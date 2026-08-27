@@ -677,19 +677,25 @@ public class LootContainer : NetworkBehaviour
     private void OnGUI()
     {
         if (!ShouldShowMilitaryWaypoint || LocalGameplayUIState.BlocksWorldInteractionHints) return;
+        DrawMilitaryWaypointDot(transform.position, IsMilitaryLootVip);
+    }
+
+    /// <summary>Shared screen-space marker used by military loot and school clues.</summary>
+    public static void DrawMilitaryWaypointDot(Vector3 worldPosition, bool vip = false)
+    {
         Camera camera = Camera.main;
         if (camera == null) return;
-        Vector3 screenPoint = camera.WorldToScreenPoint(transform.position + new Vector3(0f, 0.65f, 0f));
+        Vector3 screenPoint = camera.WorldToScreenPoint(worldPosition + new Vector3(0f, 0.65f, 0f));
         if (screenPoint.z <= 0f) return;
 
         GUIStyle markerStyle = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = IsMilitaryLootVip ? 32 : 27,
+            fontSize = vip ? 32 : 27,
             fontStyle = FontStyle.Bold
         };
         markerStyle.normal.textColor = new Color(1f, 0.88f, 0.1f, 1f);
-        string marker = IsMilitaryLootVip ? "◆" : "●";
+        string marker = vip ? "◆" : "●";
         GUI.Label(new Rect(screenPoint.x - 22f, Screen.height - screenPoint.y - 22f, 44f, 44f), marker,
             markerStyle);
     }

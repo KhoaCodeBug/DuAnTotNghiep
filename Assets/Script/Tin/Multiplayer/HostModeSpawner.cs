@@ -138,7 +138,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             spawnedPlayers.Remove(player);
         }
 
-        SpawnCharacter(player, characterID, playerName);
+        Vector2? storyCheckpoint = TryResolveStoryRespawnPosition(out Vector2 checkpointPosition)
+            ? checkpointPosition : null;
+        SpawnCharacter(player, characterID, playerName, storyCheckpoint);
     }
 
     /// <summary>
@@ -289,6 +291,29 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             RPC_AnnounceLateJoin(playerName); // Báo tin lên Chat
             RPC_PlayBlinkEffect(netObj);      // Cho bất tử chớp nháy 3 giây
         }
+    }
+
+    private static bool TryResolveStoryRespawnPosition(out Vector2 position)
+    {
+        position = default;
+        MainQuestManager quest = MainQuestManager.Instance;
+        if (quest == null || !quest.IsNetworkReady) return false;
+
+        string checkpointName = quest.IsHospitalRadioRecoveredState
+            ? "Save-Respawn 2"
+            : quest.HasMapFragment1 ? "Save-Respawn" : string.Empty;
+        if (string.IsNullOrEmpty(checkpointName)) return false;
+
+        GameObject checkpoint = GameObject.Find(checkpointName);
+        if (checkpoint == null)
+        {
+            Debug.LogError($"[SPAWNER] Tuyến nhiệm vụ đã mở nhưng Main.unity thiếu '{checkpointName}'.");
+            return false;
+        }
+
+        position = checkpoint.transform.position;
+        Debug.Log($"[SPAWNER] Respawn theo tiến độ nhiệm vụ tại '{checkpointName}' {position}.");
+        return true;
     }
 
     public bool TryGetCachedStartingWeapon(PlayerRef player, out ItemData weapon)

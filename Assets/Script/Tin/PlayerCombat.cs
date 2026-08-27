@@ -370,6 +370,7 @@ public class PlayerCombat : NetworkBehaviour
                 ZombieAIKhoaRebuilt rebuiltEnemy = hit.collider.GetComponentInParent<ZombieAIKhoaRebuilt>();
                 if (rebuiltEnemy != null)
                 {
+                    if (rebuiltEnemy.NetIsDead) continue;
                     rebuiltEnemy.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
                     break;
                 }
@@ -377,6 +378,7 @@ public class PlayerCombat : NetworkBehaviour
                 ZOmbieAI_Khoa enemy = hit.collider.GetComponentInParent<ZOmbieAI_Khoa>();
                 if (enemy != null)
                 {
+                    if (enemy.NetIsDead) continue;
                     enemy.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
                     break; // Đạn ghim vào Zombie, kết thúc tia đạn
                 }
@@ -384,6 +386,7 @@ public class PlayerCombat : NetworkBehaviour
                 ZombieHealth zombie = hit.collider.GetComponentInParent<ZombieHealth>();   
                 if(zombie != null)
                 {
+                    if (zombie.isDead) continue;
                     zombie.RPC_TakeDamage(finalGunDamage, Object.InputAuthority);
                     break;
                 }    
