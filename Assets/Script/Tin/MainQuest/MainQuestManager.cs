@@ -2216,27 +2216,94 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     public bool AreAllLivingPlayersGatheredForCivilianEscape()
     {
-        if (!IsNetworkReady || RepairedArrivalCarObject == null) return false;
+        GetCivilianEscapeGatherCounts(out int gatheredPlayers, out int livingPlayers);
+        return livingPlayers > 0 && gatheredPlayers == livingPlayers;
+    }
+
+    public bool IsAtLeastHalfOfLivingPlayersGatheredForCivilianEscape()
+    {
+        GetCivilianEscapeGatherCounts(out int gatheredPlayers, out int livingPlayers);
+        return livingPlayers > 0 && gatheredPlayers * 2 >= livingPlayers;
+    }
+
+    private void GetCivilianEscapeGatherCounts(out int gatheredPlayers, out int livingPlayers)
+    {
+        gatheredPlayers = 0;
+        livingPlayers = 0;
+        if (!IsNetworkReady || RepairedArrivalCarObject == null) return;
+
         PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
-        bool foundLivingPlayer = false;
         for (int i = 0; i < players.Length; i++)
         {
             PlayerMovement candidate = players[i];
             if (candidate == null || candidate.Object == null || !candidate.Object.IsValid) continue;
             PlayerHealth health = candidate.GetComponent<PlayerHealth>();
             if (health != null && health.isDead) continue;
-            foundLivingPlayer = true;
+            livingPlayers++;
+
+            PlayerInteraction interaction = candidate.GetComponent<PlayerInteraction>();
+            if (interaction != null && interaction.IsInVehicle &&
+                interaction.CurrentVehicle == RepairedArrivalCarObject)
+            {
+                gatheredPlayers++;
+                continue;
+            }
+
+            if (Vector2.Distance(candidate.transform.position, RepairedArrivalCarObject.transform.position) <=
+                civilianTeamGatherRadius)
+                gatheredPlayers++;
+        }
+    }
+
+    public bool AuthorityForceCivilianEscape()
+    {
+        if (!HasStateAuthority || !IsArrivalCarRepaired || RepairedArrivalCarObject == null ||
+            IsCivilianEscapeComplete || CurrentCivilianRouteStage != CivilianRouteStage.AwaitingTeam ||
+            !IsAtLeastHalfOfLivingPlayersGatheredForCivilianEscape() ||
+            !EscapeEndingRules.CanLock(LockedEscapeRoute, EscapeEndingRoute.CivilianCar))
+            return false;
+
+        if (!AuthorityTryLockEscapeRoute(EscapeEndingRoute.CivilianCar)) return false;
+        AuthorityGatherLivingPlayersAtCivilianCar();
+        CivilianRouteStageValue = (int)CivilianRouteStage.EscapeRun;
+        RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0);
+        ServerCompleteCivilianEscape();
+        return IsCivilianEscapeComplete;
+    }
+
+    private void AuthorityGatherLivingPlayersAtCivilianCar()
+    {
+        Vector2 center = RepairedArrivalCarObject.transform.position;
+        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        List<Vector2> occupiedPositions = new List<Vector2> { center };
+        int gatherIndex = 1;
+
+        for (int i = 0; i < players.Length; i++)
+        {
+            PlayerMovement candidate = players[i];
+            if (candidate == null || candidate.Object == null || !candidate.Object.IsValid) continue;
+            PlayerHealth health = candidate.GetComponent<PlayerHealth>();
+            if (health != null && health.isDead) continue;
 
             PlayerInteraction interaction = candidate.GetComponent<PlayerInteraction>();
             if (interaction != null && interaction.IsInVehicle &&
                 interaction.CurrentVehicle == RepairedArrivalCarObject)
                 continue;
-            if (Vector2.Distance(candidate.transform.position, RepairedArrivalCarObject.transform.position) <=
-                civilianTeamGatherRadius)
-                continue;
-            return false;
+
+            Vector2 destination = FindSafeGatherPosition(center, gatherIndex++, occupiedPositions);
+            if (interaction != null && interaction.IsInVehicle)
+            {
+                VehicleControllerFusion vehicle = interaction.CurrentVehicleController;
+                bool exitedNormally = vehicle != null && vehicle.AuthorityTryExit(candidate.Object);
+                if (!exitedNormally)
+                    interaction.SetVehicleNetworkState(null, false, false, 0, destination);
+            }
+
+            TeleportPlayer(candidate, destination);
+            occupiedPositions.Add(destination);
         }
-        return foundLivingPlayer;
+
+        Physics2D.SyncTransforms();
     }
 
     private Transform ResolveCivilianEscapeExit()

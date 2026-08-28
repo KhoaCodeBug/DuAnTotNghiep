@@ -369,7 +369,7 @@ public class InventorySystem : NetworkBehaviour
                 if (netObj != null && netObj.IsValid)
                 {
                     // 🔥 SỬA MỚI: Yêu cầu Server cùng nhặt để túi đồ 2 bên giống hệt nhau
-                    RPC_RequestPickupItem(netObj, pickup.item.itemName, pickup.amount);
+                    RPC_RequestPickupItem(netObj);
 
                     pickup.enabled = false;
                     col.enabled = false;
@@ -489,7 +489,6 @@ public class InventorySystem : NetworkBehaviour
         {
             isSyncing = true;
             if (HasStateAuthority && !HasInputAuthority) RPC_SyncItemToClient(itemToAdd.itemName, amountAdded, true);
-            else if (HasInputAuthority && !HasStateAuthority) RPC_SyncItemToServer(itemToAdd.itemName, amountAdded, true);
             isSyncing = false;
         }
 
@@ -530,9 +529,8 @@ public class InventorySystem : NetworkBehaviour
             {
                 if (health != null && (health.isBleeding || health.currentHealth < health.maxHealth))
                 {
-                    health.SetGlobalBleeding(false);
-                    if (item.healAmount > 0) health.Heal(item.healAmount);
-                    itemUsed = true;
+                    health.RequestBandageForFirstWound(_ => { });
+                    return;
                 }
             }
             else if (nameLower.Contains("painkiller") || nameLower.Contains("thuốc") || nameLower.Contains("đau"))
@@ -540,8 +538,9 @@ public class InventorySystem : NetworkBehaviour
                 if (health != null && (health.isInPain || health.currentHealth < health.maxHealth))
                 {
                     health.UsePainkiller();
-                    if (item.healAmount > 0) health.Heal(item.healAmount);
-                    itemUsed = true;
+                    // PlayerHealth validates and consumes the PainKiller on
+                    // State Authority, which then syncs the inventory owner.
+                    return;
                 }
             }
             else if (health != null && health.currentHealth < health.maxHealth)
@@ -730,17 +729,62 @@ public class InventorySystem : NetworkBehaviour
     // ==========================================
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    public void RPC_RequestPickupItem(NetworkObject itemNetObj, string itemName, int amount)
+    public void RPC_RequestPickupItem(NetworkObject itemNetObj)
     {
-        ItemData data = ItemDataLoader.LoadItem(itemName);
-        if (data != null)
+        if (itemNetObj == null || !itemNetObj.IsValid)
         {
-            bool pickedUp = AddItem(data, amount);
-            if (pickedUp && itemNetObj != null && itemNetObj.IsValid)
-            {
-                Runner.Despawn(itemNetObj); // Server xác nhận xóa cục đồ trên mặt đất
-            }
+            Debug.LogWarning("[INVENTORY] Rejected pickup request for an invalid NetworkObject.");
+            return;
         }
+
+        ItemPickup pickup = itemNetObj.GetComponent<ItemPickup>();
+        if (pickup == null || !pickup.isActiveAndEnabled || pickup.item == null || pickup.amount <= 0)
+        {
+            Debug.LogWarning("[INVENTORY] Rejected pickup request without valid authoritative item data.");
+            return;
+        }
+
+        float maxPickupDistance = Mathf.Max(0.1f, pickupRadius) + 0.75f;
+        if ((itemNetObj.transform.position - transform.position).sqrMagnitude > maxPickupDistance * maxPickupDistance)
+        {
+            Debug.LogWarning($"[INVENTORY] Rejected out-of-range pickup '{pickup.item.itemName}'.");
+            return;
+        }
+
+        // Item identity and quantity come only from the server-owned pickup.
+        // Never trust itemName/amount supplied by Input Authority.
+        if (!HasCapacityFor(pickup.item, pickup.amount))
+        {
+            Debug.LogWarning($"[INVENTORY] Rejected pickup '{pickup.item.itemName}': insufficient capacity.");
+            return;
+        }
+
+        if (AddItem(pickup.item, pickup.amount))
+            Runner.Despawn(itemNetObj);
+    }
+
+    private bool HasCapacityFor(ItemData item, int amount)
+    {
+        if (item == null || amount <= 0 || item.maxStack <= 0) return false;
+
+        int capacity = 0;
+        int limit = Mathf.Min(maxSlots, slots.Count);
+        for (int i = 0; i < limit; i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot == null || slot.item == null || slot.amount <= 0)
+            {
+                capacity += item.maxStack;
+            }
+            else if (item.isStackable && slot.item.itemName == item.itemName)
+            {
+                capacity += Mathf.Max(0, item.maxStack - slot.amount);
+            }
+
+            if (capacity >= amount) return true;
+        }
+
+        return false;
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
@@ -759,22 +803,27 @@ public class InventorySystem : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_SyncItemToServer(string itemName, int amount, bool isAdding)
     {
+        // A client may report consumption, but it may never mint inventory on the
+        // server. All additions must originate from an authoritative gameplay
+        // action such as a validated world pickup, loot grant or trade.
+        if (isAdding)
+        {
+            Debug.LogWarning($"[INVENTORY] Rejected client item-add request: '{itemName}' x{amount}.");
+            return;
+        }
+
+        if (amount <= 0)
+        {
+            Debug.LogWarning($"[INVENTORY] Rejected invalid client item-sync amount: {amount}.");
+            return;
+        }
+
         ItemData data = ItemDataLoader.LoadItem(itemName);
         if (data != null)
         {
             isSyncing = true;
-            if (isAdding) AddItem(data, amount);
-            else ConsumeItem(data, amount);
+            ConsumeItem(data, amount);
             isSyncing = false;
-        }
-    }
-
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    public void RPC_RequestDespawnItem(NetworkObject itemNetObj)
-    {
-        if (itemNetObj != null && itemNetObj.IsValid)
-        {
-            Runner.Despawn(itemNetObj);
         }
     }
 

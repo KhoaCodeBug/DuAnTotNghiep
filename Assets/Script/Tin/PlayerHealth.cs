@@ -7,6 +7,40 @@ using UnityEngine.Serialization;
 
 public class PlayerHealth : NetworkBehaviour
 {
+    public const int BodyPartCount = 16;
+    public static readonly string[] BodyPartNames =
+    {
+        "Head", "Neck", "Upper Torso", "Lower Torso",
+        "Left Thigh", "Left Calf", "Left Foot",
+        "Right Thigh", "Right Calf", "Right Foot",
+        "Left Upper Arm", "Left Forearm", "Left Hand",
+        "Right Upper Arm", "Right Forearm", "Right Hand"
+    };
+
+    public enum WoundType
+    {
+        Scratched = 0,
+        Laceration = 1,
+        Bitten = 2
+    }
+
+    public struct NetworkWoundState : INetworkStruct
+    {
+        public int InjuryMask;
+        public NetworkBool IsBandaged;
+
+        public bool HasInjury => InjuryMask != 0;
+        public bool HasInjuryType(WoundType type) => (InjuryMask & (1 << (int)type)) != 0;
+    }
+
+    public sealed class WoundSnapshot
+    {
+        public readonly int[] InjuryMasks = new int[BodyPartCount];
+        public readonly bool[] Bandaged = new bool[BodyPartCount];
+        public bool IsBitten;
+        public float InfectionTimer;
+    }
+
     public static PlayerHealth LocalHealthInstance;
 
     [Header("Chỉ số Máu")]
@@ -27,6 +61,8 @@ public class PlayerHealth : NetworkBehaviour
 
     [Networked] public NetworkBool isBleeding { get; set; }
     [Networked] public NetworkBool isInPain { get; set; }
+    [Networked, Capacity(BodyPartCount)] public NetworkArray<NetworkWoundState> Wounds => default;
+    [Networked] public int WoundRevision { get; private set; }
 
     // ==========================================
     // 🔥 HỆ THỐNG NHIỄM TRÙNG & KẺ PHẢN BỘI
@@ -34,8 +70,6 @@ public class PlayerHealth : NetworkBehaviour
     [Header("Hệ thống Nhiễm Trùng")]
     [Networked] public float infectionTimer { get; set; } = 600f;
     [Networked] public NetworkBool isBitten { get; set; }
-
-    private float blinkCooldown = 0f;
 
     [Header("Hóa Zombie Khi Chết")]
     [FormerlySerializedAs("traitorBossPrefab")]
@@ -81,9 +115,21 @@ public class PlayerHealth : NetworkBehaviour
 
     private bool hasTriggeredSpectate = false;
 
+    // Body-part actions are committed on State Authority. Request ids only
+    // correlate responses; they never grant inventory or wound-state credit.
+    private int nextBandageRequestId = 1;
+    private readonly Dictionary<int, System.Action<bool>> pendingBandageRequests =
+        new Dictionary<int, System.Action<bool>>();
+
     public override void Spawned()
     {
-        if (HasStateAuthority) currentHealth = maxHealth;
+        if (HasStateAuthority)
+        {
+            currentHealth = maxHealth;
+            Wounds.Clear();
+            WoundRevision = 0;
+            RecalculateWoundFlags();
+        }
 
         movementScript = GetComponent<PlayerMovement>();
         anim = GetComponent<Animator>();
@@ -99,13 +145,14 @@ public class PlayerHealth : NetworkBehaviour
 
             if (AutoHealthPanel.Instance != null)
             {
-                AutoHealthPanel.Instance.ResetAllInjuries();
+                AutoHealthPanel.Instance.BindLocalPlayer(this);
             }
         }
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
+        pendingBandageRequests.Clear();
         CleanupParanoia();
         if (paranoiaCanvas != null)
         {
@@ -303,14 +350,13 @@ public class PlayerHealth : NetworkBehaviour
 
         if (!isStarving)
         {
-            isBleeding = true;
             isInPain = true;
 
             RPC_PlayHitEffect();
 
             if (isZombieAttack)
             {
-                RPC_TriggerUIInjury();
+                AuthorityCreateZombieWound();
             }
 
             if (movementScript != null) movementScript.LockMovement(stunDuration);
@@ -318,25 +364,13 @@ public class PlayerHealth : NetworkBehaviour
     }
 
     /// <summary>
-    /// Authority-safe damage entry point for server-owned AI. In Host/Single it
-    /// applies immediately; in other Fusion topologies it reaches this player's
-    /// State Authority instead of being silently discarded.
+    /// Authority-only damage entry point. Attackers must resolve hits on State
+    /// Authority; a remote client is never allowed to request arbitrary player
+    /// damage through the victim's NetworkObject.
     /// </summary>
     public void TakeDamageNetworked(float damage, bool isStarving = false, bool isZombieAttack = false)
     {
-        if (HasStateAuthority)
-        {
-            TakeDamage(damage, isStarving, isZombieAttack);
-            return;
-        }
-
-        RPC_RequestTakeDamage(damage, isStarving, isZombieAttack);
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestTakeDamage(float damage, NetworkBool isStarving, NetworkBool isZombieAttack)
-    {
-        TakeDamage(damage, isStarving, isZombieAttack);
+        if (HasStateAuthority) TakeDamage(damage, isStarving, isZombieAttack);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
@@ -351,13 +385,51 @@ public class PlayerHealth : NetworkBehaviour
         currentHealth = Mathf.Max(currentHealth, maxHealth * TutorialInputGate.MinimumHealthRatio);
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-    public void RPC_TriggerUIInjury()
+    private void AuthorityCreateZombieWound()
     {
-        if (AutoHealthPanel.Instance != null)
+        if (!HasStateAuthority) return;
+
+        int targetIndex;
+        if (Random.Range(0f, 100f) <= 5f)
         {
-            AutoHealthPanel.Instance.TakeRandomZombieAttack("");
+            targetIndex = 1; // Neck is always a bite.
         }
+        else
+        {
+            List<int> healthyParts = new List<int>();
+            for (int i = 0; i < BodyPartCount; i++)
+                if (i != 1 && !Wounds[i].HasInjury) healthyParts.Add(i);
+
+            targetIndex = healthyParts.Count > 0
+                ? healthyParts[Random.Range(0, healthyParts.Count)]
+                : Random.Range(2, BodyPartCount);
+        }
+
+        WoundType type;
+        float roll = Random.Range(0f, 100f);
+        if (targetIndex == 1 || roll <= 5f) type = WoundType.Bitten;
+        else if (roll <= 52.5f) type = WoundType.Laceration;
+        else type = WoundType.Scratched;
+
+        AuthorityAddWound(targetIndex, type);
+    }
+
+    public void AuthorityAddTutorialWound(int bodyPartIndex)
+    {
+        if (HasStateAuthority)
+            AuthorityAddWound(Mathf.Clamp(bodyPartIndex, 0, BodyPartCount - 1), WoundType.Laceration);
+    }
+
+    private void AuthorityAddWound(int bodyPartIndex, WoundType type)
+    {
+        if (!HasStateAuthority || bodyPartIndex < 0 || bodyPartIndex >= BodyPartCount) return;
+
+        NetworkWoundState wound = Wounds[bodyPartIndex];
+        wound.InjuryMask |= 1 << (int)type;
+        wound.IsBandaged = false;
+        Wounds.Set(bodyPartIndex, wound);
+        WoundRevision++;
+        RecalculateWoundFlags();
     }
 
     private void TriggerDeathLogic()
@@ -380,30 +452,243 @@ public class PlayerHealth : NetworkBehaviour
 
     public void SetGlobalBleeding(bool state)
     {
-        if (HasStateAuthority) isBleeding = state;
-        else RPC_SetGlobalBleeding(state);
+        if (HasStateAuthority) RecalculateWoundFlags();
+    }
+
+    public int RequestBandageForWound(int woundIndex, System.Action<bool> onResolved)
+    {
+        if (!HasInputAuthority || onResolved == null || woundIndex < 0 || woundIndex >= BodyPartCount)
+            return 0;
+
+        int requestId = nextBandageRequestId++;
+        if (nextBandageRequestId <= 0) nextBandageRequestId = 1;
+        pendingBandageRequests[requestId] = onResolved;
+
+        if (HasStateAuthority)
+        {
+            ResolveBandageForWound(requestId, AuthorityTryBandageWound(woundIndex));
+        }
+        else
+        {
+            RPC_RequestBandageForWound(requestId, woundIndex);
+        }
+
+        return requestId;
+    }
+
+    public int RequestBandageForFirstWound(System.Action<bool> onResolved)
+    {
+        for (int i = 0; i < BodyPartCount; i++)
+        {
+            NetworkWoundState wound = Wounds[i];
+            if (wound.HasInjury && !wound.IsBandaged)
+                return RequestBandageForWound(i, onResolved);
+        }
+
+        onResolved?.Invoke(false);
+        return 0;
+    }
+
+    public int RequestRemoveBandageForWound(int woundIndex, System.Action<bool> onResolved)
+    {
+        if (!HasInputAuthority || onResolved == null || woundIndex < 0 || woundIndex >= BodyPartCount)
+            return 0;
+
+        int requestId = nextBandageRequestId++;
+        if (nextBandageRequestId <= 0) nextBandageRequestId = 1;
+        pendingBandageRequests[requestId] = onResolved;
+
+        if (HasStateAuthority)
+            ResolveBandageForWound(requestId, AuthorityRemoveBandage(woundIndex));
+        else
+            RPC_RequestRemoveBandageForWound(requestId, woundIndex);
+
+        return requestId;
+    }
+
+    public void CancelBandageRequest(int requestId)
+    {
+        if (requestId != 0) pendingBandageRequests.Remove(requestId);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_SetGlobalBleeding(bool state) { isBleeding = state; }
+    private void RPC_RequestBandageForWound(int requestId, int woundIndex)
+    {
+        bool success = AuthorityTryBandageWound(woundIndex);
+        RPC_BandageForWoundResult(requestId, success);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestRemoveBandageForWound(int requestId, int woundIndex)
+    {
+        bool success = AuthorityRemoveBandage(woundIndex);
+        RPC_BandageForWoundResult(requestId, success);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_BandageForWoundResult(int requestId, NetworkBool success)
+    {
+        ResolveBandageForWound(requestId, success);
+    }
+
+    private bool AuthorityTryBandageWound(int woundIndex)
+    {
+        if (!HasStateAuthority || isDead || woundIndex < 0 || woundIndex >= BodyPartCount)
+            return false;
+
+        NetworkWoundState wound = Wounds[woundIndex];
+        bool success = TryApplyBandage(ref wound, () => TryConsumeMedicalTreatment("Bandage"));
+        if (success)
+        {
+            Wounds.Set(woundIndex, wound);
+            WoundRevision++;
+            RecalculateWoundFlags();
+        }
+        return success;
+    }
+
+    public static bool TryApplyBandage(ref NetworkWoundState wound, System.Func<bool> consumeSingleBandage)
+    {
+        if (!wound.HasInjury || wound.IsBandaged || consumeSingleBandage == null) return false;
+        if (!consumeSingleBandage()) return false;
+        wound.IsBandaged = true;
+        return true;
+    }
+
+    private bool AuthorityRemoveBandage(int woundIndex)
+    {
+        if (!HasStateAuthority || isDead || woundIndex < 0 || woundIndex >= BodyPartCount)
+            return false;
+
+        NetworkWoundState wound = Wounds[woundIndex];
+        if (!wound.HasInjury || !wound.IsBandaged) return false;
+
+        // Preserve the existing gameplay rule: removing a completed dressing
+        // heals scratches/lacerations, while a bite remains an open terminal wound.
+        wound.InjuryMask &= 1 << (int)WoundType.Bitten;
+        wound.IsBandaged = false;
+        Wounds.Set(woundIndex, wound);
+        WoundRevision++;
+        RecalculateWoundFlags();
+        return true;
+    }
+
+    private void ResolveBandageForWound(int requestId, bool success)
+    {
+        if (!pendingBandageRequests.TryGetValue(requestId, out System.Action<bool> callback)) return;
+
+        pendingBandageRequests.Remove(requestId);
+        callback(success);
+    }
 
     public void SetBitten()
     {
         if (HasStateAuthority) isBitten = true;
-        else RPC_SetBitten();
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_SetBitten() { isBitten = true; }
+    public int GetBodyPartIndex(string bodyPartName)
+    {
+        if (string.IsNullOrEmpty(bodyPartName)) return -1;
+        for (int i = 0; i < BodyPartNames.Length; i++)
+            if (string.Equals(BodyPartNames[i], bodyPartName, System.StringComparison.Ordinal)) return i;
+        return -1;
+    }
+
+    public NetworkWoundState GetWound(int bodyPartIndex)
+    {
+        return bodyPartIndex >= 0 && bodyPartIndex < BodyPartCount
+            ? Wounds[bodyPartIndex]
+            : default;
+    }
+
+    public WoundSnapshot CaptureWoundSnapshot()
+    {
+        if (!HasStateAuthority) return null;
+
+        WoundSnapshot snapshot = new WoundSnapshot
+        {
+            IsBitten = isBitten,
+            InfectionTimer = infectionTimer
+        };
+        for (int i = 0; i < BodyPartCount; i++)
+        {
+            NetworkWoundState wound = Wounds[i];
+            snapshot.InjuryMasks[i] = wound.InjuryMask;
+            snapshot.Bandaged[i] = wound.IsBandaged;
+        }
+        return snapshot;
+    }
+
+    public void RestoreWoundSnapshot(WoundSnapshot snapshot)
+    {
+        if (!HasStateAuthority || snapshot == null) return;
+
+        for (int i = 0; i < BodyPartCount; i++)
+        {
+            Wounds.Set(i, new NetworkWoundState
+            {
+                InjuryMask = snapshot.InjuryMasks[i],
+                IsBandaged = snapshot.Bandaged[i]
+            });
+        }
+        isBitten = snapshot.IsBitten;
+        infectionTimer = snapshot.InfectionTimer;
+        WoundRevision++;
+        RecalculateWoundFlags();
+    }
+
+    private void RecalculateWoundFlags()
+    {
+        if (!HasStateAuthority) return;
+
+        bool bleeding = false;
+        bool bitten = false;
+        for (int i = 0; i < BodyPartCount; i++)
+        {
+            NetworkWoundState wound = Wounds[i];
+            if (wound.HasInjuryType(WoundType.Bitten)) bitten = true;
+            if (wound.HasInjury && !wound.IsBandaged) bleeding = true;
+        }
+
+        isBleeding = bleeding;
+        if (bitten) isBitten = true;
+    }
 
     public void UsePainkiller()
     {
-        if (HasStateAuthority) isInPain = false;
+        if (HasStateAuthority) AuthorityStopPain();
         else RPC_StopPain();
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_StopPain() { isInPain = false; }
+    private void RPC_StopPain()
+    {
+        AuthorityStopPain();
+    }
+
+    private void AuthorityStopPain()
+    {
+        if (!HasStateAuthority || !isInPain) return;
+        if (TryConsumeMedicalTreatment("PainKiller")) isInPain = false;
+    }
+
+    private bool TryConsumeMedicalTreatment(string itemId)
+    {
+        InventorySystem inventory = GetComponent<InventorySystem>();
+        ItemData treatment = ItemDataLoader.LoadItem(itemId);
+        if (inventory == null || treatment == null || inventory.GetItemCount(treatment) < 1)
+        {
+            Debug.LogWarning($"[HEALTH] Rejected treatment '{itemId}': authoritative inventory has no item.");
+            return false;
+        }
+
+        int removed = inventory.ConsumeItem(treatment, 1);
+        if (removed == 1) return true;
+
+        if (removed > 0) inventory.AddItem(treatment, removed);
+        Debug.LogWarning($"[HEALTH] Rejected treatment '{itemId}': authoritative consume failed.");
+        return false;
+    }
 
     public float GetSFXVolume()
     {
@@ -540,8 +825,9 @@ public class PlayerHealth : NetworkBehaviour
     public void Heal(float amount)
     {
         if (isDead) return;
+        // Never accept an arbitrary heal amount from Input Authority. Legitimate
+        // healing must be initiated and validated by State Authority.
         if (HasStateAuthority) PerformHeal(amount);
-        else RPC_RequestHeal(amount);
     }
 
     public float GetPassiveHealRate(int wellFedTier)
@@ -549,9 +835,6 @@ public class PlayerHealth : NetworkBehaviour
         wellFedTier = Mathf.Clamp(wellFedTier, 1, 4);
         return passiveHealPerSecond + (wellFedTier - 1) * healBonusPerWellFedTier;
     }
-
-    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_RequestHeal(float amount) { PerformHeal(amount); }
 
     private void PerformHeal(float amount)
     {
@@ -681,7 +964,6 @@ public class PlayerHealth : NetworkBehaviour
         RestoreTeammatesSprites();
         isBlinking = false;
         biteTerminalOverlayActive = false;
-        blinkCooldown = 0f;
         if (paranoiaImage != null) paranoiaImage.color = Color.clear;
     }
 

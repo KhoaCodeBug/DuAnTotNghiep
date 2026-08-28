@@ -16,6 +16,21 @@ public class ItemPickup : MonoBehaviour // 🔥 ĐÃ ĐỔI: Trở lại làm Mo
             // 🔥 ĐÃ FIX: Chỉ máy tính của người chơi đó mới được quyền lụm (Chặn Host lụm giùm)
             if (inventory != null && inventory.HasInputAuthority)
             {
+                NetworkObject netObj = GetComponent<NetworkObject>();
+                if (netObj != null && netObj.IsValid)
+                {
+                    // Networked loot is granted and despawned atomically by State
+                    // Authority. Do not add it optimistically on the client.
+                    inventory.RPC_RequestPickupItem(netObj);
+
+                    enabled = false;
+                    Collider2D networkCol = GetComponent<Collider2D>();
+                    if (networkCol != null) networkCol.enabled = false;
+                    SpriteRenderer networkRenderer = GetComponent<SpriteRenderer>();
+                    if (networkRenderer != null) networkRenderer.enabled = false;
+                    return;
+                }
+
                 bool pickedUp = inventory.AddItem(item, amount);
 
                 if (pickedUp)
@@ -35,18 +50,8 @@ public class ItemPickup : MonoBehaviour // 🔥 ĐÃ ĐỔI: Trở lại làm Mo
                     SpriteRenderer sr = GetComponent<SpriteRenderer>();
                     if (sr != null) sr.enabled = false;
 
-                    // 2. Kiểm tra xem cục đồ này có danh tính mạng hay không
-                    NetworkObject netObj = GetComponent<NetworkObject>();
-                    if (netObj != null && netObj.IsValid)
-                    {
-                        // Đồ xịn (rớt từ quái hoặc ném ra bằng mạng) -> Nhờ túi đồ gọi Server xóa
-                        inventory.RPC_RequestDespawnItem(netObj);
-                    }
-                    else
-                    {
-                        // Đồ dỏm (8 món bạn đặt tay vào Scene để test) -> Tự hủy ngay trên máy
-                        Destroy(gameObject);
-                    }
+                    // Đồ đặt trực tiếp trong scene không có NetworkObject.
+                    Destroy(gameObject);
                 }
                 else
                 {

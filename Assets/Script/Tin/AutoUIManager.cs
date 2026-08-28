@@ -773,7 +773,10 @@ public class AutoUIManager : MonoBehaviour
         RectTransform gridRect = gridObj.AddComponent<RectTransform>();
         gridRect.anchorMin = new Vector2(0, 1); gridRect.anchorMax = new Vector2(1, 1);
         gridRect.pivot = new Vector2(0.5f, 1);
-        gridRect.anchoredPosition = Vector2.zero;
+        // Keep a tiny deterministic inset from the masked viewport edge. At
+        // 1920x1080, RectTransform float rounding can otherwise place the grid
+        // about 0.00006 px beyond the one-pixel layout tolerance.
+        gridRect.anchoredPosition = new Vector2(0f, -0.25f);
         gridRect.sizeDelta = new Vector2(0, 0);
 
         GridLayoutGroup gridLayout = gridObj.AddComponent<GridLayoutGroup>();
@@ -1650,7 +1653,6 @@ public class AutoUIManager : MonoBehaviour
             else
             {
                 localPlayer.GetComponent<InventorySystem>().UseItem(index);
-                ApplyMedicalCure(itemToUse.itemName);
             }
         }
     }
@@ -1687,26 +1689,6 @@ public class AutoUIManager : MonoBehaviour
         }
     }
 
-    private void ApplyMedicalCure(string itemName)
-    {
-        EnsureLocalPlayer();
-        if (localPlayer == null) return;
-
-        PlayerHealth health = localPlayer.GetComponent<PlayerHealth>();
-        if (health == null) return;
-
-        string nameLower = itemName.ToLower();
-        if (nameLower.Contains("bandage") || nameLower.Contains("băng"))
-        {
-            health.SetGlobalBleeding(false);
-            Debug.Log("Đã quấn băng gạc!");
-        }
-        else if (nameLower.Contains("painkiller") || nameLower.Contains("thuốc") || nameLower.Contains("đau"))
-        {
-            health.UsePainkiller();
-            Debug.Log("Đã dùng thuốc giảm đau!");
-        }
-    }
     #endregion
 
     #region GIAO DIỆN LỜI MỜI TRADE
@@ -1949,7 +1931,6 @@ public class AutoUIManager : MonoBehaviour
         if (localPlayer != null)
         {
             localPlayer.GetComponent<InventorySystem>().UseItem(slotIndex);
-            ApplyMedicalCure(itemToUse.itemName);
         }
     }
 

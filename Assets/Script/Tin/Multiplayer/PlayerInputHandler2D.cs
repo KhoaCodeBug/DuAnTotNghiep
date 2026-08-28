@@ -400,17 +400,39 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null && health.isDead) return;
 
-        string myPlayerName = PlayerPrefs.GetString("MyPlayerName", "Survivor");
-        Rpc_SendChat(myPlayerName, msg);
+        RPC_RequestSendChat(msg);
     }
 
-    [Rpc(RpcSources.InputAuthority, RpcTargets.All)]
-    public void Rpc_SendChat(string playerName, string message)
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_RequestSendChat(string message, RpcInfo info = default)
     {
-        if (AutoChatManager.Instance != null)
-        {
-            AutoChatManager.Instance.AddMessage(playerName, message);
-        }
+        if (!HasStateAuthority || Object == null || !Object.IsValid ||
+            info.Source != Object.InputAuthority)
+            return;
+
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (health != null && health.isDead) return;
+
+        string senderName = HostModeSpawner.Instance != null
+            ? HostModeSpawner.Instance.GetPlayerName(info.Source)
+            : GetComponent<PlayerNameTag>()?.PlayerName.ToString();
+        senderName = System.Text.RegularExpressions.Regex.Replace(
+            senderName ?? "Survivor", "<.*?>", string.Empty).Trim();
+        if (string.IsNullOrEmpty(senderName)) senderName = "Survivor";
+        if (senderName.Length > 32) senderName = senderName.Substring(0, 32);
+
+        string cleanMsg = System.Text.RegularExpressions.Regex.Replace(
+            message ?? string.Empty, "<.*?>", string.Empty).Trim();
+        if (cleanMsg.Length > 128) cleanMsg = cleanMsg.Substring(0, 128);
+        if (string.IsNullOrWhiteSpace(cleanMsg)) return;
+
+        RPC_BroadcastChat(senderName, cleanMsg);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_BroadcastChat(string senderName, string cleanMessage)
+    {
+        AutoChatManager.Instance?.AddMessage(senderName, cleanMessage);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]

@@ -35,43 +35,75 @@ public class PlayerTrade : NetworkBehaviour
             if (otherPlayer == this) continue;
             if (Vector2.Distance(transform.position, otherPlayer.transform.position) <= tradeRadius && !otherPlayer.IsTrading)
             {
-                RPC_SendRequest(Object.InputAuthority, otherPlayer.Object.InputAuthority);
+                RPC_SendRequest(otherPlayer.Object.InputAuthority);
                 break;
             }
         }
     }
 
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    public void RPC_SendRequest(PlayerRef sender, PlayerRef target)
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_SendRequest(PlayerRef target, RpcInfo info = default)
+    {
+        PlayerTrade senderTrade = GetPlayerTrade(info.Source);
+        PlayerTrade targetTrade = GetPlayerTrade(target);
+        if (!CanStartTrade(senderTrade, targetTrade)) return;
+        RPC_ShowTradeRequest(info.Source, target);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowTradeRequest(PlayerRef sender, PlayerRef target)
     {
         if (Runner.LocalPlayer == target && AutoUIManager.Instance != null)
             AutoUIManager.Instance.ShowTradeRequestPopup(sender, target);
     }
 
-    public void AcceptTradeRequest(PlayerRef sender) { RPC_AcceptTrade(sender, Runner.LocalPlayer); }
+    public void AcceptTradeRequest(PlayerRef sender) { RPC_AcceptTrade(sender); }
     public void DeclineTradeRequest(PlayerRef sender) { RPC_DeclineTrade(sender); }
 
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_AcceptTrade(PlayerRef sender, PlayerRef receiver)
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_AcceptTrade(PlayerRef sender, RpcInfo info = default)
     {
+        PlayerRef receiver = info.Source;
         PlayerTrade p1 = GetPlayerTrade(sender);
         PlayerTrade p2 = GetPlayerTrade(receiver);
 
-        if (p1 != null && p2 != null)
-        {
-            p1.IsTrading = true; p1.TradePartner = receiver;
-            p2.IsTrading = true; p2.TradePartner = sender;
-            p1.ResetTradeData(); p2.ResetTradeData();
+        if (p2 != this || !CanStartTrade(p1, p2)) return;
 
-            RPC_OpenTradeWindow(sender);
-            RPC_OpenTradeWindow(receiver);
-        }
+        p1.IsTrading = true; p1.TradePartner = receiver;
+        p2.IsTrading = true; p2.TradePartner = sender;
+        p1.ResetTradeData(); p2.ResetTradeData();
+
+        RPC_OpenTradeWindow(sender);
+        RPC_OpenTradeWindow(receiver);
     }
 
-    [Rpc(RpcSources.All, RpcTargets.All)]
-    public void RPC_DeclineTrade(PlayerRef sender)
+    private bool CanStartTrade(PlayerTrade sender, PlayerTrade receiver)
     {
-        if (Runner.LocalPlayer == sender) Debug.Log("❌ Bị từ chối!");
+        if (!HasStateAuthority || sender == null || receiver == null || sender == receiver ||
+            sender.Object == null || receiver.Object == null || !sender.Object.IsValid ||
+            !receiver.Object.IsValid || sender.IsTrading || receiver.IsTrading)
+            return false;
+
+        return Vector2.Distance(sender.transform.position, receiver.transform.position) <=
+               Mathf.Min(sender.tradeRadius, receiver.tradeRadius);
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    public void RPC_DeclineTrade(PlayerRef sender, RpcInfo info = default)
+    {
+        PlayerTrade receiver = GetPlayerTrade(info.Source);
+        PlayerTrade senderTrade = GetPlayerTrade(sender);
+        if (receiver != this || senderTrade == null) return;
+        RPC_NotifyTradeDeclined(sender);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_NotifyTradeDeclined(PlayerRef sender)
+    {
+        if (Runner.LocalPlayer == sender)
+        {
+            Debug.Log("❌ Bị từ chối!");
+        }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -90,7 +122,13 @@ public class PlayerTrade : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_SetOffer(NetworkString<_64> itemName, int amount)
     {
-        OfferItemName = itemName; OfferAmount = amount;
+        InventorySystem inventory = GetComponent<InventorySystem>();
+        ItemData data = amount > 0 ? ItemDataLoader.LoadItem(itemName.ToString()) : null;
+        bool validOffer = IsTrading && inventory != null && data != null &&
+                          inventory.GetItemCount(data) >= amount;
+
+        OfferItemName = validOffer ? data.name : string.Empty;
+        OfferAmount = validOffer ? amount : 0;
         IsReady = false; IsConfirmed = false;
 
         PlayerTrade partner = GetPlayerTrade(TradePartner);
@@ -98,7 +136,13 @@ public class PlayerTrade : NetworkBehaviour
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    public void RPC_ToggleReady() { IsReady = !IsReady; IsConfirmed = false; }
+    public void RPC_ToggleReady()
+    {
+        if (!IsTrading) return;
+        if (!IsReady && !TryResolveOffer(this, out _, out _, out _)) return;
+        IsReady = !IsReady;
+        IsConfirmed = false;
+    }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_ConfirmTrade()
@@ -136,60 +180,87 @@ public class PlayerTrade : NetworkBehaviour
 
     private void ExecuteTrade(PlayerTrade p1, PlayerTrade p2)
     {
-        string item1Name = p1.OfferItemName.ToString();
-        string item2Name = p2.OfferItemName.ToString();
-        int amount1 = p1.OfferAmount;
-        int amount2 = p2.OfferAmount;
-
-        if (!string.IsNullOrEmpty(item1Name) && amount1 > 0)
+        if (!HasStateAuthority || p1 == null || p2 == null || !p1.IsTrading || !p2.IsTrading ||
+            p1.TradePartner != p2.Object.InputAuthority || p2.TradePartner != p1.Object.InputAuthority ||
+            !TryResolveOffer(p1, out InventorySystem p1Inv, out ItemData data1, out int amount1) ||
+            !TryResolveOffer(p2, out InventorySystem p2Inv, out ItemData data2, out int amount2))
         {
-            p1.RPC_TargetRemoveTradeItem(p1.Object.InputAuthority, item1Name, amount1);
-            p2.RPC_TargetReceiveTradeItem(p2.Object.InputAuthority, item1Name, amount1);
+            CloseTradeSafely(p1, p2, "offer validation failed");
+            return;
         }
 
-        if (!string.IsNullOrEmpty(item2Name) && amount2 > 0)
+        int removed1 = amount1 > 0 ? p1Inv.ConsumeItem(data1, amount1) : 0;
+        if (removed1 != amount1)
         {
-            p2.RPC_TargetRemoveTradeItem(p2.Object.InputAuthority, item2Name, amount2);
-            p1.RPC_TargetReceiveTradeItem(p1.Object.InputAuthority, item2Name, amount2);
+            if (removed1 > 0) p1Inv.AddItem(data1, removed1);
+            CloseTradeSafely(p1, p2, "first authoritative removal failed");
+            return;
         }
 
-        // 🔥 ĐÃ FIX LỖI SỐ 2: Server tự động dọn dẹp phòng, không dùng lệnh xin phép của Client nữa
-        p1.IsTrading = false; p1.ResetTradeData();
-        p2.IsTrading = false; p2.ResetTradeData();
+        int removed2 = amount2 > 0 ? p2Inv.ConsumeItem(data2, amount2) : 0;
+        if (removed2 != amount2)
+        {
+            if (removed2 > 0) p2Inv.AddItem(data2, removed2);
+            if (removed1 > 0) p1Inv.AddItem(data1, removed1);
+            CloseTradeSafely(p1, p2, "second authoritative removal failed");
+            return;
+        }
 
-        RPC_CloseTradeWindow(p1.Object.InputAuthority);
-        RPC_CloseTradeWindow(p2.Object.InputAuthority);
+        int p2Before = amount1 > 0 ? p2Inv.GetItemCount(data1) : 0;
+        bool addedToP2 = amount1 == 0 || p2Inv.AddItem(data1, amount1);
+        int added1 = amount1 > 0 ? Mathf.Max(0, p2Inv.GetItemCount(data1) - p2Before) : 0;
+
+        int p1Before = amount2 > 0 ? p1Inv.GetItemCount(data2) : 0;
+        bool addedToP1 = amount2 == 0 || p1Inv.AddItem(data2, amount2);
+        int added2 = amount2 > 0 ? Mathf.Max(0, p1Inv.GetItemCount(data2) - p1Before) : 0;
+
+        if (!addedToP2 || added1 != amount1 || !addedToP1 || added2 != amount2)
+        {
+            if (added1 > 0) p2Inv.ConsumeItem(data1, added1);
+            if (added2 > 0) p1Inv.ConsumeItem(data2, added2);
+            if (removed1 > 0) p1Inv.AddItem(data1, removed1);
+            if (removed2 > 0) p2Inv.AddItem(data2, removed2);
+            CloseTradeSafely(p1, p2, "recipient inventory could not accept the complete trade");
+            return;
+        }
+
+        Debug.Log($"[TRADE] Server committed {amount1} {data1?.itemName ?? "item(s)"} and " +
+                  $"{amount2} {data2?.itemName ?? "item(s)"} atomically.");
+        CloseTradeSafely(p1, p2, null);
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-    public void RPC_TargetReceiveTradeItem(PlayerRef target, NetworkString<_64> itemName, int amount)
+    private bool TryResolveOffer(PlayerTrade trade, out InventorySystem inventory, out ItemData data,
+        out int amount)
     {
-        ItemData data = Resources.Load<ItemData>("Items/" + itemName.ToString());
-        if (data != null)
-        {
-            InventorySystem inv = GetComponent<InventorySystem>();
-            bool success = inv.AddItem(data, amount);
-            if (!success) DropFallback(inv, data, amount);
-            Debug.Log($"[TRADE] Đã nhận được {amount} {data.itemName}");
-        }
-        else Debug.LogError($"[TRADE LỖI] Không tìm thấy file 'Items/{itemName}' trong thư mục Resources!");
+        inventory = trade != null ? trade.GetComponent<InventorySystem>() : null;
+        amount = trade != null ? trade.OfferAmount : 0;
+        string itemId = trade != null ? trade.OfferItemName.ToString() : string.Empty;
+        data = amount > 0 && !string.IsNullOrWhiteSpace(itemId)
+            ? ItemDataLoader.LoadItem(itemId)
+            : null;
+
+        if (amount == 0 && string.IsNullOrEmpty(itemId)) return inventory != null;
+        return amount > 0 && inventory != null && data != null &&
+               inventory.GetItemCount(data) >= amount;
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-    public void RPC_TargetRemoveTradeItem(PlayerRef target, NetworkString<_64> itemName, int amount)
+    private void CloseTradeSafely(PlayerTrade p1, PlayerTrade p2, string reason)
     {
-        ItemData data = Resources.Load<ItemData>("Items/" + itemName.ToString());
-        if (data != null)
-        {
-            GetComponent<InventorySystem>().ConsumeItem(data, amount);
-            Debug.Log($"[TRADE] Đã giao đi {amount} {data.itemName}");
-        }
-    }
+        if (!string.IsNullOrEmpty(reason))
+            Debug.LogWarning($"[TRADE] Cancelled safely: {reason}.");
 
-    private void DropFallback(InventorySystem inv, ItemData item, int amount)
-    {
-        inv.slots.Add(new InventorySlot(item, amount));
-        inv.DropItem(inv.slots.Count - 1);
+        if (p1 != null)
+        {
+            p1.IsTrading = false;
+            p1.ResetTradeData();
+            RPC_CloseTradeWindow(p1.Object.InputAuthority);
+        }
+        if (p2 != null)
+        {
+            p2.IsTrading = false;
+            p2.ResetTradeData();
+            RPC_CloseTradeWindow(p2.Object.InputAuthority);
+        }
     }
 
     public PlayerTrade GetPlayerTrade(PlayerRef playerRef)

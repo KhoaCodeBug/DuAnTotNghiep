@@ -60,6 +60,7 @@ public class AutoHealthPanel : MonoBehaviour
 
     private PlayerHealth localPlayerHealth;
     private InventorySystem localInventory;
+    private int lastWoundRevision = int.MinValue;
 
     private Color colHealthy = new Color(0.2f, 0.22f, 0.25f, 1f);
     private Color colInjured = new Color(0.65f, 0.15f, 0.15f, 1f);
@@ -405,73 +406,46 @@ public class AutoHealthPanel : MonoBehaviour
         }
     }
 
+    public void BindLocalPlayer(PlayerHealth playerHealth)
+    {
+        if (playerHealth == null || !playerHealth.HasInputAuthority) return;
+        localPlayerHealth = playerHealth;
+        localInventory = playerHealth.GetComponent<InventorySystem>();
+        lastWoundRevision = int.MinValue;
+        SyncFromAuthoritativeWounds(true);
+        if (isOpen) UpdateAllUI();
+    }
+
+    private void SyncFromAuthoritativeWounds(bool force = false)
+    {
+        if (localPlayerHealth == null || localPlayerHealth.Object == null ||
+            !localPlayerHealth.Object.IsValid) return;
+        if (!force && lastWoundRevision == localPlayerHealth.WoundRevision) return;
+
+        for (int index = 0; index < PlayerHealth.BodyPartCount; index++)
+        {
+            string bodyPartName = PlayerHealth.BodyPartNames[index];
+            if (!bodyParts.TryGetValue(bodyPartName, out BodyPartData part)) continue;
+
+            PlayerHealth.NetworkWoundState wound = localPlayerHealth.GetWound(index);
+            part.Injuries.Clear();
+            if (wound.HasInjuryType(PlayerHealth.WoundType.Scratched))
+                part.Injuries.Add(InjuryType.Scratched);
+            if (wound.HasInjuryType(PlayerHealth.WoundType.Laceration))
+                part.Injuries.Add(InjuryType.Laceration);
+            if (wound.HasInjuryType(PlayerHealth.WoundType.Bitten))
+                part.Injuries.Add(InjuryType.Bitten);
+            part.IsBandaged = wound.IsBandaged;
+        }
+
+        lastWoundRevision = localPlayerHealth.WoundRevision;
+        if (isOpen) UpdateAllUI();
+    }
+
     public void TakeRandomZombieAttack(string forcedTarget = "")
     {
         FindLocalPlayerCache();
-
-        string targetPart = forcedTarget;
-
-        if (string.IsNullOrEmpty(targetPart))
-        {
-            List<string> healthyParts = new List<string>();
-
-            foreach (var kvp in bodyParts)
-            {
-                if (kvp.Key == "Neck") continue;
-                if (kvp.Value.Injuries.Count == 0)
-                {
-                    healthyParts.Add(kvp.Key);
-                }
-            }
-
-            if (healthyParts.Count == 0)
-            {
-                healthyParts.AddRange(bodyParts.Keys);
-                healthyParts.Remove("Neck");
-            }
-
-            float hitRoll = Random.Range(0f, 100f);
-
-            if (hitRoll <= 5f) targetPart = "Neck";
-            else targetPart = healthyParts[Random.Range(0, healthyParts.Count)];
-        }
-
-        InjuryType injuryResult;
-        float injuryRoll = Random.Range(0f, 100f);
-
-        if (targetPart == "Neck")
-        {
-            injuryResult = InjuryType.Bitten;
-        }
-        else
-        {
-            if (injuryRoll <= 5f) injuryResult = InjuryType.Bitten;
-            else if (injuryRoll <= 52.5f) injuryResult = InjuryType.Laceration;
-            else injuryResult = InjuryType.Scratched;
-        }
-
-        BodyPartData part = bodyParts[targetPart];
-        part.IsBandaged = false;
-
-        if (!part.Injuries.Contains(injuryResult))
-        {
-            part.Injuries.Add(injuryResult);
-        }
-
-        if (localPlayerHealth != null)
-        {
-            if (injuryResult == InjuryType.Bitten)
-            {
-                localPlayerHealth.SetBitten(); // Kích hoạt 100% hóa Zombie bên logic
-            }
-        }
-
-        EvaluateGlobalBleeding();
-
-        if (isOpen)
-        {
-            UpdateAllUI();
-        }
+        SyncFromAuthoritativeWounds(true);
     }
 
     /// <summary>
@@ -482,15 +456,11 @@ public class AutoHealthPanel : MonoBehaviour
     public void ApplyTutorialWound(string targetPart = "Right Forearm")
     {
         FindLocalPlayerCache();
-        if (!bodyParts.TryGetValue(targetPart, out BodyPartData part))
-            part = bodyParts["Right Forearm"];
-
-        if (part.Injuries.Count == 0)
-            part.Injuries.Add(InjuryType.Laceration);
-
-        part.IsBandaged = false;
-        EvaluateGlobalBleeding();
-        if (isOpen) UpdateAllUI();
+        if (localPlayerHealth == null) return;
+        int bodyPartIndex = localPlayerHealth.GetBodyPartIndex(targetPart);
+        if (bodyPartIndex < 0) bodyPartIndex = localPlayerHealth.GetBodyPartIndex("Right Forearm");
+        localPlayerHealth.AuthorityAddTutorialWound(bodyPartIndex);
+        SyncFromAuthoritativeWounds(true);
     }
 
     public bool HasAnyUnbandagedInjury()
@@ -509,21 +479,7 @@ public class AutoHealthPanel : MonoBehaviour
 
     private void EvaluateGlobalBleeding()
     {
-        if (localPlayerHealth == null) return;
-
-        bool hasUnbandagedWounds = false;
-
-        foreach (var p in bodyParts.Values)
-        {
-            if (p.Injuries.Count > 0 && !p.IsBandaged)
-            {
-                hasUnbandagedWounds = true;
-                break;
-            }
-        }
-
-        // Báo cho PlayerHealth biết để nó chạy tụt máu từ từ (bleedDamagePerSecond)
-        localPlayerHealth.SetGlobalBleeding(hasUnbandagedWounds);
+        SyncFromAuthoritativeWounds(true);
     }
 
     private void UpdateAllUI()
@@ -666,6 +622,9 @@ public class AutoHealthPanel : MonoBehaviour
 
     void Update()
     {
+        if (localPlayerHealth == null) FindLocalPlayerCache();
+        SyncFromAuthoritativeWounds();
+
         if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
             VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
 
@@ -931,19 +890,76 @@ public class AutoHealthPanel : MonoBehaviour
 
         if (actionType == "Apply" && itemUsed != null)
         {
-            localInventory.ConsumeItem(itemUsed, 1);
-            part.IsBandaged = true;
+            bool requestResolved = false;
+            bool bandageAccepted = false;
+            int woundIndex = localPlayerHealth != null
+                ? localPlayerHealth.GetBodyPartIndex(part.Name)
+                : -1;
+            int requestId = localPlayerHealth != null
+                ? localPlayerHealth.RequestBandageForWound(woundIndex, success =>
+                {
+                    bandageAccepted = success;
+                    requestResolved = true;
+                })
+                : 0;
+
+            if (requestId == 0)
+            {
+                requestResolved = true;
+            }
+
+            // Reliable RPC result is the commit point. Do not invent a local
+            // timeout after which the server may already have consumed the item
+            // while the UI still says unbandaged.
+            while (!requestResolved && localPlayerHealth != null &&
+                   localPlayerHealth.Object != null && localPlayerHealth.Object.IsValid)
+            {
+                yield return null;
+            }
+
+            if (!requestResolved && localPlayerHealth != null)
+            {
+                localPlayerHealth.CancelBandageRequest(requestId);
+                Debug.LogWarning("[HEALTH UI] Player despawned before bandage confirmation; wound remains unbandaged.");
+            }
+
+            if (requestResolved && bandageAccepted)
+            {
+                SyncFromAuthoritativeWounds(true);
+            }
+            else
+            {
+                // The item may have been dropped while the action timer was
+                // running. Keep the wound open so local UI matches server state.
+                part.IsBandaged = false;
+                Debug.LogWarning("[HEALTH UI] Bandage was not available on the server; wound remains unbandaged.");
+            }
         }
         else if (actionType == "Remove")
         {
-            part.IsBandaged = false;
+            bool requestResolved = false;
+            bool accepted = false;
+            int woundIndex = localPlayerHealth != null
+                ? localPlayerHealth.GetBodyPartIndex(part.Name)
+                : -1;
+            int requestId = localPlayerHealth != null
+                ? localPlayerHealth.RequestRemoveBandageForWound(woundIndex, success =>
+                {
+                    accepted = success;
+                    requestResolved = true;
+                })
+                : 0;
 
-            bool hasBitten = part.Injuries.Contains(InjuryType.Bitten);
-            part.Injuries.Clear();
-            if (hasBitten) part.Injuries.Add(InjuryType.Bitten);
+            if (requestId == 0) requestResolved = true;
+            while (!requestResolved && localPlayerHealth != null &&
+                   localPlayerHealth.Object != null && localPlayerHealth.Object.IsValid)
+                yield return null;
+
+            if (!requestResolved && localPlayerHealth != null)
+                localPlayerHealth.CancelBandageRequest(requestId);
+            if (accepted) SyncFromAuthoritativeWounds(true);
         }
 
-        EvaluateGlobalBleeding();
         EndHealAction();
 
         TogglePanel();
@@ -980,18 +996,9 @@ public class AutoHealthPanel : MonoBehaviour
 
     public void ResetAllInjuries()
     {
-        FindLocalPlayerCache(); // 🔥 Cập nhật cache người chơi trước khi xử lý
-        foreach (var part in bodyParts.Values)
-        {
-            part.Injuries.Clear();
-            part.IsBandaged = false;
-            if (part.Img != null)
-            {
-                part.Img.color = colHealthy;
-            }
-        }
-        EvaluateGlobalBleeding();
-        UpdateAllUI();
+        FindLocalPlayerCache();
+        lastWoundRevision = int.MinValue;
+        SyncFromAuthoritativeWounds(true);
     }
 
     private void OnDestroy()

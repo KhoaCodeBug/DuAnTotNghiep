@@ -28,6 +28,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     // at the military checkpoint without asking the (dead) client first.
     private Dictionary<PlayerRef, int> characterIdByPlayer = new Dictionary<PlayerRef, int>();
     private Dictionary<PlayerRef, string> playerNameByPlayer = new Dictionary<PlayerRef, string>();
+    private readonly Dictionary<PlayerRef, string> persistenceKeyByPlayer = new Dictionary<PlayerRef, string>();
+    private readonly Dictionary<string, PlayerHealth.WoundSnapshot> woundSnapshotByUser =
+        new Dictionary<string, PlayerHealth.WoundSnapshot>();
     private Dictionary<PlayerRef, InventorySystem.MilitaryRespawnSnapshot> militaryInventoryByPlayer =
         new Dictionary<PlayerRef, InventorySystem.MilitaryRespawnSnapshot>();
     private Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot> militaryCombatByPlayer =
@@ -40,7 +43,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     // 🔥 CÁC BIẾN ĐỒNG BỘ MẠNG
     [Networked] public bool IsMatchStarted { get; set; } // Đánh dấu game đã bắt đầu chưa
-    private int playersLoadedMap = 0; // (Chỉ Host dùng) Đếm số người đã tải xong Map
+    private readonly HashSet<PlayerRef> playersLoadedSet = new HashSet<PlayerRef>();
+
+    public int ReadyPlayerCount => playersLoadedSet.Count;
 
     public override void Spawned()
     {
@@ -94,10 +99,24 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_RequestSpawn(PlayerRef player, int characterID, string playerName)
+    public void RPC_RequestSpawn(PlayerRef player, int characterID, string playerName, RpcInfo info = default)
     {
         if (!Runner.IsServer) return;
-        SpawnCharacter(player, characterID, playerName);
+        if (!TryResolveAuthenticatedPlayer(player, info.Source, out PlayerRef authoritativePlayer))
+        {
+            Debug.LogWarning($"[SPAWNER] Rejected spoofed request from {info.Source} for {player}.");
+            return;
+        }
+
+        SpawnCharacter(authoritativePlayer, characterID, playerName);
+    }
+
+    public static bool TryResolveAuthenticatedPlayer(PlayerRef claimedPlayer, PlayerRef rpcSource,
+        out PlayerRef authoritativePlayer)
+    {
+        authoritativePlayer = rpcSource != PlayerRef.None ? rpcSource : claimedPlayer;
+        return authoritativePlayer != PlayerRef.None &&
+               (rpcSource == PlayerRef.None || rpcSource == claimedPlayer);
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -282,6 +301,14 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         spawnedPlayers[player] = netObj;
         characterIdByPlayer[player] = characterID;
         playerNameByPlayer[player] = playerName;
+        string persistenceKey = GetPersistenceKey(player, playerName);
+        persistenceKeyByPlayer[player] = persistenceKey;
+        if (woundSnapshotByUser.TryGetValue(persistenceKey, out PlayerHealth.WoundSnapshot woundSnapshot))
+        {
+            PlayerHealth spawnedHealth = netObj.GetComponent<PlayerHealth>();
+            if (spawnedHealth != null)
+                spawnedHealth.RestoreWoundSnapshot(woundSnapshot);
+        }
         if (isInitialArrival) playersGivenArrivalSpawn.Add(player);
         Runner.SetPlayerObject(player, netObj);
 
@@ -345,23 +372,58 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         return inventory != null;
     }
 
+    public string GetPlayerName(PlayerRef player)
+    {
+        if (playerNameByPlayer.TryGetValue(player, out string cachedName) &&
+            !string.IsNullOrWhiteSpace(cachedName))
+            return cachedName;
+
+        if (spawnedPlayers.TryGetValue(player, out NetworkObject playerObject) && playerObject != null)
+        {
+            PlayerNameTag nameTag = playerObject.GetComponent<PlayerNameTag>();
+            if (nameTag != null && !string.IsNullOrWhiteSpace(nameTag.PlayerName.ToString()))
+                return nameTag.PlayerName.ToString();
+        }
+
+        return "Survivor";
+    }
+
     // ========================================================
     // 🔥 HỆ THỐNG ĐIỂM DANH & ĐỒNG BỘ LOADING (CHỐT CHẶN 95%)
     // ========================================================
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    public void RPC_PlayerFinishedLoadingMap(PlayerRef playerRef)
+    public void RPC_PlayerFinishedLoadingMap(PlayerRef playerRef, RpcInfo info = default)
     {
+        if (!Runner.IsServer) return;
+        if (!TryResolveAuthenticatedPlayer(playerRef, info.Source, out PlayerRef authoritativePlayer))
+        {
+            Debug.LogWarning($"[SPAWNER] Rejected spoofed request from {info.Source} for {playerRef}.");
+            return;
+        }
+
         // Nhánh 1: Nếu game đã bắt đầu từ lâu, đây là người đi trễ (Nhảy dù)
         if (IsMatchStarted)
         {
-            RPC_OpenEyesForLateJoiner(playerRef); // Gọi riêng nó mở mắt lập tức
+            RPC_OpenEyesForLateJoiner(authoritativePlayer); // Gọi riêng nó mở mắt lập tức
             return;
         }
 
         // Nhánh 2: Game chưa bắt đầu, đang ở đoạn Đồng Bộ Đầu Trận
-        playersLoadedMap++;
-        CheckAndStartGame(); // Tách ra thành hàm riêng để check ở nhiều chỗ
+        if (RegisterReadyPlayer(playersLoadedSet, authoritativePlayer))
+            CheckAndStartGame();
+    }
+
+    public static bool RegisterReadyPlayer(ISet<PlayerRef> readyPlayers, PlayerRef player)
+    {
+        return readyPlayers != null && player != PlayerRef.None && readyPlayers.Add(player);
+    }
+
+    private string GetPersistenceKey(PlayerRef player, string fallbackName)
+    {
+        string userId = Runner != null ? Runner.GetPlayerUserId(player) : string.Empty;
+        if (!string.IsNullOrWhiteSpace(userId)) return "fusion:" + userId;
+        return "name:" + (string.IsNullOrWhiteSpace(fallbackName) ? player.ToString() : fallbackName.Trim());
     }
 
     private void CheckAndStartGame()
@@ -369,10 +431,10 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         if (!Runner.IsServer || IsMatchStarted) return;
 
         int currentPlayersInRoom = Runner.SessionInfo.PlayerCount;
-        Debug.Log($"[ĐIỂM DANH] Đã có {playersLoadedMap}/{currentPlayersInRoom} người tải xong Map.");
+        Debug.Log($"[ĐIỂM DANH] Đã có {playersLoadedSet.Count}/{currentPlayersInRoom} người tải xong Map.");
 
         // NẾU TẤT CẢ ĐÃ TẢI XONG -> PHÁT LỆNH GO!!!
-        if (playersLoadedMap >= currentPlayersInRoom && playersLoadedMap > 0)
+        if (playersLoadedSet.Count >= currentPlayersInRoom && playersLoadedSet.Count > 0)
         {
             IsMatchStarted = true;
             RPC_OpenEyesForAll();
@@ -475,6 +537,12 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             // Xóa xác nhân vật
             if (spawnedPlayers.TryGetValue(player, out NetworkObject netObj))
             {
+                PlayerHealth health = netObj != null ? netObj.GetComponent<PlayerHealth>() : null;
+                if (health != null && persistenceKeyByPlayer.TryGetValue(player, out string persistenceKey))
+                {
+                    PlayerHealth.WoundSnapshot snapshot = health.CaptureWoundSnapshot();
+                    if (snapshot != null) woundSnapshotByUser[persistenceKey] = snapshot;
+                }
                 Runner.Despawn(netObj);
                 spawnedPlayers.Remove(player);
             }
@@ -482,10 +550,12 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             playersGivenArrivalSpawn.Remove(player);
             characterIdByPlayer.Remove(player);
             playerNameByPlayer.Remove(player);
+            persistenceKeyByPlayer.Remove(player);
             militaryInventoryByPlayer.Remove(player);
             militaryCombatByPlayer.Remove(player);
             soloMilitaryCheckpointInventory.Remove(player);
             soloMilitaryCheckpointCombat.Remove(player);
+            playersLoadedSet.Remove(player);
 
             // 🔥 FIX LỖI 1: Kẹt Loading. Nếu có đứa rớt mạng lúc đang ở sảnh chờ load, tự động check và cho những người còn lại vào game!
             if (!IsMatchStarted)

@@ -8,6 +8,9 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
     private GameObject cityExitMarker;
     private bool localDriverAtCheckpoint;
     private bool localTeamReady;
+    private float forceGatherTimer = 0f;
+    private const float ForceGatherDuration = 30f;
+    private bool forceGatherCountdownActive;
 
     public static CivilianEscapeRouteController Attach(MainQuestManager target)
     {
@@ -27,6 +30,7 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
             SetMarkerVisible(cityExitMarker, false);
             localDriverAtCheckpoint = false;
             localTeamReady = false;
+            ResetForceGatherCountdown();
             return;
         }
 
@@ -42,6 +46,7 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
         {
             localDriverAtCheckpoint = false;
             localTeamReady = false;
+            ResetForceGatherCountdown();
             return;
         }
 
@@ -52,12 +57,43 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
                                   IsLocalDriverAt(manager.CivilianEscapePosition,
                                       manager.CivilianEscapeTriggerRadius);
         localTeamReady = localDriverAtCheckpoint && manager.AreAllLivingPlayersGatheredForCivilianEscape();
+        TickForceGatherCountdown(stage);
         if (!localTeamReady || !Input.GetKeyDown(KeyCode.E) || EscapeRouteDecisionUI.IsVisible ||
             (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()))
             return;
 
         EscapeRouteDecisionUI.ShowFinaleConfirmation(
             EscapeEndingRoute.CivilianCar, manager.RequestCivilianEscape);
+    }
+
+    private void TickForceGatherCountdown(MainQuestManager.CivilianRouteStage stage)
+    {
+        bool canForceGather = stage == MainQuestManager.CivilianRouteStage.AwaitingTeam &&
+                              manager.IsAtLeastHalfOfLivingPlayersGatheredForCivilianEscape();
+        if (!canForceGather)
+        {
+            ResetForceGatherCountdown();
+            return;
+        }
+
+        if (!forceGatherCountdownActive)
+        {
+            forceGatherCountdownActive = true;
+            forceGatherTimer = ForceGatherDuration;
+        }
+        else
+        {
+            forceGatherTimer = Mathf.Max(0f, forceGatherTimer - Time.deltaTime);
+        }
+
+        if (forceGatherTimer > 0f || !manager.HasStateAuthority) return;
+        if (!manager.AuthorityForceCivilianEscape()) ResetForceGatherCountdown();
+    }
+
+    private void ResetForceGatherCountdown()
+    {
+        forceGatherCountdownActive = false;
+        forceGatherTimer = 0f;
     }
 
     private bool IsLocalDriverAt(Vector2 position, float radius)
@@ -91,6 +127,20 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
     private void OnGUI()
     {
         if (CivilianRoutePresentationController.BlocksGameplayInput || VictorySummaryUI.IsShowing) return;
+
+        if (forceGatherCountdownActive && manager != null && manager.IsNetworkReady &&
+            manager.CurrentCivilianRouteStage == MainQuestManager.CivilianRouteStage.AwaitingTeam)
+        {
+            GUIStyle countdownStyle = new GUIStyle(GUI.skin.box)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 16,
+                fontStyle = FontStyle.Bold
+            };
+            string countdown = $"Bắt đầu đếm ngược rời thành phố: {Mathf.CeilToInt(forceGatherTimer)}s...";
+            GUI.Box(new Rect(Screen.width * 0.5f - 260f, 72f, 520f, 42f), countdown, countdownStyle);
+        }
+
         if ((!localDriverAtCheckpoint && !localTeamReady) || EscapeRouteDecisionUI.IsVisible) return;
         GUIStyle style = new GUIStyle(GUI.skin.box)
         {

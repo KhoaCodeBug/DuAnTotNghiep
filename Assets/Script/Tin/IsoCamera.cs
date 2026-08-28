@@ -12,12 +12,7 @@ public class PZ_CameraController : MonoBehaviour
 
     public Transform CurrentTarget
     {
-        get
-        {
-            if (player != null && player.parent != null && player.GetComponent<SpriteRenderer>() != null)
-                return player.parent;
-            return player;
-        }
+        get { return player; }
     }
     public float GetTargetZoom() => targetZoom;
 
@@ -60,8 +55,9 @@ public class PZ_CameraController : MonoBehaviour
     public void SpectateTarget(Transform targetTransform)
     {
         player = targetTransform;
-        hasTarget = true;
-        isSpectatingMode = true;
+        hasTarget = targetTransform != null;
+        isSpectatingMode = targetTransform != null;
+        velocity = Vector3.zero;
     }
 
     private float baseMaxLookAhead = 6f;
@@ -148,7 +144,9 @@ public class PZ_CameraController : MonoBehaviour
             targetPos += (panOffset / 2f) * sensitivity;
         }
 
-        transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref velocity, smoothFollow, Mathf.Infinity, Time.deltaTime);
+        float deltaTime = Time.unscaledDeltaTime > 0f ? Time.unscaledDeltaTime : Time.deltaTime;
+        transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref velocity,
+            smoothFollow, Mathf.Infinity, deltaTime);
     }
 
     private void HandleZoom()

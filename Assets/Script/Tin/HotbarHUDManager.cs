@@ -43,7 +43,6 @@ public class HotbarHUDManager : MonoBehaviour
     private int lastSelectedSlotIndex = -1;
     private float itemNameTimer = 0f;
     private InventorySystem localInventory;
-    private PlayerHealth localPlayerHealth;
     private PlayerSurvival localSurvival;
     private bool hudShouldBeVisible = true;
     
@@ -276,7 +275,6 @@ public class HotbarHUDManager : MonoBehaviour
         {
             localInventory = null;
             localSurvival = null;
-            localPlayerHealth = null;
         }
 
         if (localInventory == null || localSurvival == null)

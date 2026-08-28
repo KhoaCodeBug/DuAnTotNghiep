@@ -980,7 +980,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // Nút Giảm [-]
         CreateMenuButton(maxPlayerContainer, "-", () => {
-            hostMaxPlayers = Mathf.Clamp(hostMaxPlayers - 1, 1, 4);
+            hostMaxPlayers = Mathf.Clamp(hostMaxPlayers - 1, 1, 10);
             maxPlayersText.text = hostMaxPlayers.ToString();
         }, new Vector2(0f, 0.5f), true, new Vector2(40, 40), 30);
 
@@ -999,7 +999,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         // Nút Tăng [+]
         CreateMenuButton(maxPlayerContainer, "+", () => {
-            hostMaxPlayers = Mathf.Clamp(hostMaxPlayers + 1, 1, 4);
+            hostMaxPlayers = Mathf.Clamp(hostMaxPlayers + 1, 1, 10);
             maxPlayersText.text = hostMaxPlayers.ToString();
         }, new Vector2(0.7f, 0.5f), true, new Vector2(40, 40), 30);
 

@@ -39,13 +39,11 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private Transform militaryTarget;
     private Transform configuredPlayerTarget;
     private ProjectZomboidMapRasterizer.Result rasterMap;
-    private Coroutine officeRevealRoutine;
     private bool lastModalState;
     private bool cinematicActive;
     private bool searchZoneConfigured;
     private readonly HashSet<string> activeSearchHouseIds = new HashSet<string>();
     private Rect searchZoneMapRect;
-    private bool hasSearchZoneMapRect;
     private Rect gameplaySearchZoneMapRect;
     private bool hasGameplaySearchZoneMapRect;
     private string configuredZoneSignature;
@@ -473,7 +471,6 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             ShiftSearchZoneDownToRoad(ref mapMin, ref mapMax, rasterMap.Size, searchZoneVisualDownCells);
         }
         searchZoneMapRect = Rect.MinMaxRect(mapMin.x, mapMin.y, mapMax.x, mapMax.y);
-        hasSearchZoneMapRect = true;
         // The authored map rectangle is the actual district the player sees and
         // therefore must remain the basis of gameplay enforcement. Expanding a
         // world-space AABB and converting all four isometric corners produced a
@@ -512,7 +509,6 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         if (!searchZoneConfigured || activeSearchHouseIds.Count == 0) return;
         Rect neighborhoodReveal = revealTuningTool.BeforeQuestRect;
         searchZoneMapRect = neighborhoodReveal;
-        hasSearchZoneMapRect = true;
         gameplaySearchZoneMapRect = BuildGameplaySearchZoneRect(neighborhoodReveal);
         hasGameplaySearchZoneMapRect = true;
         searchZoneMapRect = gameplaySearchZoneMapRect;
@@ -983,7 +979,6 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
             cinematicActive = false;
             SyncModalUI(true);
             questUI?.SetMapOpenForPreview(true);
-            officeRevealRoutine = null;
             yield break;
         }
 
@@ -1013,7 +1008,6 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         cinematicActive = false;
         SyncModalUI(true);
         questUI?.SetMapOpenForPreview(true);
-        officeRevealRoutine = null;
     }
 
     private static IEnumerator MoveCamera(Transform rig, Camera camera, Vector3 from, Vector3 to,

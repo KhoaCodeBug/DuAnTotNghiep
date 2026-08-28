@@ -16,7 +16,13 @@ public static class MainArrivalStoryBootstrap
         new Vector2(-1.9f, -1.35f),
         new Vector2(1.9f, -1.35f),
         new Vector2(-1.9f, 1.35f),
-        new Vector2(1.9f, 1.35f)
+        new Vector2(1.9f, 1.35f),
+        new Vector2(-3.8f, 0f),
+        new Vector2(3.8f, 0f),
+        new Vector2(-3.2f, -2.7f),
+        new Vector2(3.2f, -2.7f),
+        new Vector2(-3.2f, 2.7f),
+        new Vector2(3.2f, 2.7f)
     };
 
     private static int configuredSpawnerInstanceId;
@@ -70,9 +76,15 @@ public static class MainArrivalStoryBootstrap
         rotation = Quaternion.identity;
         if (!hasArrivalAnchor || SceneManager.GetActiveScene().name != "Main") return false;
 
-        Vector2 offset = InitialSpawnOffsets[Mathf.Abs(playerSlot) % InitialSpawnOffsets.Length];
+        Vector2 offset = GetInitialSpawnOffset(playerSlot);
         position = arrivalAnchorPosition + new Vector3(offset.x, offset.y, 0f);
         return true;
+    }
+
+    public static Vector2 GetInitialSpawnOffset(int playerSlot)
+    {
+        int safeSlot = playerSlot == int.MinValue ? 0 : Mathf.Abs(playerSlot);
+        return InitialSpawnOffsets[safeSlot % InitialSpawnOffsets.Length];
     }
 
 }

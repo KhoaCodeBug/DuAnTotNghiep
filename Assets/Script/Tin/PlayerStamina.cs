@@ -49,9 +49,7 @@ public class PlayerStamina : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        if (!HasStateAuthority) return;
-
-        if (HasEnergyBuff && buffTimer.Expired(Runner))
+        if ((HasStateAuthority || HasInputAuthority) && HasEnergyBuff && buffTimer.Expired(Runner))
         {
             HasEnergyBuff = false;
             CurrentSpeedMultiplier = 1f;
@@ -60,7 +58,6 @@ public class PlayerStamina : NetworkBehaviour
             if (currentStamina > maxStamina) currentStamina = maxStamina;
             activeStaminaBoost = 0f;
         }
-
     }
 
     public void UpdateStamina(bool isRunning, bool isMovingNow)

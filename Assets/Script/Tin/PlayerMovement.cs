@@ -192,10 +192,13 @@ public class PlayerMovement : NetworkBehaviour
             var cameraController = FindAnyObjectByType<PZ_CameraController>();
             if (cameraController != null) 
             {
-                cameraController.SetTarget(this.transform);
+                Transform targetToFollow = netRb != null && netRb.InterpolationTarget != null
+                    ? netRb.InterpolationTarget
+                    : transform;
+                cameraController.SetTarget(targetToFollow);
                 // Reset lại trạng thái spectating khi respawn
                 cameraController.SpectateTarget(null); // Just to clear if needed
-                cameraController.SetTarget(this.transform);
+                cameraController.SetTarget(targetToFollow);
             }
             
             isSpectating = false; // Reset cờ spectate của bản thân
