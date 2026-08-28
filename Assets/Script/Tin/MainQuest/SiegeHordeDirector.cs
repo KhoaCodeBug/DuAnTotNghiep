@@ -37,6 +37,8 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         siegeActive = true;
         releasedToPlayers = false;
         if (manager == null || !manager.HasStateAuthority || siegeRoutine != null) return;
+        int adopted = AuthorityAdoptExistingCityZombies();
+        Debug.Log($"[MILITARY HORDE] Điều động {adopted} zombie đang sống trong thành phố về cổng.");
         siegeRoutine = StartCoroutine(SiegeRoutine());
     }
 
@@ -64,10 +66,13 @@ public sealed class SiegeHordeDirector : MonoBehaviour
             SiegeZombieObjective objective = objectives[i];
             if (objective == null) continue;
             NetworkObject networkObject = objective.GetComponent<NetworkObject>();
-            if (networkObject != null && networkObject.IsValid)
+            if (objective.ShouldDespawnOnReset && networkObject != null && networkObject.IsValid)
                 manager.Runner.Despawn(networkObject);
             else
-                Destroy(objective.gameObject);
+            {
+                objective.RestoreAmbientState();
+                Destroy(objective);
+            }
         }
         activeObjectives.Clear();
     }
@@ -86,7 +91,8 @@ public sealed class SiegeHordeDirector : MonoBehaviour
     {
         yield return new WaitForSeconds(0.6f);
         while (siegeActive && manager != null && manager.IsNetworkReady &&
-               manager.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair)
+               (manager.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair ||
+                manager.CurrentPhase == MilitaryBaseQuestManager.Phase.ReadyToEscape))
         {
             for (int i = activeObjectives.Count - 1; i >= 0; i--)
             {
@@ -149,7 +155,7 @@ public sealed class SiegeHordeDirector : MonoBehaviour
                 if (spawned == null) continue;
                 SiegeZombieObjective objective = spawned.GetComponent<SiegeZombieObjective>();
                 if (objective == null) objective = spawned.gameObject.AddComponent<SiegeZombieObjective>();
-                objective.Configure(manager, gate);
+                objective.Configure(manager, gate, true);
                 if (releasedToPlayers || manager.IsGateBroken)
                     objective.ReleaseToPlayers();
                 activeObjectives.Add(objective);
@@ -159,6 +165,49 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         }
         Debug.Log($"[MILITARY HORDE] Spawn {spawnedCount} zombie từ {spawnPoints.Count} điểm; " +
                   $"gần cổng {nearbyCount}/{MilitaryStoryFlowRules.GetNearbyTarget(playerCount)}, player={playerCount}.");
+    }
+
+    private int AuthorityAdoptExistingCityZombies()
+    {
+        if (manager == null || !manager.HasStateAuthority) return 0;
+
+        NetworkObject[] networkObjects = FindObjectsByType<NetworkObject>(
+            FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        int adopted = 0;
+        for (int i = 0; i < networkObjects.Length; i++)
+        {
+            NetworkObject networkObject = networkObjects[i];
+            if (networkObject == null || !networkObject.IsValid || !networkObject.HasStateAuthority) continue;
+            GameObject root = networkObject.gameObject;
+            bool isZombie = root.GetComponent<ZombieAI>() != null ||
+                            root.GetComponent<ZOmbieAI_Khoa>() != null ||
+                            root.GetComponent<ZombieAIKhoaRebuilt>() != null;
+            if (!isZombie || IsZombieRootDead(root)) continue;
+
+            SiegeZombieObjective objective = root.GetComponent<SiegeZombieObjective>();
+            if (objective != null)
+            {
+                if (!activeObjectives.Contains(objective)) activeObjectives.Add(objective);
+                continue;
+            }
+
+            objective = root.AddComponent<SiegeZombieObjective>();
+            objective.Configure(manager, gate, false);
+            activeObjectives.Add(objective);
+            adopted++;
+        }
+        return adopted;
+    }
+
+    private static bool IsZombieRootDead(GameObject root)
+    {
+        ZombieHealth thaiHealth = root.GetComponent<ZombieHealth>();
+        if (thaiHealth != null && thaiHealth.Object != null && thaiHealth.Object.IsValid && thaiHealth.isDead)
+            return true;
+        ZOmbieAI_Khoa khoa = root.GetComponent<ZOmbieAI_Khoa>();
+        if (khoa != null && khoa.Object != null && khoa.Object.IsValid && khoa.NetIsDead) return true;
+        ZombieAIKhoaRebuilt rebuilt = root.GetComponent<ZombieAIKhoaRebuilt>();
+        return rebuilt != null && rebuilt.Object != null && rebuilt.Object.IsValid && rebuilt.NetIsDead;
     }
 
     private int CountSiegeZombiesNearGate()
@@ -260,8 +309,12 @@ public sealed class SiegeZombieObjective : MonoBehaviour
     private bool released;
     private float gateAttackCooldown;
     private float attackAnimationRemaining;
-    private float releasedRetargetCooldown;
+    private bool? zombieAIEnabled;
+    private bool spawnedBySiegeDirector;
     private int attackIndex;
+    private int attackSequence;
+
+    public bool ShouldDespawnOnReset => spawnedBySiegeDirector;
 
     public bool IsZombieDead
     {
@@ -273,10 +326,12 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         }
     }
 
-    public void Configure(MilitaryBaseQuestManager targetManager, MilitaryGateController targetGate)
+    public void Configure(MilitaryBaseQuestManager targetManager, MilitaryGateController targetGate,
+        bool shouldDespawnOnReset = true)
     {
         manager = targetManager;
         gate = targetGate;
+        spawnedBySiegeDirector = shouldDespawnOnReset;
         body = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         thaiZombie = GetComponent<ZombieAI>();
@@ -287,8 +342,11 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         else if (khoaZombie != null) assaultMoveSpeed = khoaZombie.ChaseMovementSpeed;
         else if (rebuiltZombie != null) assaultMoveSpeed = rebuiltZombie.ChaseMovementSpeed;
         zombieBehaviours = GetComponents<MonoBehaviour>();
+        zombieAIEnabled = null;
         SetZombieAIEnabled(false);
-        gateAttackCooldown = Mathf.Abs(GetInstanceID() % 100) / 100f;
+        int stableId = GetInstanceID();
+        attackIndex = StableHash01(stableId, 17) < 0.5f ? 1 : 2;
+        gateAttackCooldown = Mathf.Lerp(0.15f, 1.65f, StableHash01(stableId, 29));
     }
 
     private void FixedUpdate()
@@ -296,7 +354,7 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         if (manager == null || gate == null || !manager.HasStateAuthority) return;
         if (released)
         {
-            TickReleasedPlayerTarget();
+            if (IsZombieDead) RetireDeadZombie();
             return;
         }
         if (IsZombieDead)
@@ -315,8 +373,8 @@ public sealed class SiegeZombieObjective : MonoBehaviour
             attackAnimationRemaining -= Time.fixedDeltaTime;
             if (attackAnimationRemaining <= 0f) SetGateAttackAnimation(false);
         }
-        Vector2 target = gate.GetAssaultPosition(GetInstanceID());
         Vector2 position = body != null ? body.position : transform.position;
+        Vector2 target = gate.GetAssaultPosition(GetInstanceID(), position);
         float distance = Vector2.Distance(position, target);
         if (distance > 0.9f)
         {
@@ -333,7 +391,8 @@ public sealed class SiegeZombieObjective : MonoBehaviour
             attackIndex = attackIndex % 2 + 1;
             SetGateAttackAnimation(true);
             gate.TryApplyHordeHit();
-            gateAttackCooldown = 1.25f + Mathf.Abs(GetInstanceID() % 7) * 0.04f;
+            gateAttackCooldown = Mathf.Lerp(1.15f, 1.65f,
+                StableHash01(GetInstanceID(), ++attackSequence * 31));
             attackAnimationRemaining = 0.62f;
         }
     }
@@ -342,7 +401,6 @@ public sealed class SiegeZombieObjective : MonoBehaviour
     {
         if (released)
         {
-            releasedRetargetCooldown = 0f;
             return;
         }
         if (IsZombieDead)
@@ -351,35 +409,9 @@ public sealed class SiegeZombieObjective : MonoBehaviour
             return;
         }
         released = true;
-        releasedRetargetCooldown = 0f;
         SetGateAttackAnimation(false);
         ApplyAnimationState(Vector2.zero);
         SetZombieAIEnabled(true);
-        ForceClosestLivingPlayerTarget();
-    }
-
-    private void TickReleasedPlayerTarget()
-    {
-        if (IsZombieDead)
-        {
-            RetireDeadZombie();
-            return;
-        }
-        if (!manager.IsGateBroken) return;
-
-        releasedRetargetCooldown -= Time.fixedDeltaTime;
-        if (releasedRetargetCooldown > 0f) return;
-        releasedRetargetCooldown = 1f;
-        ForceClosestLivingPlayerTarget();
-    }
-
-    private void ForceClosestLivingPlayerTarget()
-    {
-        PlayerHealth target = FindClosestLivingPlayer();
-        if (target == null) return;
-        thaiZombie?.ForceSiegeTarget(target);
-        khoaZombie?.ForceSiegeTarget(target);
-        rebuiltZombie?.ForceSiegeTarget(target);
     }
 
     public void RetireDeadZombie()
@@ -399,22 +431,12 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         enabled = false;
     }
 
-    private PlayerHealth FindClosestLivingPlayer()
+    public void RestoreAmbientState()
     {
-        PlayerHealth[] players = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
-        PlayerHealth closest = null;
-        float closestDistance = float.PositiveInfinity;
-        for (int i = 0; i < players.Length; i++)
-        {
-            PlayerHealth candidate = players[i];
-            if (candidate == null || candidate.Object == null || !candidate.Object.IsValid || candidate.isDead ||
-                candidate.isTransforming || PlayerInteraction.IsProtectedOccupant(candidate)) continue;
-            float distance = Vector2.SqrMagnitude((Vector2)candidate.transform.position - (Vector2)transform.position);
-            if (distance >= closestDistance) continue;
-            closestDistance = distance;
-            closest = candidate;
-        }
-        return closest;
+        if (IsZombieDead) return;
+        released = false;
+        SetGateAttackAnimation(false);
+        SetZombieAIEnabled(true);
     }
 
     private static bool IsSpawned(NetworkBehaviour behaviour)
@@ -501,12 +523,27 @@ public sealed class SiegeZombieObjective : MonoBehaviour
 
     private void SetZombieAIEnabled(bool enabled)
     {
-        if (zombieBehaviours == null) return;
+        if (zombieBehaviours == null || zombieAIEnabled == enabled) return;
+        zombieAIEnabled = enabled;
         for (int i = 0; i < zombieBehaviours.Length; i++)
         {
             MonoBehaviour behaviour = zombieBehaviours[i];
             if (behaviour is ZombieAI || behaviour is ZOmbieAI_Khoa || behaviour is ZombieAIKhoaRebuilt)
                 behaviour.enabled = enabled;
+        }
+    }
+
+    private static float StableHash01(int value, int salt)
+    {
+        unchecked
+        {
+            uint x = (uint)value ^ ((uint)salt * 0x9E3779B9u);
+            x ^= x >> 16;
+            x *= 0x7FEB352Du;
+            x ^= x >> 15;
+            x *= 0x846CA68Bu;
+            x ^= x >> 16;
+            return (x & 0x00FFFFFFu) / 16777215f;
         }
     }
 }

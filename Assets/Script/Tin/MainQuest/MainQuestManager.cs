@@ -2629,6 +2629,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         RouteClueMask = completeClueMask;
         InsuredRouteClueMask |= completeClueMask;
         IsOfficeDiscovered = true;
+        HasHospitalRadioKey = true;
         IsHospitalRadioDoorOpen = true;
         NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.RadioReady;
         IsHospitalRadioRecovered = true;

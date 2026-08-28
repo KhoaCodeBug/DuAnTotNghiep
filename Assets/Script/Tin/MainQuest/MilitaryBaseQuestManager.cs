@@ -59,6 +59,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [SerializeField, Min(1f)] private float baseGateHealth = MilitaryQuestRules.BaseGateHealth;
     [SerializeField, Min(1f)] private float repairDurationSeconds = 12f;
 
+    [Header("Route B vehicle escape")]
+    [SerializeField, Min(1f)] private float acceleratedGateDrainSeconds = 8f;
+    [SerializeField, Min(0.5f)] private float escapeWaypointReachRadius = 3.25f;
+
     [Header("Police car repair gameplay")]
     [FormerlySerializedAs("enableRoadsideRepairTest")]
     [SerializeField] private bool enablePoliceCarRepairGameplay = true;
@@ -124,6 +128,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Networked] public NetworkBool IsSoloGateDpsActive { get; private set; }
     [Networked] public float SoloGateDpsElapsed { get; private set; }
     [Networked] public NetworkBool IsSoloRetryCheckpointReady { get; private set; }
+    [Networked] public NetworkBool IsEscapeVehicleEngineStarted { get; private set; }
+    [Networked] public NetworkBool IsEscapeVehicleDriveUnlocked { get; private set; }
+    [Networked] public float EscapeVehicleStartupRemaining { get; private set; }
+    [Networked] public int EscapeWaypointIndex { get; private set; }
+    [Networked] public NetworkBool IsEscapeOutroActive { get; private set; }
 
     private bool hasSpawned;
     private GameObject presentationRoot;
@@ -135,6 +144,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private VehicleControllerFusion roadsideRepairVehicle;
     private bool roadsideVehiclePrepared;
     private MilitaryRouteCinematicController cinematicController;
+    private MilitaryRouteBEscapePresentation escapePresentation;
     private PolygonCollider2D schoolRoofTrigger;
     private PolygonCollider2D militaryAreaTrigger;
     private readonly List<MilitarySchoolCluePoint> schoolCluePoints = new();
@@ -144,6 +154,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private Transform policeCarMarker;
     private Transform gateClosingMarker;
     private Transform schoolTeleportMarker;
+    private readonly Transform[] escapeWaypoints = new Transform[3];
+    private PolygonCollider2D escapeFinalTrigger;
+    private Transform escapeVehicleOutroTarget;
+    private Transform escapeCameraTarget;
+    private float nextEscapeStartDeniedAt;
 
     public bool IsNetworkReady => hasSpawned && Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
     public Phase CurrentPhase => IsNetworkReady ? (Phase)MilitaryPhase : Phase.NotReached;
@@ -176,10 +191,20 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         !IsMilitaryIntroCinematicActive;
     /// <summary>True once the military respawn system governs deaths (siege/escape phases).</summary>
     public bool GovernsRespawn => IsNetworkReady && IsRespawnCheckpointActive &&
-        IsMultiplayerSiege && (CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape);
+        IsMultiplayerSiege && !IsEscapeVehicleEngineStarted &&
+        (CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape);
     public bool IsSoloSiege => IsNetworkReady && !IsMultiplayerSiege;
     public bool CanOfferSoloRetry => IsNetworkReady && IsRespawnCheckpointActive &&
         IsSoloRetryCheckpointReady && !IsMultiplayerSiege && CurrentPhase == Phase.Failed;
+    public bool IsEscapeGuidanceActive => IsNetworkReady && IsEscapeVehicleEngineStarted &&
+        !IsEscapeOutroActive && CurrentPhase == Phase.ReadyToEscape;
+    public int EscapeGuidanceWaypointCount => escapeWaypoints.Length + 1;
+    public Vector2 EscapeCameraTargetPosition => escapeCameraTarget != null
+        ? (Vector2)escapeCameraTarget.position
+        : PoliceCarPosition + new Vector2(-60f, 40f);
+    public Vector2 EscapeVehicleOutroTargetPosition => escapeVehicleOutroTarget != null
+        ? (Vector2)escapeVehicleOutroTarget.position
+        : PoliceCarPosition + (roadsideRepairVehicle != null ? roadsideRepairVehicle.VisionDirection : Vector2.up) * 24f;
 
     private readonly Dictionary<PlayerRef, float> militaryDeathObservedAt = new();
     private float soloRetryCheckpointSurvivalSeconds;
@@ -197,6 +222,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (roadsideRepairStation != null) Destroy(roadsideRepairStation);
         MilitaryRouteVoteUI.Close();
         cinematicController?.StopImmediate();
+        escapePresentation?.StopImmediate();
     }
 
     public override void Spawned()
@@ -256,6 +282,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         IsSoloGateDpsActive = false;
         SoloGateDpsElapsed = 0f;
         IsSoloRetryCheckpointReady = false;
+        ResetEscapeVehicleState();
         soloRetryCheckpointSurvivalSeconds = 0f;
         militaryDeathObservedAt.Clear();
         voteParticipants.Clear();
@@ -269,6 +296,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         presentationRoot = null;
         MilitaryRouteVoteUI.Close();
         cinematicController?.StopImmediate();
+        escapePresentation?.StopImmediate();
     }
 
     public override void FixedUpdateNetwork()
@@ -281,6 +309,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             SurvivalSeconds += Runner.DeltaTime;
 
         TickSoloGateDps();
+        TickEscapeVehicleFlow();
 
         if ((CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape) && !AnyLivingPlayer())
         {
@@ -299,6 +328,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         EnsurePoliceCarRepairGameplay();
         gateController?.RefreshPresentation();
         vehicleRepair?.RefreshPresentation();
+        escapePresentation?.RefreshPresentation();
     }
 
     public Vector2 GetInteractionPosition(InteractionKind kind)
@@ -569,6 +599,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         TeamRespawnsRemaining = IsMultiplayerSiege ? MilitaryQuestRules.TeamRespawnChargeTotal : 0;
         IsSoloGateDpsActive = false;
         SoloGateDpsElapsed = 0f;
+        ResetEscapeVehicleState();
         militaryDeathObservedAt.Clear();
         IsGeneratorActive = false;
         ActiveRepairer = PlayerRef.None;
@@ -634,6 +665,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         IsSoloGateDpsActive = false;
         SoloGateDpsElapsed = 0f;
         IsMilitaryIntroCinematicActive = true;
+        ResetEscapeVehicleState();
 
         RPC_ResetSoloRetryPresentation();
         Vector2 spawnPosition = GetCinematicStartPosition();
@@ -680,6 +712,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private void RPC_ResetSoloRetryPresentation()
     {
         cinematicController?.StopImmediate();
+        escapePresentation?.StopImmediate();
         hordeDirector?.StopSiege();
         vehicleRepair?.SetVehicleReadyPresentation(false);
         roadsideRepairVehicle?.SetCinematicAlarm(false);
@@ -1414,13 +1447,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private void ServerEscape(PlayerRef requester)
     {
-        if (!HasStateAuthority || CurrentPhase != Phase.ReadyToEscape) return;
-        if (MainQuestManager.Instance == null ||
-            MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.MilitaryEvacuation) return;
-        if (!TryGetRequestingPlayer(requester, out PlayerMovement player) ||
-            !IsNear(player.transform.position, InteractionKind.Vehicle)) return;
-
-        AuthorityCompleteEscape(requester);
+        _ = requester;
+        // Production extraction is intentionally driven by the authoritative
+        // driver's W input and the authored EndB route, never by a nearby E press.
     }
 
     private void AuthorityCompleteEscape(PlayerRef requester)
@@ -1429,7 +1458,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             MainQuestManager.Instance == null ||
             MainQuestManager.Instance.LockedEscapeRoute != EscapeEndingRoute.MilitaryEvacuation)
             return;
-        GatherLivingPlayersForExtraction();
+        IsEscapeVehicleEngineStarted = true;
+        IsEscapeVehicleDriveUnlocked = true;
+        EscapeVehicleStartupRemaining = 0f;
+        IsEscapeOutroActive = true;
+        ResolveEscapeRouteAnchors();
+        if (roadsideRepairVehicle != null && escapeFinalTrigger != null)
+            roadsideRepairVehicle.AuthorityBeginMilitaryOutroDrive(
+                escapeFinalTrigger.transform.position, EscapeVehicleOutroTargetPosition);
         MilitaryPhase = (int)Phase.Escaped;
         ActiveRepairer = PlayerRef.None;
         RPC_TriggerVictoryCutscene(requester);
@@ -1437,7 +1473,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     public void TakeGateDamage(float damage)
     {
-        if (!HasStateAuthority || CurrentPhase != Phase.SiegeAndRepair || GateCurrentHealth <= 0f) return;
+        if (!HasStateAuthority ||
+            (CurrentPhase != Phase.SiegeAndRepair && CurrentPhase != Phase.ReadyToEscape) ||
+            GateCurrentHealth <= 0f) return;
         if (IsSoloSiege) return;
         GateCurrentHealth = MilitaryQuestRules.ApplyGateDamage(GateCurrentHealth, damage);
         if (GateCurrentHealth <= 0f) RPC_GateBroken();
@@ -1449,7 +1487,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     /// </summary>
     public bool TryStartSoloGateDps()
     {
-        if (!HasStateAuthority || !IsSoloSiege || CurrentPhase != Phase.SiegeAndRepair || IsGateBroken)
+        if (!HasStateAuthority || !IsSoloSiege ||
+            (CurrentPhase != Phase.SiegeAndRepair && CurrentPhase != Phase.ReadyToEscape) || IsGateBroken)
             return false;
         if (!IsSoloGateDpsActive)
         {
@@ -1514,6 +1553,32 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ShowEscapeStartDenied(PlayerRef driver, int missingPlayers)
+    {
+        if (Runner == null || Runner.LocalPlayer != driver) return;
+        string suffix = missingPlayers == 1 ? "1 người còn ở ngoài xe." : $"{missingPlayers} người còn ở ngoài xe.";
+        AutoChatManager.Instance?.AddMessage("XE SƠ TÁN", "Chưa thể khởi động: " + suffix);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_EscapeVehicleStarting(PlayerRef driver, float startupSeconds)
+    {
+        _ = startupSeconds;
+        AutoChatManager.Instance?.AddMessage("XE SƠ TÁN",
+            Runner != null && Runner.LocalPlayer == driver
+                ? "Đang khởi động... giữ đội hình và chuẩn bị lái theo chỉ dẫn."
+                : "Xe đang khởi động. Chuẩn bị rời căn cứ.");
+        escapePresentation?.RefreshPresentation();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_EscapeVehicleDriveUnlocked()
+    {
+        AutoChatManager.Instance?.AddMessage("XE SƠ TÁN", "Động cơ đã sẵn sàng — đi theo các mũi tên vàng!");
+        escapePresentation?.RefreshPresentation();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_TriggerVictoryCutscene(PlayerRef focusPlayer)
     {
         EscapeRouteDecisionUI.CloseIfOpen();
@@ -1524,8 +1589,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (Runner != null && Runner.LocalPlayer == focusPlayer)
             RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryEvacuationComplete);
         hordeDirector?.StopSiege();
-        if (vehicleRepair != null)
-            vehicleRepair.PlayEscapeCutscene(() => VictorySummaryUI.ShowForCurrentMatch(
+        if (escapePresentation != null)
+            escapePresentation.PlayOutro(() => VictorySummaryUI.ShowForCurrentMatch(
                 SurvivalSeconds, EscapeEndingRoute.MilitaryEvacuation));
         else
             VictorySummaryUI.ShowForCurrentMatch(SurvivalSeconds, EscapeEndingRoute.MilitaryEvacuation);
@@ -1649,6 +1714,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         repairLootCoordinator.Configure(this);
         cinematicController = presentationRoot.AddComponent<MilitaryRouteCinematicController>();
         cinematicController.Configure(this);
+        escapePresentation = presentationRoot.AddComponent<MilitaryRouteBEscapePresentation>();
+        escapePresentation.Configure(this);
         BuildSchoolInvestigationPresentation();
     }
 
@@ -1792,6 +1859,35 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         {
             GameObject found = GameObject.Find("TeleportToSchool");
             if (found != null) schoolTeleportMarker = found.transform;
+        }
+        ResolveEscapeRouteAnchors();
+    }
+
+    private void ResolveEscapeRouteAnchors()
+    {
+        for (int i = 0; i < escapeWaypoints.Length; i++)
+        {
+            if (escapeWaypoints[i] != null) continue;
+            GameObject found = GameObject.Find($"EndB{i + 1}");
+            if (found != null) escapeWaypoints[i] = found.transform;
+        }
+
+        if (escapeFinalTrigger == null)
+        {
+            GameObject found = GameObject.Find("EndBFinal");
+            if (found != null) escapeFinalTrigger = found.GetComponent<PolygonCollider2D>();
+        }
+
+        if (escapeVehicleOutroTarget == null)
+        {
+            GameObject found = GameObject.Find("EndBFinal2");
+            if (found != null) escapeVehicleOutroTarget = found.transform;
+        }
+
+        if (escapeCameraTarget == null)
+        {
+            GameObject found = GameObject.Find("EndBToCinemachine");
+            if (found != null) escapeCameraTarget = found.transform;
         }
     }
 
@@ -2031,15 +2127,158 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         return false;
     }
 
+    public bool IsPoliceEscapeVehicle(VehicleControllerFusion vehicle) =>
+        vehicle != null && roadsideRepairVehicle != null && vehicle == roadsideRepairVehicle &&
+        (CurrentPhase == Phase.ReadyToEscape || CurrentPhase == Phase.Escaped);
+
+    public bool RequiresEscapeVehicleStartSequence(VehicleControllerFusion vehicle) =>
+        IsPoliceEscapeVehicle(vehicle) && CurrentPhase == Phase.ReadyToEscape;
+
+    public bool TryGetEscapeGuidanceWaypoint(int index, out Vector2 position, out Vector2 direction)
+    {
+        ResolveEscapeRouteAnchors();
+        position = default;
+        direction = Vector2.up;
+        if (index < 0 || index >= EscapeGuidanceWaypointCount) return false;
+
+        Transform current = index < escapeWaypoints.Length
+            ? escapeWaypoints[index]
+            : escapeFinalTrigger != null ? escapeFinalTrigger.transform : null;
+        if (current == null) return false;
+        position = current.position;
+
+        Transform next = index + 1 < escapeWaypoints.Length
+            ? escapeWaypoints[index + 1]
+            : index < escapeWaypoints.Length && escapeFinalTrigger != null
+                ? escapeFinalTrigger.transform
+                : null;
+        Vector2 rawDirection = next != null
+            ? (Vector2)next.position - position
+            : index > 0 && escapeWaypoints[escapeWaypoints.Length - 1] != null
+                ? position - (Vector2)escapeWaypoints[escapeWaypoints.Length - 1].position
+                : Vector2.up;
+        if (rawDirection.sqrMagnitude > 0.001f) direction = rawDirection.normalized;
+        return true;
+    }
+
+    private void ResetEscapeVehicleState()
+    {
+        IsEscapeVehicleEngineStarted = false;
+        IsEscapeVehicleDriveUnlocked = false;
+        EscapeVehicleStartupRemaining = 0f;
+        EscapeWaypointIndex = 0;
+        IsEscapeOutroActive = false;
+        nextEscapeStartDeniedAt = 0f;
+    }
+
+    private void TickEscapeVehicleFlow()
+    {
+        if (CurrentPhase != Phase.ReadyToEscape || roadsideRepairVehicle == null || IsEscapeOutroActive) return;
+        NetworkObject driver = roadsideRepairVehicle.Driver;
+
+        if (!IsEscapeVehicleEngineStarted)
+        {
+            PlayerMovement driverMovement = driver != null ? driver.GetComponent<PlayerMovement>() : null;
+            if (driverMovement == null || driverMovement.NetMoveInput.y < 0.25f) return;
+
+            if (!AreAllLivingPlayersOnPoliceVehicle(out int missingPlayers))
+            {
+                if (Time.time >= nextEscapeStartDeniedAt)
+                {
+                    nextEscapeStartDeniedAt = Time.time + 1.15f;
+                    RPC_ShowEscapeStartDenied(driver.InputAuthority, missingPlayers);
+                }
+                return;
+            }
+
+            IsEscapeVehicleEngineStarted = true;
+            IsEscapeVehicleDriveUnlocked = false;
+            EscapeVehicleStartupRemaining = Mathf.Max(0.05f,
+                roadsideRepairVehicle.EngineStarterDurationSeconds);
+            EscapeWaypointIndex = 0;
+            roadsideRepairVehicle.AuthorityStartEngine();
+            if (IsSoloSiege && !IsGateBroken) TryStartSoloGateDps();
+            RPC_EscapeVehicleStarting(driver.InputAuthority, EscapeVehicleStartupRemaining);
+            return;
+        }
+
+        if (!IsEscapeVehicleDriveUnlocked)
+        {
+            EscapeVehicleStartupRemaining = Mathf.Max(0f,
+                EscapeVehicleStartupRemaining - Runner.DeltaTime);
+            if (EscapeVehicleStartupRemaining <= 0f)
+            {
+                IsEscapeVehicleDriveUnlocked = true;
+                RPC_EscapeVehicleDriveUnlocked();
+            }
+        }
+
+        TickAcceleratedGateDrain();
+        if (!IsEscapeVehicleDriveUnlocked) return;
+
+        while (EscapeWaypointIndex < escapeWaypoints.Length)
+        {
+            Transform waypoint = escapeWaypoints[EscapeWaypointIndex];
+            if (waypoint == null || Vector2.Distance(roadsideRepairVehicle.transform.position,
+                    waypoint.position) > escapeWaypointReachRadius)
+                break;
+            EscapeWaypointIndex++;
+        }
+
+        if (EscapeWaypointIndex < escapeWaypoints.Length || escapeFinalTrigger == null ||
+            !escapeFinalTrigger.OverlapPoint(roadsideRepairVehicle.transform.position)) return;
+
+        PlayerRef focusPlayer = driver != null ? driver.InputAuthority : Runner.LocalPlayer;
+        AuthorityCompleteEscape(focusPlayer);
+    }
+
+    private bool AreAllLivingPlayersOnPoliceVehicle(out int missingPlayers)
+    {
+        missingPlayers = 0;
+        if (Runner == null || roadsideRepairVehicle == null) return false;
+
+        foreach (PlayerRef playerRef in Runner.ActivePlayers)
+        {
+            if (!Runner.TryGetPlayerObject(playerRef, out NetworkObject playerObject) ||
+                playerObject == null || !playerObject.IsValid)
+            {
+                if (!militaryDeathObservedAt.ContainsKey(playerRef)) missingPlayers++;
+                continue;
+            }
+
+            PlayerHealth health = playerObject.GetComponent<PlayerHealth>();
+            if (health != null && (health.isDead || health.isTransforming)) continue;
+            PlayerInteraction interaction = playerObject.GetComponent<PlayerInteraction>();
+            if (interaction == null || !interaction.IsInVehicle ||
+                interaction.CurrentVehicleController != roadsideRepairVehicle)
+                missingPlayers++;
+        }
+
+        return missingPlayers == 0;
+    }
+
+    private void TickAcceleratedGateDrain()
+    {
+        if (!IsEscapeVehicleEngineStarted || IsGateBroken || IsSoloSiege) return;
+        float damagePerSecond = MilitaryStoryFlowRules.GetEscapeGateDamagePerSecond(
+            GateMaxHealth, acceleratedGateDrainSeconds);
+        GateCurrentHealth = MilitaryQuestRules.ApplyGateDamage(GateCurrentHealth,
+            damagePerSecond * Runner.DeltaTime);
+        if (GateCurrentHealth <= 0f) RPC_GateBroken();
+    }
+
     private void TickSoloGateDps()
     {
-        if (!IsSoloGateDpsActive || !IsSoloSiege || CurrentPhase != Phase.SiegeAndRepair || IsGateBroken)
+        if (!IsSoloGateDpsActive || !IsSoloSiege ||
+            (CurrentPhase != Phase.SiegeAndRepair && CurrentPhase != Phase.ReadyToEscape) || IsGateBroken)
             return;
 
         int difficulty = GetSelectedDifficulty();
         float holdSeconds = MilitaryQuestRules.GetSoloGateHoldSeconds(difficulty);
+        float elapsedRate = MilitaryStoryFlowRules.GetSoloGateElapsedRate(
+            IsEscapeVehicleEngineStarted, holdSeconds, acceleratedGateDrainSeconds);
         SoloGateDpsElapsed = Mathf.Min(holdSeconds,
-            SoloGateDpsElapsed + Runner.DeltaTime);
+            SoloGateDpsElapsed + Runner.DeltaTime * elapsedRate);
         GateCurrentHealth = MilitaryQuestRules.GetSoloGateHealthAtElapsedForDifficulty(GateMaxHealth, SoloGateDpsElapsed,
             difficulty);
         if (GateCurrentHealth <= 0f) RPC_GateBroken();

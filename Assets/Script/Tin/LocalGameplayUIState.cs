@@ -11,7 +11,8 @@ public static class LocalGameplayUIState
         {
             if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput || EscapeRouteDecisionUI.IsVisible ||
                 VehicleRepairSkillCheckUI.BlocksGameplayInput ||
-                CivilianRoutePresentationController.BlocksGameplayInput)
+                CivilianRoutePresentationController.BlocksGameplayInput ||
+                MilitaryRouteBEscapePresentation.BlocksGameplayInput)
                 return true;
 
             if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return true;

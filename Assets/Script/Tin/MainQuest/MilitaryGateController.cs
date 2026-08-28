@@ -189,13 +189,29 @@ public sealed class MilitaryGateController : MonoBehaviour
         gateLength = length;
     }
 
-    public Vector2 GetAssaultPosition(int stableId)
+    public Vector2 GetAssaultPosition(int stableId, Vector2 approachPosition)
     {
-        // 13 lanes across the authored fence keep a large wave from collapsing
-        // into the single ViTriDongCong marker.
-        int lane = Mathf.Abs(stableId % 13);
-        float t = lane / 12f - 0.5f;
-        return gateCenter + gateDirection * (t * gateLength * 0.78f);
+        // Continuous stable offsets avoid both exact transform overlap and the
+        // synchronized 13-lane stacks that appeared with large ambient hordes.
+        float across = StableHash01(stableId, 41) - 0.5f;
+        float depth = Mathf.Lerp(0.12f, 0.68f, StableHash01(stableId, 73));
+        Vector2 normal = new Vector2(-gateDirection.y, gateDirection.x);
+        if (Vector2.Dot(approachPosition - gateCenter, normal) < 0f) normal = -normal;
+        return gateCenter + gateDirection * (across * gateLength * 0.9f) + normal * depth;
+    }
+
+    private static float StableHash01(int value, int salt)
+    {
+        unchecked
+        {
+            uint x = (uint)value ^ ((uint)salt * 0x9E3779B9u);
+            x ^= x >> 16;
+            x *= 0x7FEB352Du;
+            x ^= x >> 15;
+            x *= 0x846CA68Bu;
+            x ^= x >> 16;
+            return (x & 0x00FFFFFFu) / 16777215f;
+        }
     }
 
     private void SetColliderEnabled(bool enabled)

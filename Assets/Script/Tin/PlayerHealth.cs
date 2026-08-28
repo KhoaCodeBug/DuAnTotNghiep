@@ -80,6 +80,7 @@ public class PlayerHealth : NetworkBehaviour
     private bool biteTerminalOverlayActive;
 
     private bool hasTriggeredSpectate = false;
+    private bool terminalLocalSafetyApplied;
 
     public override void Spawned()
     {
@@ -113,6 +114,15 @@ public class PlayerHealth : NetworkBehaviour
         }
         // 🔥 FIX: Reset static reference khi bị Despawn để ván sau tìm lại đúng player
         if (LocalHealthInstance == this) LocalHealthInstance = null;
+    }
+
+    public override void Render()
+    {
+        // Death presentation RPCs are not replayed to late joiners. Replicated
+        // state must independently guarantee that a corpse cannot keep a local
+        // collider alive and block physics/LOS forever on any peer.
+        if (!terminalLocalSafetyApplied && (isDead || isTransforming))
+            ApplyTerminalLocalSafety();
     }
 
     private void SetupParanoiaUI()
@@ -509,6 +519,8 @@ public class PlayerHealth : NetworkBehaviour
         if (rb != null) rb.linearVelocity = Vector2.zero;
         if (movementScript != null) movementScript.enabled = false;
 
+        ApplyTerminalLocalSafety();
+
         if (spriteRend != null) spriteRend.color = new Color(0.4f, 0.5f, 0.4f, 1f);
     }
 
@@ -527,14 +539,21 @@ public class PlayerHealth : NetworkBehaviour
         }
         if (movementScript != null) movementScript.enabled = false;
 
-        foreach (Collider2D coll in GetComponentsInChildren<Collider2D>(true))
-            coll.enabled = false;
+        ApplyTerminalLocalSafety();
 
         StopAllCoroutines();
         if (spriteRend != null) spriteRend.color = originalColor;
 
         PlayDeathSFX();
         StartCoroutine(BlinkAndVanishRoutine());
+    }
+
+    private void ApplyTerminalLocalSafety()
+    {
+        terminalLocalSafetyApplied = true;
+        foreach (Collider2D coll in GetComponentsInChildren<Collider2D>(true))
+            coll.enabled = false;
+        if (movementScript != null) movementScript.enabled = false;
     }
 
     public void Heal(float amount)

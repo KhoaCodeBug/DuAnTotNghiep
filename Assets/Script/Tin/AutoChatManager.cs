@@ -230,7 +230,8 @@ public class AutoChatManager : MonoBehaviour
     void Update()
     {
         if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
-            VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
+            VehicleRepairSkillCheckUI.BlocksGameplayInput ||
+            MilitaryRouteBEscapePresentation.BlocksGameplayInput) return;
 
         // Bắt phím Enter để MỞ chat (chỉ khi chưa mở và không vừa mới đóng ở cùng frame)
         if (!isTyping && !justClosed && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))

@@ -47,6 +47,7 @@ public class PlayerVision : NetworkBehaviour
     private ContactFilter2D obstacleFilter;
     private readonly RaycastHit2D[] sightObstacleHits = new RaycastHit2D[16];
     private PlayerMovement pMove;
+    private PlayerHealth playerHealth;
     private PlayerInteraction playerInteraction;
     private RoofDetector roofDetector;
     private FlashlightController flashlightController;
@@ -92,6 +93,7 @@ public class PlayerVision : NetworkBehaviour
         obstacleFilter.SetLayerMask(obstacleLayer);
 
         pMove = GetComponent<PlayerMovement>();
+        playerHealth = GetComponent<PlayerHealth>();
         playerInteraction = GetComponent<PlayerInteraction>();
         roofDetector = GetComponentInChildren<RoofDetector>();
         flashlightController = GetComponent<FlashlightController>();
@@ -159,6 +161,14 @@ public class PlayerVision : NetworkBehaviour
 
     private void Update()
     {
+        if (playerHealth != null && playerHealth.Object != null && playerHealth.Object.IsValid &&
+            (playerHealth.isDead || playerHealth.isTransforming))
+        {
+            SetLocalPlayerReadability(false);
+            if (playerLight != null) playerLight.gameObject.SetActive(false);
+            return;
+        }
+
         bool isTarget = false;
         if (PZ_CameraController.Instance != null && PZ_CameraController.Instance.isSpectatingMode)
         {
