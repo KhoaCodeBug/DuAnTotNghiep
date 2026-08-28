@@ -304,9 +304,10 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         PlayerSurvival survival = GetComponent<PlayerSurvival>();
         bool isSleepLocked = survival != null && survival.IsSleepInputLocked;
 
-        // 🔥 CHẶN TẤT CẢ INPUT NẾU ĐANG MỞ UI HOẶC ĐÃ CHẾT
+        // 🔥 CHẶN TẤT CẢ INPUT NẾU ĐANG MỞ UI, ĐANG LOADING HOẶC ĐÃ CHẾT
         // Khi trả về 1 input rỗng, nhân vật sẽ đứng im, không bấm chuột phải bắn súng được luôn!
-        if (isTyping || isUIMenuOpen || isQuestOverlayOpen || isHealthOpen || isDead || isSleepLocked ||
+        if (GameplayReadinessCoordinator.IsLoadingActive ||
+            isTyping || isUIMenuOpen || isQuestOverlayOpen || isHealthOpen || isDead || isSleepLocked ||
             RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
             VehicleRepairSkillCheckUI.BlocksGameplayInput ||
             CivilianRoutePresentationController.BlocksGameplayInput ||
@@ -421,13 +422,11 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         string senderName = HostModeSpawner.Instance != null
             ? HostModeSpawner.Instance.GetPlayerName(info.Source)
             : GetComponent<PlayerNameTag>()?.PlayerName.ToString();
-        senderName = System.Text.RegularExpressions.Regex.Replace(
-            senderName ?? "Survivor", "<.*?>", string.Empty).Trim();
+        senderName = PlayerDeathContext.SanitizeRichText(senderName ?? "Survivor");
         if (string.IsNullOrEmpty(senderName)) senderName = "Survivor";
         if (senderName.Length > 32) senderName = senderName.Substring(0, 32);
 
-        string cleanMsg = System.Text.RegularExpressions.Regex.Replace(
-            message ?? string.Empty, "<.*?>", string.Empty).Trim();
+        string cleanMsg = PlayerDeathContext.SanitizeRichText(message ?? string.Empty);
         if (cleanMsg.Length > 128) cleanMsg = cleanMsg.Substring(0, 128);
         if (string.IsNullOrWhiteSpace(cleanMsg)) return;
 
@@ -437,7 +436,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_BroadcastChat(string senderName, string cleanMessage)
     {
-        AutoChatManager.Instance?.AddMessage(senderName, cleanMessage);
+        AutoChatManager.Instance?.AddPlayerMessage(senderName, cleanMessage);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]

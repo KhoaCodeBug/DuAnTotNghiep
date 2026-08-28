@@ -11,7 +11,6 @@ public static class MilitaryQuestRules
     public const int GateMaxHitsPerSecond = 4;
 
     // Team respawn rules for the military finale (multiplayer only).
-    public const int TeamRespawnChargeTotal = 3;
     public const float RespawnDelaySeconds = 10f;
 
     // Once the first zombie reaches the gate, Solo uses a deterministic
@@ -56,6 +55,20 @@ public static class MilitaryQuestRules
 
     public static bool CanUseTeamRespawn(bool soloMode, int remainingCharges) =>
         !soloMode && remainingCharges > 0;
+
+    /// <summary>
+    /// Shared military respawn pool sized for the team that committed to the
+    /// finale. The explicit tiers keep the intended 5/6 and 9/10 player values
+    /// stable instead of allowing rounding to under-allocate those teams.
+    /// </summary>
+    public static int ComputeTeamRespawnCharges(int activePlayerCount)
+    {
+        if (activePlayerCount <= 1) return 0;
+        if (activePlayerCount <= 4) return 3;
+        if (activePlayerCount <= 6) return 5;
+        if (activePlayerCount <= 8) return 6;
+        return 8;
+    }
 
     public static int ConsumeTeamRespawnCharge(int remainingCharges) =>
         Mathf.Max(0, remainingCharges - 1);

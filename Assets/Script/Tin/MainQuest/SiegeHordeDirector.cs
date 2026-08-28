@@ -8,8 +8,6 @@ public sealed class SiegeHordeDirector : MonoBehaviour
 {
     [SerializeField, Min(1f)] private float secondsBetweenChecks = MilitaryStoryFlowRules.HordeCheckIntervalSeconds;
     [SerializeField, Min(5f)] private float nearGateRadius = 35f;
-    [SerializeField, Min(1)] private int multiplayerHardSafetyCap = 72;
-    [SerializeField, Min(1)] private int soloHardSafetyCap = 36;
     [SerializeField, Min(0f)] private float spawnJitterRadius = 0.55f;
     [SerializeField, Min(5f)] private float minimumSpawnDistanceFromGate = 18f;
 
@@ -125,7 +123,7 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         int nearbyCount = CountSiegeZombiesNearGate();
         if (!MilitaryStoryFlowRules.ShouldSpawnBatch(playerCount, nearbyCount)) return;
 
-        int hardCap = playerCount <= 1 ? soloHardSafetyCap : multiplayerHardSafetyCap;
+        int hardCap = MilitaryStoryFlowRules.GetHardSafetyCap(playerCount);
         int availableSlots = Mathf.Max(0, hardCap - activeObjectives.Count);
         if (availableSlots <= 0) return;
 

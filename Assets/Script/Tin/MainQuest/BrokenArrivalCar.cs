@@ -257,6 +257,7 @@ public sealed class BrokenArrivalCar : MonoBehaviour
     private void OnGUI()
     {
         if (driveVehicleActivated || LocalGameplayUIState.BlocksWorldInteractionHints) return;
+        if (GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady || inspectionUI == null || inspectionUI.IsOpen) return;
 
@@ -280,8 +281,8 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         float verticalOffset = Mathf.Clamp(Screen.height * 0.085f, 62f, 92f);
         float x = Mathf.Clamp(target.x - promptWidth - horizontalOffset, 12f,
             Screen.width - promptWidth - 12f);
-        float y = Mathf.Clamp(target.y - promptHeight - verticalOffset, 48f,
-            Screen.height - promptHeight - 100f);
+        float maxBottomY = Screen.height - promptHeight - (GameplayHudLayout.GetHotbarHeightPixels() + 15f);
+        float y = Mathf.Clamp(target.y - promptHeight - verticalOffset, 48f, maxBottomY);
         Rect promptRect = new Rect(x, y, promptWidth, promptHeight);
 
         Color accent = new Color(0.22f, 1f, 0.36f, 0.95f);

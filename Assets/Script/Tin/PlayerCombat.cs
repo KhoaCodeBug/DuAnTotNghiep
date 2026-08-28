@@ -362,7 +362,7 @@ public class PlayerCombat : NetworkBehaviour
                         if (targetPlayer.isBitten)
                         {
                             Debug.Log("⚠️ Đã bắn trúng người chơi bị nhiễm bệnh!");
-                            targetPlayer.TakeDamage(finalGunDamage);
+                            targetPlayer.TakeDamageWithAttacker(finalGunDamage, false, false, Object.InputAuthority);
                             break; // Bắn trúng cơ thể thịt -> Đạn ghim lại, không bay xuyên táo nữa
                         }
                         else
@@ -448,7 +448,7 @@ public class PlayerCombat : NetworkBehaviour
                         if (targetPlayer.isBitten)
                         {
                             Debug.Log("⚠️ Đã đập trúng người chơi bị nhiễm bệnh!");
-                            targetPlayer.TakeDamage(finalBashDamage);
+                            targetPlayer.TakeDamageWithAttacker(finalBashDamage, false, false, Object.InputAuthority);
                             alreadyHitIDs.Add(targetPlayer.gameObject.GetInstanceID());
                         }
                         else

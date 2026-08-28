@@ -8,11 +8,17 @@ public static class MilitaryStoryFlowRules
 {
     public const int RequiredSchoolClues = 3;
     public const float HordeCheckIntervalSeconds = 5f;
-    public const int MultiplayerNearbyTarget = 50;
+    public const int SmallMultiplayerNearbyTarget = 50;
+    public const int LargeMultiplayerNearbyTarget = 80;
     public const int SoloNearbyTarget = 24;
-    public const int MultiplayerSpawnPerPoint = 4;
+    public const int SmallMultiplayerSpawnPerPoint = 4;
+    public const int LargeMultiplayerSpawnPerPoint = 6;
     public const int SoloSpawnPerPoint = 2;
+    public const int SoloHardSafetyCap = 36;
+    public const int SmallMultiplayerHardSafetyCap = 72;
+    public const int LargeMultiplayerHardSafetyCap = 112;
     public const int SpawnPointCount = 4;
+    public const float EscapeGatherRadius = 6f;
     public const float EndingMapCameraTravelSeconds = 6f;
     public const float EndingMapCameraHoldSeconds = 2f;
 
@@ -21,11 +27,36 @@ public static class MilitaryStoryFlowRules
     public static bool HasAllSchoolClues(int clueMask) =>
         (clueMask & CompleteClueMask) == CompleteClueMask;
 
-    public static int GetNearbyTarget(int activePlayerCount) =>
-        activePlayerCount <= 1 ? SoloNearbyTarget : MultiplayerNearbyTarget;
+    public static int GetNearbyTarget(int activePlayerCount) => activePlayerCount switch
+    {
+        <= 1 => SoloNearbyTarget,
+        <= 4 => SmallMultiplayerNearbyTarget,
+        _ => LargeMultiplayerNearbyTarget
+    };
 
-    public static int GetSpawnPerPoint(int activePlayerCount) =>
-        activePlayerCount <= 1 ? SoloSpawnPerPoint : MultiplayerSpawnPerPoint;
+    public static int GetSpawnPerPoint(int activePlayerCount) => activePlayerCount switch
+    {
+        <= 1 => SoloSpawnPerPoint,
+        <= 4 => SmallMultiplayerSpawnPerPoint,
+        _ => LargeMultiplayerSpawnPerPoint
+    };
+
+    public static int GetHardSafetyCap(int activePlayerCount) => activePlayerCount switch
+    {
+        <= 1 => SoloHardSafetyCap,
+        <= 4 => SmallMultiplayerHardSafetyCap,
+        _ => LargeMultiplayerHardSafetyCap
+    };
+
+    /// <summary>
+    /// A living survivor is extraction-ready when occupying the canonical
+    /// police car, or when standing on foot inside the authority-validated
+    /// gather radius. Occupants of another vehicle are not treated as standing.
+    /// </summary>
+    public static bool IsPlayerReadyForMilitaryEscape(bool isOnPoliceVehicle,
+        bool isInAnyVehicle, float distanceToPoliceVehicle) =>
+        isOnPoliceVehicle || (!isInAnyVehicle &&
+            Mathf.Max(0f, distanceToPoliceVehicle) <= EscapeGatherRadius);
 
     public static int GetBatchSize(int activePlayerCount, int spawnPointCount = SpawnPointCount) =>
         Mathf.Max(0, spawnPointCount) * GetSpawnPerPoint(activePlayerCount);

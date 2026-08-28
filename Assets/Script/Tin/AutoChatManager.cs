@@ -229,9 +229,7 @@ public class AutoChatManager : MonoBehaviour
     // ============================================================
     void Update()
     {
-        if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
-            VehicleRepairSkillCheckUI.BlocksGameplayInput ||
-            MilitaryRouteBEscapePresentation.BlocksGameplayInput) return;
+        if (GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
 
         // Bắt phím Enter để MỞ chat (chỉ khi chưa mở và không vừa mới đóng ở cùng frame)
         if (!isTyping && !justClosed && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
@@ -365,7 +363,46 @@ public class AutoChatManager : MonoBehaviour
     // ============================================================
     // NHẬN TIN NHẮN VÀ HIỂN THỊ (RPC sẽ gọi hàm này)
     // ============================================================
+    public void AddPlayerMessage(string sender, string message)
+    {
+        if (chatHistory == null) return;
+
+        string safeSender = PlayerDeathContext.SanitizeRichText(sender);
+        if (string.IsNullOrWhiteSpace(safeSender)) safeSender = "Survivor";
+        if (safeSender.Length > 32) safeSender = safeSender.Substring(0, 32);
+
+        string safeMsg = PlayerDeathContext.SanitizeRichText(message);
+        if (string.IsNullOrWhiteSpace(safeMsg)) return;
+        if (safeMsg.Length > 128) safeMsg = safeMsg.Substring(0, 128);
+
+        AppendFormattedLine($"<color=yellow><b>[{safeSender}]</b></color>: {safeMsg}");
+    }
+
+    public void AddSystemMessage(string message)
+    {
+        if (chatHistory == null) return;
+
+        string safeMsg = PlayerDeathContext.SanitizeRichText(message);
+        if (string.IsNullOrWhiteSpace(safeMsg)) return;
+        if (safeMsg.Length > 180) safeMsg = safeMsg.Substring(0, 180);
+
+        AppendFormattedLine($"<color=#FFD54A>[HỆ THỐNG] {safeMsg}</color>");
+    }
+
     public void AddMessage(string sender, string message)
+    {
+        if (string.Equals(sender, "SYSTEM", System.StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(sender, "HỆ THỐNG", System.StringComparison.OrdinalIgnoreCase))
+        {
+            AddSystemMessage(message);
+        }
+        else
+        {
+            AddPlayerMessage(sender, message);
+        }
+    }
+
+    private void AppendFormattedLine(string formattedLine)
     {
         if (chatHistory == null) return;
 
@@ -373,7 +410,11 @@ public class AutoChatManager : MonoBehaviour
         if (chatHistory.text.Length > 3000)
             chatHistory.text = chatHistory.text.Substring(chatHistory.text.Length - 1500);
 
-        chatHistory.text += $"\n<color=yellow><b>[{sender}]</b></color>: {message}";
+        if (string.IsNullOrEmpty(chatHistory.text))
+            chatHistory.text = formattedLine;
+        else
+            chatHistory.text += "\n" + formattedLine;
+
         fadeTimer = SHOW_DURATION;
 
         Canvas.ForceUpdateCanvases();

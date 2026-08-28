@@ -18,7 +18,7 @@ public class PlayerInteraction : NetworkBehaviour
     {
         if (health == null) return false;
         PlayerInteraction interaction = health.GetComponent<PlayerInteraction>();
-        return interaction != null && interaction.IsInVehicle;
+        return health.IsMilitaryOutroProtected || (interaction != null && interaction.IsInVehicle);
     }
     public VehicleControllerFusion CurrentVehicleController =>
         CurrentVehicle != null ? CurrentVehicle.GetComponent<VehicleControllerFusion>() : null;
@@ -213,8 +213,7 @@ public class PlayerInteraction : NetworkBehaviour
     private void OnGUI()
     {
         if (Object == null || !Object.IsValid || !Object.HasInputAuthority) return;
-        if (CivilianRoutePresentationController.BlocksGameplayInput ||
-            MilitaryRouteBEscapePresentation.BlocksGameplayInput || VictorySummaryUI.IsShowing) return;
+        if (GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
 
         if (NetworkIsInVehicle)
         {
@@ -237,11 +236,9 @@ public class PlayerInteraction : NetworkBehaviour
             GUI.Box(new Rect(Screen.width * 0.5f - 360f, 58f, 720f, 38f), message, style);
         }
 
-        bool uiBlocksPrompt = AutoUIManager.Instance != null &&
-            (AutoUIManager.Instance.isDoingAction || AutoUIManager.Instance.IsAnyMenuOpen());
         if (nearbyCorpse == null || !nearbyCorpse.IsCorpseSearchAvailable ||
-            NetworkIsInVehicle || uiBlocksPrompt ||
-            (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen))
+            NetworkIsInVehicle ||
+            (AutoUIManager.Instance != null && AutoUIManager.Instance.isDoingAction))
             return;
 
         GUIStyle corpseStyle = new GUIStyle(GUI.skin.box)
@@ -251,8 +248,8 @@ public class PlayerInteraction : NetworkBehaviour
             fontStyle = FontStyle.Bold,
             normal = { textColor = new Color(1f, 0.92f, 0.55f) }
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 180f, Screen.height - 115f, 360f, 36f),
-            GameLocalization.Get("corpse.prompt"), corpseStyle);
+        Rect promptRect = GameplayHudLayout.GetBottomCenterPromptRect(360f, 38f);
+        GUI.Box(promptRect, GameLocalization.Get("corpse.prompt"), corpseStyle);
     }
 
     private void CheckNearbyVehicle()

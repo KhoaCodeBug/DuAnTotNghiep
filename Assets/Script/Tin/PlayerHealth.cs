@@ -47,6 +47,7 @@ public class PlayerHealth : NetworkBehaviour
     public float maxHealth = 100f;
     [Networked] public float currentHealth { get; set; }
     public float CurrentHealthSafe => (Object != null && Object.IsValid) ? currentHealth : maxHealth;
+    [Networked] public NetworkBool IsMilitaryOutroProtected { get; private set; }
 
     [Header("Hiệu ứng khi bị đánh")]
     public float stunDuration = 0.4f;
@@ -100,6 +101,9 @@ public class PlayerHealth : NetworkBehaviour
     private PlayerSurvival survivalSystem;
 
     [Networked] public NetworkBool isDead { get; set; }
+    [Networked] public DeathCause LastDeathCause { get; set; }
+    [Networked] public PlayerRef LastAttackerPlayerRef { get; set; }
+    private bool hasBroadcastDeathAnnouncement;
 
     [Header("--- Body State SFX ---")]
     public AudioClip deathSFX;
@@ -127,10 +131,14 @@ public class PlayerHealth : NetworkBehaviour
         if (HasStateAuthority)
         {
             currentHealth = maxHealth;
+            IsMilitaryOutroProtected = false;
             Wounds.Clear();
             WoundRevision = 0;
+            LastDeathCause = DeathCause.Unknown;
+            LastAttackerPlayerRef = default;
             RecalculateWoundFlags();
         }
+        hasBroadcastDeathAnnouncement = false;
 
         movementScript = GetComponent<PlayerMovement>();
         anim = GetComponent<Animator>();
@@ -229,6 +237,15 @@ public class PlayerHealth : NetworkBehaviour
         if (!HasStateAuthority) return;
         if (MainQuestManager.Instance != null && MainQuestManager.Instance.IsQuestCutsceneActive) return;
 
+        // Survivors who could not occupy one of the four physical police-car
+        // seats are carried by the authoritative Route B outro. Freeze lethal
+        // survival drains for the few seconds of that canonical extraction.
+        if (IsMilitaryOutroProtected)
+        {
+            if (!isDead && !isTransforming) currentHealth = Mathf.Max(1f, currentHealth);
+            return;
+        }
+
         if (isTransforming)
         {
             transformTimer -= Runner.DeltaTime;
@@ -286,6 +303,8 @@ public class PlayerHealth : NetworkBehaviour
             {
                 infectionTimer = 0;
                 currentHealth = 0;
+                LastDeathCause = DeathCause.Infection;
+                LastAttackerPlayerRef = default;
                 TriggerDeathLogic();
                 return;
             }
@@ -313,14 +332,25 @@ public class PlayerHealth : NetworkBehaviour
 
         if (currentHealth <= 0 && !isDead)
         {
+            if (isBleeding && LastDeathCause == DeathCause.Unknown)
+            {
+                LastDeathCause = DeathCause.Bleeding;
+                LastAttackerPlayerRef = default;
+            }
             TriggerDeathLogic();
         }
     }
 
     public void TakeDamage(float damage, bool isStarving = false, bool isZombieAttack = false)
     {
+        TakeDamageWithAttacker(damage, isStarving, isZombieAttack, default);
+    }
+
+    public void TakeDamageWithAttacker(float damage, bool isStarving, bool isZombieAttack, PlayerRef attacker)
+    {
         if (!HasStateAuthority) return;
         if (MainQuestManager.Instance != null && MainQuestManager.Instance.IsQuestCutsceneActive) return;
+        if (IsMilitaryOutroProtected) return;
 
         // The vehicle body, not an invisible seated player body, receives
         // zombie contact. This authority-side guard also covers attacks that
@@ -331,6 +361,25 @@ public class PlayerHealth : NetworkBehaviour
 
         if (damage > 0f)
             RPC_CancelCorpseSearchForDamage();
+
+        if (isZombieAttack)
+        {
+            LastDeathCause = DeathCause.ZombieAttack;
+            LastAttackerPlayerRef = default;
+        }
+        else if (isStarving)
+        {
+            if (survivalSystem != null && survivalSystem.currentThirst <= 0f && survivalSystem.currentHunger > 0f)
+                LastDeathCause = DeathCause.Dehydration;
+            else
+                LastDeathCause = DeathCause.Starvation;
+            LastAttackerPlayerRef = default;
+        }
+        else if (attacker != default && Object != null && Object.IsValid && attacker != Object.InputAuthority)
+        {
+            LastDeathCause = DeathCause.PvP;
+            LastAttackerPlayerRef = attacker;
+        }
 
         currentHealth -= damage;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
@@ -381,6 +430,14 @@ public class PlayerHealth : NetworkBehaviour
     public void TakeDamageNetworked(float damage, bool isStarving = false, bool isZombieAttack = false)
     {
         if (HasStateAuthority) TakeDamage(damage, isStarving, isZombieAttack);
+    }
+
+    public void AuthoritySetMilitaryOutroProtected(bool protectedState)
+    {
+        if (!HasStateAuthority) return;
+        IsMilitaryOutroProtected = protectedState;
+        if (protectedState && !isDead && !isTransforming)
+            currentHealth = Mathf.Max(1f, currentHealth);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
@@ -447,6 +504,23 @@ public class PlayerHealth : NetworkBehaviour
         CleanupParanoia();
         isDead = true;
 
+        if (HasStateAuthority && !hasBroadcastDeathAnnouncement)
+        {
+            hasBroadcastDeathAnnouncement = true;
+            string victimName = HostModeSpawner.Instance != null && Object != null && Object.IsValid
+                ? HostModeSpawner.Instance.GetPlayerName(Object.InputAuthority)
+                : GetComponent<PlayerNameTag>()?.PlayerName.ToString();
+
+            string killerName = null;
+            if (LastDeathCause == DeathCause.PvP && LastAttackerPlayerRef != default && HostModeSpawner.Instance != null)
+            {
+                killerName = HostModeSpawner.Instance.GetPlayerName(LastAttackerPlayerRef);
+            }
+
+            string deathMessage = PlayerDeathContext.FormatDeathMessage(victimName, LastDeathCause, killerName);
+            RPC_BroadcastDeathSystemMessage(deathMessage);
+        }
+
         if (isBitten)
         {
             isTransforming = true;
@@ -458,6 +532,12 @@ public class PlayerHealth : NetworkBehaviour
         {
             RPC_PlayDeathEffect();
         }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_BroadcastDeathSystemMessage(string formattedDeathMessage)
+    {
+        AutoChatManager.Instance?.AddSystemMessage(formattedDeathMessage);
     }
 
     public void SetGlobalBleeding(bool state)
