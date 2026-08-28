@@ -619,3 +619,10 @@
 - Đã tạo branch mới `codex/route-b-final-polish` sau khi test tự động đạt.
 - Người dùng đã cấp quyền push rõ trong yêu cầu hiện tại.
 - `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` vẫn là thay đổi user-owned có trước task và không thuộc Route B final polish; không tự ý đưa vào commit tính năng này.
+
+### Cập nhật Git sau khi tiếp tục phiên bị ngắt
+
+- Commit tính năng: `de566c323` — `feat: polish route B escape finale`.
+- Đã push thành công nhánh `codex/route-b-final-polish` lên `origin` và thiết lập upstream cùng tên.
+- Remote đã cung cấp đường tạo PR cho nhánh; chưa tự merge vào `main`.
+- Working tree sau commit/push chỉ còn `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` dirty local, không nằm trong commit Route B vì đây là thay đổi user-owned ngoài phạm vi.
