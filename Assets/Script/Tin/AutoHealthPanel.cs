@@ -626,7 +626,8 @@ public class AutoHealthPanel : MonoBehaviour
         SyncFromAuthoritativeWounds();
 
         if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
-            VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
+            VehicleRepairSkillCheckUI.BlocksGameplayInput ||
+            MilitaryRouteBEscapePresentation.BlocksGameplayInput) return;
 
         if (isOpen && injuryScrollRect != null && injuryScrollRect.viewport != null &&
             RectTransformUtility.RectangleContainsScreenPoint(injuryScrollRect.viewport, Input.mousePosition, null))

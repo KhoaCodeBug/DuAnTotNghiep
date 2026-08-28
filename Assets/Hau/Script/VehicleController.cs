@@ -117,6 +117,8 @@ public class VehicleControllerFusion : NetworkBehaviour
     private bool networkSpawned;
     private float engineNoiseCooldown;
     private float hornNoiseCooldown;
+    private bool militaryOutroDriveActive;
+    private float militaryOutroSpeed;
 
     public Vector2 VisionOrigin => transform.position;
     public Vector2 VisionDirection => DirectionIndexToWorldVector(DirectionIndex);
@@ -126,6 +128,14 @@ public class VehicleControllerFusion : NetworkBehaviour
     public bool IsNetworkSpawned => networkSpawned;
     public bool IsEngineRunning => EngineRunning;
     public bool IsHornHeld => HornHeld;
+    public float EngineStarterDurationSeconds
+    {
+        get
+        {
+            VehicleEngineAudioController controller = GetComponent<VehicleEngineAudioController>();
+            return controller != null ? controller.StarterDurationSeconds : 0.05f;
+        }
+    }
     public bool HasLocalDriver => Driver != null && Driver.HasInputAuthority;
     public bool HasLocalOccupant => HasLocalInputAuthority(Driver) ||
                                     HasLocalInputAuthority(FrontPassenger) ||
@@ -216,6 +226,22 @@ public class VehicleControllerFusion : NetworkBehaviour
         if (!HasStateAuthority || IsEntryLockedForRepair) return false;
         EngineRunning = true;
         return true;
+    }
+
+    public void AuthorityBeginMilitaryOutroDrive(Vector2 startPosition, Vector2 targetPosition)
+    {
+        if (!HasStateAuthority || rb == null) return;
+        Vector2 direction = targetPosition - startPosition;
+        if (direction.sqrMagnitude < 0.001f) return;
+
+        StopVehicle();
+        rb.position = startPosition;
+        transform.position = new Vector3(startPosition.x, startPosition.y, transform.position.z);
+        SetHeadingFromWorldDirection(direction.normalized);
+        militaryOutroSpeed = 0f;
+        militaryOutroDriveActive = true;
+        SyncOccupants();
+        Physics2D.SyncTransforms();
     }
 
     public bool AuthorityPlayStarterConfirmation(NetworkObject sourcePlayer)
@@ -412,8 +438,9 @@ public class VehicleControllerFusion : NetworkBehaviour
         }
         if (target == SeatSlot.Driver)
         {
-            EngineRunning = true;
-            SetVehicleMotionLocked(false);
+            bool routeBStartRequired = RequiresMilitaryEscapeStartSequence();
+            EngineRunning = !routeBStartRequired || IsMilitaryEscapeEngineStarted();
+            SetVehicleMotionLocked(routeBStartRequired && !CanDriveMilitaryEscapeVehicle());
         }
         return true;
     }
@@ -428,15 +455,41 @@ public class VehicleControllerFusion : NetworkBehaviour
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
+        bool routeBEscapeVehicle = IsMilitaryEscapeVehicle();
         if (Driver == null)
         {
             HeadlightsOn = false;
             HornHeld = false;
-            EngineRunning = false;
+            EngineRunning = routeBEscapeVehicle && IsMilitaryEscapeEngineStarted();
             StopVehicle();
             SetVehicleMotionLocked(true);
             ProcessZombieContacts();
             return;
+        }
+
+        if (routeBEscapeVehicle)
+        {
+            MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+            if (military != null && military.IsEscapeOutroActive)
+            {
+                EngineRunning = true;
+                SetVehicleMotionLocked(false);
+                AuthorityTickMilitaryOutroDrive(military.EscapeVehicleOutroTargetPosition);
+                SyncOccupants();
+                UpdateVehicleNoise(Driver.GetComponent<PlayerMovement>());
+                ProcessZombieContacts();
+                return;
+            }
+
+            if (military != null && !military.IsEscapeVehicleDriveUnlocked)
+            {
+                StopVehicle();
+                SetVehicleMotionLocked(true);
+                SyncOccupants();
+                UpdateVehicleNoise(Driver.GetComponent<PlayerMovement>());
+                ProcessZombieContacts();
+                return;
+            }
         }
 
         SetVehicleMotionLocked(false);
@@ -459,9 +512,12 @@ public class VehicleControllerFusion : NetworkBehaviour
             if (engineNoiseCooldown <= 0f)
             {
                 bool driving = rb != null && rb.linearVelocity.magnitude >= gearChangeSpeedThreshold;
+                bool militaryEscape = IsMilitaryEscapeVehicle();
                 EmitVehicleNoise(driverMovement.Object,
+                    militaryEscape ? Mathf.Max(drivingEngineNoiseRadius, 60f) :
                     driving ? drivingEngineNoiseRadius : idleEngineNoiseRadius,
-                    driving ? 24 : 12, driving ? 0.78f : 0.42f);
+                    militaryEscape ? 256 : driving ? 24 : 12,
+                    militaryEscape ? 0.95f : driving ? 0.78f : 0.42f);
                 engineNoiseCooldown = engineNoiseInterval;
             }
         }
@@ -579,8 +635,9 @@ public class VehicleControllerFusion : NetworkBehaviour
         MoveToSeat(player, GetAnchorWorldPosition(GetSeatAnchor(slot)));
         if (slot == SeatSlot.Driver)
         {
-            EngineRunning = true;
-            SetVehicleMotionLocked(false);
+            bool routeBStartRequired = RequiresMilitaryEscapeStartSequence();
+            EngineRunning = !routeBStartRequired || IsMilitaryEscapeEngineStarted();
+            SetVehicleMotionLocked(routeBStartRequired && !CanDriveMilitaryEscapeVehicle());
         }
         RPC_PlayDoorSequence();
     }
@@ -744,6 +801,47 @@ public class VehicleControllerFusion : NetworkBehaviour
         DirectionIndex = HeadingToDirectionIndex(HeadingDegrees);
         UpdateBodyCollider(DirectionIndex);
         IsMoving = Mathf.Abs(forwardSpeed) > 0.05f;
+    }
+
+    private void AuthorityTickMilitaryOutroDrive(Vector2 targetPosition)
+    {
+        if (!militaryOutroDriveActive || rb == null) return;
+        Vector2 toTarget = targetPosition - rb.position;
+        float distance = toTarget.magnitude;
+        if (distance <= 0.08f)
+        {
+            rb.position = targetPosition;
+            transform.position = new Vector3(targetPosition.x, targetPosition.y, transform.position.z);
+            StopVehicle();
+            militaryOutroDriveActive = false;
+            return;
+        }
+
+        Vector2 direction = toTarget / distance;
+        militaryOutroSpeed = Mathf.MoveTowards(militaryOutroSpeed, maxForwardSpeed,
+            acceleration * Runner.DeltaTime);
+        float allowedSpeed = Mathf.Min(militaryOutroSpeed, distance / Mathf.Max(Runner.DeltaTime, 0.001f));
+        rb.linearVelocity = direction * allowedSpeed;
+        SetHeadingFromWorldDirection(direction);
+        IsMoving = allowedSpeed > 0.05f;
+    }
+
+    private void SetHeadingFromWorldDirection(Vector2 worldDirection)
+    {
+        if (worldDirection.sqrMagnitude < 0.001f) return;
+        worldDirection.Normalize();
+        int bestIndex = 0;
+        float bestDot = float.NegativeInfinity;
+        for (int i = 0; i < ActiveDirectionCount; i++)
+        {
+            float dot = Vector2.Dot(DirectionIndexToWorldVector(i), worldDirection);
+            if (dot <= bestDot) continue;
+            bestDot = dot;
+            bestIndex = i;
+        }
+        DirectionIndex = bestIndex;
+        HeadingDegrees = DirectionIndexToHeading(bestIndex);
+        UpdateBodyCollider(DirectionIndex);
     }
 
     private void StopVehicle()
@@ -1074,6 +1172,32 @@ public class VehicleControllerFusion : NetworkBehaviour
             ? RigidbodyConstraints2D.FreezeAll
             : RigidbodyConstraints2D.FreezeRotation;
         if (rb.constraints != target) rb.constraints = target;
+    }
+
+    private bool IsMilitaryEscapeVehicle()
+    {
+        MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        return military != null && military.IsPoliceEscapeVehicle(this);
+    }
+
+    private bool RequiresMilitaryEscapeStartSequence()
+    {
+        MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        return military != null && military.RequiresEscapeVehicleStartSequence(this);
+    }
+
+    private bool IsMilitaryEscapeEngineStarted()
+    {
+        MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        return military != null && military.IsPoliceEscapeVehicle(this) &&
+               military.IsEscapeVehicleEngineStarted;
+    }
+
+    private bool CanDriveMilitaryEscapeVehicle()
+    {
+        MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        return military != null && military.IsPoliceEscapeVehicle(this) &&
+               military.IsEscapeVehicleDriveUnlocked;
     }
 
     private static Vector2 HeadingToVector(float degrees)

@@ -294,7 +294,11 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null)
         {
-            isDead = health.currentHealth <= 0;
+            // Replicated death state is canonical. A bitten player temporarily
+            // receives health during the death-to-zombie animation, so health
+            // alone can accidentally reopen fire input for several seconds.
+            isDead = PlayerCombat.IsTerminalCombatState(
+                health.isDead, health.isTransforming, health.currentHealth);
         }
 
         PlayerSurvival survival = GetComponent<PlayerSurvival>();
@@ -306,6 +310,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
             VehicleRepairSkillCheckUI.BlocksGameplayInput ||
             CivilianRoutePresentationController.BlocksGameplayInput ||
+            MilitaryRouteBEscapePresentation.BlocksGameplayInput ||
             MainQuestSearchCabinet.IsLocalSearchInProgress)
         {
             input.Set(new PlayerNetworkInput());

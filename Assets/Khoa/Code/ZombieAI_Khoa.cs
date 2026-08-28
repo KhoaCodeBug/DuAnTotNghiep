@@ -863,6 +863,8 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     private void Die(PlayerRef shooter)
     {
         if (NetIsDead) return;
+        float deathAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+        NetMoveDir = new Vector2(Mathf.Cos(deathAngle), Mathf.Sin(deathAngle));
         NetIsDead = true;
 
         StopMovement();

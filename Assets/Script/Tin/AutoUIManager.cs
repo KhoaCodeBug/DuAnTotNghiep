@@ -162,7 +162,8 @@ public class AutoUIManager : MonoBehaviour
         // Route B dialogue owns this client's presentation and shortcut input.
         // This is deliberately local-only; the shared multiplayer simulation keeps running.
         if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
-            VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
+            VehicleRepairSkillCheckUI.BlocksGameplayInput ||
+            MilitaryRouteBEscapePresentation.BlocksGameplayInput) return;
 
         // The quest journal/map is a full-screen modal owned by another canvas.
         // Do not let inventory/trade input reopen hidden panels underneath it.

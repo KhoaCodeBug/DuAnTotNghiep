@@ -311,7 +311,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void Update()
     {
-        if (VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
+        if (VehicleRepairSkillCheckUI.BlocksGameplayInput ||
+            MilitaryRouteBEscapePresentation.BlocksGameplayInput) return;
 
         if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null
             && EventSystem.current.currentSelectedGameObject.GetComponent<TMP_InputField>() == null

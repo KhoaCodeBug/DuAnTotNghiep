@@ -154,7 +154,9 @@ public class DevCheatManager : MonoBehaviour
             ToggleMenu();
         }
 
-        if (Input.GetKeyDown(KeyCode.F6))
+        if (Input.GetKeyDown(KeyCode.F1))
+            RunRouteBCheat(JumpToMilitarySchool);
+        else if (Input.GetKeyDown(KeyCode.F6))
             RunRouteBCheat(AdvanceRouteBStory);
         else if (Input.GetKeyDown(KeyCode.F7))
             RunRouteBCheat(CompleteRouteBClues);
@@ -764,6 +766,21 @@ public class DevCheatManager : MonoBehaviour
             return;
         }
         manager.DebugAdvanceRouteB();
+    }
+
+    private static void JumpToMilitarySchool()
+    {
+        MainQuestManager main = MainQuestManager.Instance;
+        MilitaryBaseQuestManager military = MilitaryBaseQuestManager.Instance;
+        if (main == null || !main.IsNetworkReady || military == null || !military.IsNetworkReady)
+        {
+            Debug.LogWarning("[CHEAT] F1 cần MainQuest và MilitaryBaseQuest đã spawn. Hãy vào Main từ MainMenu trước.");
+            return;
+        }
+
+        main.DebugUnlockHospitalAndMilitaryMapRegions();
+        military.DebugTeleportToCurrentObjective();
+        Debug.Log("[CHEAT] F1: hoàn tất tuyến trước quân sự và dịch chuyển tới trường học.");
     }
 
     private static void CompleteRouteBClues()
