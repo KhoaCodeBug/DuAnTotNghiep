@@ -5,6 +5,9 @@ using System.Collections.Generic;
 
 public class PlayerCombat : NetworkBehaviour
 {
+    public static bool IsTerminalCombatState(bool isDead, bool isTransforming, float currentHealth) =>
+        isDead || isTransforming || currentHealth <= 0f;
+
     public readonly struct MilitaryRespawnCombatSnapshot
     {
         public readonly string EquippedWeaponId;
@@ -57,6 +60,7 @@ public class PlayerCombat : NetworkBehaviour
     private PlayerStamina staminaSystem;
     private InventorySystem invSys;
     private PlayerSurvival survivalSystem;
+    private PlayerHealth healthSystem;
 
     [Networked] private TickTimer nextFireTimer { get; set; }
     [Networked] private TickTimer nextBashTimer { get; set; }
@@ -70,6 +74,7 @@ public class PlayerCombat : NetworkBehaviour
         staminaSystem = GetComponent<PlayerStamina>();
         invSys = GetComponent<InventorySystem>();
         survivalSystem = GetComponent<PlayerSurvival>();
+        healthSystem = GetComponent<PlayerHealth>();
 
         if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
 
@@ -108,6 +113,12 @@ public class PlayerCombat : NetworkBehaviour
 
         if (!HasInputAuthority) return;
 
+        if (IsCombatUnavailable())
+        {
+            CancelReloadForTerminalState();
+            return;
+        }
+
         // 🔥 Kiểm tra chuyển súng mỗi frame để save/restore đạn riêng từng cây
         CheckWeaponSwitch();
 
@@ -133,16 +144,10 @@ public class PlayerCombat : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
-        bool isDead = false;
-        PlayerHealth health = GetComponent<PlayerHealth>();
-        if (health != null)
-        {
-            isDead = health.currentHealth <= 0;
-        }
-
-        if (isDead)
+        if (IsCombatUnavailable())
         {
             if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
+            CancelReloadForTerminalState();
             return;
         }
 
@@ -271,6 +276,7 @@ public class PlayerCombat : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_RequestReload(string weaponId)
     {
+        if (IsCombatUnavailable()) return;
         if (string.IsNullOrWhiteSpace(weaponId) || EquippedWeaponId.ToString() != weaponId) return;
         ItemData weapon = ItemDataLoader.LoadItem(weaponId);
         ItemData requiredAmmo = weapon != null ? weapon.ammoTypeRequired : null;
@@ -285,6 +291,7 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Shoot(Vector2 mouseWorldPos)
     {
+        if (IsCombatUnavailable()) return;
         if (HasInputAuthority)
             AutoUIManager.Instance?.CancelTimedGameplayAction();
 
@@ -579,7 +586,21 @@ public class PlayerCombat : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     private void RPC_RequestEquipWeapon(string weaponId)
     {
+        if (IsCombatUnavailable()) return;
         ApplyAuthoritativeWeaponSwitch(weaponId);
+    }
+
+    private bool IsCombatUnavailable() => healthSystem != null &&
+        IsTerminalCombatState(healthSystem.isDead, healthSystem.isTransforming, healthSystem.currentHealth);
+
+    private void CancelReloadForTerminalState()
+    {
+        if (muzzleFlashRenderer != null) muzzleFlashRenderer.enabled = false;
+        if (!isReloading) return;
+        isReloading = false;
+        StopAllCoroutines();
+        RPC_StopReloadSFX();
+        AutoUIManager.Instance?.HideReloadUI();
     }
 
     private void ApplyAuthoritativeWeaponSwitch(string weaponId)

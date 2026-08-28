@@ -154,9 +154,11 @@ public class FogVisionController : MonoBehaviour
         if (worldCamera == null || overlayMaterial == null || overlayImage == null) return;
 
         ResolveCameraTarget();
+        PlayerHealth targetHealth = targetVision != null ? targetVision.GetComponent<PlayerHealth>() : null;
         if (targetVision == null || targetMovement == null ||
             targetVision.Object == null || !targetVision.Object.IsValid ||
-            targetMovement.Object == null || !targetMovement.Object.IsValid)
+            targetMovement.Object == null || !targetMovement.Object.IsValid ||
+            (targetHealth != null && (targetHealth.isDead || targetHealth.isTransforming)))
         {
             targetVision = null;
             targetMovement = null;

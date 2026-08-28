@@ -71,6 +71,9 @@ public sealed class VehicleEngineAudioController : MonoBehaviour
     [SerializeField, Range(0f, 1f)] private float engineVolume = 0.78f;
 
     public PlaybackState State => state;
+    public float StarterDurationSeconds => starterClip != null
+        ? Mathf.Max(0.05f, starterClip.length)
+        : 0.05f;
 
     public static VehicleEngineAudioController Attach(VehicleControllerFusion owner)
     {

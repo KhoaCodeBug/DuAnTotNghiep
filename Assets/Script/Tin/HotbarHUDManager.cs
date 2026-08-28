@@ -303,7 +303,8 @@ public class HotbarHUDManager : MonoBehaviour
 
     private void HandleInput()
     {
-        if (VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
+        if (VehicleRepairSkillCheckUI.BlocksGameplayInput ||
+            MilitaryRouteBEscapePresentation.BlocksGameplayInput) return;
 
         bool isTyping = AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping();
         bool isMenuOpen = AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen();

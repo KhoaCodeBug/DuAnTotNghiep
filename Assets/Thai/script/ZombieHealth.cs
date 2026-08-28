@@ -117,6 +117,11 @@ public class ZombieHealth : NetworkBehaviour
     private void Die(PlayerRef shooter)
     {
         if (isDead) return;
+        int randomDeath = UnityEngine.Random.Range(0, 2);
+        float deathAngle = UnityEngine.Random.Range(0f, 360f) * UnityEngine.Mathf.Deg2Rad;
+        UnityEngine.Vector2 deathDirection = new UnityEngine.Vector2(
+            UnityEngine.Mathf.Cos(deathAngle), UnityEngine.Mathf.Sin(deathAngle));
+        if (aiScript != null) aiScript.NetMoveDir = deathDirection;
         isDead = true;
 
         SetBodyCollisionEnabled(false);
@@ -138,21 +143,21 @@ public class ZombieHealth : NetworkBehaviour
         }
 
         GetComponent<ZombieCorpseLoot>()?.MarkAsCorpse();
-        RPC_PlayDeathAnimation();
+        RPC_PlayDeathAnimation(randomDeath, deathDirection);
         StartCoroutine(VanishRoutine());
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_PlayDeathAnimation()
+    private void RPC_PlayDeathAnimation(int deathType, UnityEngine.Vector2 deathDirection)
     {
         if (anim != null)
         {
-    
-            int randomDeath = UnityEngine.Random.Range(0, 2);
-            anim.SetInteger("DeathType", randomDeath);
+            anim.SetFloat("DirX", deathDirection.x);
+            anim.SetFloat("DirY", deathDirection.y);
+            anim.SetInteger("DeathType", deathType);
             anim.SetBool("isDead", true);
 
-            Debug.Log($"<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: {randomDeath}</b></color>");
+            Debug.Log($"<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: {deathType}</b></color>");
         }
     }
 

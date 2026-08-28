@@ -832,6 +832,9 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
     private void Die(PlayerRef shooter)
     {
         if (NetIsDead) return;
+        float deathAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+        facing = new Vector2(Mathf.Cos(deathAngle), Mathf.Sin(deathAngle));
+        NetMoveDir = facing;
         NetIsDead = true;
         NetIsAttacking = false;
         state = BrainState.Dead;

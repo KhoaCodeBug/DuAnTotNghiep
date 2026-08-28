@@ -1110,8 +1110,26 @@ public sealed class MainMenuToMilitaryQuestFlowTests
                 ? (float)ReadProperty(healthOwner, "currentHealth")
                 : (float)ReadProperty(healthOwner, "CurrentHealth");
             float maxHealth = (float)ReadAnyField(healthOwner, "maxHealth");
-            Assert.That(currentHealth, Is.EqualTo(maxHealth).Within(0.001f),
-                "Every siege zombie must be freshly spawned at full HP, never adopted after ambient damage.");
+            bool spawnedBySiege = (bool)ReadProperty(objective, "ShouldDespawnOnReset");
+            if (spawnedBySiege)
+                Assert.That(currentHealth, Is.EqualTo(maxHealth).Within(0.001f),
+                    "Fresh horde spawns must still begin at full HP.");
+        }
+
+        var checkedAmbientRoots = new HashSet<GameObject>();
+        GameObject[] activeEnemies = GameObject.FindGameObjectsWithTag("Enemy");
+        for (int i = 0; i < activeEnemies.Length; i++)
+        {
+            Component zombie = activeEnemies[i].GetComponentInParent(rebuiltHealthType) ??
+                               activeEnemies[i].GetComponentInParent(khoaHealthType) ??
+                               activeEnemies[i].GetComponentInParent(thaiHealthType);
+            if (zombie == null || !checkedAmbientRoots.Add(zombie.gameObject)) continue;
+            bool dead = zombie.GetType() == thaiHealthType
+                ? ReadBool(zombie, "isDead")
+                : ReadBool(zombie, "NetIsDead");
+            if (dead) continue;
+            Assert.That(zombie.GetComponent(siegeObjectiveType), Is.Not.Null,
+                $"Living city zombie '{zombie.name}' must be redirected to the gate after the cinematic.");
         }
 
         Behaviour killedSiegeObjective = siegeObjectives[0] as Behaviour;
@@ -1459,9 +1477,152 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That((float)ReadProperty(dayNight, "CurrentTime"), Is.EqualTo(16f).Within(0.001f),
             "Military finale time must remain frozen throughout repairs.");
 
-        // B7: extraction and authoritative journal completion.
-        advanceBase.Invoke(military, null);
+        // B7: use the production vehicle-start and authored EndB route rather
+        // than the old debug shortcut that jumped directly to Escaped.
+        Assert.That(policeVehicle, Is.Not.Null);
+        Transform driverEnterPoint = ReadPrivateField(policeVehicle, "driverEnterPoint") as Transform;
+        Assert.That(driverEnterPoint, Is.Not.Null);
+        localMovement.transform.position = driverEnterPoint.position;
+        Physics2D.SyncTransforms();
+        MethodInfo authorityTryEnter = policeVehicle.GetType().GetMethod("AuthorityTryEnter");
+        Assert.That(authorityTryEnter, Is.Not.Null);
+        Assert.That((bool)authorityTryEnter.Invoke(policeVehicle, new object[] { localNetworkObject }), Is.True,
+            "The repaired police car must accept the living Solo player at the authored driver door.");
+        Assert.That(ReadBool(policeVehicle, "IsEngineRunning"), Is.False,
+            "Entering the Route B driver seat must not auto-start the engine.");
+
+        PropertyInfo moveInputProperty = playerMovementType.GetProperty("NetMoveInput");
+        Assert.That(moveInputProperty, Is.Not.Null);
+        float startDeadline = Time.realtimeSinceStartup + 3f;
+        while (!ReadBool(military, "IsEscapeVehicleEngineStarted") &&
+               Time.realtimeSinceStartup < startDeadline)
+        {
+            moveInputProperty.SetValue(localMovement, Vector2.up);
+            yield return null;
+        }
+        Assert.That(ReadBool(military, "IsEscapeVehicleEngineStarted"), Is.True,
+            "Authoritative W input must start the engine once every living player is seated.");
+        Assert.That(ReadBool(military, "IsEscapeVehicleDriveUnlocked"), Is.False,
+            "Driving must stay locked while the starter clip is playing.");
+        Assert.That(ReadBool(policeVehicle, "IsEngineRunning"), Is.True);
+
+        float gateHealthAtStart = (float)ReadProperty(military, "GateCurrentHealth");
+        float unlockDeadline = Time.realtimeSinceStartup + 10f;
+        while (!ReadBool(military, "IsEscapeVehicleDriveUnlocked") &&
+               Time.realtimeSinceStartup < unlockDeadline)
+        {
+            moveInputProperty.SetValue(localMovement, Vector2.up);
+            yield return null;
+        }
+        moveInputProperty.SetValue(localMovement, Vector2.zero);
+        Assert.That(ReadBool(military, "IsEscapeVehicleDriveUnlocked"), Is.True,
+            "Vehicle control must unlock after the real startup duration.");
+        float gateHealthAfterStartup = (float)ReadProperty(military, "GateCurrentHealth");
+        if (gateHealthAtStart > 0f)
+            Assert.That(gateHealthAfterStartup, Is.LessThan(gateHealthAtStart),
+                "Starting the escape vehicle must add gate drain without resetting its current health.");
+        else
+            Assert.That(gateHealthAfterStartup, Is.EqualTo(0f),
+                "An already-broken gate must never be resurrected by the vehicle-start sequence.");
+        Assert.That(GameObject.Find("Route B Direction Arrow 1"), Is.Not.Null,
+            "Starting the vehicle must reveal authored-route direction arrows.");
+
+        Rigidbody2D policeBody = policeVehicle.GetComponent<Rigidbody2D>();
+        Assert.That(policeBody, Is.Not.Null);
+        string[] authoredWaypoints = { "EndB1", "EndB2", "EndB3" };
+        for (int i = 0; i < authoredWaypoints.Length; i++)
+        {
+            GameObject waypoint = GameObject.Find(authoredWaypoints[i]);
+            Assert.That(waypoint, Is.Not.Null);
+            policeBody.position = waypoint.transform.position;
+            policeVehicle.transform.position = waypoint.transform.position;
+            Physics2D.SyncTransforms();
+            float waypointDeadline = Time.realtimeSinceStartup + 2f;
+            while ((int)ReadProperty(military, "EscapeWaypointIndex") <= i &&
+                   Time.realtimeSinceStartup < waypointDeadline)
+            {
+                // A dense live horde can push the Rigidbody away between the
+                // test teleport and the next authority tick. Keep the vehicle
+                // inside the authored waypoint until that canonical tick consumes it.
+                policeBody.position = waypoint.transform.position;
+                policeVehicle.transform.position = waypoint.transform.position;
+                Physics2D.SyncTransforms();
+                yield return null;
+            }
+            Assert.That((int)ReadProperty(military, "EscapeWaypointIndex"), Is.GreaterThan(i),
+                $"The authority did not accept authored waypoint {authoredWaypoints[i]}.");
+        }
+
+        GameObject finalTrigger = GameObject.Find("EndBFinal");
+        Assert.That(finalTrigger, Is.Not.Null);
+        GameObject finalVehicleTarget = GameObject.Find("EndBFinal2");
+        Assert.That(finalVehicleTarget, Is.Not.Null,
+            "Main.unity must author EndBFinal2 as the straight road-lane target for the real police car.");
+        policeBody.position = finalTrigger.transform.position;
+        policeVehicle.transform.position = finalTrigger.transform.position;
+        Physics2D.SyncTransforms();
+        float escapedDeadline = Time.realtimeSinceStartup + 3f;
+        while (ReadProperty(military, "CurrentPhase").ToString() != "Escaped" &&
+               Time.realtimeSinceStartup < escapedDeadline)
+        {
+            // The released horde now correctly crowds the real vehicle. Hold
+            // the test teleport inside the authored trigger until authority
+            // consumes it instead of letting physics push it away first.
+            policeBody.position = finalTrigger.transform.position;
+            policeVehicle.transform.position = finalTrigger.transform.position;
+            Physics2D.SyncTransforms();
+            yield return null;
+        }
         Assert.That(ReadProperty(military, "CurrentPhase").ToString(), Is.EqualTo("Escaped"));
+        float outroStartedAt = Time.realtimeSinceStartup;
+        Type escapePresentationType = Type.GetType("MilitaryRouteBEscapePresentation, Assembly-CSharp");
+        Assert.That(escapePresentationType, Is.Not.Null);
+        Assert.That((bool)escapePresentationType.GetProperty("BlocksGameplayInput",
+            BindingFlags.Public | BindingFlags.Static)?.GetValue(null), Is.True,
+            "EndBFinal must remove local control while the car continues under authority.");
+        yield return new WaitForSecondsRealtime(0.25f);
+        Vector2 expectedOutroDirection = ((Vector2)finalVehicleTarget.transform.position -
+            (Vector2)finalTrigger.transform.position).normalized;
+        Assert.That(Vector2.Dot(policeBody.linearVelocity.normalized, expectedOutroDirection),
+            Is.GreaterThan(0.99f),
+            "The authority-driven police car must align to the EndBFinal-EndBFinal2 road lane.");
+        GameObject cameraTarget = GameObject.Find("EndBToCinemachine");
+        Assert.That(cameraTarget, Is.Not.Null);
+        Type victorySummaryType = Type.GetType("VictorySummaryUI, Assembly-CSharp");
+        PropertyInfo victoryShowing = victorySummaryType?.GetProperty("IsShowing",
+            BindingFlags.Public | BindingFlags.Static);
+        Assert.That(victoryShowing, Is.Not.Null);
+
+        yield return new WaitForSecondsRealtime(0.65f);
+        RectTransform topLetterbox = GameObject.Find("Top Letterbox")?.GetComponent<RectTransform>();
+        RectTransform bottomLetterbox = GameObject.Find("Bottom Letterbox")?.GetComponent<RectTransform>();
+        Assert.That(topLetterbox, Is.Not.Null);
+        Assert.That(bottomLetterbox, Is.Not.Null);
+        Assert.That(1f - topLetterbox.anchorMin.y, Is.GreaterThan(0.02f),
+            "The upper cinematic bar must close gradually while the camera is travelling.");
+        Assert.That(bottomLetterbox.anchorMax.y, Is.GreaterThan(0.02f),
+            "The lower cinematic bar must close gradually while the camera is travelling.");
+
+        float outroDeadline = Time.realtimeSinceStartup + 12f;
+        while (!(bool)victoryShowing.GetValue(null) && Time.realtimeSinceStartup < outroDeadline)
+            yield return null;
+        Assert.That((bool)victoryShowing.GetValue(null), Is.True,
+            "Route B outro must fade to black and open the Victory Summary.");
+        Assert.That(Time.realtimeSinceStartup - outroStartedAt, Is.GreaterThanOrEqualTo(9.1f),
+            "The result screen must wait for 6 seconds of camera travel, a 2-second hold and the fade.");
+        Assert.That(Vector2.Distance(policeBody.position, finalVehicleTarget.transform.position),
+            Is.LessThan(0.25f),
+            "The real network vehicle must finish its straight cinematic drive at EndBFinal2.");
+        Assert.That(Camera.main, Is.Not.Null);
+        Assert.That(Vector2.Distance(Camera.main.transform.position, cameraTarget.transform.position),
+            Is.LessThan(0.15f),
+            "The zero-speed-end camera move must finish at EndBToCinemachine.");
+        Assert.That(Camera.main.orthographicSize, Is.GreaterThanOrEqualTo(20f),
+            "The camera must zoom out far enough to reveal the map before fading.");
+        Canvas routeBFadeCanvas = GameObject.Find("Route B Ending Fade")?.GetComponent<Canvas>();
+        Assert.That(routeBFadeCanvas, Is.Not.Null);
+        Assert.That(routeBFadeCanvas.sortingOrder, Is.LessThan(5000),
+            "The completed black fade must sit behind the Victory Summary instead of covering it.");
         float journalDeadline = Time.realtimeSinceStartup + 5f;
         while (journal != null && !journal.IsMainQuestComplete && Time.realtimeSinceStartup < journalDeadline)
             yield return null;
