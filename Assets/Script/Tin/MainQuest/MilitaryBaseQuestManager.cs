@@ -310,6 +310,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
         TickSoloGateDps();
         TickEscapeVehicleFlow();
+        if (IsEscapeOutroActive) TickMilitaryOutroFollowers();
 
         if ((CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape) && !AnyLivingPlayer())
         {
@@ -596,7 +597,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GateMaxHealth = Mathf.Max(1f, MilitaryQuestRules.ComputeSiegeGateMaxHealthForDifficulty(activePlayers,
             GetSelectedDifficulty()));
         GateCurrentHealth = GateMaxHealth;
-        TeamRespawnsRemaining = IsMultiplayerSiege ? MilitaryQuestRules.TeamRespawnChargeTotal : 0;
+        TeamRespawnsRemaining = MilitaryQuestRules.ComputeTeamRespawnCharges(activePlayers);
         IsSoloGateDpsActive = false;
         SoloGateDpsElapsed = 0f;
         ResetEscapeVehicleState();
@@ -1466,6 +1467,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (roadsideRepairVehicle != null && escapeFinalTrigger != null)
             roadsideRepairVehicle.AuthorityBeginMilitaryOutroDrive(
                 escapeFinalTrigger.transform.position, EscapeVehicleOutroTargetPosition);
+        AuthorityPrepareOutsidePlayersForMilitaryOutro();
         MilitaryPhase = (int)Phase.Escaped;
         ActiveRepairer = PlayerRef.None;
         RPC_TriggerVictoryCutscene(requester);
@@ -2163,6 +2165,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private void ResetEscapeVehicleState()
     {
+        AuthorityClearMilitaryOutroProtection();
         IsEscapeVehicleEngineStarted = false;
         IsEscapeVehicleDriveUnlocked = false;
         EscapeVehicleStartupRemaining = 0f;
@@ -2181,7 +2184,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             PlayerMovement driverMovement = driver != null ? driver.GetComponent<PlayerMovement>() : null;
             if (driverMovement == null || driverMovement.NetMoveInput.y < 0.25f) return;
 
-            if (!AreAllLivingPlayersOnPoliceVehicle(out int missingPlayers))
+            if (!AreAllLivingPlayersReadyForPoliceEscape(out int missingPlayers))
             {
                 if (Time.time >= nextEscapeStartDeniedAt)
                 {
@@ -2232,7 +2235,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         AuthorityCompleteEscape(focusPlayer);
     }
 
-    private bool AreAllLivingPlayersOnPoliceVehicle(out int missingPlayers)
+    private bool AreAllLivingPlayersReadyForPoliceEscape(out int missingPlayers)
     {
         missingPlayers = 0;
         if (Runner == null || roadsideRepairVehicle == null) return false;
@@ -2249,12 +2252,106 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             PlayerHealth health = playerObject.GetComponent<PlayerHealth>();
             if (health != null && (health.isDead || health.isTransforming)) continue;
             PlayerInteraction interaction = playerObject.GetComponent<PlayerInteraction>();
-            if (interaction == null || !interaction.IsInVehicle ||
-                interaction.CurrentVehicleController != roadsideRepairVehicle)
+            bool isInAnyVehicle = interaction != null && interaction.IsInVehicle;
+            bool isOnPoliceVehicle = isInAnyVehicle &&
+                interaction.CurrentVehicleController == roadsideRepairVehicle;
+            float distanceToPoliceVehicle = Vector2.Distance(playerObject.transform.position,
+                roadsideRepairVehicle.transform.position);
+            if (!MilitaryStoryFlowRules.IsPlayerReadyForMilitaryEscape(isOnPoliceVehicle,
+                    isInAnyVehicle, distanceToPoliceVehicle))
                 missingPlayers++;
         }
 
         return missingPlayers == 0;
+    }
+
+    private void AuthorityPrepareOutsidePlayersForMilitaryOutro()
+    {
+        if (!HasStateAuthority || Runner == null || roadsideRepairVehicle == null) return;
+
+        int followerIndex = 0;
+        foreach (PlayerRef playerRef in Runner.ActivePlayers)
+        {
+            if (!Runner.TryGetPlayerObject(playerRef, out NetworkObject playerObject) ||
+                playerObject == null || !playerObject.IsValid) continue;
+
+            PlayerHealth health = playerObject.GetComponent<PlayerHealth>();
+            if (health == null || health.isDead || health.isTransforming) continue;
+            PlayerInteraction interaction = playerObject.GetComponent<PlayerInteraction>();
+            bool isPoliceOccupant = interaction != null && interaction.IsInVehicle &&
+                interaction.CurrentVehicleController == roadsideRepairVehicle;
+            if (isPoliceOccupant)
+            {
+                health.AuthoritySetMilitaryOutroProtected(false);
+                continue;
+            }
+
+            if (interaction != null && interaction.IsInVehicle)
+            {
+                VehicleControllerFusion currentVehicle = interaction.CurrentVehicleController;
+                bool exitedNormally = currentVehicle != null && currentVehicle.AuthorityTryExit(playerObject);
+                if (!exitedNormally)
+                    interaction.SetVehicleNetworkState(null, false, false, 0,
+                        roadsideRepairVehicle.transform.position);
+            }
+
+            health.AuthoritySetMilitaryOutroProtected(true);
+            PlayerMovement movement = playerObject.GetComponent<PlayerMovement>();
+            if (movement != null)
+            {
+                movement.LockMovement(0.5f);
+                TeleportPlayer(movement, GetMilitaryOutroFollowerPosition(followerIndex));
+            }
+            followerIndex++;
+        }
+        Physics2D.SyncTransforms();
+    }
+
+    private void TickMilitaryOutroFollowers()
+    {
+        if (!HasStateAuthority || Runner == null || roadsideRepairVehicle == null) return;
+
+        int followerIndex = 0;
+        foreach (PlayerRef playerRef in Runner.ActivePlayers)
+        {
+            if (!Runner.TryGetPlayerObject(playerRef, out NetworkObject playerObject) ||
+                playerObject == null || !playerObject.IsValid) continue;
+            PlayerHealth health = playerObject.GetComponent<PlayerHealth>();
+            if (health == null || !health.IsMilitaryOutroProtected || health.isDead || health.isTransforming)
+                continue;
+
+            PlayerMovement movement = playerObject.GetComponent<PlayerMovement>();
+            if (movement != null)
+            {
+                movement.LockMovement(Mathf.Max(0.2f, Runner.DeltaTime * 2f));
+                TeleportPlayer(movement, GetMilitaryOutroFollowerPosition(followerIndex));
+            }
+            followerIndex++;
+        }
+    }
+
+    private Vector2 GetMilitaryOutroFollowerPosition(int followerIndex)
+    {
+        Vector2 forward = roadsideRepairVehicle != null
+            ? roadsideRepairVehicle.VisionDirection.normalized
+            : Vector2.up;
+        if (forward.sqrMagnitude < 0.001f) forward = Vector2.up;
+        Vector2 right = new Vector2(forward.y, -forward.x);
+        int row = followerIndex / 2;
+        float side = followerIndex % 2 == 0 ? -1f : 1f;
+        float lateral = 0.75f + row * 0.22f;
+        float trailing = 0.8f + row * 0.48f;
+        return (Vector2)roadsideRepairVehicle.transform.position - forward * trailing + right * lateral * side;
+    }
+
+    private void AuthorityClearMilitaryOutroProtection()
+    {
+        if (!HasStateAuthority) return;
+        PlayerHealth[] players = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+        for (int i = 0; i < players.Length; i++)
+            if (players[i] != null && players[i].Object != null && players[i].Object.IsValid &&
+                players[i].Object.HasStateAuthority)
+                players[i].AuthoritySetMilitaryOutroProtected(false);
     }
 
     private void TickAcceleratedGateDrain()

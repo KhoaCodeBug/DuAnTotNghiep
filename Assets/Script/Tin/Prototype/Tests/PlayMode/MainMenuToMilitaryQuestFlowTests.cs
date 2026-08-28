@@ -15,6 +15,27 @@ public sealed class MainMenuToMilitaryQuestFlowTests
 {
     [UnityTest]
     [Timeout(60000)]
+    public IEnumerator WaitingRoomUsesTwoByFiveGridForTenPlayerCapacity()
+    {
+        yield return ShutdownExistingRunners();
+        AsyncOperation loadMenu = SceneManager.LoadSceneAsync("MainMenu");
+        while (!loadMenu.isDone) yield return null;
+        yield return null;
+
+        RectTransform cards = FindInactiveTransform("PlayerCardsContainer") as RectTransform;
+        Assert.That(cards, Is.Not.Null);
+        Assert.That(cards.GetComponent<HorizontalLayoutGroup>(), Is.Null);
+        GridLayoutGroup grid = cards.GetComponent<GridLayoutGroup>();
+        Assert.That(grid, Is.Not.Null);
+        Assert.That(grid.constraint, Is.EqualTo(GridLayoutGroup.Constraint.FixedRowCount));
+        Assert.That(grid.constraintCount, Is.EqualTo(2));
+        Assert.That(grid.cellSize, Is.EqualTo(new Vector2(280f, 115f)));
+        Assert.That(grid.spacing, Is.EqualTo(new Vector2(20f, 15f)));
+        Assert.That(grid.childAlignment, Is.EqualTo(TextAnchor.MiddleCenter));
+    }
+
+    [UnityTest]
+    [Timeout(60000)]
     public IEnumerator HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor()
     {
         yield return ShutdownExistingRunners();

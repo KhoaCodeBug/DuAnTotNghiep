@@ -42,14 +42,23 @@ public sealed class MilitaryRespawnRulesTests
     }
 
     [Test]
-    public void TeamRespawnPoolIsSharedThreeChargesAndClampsAtZero()
+    public void TeamRespawnPoolScalesForOneToTenPlayersAndClampsAtZero()
     {
-        int charges = MilitaryQuestRules.TeamRespawnChargeTotal;
-        Assert.That(charges, Is.EqualTo(3));
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(1), Is.Zero);
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(2), Is.EqualTo(3));
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(4), Is.EqualTo(3));
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(5), Is.EqualTo(5));
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(6), Is.EqualTo(5));
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(7), Is.EqualTo(6));
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(8), Is.EqualTo(6));
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(9), Is.EqualTo(8));
+        Assert.That(MilitaryQuestRules.ComputeTeamRespawnCharges(10), Is.EqualTo(8));
+
+        int charges = MilitaryQuestRules.ComputeTeamRespawnCharges(10);
         charges = MilitaryQuestRules.ConsumeTeamRespawnCharge(charges);
-        Assert.That(charges, Is.EqualTo(2));
-        charges = MilitaryQuestRules.ConsumeTeamRespawnCharge(charges);
-        charges = MilitaryQuestRules.ConsumeTeamRespawnCharge(charges);
+        Assert.That(charges, Is.EqualTo(7));
+        for (int i = 0; i < 7; i++)
+            charges = MilitaryQuestRules.ConsumeTeamRespawnCharge(charges);
         Assert.That(charges, Is.EqualTo(0));
         // An exhausted pool can never go negative.
         Assert.That(MilitaryQuestRules.ConsumeTeamRespawnCharge(charges), Is.EqualTo(0));
@@ -59,7 +68,7 @@ public sealed class MilitaryRespawnRulesTests
     public void TeamRespawnsAreMultiplayerOnly()
     {
         Assert.That(MilitaryQuestRules.CanUseTeamRespawn(true,
-            MilitaryQuestRules.TeamRespawnChargeTotal), Is.False);
+            MilitaryQuestRules.ComputeTeamRespawnCharges(4)), Is.False);
         Assert.That(MilitaryQuestRules.CanUseTeamRespawn(false, 3), Is.True);
         Assert.That(MilitaryQuestRules.CanUseTeamRespawn(false, 1), Is.True);
         Assert.That(MilitaryQuestRules.CanUseTeamRespawn(false, 0), Is.False);

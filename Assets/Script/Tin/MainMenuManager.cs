@@ -16,6 +16,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     public static AutoMainMenuManager Instance { get; private set; }
     public static bool EscapeConsumedThisFrame = false;
+    public bool IsPauseMenuOrOptionsOpen => (optionsPanel != null && optionsPanel.activeSelf) || (mainPanel != null && mainPanel.activeSelf);
 
     [Header("Cài đặt chung")]
     public TMP_FontAsset gameFont;
@@ -1238,11 +1239,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         waitingRoomPlayerListContent.offsetMin = Vector2.zero;
         waitingRoomPlayerListContent.offsetMax = Vector2.zero;
 
-        HorizontalLayoutGroup hlg = listObj.AddComponent<HorizontalLayoutGroup>();
-        hlg.spacing = 30; // Khoảng cách giữa các thẻ rộng ra
-        hlg.childControlWidth = true; hlg.childControlHeight = true;
-        hlg.childForceExpandWidth = true; hlg.childForceExpandHeight = true;
-        hlg.childAlignment = TextAnchor.MiddleCenter;
+        GridLayoutGroup grid = listObj.AddComponent<GridLayoutGroup>();
+        grid.cellSize = new Vector2(280f, 115f);
+        grid.spacing = new Vector2(20f, 15f);
+        grid.constraint = GridLayoutGroup.Constraint.FixedRowCount;
+        grid.constraintCount = 2;
+        grid.childAlignment = TextAnchor.MiddleCenter;
+        grid.startAxis = GridLayoutGroup.Axis.Horizontal;
 
         // Text báo trạng thái chung
         GameObject statusObj = new GameObject("HostStatus");
@@ -1578,9 +1581,17 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         mainPanel?.SetActive(false);
 
         loadingScreenPanel.transform.SetAsLastSibling();
+        if (mainCanvas != null)
+        {
+            mainCanvas.sortingOrder = 9999;
+        }
         if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg))
+        {
             cg.alpha = 1f;
+            cg.blocksRaycasts = true;
+        }
 
+        GameplayReadinessCoordinator.StartLoading();
         loadingScreenPanel.SetActive(true);
         Application.backgroundLoadingPriority = ThreadPriority.High;
         // === GIẢM NGUY CƠ TIMEOUT KHI LOAD SCENE ===
@@ -1597,57 +1608,72 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private IEnumerator SmoothLoadingLogic()
     {
-        float progress = 0f;
+        float displayedProgress = 0.05f;
 
-        // Fake progress đến 95%
-        while (progress < 0.95f)
+        if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg))
         {
-            progress += Time.unscaledDeltaTime * 0.6f;
-            if (progress > 0.95f) progress = 0.95f;
+            cg.alpha = 1f;
+            cg.blocksRaycasts = true;
+        }
 
-            loadingFillBar.anchorMax = new Vector2(progress, 1);
-            loadingPercentText.text = Mathf.RoundToInt(progress * 100) + "%";
+        // Lắng nghe tiến độ thật từ GameplayReadinessCoordinator
+        while (!isHostSignaledGo && !GameplayReadinessCoordinator.IsReleasedToGameplay)
+        {
+            float targetProgress = Mathf.Max(0.05f, GameplayReadinessCoordinator.CurrentProgress);
+            if (targetProgress > 0.95f) targetProgress = 0.95f;
+
+            displayedProgress = Mathf.MoveTowards(displayedProgress, targetProgress, Time.unscaledDeltaTime * 1.5f);
+
+            if (loadingFillBar != null)
+                loadingFillBar.anchorMax = new Vector2(displayedProgress, 1f);
+
+            if (loadingPercentText != null)
+            {
+                string statusText = !string.IsNullOrEmpty(GameplayReadinessCoordinator.CurrentStatusText)
+                    ? GameplayReadinessCoordinator.CurrentStatusText
+                    : GameLocalization.Get("menu.loading_wait_players");
+                loadingPercentText.text = $"{Mathf.RoundToInt(displayedProgress * 100)}% - {statusText}";
+            }
+
             yield return null;
         }
 
-        loadingPercentText.text = $"<color=#777777>{GameLocalization.Get("menu.loading_wait_players")}</color>";
-
-        // Chờ Host báo hiệu tất cả sẵn sàng
-        while (!isHostSignaledGo)
-            yield return null;
-
-        // Hoàn tất 100%
-        while (progress < 1f)
+        // Host phát lệnh giải phóng -> Tiến lên 100%
+        while (displayedProgress < 1f)
         {
-            progress += Time.unscaledDeltaTime * 5f;
-            if (progress > 1f) progress = 1f;
-            loadingFillBar.anchorMax = new Vector2(progress, 1);
+            displayedProgress = Mathf.MoveTowards(displayedProgress, 1f, Time.unscaledDeltaTime * 4f);
+            if (loadingFillBar != null)
+                loadingFillBar.anchorMax = new Vector2(displayedProgress, 1f);
+            if (loadingPercentText != null)
+                loadingPercentText.text = "100% - Sẵn sàng!";
             yield return null;
         }
 
-        yield return new WaitForSeconds(0.6f);
+        yield return new WaitForSecondsRealtime(0.3f);
 
         // Fade out
-        if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg))
+        if (cg != null)
         {
             float t = 1f;
             while (t > 0f)
             {
-                t -= Time.unscaledDeltaTime * 5f;
-                cg.alpha = t;
+                t -= Time.unscaledDeltaTime * 4f;
+                cg.alpha = Mathf.Max(0f, t);
                 yield return null;
             }
+            cg.blocksRaycasts = false;
         }
 
         loadingScreenPanel.SetActive(false);
         isLoadingScreenActive = false;
-        Application.backgroundLoadingPriority = ThreadPriority.BelowNormal; // Hoặc Low
+        GameplayReadinessCoordinator.Release();
+        Application.backgroundLoadingPriority = ThreadPriority.BelowNormal;
         RestoreNetworkAfterLoading();
         EnableGameplayUI();
 
         if (mainCanvas != null) mainCanvas.gameObject.SetActive(false);
 
-        Debug.Log("=== LOADING HOÀN TẤT ===");
+        Debug.Log("=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===");
     }
     private void RestoreNetworkAfterLoading()
     {
@@ -1666,12 +1692,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         Debug.Log($"[MENU FLOW] OnSceneLoadDone runner='{runner?.name}', activeScene='{SceneManager.GetActiveScene().name}'.");
         isLocalSceneLoaded = true;
-
-        // Tất cả người chơi (Host + Client) đều báo đã load xong
-        if (activeRunner != null)
-        {
-            RPC_PlayerLoadedScene();
-        }
+        GameplayReadinessCoordinator.SetStage(
+            GameplayReadinessCoordinator.ReadinessStage.FusionSceneReady, 0.7f, "Khởi tạo môi trường mạng...");
     }
 
     private async Task CleanupOldRunnersAsync()
@@ -1850,33 +1872,9 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_PlayerLoadedScene()
+    private void PlayerLoadedSceneCanonical()
     {
-        playersLoaded++;
-        Debug.Log($"[Loaded] Player loaded. Total: {playersLoaded}/{activeRunner?.SessionInfo?.PlayerCount ?? 0}");
-
-        // Chỉ Host kiểm tra
-        if (activeRunner != null && activeRunner.IsServer)
-        {
-            if (playersLoaded >= (activeRunner.SessionInfo?.PlayerCount ?? 1))
-            {
-                Debug.Log("=== TẤT CẢ NGƯỜI CHƠI ĐÃ LOAD XONG ===");
-                RPC_StartGameplay();        // Gọi RPC báo tất cả bắt đầu
-            }
-        }
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_StartGameplay()
-    {
-        ForceCloseLoadingScreen();      // Thoát loading screen
-        RestoreNetworkAfterLoading();   // Bật lại input
-
-        // === BẮT ĐẦU GAMEPLAY Ở ĐÂY ===
-        // Ví dụ: Bật AI, timer, cho phép player di chuyển, spawn zombie...
-        Debug.Log("=== GAMEPLAY BẮT ĐẦU ĐỒNG BỘ ===");
-        // Bạn có thể gọi một hàm EnableGameplay() ở đây
+        // Network readiness is handled canonically by GameplayReadinessCoordinator and HostModeSpawner.
     }
 
     // Các callback còn lại để trống hoặc giữ nguyên

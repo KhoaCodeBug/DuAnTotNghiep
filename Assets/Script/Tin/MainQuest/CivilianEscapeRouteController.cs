@@ -126,7 +126,7 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
 
     private void OnGUI()
     {
-        if (CivilianRoutePresentationController.BlocksGameplayInput || VictorySummaryUI.IsShowing) return;
+        if (GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
 
         if (forceGatherCountdownActive && manager != null && manager.IsNetworkReady &&
             manager.CurrentCivilianRouteStage == MainQuestManager.CivilianRouteStage.AwaitingTeam)
@@ -151,7 +151,8 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
         string prompt = localTeamReady
             ? "[E]  BẮT ĐẦU VƯỢT VÒNG PHONG TỎA  •  ĐIỂM KHÔNG THỂ QUAY LẠI"
             : "CHỜ CÁC THÀNH VIÊN CÒN SỐNG TẬP KẾT GẦN XE";
-        GUI.Box(new Rect(Screen.width * 0.5f - 310f, Screen.height - 112f, 620f, 42f), prompt, style);
+        Rect promptRect = GameplayHudLayout.GetBottomCenterPromptRect(620f, 42f);
+        GUI.Box(promptRect, prompt, style);
     }
 
     private static GameObject CreateWorldMarker(string name, Vector2 position, Color color)

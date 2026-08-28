@@ -826,14 +826,32 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
-    public void MilitaryHordeScalesOpeningBatchAndNearbyTargetForSoloAndMultiplayer()
+    public void MilitaryHordeScalesForSoloSmallAndLargeMultiplayerTeams()
     {
         Assert.That(MilitaryStoryFlowRules.GetBatchSize(1), Is.EqualTo(8));
         Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(1), Is.EqualTo(24));
-        Assert.That(MilitaryStoryFlowRules.GetBatchSize(2), Is.EqualTo(16));
-        Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(2), Is.EqualTo(50));
-        Assert.That(MilitaryStoryFlowRules.ShouldSpawnBatch(2, 49), Is.True);
-        Assert.That(MilitaryStoryFlowRules.ShouldSpawnBatch(2, 50), Is.False);
+        Assert.That(MilitaryStoryFlowRules.GetHardSafetyCap(1), Is.EqualTo(36));
+        Assert.That(MilitaryStoryFlowRules.GetBatchSize(4), Is.EqualTo(16));
+        Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(4), Is.EqualTo(50));
+        Assert.That(MilitaryStoryFlowRules.GetHardSafetyCap(4), Is.EqualTo(72));
+        Assert.That(MilitaryStoryFlowRules.GetBatchSize(5), Is.EqualTo(24));
+        Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(5), Is.EqualTo(80));
+        Assert.That(MilitaryStoryFlowRules.GetHardSafetyCap(5), Is.EqualTo(112));
+        Assert.That(MilitaryStoryFlowRules.GetBatchSize(10), Is.EqualTo(24));
+        Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(10), Is.EqualTo(80));
+        Assert.That(MilitaryStoryFlowRules.GetHardSafetyCap(10), Is.EqualTo(112));
+        Assert.That(MilitaryStoryFlowRules.ShouldSpawnBatch(10, 79), Is.True);
+        Assert.That(MilitaryStoryFlowRules.ShouldSpawnBatch(10, 80), Is.False);
+    }
+
+    [Test]
+    public void MilitaryEscapeAcceptsPoliceOccupantsOrNearbySurvivorsOnFoot()
+    {
+        Assert.That(MilitaryStoryFlowRules.IsPlayerReadyForMilitaryEscape(true, true, 50f), Is.True);
+        Assert.That(MilitaryStoryFlowRules.IsPlayerReadyForMilitaryEscape(false, false, 6f), Is.True);
+        Assert.That(MilitaryStoryFlowRules.IsPlayerReadyForMilitaryEscape(false, false, 6.01f), Is.False);
+        Assert.That(MilitaryStoryFlowRules.IsPlayerReadyForMilitaryEscape(false, true, 2f), Is.False,
+            "A survivor in another vehicle is not standing in the police-car gather zone.");
     }
 
     [Test]

@@ -44,6 +44,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     // 🔥 CÁC BIẾN ĐỒNG BỘ MẠNG
     [Networked] public bool IsMatchStarted { get; set; } // Đánh dấu game đã bắt đầu chưa
     private readonly HashSet<PlayerRef> playersLoadedSet = new HashSet<PlayerRef>();
+    private readonly HashSet<PlayerRef> lateJoinAnnouncedPlayers = new HashSet<PlayerRef>();
 
     public int ReadyPlayerCount => playersLoadedSet.Count;
 
@@ -69,8 +70,11 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     private IEnumerator SpawnRoutine()
     {
+        GameplayReadinessCoordinator.SetStage(
+            GameplayReadinessCoordinator.ReadinessStage.Connecting, 0.5f, "Đang kết nối phiên chơi...");
+
         // 🔥 ĐỢI CHO ĐẾN KHI LOCAL PLAYER CÓ ID HỢP LỆ (Tránh lỗi PlayerRef.None làm mất InputAuthority trên Host)
-        float timeout = 4f;
+        float timeout = 8f;
         while (Runner != null && Runner.LocalPlayer == PlayerRef.None && timeout > 0f)
         {
             timeout -= Time.deltaTime;
@@ -78,6 +82,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         }
 
         if (Runner == null) yield break;
+
+        GameplayReadinessCoordinator.SetStage(
+            GameplayReadinessCoordinator.ReadinessStage.PlayerSpawnWaiting, 0.3f, "Đang yêu cầu tạo nhân vật...");
 
         // The standalone tutorial always uses survivor prefab 0 without
         // overwriting the character that the player chose in the main menu.
@@ -94,8 +101,28 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             RPC_RequestSpawn(Runner.LocalPlayer, myCharacterID, myPlayerName);
         }
 
-        // 2. Báo cáo cho Host: "Sếp ơi em đã tải Map xong và đang ở vị trí!"
+        // 2. Chờ cho đến khi đối tượng nhân vật được khởi tạo và gán InputAuthority
+        float spawnTimeout = 10f;
+        while (spawnTimeout > 0f)
+        {
+            if (Runner != null && Runner.GetPlayerObject(Runner.LocalPlayer) != null)
+                break;
+            spawnTimeout -= Time.deltaTime;
+            yield return null;
+        }
+
+        GameplayReadinessCoordinator.SetStage(
+            GameplayReadinessCoordinator.ReadinessStage.LocalAvatarBinding, 0.6f, "Đang liên kết điều khiển...");
+        yield return null;
+
+        GameplayReadinessCoordinator.SetStage(
+            GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady, 0.8f, "Đang hoàn tất giao diện...");
+        yield return null;
+
+        // 3. Báo cáo cho Host: "Sếp ơi em đã tải Map xong và toàn bộ hệ thống local đã sẵn sàng!"
         RPC_PlayerFinishedLoadingMap(Runner.LocalPlayer);
+        GameplayReadinessCoordinator.SetStage(
+            GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease, 0.95f, "Đang chờ máy chủ giải phóng...");
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -315,7 +342,6 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         // 🔥 LOGIC LATE JOIN (NGƯỜI CHƠI NHẢY DÙ VÀO SAU)
         if (IsMatchStarted)
         {
-            RPC_AnnounceLateJoin(playerName); // Báo tin lên Chat
             RPC_PlayBlinkEffect(netObj);      // Cho bất tử chớp nháy 3 giây
         }
     }
@@ -402,10 +428,16 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             return;
         }
 
-        // Nhánh 1: Nếu game đã bắt đầu từ lâu, đây là người đi trễ (Nhảy dù)
+        // Nhánh 1: Nếu game đã bắt đầu từ lâu, đây là người đi trễ (Late Joiner)
         if (IsMatchStarted)
         {
             RPC_OpenEyesForLateJoiner(authoritativePlayer); // Gọi riêng nó mở mắt lập tức
+            string pName = GetPlayerName(authoritativePlayer);
+            if (!lateJoinAnnouncedPlayers.Contains(authoritativePlayer))
+            {
+                lateJoinAnnouncedPlayers.Add(authoritativePlayer);
+                RPC_AnnounceLateJoin(pName);
+            }
             return;
         }
 
@@ -468,11 +500,8 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_AnnounceLateJoin(string playerName)
     {
-        // Bắn dòng chữ lên AutoChatManager của mọi người
-        if (GameObject.Find("--- AUTO CHAT MANAGER ---") != null)
-        {
-            SendMessageToChat($"<color=#00ff00>Viện binh đang đến: {playerName} đã thâm nhập khu vực!</color>");
-        }
+        string joinMsg = PlayerDeathContext.FormatJoinMessage(playerName);
+        AutoChatManager.Instance?.AddSystemMessage(joinMsg);
     }
 
     private void SendMessageToChat(string msg)
@@ -556,6 +585,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             soloMilitaryCheckpointInventory.Remove(player);
             soloMilitaryCheckpointCombat.Remove(player);
             playersLoadedSet.Remove(player);
+            lateJoinAnnouncedPlayers.Remove(player);
 
             // 🔥 FIX LỖI 1: Kẹt Loading. Nếu có đứa rớt mạng lúc đang ở sảnh chờ load, tự động check và cho những người còn lại vào game!
             if (!IsMatchStarted)

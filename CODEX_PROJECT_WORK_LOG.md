@@ -626,3 +626,74 @@
 - Đã push thành công nhánh `codex/route-b-final-polish` lên `origin` và thiết lập upstream cùng tên.
 - Remote đã cung cấp đường tạo PR cho nhánh; chưa tự merge vào `main`.
 - Working tree sau commit/push chỉ còn `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` dirty local, không nằm trong commit Route B vì đây là thay đổi user-owned ngoài phạm vi.
+
+## Entry 2026-08-28 — Hoàn thiện readiness, lobby và cân bằng multiplayer 5–10 người
+
+### Phạm vi và quyết định
+
+- Mục tiêu là mở rộng flow hiện có tới tối đa 10 Player mà không đổi giới hạn bốn ghế vật lý của xe cảnh sát, không tạo hệ thống scene/ending thứ hai và không làm khác hành vi Solo/đội 2–4 ngoài các tier đã yêu cầu.
+- Route B dùng điều kiện readiness authoritative mới: mỗi Player còn sống hợp lệ khi đang ngồi đúng xe cảnh sát, hoặc đang đứng ngoài xe trong bán kính `6m` tính từ xe. Player đang ngồi một xe khác không được tính là “đứng gần”.
+- Khi xe chạm `EndBFinal` và bắt đầu outro canonical, các Player sống không có ghế được State Authority đưa ra khỏi xe khác nếu cần, khóa movement, đặt vào đội hình bám theo xe và cấp trạng thái bất tử replicated. Camera/fade/result vẫn dùng presentation Route B chung trên từng peer.
+- Yêu cầu tài liệu vừa đưa có mâu thuẫn giữa công thức `ceil(playerCount * 0.75)` và các ví dụ `5–6 = 5`, `9–10 = 8`. Triển khai ưu tiên bảng kết quả cụ thể: Solo `0`; 2–4 `3`; 5–6 `5`; 7–8 `6`; 9–10 `8` team respawn charge.
+
+### Đã triển khai
+
+- `MilitaryBaseQuestManager` không còn bắt toàn bộ người sống phải chiếm bốn ghế. State Authority đếm readiness cho toàn bộ `Runner.ActivePlayers`, bỏ qua Player chết/đang biến đổi và chặn khởi động nếu còn người chưa hợp lệ.
+- `PlayerHealth` có `IsMilitaryOutroProtected` networked. Damage trực tiếp và survival drain không thể giết virtual follower trong outro; zombie cũng xem follower này như occupant được bảo vệ.
+- Virtual follower được đặt theo offset deterministic hai cột phía sau xe, teleport/lock authority-side trong thời gian autonomous outro và được dọn protection khi reset flow.
+- Waiting Room runtime UI thay `HorizontalLayoutGroup` bằng `GridLayoutGroup`: cell `280x115`, spacing `20x15`, `FixedRowCount = 2`, căn giữa, đủ bố cục 2x5 cho 10 Player.
+- Team respawn pool được tính động khi siege bắt đầu theo các tier `0/3/5/6/8`; consume vẫn clamp tại 0 và Solo vẫn không dùng team respawn.
+- Horde có ba tier canonical: Solo target/batch-per-point/cap `24/2/36`; đội 2–4 `50/4/72`; đội 5–10 `80/6/112`. `SiegeHordeDirector` lấy hard cap từ cùng rules source thay vì hai serialized cap cũ.
+- Không sửa `Main.unity`, prefab, `NetworkProjectConfig.fusion`, NetworkPrefabTable hoặc NetworkObject ID.
+
+### Test và xác minh
+
+- Unity `AssetDatabase.Refresh(ForceSynchronousImport)` thành công; Console cuối: `0 error`.
+- Toàn bộ EditMode bản cuối: `119/119` pass, `0` fail/skip. Regression mới phủ mọi mốc respawn 1–10, ranh giới readiness `6m`, Player ở xe khác và cả ba tier horde, gồm boundary chuyển đội 4 → 5.
+- Toàn bộ PlayMode: `10/10` pass, `0` fail/skip, khoảng `115,8 giây`. Test mới load `MainMenu` và xác minh Waiting Room thực sự dùng grid hai hàng với đúng cell/spacing/alignment; full Route B production flow hiện hữu vẫn pass.
+- `git diff --check` không có whitespace error; warning CRLF hiện hữu chỉ là cấu hình line-ending của working copy.
+
+### QA tay còn bắt buộc
+
+- Chưa chạy một lobby thật với 5–10 tiến trình/máy để đánh giá độ vừa mắt của 10 player card trên từng độ phân giải và replication của virtual follower dưới latency.
+- Cần test Host + nhiều Client cho các ca: bốn người trên xe + người thứ 5 đứng đúng/sai bán kính 6m; disconnect/death sát lúc bấm `W`; Client ngoài xe bị zombie đánh đúng lúc bắt đầu outro; camera/fade và Victory Summary xuất hiện đồng thời trên mọi peer.
+- Horde tier 5–10 đã pass rules/flow tự động nhưng vẫn cần Profiler trên máy mục tiêu với khoảng 80–112 zombie để chốt frame-time, GC và network bandwidth thực tế.
+
+### Git
+
+- Branch local: `codex/multiplayer-10-player-completion`.
+- Chưa commit và chưa push theo yêu cầu hiện tại.
+
+## Entry 2026-08-28 — Fix toàn diện UI Hotbar Safe Lane, BoxChat Multiplayer, Late Join, Loading Readiness và Hiệu năng
+
+### Phạm vi và quyết định
+
+- Mục tiêu: Khắc phục triệt để lỗi chồng lấn prompt OnGUI lên UI Hotbar ở đáy màn hình, chuẩn hóa BoxChat multiplayer (tin nhắn vàng cho hệ thống, chống XSS/rich text spam cho player), đồng bộ hóa vòng đời loading/readiness bằng Single Source of Truth duy nhất (`GameplayReadinessCoordinator`), authoritative late join announcement (không spam, không pause trận, phát khi sẵn sàng), authoritative death context và tối ưu hóa hiệu năng cảnh/RPC.
+- Giao diện Hotbar và Prompt: Tạo bộ điều phối bố cục tập trung `GameplayHudLayout` tính toán vùng an toàn (Safe Lane) dựa trên footprint chuẩn của Hotbar (`165px` ở 1080p, co giãn theo UI scale/resolution). Di chuyển toàn bộ prompt OnGUI (`PlayerInteraction`, `CivilianEscapeRouteController`, `MilitaryEscapeVehicleRepair`, `MilitaryQuestInteractionPoint`, `BrokenArrivalCar`) lên trên Hotbar safe lane. Tự động ẩn toàn bộ prompt khi đang Loading, Pause/Options, Chat mở, hoặc hiển thị Modal.
+- Readiness & Loading Screen: Thống nhất hoàn toàn vào `GameplayReadinessCoordinator`, loại bỏ cơ chế song song bị phân mảnh giữa `MainMenuManager` và `HostModeSpawner`. Màn hình loading chuyển sang Canvas sortingOrder cao nhất (`9999`), chặn raycast và hiển thị tiến độ tăng đơn điệu theo các stage logic thực tế (`Connecting` -> `SceneLoading` -> `FusionSceneReady` -> `PlayerSpawnWaiting` -> `LocalAvatarBinding` -> `HUDAndSystemsReady` -> `AwaitingHostRelease` -> `ReleasedToGameplay`).
+- Chat & System Announcements: Tách biệt `AddPlayerMessage` và `AddSystemMessage` trên `AutoChatManager`. Toàn bộ tin nhắn hệ thống (`[HỆ THỐNG] ...`) định dạng đồng nhất màu vàng `#FFD54A`. Loại bỏ thông báo màu xanh lá legacy. Tên và nội dung chat của người chơi được làm sạch mã màu/rich text tag độc hại (`PlayerDeathContext.SanitizeRichText`).
+- Authoritative Late Join & Death: Late joiner được Host phát lệnh mở mắt riêng và broadcast thông báo gia nhập duy nhất 1 lần khi đã hoàn tất nạp Map và avatar sẵn sàng (`RPC_PlayerFinishedLoadingMap`). Nguyên nhân tử vong (`DeathCause`: `ZombieAttack`, `Bleeding`, `Infection`, `Starvation`, `Dehydration`, `PvP`, `Unknown`) và attacker PlayerRef được lưu và phát authoritative 1 lần duy nhất từ State Authority.
+
+### Đã triển khai
+
+- Tạo mới `Assets/Script/Tin/GameplayHudLayout.cs`: Tính toán prompt box và progress bar an toàn trên mọi độ phân giải (720p, 768p, 900p, 1080p, 1440p, 4K) không bao giờ chạm vùng Hotbar; kiểm tra điều kiện ẩn prompt.
+- Tạo mới `Assets/Script/Tin/PlayerDeathContext.cs`: Định nghĩa enum `DeathCause`, hằng số màu `#FFD54A`, bộ lọc rich text và hàm định dạng join/death announcement chuẩn hóa tiếng Việt.
+- Tạo mới `Assets/Script/Tin/Multiplayer/GameplayReadinessCoordinator.cs`: Điều phối máy trạng thái sẵn sàng vòng đời mạng và tính toán % loading thực.
+- Cập nhật `PlayerInteraction.cs`, `CivilianEscapeRouteController.cs`, `MilitaryEscapeVehicleRepair.cs`, `MilitaryQuestInteractionPoint.cs`, `BrokenArrivalCar.cs` chuyển toàn bộ OnGUI sang `GameplayHudLayout`.
+- Cập nhật `AutoChatManager.cs` và `PlayerInputHandler2D.cs` hỗ trợ tin nhắn hệ thống màu vàng, lọc rich text, bounded buffer và ngăn chặn input khi đang loading.
+- Cập nhật `PlayerHealth.cs` và `PlayerCombat.cs` tracking nguyên nhân chết/người hạ gục từ State Authority và phát tin nhắn hệ thống một lần duy nhất.
+- Cập nhật `HostModeSpawner.cs` và `MainMenuManager.cs` đồng bộ theo `GameplayReadinessCoordinator`, xóa bỏ RPC loading cũ bị trùng lặp, phát late join announcement authoritative tại ready ack.
+- Tạo mới `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs` kiểm thử tự động toàn diện.
+
+### Test và xác minh
+
+- Unity compilation: `0 errors`, `0 exceptions`.
+- Toàn bộ EditMode tests: `126/126` pass (`100%`, 3.79s), bao gồm 7 test mới kiểm tra sanitization, system message gold color, mapping 7 nguyên nhân chết, readiness monotonic state machine, HUD layout no-overlap trên 6 độ phân giải (720p - 4K) và authority validation.
+- Toàn bộ PlayMode tests: `10/10` pass (`100%`, 122.60s), bảo đảm tính toàn vẹn của toàn bộ flow MainMenu -> Military Quest và font tiếng Việt.
+- Profiler: Không có GC allocation đột biến hay scene scan vô tận trong hot path.
+
+### Git
+
+- Branch local: `codex/multiplayer-10-player-completion`.
+- Không reset, không xóa thay đổi user-owned. Giữ nguyên working tree sạch sẽ sẵn sàng cho commit/review.
+

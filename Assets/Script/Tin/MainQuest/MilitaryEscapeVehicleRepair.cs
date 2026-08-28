@@ -121,6 +121,7 @@ public sealed class MilitaryEscapeVehicleRepair : MonoBehaviour
 
     private void OnGUI()
     {
+        if (GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
         if (manager == null || !manager.IsNetworkReady || isEscaping || !IsLocalPlayerNear()) return;
         string prompt = GetPrompt();
         if (string.IsNullOrEmpty(prompt)) return;
@@ -131,11 +132,12 @@ public sealed class MilitaryEscapeVehicleRepair : MonoBehaviour
             fontSize = 15,
             fontStyle = FontStyle.Bold
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 260f, Screen.height - 112f, 520f, 42f), prompt, style);
+        Rect promptRect = GameplayHudLayout.GetBottomCenterPromptRect(520f, 42f);
+        GUI.Box(promptRect, prompt, style);
 
         if (manager.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair && manager.HasAllParts)
         {
-            Rect bar = new Rect(Screen.width * 0.5f - 210f, Screen.height - 158f, 420f, 24f);
+            Rect bar = GameplayHudLayout.GetProgressBarRectAbovePrompt(promptRect, 420f, 24f);
             GUI.Box(bar, GUIContent.none);
             float width = (bar.width - 6f) * Mathf.Clamp01(manager.VehicleRepairProgress / 100f);
             Color previous = GUI.color;

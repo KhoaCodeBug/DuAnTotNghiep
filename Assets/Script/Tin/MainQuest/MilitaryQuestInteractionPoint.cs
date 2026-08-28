@@ -48,6 +48,7 @@ public sealed class MilitaryQuestInteractionPoint : MonoBehaviour
 
     private void OnGUI()
     {
+        if (GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
         if (!IsAvailable()) return;
         Camera camera = Camera.main;
         if (camera == null) return;
@@ -70,7 +71,8 @@ public sealed class MilitaryQuestInteractionPoint : MonoBehaviour
             fontSize = 15,
             fontStyle = FontStyle.Bold
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 225f, Screen.height - 112f, 450f, 42f),
+        Rect promptRect = GameplayHudLayout.GetBottomCenterPromptRect(450f, 42f);
+        GUI.Box(promptRect,
             $"[E]  {GetPrompt()}  •  {displayLabel}", prompt);
     }
 
