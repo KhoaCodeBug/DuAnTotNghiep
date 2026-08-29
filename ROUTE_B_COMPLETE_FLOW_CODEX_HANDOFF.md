@@ -1,8 +1,10 @@
 # ROUTE B — COMPLETE FLOW & CODEX HANDOFF
 
+> **TRẠNG THÁI TÀI LIỆU:** hồ sơ thiết kế/triển khai lịch sử tới 2026-08-26. Nguồn bàn giao hiện tại là `CODEX_PROJECT_WORK_LOG.md`; nếu có mâu thuẫn, entry mới hơn trong work log và repository hiện tại được ưu tiên. Phần 12 ở cuối file ghi các thay đổi lớn đã thay thế B6/B7 cũ.
+
 > Cập nhật: 2026-08-25
-> Mục đích: tài liệu bàn giao canonical để mở chat Codex mới và tiếp tục Tuyến B mà không phải đọc lại toàn bộ lịch sử.
-> Trạng thái hiện tại: **Toàn bộ state machine, Nhật ký, lựa chọn ending và đường test Tuyến B đã chạy được từ MainMenu tới Ending B mà không cần LootContainer. Ngày 2026-08-25, H1–H5 của chương bệnh viện đã triển khai: `ShiftLog → ShiftLog2 → KeyLoot ngẫu nhiên/shared key → mở cửa Radio → khôi phục 14 giây/3 chặng → hai đợt cao trào theo độ khó → bản ghi → Mảnh 2/map reveal`. Acceptance Host/Client hai máy vẫn phải test tay.**
+> Mục đích lịch sử: lưu thiết kế chi tiết Route B để tra cứu mà không làm mất các quyết định cũ.
+> Snapshot tại thời điểm 2026-08-25: **State machine, Nhật ký, lựa chọn ending và đường test Tuyến B đã chạy được từ MainMenu tới Ending B; H1–H5 của chương bệnh viện đã triển khai. Đây không phải trạng thái repository mới nhất.**
 
 ## 1. Quyết định thiết kế đã chốt
 
@@ -453,3 +455,16 @@ Chủ dự án đã chọn C. Production hiện dùng thẻ tương tác riêng 
 ## 11. Câu lệnh bàn giao gợi ý cho chat Codex mới
 
 > Hãy đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md`, đặc biệt B4–B7, và các file finale quân sự trong mục 10. H1–H5 bệnh viện đã triển khai; finale dùng 3 manh mối quest-state → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục. Không khôi phục Generator/150% HP/electric stun.
+
+## 12. Đính chính trạng thái Route B hiện tại — 2026-08-29
+
+Phần này thay thế các mô tả B6/B7 cũ khi có xung đột:
+
+- Loot sửa xe dùng năm `LootQuanSu` đã được author trong School, không còn spawn năm `MilitaryRepairLootContainer` runtime tại marker.
+- Zombie công thành dùng offset hash liên tục theo bề ngang/chiều sâu và lệch pha animation; không còn 13 lane cố định. Hướng chết được authority chọn ngẫu nhiên và đồng bộ.
+- Sau khi cổng vỡ, objective công thành chỉ trả zombie về AI gốc. Không còn quét Player hoặc manual chase theo từng zombie; tiếng xe cảnh sát authority-side thu hút zombie theo hệ thống noise canonical.
+- Xe sửa đủ không tự kết thúc siege. Tài xế khởi động bằng `W` khi mọi Player sống đạt readiness. Với tối đa 10 Player, readiness là ngồi đúng xe hoặc đứng ngoài xe trong bán kính 6m; người không có ghế trở thành virtual follower được bảo vệ trong outro.
+- Xe thật phải đi tuần tự `EndB1 → EndB2 → EndB3 → EndBFinal`. Tại `EndBFinal`, authority căn xe theo hướng `EndBFinal2`, khóa lái và tự chạy thẳng tới đó.
+- Camera đi tới `EndBToCinemachine` trong 6 giây với profile tăng tốc chậm rồi giảm dài, giữ 2 giây, sau đó mới fade và mở Victory Summary.
+- `F1` là shortcut Editor/Development cho Host/Solo: hoàn tất phần trước quân sự và teleport tới School; không tự lấy ba clue School, không vote và không khóa ending.
+- Route B final polish đã vào `main` qua PR #323. Chi tiết mới hơn, test và QA còn mở nằm trong `CODEX_PROJECT_WORK_LOG.md`.

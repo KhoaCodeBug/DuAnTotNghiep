@@ -25,11 +25,11 @@ MonoBehaviour:
   buffDuration: 0
   speedMultiplier: 1.5
   maxStaminaBoost: 50
-  weaponDamage: 15
+  weaponDamage: 24
   fireRate: 0.25
   magazineCapacity: 5
   pelletCount: 9
-  spreadAngle: 12
+  spreadAngle: 8
   weaponRange: 12
   shootNoiseRadius: 35
   soundVolumeMultiplier: 1.4

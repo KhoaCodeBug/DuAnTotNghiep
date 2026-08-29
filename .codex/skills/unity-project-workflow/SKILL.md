@@ -11,14 +11,15 @@ requiring evidence before completion claims.
 
 ## Project context
 
-- Project root: E:\Unity\GameObject\Game3D\ProJectZomboiNhai
+- Project root hiện tại: E:\Lap_trinh\HocTap\DuAnTotNghiepFIx\My project
 - Engine: Unity 6.0.69f1; verify ProjectSettings/ProjectVersion.txt before relying on this.
 - Game: top-down zombie-survival game with Solo and Fusion Host Mode multiplayer.
 - Main gameplay scene: Assets/Scenes/Main.unity; verify before editing.
 - The repository's current files and Unity serialization are the source of truth.
-- CODEX_PROJECT_WORK_LOG.md is the historical handoff; read it before gameplay,
-  scene, multiplayer, QA, or Git work, then verify its claims against the
-  current repository.
+- CODEX_PROJECT_WORK_LOG.md is the canonical continuous handoff; read it before
+  gameplay, scene, multiplayer, QA, or Git work, then verify its claims against
+  the current repository. Legacy Route B/MainPlay handoff files are optional
+  historical references, not competing current-state sources.
 
 ## Non-negotiable operating rules
 

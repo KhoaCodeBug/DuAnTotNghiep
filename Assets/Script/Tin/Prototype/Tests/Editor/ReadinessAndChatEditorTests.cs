@@ -1,12 +1,83 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 public sealed class ReadinessAndChatEditorTests
 {
+    private const float MinimumMultiplayerConnectionTimeoutSeconds = 120f;
+
+    [Test]
+    public void MainScene_InvisibleObstacleRegressionMarker_IsNoLongerCoveredByLegacyFenceCollider()
+    {
+        string scenePath = Path.Combine(Application.dataPath, "Scenes/Main.unity");
+        Assert.That(File.Exists(scenePath), Is.True);
+
+        string sceneYaml = File.ReadAllText(scenePath);
+        Assert.That(sceneYaml, Does.Contain("m_Name: Collider_A*TangHinh"),
+            "Keep the authored marker as the regression location for the invisible blocker.");
+        Assert.That(sceneYaml, Does.Not.Contain("m_Name: HangRao (3)"),
+            "HangRao (3) was a solid PolygonCollider2D with no renderer at the marker position.");
+    }
+
+    [TestCase("Assets/Prefab/Player.prefab")]
+    [TestCase("Assets/Prefab/Player2.prefab")]
+    public void PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay(string prefabPath)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        Assert.That(prefab, Is.Not.Null, prefabPath);
+
+        MonoBehaviour vision = prefab.GetComponents<MonoBehaviour>()
+            .FirstOrDefault(component => component != null && component.GetType().Name == "PlayerVision");
+        Assert.That(vision, Is.Not.Null, $"{prefabPath} must contain PlayerVision on its root.");
+
+        SerializedObject serializedVision = new SerializedObject(vision);
+        Assert.That(serializedVision.FindProperty("passiveVisionRadius").floatValue,
+            Is.EqualTo(2f).Within(0.001f));
+        Assert.That(serializedVision.FindProperty("zombieVisibilityFadeDuration").floatValue,
+            Is.GreaterThan(0f));
+        Assert.That(serializedVision.FindProperty("zombieAwarenessInitialAlpha").floatValue,
+            Is.InRange(0.05f, 0.5f));
+        Assert.That(serializedVision.FindProperty("localPlayerXRayAlpha").floatValue,
+            Is.InRange(0.1f, 0.6f));
+    }
+
+    [Test]
+    public void FirearmBalance_AkAndS12KMeetCloseRangeDamageAndAccuracyFloor()
+    {
+        AssertWeaponBalance("AK47", minimumDamage: 42f, maximumSpread: 1f, minimumPellets: 1);
+        AssertWeaponBalance("S12K", minimumDamage: 24f, maximumSpread: 8f, minimumPellets: 9);
+    }
+
+    private static void AssertWeaponBalance(string weaponId, float minimumDamage,
+        float maximumSpread, int minimumPellets)
+    {
+        string assetPath = Path.Combine(Application.dataPath, $"Resources/Items/{weaponId}.asset");
+        Assert.That(File.Exists(assetPath), Is.True, assetPath);
+        string yaml = File.ReadAllText(assetPath);
+
+        float damage = ParseYamlFloat(yaml, "weaponDamage");
+        float spread = ParseYamlFloat(yaml, "spreadAngle");
+        int pellets = Mathf.RoundToInt(ParseYamlFloat(yaml, "pelletCount"));
+        Assert.That(damage, Is.GreaterThanOrEqualTo(minimumDamage), $"{weaponId} damage");
+        Assert.That(spread, Is.LessThanOrEqualTo(maximumSpread), $"{weaponId} spread");
+        Assert.That(pellets, Is.GreaterThanOrEqualTo(minimumPellets), $"{weaponId} pellet count");
+    }
+
+    private static float ParseYamlFloat(string yaml, string field)
+    {
+        Match match = Regex.Match(yaml, $"^  {Regex.Escape(field)}: (?<value>-?[0-9]+(?:\\.[0-9]+)?)\\r?$",
+            RegexOptions.Multiline);
+        Assert.That(match.Success, Is.True, $"Missing YAML field '{field}'.");
+        return float.Parse(match.Groups["value"].Value,
+            System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     private static Type ResolveGameType(string name)
     {
         Type type = AppDomain.CurrentDomain.GetAssemblies()
@@ -23,6 +94,28 @@ public sealed class ReadinessAndChatEditorTests
         MethodInfo setMethod = locType.GetMethod("SetLanguage", BindingFlags.Public | BindingFlags.Static);
         object langVal = Enum.ToObject(langEnum, langIndex);
         setMethod.Invoke(null, new object[] { langVal, false });
+    }
+
+    [Test]
+    public void FusionConnectionTimeout_CoversConcurrentMainSceneLoading()
+    {
+        string configPath = Path.Combine(Application.dataPath,
+            "Photon/Fusion/Resources/NetworkProjectConfig.fusion");
+        Assert.That(File.Exists(configPath), Is.True,
+            "Fusion NetworkProjectConfig must exist at the canonical Resources path.");
+
+        string configJson = File.ReadAllText(configPath);
+        Match timeoutMatch = Regex.Match(configJson,
+            "\\\"ConnectionTimeout\\\"\\s*:\\s*(?<seconds>[0-9]+(?:\\.[0-9]+)?)");
+        Assert.That(timeoutMatch.Success, Is.True,
+            "Fusion NetworkProjectConfig must declare ConnectionTimeout.");
+        Assert.That(float.TryParse(timeoutMatch.Groups["seconds"].Value,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out float timeoutSeconds), Is.True);
+        Assert.That(timeoutSeconds, Is.GreaterThanOrEqualTo(MinimumMultiplayerConnectionTimeoutSeconds),
+            "Host/client Editors can spend over 30 seconds loading Main concurrently; " +
+            "a shorter timeout disconnects a healthy client before readiness completes.");
     }
 
     [Test]
