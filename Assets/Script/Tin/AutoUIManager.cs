@@ -106,6 +106,7 @@ public class AutoUIManager : MonoBehaviour
         HotbarHUDManager.Instance.SetHUDVisible(true);
         GameLocalization.LanguageChanged += RefreshLocalizedText;
         RefreshLocalizedText();
+        GameplayReadinessCoordinator.ApplyCanvasSuppression();
     }
 
     private Sprite GenerateGreenBorderSprite()
@@ -141,9 +142,9 @@ public class AutoUIManager : MonoBehaviour
     private void OnDestroy()
     {
         GameLocalization.LanguageChanged -= RefreshLocalizedText;
-        // 1. Phá hủy cái Canvas tổng (Chứa Balo, Bảng Trade, Đồng Hồ...)
         if (mainCanvas != null)
         {
+            GameplayReadinessCoordinator.UnregisterGameplayCanvas(mainCanvas);
             Destroy(mainCanvas.gameObject);
         }
 
@@ -659,6 +660,9 @@ public class AutoUIManager : MonoBehaviour
         GameObject canvasGO = new GameObject("AutoCanvas");
         mainCanvas = canvasGO.AddComponent<Canvas>();
         mainCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+        CanvasGroup cg = canvasGO.AddComponent<CanvasGroup>();
+        GameplayReadinessCoordinator.RegisterGameplayCanvas(mainCanvas);
 
         CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;

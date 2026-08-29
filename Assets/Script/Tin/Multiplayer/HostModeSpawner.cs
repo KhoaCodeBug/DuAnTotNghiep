@@ -43,17 +43,117 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
     // 🔥 CÁC BIẾN ĐỒNG BỘ MẠNG
     [Networked] public bool IsMatchStarted { get; set; } // Đánh dấu game đã bắt đầu chưa
+    [Networked] public int SessionDifficulty { get; set; } // Đồng bộ Canonical Difficulty từ Host sang Client
+    [Networked] public NetworkBool SessionDifficultyReady { get; set; } // Đánh dấu Host đã xuất bản Canonical Difficulty hợp lệ
     private readonly HashSet<PlayerRef> playersLoadedSet = new HashSet<PlayerRef>();
     private readonly HashSet<PlayerRef> lateJoinAnnouncedPlayers = new HashSet<PlayerRef>();
 
     public int ReadyPlayerCount => playersLoadedSet.Count;
+    private bool sessionDifficultyMetadataReady;
+
+    public bool IsSessionDifficultyAuthoritativeReady
+    {
+        get
+        {
+            if (Runner != null && Runner.IsServer)
+                return true;
+            if (sessionDifficultyMetadataReady)
+                return true;
+            if (Object != null && Object.IsValid && (bool)SessionDifficultyReady)
+                return true;
+            return false;
+        }
+    }
+
+    internal void SetSessionDifficultyMetadataReadyForTest(bool ready)
+    {
+        sessionDifficultyMetadataReady = ready;
+    }
+
+    private ChangeDetector changeDetector;
+
+    public static bool TryExtractIntProperty(object propValue, out int result)
+    {
+        result = 1;
+        if (propValue == null) return false;
+
+        if (propValue is int intVal)
+        {
+            result = DifficultyRules.ClampDifficulty(intVal);
+            return true;
+        }
+        if (propValue is long longVal)
+        {
+            result = DifficultyRules.ClampDifficulty((int)longVal);
+            return true;
+        }
+        if (propValue is SessionProperty sp)
+        {
+            result = DifficultyRules.ClampDifficulty((int)sp);
+            return true;
+        }
+        if (int.TryParse(propValue.ToString(), out int parsed))
+        {
+            result = DifficultyRules.ClampDifficulty(parsed);
+            return true;
+        }
+        return false;
+    }
 
     public override void Spawned()
     {
         Instance = this;
+        changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
+
+        if (Runner != null && Runner.IsServer)
+        {
+            SessionDifficulty = DifficultyRules.ActiveDifficulty;
+            SessionDifficultyReady = true;
+            sessionDifficultyMetadataReady = true;
+        }
+        else
+        {
+            sessionDifficultyMetadataReady = false;
+            // Client checks authoritative SessionInfo.Properties bootstrap first
+            if (Runner != null && Runner.SessionInfo != null && Runner.SessionInfo.Properties != null &&
+                Runner.SessionInfo.Properties.TryGetValue("GameDifficulty", out var sessionProp) &&
+                TryExtractIntProperty(sessionProp, out int propDiff))
+            {
+                DifficultyRules.SetSessionDifficulty(propDiff);
+                sessionDifficultyMetadataReady = true;
+            }
+            else if (SessionDifficultyReady)
+            {
+                // Only apply networked SessionDifficulty when marked Ready by Host
+                DifficultyRules.SetSessionDifficulty(SessionDifficulty);
+                sessionDifficultyMetadataReady = true;
+            }
+        }
+
         MainArrivalStoryBootstrap.EnsureMainSceneSetup(this);
         if (!deferInitialSpawn)
             BeginInitialSpawn();
+    }
+
+    public override void Render()
+    {
+        if (changeDetector != null)
+        {
+            foreach (var change in changeDetector.DetectChanges(this, out var previousBuffer, out var currentBuffer))
+            {
+                switch (change)
+                {
+                    case nameof(SessionDifficulty):
+                    case nameof(SessionDifficultyReady):
+                        if (Runner != null && !Runner.IsServer && SessionDifficultyReady)
+                        {
+                            DifficultyRules.SetSessionDifficulty(SessionDifficulty);
+                            sessionDifficultyMetadataReady = true;
+                        }
+                        break;
+                }
+            }
+        }
     }
 
     public void BeginInitialSpawn()
@@ -71,7 +171,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     private IEnumerator SpawnRoutine()
     {
         GameplayReadinessCoordinator.SetStage(
-            GameplayReadinessCoordinator.ReadinessStage.Connecting, 0.5f, "Đang kết nối phiên chơi...");
+            GameplayReadinessCoordinator.ReadinessStage.Connecting, 0.5f, "loading.connecting");
 
         // 🔥 ĐỢI CHO ĐẾN KHI LOCAL PLAYER CÓ ID HỢP LỆ (Tránh lỗi PlayerRef.None làm mất InputAuthority trên Host)
         float timeout = 8f;
@@ -83,8 +183,41 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
         if (Runner == null) yield break;
 
+        // 🔥 ĐỢI CHO ĐẾN KHI CLIENT NHẬN ĐƯỢC DIFFICULTY AUTHORITATIVE HỢP LỆ TRƯỚC KHI TIẾN HÀNH SPAWN
+        if (Runner != null && !Runner.IsServer)
+        {
+            float diffTimeout = 10f;
+            while (diffTimeout > 0f && !IsSessionDifficultyAuthoritativeReady)
+            {
+                if (Runner.SessionInfo != null && Runner.SessionInfo.Properties != null &&
+                    Runner.SessionInfo.Properties.TryGetValue("GameDifficulty", out var sessionProp) &&
+                    TryExtractIntProperty(sessionProp, out int propDiff))
+                {
+                    DifficultyRules.SetSessionDifficulty(propDiff);
+                    sessionDifficultyMetadataReady = true;
+                    break;
+                }
+                diffTimeout -= Time.deltaTime;
+                yield return null;
+            }
+
+            if (!IsSessionDifficultyAuthoritativeReady && SessionDifficultyReady)
+            {
+                DifficultyRules.SetSessionDifficulty(SessionDifficulty);
+                sessionDifficultyMetadataReady = true;
+            }
+
+            if (!IsSessionDifficultyAuthoritativeReady)
+            {
+                Debug.LogError("[SPAWNER] Timeout waiting for authoritative session difficulty from Host. Aborting spawn routine to prevent unauthorized default difficulty.");
+                GameplayReadinessCoordinator.SetStage(
+                    GameplayReadinessCoordinator.ReadinessStage.Failed, 0f, "loading.failed");
+                yield break;
+            }
+        }
+
         GameplayReadinessCoordinator.SetStage(
-            GameplayReadinessCoordinator.ReadinessStage.PlayerSpawnWaiting, 0.3f, "Đang yêu cầu tạo nhân vật...");
+            GameplayReadinessCoordinator.ReadinessStage.PlayerSpawnWaiting, 0.3f, "loading.player_spawn_waiting");
 
         // The standalone tutorial always uses survivor prefab 0 without
         // overwriting the character that the player chose in the main menu.
@@ -112,17 +245,24 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         }
 
         GameplayReadinessCoordinator.SetStage(
-            GameplayReadinessCoordinator.ReadinessStage.LocalAvatarBinding, 0.6f, "Đang liên kết điều khiển...");
+            GameplayReadinessCoordinator.ReadinessStage.LocalAvatarBinding, 0.6f, "loading.avatar_binding");
         yield return null;
 
         GameplayReadinessCoordinator.SetStage(
-            GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady, 0.8f, "Đang hoàn tất giao diện...");
+            GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady, 0.8f, "loading.hud_ready");
         yield return null;
+
+        // Đảm bảo client chỉ báo hoàn tất nạp và mở gameplay khi difficulty authoritative đã được thiết lập
+        if (Runner != null && !Runner.IsServer && !IsSessionDifficultyAuthoritativeReady)
+        {
+            Debug.LogError("[SPAWNER] Difficulty authoritative not ready before loading acknowledgement. Aborting ready report.");
+            yield break;
+        }
 
         // 3. Báo cáo cho Host: "Sếp ơi em đã tải Map xong và toàn bộ hệ thống local đã sẵn sàng!"
         RPC_PlayerFinishedLoadingMap(Runner.LocalPlayer);
         GameplayReadinessCoordinator.SetStage(
-            GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease, 0.95f, "Đang chờ máy chủ giải phóng...");
+            GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease, 0.95f, "loading.awaiting_host");
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -481,6 +621,10 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         {
             AutoMainMenuManager.Instance.ForceCloseLoadingScreen();
         }
+        else
+        {
+            GameplayReadinessCoordinator.Release();
+        }
     }
 
     // Lệnh gọi điện riêng cho thằng đi trễ (Late Joiner) bảo nó mở mắt
@@ -490,6 +634,10 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         if (AutoMainMenuManager.Instance != null)
         {
             AutoMainMenuManager.Instance.ForceCloseLoadingScreen();
+        }
+        else
+        {
+            GameplayReadinessCoordinator.Release();
         }
     }
 
@@ -508,7 +656,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     {
         if (AutoChatManager.Instance != null)
         {
-            AutoChatManager.Instance.AddMessage("SYSTEM", msg);
+            AutoChatManager.Instance.AddSystemMessage(msg);
         }
     }
 

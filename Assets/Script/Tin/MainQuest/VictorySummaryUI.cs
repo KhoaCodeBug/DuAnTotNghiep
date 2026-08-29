@@ -125,7 +125,7 @@ public sealed class VictorySummaryUI : MonoBehaviour
         Skill_WeaponMaster skill = localPlayer != null ? localPlayer.GetComponent<Skill_WeaponMaster>() : null;
         if (skill != null && skill.Object != null && skill.Object.IsValid) killCount = skill.CurrentKills;
 
-        string difficulty = PlayerPrefs.GetInt("GameDifficulty", 1) switch
+        string difficulty = DifficultyRules.ActiveDifficulty switch
         {
             0 => "Dễ",
             2 => "Hardcore",

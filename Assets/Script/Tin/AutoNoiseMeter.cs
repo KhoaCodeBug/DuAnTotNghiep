@@ -81,6 +81,10 @@ public class AutoNoiseMeter : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (canvasObject != null && canvasObject.TryGetComponent<Canvas>(out var c))
+        {
+            GameplayReadinessCoordinator.UnregisterGameplayCanvas(c);
+        }
         if (instance == this) instance = null;
     }
 
@@ -94,6 +98,8 @@ public class AutoNoiseMeter : MonoBehaviour
         Canvas canvas = canvasObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 105;
+        canvasObject.AddComponent<CanvasGroup>();
+        GameplayReadinessCoordinator.RegisterGameplayCanvas(canvas);
 
         CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;

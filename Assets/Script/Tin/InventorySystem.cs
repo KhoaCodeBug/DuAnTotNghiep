@@ -99,22 +99,13 @@ public class InventorySystem : NetworkBehaviour
             return;
         }
 
-        // Only the server chooses the random starting weapon.  A regular
-        // client must never roll independently, otherwise its inventory can
-        // disagree with the host and other players.
-        if (HasStateAuthority && !HasStartingWeapon)
+        // Grant starting gear based strictly on canonical difficulty rules on State Authority
+        if (HasStateAuthority && !HasStartingWeapon && !HasStartingFlashlight)
         {
             if (TutorialSession.IsActive)
                 MarkTutorialLoadoutReady();
             else
-                GrantRandomStartingWeapon();
-        }
-
-        if (HasStateAuthority && !HasStartingFlashlight)
-        {
-            HasStartingFlashlight = true;
-            PlaceStartingFlashlightInBackpack();
-            hasAppliedStartingFlashlightLocally = true;
+                GrantDifficultyStartingLoadout();
         }
 
         ApplyReplicatedStartingWeapon();
@@ -124,49 +115,50 @@ public class InventorySystem : NetworkBehaviour
     public override void Render()
     {
         // Late-join/input-authority clients receive the Networked values after
-        // Spawned, so retry here until their single starting weapon is applied.
+        // Spawned, so retry here until their starting gear is applied.
         ApplyReplicatedStartingWeapon();
         ApplyReplicatedStartingFlashlight();
     }
 
-    private void GrantRandomStartingWeapon()
+    private void GrantDifficultyStartingLoadout()
     {
-        ItemData selectedWeapon = null;
-        HostModeSpawner spawner = HostModeSpawner.Instance;
-        if (spawner != null)
-        {
-            spawner.TryGetCachedStartingWeapon(Object.InputAuthority, out selectedWeapon);
-        }
+        int difficulty = DifficultyRules.ActiveDifficulty;
+        DifficultyRules.StarterItem[] loadout = DifficultyRules.GetStarterGearLoadout(difficulty);
 
-        if (selectedWeapon == null)
+        foreach (var item in loadout)
         {
-            List<ItemData> weaponPool = new List<ItemData>();
-            foreach (ItemData item in Resources.LoadAll<ItemData>("Items"))
+            ItemData data = ItemDataLoader.LoadItem(item.ItemId);
+            if (data == null)
             {
-                if (item != null && item.category == ItemCategory.Weapon && !string.IsNullOrWhiteSpace(item.name))
+                Debug.LogWarning($"[STARTING LOADOUT] Item '{item.ItemId}' not found in Resources/Items.");
+                continue;
+            }
+
+            if (item.PreferHotbar)
+            {
+                StartingWeaponId = data.name;
+                HasStartingWeapon = true;
+                PlaceStartingWeaponInHotbar(data);
+                hasAppliedStartingWeaponLocally = true;
+                HostModeSpawner spawner = HostModeSpawner.Instance;
+                if (spawner != null) spawner.CacheStartingWeapon(Object.InputAuthority, data);
+            }
+            else
+            {
+                if (data.name == FlashlightController.ItemId || data.itemName == FlashlightController.ItemId)
                 {
-                    weaponPool.Add(item);
+                    HasStartingFlashlight = true;
+                    PlaceStartingFlashlightInBackpack();
+                    hasAppliedStartingFlashlightLocally = true;
+                }
+                else
+                {
+                    AddItem(data, item.Amount);
                 }
             }
-
-            if (weaponPool.Count == 0)
-            {
-                Debug.LogError("[STARTING LOADOUT] No valid Weapon ItemData was found in Resources/Items.");
-                return;
-            }
-
-            selectedWeapon = weaponPool[Random.Range(0, weaponPool.Count)];
-            if (spawner != null) spawner.CacheStartingWeapon(Object.InputAuthority, selectedWeapon);
         }
 
-        StartingWeaponId = selectedWeapon.name;
-        HasStartingWeapon = true;
-
-        // State Authority owns the canonical inventory.  Its local view is
-        // updated immediately; the client receives the replicated ID below.
-        PlaceStartingWeaponInHotbar(selectedWeapon);
-        hasAppliedStartingWeaponLocally = true;
-        Debug.Log($"[STARTING LOADOUT] Player {Object.InputAuthority} received {selectedWeapon.itemName} in hotbar.");
+        Debug.Log($"[STARTING LOADOUT] Granted {DifficultyRules.GetDifficultyName(difficulty)} starting loadout to Player {Object.InputAuthority}.");
     }
 
     private void MarkTutorialLoadoutReady()

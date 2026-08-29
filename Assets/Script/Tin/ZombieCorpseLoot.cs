@@ -239,7 +239,7 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
 
     private int RollCorpseLoot()
     {
-        int difficulty = Mathf.Clamp(PlayerPrefs.GetInt("GameDifficulty", 1), 0, 2);
+        int difficulty = DifficultyRules.ActiveDifficulty;
         float chance = difficulty switch
         {
             0 => easyLootChance,

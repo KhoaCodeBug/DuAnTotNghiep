@@ -120,13 +120,14 @@ public class LootContainer : NetworkBehaviour
     {
         itemsInContainer.Clear();
 
+        float lootMultiplier = DifficultyRules.GetLootRateMultiplier(DifficultyRules.ActiveDifficulty);
         if (lootTable != null)
         {
             foreach (var lootRule in lootTable.lootRules)
             {
                 if (lootRule.itemPrefab == null) continue;
                 float roll = Random.Range(0f, 100f);
-                if (roll <= lootRule.dropChance)
+                if (roll <= lootRule.dropChance * lootMultiplier)
                 {
                     int spawnAmount = Random.Range(lootRule.minAmount, lootRule.maxAmount + 1);
                     StoreItemLocal(lootRule.itemPrefab, spawnAmount, RandomLootSlotLimit);

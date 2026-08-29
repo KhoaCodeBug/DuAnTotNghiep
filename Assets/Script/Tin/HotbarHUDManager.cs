@@ -74,6 +74,8 @@ public class HotbarHUDManager : MonoBehaviour
         Canvas canvas = hudCanvas.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 120; // Cao hơn Canvas kho đồ (100) để kéo thả Hotbar mượt mà ngay cả khi mở Inventory!
+        hudCanvas.AddComponent<CanvasGroup>();
+        GameplayReadinessCoordinator.RegisterGameplayCanvas(canvas);
         CanvasScaler scaler = hudCanvas.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
@@ -252,6 +254,10 @@ public class HotbarHUDManager : MonoBehaviour
     private void OnDestroy()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        if (hudCanvas != null && hudCanvas.TryGetComponent<Canvas>(out var c))
+        {
+            GameplayReadinessCoordinator.UnregisterGameplayCanvas(c);
+        }
         if (instance == this) instance = null;
     }
 

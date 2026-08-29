@@ -95,6 +95,8 @@ public class AutoHealthPanel : MonoBehaviour
         Canvas canvas = healthCanvas.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 110;
+        healthCanvas.AddComponent<CanvasGroup>();
+        GameplayReadinessCoordinator.RegisterGameplayCanvas(canvas);
         CanvasScaler scaler = healthCanvas.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
@@ -1006,6 +1008,10 @@ public class AutoHealthPanel : MonoBehaviour
     {
         if (healthCanvas != null)
         {
+            if (healthCanvas.TryGetComponent<Canvas>(out var c))
+            {
+                GameplayReadinessCoordinator.UnregisterGameplayCanvas(c);
+            }
             Destroy(healthCanvas);
         }
         if (instance == this) instance = null;

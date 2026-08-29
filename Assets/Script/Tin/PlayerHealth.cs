@@ -381,7 +381,13 @@ public class PlayerHealth : NetworkBehaviour
             LastAttackerPlayerRef = attacker;
         }
 
-        currentHealth -= damage;
+        float effectiveDamage = damage;
+        if (!isStarving)
+        {
+            effectiveDamage *= DifficultyRules.GetIncomingDamageMultiplier(DifficultyRules.ActiveDifficulty);
+        }
+
+        currentHealth -= effectiveDamage;
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
         ApplyTutorialHealthFloor();
 
@@ -517,8 +523,7 @@ public class PlayerHealth : NetworkBehaviour
                 killerName = HostModeSpawner.Instance.GetPlayerName(LastAttackerPlayerRef);
             }
 
-            string deathMessage = PlayerDeathContext.FormatDeathMessage(victimName, LastDeathCause, killerName);
-            RPC_BroadcastDeathSystemMessage(deathMessage);
+            RPC_BroadcastDeathSystemMessage(victimName, (int)LastDeathCause, killerName);
         }
 
         if (isBitten)
@@ -535,9 +540,10 @@ public class PlayerHealth : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_BroadcastDeathSystemMessage(string formattedDeathMessage)
+    private void RPC_BroadcastDeathSystemMessage(string victimName, int deathCause, string killerName)
     {
-        AutoChatManager.Instance?.AddSystemMessage(formattedDeathMessage);
+        string deathMessage = PlayerDeathContext.FormatDeathMessage(victimName, (DeathCause)deathCause, killerName);
+        AutoChatManager.Instance?.AddSystemMessage(deathMessage);
     }
 
     public void SetGlobalBleeding(bool state)

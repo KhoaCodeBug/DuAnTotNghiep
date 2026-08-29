@@ -31,15 +31,15 @@ public static class PlayerDeathContext
 
         return cause switch
         {
-            DeathCause.ZombieAttack => $"{safeVictim} đã chết vì bị zombie tấn công.",
-            DeathCause.Bleeding     => $"{safeVictim} đã chết vì mất máu.",
-            DeathCause.Infection    => $"{safeVictim} đã chết vì nhiễm trùng.",
-            DeathCause.Starvation   => $"{safeVictim} đã chết vì đói.",
-            DeathCause.Dehydration  => $"{safeVictim} đã chết vì khát.",
+            DeathCause.ZombieAttack => string.Format(GameLocalization.Get("chat.death.zombie"), safeVictim),
+            DeathCause.Bleeding     => string.Format(GameLocalization.Get("chat.death.bleeding"), safeVictim),
+            DeathCause.Infection    => string.Format(GameLocalization.Get("chat.death.infection"), safeVictim),
+            DeathCause.Starvation   => string.Format(GameLocalization.Get("chat.death.starvation"), safeVictim),
+            DeathCause.Dehydration  => string.Format(GameLocalization.Get("chat.death.dehydration"), safeVictim),
             DeathCause.PvP          => !string.IsNullOrWhiteSpace(safeKiller)
-                                       ? $"{safeVictim} đã bị {safeKiller} hạ gục."
-                                       : $"{safeVictim} đã bị người chơi khác hạ gục.",
-            _                       => $"{safeVictim} đã tử vong."
+                                       ? string.Format(GameLocalization.Get("chat.death.pvp_killer"), safeVictim, safeKiller)
+                                       : string.Format(GameLocalization.Get("chat.death.pvp_generic"), safeVictim),
+            _                       => string.Format(GameLocalization.Get("chat.death.unknown"), safeVictim)
         };
     }
 
@@ -47,6 +47,6 @@ public static class PlayerDeathContext
     {
         string safeName = SanitizeRichText(playerName);
         if (string.IsNullOrWhiteSpace(safeName)) safeName = "Survivor";
-        return $"{safeName} đã vào trận.";
+        return string.Format(GameLocalization.Get("chat.player_joined"), safeName);
     }
 }
