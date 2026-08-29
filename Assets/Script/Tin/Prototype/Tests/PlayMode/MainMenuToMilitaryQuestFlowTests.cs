@@ -344,8 +344,8 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(inventoryGrid, Is.Not.Null);
         Assert.That(inventoryPanel, Is.Not.Null);
         Assert.That(inventoryPanel.sizeDelta.y, Is.EqualTo(530f).Within(0.1f));
-        Assert.That(inventoryGrid.childCount, Is.EqualTo(15),
-            "Fixed inventory UI must render all 15 non-hotbar slots.");
+        Assert.That(inventoryGrid.childCount, Is.EqualTo(50),
+            "Inventory UI must prebuild all 50 possible non-hotbar storage slots for upgrades.");
         Assert.That(inventoryScroll, Is.Not.Null);
         ScrollRect inventoryScrollRect = inventoryScroll.GetComponent<ScrollRect>();
         Assert.That(inventoryScrollRect, Is.Not.Null);
@@ -377,6 +377,13 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(inventoryTitleTop, Is.LessThanOrEqualTo(tabBottom - 4f),
             "The standalone inventory title must stay below the Inventory/Health tab bar.");
 
+        // The base backpack intentionally exposes only 15 storage slots.  To
+        // verify the maximum layout is actually scrollable, simulate the
+        // highest supported upgrade before rebuilding the UI; otherwise the
+        // hidden locked slots must not contribute to ContentSizeFitter height.
+        inventoryType.GetMethod("SetMaxSlots")?.Invoke(inventory, new object[] { 55 });
+        yield return null;
+
         inventoryPanel.gameObject.SetActive(true);
         containerPanel.gameObject.SetActive(true);
         autoUIType.GetMethod("UpdatePanelsLayout", BindingFlags.Instance | BindingFlags.NonPublic)
@@ -387,11 +394,13 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Canvas.ForceUpdateCanvases();
         Bounds inventoryBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(
             inventoryScrollRect.viewport, inventoryGrid);
-        Assert.That(inventoryBounds.min.y,
-            Is.GreaterThanOrEqualTo(inventoryScrollRect.viewport.rect.yMin - 1f));
+        // A scrollable content rect is expected to extend below the viewport;
+        // only its anchored top edge must remain inside the mask.
         Assert.That(inventoryBounds.max.y,
-            Is.LessThanOrEqualTo(inventoryScrollRect.viewport.rect.yMax + 1f),
-            "All 15 storage slots should be visible at once at the 1920x1080 reference layout.");
+            Is.LessThanOrEqualTo(inventoryScrollRect.viewport.rect.yMax + 1f));
+        Assert.That(inventoryGrid.rect.height,
+            Is.GreaterThan(inventoryScrollRect.viewport.rect.height),
+            "The 50-slot maximum storage layout must be scrollable instead of overflowing the viewport.");
         Bounds containerBounds = RectTransformUtility.CalculateRelativeRectTransformBounds(containerPanel, containerGrid);
         Assert.That(containerBounds.min.x, Is.GreaterThanOrEqualTo(containerPanel.rect.xMin - 0.5f));
         Assert.That(containerBounds.max.x, Is.LessThanOrEqualTo(containerPanel.rect.xMax + 0.5f));

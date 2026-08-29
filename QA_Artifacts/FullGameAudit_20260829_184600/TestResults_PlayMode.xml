@@ -1,0 +1,1142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="10" result="Passed" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-29 11:45:48Z" end-time="2026-08-29 11:47:20Z" duration="92.4340211">
+  <test-suite type="TestSuite" id="1195" name="DuAnTotNghiep" fullname="DuAnTotNghiep" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-08-29 11:45:48Z" end-time="2026-08-29 11:47:20Z" duration="92.434021" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1014" name="ProjectZomboiNhai.QuestFlow.Tests.PlayMode.dll" fullname="E:/Unity/GameObject/Game3D/ProJectZomboiNhai/Library/ScriptAssemblies/ProjectZomboiNhai.QuestFlow.Tests.PlayMode.dll" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-08-29 11:45:48Z" end-time="2026-08-29 11:47:20Z" duration="92.431002" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="11748" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestFixture" id="1001" name="MainMenuToMilitaryQuestFlowTests" fullname="MainMenuToMilitaryQuestFlowTests" classname="MainMenuToMilitaryQuestFlowTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-08-29 11:45:48Z" end-time="2026-08-29 11:47:19Z" duration="91.371638" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1003" name="HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor" fullname="MainMenuToMilitaryQuestFlowTests.HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor" methodname="HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor" classname="MainMenuToMilitaryQuestFlowTests" runstate="Runnable" seed="89716610" result="Passed" start-time="2026-08-29 11:45:48Z" end-time="2026-08-29 11:45:53Z" duration="5.470270" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="Timeout" value="60000" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[Scanning - Process took 422 ms to complete
+Scanning - Process took 422 ms to complete
+Scanning - Process took 422 ms to complete
+Scanning - Process took 422 ms to complete
+Scanning - Process took 422 ms to complete
+]]></output>
+        </test-case>
+        <test-case id="1004" name="MilitaryRepairStationUsesAuthoredPoliceCarWithoutRelocatingIt" fullname="MainMenuToMilitaryQuestFlowTests.MilitaryRepairStationUsesAuthoredPoliceCarWithoutRelocatingIt" methodname="MilitaryRepairStationUsesAuthoredPoliceCarWithoutRelocatingIt" classname="MainMenuToMilitaryQuestFlowTests" runstate="Runnable" seed="1357961644" result="Passed" start-time="2026-08-29 11:45:53Z" end-time="2026-08-29 11:45:59Z" duration="5.630113" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="Timeout" value="120000" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_5534'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_5534'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_5534'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_5534'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_5534'.
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_5534, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_5534, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_5534, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_5534, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_5534, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+Scanning - Process took 405 ms to complete
+Scanning - Process took 405 ms to complete
+Scanning - Process took 405 ms to complete
+Scanning - Process took 405 ms to complete
+Scanning - Process took 405 ms to complete
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 4 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 4 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 4 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 4 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 4 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[2026-08-29T11:45:59] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:45:59] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:45:59] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:45:59] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:45:59] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+]]></output>
+        </test-case>
+        <test-case id="1006" name="RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction" fullname="MainMenuToMilitaryQuestFlowTests.RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction" methodname="RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction" classname="MainMenuToMilitaryQuestFlowTests" runstate="Runnable" seed="2007584043" result="Passed" start-time="2026-08-29 11:45:59Z" end-time="2026-08-29 11:46:44Z" duration="45.207543" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="Timeout" value="180000" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_2350'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_2350'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_2350'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_2350'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_2350'.
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_2350, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_2350, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_2350, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_2350, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_2350, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+Scanning - Process took 396 ms to complete
+Scanning - Process took 396 ms to complete
+Scanning - Process took 396 ms to complete
+Scanning - Process took 396 ms to complete
+Scanning - Process took 396 ms to complete
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[2026-08-29T11:46:04] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:46:04] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:46:04] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:46:04] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:46:04] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[QUEST TEST] F6: đã hoàn tất kiểm tra xe. Chờ khu dân cư khởi tạo rồi nhấn F6 tiếp.
+[QUEST TEST] F6: đã hoàn tất kiểm tra xe. Chờ khu dân cư khởi tạo rồi nhấn F6 tiếp.
+[QUEST TEST] F6: đã hoàn tất kiểm tra xe. Chờ khu dân cư khởi tạo rồi nhấn F6 tiếp.
+[QUEST TEST] F6: đã hoàn tất kiểm tra xe. Chờ khu dân cư khởi tạo rồi nhấn F6 tiếp.
+[QUEST TEST] F6: đã hoàn tất kiểm tra xe. Chờ khu dân cư khởi tạo rồi nhấn F6 tiếp.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Bonus co-op copy 'FuelCan' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Bonus co-op copy 'FuelCan' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Bonus co-op copy 'FuelCan' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Bonus co-op copy 'FuelCan' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Bonus co-op copy 'FuelCan' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen1_E'.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 1/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 1/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 1/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 1/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 1/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 2/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 2/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 2/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 2/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 2/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 3/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 3/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 3/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 3/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng nhận tài liệu Tuyến B 3/3, không đụng LootContainer.
+[QUEST TEST] F6: mô phỏng đã tới Khu Điều phối trong bệnh viện.
+[QUEST TEST] F6: mô phỏng đã tới Khu Điều phối trong bệnh viện.
+[QUEST TEST] F6: mô phỏng đã tới Khu Điều phối trong bệnh viện.
+[QUEST TEST] F6: mô phỏng đã tới Khu Điều phối trong bệnh viện.
+[QUEST TEST] F6: mô phỏng đã tới Khu Điều phối trong bệnh viện.
+[HOSPITAL H2] ShiftLog hoàn tất; waypoint chuyển tới văn phòng trưởng ca.
+[HOSPITAL H2] ShiftLog hoàn tất; waypoint chuyển tới văn phòng trưởng ca.
+[HOSPITAL H2] ShiftLog hoàn tất; waypoint chuyển tới văn phòng trưởng ca.
+[HOSPITAL H2] ShiftLog hoàn tất; waypoint chuyển tới văn phòng trưởng ca.
+[HOSPITAL H2] ShiftLog hoàn tất; waypoint chuyển tới văn phòng trưởng ca.
+[HOSPITAL H5] ShiftLog2 hoàn tất; Host chọn KeyLoot ID -1517171379 cho toàn đội.
+[HOSPITAL H5] ShiftLog2 hoàn tất; Host chọn KeyLoot ID -1517171379 cho toàn đội.
+[HOSPITAL H5] ShiftLog2 hoàn tất; Host chọn KeyLoot ID -1517171379 cho toàn đội.
+[HOSPITAL H5] ShiftLog2 hoàn tất; Host chọn KeyLoot ID -1517171379 cho toàn đội.
+[HOSPITAL H5] ShiftLog2 hoàn tất; Host chọn KeyLoot ID -1517171379 cho toàn đội.
+[HOSPITAL H5] Team nhặt shared key tại ID -1517171379.
+[HOSPITAL H5] Team nhặt shared key tại ID -1517171379.
+[HOSPITAL H5] Team nhặt shared key tại ID -1517171379.
+[HOSPITAL H5] Team nhặt shared key tại ID -1517171379.
+[HOSPITAL H5] Team nhặt shared key tại ID -1517171379.
+[HOSPITAL H2] Đã mở Trạm liên lạc phụ trợ. Radio hiện sẵn sàng để kiểm tra.
+[HOSPITAL H2] Đã mở Trạm liên lạc phụ trợ. Radio hiện sẵn sàng để kiểm tra.
+[HOSPITAL H2] Đã mở Trạm liên lạc phụ trợ. Radio hiện sẵn sàng để kiểm tra.
+[HOSPITAL H2] Đã mở Trạm liên lạc phụ trợ. Radio hiện sẵn sàng để kiểm tra.
+[HOSPITAL H2] Đã mở Trạm liên lạc phụ trợ. Radio hiện sẵn sàng để kiểm tra.
+[HOSPITAL H2] Cửa Radio đã mở; H2 đạt RadioReady và H3 có thể bắt đầu.
+[HOSPITAL H2] Cửa Radio đã mở; H2 đạt RadioReady và H3 có thể bắt đầu.
+[HOSPITAL H2] Cửa Radio đã mở; H2 đạt RadioReady và H3 có thể bắt đầu.
+[HOSPITAL H2] Cửa Radio đã mở; H2 đạt RadioReady và H3 có thể bắt đầu.
+[HOSPITAL H2] Cửa Radio đã mở; H2 đạt RadioReady và H3 có thể bắt đầu.
+[HOSPITAL H4] Radio checkpoint 1/3: noise + 3 zombies at each entry (difficulty 0).
+[HOSPITAL H4] Radio checkpoint 1/3: noise + 3 zombies at each entry (difficulty 0).
+[HOSPITAL H4] Radio checkpoint 1/3: noise + 3 zombies at each entry (difficulty 0).
+[HOSPITAL H4] Radio checkpoint 1/3: noise + 3 zombies at each entry (difficulty 0).
+[HOSPITAL H4] Radio checkpoint 1/3: noise + 3 zombies at each entry (difficulty 0).
+[QUEST TEST] F6 hoàn tất chặng Radio 1/3.
+[QUEST TEST] F6 hoàn tất chặng Radio 1/3.
+[QUEST TEST] F6 hoàn tất chặng Radio 1/3.
+[QUEST TEST] F6 hoàn tất chặng Radio 1/3.
+[QUEST TEST] F6 hoàn tất chặng Radio 1/3.
+[QUEST MAP] Unlock reveal queued for the next map open.
+[QUEST MAP] Unlock reveal queued for the next map open.
+[QUEST MAP] Unlock reveal queued for the next map open.
+[QUEST MAP] Unlock reveal queued for the next map open.
+[QUEST MAP] Unlock reveal queued for the next map open.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 1/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 1/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 1/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 1/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 1/3.
+[HOSPITAL H4] Radio checkpoint 2/3: noise + 3 zombies at each entry (difficulty 0).
+[HOSPITAL H4] Radio checkpoint 2/3: noise + 3 zombies at each entry (difficulty 0).
+[HOSPITAL H4] Radio checkpoint 2/3: noise + 3 zombies at each entry (difficulty 0).
+[HOSPITAL H4] Radio checkpoint 2/3: noise + 3 zombies at each entry (difficulty 0).
+[HOSPITAL H4] Radio checkpoint 2/3: noise + 3 zombies at each entry (difficulty 0).
+[QUEST TEST] F6 hoàn tất chặng Radio 2/3.
+[QUEST TEST] F6 hoàn tất chặng Radio 2/3.
+[QUEST TEST] F6 hoàn tất chặng Radio 2/3.
+[QUEST TEST] F6 hoàn tất chặng Radio 2/3.
+[QUEST TEST] F6 hoàn tất chặng Radio 2/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 2/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 2/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 2/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 2/3.
+[HOSPITAL H4] Spawned 6 milestone zombies (3 per entry, difficulty 0) for checkpoint 2/3.
+[HOSPITAL H3] Radio recovered; Fragment 2 and the North Base route are now shared team state.
+[HOSPITAL H3] Radio recovered; Fragment 2 and the North Base route are now shared team state.
+[HOSPITAL H3] Radio recovered; Fragment 2 and the North Base route are now shared team state.
+[HOSPITAL H3] Radio recovered; Fragment 2 and the North Base route are now shared team state.
+[HOSPITAL H3] Radio recovered; Fragment 2 and the North Base route are now shared team state.
+[QUEST TEST] F6 hoàn tất chặng Radio 3/3 qua production completion path.
+[QUEST TEST] F6 hoàn tất chặng Radio 3/3 qua production completion path.
+[QUEST TEST] F6 hoàn tất chặng Radio 3/3 qua production completion path.
+[QUEST TEST] F6 hoàn tất chặng Radio 3/3 qua production completion path.
+[QUEST TEST] F6 hoàn tất chặng Radio 3/3 qua production completion path.
+[QUEST TEST] F10: mô phỏng đủ 3 manh mối và đã rời trường; mở mục tiêu xe cảnh sát.
+[QUEST TEST] F10: mô phỏng đủ 3 manh mối và đã rời trường; mở mục tiêu xe cảnh sát.
+[QUEST TEST] F10: mô phỏng đủ 3 manh mối và đã rời trường; mở mục tiêu xe cảnh sát.
+[QUEST TEST] F10: mô phỏng đủ 3 manh mối và đã rời trường; mở mục tiêu xe cảnh sát.
+[QUEST TEST] F10: mô phỏng đủ 3 manh mối và đã rời trường; mở mục tiêu xe cảnh sát.
+[MILITARY CINEMATIC] Dọn 5 zombie trong KhuVucQuanSu; Host visual bắt đầu tại (14.14, 38.52).
+[MILITARY CINEMATIC] Dọn 5 zombie trong KhuVucQuanSu; Host visual bắt đầu tại (14.14, 38.52).
+[MILITARY CINEMATIC] Dọn 5 zombie trong KhuVucQuanSu; Host visual bắt đầu tại (14.14, 38.52).
+[MILITARY CINEMATIC] Dọn 5 zombie trong KhuVucQuanSu; Host visual bắt đầu tại (14.14, 38.52).
+[MILITARY CINEMATIC] Dọn 5 zombie trong KhuVucQuanSu; Host visual bắt đầu tại (14.14, 38.52).
+[MILITARY CINEMATIC] Bắt đầu cảnh tại (14.14, 38.52); xe (17.64, 37.02); cổng (0.75, 41.78).
+[MILITARY CINEMATIC] Bắt đầu cảnh tại (14.14, 38.52); xe (17.64, 37.02); cổng (0.75, 41.78).
+[MILITARY CINEMATIC] Bắt đầu cảnh tại (14.14, 38.52); xe (17.64, 37.02); cổng (0.75, 41.78).
+[MILITARY CINEMATIC] Bắt đầu cảnh tại (14.14, 38.52); xe (17.64, 37.02); cổng (0.75, 41.78).
+[MILITARY CINEMATIC] Bắt đầu cảnh tại (14.14, 38.52); xe (17.64, 37.02); cổng (0.75, 41.78).
+[MILITARY CINEMATIC] Host đã đi bộ tới xe.
+[MILITARY CINEMATIC] Host đã đi bộ tới xe.
+[MILITARY CINEMATIC] Host đã đi bộ tới xe.
+[MILITARY CINEMATIC] Host đã đi bộ tới xe.
+[MILITARY CINEMATIC] Host đã đi bộ tới xe.
+[MILITARY CINEMATIC] Host đã chạy tới vị trí đóng cổng.
+[MILITARY CINEMATIC] Host đã chạy tới vị trí đóng cổng.
+[MILITARY CINEMATIC] Host đã chạy tới vị trí đóng cổng.
+[MILITARY CINEMATIC] Host đã chạy tới vị trí đóng cổng.
+[MILITARY CINEMATIC] Host đã chạy tới vị trí đóng cổng.
+[MILITARY LOOT] Five authored LootQuanSu containers are ready; no runtime loot was spawned.
+[MILITARY LOOT] Five authored LootQuanSu containers are ready; no runtime loot was spawned.
+[MILITARY LOOT] Five authored LootQuanSu containers are ready; no runtime loot was spawned.
+[MILITARY LOOT] Five authored LootQuanSu containers are ready; no runtime loot was spawned.
+[MILITARY LOOT] Five authored LootQuanSu containers are ready; no runtime loot was spawned.
+[MILITARY HORDE] Điều động 65 zombie đang sống trong thành phố về cổng.
+[MILITARY HORDE] Điều động 65 zombie đang sống trong thành phố về cổng.
+[MILITARY HORDE] Điều động 65 zombie đang sống trong thành phố về cổng.
+[MILITARY HORDE] Điều động 65 zombie đang sống trong thành phố về cổng.
+[MILITARY HORDE] Điều động 65 zombie đang sống trong thành phố về cổng.
+[MILITARY GATE] Zombie đã chạm cổng: bắt đầu DPS Solo 5 phút.
+[MILITARY GATE] Zombie đã chạm cổng: bắt đầu DPS Solo 5 phút.
+[MILITARY GATE] Zombie đã chạm cổng: bắt đầu DPS Solo 5 phút.
+[MILITARY GATE] Zombie đã chạm cổng: bắt đầu DPS Solo 5 phút.
+[MILITARY GATE] Zombie đã chạm cổng: bắt đầu DPS Solo 5 phút.
+<color=red><b>[TRÚNG ĐÒN] Zombie mất 100000 máu! Máu còn: 0</b></color>
+<color=red><b>[TRÚNG ĐÒN] Zombie mất 100000 máu! Máu còn: 0</b></color>
+<color=red><b>[TRÚNG ĐÒN] Zombie mất 100000 máu! Máu còn: 0</b></color>
+<color=red><b>[TRÚNG ĐÒN] Zombie mất 100000 máu! Máu còn: 0</b></color>
+<color=red><b>[TRÚNG ĐÒN] Zombie mất 100000 máu! Máu còn: 0</b></color>
+<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: 1</b></color>
+<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: 1</b></color>
+<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: 1</b></color>
+<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: 1</b></color>
+<color=white><b>[TỬ TRẬN] Zombie ngã gục theo kiểu số: 1</b></color>
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 0/24, player=1.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 0/24, player=1.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 0/24, player=1.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 0/24, player=1.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 0/24, player=1.
+[QUEST MAP] Military reveal queued for the next manual map open.
+[QUEST MAP] Military reveal queued for the next manual map open.
+[QUEST MAP] Military reveal queued for the next manual map open.
+[QUEST MAP] Military reveal queued for the next manual map open.
+[QUEST MAP] Military reveal queued for the next manual map open.
+Ba lô đầy! Không thể chứa hết MilitaryLootCapacityFiller
+Ba lô đầy! Không thể chứa hết MilitaryLootCapacityFiller
+Ba lô đầy! Không thể chứa hết MilitaryLootCapacityFiller
+Ba lô đầy! Không thể chứa hết MilitaryLootCapacityFiller
+Ba lô đầy! Không thể chứa hết MilitaryLootCapacityFiller
+Ba lô đầy! Không thể chứa hết Lốp xe tuần tra
+Ba lô đầy! Không thể chứa hết Lốp xe tuần tra
+Ba lô đầy! Không thể chứa hết Lốp xe tuần tra
+Ba lô đầy! Không thể chứa hết Lốp xe tuần tra
+Ba lô đầy! Không thể chứa hết Lốp xe tuần tra
+[LOOT] Túi đồ không đủ chỗ để nhận vật phẩm này.
+[LOOT] Túi đồ không đủ chỗ để nhận vật phẩm này.
+[LOOT] Túi đồ không đủ chỗ để nhận vật phẩm này.
+[LOOT] Túi đồ không đủ chỗ để nhận vật phẩm này.
+[LOOT] Túi đồ không đủ chỗ để nhận vật phẩm này.
+[LOOT SERVER] Granted 1x Lốp xe tuần tra to [Player:1].
+[LOOT SERVER] Granted 1x Lốp xe tuần tra to [Player:1].
+[LOOT SERVER] Granted 1x Lốp xe tuần tra to [Player:1].
+[LOOT SERVER] Granted 1x Lốp xe tuần tra to [Player:1].
+[LOOT SERVER] Granted 1x Lốp xe tuần tra to [Player:1].
+[LOOT SERVER] Rejected item mismatch at slot 0: requested=Lốp xe tuần tra, actual=AK47.
+[LOOT SERVER] Rejected item mismatch at slot 0: requested=Lốp xe tuần tra, actual=AK47.
+[LOOT SERVER] Rejected item mismatch at slot 0: requested=Lốp xe tuần tra, actual=AK47.
+[LOOT SERVER] Rejected item mismatch at slot 0: requested=Lốp xe tuần tra, actual=AK47.
+[LOOT SERVER] Rejected item mismatch at slot 0: requested=Lốp xe tuần tra, actual=AK47.
+[QUEST TEST] F10: mô phỏng hoàn tất 5/5 hạng mục Car; xe đã sẵn sàng.
+[QUEST TEST] F10: mô phỏng hoàn tất 5/5 hạng mục Car; xe đã sẵn sàng.
+[QUEST TEST] F10: mô phỏng hoàn tất 5/5 hạng mục Car; xe đã sẵn sàng.
+[QUEST TEST] F10: mô phỏng hoàn tất 5/5 hạng mục Car; xe đã sẵn sàng.
+[QUEST TEST] F10: mô phỏng hoàn tất 5/5 hạng mục Car; xe đã sẵn sàng.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 8/24, player=1.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 8/24, player=1.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 8/24, player=1.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 8/24, player=1.
+[MILITARY HORDE] Spawn 8 zombie từ 4 điểm; gần cổng 8/24, player=1.
+]]></output>
+        </test-case>
+        <test-case id="1005" name="SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap" fullname="MainMenuToMilitaryQuestFlowTests.SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap" methodname="SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap" classname="MainMenuToMilitaryQuestFlowTests" runstate="Runnable" seed="1715866479" result="Passed" start-time="2026-08-29 11:46:44Z" end-time="2026-08-29 11:47:18Z" duration="33.795643" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="Timeout" value="180000" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_6938'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_6938'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_6938'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_6938'.
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Easy_6938'.
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+=== Gọi StartGame(Single) ===
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_6938, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_6938, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_6938, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_6938, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Easy_6938, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":30.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+Scanning - Process took 404 ms to complete
+Scanning - Process took 404 ms to complete
+Scanning - Process took 404 ms to complete
+Scanning - Process took 404 ms to complete
+Scanning - Process took 404 ms to complete
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_E'.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[MAIN STORY] Missing 'ViTriXeChetMay'. Using the preserved story-arrival position.
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[STARTING LOADOUT] Granted Easy starting loadout to Player [Player:1].
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[2026-08-29T11:46:49] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:46:49] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:46:49] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:46:49] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[2026-08-29T11:46:49] [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (12)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+Found Local Player: Player(Clone)
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[ĐIỂM DANH] Đã có 1/0 người tải xong Map.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[MENU FLOW] Fusion scene-load await completed for index 1.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Toolbox' in container 'Prefab_Kitchen1_E'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Hammer' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'FuelCan' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Battery' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Guaranteed 'Tire' in container 'Prefab_Kitchen7_N'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen4_N'.
+[ARRIVAL CAR] Bonus co-op copy 'Tire' in container 'Prefab_Kitchen4_N'.
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+]]></output>
+        </test-case>
+        <test-case id="1002" name="WaitingRoomUsesTwoByFiveGridForTenPlayerCapacity" fullname="MainMenuToMilitaryQuestFlowTests.WaitingRoomUsesTwoByFiveGridForTenPlayerCapacity" methodname="WaitingRoomUsesTwoByFiveGridForTenPlayerCapacity" classname="MainMenuToMilitaryQuestFlowTests" runstate="Runnable" seed="393326576" result="Passed" start-time="2026-08-29 11:47:18Z" end-time="2026-08-29 11:47:19Z" duration="1.204212" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="Timeout" value="60000" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+[DEBUG] OnShutdown called - Reason: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+]]></output>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1007" name="NetworkAuthorityRegressionTests" fullname="NetworkAuthorityRegressionTests" classname="NetworkAuthorityRegressionTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-08-29 11:47:19Z" end-time="2026-08-29 11:47:19Z" duration="0.016251" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1010" name="ArrivalStoryBootstrap_Provides_Ten_Unique_Spawn_Positions" fullname="NetworkAuthorityRegressionTests.ArrivalStoryBootstrap_Provides_Ten_Unique_Spawn_Positions" methodname="ArrivalStoryBootstrap_Provides_Ten_Unique_Spawn_Positions" classname="NetworkAuthorityRegressionTests" runstate="Runnable" seed="1110834994" result="Passed" start-time="2026-08-29 11:47:19Z" end-time="2026-08-29 11:47:19Z" duration="0.000578" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1011" name="Bandage_Request_Identifies_Wound_And_Consumes_Single_Item" fullname="NetworkAuthorityRegressionTests.Bandage_Request_Identifies_Wound_And_Consumes_Single_Item" methodname="Bandage_Request_Identifies_Wound_And_Consumes_Single_Item" classname="NetworkAuthorityRegressionTests" runstate="Runnable" seed="798766936" result="Passed" start-time="2026-08-29 11:47:19Z" end-time="2026-08-29 11:47:19Z" duration="0.000307" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1009" name="HostModeSpawner_Readiness_Deduplicates_Acks_Correctly" fullname="NetworkAuthorityRegressionTests.HostModeSpawner_Readiness_Deduplicates_Acks_Correctly" methodname="HostModeSpawner_Readiness_Deduplicates_Acks_Correctly" classname="NetworkAuthorityRegressionTests" runstate="Runnable" seed="1838006790" result="Passed" start-time="2026-08-29 11:47:19Z" end-time="2026-08-29 11:47:19Z" duration="0.000462" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1008" name="HostModeSpawner_Rejects_Spoofed_Spawn_And_Loading_Ack" fullname="NetworkAuthorityRegressionTests.HostModeSpawner_Rejects_Spoofed_Spawn_And_Loading_Ack" methodname="HostModeSpawner_Rejects_Spoofed_Spawn_And_Loading_Ack" classname="NetworkAuthorityRegressionTests" runstate="Runnable" seed="1659582252" result="Passed" start-time="2026-08-29 11:47:19Z" end-time="2026-08-29 11:47:19Z" duration="0.000495" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+      </test-suite>
+      <test-suite type="TestFixture" id="1012" name="VietnameseFontRuntimeTests" fullname="VietnameseFontRuntimeTests" classname="VietnameseFontRuntimeTests" runstate="Runnable" testcasecount="1" result="Passed" start-time="2026-08-29 11:47:19Z" end-time="2026-08-29 11:47:20Z" duration="1.038909" total="1" passed="1" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1013" name="HostAndClientFontProbesDoNotMutateStaticAtlasAfterLegacyRefreshWindow" fullname="VietnameseFontRuntimeTests.HostAndClientFontProbesDoNotMutateStaticAtlasAfterLegacyRefreshWindow" methodname="HostAndClientFontProbesDoNotMutateStaticAtlasAfterLegacyRefreshWindow" classname="VietnameseFontRuntimeTests" runstate="Runnable" seed="1605540826" result="Passed" start-time="2026-08-29 11:47:19Z" end-time="2026-08-29 11:47:20Z" duration="1.030455" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/triti/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\TestResults.xml
+Saving results to: C:/Users/triti/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\TestResults.xml
+Saving results to: C:/Users/triti/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\TestResults.xml
+Saving results to: C:/Users/triti/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\TestResults.xml
+Saving results to: C:/Users/triti/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

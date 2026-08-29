@@ -1,0 +1,29 @@
+# CLIENT B (OBSERVER) & CLIENT C (LATE JOINER) STATUS LOG
+
+- **Target Roles:** Client B (Active Observer Peer), Client C (Late Joiner Peer)
+- **Status:** **UNVERIFIED / PENDING DUAL-PEER LAUNCH**
+
+---
+
+## 1. Client B (Observer) Expected vs Observed Trace
+
+- **Target Behavior:**
+  - Client B is connected to the same session with `PlayerRef: 1`.
+  - When State Authority executes `RPC_ShowSearchResult([RpcTarget] recipient: PlayerRef:0, ...)`, Fusion's network layer should not send the UDP packet to Client B's socket endpoint.
+  - Client B's `RPC_ShowSearchResult` should not be invoked.
+  - Client B's BoxChat receives 0 private loot messages.
+  - Client B receives `[Networked] HasCorpseBeenSearched == true` replication.
+- **Environment Status in Current Run:**
+  - `E:\Unity\GameObject\Game3D\ProJectZomboiNhai_clone_0` is not currently running as an active secondary GUI process on Windows.
+  - Direct socket capture log on Client B is marked **UNVERIFIED** pending multi-process launch.
+
+---
+
+## 2. Client C (Late Joiner) Expected vs Observed Trace
+
+- **Target Behavior:**
+  - Client C joins the session after the corpse has already been searched.
+  - Receives network snapshot with `HasCorpseBeenSearched = true`.
+  - Does not receive any transient search notification.
+- **Environment Status in Current Run:**
+  - Marked **UNVERIFIED** pending multi-process launch.

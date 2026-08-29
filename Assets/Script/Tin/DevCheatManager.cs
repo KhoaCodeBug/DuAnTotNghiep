@@ -122,6 +122,9 @@ public class DevCheatManager : MonoBehaviour
                 return a.category.CompareTo(b.category);
             });
         }
+
+        for (int level = 1; level <= BackpackCapacityRules.MaxBackpackLevel; level++)
+            cachedItems.Add(BackpackItemCatalog.GetOrCreate(level));
     }
 
     // ============================
@@ -382,10 +385,14 @@ public class DevCheatManager : MonoBehaviour
         AddActionRow(cheatsTabContent.transform, "TELEPORT TO CURRENT NON-LOOT OBJECTIVE  [F12]", "TELEPORT", new Color32(14, 116, 144, 255),
             () => RunRouteBCheat(TeleportToCurrentRouteBObjective));
 
-        // --- POPULATE TAB 2: FIXED INVENTORY CAPACITY TEST ---
-        AddSectionHeader(backpackTabContent.transform, "🎒 FIXED INVENTORY CAPACITY");
-        AddCapacityRow(backpackTabContent.transform, InventorySystem.FixedTotalSlots,
-            "20 Slots Total (5 Hotbar + 15 Storage) — No Backpack Levels");
+        // --- POPULATE TAB 2: BACKPACK CAPACITY TEST ---
+        AddSectionHeader(backpackTabContent.transform, "🎒 BACKPACK CAPACITY (5 HOTBAR + STORAGE)");
+        AddCapacityRow(backpackTabContent.transform, 20, "Level 0 — 20 total (5 hotbar + 15 storage)");
+        AddCapacityRow(backpackTabContent.transform, 25, "Level 1 — 25 total (5 hotbar + 20 storage)");
+        AddCapacityRow(backpackTabContent.transform, 30, "Level 2 — 30 total (5 hotbar + 25 storage)");
+        AddCapacityRow(backpackTabContent.transform, 35, "Level 3 — 35 total (5 hotbar + 30 storage)");
+        AddCapacityRow(backpackTabContent.transform, 45, "Level 4 — 45 total (5 hotbar + 40 storage)");
+        AddCapacityRow(backpackTabContent.transform, 55, "Level 5 — 55 total (5 hotbar + 50 storage)");
 
         // --- POPULATE TAB 3: ITEM SPAWNER ---
         AddSectionHeader(itemsTabContent.transform, "📋 ITEM SPAWNER");
@@ -611,7 +618,7 @@ public class DevCheatManager : MonoBehaviour
         {
             AutoUIManager.Instance.RefreshUI(cachedInventory.slots, cachedInventory.maxSlots);
         }
-        Debug.Log($"[CHEAT] 🎒 Capacity reset to fixed {InventorySystem.FixedTotalSlots} slots.");
+        Debug.Log($"[CHEAT] 🎒 Capacity set to {cachedInventory.maxSlots} slots ({cachedInventory.CurrentBackpackSlots} storage + {InventorySystem.HotbarSlotCount} hotbar).");
         UpdateCapacityButtonStyles();
         UpdateStatusDisplay();
     }
@@ -701,8 +708,12 @@ public class DevCheatManager : MonoBehaviour
 
         if (item.category == ItemCategory.Backpack)
         {
-            Debug.LogWarning($"[CHEAT] Backpack item '{item.itemName}' is disabled; inventory stays at " +
-                             $"{InventorySystem.FixedTotalSlots} slots.");
+            if (!cachedInventory.EquipBackpack(item))
+            {
+                Debug.LogWarning($"[CHEAT] Backpack '{item.itemName}' is not an upgrade over the current capacity.");
+                return;
+            }
+            Debug.Log($"[CHEAT] 🎒 Equipped {item.itemName}: {cachedInventory.CurrentBackpackSlots} storage slots.");
             UpdateCapacityButtonStyles();
             UpdateStatusDisplay();
             return;
@@ -733,7 +744,7 @@ public class DevCheatManager : MonoBehaviour
 
         string playerState = (cachedHealth != null && cachedHealth.Object != null && cachedHealth.Object.IsValid)
             ? "<color=#22c55e>Connected</color>" : "<color=#ef4444>Disconnected</color>";
-        int capacity = (cachedInventory != null) ? cachedInventory.maxSlots : 15;
+        int capacity = (cachedInventory != null) ? cachedInventory.maxSlots : InventorySystem.FixedTotalSlots;
         int storage = Mathf.Max(0, capacity - 5);
         string godState = isGodMode ? "<color=#22c55e>ON</color>" : "<color=#94a3b8>OFF</color>";
 

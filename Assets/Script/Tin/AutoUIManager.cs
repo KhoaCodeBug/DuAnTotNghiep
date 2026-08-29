@@ -24,7 +24,7 @@ public class AutoUIManager : MonoBehaviour
 
     #region Biến UI - Inventory & Action
     private GameObject inventoryPanel, tooltipPanel, contextMenuPanel, actionBarPanel, ammoContainer;
-    private TextMeshProUGUI tooltipTitleText, tooltipDescText, actionBarText, ammoText;
+    private TextMeshProUGUI tooltipTitleText, tooltipDescText, actionBarText, ammoText, inventoryCapacityText;
     private Image actionBarFill;
     private RectTransform edgeGlowRt; // Edge glow for loading bar
     private List<SlotUIElements> slotUIList = new List<SlotUIElements>();
@@ -746,6 +746,18 @@ public class AutoUIManager : MonoBehaviour
         titleRect.pivot = new Vector2(0.5f, 1); titleRect.anchoredPosition = new Vector2(0, -20);
         titleRect.sizeDelta = new Vector2(0, 40);
 
+        GameObject capacityObj = new GameObject("CapacityText");
+        capacityObj.transform.SetParent(inventoryPanel.transform, false);
+        inventoryCapacityText = capacityObj.AddComponent<TextMeshProUGUI>();
+        if (gameFont != null) inventoryCapacityText.font = gameFont;
+        inventoryCapacityText.fontSize = 13;
+        inventoryCapacityText.alignment = TextAlignmentOptions.Right;
+        inventoryCapacityText.color = new Color(0.75f, 0.85f, 0.75f, 1f);
+        RectTransform capacityRect = capacityObj.GetComponent<RectTransform>();
+        capacityRect.anchorMin = new Vector2(0, 1); capacityRect.anchorMax = new Vector2(1, 1);
+        capacityRect.pivot = new Vector2(1, 1); capacityRect.anchoredPosition = new Vector2(-28, -24);
+        capacityRect.sizeDelta = new Vector2(0, 28);
+
         // ===== SCROLL VIEW =====
         GameObject scrollGO = new GameObject("InvScrollView");
         scrollGO.transform.SetParent(inventoryPanel.transform, false);
@@ -794,9 +806,10 @@ public class AutoUIManager : MonoBehaviour
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         sr.content = gridRect;
 
-        // Fixed inventory: 5 Hotbar slots are rendered separately; this grid
-        // contains the remaining 15 storage slots.
-        for (int i = InventorySystem.HotbarSlotCount; i < InventorySystem.FixedTotalSlots; i++)
+        // Five Hotbar slots are rendered separately.  Keep every possible
+        // storage slot in the scroll content and toggle slots beyond the
+        // player's current capacity at refresh time (15 -> 50 storage).
+        for (int i = InventorySystem.HotbarSlotCount; i < InventorySystem.MaxTotalSlots; i++)
         {
             int slotIndex = i;
             GameObject slotObj = new GameObject("InvSlot_" + i);
@@ -2089,7 +2102,15 @@ public class AutoUIManager : MonoBehaviour
             currentMax = (localInv != null) ? localInv.maxSlots : InventorySystem.FixedTotalSlots;
         }
 
-        for (int i = InventorySystem.HotbarSlotCount; i < InventorySystem.FixedTotalSlots; i++)
+        if (inventoryCapacityText != null)
+        {
+            int storage = Mathf.Clamp(currentMax - InventorySystem.HotbarSlotCount,
+                BackpackCapacityRules.BaseBackpackSlots, BackpackCapacityRules.MaxBackpackSlots);
+            inventoryCapacityText.text = string.Format(GameLocalization.Get("inventory.capacity"),
+                storage, BackpackCapacityRules.MaxBackpackSlots, InventorySystem.HotbarSlotCount);
+        }
+
+        for (int i = InventorySystem.HotbarSlotCount; i < InventorySystem.MaxTotalSlots; i++)
         {
             int uiIndex = i - 5;
             if (uiIndex >= slotUIList.Count) break;
@@ -2133,7 +2154,9 @@ public class AutoUIManager : MonoBehaviour
 
         if (currentSlots != null && index < currentSlots.Count && currentSlots[index] != null && currentSlots[index].amount > 0)
         {
-            tooltipTitleText.text = GameLocalization.TranslateLiteral(currentSlots[index].item.itemName);
+            tooltipTitleText.text = currentSlots[index].item.category == ItemCategory.Backpack
+                ? BackpackItemCatalog.GetLocalizedDisplayName(currentSlots[index].item)
+                : GameLocalization.TranslateLiteral(currentSlots[index].item.itemName);
             string cat = GetCategoryString(currentSlots[index].item.category);
             tooltipDescText.text = GameLocalization.Get("item.type") + ": " + cat;
             tooltipPanel.SetActive(true);
@@ -2443,6 +2466,23 @@ public class AutoUIManager : MonoBehaviour
     private void RefreshLocalizedText()
     {
         gameFont = GameLocalization.GetRuntimeFont(gameFont);
+        if (inventoryPanel != null)
+        {
+            TextMeshProUGUI invTitle = inventoryPanel.transform.Find("TitleText")?.GetComponent<TextMeshProUGUI>();
+            if (invTitle != null) invTitle.text = GameLocalization.Get("inventory.title");
+            if (currentSlots != null && currentSlots.Count > 0)
+                RefreshUI(currentSlots, maxSlots);
+        }
+        if (containerPanel != null)
+        {
+            TextMeshProUGUI contTitle = containerPanel.transform.Find("TitleText")?.GetComponent<TextMeshProUGUI>();
+            if (contTitle != null) contTitle.text = GameLocalization.Get("loot.title");
+        }
+        if (tradeWindowPanel != null)
+        {
+            TextMeshProUGUI tradeTitle = tradeWindowPanel.transform.Find("Title")?.GetComponent<TextMeshProUGUI>();
+            if (tradeTitle != null) tradeTitle.text = GameLocalization.Get("trade.title");
+        }
         if (spectatorText != null && !respawnPending)
             spectatorText.text = MilitaryBaseQuestManager.Instance != null &&
                                  MilitaryBaseQuestManager.Instance.CanOfferSoloRetry

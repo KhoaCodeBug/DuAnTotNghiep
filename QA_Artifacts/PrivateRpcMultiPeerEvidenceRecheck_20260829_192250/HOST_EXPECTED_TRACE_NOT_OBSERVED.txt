@@ -1,0 +1,15 @@
+# HOST EXPECTED TRACE (SYNTHETIC / NOT OBSERVED AT RUNTIME)
+
+- **Classification:** **SYNTHETIC / EXPECTED DESIGN TRACE — NOT EXECUTED ON LIVE PROCESS**
+- **Status:** **UNVERIFIED AT RUNTIME (No live corpse search session executed in Editor)**
+
+---
+
+```text
+[SYNTHETIC-EXPECTED] [HostModeSpawner] State Authority session active on PID 11748.
+[SYNTHETIC-EXPECTED] [ZombieCorpseLoot] MarkAsCorpse() sets HasCorpseBeenSearched = False.
+[SYNTHETIC-EXPECTED] [ZombieCorpseLoot] State Authority receives RPC_RequestSearchCorpse(PlayerRef).
+[SYNTHETIC-EXPECTED] [ZombieCorpseLoot] Grants item and calls RPC_ShowSearchResult([RpcTarget] recipient: PlayerRef, Granted, itemId, amount).
+```
+
+*Note: This trace illustrates the intended control flow defined in C# source code. It was not captured from a live gameplay execution log.*

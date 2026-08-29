@@ -1,0 +1,40 @@
+# ACTUAL TEST INVENTORY (VERIFIED DIRECTLY FROM SOURCE CODE)
+
+---
+
+## 1. PlayMode Tests (Total: 10 tests across 3 classes)
+
+### `Assets/Script/Tin/Prototype/Tests/PlayMode/MainMenuToMilitaryQuestFlowTests.cs` (5 tests)
+1. `WaitingRoomUsesTwoByFiveGridForTenPlayerCapacity`
+2. `HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor`
+3. `MilitaryRepairStationUsesAuthoredPoliceCarWithoutRelocatingIt`
+4. `RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction`
+5. `SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap`
+
+### `Assets/Script/Tin/Prototype/Tests/PlayMode/NetworkAuthorityRegressionTests.cs` (4 tests)
+6. `HostModeSpawner_Rejects_Spoofed_Spawn_And_Loading_Ack`
+7. `HostModeSpawner_Readiness_Deduplicates_Acks_Correctly`
+8. `ArrivalStoryBootstrap_Provides_Ten_Unique_Spawn_Positions`
+9. `Bandage_Request_Identifies_Wound_And_Consumes_Single_Item`
+
+### `Assets/Script/Tin/Prototype/Tests/PlayMode/VietnameseFontRuntimeTests.cs` (1 test)
+10. `HostAndClientFontProbesDoNotMutateStaticAtlasAfterLegacyRefreshWindow`
+
+*(Lưu ý: Hai test `CorpseLootRaceBetweenTwoPeersGrantsOnlyOnce` và `LateJoinerReceivesFullSnapshotWithoutRollback` không tồn tại trong source code và đã được đánh dấu UNVERIFIED / REMOVED).*
+
+---
+
+## 2. EditMode Tests (Total: 145 tests across 12 classes)
+
+1. `Assets/Script/Tin/Prototype/Tests/Editor/EightWayDirectionTests.cs` (1 test)
+2. `Assets/Script/Tin/Prototype/Tests/Editor/HospitalRadioRoomRulesTests.cs` (7 tests)
+3. `Assets/Script/Tin/Prototype/Tests/Editor/InventoryAndLootCapacityTests.cs` (13 tests)
+4. `Assets/Script/Tin/Prototype/Tests/Editor/IsometricMovementProjectionTests.cs` (7 tests)
+5. `Assets/Script/Tin/Prototype/Tests/Editor/MilitaryRepairLootRulesTests.cs` (9 tests)
+6. `Assets/Script/Tin/Prototype/Tests/Editor/MilitaryRespawnRulesTests.cs` (12 tests)
+7. `Assets/Script/Tin/Prototype/Tests/Editor/MilitaryRouteBEscapeRulesTests.cs` (6 tests)
+8. `Assets/Script/Tin/Prototype/Tests/Editor/QuestFlowUIPrototypeTests.cs` (41 tests)
+9. `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs` (15 tests, bao gồm test mới `ZombieCorpseLoot_RPC_ShowSearchResult_UsesRpcTargetAndCorrectSignature`)
+10. `Assets/Script/Tin/Prototype/Tests/Editor/SurvivalBalanceTests.cs` (31 tests)
+11. `Assets/Script/Tin/Prototype/Tests/Editor/VehicleRepairSkillCheckRulesTests.cs` (6 tests)
+12. `Assets/Script/Tin/Prototype/Tests/Editor/VietnameseStaticFontTests.cs` (3 tests)
