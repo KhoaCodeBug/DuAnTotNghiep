@@ -16,7 +16,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 {
     public static AutoMainMenuManager Instance { get; private set; }
     public static bool EscapeConsumedThisFrame = false;
-    public bool IsPauseMenuOrOptionsOpen => (optionsPanel != null && optionsPanel.activeSelf) || (mainPanel != null && mainPanel.activeSelf);
+    public bool IsPauseMenuOrOptionsOpen => isPauseMenuOpen || isPauseOptionsOpen ||
+        (pauseMenuPanel != null && pauseMenuPanel.activeSelf) ||
+        (pauseOptionsPanel != null && pauseOptionsPanel.activeSelf) ||
+        (optionsPanel != null && optionsPanel.activeInHierarchy);
 
     [Header("Cài đặt chung")]
     public TMP_FontAsset gameFont;
@@ -329,7 +332,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         // GameState detection cho Client
-        if (activeRunner != null && !activeRunner.IsServer && !isLoadingScreenActive && !hasDetectedGameStart && activeRunner.IsCloudReady)
+        if (activeRunner != null && !activeRunner.IsServer && !isLoadingScreenActive && !hasDetectedGameStart && !isLocalSceneLoaded && !GameplayReadinessCoordinator.IsReleasedToGameplay && activeRunner.IsCloudReady)
         {
             if (activeRunner.SessionInfo?.Properties != null)
             {
@@ -338,7 +341,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                     if ((int)stateProp == 1)
                     {
                         hasDetectedGameStart = true; // Khóa chốt lại ngay lập tức! Đừng gọi lại nữa!
-                        ShowLoadingScreen();
+                        if (!ShouldDeferClientLoadingUntilSceneLoad((int)stateProp))
+                            ShowLoadingScreen();
                     }
                 }
             }
@@ -1559,7 +1563,11 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 }
                 else
                 {
-                    ShowLoadingScreen();
+                    hasDetectedGameStart = true;
+                    if (!ShouldDeferClientLoadingUntilSceneLoad(currentState))
+                    {
+                        ShowLoadingScreen();
+                    }
                 }
             }
         }
@@ -1605,12 +1613,25 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         Debug.Log($"[MENU FLOW] OnSceneLoadStart runner='{runner?.name}'.");
         isLocalSceneLoaded = false;
         isHostSignaledGo = false;
+        hasDetectedGameStart = true;
         ShowLoadingScreen();
+    }
+
+    private static bool ShouldDeferClientLoadingUntilSceneLoad(int currentState)
+    {
+        return currentState == 1;
     }
 
     private void ShowLoadingScreen()
     {
         if (isLoadingScreenActive) return;
+        if (isLocalSceneLoaded || GameplayReadinessCoordinator.IsReleasedToGameplay)
+        {
+            Debug.LogWarning("[MENU FLOW] ShowLoadingScreen ignored: Scene is already loaded or gameplay is released.");
+            return;
+        }
+
+        hasDetectedGameStart = true;
         isLoadingScreenActive = true;
 
         if (bgmSource != null) bgmSource.Stop();

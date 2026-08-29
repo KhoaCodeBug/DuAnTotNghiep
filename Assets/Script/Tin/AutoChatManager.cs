@@ -21,7 +21,7 @@ public class AutoChatManager : MonoBehaviour
                 if (instance == null)
                 {
                     var go = new GameObject("--- AUTO CHAT MANAGER ---");
-                    DontDestroyOnLoad(go);
+                    if (Application.isPlaying) DontDestroyOnLoad(go);
                     instance = go.AddComponent<AutoChatManager>();
                 }
             }
@@ -67,7 +67,12 @@ public class AutoChatManager : MonoBehaviour
 
     void Awake()
     {
-        if (instance != null && instance != this) { Destroy(gameObject); return; }
+        if (instance != null && instance != this)
+        {
+            if (Application.isPlaying) Destroy(gameObject);
+            else DestroyImmediate(gameObject);
+            return;
+        }
         instance = this;
         BuildChatUI();
     }
@@ -77,22 +82,31 @@ public class AutoChatManager : MonoBehaviour
         if (instance == this) instance = null;
     }
 
+    public static void EnsureEventSystem()
+    {
+        if (EventSystem.current == null && FindFirstObjectByType<EventSystem>() == null)
+        {
+            var esGo = new GameObject("EventSystem");
+            var es = esGo.AddComponent<EventSystem>();
+            es.sendNavigationEvents = false;
+            esGo.AddComponent<StandaloneInputModule>();
+            if (Application.isPlaying) DontDestroyOnLoad(esGo);
+        }
+    }
+
     // ============================================================
     // XÂY DỰNG GIAO DIỆN (Chạy 1 lần duy nhất)
     // ============================================================
-    void BuildChatUI()
+    public void BuildChatUI()
     {
+        if (chatHistory != null && chatGroup != null) return;
+
         // --- Đảm bảo có EventSystem ---
-        if (FindFirstObjectByType<EventSystem>() == null)
-        {
-            var esGo = new GameObject("EventSystem");
-            esGo.AddComponent<EventSystem>();
-            esGo.AddComponent<StandaloneInputModule>();
-        }
+        EnsureEventSystem();
 
         // --- Canvas ---
         var canvasGo = new GameObject("ChatCanvas");
-        DontDestroyOnLoad(canvasGo);
+        if (Application.isPlaying) DontDestroyOnLoad(canvasGo);
         var canvas = canvasGo.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 200;
@@ -235,20 +249,31 @@ public class AutoChatManager : MonoBehaviour
         }
     }
 
+    public bool CanOpenChat()
+    {
+        if (isTyping || justClosed) return false;
+        if (GameplayReadinessCoordinator.IsGameplaySuppressed) return false;
+        if (AutoMainMenuManager.Instance != null && AutoMainMenuManager.Instance.IsPauseMenuOrOptionsOpen) return false;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsAnyMenuOpen()) return false;
+        if (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen) return false;
+        if (CivilianRoutePresentationController.BlocksGameplayInput ||
+            MilitaryRouteBEscapePresentation.BlocksGameplayInput ||
+            VictorySummaryUI.IsShowing) return false;
+        return true;
+    }
+
     // ============================================================
     // VÒNG LẶP CHÍNH
     // ============================================================
     void Update()
     {
-        if (GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
-
-        // Bắt phím Enter để MỞ chat (chỉ khi chưa mở và không vừa mới đóng ở cùng frame)
-        if (!isTyping && !justClosed && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+        // 1. Bắt phím Enter / KeypadEnter để MỞ chat khi đủ điều kiện
+        if (CanOpenChat() && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
         {
             OpenChat();
         }
 
-        // ESC để thoát chat
+        // 2. ESC để thoát chat
         if (isTyping && Input.GetKeyDown(KeyCode.Escape))
         {
             if (AutoMainMenuManager.Instance != null)
@@ -258,9 +283,8 @@ public class AutoChatManager : MonoBehaviour
             CloseChat();
         }
 
-        // --- Logic phát sáng, kéo thả & tự động làm mờ khi di chuột ---
+        // 3. Logic phát sáng, kéo thả & tự động làm mờ khi di chuột
         bool isDragging = false;
-
         if (chatPanelRt != null)
         {
             var draggable = chatPanelRt.GetComponentInChildren<UIDraggable>();
@@ -270,33 +294,30 @@ public class AutoChatManager : MonoBehaviour
             }
         }
 
-        // NẾU ĐANG GÕ CHỮ HOẶC ĐANG KÉO: Reset thời gian mờ và sáng hẳn lên
-        if (isTyping || isDragging)
+        if (chatGroup != null)
         {
-            chatGroup.alpha = 1f;
-            fadeTimer = SHOW_DURATION;
-            if (vpBg != null) vpBg.color = new Color(0.08f, 0.08f, 0.08f, 0.9f);
-        }
-        else
-        {
-            if (vpBg != null) vpBg.color = new Color(0f, 0f, 0f, 0.45f);
-            if (fadeTimer > 0f) fadeTimer -= Time.deltaTime;
-        }
-
-        // QUAN TRỌNG: Miễn là box chat đang hiện (alpha > 0), thì BẬT blocksRaycasts để có thể kéo thả!
-        if (chatGroup.alpha > 0f)
-        {
-            chatGroup.blocksRaycasts = true;
-        }
-        else
-        {
-            chatGroup.blocksRaycasts = false;
-        }
-
-        // Mờ dần khi hết thời gian chờ
-        if (fadeTimer <= 0f && !isTyping && !isDragging)
-        {
-            chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
+            // NẾU ĐANG GÕ CHỮ HOẶC ĐANG KÉO: Reset thời gian mờ và sáng hẳn lên
+            if (isTyping || isDragging)
+            {
+                chatGroup.alpha = 1f;
+                chatGroup.blocksRaycasts = true;
+                fadeTimer = SHOW_DURATION;
+                if (vpBg != null) vpBg.color = new Color(0.08f, 0.08f, 0.08f, 0.9f);
+            }
+            else if (fadeTimer > 0f)
+            {
+                // Khi có tin nhắn đến: Duy trì alpha = 1f trong suốt thời gian fadeTimer (6s)
+                chatGroup.alpha = 1f;
+                chatGroup.blocksRaycasts = false;
+                fadeTimer -= Time.deltaTime;
+                if (vpBg != null) vpBg.color = new Color(0f, 0f, 0f, 0.45f);
+            }
+            else
+            {
+                // Hết thời gian hiển thị -> Làm mờ dần về 0
+                chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
+                chatGroup.blocksRaycasts = false;
+            }
         }
 
         // Reset cờ ở cuối frame Update
@@ -306,39 +327,52 @@ public class AutoChatManager : MonoBehaviour
     // ============================================================
     // MỞ / ĐÓNG CHAT
     // ============================================================
-    private void OpenChat()
+    public void OpenChat()
     {
+        if (isTyping) return;
         isTyping = true;
-        inputContainer.SetActive(true);
-        chatGroup.blocksRaycasts = true;
-        chatGroup.alpha          = 1f;
+        fadeTimer = SHOW_DURATION;
 
-        // Delay 2 frame để phím Enter của frame hiện tại được xử lý xong
-        // trước khi InputField bắt đầu lắng nghe bàn phím
-        StartCoroutine(FocusAfterDelay());
+        if (inputContainer != null) inputContainer.SetActive(true);
+        if (chatGroup != null)
+        {
+            chatGroup.alpha          = 1f;
+            chatGroup.blocksRaycasts = true;
+        }
+
+        if (chatInput != null)
+        {
+            chatInput.text = string.Empty;
+        }
+
+        StartCoroutine(FocusInputFieldRoutine());
     }
 
-    private IEnumerator FocusAfterDelay()
+    private IEnumerator FocusInputFieldRoutine()
     {
-        yield return null;
         yield return null;
 
         if (chatInput == null || !isTyping) yield break;
 
-        chatInput.text = "";
+        EnsureEventSystem();
+
         if (EventSystem.current != null)
             EventSystem.current.SetSelectedGameObject(chatInput.gameObject);
         chatInput.ActivateInputField();
         chatInput.Select();
     }
 
-    private void CloseChat()
+    public void CloseChat()
     {
         isTyping = false;
-        justClosed = true; // Đánh dấu là vừa đóng chat
-        if (chatInput != null) chatInput.text = "";
-        inputContainer.SetActive(false);
-        chatGroup.blocksRaycasts = false;
+        justClosed = true;
+        if (chatInput != null)
+        {
+            chatInput.text = string.Empty;
+            chatInput.DeactivateInputField();
+        }
+        if (inputContainer != null) inputContainer.SetActive(false);
+        if (chatGroup != null) chatGroup.blocksRaycasts = false;
         if (EventSystem.current != null && !EventSystem.current.alreadySelecting)
             EventSystem.current.SetSelectedGameObject(null);
         fadeTimer = SHOW_DURATION;
@@ -351,8 +385,12 @@ public class AutoChatManager : MonoBehaviour
     {
         if (!isTyping) return;
 
-        // Nếu không bấm ESC (tức là bấm Enter hoặc click ra ngoài)
-        if (chatInput != null && !chatInput.wasCanceled)
+        bool wasCanceled = chatInput != null && chatInput.wasCanceled;
+
+        isTyping = false;
+        justClosed = true;
+
+        if (!wasCanceled)
         {
             if (!string.IsNullOrWhiteSpace(message))
             {
@@ -361,7 +399,6 @@ public class AutoChatManager : MonoBehaviour
         }
         else
         {
-            // Bấm ESC
             if (AutoMainMenuManager.Instance != null)
             {
                 AutoMainMenuManager.EscapeConsumedThisFrame = true;
@@ -376,8 +413,6 @@ public class AutoChatManager : MonoBehaviour
     // ============================================================
     public void AddPlayerMessage(string sender, string message)
     {
-        if (chatHistory == null) return;
-
         string safeSender = PlayerDeathContext.SanitizeRichText(sender);
         if (string.IsNullOrWhiteSpace(safeSender)) safeSender = "Survivor";
         if (safeSender.Length > 32) safeSender = safeSender.Substring(0, 32);
@@ -386,7 +421,14 @@ public class AutoChatManager : MonoBehaviour
         if (string.IsNullOrWhiteSpace(safeMsg)) return;
         if (safeMsg.Length > 128) safeMsg = safeMsg.Substring(0, 128);
 
-        AppendFormattedLine($"<color=yellow><b>[{safeSender}]</b></color>: {safeMsg}");
+        string formatted = $"<color=yellow><b>[{safeSender}]</b></color>: {safeMsg}";
+        if (chatHistory == null)
+        {
+            PendingPreloadMessages.Add(formatted);
+            return;
+        }
+
+        AppendFormattedLine(formatted);
     }
 
     public void AddSystemMessage(string message)
@@ -433,6 +475,10 @@ public class AutoChatManager : MonoBehaviour
             chatHistory.text += "\n" + formattedLine;
 
         fadeTimer = SHOW_DURATION;
+        if (chatGroup != null)
+        {
+            chatGroup.alpha = 1f;
+        }
 
         Canvas.ForceUpdateCanvases();
         if (scrollRect != null)
