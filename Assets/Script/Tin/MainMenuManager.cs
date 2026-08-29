@@ -284,6 +284,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         sfxSource = gameObject.AddComponent<AudioSource>();
         sfxSource.playOnAwake = false;
+
+        GameLocalization.LanguageChanged += RefreshLocalizedDynamicTexts;
     }
 
     public void PlayHoverSFX() 
@@ -1264,10 +1266,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateMenuButton(waitingRoomPanel, "START CAMPAIGN", async () =>
         {
             if (activeRunner == null || !activeRunner.IsServer) return;
-            var props = new Dictionary<string, SessionProperty> { { "IsLocked", 1 }, { "GameState", 1 } };
+            var props = new Dictionary<string, SessionProperty>
+            {
+                { "IsLocked", 1 },
+                { "GameState", 1 },
+                { "GameDifficulty", hostDifficulty }
+            };
             activeRunner.SessionInfo.UpdateCustomProperties(props);
+            DifficultyRules.SetSessionDifficulty(hostDifficulty);
             ShowLoadingScreen();
-            await Task.Delay(800);
             playersLoaded = 0;
             await activeRunner.LoadScene(SceneRef.FromIndex(mainSceneIndex));
         }, new Vector2(0.5f, 0.2f), true, new Vector2(400, 60), 25f);
@@ -1450,10 +1457,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             {
                 { "IsLocked", hostHasPassword ? 1 : 0 },
                 { "HasPassword", hostHasPassword ? 1 : 0 },
-                { "GameState", 0 }
+                { "GameState", 0 },
+                { "GameDifficulty", hostDifficulty }
             };
             args.SessionProperties = roomProps;
             args.PlayerCount = hostMaxPlayers;
+            DifficultyRules.SetSessionDifficulty(hostDifficulty);
         }
         else if (mode == GameMode.Client)
         {
@@ -1462,12 +1471,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 args.ConnectionToken = System.Text.Encoding.UTF8.GetBytes(pendingJoinPassword);
             }
         }
+        else if (mode == GameMode.Single)
+        {
+            DifficultyRules.SetSessionDifficulty(hostDifficulty);
+        }
 
         Debug.Log($"=== Gọi StartGame({mode}) ===");
 
         var result = await activeRunner.StartGame(args);
-
-        await Task.Delay(600); // Đợi UI ổn định
 
         if (this == null || isMenuDestroyed) return;
 
@@ -1487,7 +1498,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             if (mode == GameMode.Single)
             {
                 ShowLoadingScreen();
-                await Task.Delay(800);
                 playersLoaded = 0;
                 int sceneIndex = TutorialSession.IsActive ? tutorialSceneIndex : mainSceneIndex;
                 Debug.Log($"[MENU FLOW] Fusion loading scene index {sceneIndex} from MainMenu.");
@@ -1600,8 +1610,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             activeRunner.ProvideInput = false;        
         }
 
-        Application.backgroundLoadingPriority = ThreadPriority.Low;   // Giúp Unity ưu tiên load background
-
         if (loadingCoroutine != null) StopCoroutine(loadingCoroutine);
         loadingCoroutine = StartCoroutine(SmoothLoadingLogic());
     }
@@ -1622,7 +1630,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             float targetProgress = Mathf.Max(0.05f, GameplayReadinessCoordinator.CurrentProgress);
             if (targetProgress > 0.95f) targetProgress = 0.95f;
 
-            displayedProgress = Mathf.MoveTowards(displayedProgress, targetProgress, Time.unscaledDeltaTime * 1.5f);
+            displayedProgress = Mathf.MoveTowards(displayedProgress, targetProgress, Time.unscaledDeltaTime * 6f);
 
             if (loadingFillBar != null)
                 loadingFillBar.anchorMax = new Vector2(displayedProgress, 1f);
@@ -1631,7 +1639,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             {
                 string statusText = !string.IsNullOrEmpty(GameplayReadinessCoordinator.CurrentStatusText)
                     ? GameplayReadinessCoordinator.CurrentStatusText
-                    : GameLocalization.Get("menu.loading_wait_players");
+                    : GameLocalization.Get("loading.connecting");
                 loadingPercentText.text = $"{Mathf.RoundToInt(displayedProgress * 100)}% - {statusText}";
             }
 
@@ -1641,15 +1649,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // Host phát lệnh giải phóng -> Tiến lên 100%
         while (displayedProgress < 1f)
         {
-            displayedProgress = Mathf.MoveTowards(displayedProgress, 1f, Time.unscaledDeltaTime * 4f);
+            displayedProgress = Mathf.MoveTowards(displayedProgress, 1f, Time.unscaledDeltaTime * 10f);
             if (loadingFillBar != null)
                 loadingFillBar.anchorMax = new Vector2(displayedProgress, 1f);
             if (loadingPercentText != null)
-                loadingPercentText.text = "100% - Sẵn sàng!";
+                loadingPercentText.text = GameLocalization.Get("loading.ready_complete");
             yield return null;
         }
-
-        yield return new WaitForSecondsRealtime(0.3f);
 
         // Fade out
         if (cg != null)
@@ -1657,7 +1663,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             float t = 1f;
             while (t > 0f)
             {
-                t -= Time.unscaledDeltaTime * 4f;
+                t -= Time.unscaledDeltaTime * 5f;
                 cg.alpha = Mathf.Max(0f, t);
                 yield return null;
             }
@@ -1667,7 +1673,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         loadingScreenPanel.SetActive(false);
         isLoadingScreenActive = false;
         GameplayReadinessCoordinator.Release();
-        Application.backgroundLoadingPriority = ThreadPriority.BelowNormal;
+        Application.backgroundLoadingPriority = ThreadPriority.Normal;
         RestoreNetworkAfterLoading();
         EnableGameplayUI();
 
@@ -1686,6 +1692,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     public void ForceCloseLoadingScreen()
     {
         isHostSignaledGo = true;
+        GameplayReadinessCoordinator.Release();
     }
 
     public void OnSceneLoadDone(NetworkRunner runner)
@@ -1693,7 +1700,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         Debug.Log($"[MENU FLOW] OnSceneLoadDone runner='{runner?.name}', activeScene='{SceneManager.GetActiveScene().name}'.");
         isLocalSceneLoaded = true;
         GameplayReadinessCoordinator.SetStage(
-            GameplayReadinessCoordinator.ReadinessStage.FusionSceneReady, 0.7f, "Khởi tạo môi trường mạng...");
+            GameplayReadinessCoordinator.ReadinessStage.FusionSceneReady, 0.7f, "loading.fusion_ready");
     }
 
     private async Task CleanupOldRunnersAsync()
@@ -1996,7 +2003,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     // Các hàm tạo UI rút gọn
     private TextMeshProUGUI CreateTitleText(GameObject parent, string text, float height = 0.9f, int fontSize = 40, TextAlignmentOptions align = TextAlignmentOptions.Center, Vector2? aMin = null, Vector2? aMax = null) { GameObject txtObj = new GameObject("Title"); txtObj.transform.SetParent(parent.transform, false); TextMeshProUGUI txt = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.text = GameLocalization.TranslateLiteral(text); txt.fontSize = fontSize; txt.fontStyle = FontStyles.Bold; txt.alignment = align; txt.color = new Color(0.8f, 0.8f, 0.8f, 1f); RectTransform rect = txtObj.GetComponent<RectTransform>(); rect.anchorMin = aMin ?? new Vector2(0, height); rect.anchorMax = aMax ?? new Vector2(1, height); rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; return txt; }
-    private void SetDifficulty(int id) { hostDifficulty = id; PlayerPrefs.SetInt("GameDifficulty", id); PlayerPrefs.Save(); for (int i = 0; i < diffTexts.Length; i++) { if (i == id) { diffTexts[i].color = Color.yellow; diffTexts[i].fontStyle = FontStyles.Bold; } else { diffTexts[i].color = Color.gray; diffTexts[i].fontStyle = FontStyles.Normal; } } }
+    private void SetDifficulty(int id) { hostDifficulty = DifficultyRules.ClampDifficulty(id); DifficultyRules.ActiveDifficulty = hostDifficulty; PlayerPrefs.SetInt("GameDifficulty", hostDifficulty); PlayerPrefs.Save(); for (int i = 0; i < diffTexts.Length; i++) { if (i == hostDifficulty) { diffTexts[i].color = Color.yellow; diffTexts[i].fontStyle = FontStyles.Bold; } else { diffTexts[i].color = Color.gray; diffTexts[i].fontStyle = FontStyles.Normal; } } }
     private void TogglePassword() { hostHasPassword = !hostHasPassword; if (hostHasPassword) { toggleText.text = GameLocalization.TranslateLiteral("[ YES ]"); toggleText.color = Color.red; passwordInputObj.SetActive(true); } else { toggleText.text = GameLocalization.TranslateLiteral("[ NO ]"); toggleText.color = Color.gray; passwordInputObj.SetActive(false); } }
     private string[] GetCharacterNames() => GameLocalization.IsVietnamese ? characterNamesVi : characterNames;
     private string[] GetCharacterStats() => GameLocalization.IsVietnamese ? characterStatsVi : characterStats;
@@ -2120,6 +2127,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void EnableGameplayUI() { foreach (var obj in temporarilyDisabledObjects) { if (obj != null) obj.SetActive(true); } temporarilyDisabledObjects.Clear(); }
     private void OnDestroy()
     {
+        GameLocalization.LanguageChanged -= RefreshLocalizedDynamicTexts;
         EnableGameplayUI();
         isMenuDestroyed = true;
         if (Instance == this) Instance = null;

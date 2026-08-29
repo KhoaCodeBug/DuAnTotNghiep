@@ -164,8 +164,8 @@ public static class GameLocalization
             "GHẾ {0} — {1}   |   SHIFT+1-4: ĐỔI GHẾ   |   SPACE: PHANH   |   F: XUỐNG XE" } },
         { "difficulty.easy.title", new[] { "* EASY MODE *", "* CHẾ ĐỘ DỄ *" } },
         { "difficulty.easy.stats", new[] {
-            "<color=#99FF99>ZOMBIE DENSITY:</color> Low (-50% Spawn Rate)\n<color=#99FF99>RESOURCES:</color> Abundant (Loot rate 150%)\n<color=#99FF99>DAMAGE TAKEN:</color> Reduced (-30% Damage)\n<color=#99FF99>STARTING GEAR:</color> Pistol + Ammo & Canned Food\n<color=#99FF99>SURVIVAL RATE:</color> Very High (90%)",
-            "<color=#99FF99>MẬT ĐỘ ZOMBIE:</color> Thấp (-50% tần suất xuất hiện)\n<color=#99FF99>TÀI NGUYÊN:</color> Dồi dào (tỉ lệ loot 150%)\n<color=#99FF99>SÁT THƯƠNG NHẬN:</color> Giảm (-30% sát thương)\n<color=#99FF99>TRANG BỊ ĐẦU:</color> Súng lục + đạn và đồ hộp\n<color=#99FF99>TỈ LỆ SINH TỒN:</color> Rất cao (90%)" } },
+            "<color=#99FF99>ZOMBIE DENSITY:</color> Low (-50% Spawn Rate)\n<color=#99FF99>RESOURCES:</color> Abundant (Loot rate 150%)\n<color=#99FF99>DAMAGE TAKEN:</color> Reduced (-30% Damage)\n<color=#99FF99>STARTING GEAR:</color> AK47 + 7.62mm Ammo & Meat\n<color=#99FF99>SURVIVAL RATE:</color> Very High (90%)",
+            "<color=#99FF99>MẬT ĐỘ ZOMBIE:</color> Thấp (-50% tần suất xuất hiện)\n<color=#99FF99>TÀI NGUYÊN:</color> Dồi dào (tỉ lệ loot 150%)\n<color=#99FF99>SÁT THƯƠNG NHẬN:</color> Giảm (-30% sát thương)\n<color=#99FF99>TRANG BỊ ĐẦU:</color> Súng AK-47 + Đạn 7.62mm & Thịt\n<color=#99FF99>TỈ LỆ SINH TỒN:</color> Rất cao (90%)" } },
         { "difficulty.easy.desc", new[] {
             "<b>OVERVIEW:</b>\nZombie spawn count is reduced. Ideal for exploring, gathering resources, and learning basic survival mechanics without heavy pressure.",
             "<b>TỔNG QUAN:</b>\nSố zombie xuất hiện được giảm. Phù hợp để khám phá, thu thập tài nguyên và làm quen cơ chế sinh tồn mà không chịu quá nhiều áp lực." } },
@@ -183,6 +183,25 @@ public static class GameLocalization
         { "difficulty.hard.desc", new[] {
             "<b>OVERVIEW:</b>\nA relentless nightmare. Zombies are extremely numerous and spawn very quickly. Demands maximum skill and tactical planning.",
             "<b>TỔNG QUAN:</b>\nMột cơn ác mộng không ngừng nghỉ. Zombie cực kỳ đông và xuất hiện rất nhanh. Đòi hỏi kỹ năng cao nhất cùng kế hoạch chiến thuật chặt chẽ." } },
+        { "loading.connecting", new[] { "Connecting to game session...", "Đang kết nối phiên chơi..." } },
+        { "loading.scene_loading", new[] { "Loading map resources...", "Đang nạp tài nguyên bản đồ..." } },
+        { "loading.fusion_ready", new[] { "Initializing network session...", "Đang khởi tạo môi trường mạng..." } },
+        { "loading.player_spawn_waiting", new[] { "Requesting survivor spawn...", "Đang yêu cầu tạo nhân vật..." } },
+        { "loading.avatar_binding", new[] { "Binding character controls...", "Đang liên kết điều khiển..." } },
+        { "loading.hud_ready", new[] { "Finalizing interface...", "Đang hoàn tất giao diện..." } },
+        { "loading.awaiting_host", new[] { "Awaiting server release...", "Đang chờ máy chủ giải phóng..." } },
+        { "loading.ready_complete", new[] { "100% - Ready!", "100% - Sẵn sàng!" } },
+        { "loading.failed", new[] { "Loading failed: {0}", "Tải thất bại: {0}" } },
+        { "chat.system_prefix", new[] { "SYSTEM", "HỆ THỐNG" } },
+        { "chat.player_joined", new[] { "{0} joined the match.", "{0} đã vào trận." } },
+        { "chat.death.zombie", new[] { "{0} died to a zombie attack.", "{0} đã chết vì bị zombie tấn công." } },
+        { "chat.death.bleeding", new[] { "{0} bled out.", "{0} đã chết vì mất máu." } },
+        { "chat.death.infection", new[] { "{0} succumbed to the infection.", "{0} đã chết vì nhiễm trùng." } },
+        { "chat.death.starvation", new[] { "{0} starved to death.", "{0} đã chết vì đói." } },
+        { "chat.death.dehydration", new[] { "{0} died of thirst.", "{0} đã chết vì khát." } },
+        { "chat.death.pvp_killer", new[] { "{0} was killed by {1}.", "{0} đã bị {1} hạ gục." } },
+        { "chat.death.pvp_generic", new[] { "{0} was killed by another player.", "{0} đã bị người chơi khác hạ gục." } },
+        { "chat.death.unknown", new[] { "{0} has died.", "{0} đã tử vong." } },
     };
 
     private static readonly Dictionary<string, string[]> LiteralText = CreateLiteralTable();
@@ -228,11 +247,6 @@ public static class GameLocalization
 
     public static void SetLanguage(Language language, bool save = true)
     {
-        if (Current == language)
-        {
-            QuestUILocalization.SetVietnamese(language == Language.Vietnamese);
-            return;
-        }
         Current = language;
         if (save)
         {

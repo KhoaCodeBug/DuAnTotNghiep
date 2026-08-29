@@ -1441,7 +1441,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (authorityHospitalRadioSpawnRoutine != null) StopCoroutine(authorityHospitalRadioSpawnRoutine);
         authorityHospitalRadioSpawnRoutine = StartCoroutine(
             AuthoritySpawnHospitalRadioThreat(completedBy, radioPosition, completedSegment));
-        int difficulty = Mathf.Clamp(PlayerPrefs.GetInt("GameDifficulty", 1), 0, 2);
+        int difficulty = DifficultyRules.ActiveDifficulty;
         int zombiesPerEntry = HospitalRadioRoomRules.GetThreatZombiesPerEntry(difficulty);
         Debug.Log($"[HOSPITAL H4] Radio checkpoint {completedSegment}/3: noise + " +
                   $"{zombiesPerEntry} zombies at each entry (difficulty {difficulty}).");
@@ -1456,7 +1456,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             yield break;
         }
 
-        int difficulty = Mathf.Clamp(PlayerPrefs.GetInt("GameDifficulty", 1), 0, 2);
+        int difficulty = DifficultyRules.ActiveDifficulty;
         int zombiesPerEntry = HospitalRadioRoomRules.GetThreatZombiesPerEntry(difficulty);
         for (int spawnIndex = 0; spawnIndex < zombiesPerEntry; spawnIndex++)
         {
@@ -2998,6 +2998,8 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void OnGUI()
     {
+        if (GameplayReadinessCoordinator.IsGameplaySuppressed || GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
+
         if (localQuestEventAlpha > 0.001f) DrawQuestEventNotice();
         if (localClueNoticeAlpha > 0.001f) DrawClueNotice();
         if (localLocationTitleAlpha > 0.001f) DrawMilitaryLocationTitle();

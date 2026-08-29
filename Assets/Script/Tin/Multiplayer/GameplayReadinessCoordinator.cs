@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -24,30 +25,48 @@ public static class GameplayReadinessCoordinator
 
     public static ReadinessStage CurrentStage { get; private set; } = ReadinessStage.None;
     public static float CurrentProgress { get; private set; } = 0f;
-    public static string CurrentStatusText { get; private set; } = string.Empty;
+    public static string CurrentStatusKeyOrText { get; private set; } = string.Empty;
     public static bool IsLoadingActive { get; private set; } = false;
     public static bool IsReleasedToGameplay => CurrentStage == ReadinessStage.ReleasedToGameplay;
+    public static bool IsGameplaySuppressed => IsLoadingActive || (CurrentStage != ReadinessStage.None && CurrentStage != ReadinessStage.ReleasedToGameplay);
 
     public static event Action<float, string> OnProgressUpdated;
     public static event Action OnReleased;
     public static event Action<string> OnFailed;
+    public static event Action<bool> OnSuppressionChanged;
+
+    private static readonly HashSet<Canvas> RegisteredGameplayCanvases = new HashSet<Canvas>();
+
+    public static string CurrentStatusText
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(CurrentStatusKeyOrText))
+                return GetDefaultMessageForStage(CurrentStage);
+
+            return GameLocalization.Get(CurrentStatusKeyOrText, CurrentStatusKeyOrText);
+        }
+    }
 
     public static void ResetCoordinator()
     {
         CurrentStage = ReadinessStage.None;
         CurrentProgress = 0f;
-        CurrentStatusText = string.Empty;
+        CurrentStatusKeyOrText = string.Empty;
         IsLoadingActive = false;
+        OnSuppressionChanged?.Invoke(IsGameplaySuppressed);
     }
 
-    public static void StartLoading(string initialStatus = "Đang kết nối máy chủ...")
+    public static void StartLoading(string initialStatusKey = "loading.connecting")
     {
         ResetCoordinator();
         IsLoadingActive = true;
-        SetStage(ReadinessStage.Connecting, 0f, initialStatus);
+        SetStage(ReadinessStage.Connecting, 0f, initialStatusKey);
+        OnSuppressionChanged?.Invoke(IsGameplaySuppressed);
+        ApplyCanvasSuppression();
     }
 
-    public static void SetStage(ReadinessStage stage, float subProgress01 = 0f, string customMessage = null)
+    public static void SetStage(ReadinessStage stage, float subProgress01 = 0f, string customMessageOrKey = null)
     {
         if (stage < CurrentStage && stage != ReadinessStage.None && CurrentStage != ReadinessStage.Failed)
         {
@@ -71,9 +90,9 @@ public static class GameplayReadinessCoordinator
             CurrentProgress = 0.98f;
         }
 
-        CurrentStatusText = !string.IsNullOrEmpty(customMessage)
-            ? customMessage
-            : GetDefaultMessageForStage(stage);
+        CurrentStatusKeyOrText = !string.IsNullOrEmpty(customMessageOrKey)
+            ? customMessageOrKey
+            : GetDefaultKeyForStage(stage);
 
         OnProgressUpdated?.Invoke(CurrentProgress, CurrentStatusText);
 
@@ -82,11 +101,14 @@ public static class GameplayReadinessCoordinator
             CurrentProgress = 1.0f;
             IsLoadingActive = false;
             OnReleased?.Invoke();
+            OnSuppressionChanged?.Invoke(false);
+            ApplyCanvasSuppression();
         }
         else if (stage == ReadinessStage.Failed)
         {
             IsLoadingActive = false;
             OnFailed?.Invoke(CurrentStatusText);
+            OnSuppressionChanged?.Invoke(true);
         }
     }
 
@@ -94,18 +116,56 @@ public static class GameplayReadinessCoordinator
     {
         if (CurrentStage == ReadinessStage.SceneLoading || CurrentStage == ReadinessStage.Connecting)
         {
-            SetStage(ReadinessStage.SceneLoading, asyncProgress, "Đang tải bản đồ...");
+            SetStage(ReadinessStage.SceneLoading, asyncProgress, "loading.scene_loading");
         }
     }
 
     public static void Release()
     {
-        SetStage(ReadinessStage.ReleasedToGameplay, 1.0f, "Hoàn tất!");
+        SetStage(ReadinessStage.ReleasedToGameplay, 1.0f, "loading.ready_complete");
     }
 
     public static void Fail(string errorMessage)
     {
         SetStage(ReadinessStage.Failed, 0f, errorMessage);
+    }
+
+    public static void RegisterGameplayCanvas(Canvas canvas)
+    {
+        if (canvas == null) return;
+        RegisteredGameplayCanvases.Add(canvas);
+        UpdateSingleCanvasSuppression(canvas, IsGameplaySuppressed);
+    }
+
+    public static void UnregisterGameplayCanvas(Canvas canvas)
+    {
+        if (canvas == null) return;
+        RegisteredGameplayCanvases.Remove(canvas);
+    }
+
+    public static void ApplyCanvasSuppression()
+    {
+        bool suppress = IsGameplaySuppressed;
+        RegisteredGameplayCanvases.RemoveWhere(c => c == null);
+        foreach (Canvas canvas in RegisteredGameplayCanvases)
+        {
+            UpdateSingleCanvasSuppression(canvas, suppress);
+        }
+    }
+
+    private static void UpdateSingleCanvasSuppression(Canvas canvas, bool suppress)
+    {
+        if (canvas == null) return;
+        if (canvas.TryGetComponent<CanvasGroup>(out var cg))
+        {
+            cg.alpha = suppress ? 0f : 1f;
+            cg.blocksRaycasts = !suppress;
+            cg.interactable = !suppress;
+        }
+        else
+        {
+            canvas.enabled = !suppress;
+        }
     }
 
     private static float GetBaseProgressForStage(ReadinessStage stage)
@@ -141,20 +201,27 @@ public static class GameplayReadinessCoordinator
         };
     }
 
-    private static string GetDefaultMessageForStage(ReadinessStage stage)
+    public static string GetDefaultKeyForStage(ReadinessStage stage)
     {
         return stage switch
         {
-            ReadinessStage.Connecting          => "Đang kết nối phiên chơi...",
-            ReadinessStage.SceneLoading        => "Đang nạp tài nguyên bản đồ...",
-            ReadinessStage.FusionSceneReady    => "Đang khởi tạo môi trường mạng...",
-            ReadinessStage.PlayerSpawnWaiting  => "Đang tạo nhân vật người chơi...",
-            ReadinessStage.LocalAvatarBinding  => "Đang liên kết điều khiển và góc nhìn...",
-            ReadinessStage.HUDAndSystemsReady  => "Đang chuẩn bị giao diện và nhiệm vụ...",
-            ReadinessStage.AwaitingHostRelease => "Đang chờ máy chủ xác nhận và giải phóng...",
-            ReadinessStage.ReleasedToGameplay  => "Sẵn sàng!",
-            ReadinessStage.Failed              => "Tải trận đấu thất bại.",
+            ReadinessStage.Connecting          => "loading.connecting",
+            ReadinessStage.SceneLoading        => "loading.scene_loading",
+            ReadinessStage.FusionSceneReady    => "loading.fusion_ready",
+            ReadinessStage.PlayerSpawnWaiting  => "loading.player_spawn_waiting",
+            ReadinessStage.LocalAvatarBinding  => "loading.avatar_binding",
+            ReadinessStage.HUDAndSystemsReady  => "loading.hud_ready",
+            ReadinessStage.AwaitingHostRelease => "loading.awaiting_host",
+            ReadinessStage.ReleasedToGameplay  => "loading.ready_complete",
+            ReadinessStage.Failed              => "loading.failed",
             _                                  => string.Empty
         };
+    }
+
+    private static string GetDefaultMessageForStage(ReadinessStage stage)
+    {
+        string key = GetDefaultKeyForStage(stage);
+        if (string.IsNullOrEmpty(key)) return string.Empty;
+        return GameLocalization.Get(key);
     }
 }

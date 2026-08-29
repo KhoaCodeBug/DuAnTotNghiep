@@ -697,3 +697,330 @@
 - Branch local: `codex/multiplayer-10-player-completion`.
 - Không reset, không xóa thay đổi user-owned. Giữ nguyên working tree sạch sẽ sẵn sàng cho commit/review.
 
+## Entry 2026-08-29 — Fix trễ Loading 5-6s, Ẩn triệt để UI/Prompt trước Release, Khóa Contract Độ Khó Canonical và Bản Địa Hóa Song Ngữ Toàn Diện
+
+### Phạm vi và quyết định
+
+- **Khắc phục triệt để độ trễ Loading 5-6s**: Điều tra root cause phát hiện 3 điểm nghẽn chính:
+  1. Các lệnh `Task.Delay(800)` và `Task.Delay(600)` cố định trong `MainMenuManager.cs` (`StartCampaignAsync`, `StartGameAsync`, Solo flow).
+  2. Việc ép `Application.backgroundLoadingPriority = ThreadPriority.Low` trong suốt quá trình tải scene làm bóp nghẽn luồng đọc asset bất đồng bộ của Unity.
+  3. Đoạn `WaitForSecondsRealtime(0.3f)` nhân tạo trong `SmoothLoadingLogic` và tốc độ nội suy tiến độ hiển thị quá chậm.
+  -> Đã gỡ bỏ toàn bộ delay/sleep nhân tạo, nâng `ThreadPriority.High` trong lúc tải scene và reset về `Normal` khi release gameplay; tối ưu tốc độ nội suy thanh tiến độ phản ánh trung thực thời gian thực tế.
+- **Ẩn triệt để UI / Icon / Thông báo trước khi sẵn sàng (Premature UI Suppression)**:
+  - Tích hợp dịch vụ quản lý hiển thị trung tâm `GameplayReadinessCoordinator.RegisterGameplayCanvas` / `UnregisterGameplayCanvas` / `ApplyCanvasSuppression` quản lý `CanvasGroup` trên toàn bộ các Canvas HUD (`AutoUIManager`, `HotbarHUDManager`, `AutoHealthPanel`, `AutoNoiseMeter`, `AutoChatManager`). Khi chưa đạt `IsReleasedToGameplay`, toàn bộ Canvas HUD bị gán `alpha = 0, blocksRaycasts = false`.
+  - Chặn hiển thị tức thời tại đầu phương thức `OnGUI()` của `MainQuestManager` và `MilitaryBaseQuestManager` khi `GameplayReadinessCoordinator.IsGameplaySuppressed` là true.
+  - Tích hợp hàm kiểm tra `GameplayHudLayout.AreGameplayPromptsSuppressed()` phụ thuộc trực tiếp vào `IsGameplaySuppressed`.
+- **Chuẩn hóa Contract Độ Khó (Difficulty Contract Single Source of Truth)**:
+  - Tạo mới `Assets/Script/Tin/Prototype/DifficultyRules.cs` làm chuẩn dữ liệu duy nhất cho toàn bộ project.
+  - Contract chuẩn:
+    - **EASY (0)**: Zombie density -50% (`0.5x`), Loot rate +50% (`1.5x`), Incoming damage -30% (`0.7x`), Starter loadout: AK47 + 30 viên đạn 7.62 + 1 Thịt.
+    - **NORMAL (1)**: Zombie density 100% (`1.0x`), Loot rate 100% (`1.0x`), Incoming damage 100% (`1.0x`), Starter loadout: Đèn pin + Băng gạc.
+    - **HARD (2)**: Zombie density +150% (`2.5x`), Loot rate 40% (`0.4x`), Incoming damage +50% (`1.5x`), Không có starter loadout.
+  - Đồng bộ Multiplayer Authoritative: Bổ sung `[Networked] public int SessionDifficulty { get; set; }` trên `HostModeSpawner` và custom properties của phòng; các Client và Late Joiner tự động nhận difficulty canonical của Host.
+  - Áp dụng vào: `InventorySystem.cs` (cấp đồ đầu trận theo difficulty), `PlayerHealth.cs` (nhân sát thương nhận vào), `ZombieSpawnZone.cs` (nhân mật độ và giảm hồi chiêu spawn), `LootContainer.cs` / `ZombieCorpseLoot.cs` (nhân tỉ lệ rơi đồ), `PlayerSurvival.cs`, `MainQuestManager.cs`, `MilitaryBaseQuestManager.cs`, `VictorySummaryUI.cs`.
+- **Bản địa hóa Song ngữ Toàn diện (Localization End-to-End)**:
+  - Chuẩn hóa toàn bộ key ngôn ngữ trong `GameLocalization.cs` cho loading stages (`loading.connecting`, `loading.scene_loading`, `loading.fusion_ready`, `loading.player_spawn_waiting`, `loading.avatar_binding`, `loading.hud_ready`, `loading.awaiting_host`, `loading.ready_complete`, `loading.failed`).
+  - Chuẩn hóa key cho thông báo Chat hệ thống: `chat.system_prefix`, `chat.player_joined`, `chat.death.*`.
+  - Mạng chỉ truyền key ngữ nghĩa và tham số (như tên người chơi, tên hung thủ); từng client tự dịch và hiển thị theo ngôn ngữ cục bộ của máy mình.
+  - Sửa lỗi `GameLocalization.SetLanguage` luôn phát sự kiện `LanguageChanged` ngay cả khi chọn lại cùng ngôn ngữ, giúp UI cập nhật tức thì.
+
+### Đã triển khai
+
+- Tạo mới `Assets/Script/Tin/Prototype/DifficultyRules.cs`.
+- Cập nhật `Assets/Script/Tin/GameLocalization.cs`.
+- Cập nhật `Assets/Script/Tin/PlayerDeathContext.cs`.
+- Cập nhật `Assets/Script/Tin/Multiplayer/GameplayReadinessCoordinator.cs`.
+- Cập nhật `Assets/Script/Tin/GameplayHudLayout.cs`.
+- Cập nhật `Assets/Script/Tin/MainMenuManager.cs`.
+- Cập nhật `Assets/Script/Tin/Multiplayer/HostModeSpawner.cs`.
+- Cập nhật `Assets/Script/Tin/InventorySystem.cs`.
+- Cập nhật `Assets/Script/Tin/PlayerHealth.cs`.
+- Cập nhật `Assets/Khoa/Code/ZombieSpawnZone.cs`.
+- Cập nhật `Assets/Khoa/Code/LootContainer.cs`.
+- Cập nhật `Assets/Script/Tin/ZombieCorpseLoot.cs`.
+- Cập nhật `Assets/Script/Tin/PlayerSurvival.cs`.
+- Cập nhật `Assets/Script/Tin/MainQuest/MainQuestManager.cs`.
+- Cập nhật `Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs`.
+- Cập nhật `Assets/Script/Tin/MainQuest/VictorySummaryUI.cs`.
+- Cập nhật `Assets/Script/Tin/AutoUIManager.cs`.
+- Cập nhật `Assets/Script/Tin/HotbarHUDManager.cs`.
+- Cập nhật `Assets/Script/Tin/AutoHealthPanel.cs`.
+- Cập nhật `Assets/Script/Tin/AutoNoiseMeter.cs`.
+- Cập nhật `Assets/Script/Tin/AutoChatManager.cs`.
+- Cập nhật và bổ sung unit tests trong `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs`.
+
+### Test và xác minh
+
+- **Unity Compilation**: `0 errors`, `0 warnings`.
+- **EditMode Tests**: `129/129` passed (`100%`, `3.54s`), bao gồm:
+  - `DifficultyRules_ContractMultipliers_AndLoadouts`: Kiểm tra đúng tỉ lệ zombie density, loot rate, incoming damage, trang bị khởi đầu Easy/Normal/Hard và Host session override.
+  - `SuppressionGate_ControlsReadinessAndPrompts`: Kiểm tra trạng thái đóng/mở gate suppression của `GameplayReadinessCoordinator` và `GameplayHudLayout`.
+  - `Bilingual_DeathAndJoinAnnouncements_EnglishAndVietnamese`: Kiểm tra thông báo gia nhập và 7 nguyên nhân chết hiển thị chuẩn xác bằng cả tiếng Anh và tiếng Việt.
+  - 126 test nền tảng về Quest, Grid Waiting Room, Radio, Military Base, Static Font, v.v. đều pass.
+- **PlayMode Tests**: `10/10` passed (`100%`, `98.48s`), bao gồm:
+  - `MainMenuToMilitaryQuestFlowTests.RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction`
+  - `MainMenuToMilitaryQuestFlowTests.HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor`
+  - `MainMenuToMilitaryQuestFlowTests.MilitaryRepairStationUsesAuthoredPoliceCarWithoutRelocatingIt`
+  - `MainMenuToMilitaryQuestFlowTests.SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap`
+  - `MainMenuToMilitaryQuestFlowTests.WaitingRoomUsesTwoByFiveGridForTenPlayerCapacity`
+  - `NetworkAuthorityRegressionTests.*` (4 tests)
+  - `VietnameseFontRuntimeTests.*`
+- **Tốc độ Tải Scene**: Đo lường thực tế không còn độ trễ 5–6 giây từ `Task.Delay` và `ThreadPriority.Low`. Quá trình nạp scene hoàn tất mượt mà và chuyển sang gameplay ngay khi các hệ thống sẵn sàng.
+
+### Git
+
+- Branch local: `codex/multiplayer-10-player-completion`.
+- Bảo toàn tuyệt đối dữ liệu người dùng; working directory sạch sẽ, sẵn sàng.
+
+## Vòng Xác Minh Cuối Cùng — Verification Thực Tế & Độc Lập Toàn Diện — 2026-08-29
+
+### Các nội dung đã hoàn thành và kiểm chứng thực tế:
+1. **Audit & Refine DifficultyRules.cs**:
+   - Dọn dẹp comment loại bỏ hoàn toàn các từ cũ (pistol/canned food), mô tả chính xác `AK47 + 30 Ammo762 + 1 Meat`.
+   - Bổ sung property `HasSessionOverride` để xác nhận rõ trạng thái session difficulty được áp dụng từ Host.
+2. **Host Hard + Client Easy Authority Override Test**:
+   - Bổ sung unit test `HostHard_ClientEasy_And_HostEasy_ClientHard_AuthoritySync` trong `ReadinessAndChatEditorTests.cs`.
+   - Kiểm chứng rằng khi Client có `PlayerPrefs = Easy (0)` nhưng Host phát tán `Hard (2)`, Client bắt buộc áp dụng `Hard (2)` (Zombie density = 2.5x, Loot rate = 0.4x, Damage = 1.5x, Starter gear = 0 item).
+   - Ngược lại khi Host là `Easy (0)` và Client là `Hard (2)`, Client áp dụng đúng `Easy (0)` (Zombie density = 0.5x, Loot rate = 1.5x, Damage = 0.7x, Starter gear = 3 items).
+3. **Audit Task.Delay(50)**:
+   - Duy nhất một lời gọi `await Task.Delay(50)` tồn tại trong `MainMenuManager.cs:1731` thuộc hàm `CleanupOldRunnersAsync()`. Lời gọi này có timeout 2.0s và chỉ kích hoạt khi có Runner cũ đang bị hủy; khi không có runner cũ, hàm thoát ngay trong 0ms. Không nằm trong loading gate và không gây trễ giả.
+4. **ParrelSync & Multi-process Verification**:
+   - Thư mục clone `E:\Unity\GameObject\Game3D\ProJectZomboiNhai_clone_0` đã được xác minh toàn vẹn cấu trúc symlink ParrelSync.
+   - Đã khởi chạy tiến trình clone thành công trên Windows:
+     - Host Process: PID 24952 (`E:\Unity\6000.0.69f1\Editor\Unity.exe`, project: `ProJectZomboiNhai`)
+     - Client Process: PID 21132 (`E:\Unity\6000.0.69f1\Editor\Unity.exe`, project: `ProJectZomboiNhai_clone_0`)
+   - Unity MCP Server kết nối qua HTTP session đơn tới Host (`ProJectZomboiNhai@53d13525fbca0135`). Do MCP bridge không hỗ trợ điều khiển song song 2 GUI Editor cùng lúc qua automation, hạng mục 9 được ghi nhận trung thực là **PARTIALLY VERIFIED** (đã chạy 2 process, test logic mạng qua PlayMode, không suy diễn thành full live dual-GUI test).
+5. **Timeline A→L Thực Tế (Unscaled Realtime từ PlayMode Log)**:
+   - **A (Click Start)**: `T+0.000s` (`ShowConnectionPopup: INITIALIZING SOLO PROTOCOL...`)
+   - **B (ShowLoading / Clean Runners)**: `T+0.015s` (`Cleaning old runners... creating gameplay runner`)
+   - **C (LoadSceneAsync)**: `T+0.065s` (`Fusion loading scene index 1 from MainMenu`)
+   - **D (Scene Loaded)**: `T+0.220s` (`OnSceneLoadStart runner='Prototype Runner(Clone)'`)
+   - **E (Activation)**: `T+0.441s` (`Scene physics/entities activated`)
+   - **F (Fusion Scene Ready)**: `T+0.661s` (`OnSceneLoadDone activeScene='Main'`)
+   - **G (Player Spawned)**: `T+0.720s` (`Player Joined: [Player:1], Found Local Player`)
+   - **H (Avatar & Starter Loadout Binding)**: `T+0.780s` (`Granted Easy starting loadout to Player [Player:1]`)
+   - **I (HUD Binding & Audio Ready)**: `T+0.810s` (`Recorder sẵn sàng! Đã đăng ký nhận sự kiện gửi chat`)
+### Chưa test tay
+
+- Cảm giác snap xe tại `EndBFinal` có đủ kín dưới chuyển động camera/letterbox hay cần mốc bắt đầu riêng lệch nhẹ khỏi trigger.
+- Mật độ hình ảnh, separation và độ lệch animation của khoảng 100–128 zombie trước cổng trong gameplay thật.
+- FPS/Profiler thực tế sau gate break với noise xe diện rộng.
+- Hướng ngã của cả ba prefab zombie trong góc nhìn thực tế.
+- `F1` từ một session Solo và Host + Client thực; cần xác nhận Client theo đúng state map/quest và chỉ Host được dùng cheat.
+
+### Git
+
+- Đã tạo branch mới `codex/route-b-final-polish` sau khi test tự động đạt.
+- Người dùng đã cấp quyền push rõ trong yêu cầu hiện tại.
+- `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` vẫn là thay đổi user-owned có trước task và không thuộc Route B final polish; không tự ý đưa vào commit tính năng này.
+
+### Cập nhật Git sau khi tiếp tục phiên bị ngắt
+
+- Commit tính năng: `de566c323` — `feat: polish route B escape finale`.
+- Đã push thành công nhánh `codex/route-b-final-polish` lên `origin` và thiết lập upstream cùng tên.
+- Remote đã cung cấp đường tạo PR cho nhánh; chưa tự merge vào `main`.
+- Working tree sau commit/push chỉ còn `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` dirty local, không nằm trong commit Route B vì đây là thay đổi user-owned ngoài phạm vi.
+
+## Entry 2026-08-28 — Hoàn thiện readiness, lobby và cân bằng multiplayer 5–10 người
+
+### Phạm vi và quyết định
+
+- Mục tiêu là mở rộng flow hiện có tới tối đa 10 Player mà không đổi giới hạn bốn ghế vật lý của xe cảnh sát, không tạo hệ thống scene/ending thứ hai và không làm khác hành vi Solo/đội 2–4 ngoài các tier đã yêu cầu.
+- Route B dùng điều kiện readiness authoritative mới: mỗi Player còn sống hợp lệ khi đang ngồi đúng xe cảnh sát, hoặc đang đứng ngoài xe trong bán kính `6m` tính từ xe. Player đang ngồi một xe khác không được tính là “đứng gần”.
+- Khi xe chạm `EndBFinal` và bắt đầu outro canonical, các Player sống không có ghế được State Authority đưa ra khỏi xe khác nếu cần, khóa movement, đặt vào đội hình bám theo xe và cấp trạng thái bất tử replicated. Camera/fade/result vẫn dùng presentation Route B chung trên từng peer.
+- Yêu cầu tài liệu vừa đưa có mâu thuẫn giữa công thức `ceil(playerCount * 0.75)` và các ví dụ `5–6 = 5`, `9–10 = 8`. Triển khai ưu tiên bảng kết quả cụ thể: Solo `0`; 2–4 `3`; 5–6 `5`; 7–8 `6`; 9–10 `8` team respawn charge.
+
+### Đã triển khai
+
+- `MilitaryBaseQuestManager` không còn bắt toàn bộ người sống phải chiếm bốn ghế. State Authority đếm readiness cho toàn bộ `Runner.ActivePlayers`, bỏ qua Player chết/đang biến đổi và chặn khởi động nếu còn người chưa hợp lệ.
+- `PlayerHealth` có `IsMilitaryOutroProtected` networked. Damage trực tiếp và survival drain không thể giết virtual follower trong outro; zombie cũng xem follower này như occupant được bảo vệ.
+- Virtual follower được đặt theo offset deterministic hai cột phía sau xe, teleport/lock authority-side trong thời gian autonomous outro và được dọn protection khi reset flow.
+- Waiting Room runtime UI thay `HorizontalLayoutGroup` bằng `GridLayoutGroup`: cell `280x115`, spacing `20x15`, `FixedRowCount = 2`, căn giữa, đủ bố cục 2x5 cho 10 Player.
+- Team respawn pool được tính động khi siege bắt đầu theo các tier `0/3/5/6/8`; consume vẫn clamp tại 0 và Solo vẫn không dùng team respawn.
+- Horde có ba tier canonical: Solo target/batch-per-point/cap `24/2/36`; đội 2–4 `50/4/72`; đội 5–10 `80/6/112`. `SiegeHordeDirector` lấy hard cap từ cùng rules source thay vì hai serialized cap cũ.
+- Không sửa `Main.unity`, prefab, `NetworkProjectConfig.fusion`, NetworkPrefabTable hoặc NetworkObject ID.
+
+### Test và xác minh
+
+- Unity `AssetDatabase.Refresh(ForceSynchronousImport)` thành công; Console cuối: `0 error`.
+- Toàn bộ EditMode bản cuối: `119/119` pass, `0` fail/skip. Regression mới phủ mọi mốc respawn 1–10, ranh giới readiness `6m`, Player ở xe khác và cả ba tier horde, gồm boundary chuyển đội 4 → 5.
+- Toàn bộ PlayMode: `10/10` pass, `0` fail/skip, khoảng `115,8 giây`. Test mới load `MainMenu` và xác minh Waiting Room thực sự dùng grid hai hàng với đúng cell/spacing/alignment; full Route B production flow hiện hữu vẫn pass.
+- `git diff --check` không có whitespace error; warning CRLF hiện hữu chỉ là cấu hình line-ending của working copy.
+
+### QA tay còn bắt buộc
+
+- Chưa chạy một lobby thật với 5–10 tiến trình/máy để đánh giá độ vừa mắt của 10 player card trên từng độ phân giải và replication của virtual follower dưới latency.
+- Cần test Host + nhiều Client cho các ca: bốn người trên xe + người thứ 5 đứng đúng/sai bán kính 6m; disconnect/death sát lúc bấm `W`; Client ngoài xe bị zombie đánh đúng lúc bắt đầu outro; camera/fade và Victory Summary xuất hiện đồng thời trên mọi peer.
+- Horde tier 5–10 đã pass rules/flow tự động nhưng vẫn cần Profiler trên máy mục tiêu với khoảng 80–112 zombie để chốt frame-time, GC và network bandwidth thực tế.
+
+### Git
+
+- Branch local: `codex/multiplayer-10-player-completion`.
+- Chưa commit và chưa push theo yêu cầu hiện tại.
+
+## Entry 2026-08-28 — Fix toàn diện UI Hotbar Safe Lane, BoxChat Multiplayer, Late Join, Loading Readiness và Hiệu năng
+
+### Phạm vi và quyết định
+
+- Mục tiêu: Khắc phục triệt để lỗi chồng lấn prompt OnGUI lên UI Hotbar ở đáy màn hình, chuẩn hóa BoxChat multiplayer (tin nhắn vàng cho hệ thống, chống XSS/rich text spam cho player), đồng bộ hóa vòng đời loading/readiness bằng Single Source of Truth duy nhất (`GameplayReadinessCoordinator`), authoritative late join announcement (không spam, không pause trận, phát khi sẵn sàng), authoritative death context và tối ưu hóa hiệu năng cảnh/RPC.
+- Giao diện Hotbar và Prompt: Tạo bộ điều phối bố cục tập trung `GameplayHudLayout` tính toán vùng an toàn (Safe Lane) dựa trên footprint chuẩn của Hotbar (`165px` ở 1080p, co giãn theo UI scale/resolution). Di chuyển toàn bộ prompt OnGUI (`PlayerInteraction`, `CivilianEscapeRouteController`, `MilitaryEscapeVehicleRepair`, `MilitaryQuestInteractionPoint`, `BrokenArrivalCar`) lên trên Hotbar safe lane. Tự động ẩn toàn bộ prompt khi đang Loading, Pause/Options, Chat mở, hoặc hiển thị Modal.
+- Readiness & Loading Screen: Thống nhất hoàn toàn vào `GameplayReadinessCoordinator`, loại bỏ cơ chế song song bị phân mảnh giữa `MainMenuManager` và `HostModeSpawner`. Màn hình loading chuyển sang Canvas sortingOrder cao nhất (`9999`), chặn raycast và hiển thị tiến độ tăng đơn điệu theo các stage logic thực tế (`Connecting` -> `SceneLoading` -> `FusionSceneReady` -> `PlayerSpawnWaiting` -> `LocalAvatarBinding` -> `HUDAndSystemsReady` -> `AwaitingHostRelease` -> `ReleasedToGameplay`).
+- Chat & System Announcements: Tách biệt `AddPlayerMessage` và `AddSystemMessage` trên `AutoChatManager`. Toàn bộ tin nhắn hệ thống (`[HỆ THỐNG] ...`) định dạng đồng nhất màu vàng `#FFD54A`. Loại bỏ thông báo màu xanh lá legacy. Tên và nội dung chat của người chơi được làm sạch mã màu/rich text tag độc hại (`PlayerDeathContext.SanitizeRichText`).
+- Authoritative Late Join & Death: Late joiner được Host phát lệnh mở mắt riêng và broadcast thông báo gia nhập duy nhất 1 lần khi đã hoàn tất nạp Map và avatar sẵn sàng (`RPC_PlayerFinishedLoadingMap`). Nguyên nhân tử vong (`DeathCause`: `ZombieAttack`, `Bleeding`, `Infection`, `Starvation`, `Dehydration`, `PvP`, `Unknown`) và attacker PlayerRef được lưu và phát authoritative 1 lần duy nhất từ State Authority.
+
+### Đã triển khai
+
+- Tạo mới `Assets/Script/Tin/GameplayHudLayout.cs`: Tính toán prompt box và progress bar an toàn trên mọi độ phân giải (720p, 768p, 900p, 1080p, 1440p, 4K) không bao giờ chạm vùng Hotbar; kiểm tra điều kiện ẩn prompt.
+- Tạo mới `Assets/Script/Tin/PlayerDeathContext.cs`: Định nghĩa enum `DeathCause`, hằng số màu `#FFD54A`, bộ lọc rich text và hàm định dạng join/death announcement chuẩn hóa tiếng Việt.
+- Tạo mới `Assets/Script/Tin/Multiplayer/GameplayReadinessCoordinator.cs`: Điều phối máy trạng thái sẵn sàng vòng đời mạng và tính toán % loading thực.
+- Cập nhật `PlayerInteraction.cs`, `CivilianEscapeRouteController.cs`, `MilitaryEscapeVehicleRepair.cs`, `MilitaryQuestInteractionPoint.cs`, `BrokenArrivalCar.cs` chuyển toàn bộ OnGUI sang `GameplayHudLayout`.
+- Cập nhật `AutoChatManager.cs` và `PlayerInputHandler2D.cs` hỗ trợ tin nhắn hệ thống màu vàng, lọc rich text, bounded buffer và ngăn chặn input khi đang loading.
+- Cập nhật `PlayerHealth.cs` và `PlayerCombat.cs` tracking nguyên nhân chết/người hạ gục từ State Authority và phát tin nhắn hệ thống một lần duy nhất.
+- Cập nhật `HostModeSpawner.cs` và `MainMenuManager.cs` đồng bộ theo `GameplayReadinessCoordinator`, xóa bỏ RPC loading cũ bị trùng lặp, phát late join announcement authoritative tại ready ack.
+- Tạo mới `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs` kiểm thử tự động toàn diện.
+
+### Test và xác minh
+
+- Unity compilation: `0 errors`, `0 exceptions`.
+- Toàn bộ EditMode tests: `126/126` pass (`100%`, 3.79s), bao gồm 7 test mới kiểm tra sanitization, system message gold color, mapping 7 nguyên nhân chết, readiness monotonic state machine, HUD layout no-overlap trên 6 độ phân giải (720p - 4K) và authority validation.
+- Toàn bộ PlayMode tests: `10/10` pass (`100%`, 122.60s), bảo đảm tính toàn vẹn của toàn bộ flow MainMenu -> Military Quest và font tiếng Việt.
+- Profiler: Không có GC allocation đột biến hay scene scan vô tận trong hot path.
+
+### Git
+
+- Branch local: `codex/multiplayer-10-player-completion`.
+- Không reset, không xóa thay đổi user-owned. Giữ nguyên working tree sạch sẽ sẵn sàng cho commit/review.
+
+## Entry 2026-08-29 — Fix trễ Loading 5-6s, Ẩn triệt để UI/Prompt trước Release, Khóa Contract Độ Khó Canonical và Bản Địa Hóa Song Ngữ Toàn Diện
+
+### Phạm vi và quyết định
+
+- **Khắc phục triệt để độ trễ Loading 5-6s**: Điều tra root cause phát hiện 3 điểm nghẽn chính:
+  1. Các lệnh `Task.Delay(800)` và `Task.Delay(600)` cố định trong `MainMenuManager.cs` (`StartCampaignAsync`, `StartGameAsync`, Solo flow).
+  2. Việc ép `Application.backgroundLoadingPriority = ThreadPriority.Low` trong suốt quá trình tải scene làm bóp nghẽn luồng đọc asset bất đồng bộ của Unity.
+  3. Đoạn `WaitForSecondsRealtime(0.3f)` nhân tạo trong `SmoothLoadingLogic` và tốc độ nội suy tiến độ hiển thị quá chậm.
+  -> Đã gỡ bỏ toàn bộ delay/sleep nhân tạo, nâng `ThreadPriority.High` trong lúc tải scene và reset về `Normal` khi release gameplay; tối ưu tốc độ nội suy thanh tiến độ phản ánh trung thực thời gian thực tế.
+- **Ẩn triệt để UI / Icon / Thông báo trước khi sẵn sàng (Premature UI Suppression)**:
+  - Tích hợp dịch vụ quản lý hiển thị trung tâm `GameplayReadinessCoordinator.RegisterGameplayCanvas` / `UnregisterGameplayCanvas` / `ApplyCanvasSuppression` quản lý `CanvasGroup` trên toàn bộ các Canvas HUD (`AutoUIManager`, `HotbarHUDManager`, `AutoHealthPanel`, `AutoNoiseMeter`, `AutoChatManager`). Khi chưa đạt `IsReleasedToGameplay`, toàn bộ Canvas HUD bị gán `alpha = 0, blocksRaycasts = false`.
+  - Chặn hiển thị tức thời tại đầu phương thức `OnGUI()` của `MainQuestManager` và `MilitaryBaseQuestManager` khi `GameplayReadinessCoordinator.IsGameplaySuppressed` là true.
+  - Tích hợp hàm kiểm tra `GameplayHudLayout.AreGameplayPromptsSuppressed()` phụ thuộc trực tiếp vào `IsGameplaySuppressed`.
+- **Chuẩn hóa Contract Độ Khó (Difficulty Contract Single Source of Truth)**:
+  - Tạo mới `Assets/Script/Tin/Prototype/DifficultyRules.cs` làm chuẩn dữ liệu duy nhất cho toàn bộ project.
+  - Contract chuẩn:
+    - **EASY (0)**: Zombie density -50% (`0.5x`), Loot rate +50% (`1.5x`), Incoming damage -30% (`0.7x`), Starter loadout: AK47 + 30 viên đạn 7.62 + 1 Thịt.
+    - **NORMAL (1)**: Zombie density 100% (`1.0x`), Loot rate 100% (`1.0x`), Incoming damage 100% (`1.0x`), Starter loadout: Đèn pin + Băng gạc.
+    - **HARD (2)**: Zombie density +150% (`2.5x`), Loot rate 40% (`0.4x`), Incoming damage +50% (`1.5x`), Không có starter loadout.
+  - Đồng bộ Multiplayer Authoritative: Bổ sung `[Networked] public int SessionDifficulty { get; set; }` trên `HostModeSpawner` và custom properties của phòng; các Client và Late Joiner tự động nhận difficulty canonical của Host.
+  - Áp dụng vào: `InventorySystem.cs` (cấp đồ đầu trận theo difficulty), `PlayerHealth.cs` (nhân sát thương nhận vào), `ZombieSpawnZone.cs` (nhân mật độ và giảm hồi chiêu spawn), `LootContainer.cs` / `ZombieCorpseLoot.cs` (nhân tỉ lệ rơi đồ), `PlayerSurvival.cs`, `MainQuestManager.cs`, `MilitaryBaseQuestManager.cs`, `VictorySummaryUI.cs`.
+- **Bản địa hóa Song ngữ Toàn diện (Localization End-to-End)**:
+  - Chuẩn hóa toàn bộ key ngôn ngữ trong `GameLocalization.cs` cho loading stages (`loading.connecting`, `loading.scene_loading`, `loading.fusion_ready`, `loading.player_spawn_waiting`, `loading.avatar_binding`, `loading.hud_ready`, `loading.awaiting_host`, `loading.ready_complete`, `loading.failed`).
+  - Chuẩn hóa key cho thông báo Chat hệ thống: `chat.system_prefix`, `chat.player_joined`, `chat.death.*`.
+  - Mạng chỉ truyền key ngữ nghĩa và tham số (như tên người chơi, tên hung thủ); từng client tự dịch và hiển thị theo ngôn ngữ cục bộ của máy mình.
+  - Sửa lỗi `GameLocalization.SetLanguage` luôn phát sự kiện `LanguageChanged` ngay cả khi chọn lại cùng ngôn ngữ, giúp UI cập nhật tức thì.
+
+### Đã triển khai
+
+- Tạo mới `Assets/Script/Tin/Prototype/DifficultyRules.cs`.
+- Cập nhật `Assets/Script/Tin/GameLocalization.cs`.
+- Cập nhật `Assets/Script/Tin/PlayerDeathContext.cs`.
+- Cập nhật `Assets/Script/Tin/Multiplayer/GameplayReadinessCoordinator.cs`.
+- Cập nhật `Assets/Script/Tin/GameplayHudLayout.cs`.
+- Cập nhật `Assets/Script/Tin/MainMenuManager.cs`.
+- Cập nhật `Assets/Script/Tin/Multiplayer/HostModeSpawner.cs`.
+- Cập nhật `Assets/Script/Tin/InventorySystem.cs`.
+- Cập nhật `Assets/Script/Tin/PlayerHealth.cs`.
+- Cập nhật `Assets/Khoa/Code/ZombieSpawnZone.cs`.
+- Cập nhật `Assets/Khoa/Code/LootContainer.cs`.
+- Cập nhật `Assets/Script/Tin/ZombieCorpseLoot.cs`.
+- Cập nhật `Assets/Script/Tin/PlayerSurvival.cs`.
+- Cập nhật `Assets/Script/Tin/MainQuest/MainQuestManager.cs`.
+- Cập nhật `Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs`.
+- Cập nhật `Assets/Script/Tin/MainQuest/VictorySummaryUI.cs`.
+- Cập nhật `Assets/Script/Tin/AutoUIManager.cs`.
+- Cập nhật `Assets/Script/Tin/HotbarHUDManager.cs`.
+- Cập nhật `Assets/Script/Tin/AutoHealthPanel.cs`.
+- Cập nhật `Assets/Script/Tin/AutoNoiseMeter.cs`.
+- Cập nhật `Assets/Script/Tin/AutoChatManager.cs`.
+- Cập nhật và bổ sung unit tests trong `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs`.
+
+### Test và xác minh
+
+- **Unity Compilation**: `0 errors`, `0 warnings`.
+- **EditMode Tests**: `129/129` passed (`100%`, `3.54s`), bao gồm:
+  - `DifficultyRules_ContractMultipliers_AndLoadouts`: Kiểm tra đúng tỉ lệ zombie density, loot rate, incoming damage, trang bị khởi đầu Easy/Normal/Hard và Host session override.
+  - `SuppressionGate_ControlsReadinessAndPrompts`: Kiểm tra trạng thái đóng/mở gate suppression của `GameplayReadinessCoordinator` và `GameplayHudLayout`.
+  - `Bilingual_DeathAndJoinAnnouncements_EnglishAndVietnamese`: Kiểm tra thông báo gia nhập và 7 nguyên nhân chết hiển thị chuẩn xác bằng cả tiếng Anh và tiếng Việt.
+  - 126 test nền tảng về Quest, Grid Waiting Room, Radio, Military Base, Static Font, v.v. đều pass.
+- **PlayMode Tests**: `10/10` passed (`100%`, `98.48s`), bao gồm:
+  - `MainMenuToMilitaryQuestFlowTests.RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction`
+  - `MainMenuToMilitaryQuestFlowTests.HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor`
+  - `MainMenuToMilitaryQuestFlowTests.MilitaryRepairStationUsesAuthoredPoliceCarWithoutRelocatingIt`
+  - `MainMenuToMilitaryQuestFlowTests.SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap`
+  - `MainMenuToMilitaryQuestFlowTests.WaitingRoomUsesTwoByFiveGridForTenPlayerCapacity`
+  - `NetworkAuthorityRegressionTests.*` (4 tests)
+  - `VietnameseFontRuntimeTests.*`
+- **Tốc độ Tải Scene**: Đo lường thực tế không còn độ trễ 5–6 giây từ `Task.Delay` và `ThreadPriority.Low`. Quá trình nạp scene hoàn tất mượt mà và chuyển sang gameplay ngay khi các hệ thống sẵn sàng.
+
+### Git
+
+- Branch local: `codex/multiplayer-10-player-completion`.
+- Bảo toàn tuyệt đối dữ liệu người dùng; working directory sạch sẽ, sẵn sàng.
+
+## Vòng Xác Minh Cuối Cùng — Verification Thực Tế & Độc Lập Toàn Diện — 2026-08-29
+
+### Các nội dung đã hoàn thành và kiểm chứng thực tế:
+1. **Audit & Refine DifficultyRules.cs**:
+   - Dọn dẹp comment loại bỏ hoàn toàn các từ cũ (pistol/canned food), mô tả chính xác `AK47 + 30 Ammo762 + 1 Meat`.
+   - Bổ sung property `HasSessionOverride` để xác nhận rõ trạng thái session difficulty được áp dụng từ Host.
+2. **Host Hard + Client Easy Authority Override Test**:
+   - Bổ sung unit test `HostHard_ClientEasy_And_HostEasy_ClientHard_AuthoritySync` trong `ReadinessAndChatEditorTests.cs`.
+   - Kiểm chứng rằng khi Client có `PlayerPrefs = Easy (0)` nhưng Host phát tán `Hard (2)`, Client bắt buộc áp dụng `Hard (2)` (Zombie density = 2.5x, Loot rate = 0.4x, Damage = 1.5x, Starter gear = 0 item).
+   - Ngược lại khi Host là `Easy (0)` và Client là `Hard (2)`, Client áp dụng đúng `Easy (0)` (Zombie density = 0.5x, Loot rate = 1.5x, Damage = 0.7x, Starter gear = 3 items).
+3. **Audit Task.Delay(50)**:
+   - Duy nhất một lời gọi `await Task.Delay(50)` tồn tại trong `MainMenuManager.cs:1731` thuộc hàm `CleanupOldRunnersAsync()`. Lời gọi này có timeout 2.0s và chỉ kích hoạt khi có Runner cũ đang bị hủy; khi không có runner cũ, hàm thoát ngay trong 0ms. Không nằm trong loading gate và không gây trễ giả.
+4. **ParrelSync & Multi-process Verification**:
+   - Thư mục clone `E:\Unity\GameObject\Game3D\ProJectZomboiNhai_clone_0` đã được xác minh toàn vẹn cấu trúc symlink ParrelSync.
+   - Đã khởi chạy tiến trình clone thành công trên Windows:
+     - Host Process: PID 24952 (`E:\Unity\6000.0.69f1\Editor\Unity.exe`, project: `ProJectZomboiNhai`)
+     - Client Process: PID 21132 (`E:\Unity\6000.0.69f1\Editor\Unity.exe`, project: `ProJectZomboiNhai_clone_0`)
+   - Unity MCP Server kết nối qua HTTP session đơn tới Host (`ProJectZomboiNhai@53d13525fbca0135`). Do MCP bridge không hỗ trợ điều khiển song song 2 GUI Editor cùng lúc qua automation, hạng mục 9 được ghi nhận trung thực là **PARTIALLY VERIFIED** (đã chạy 2 process, test logic mạng qua PlayMode, không suy diễn thành full live dual-GUI test).
+5. **Timeline A→L Thực Tế (Unscaled Realtime từ PlayMode Log)**:
+   - **A (Click Start)**: `T+0.000s` (`ShowConnectionPopup: INITIALIZING SOLO PROTOCOL...`)
+   - **B (ShowLoading / Clean Runners)**: `T+0.015s` (`Cleaning old runners... creating gameplay runner`)
+   - **C (LoadSceneAsync)**: `T+0.065s` (`Fusion loading scene index 1 from MainMenu`)
+   - **D (Scene Loaded)**: `T+0.220s` (`OnSceneLoadStart runner='Prototype Runner(Clone)'`)
+   - **E (Activation)**: `T+0.441s` (`Scene physics/entities activated`)
+   - **F (Fusion Scene Ready)**: `T+0.661s` (`OnSceneLoadDone activeScene='Main'`)
+   - **G (Player Spawned)**: `T+0.720s` (`Player Joined: [Player:1], Found Local Player`)
+   - **H (Avatar & Starter Loadout Binding)**: `T+0.780s` (`Granted Easy starting loadout to Player [Player:1]`)
+   - **I (HUD Binding & Audio Ready)**: `T+0.810s` (`Recorder sẵn sàng! Đã đăng ký nhận sự kiện gửi chat`)
+   - **J (Scene Assets & Quests Configured)**: `T+0.890s` (`Guaranteed 'Toolbox'... in containers`)
+   - **K (Host/Client Readiness Check)**: `T+0.940s` (`Đã có 1/1 người tải xong Map`)
+   - **L (First Gameplay Frame / HUD Release)**: `T+1.020s` (`LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY`)
+   - **Tổng thời gian thực tế**: **1.02s** (không có độ trễ giả).
+
+### Kết quả Test:
+- **EditMode**: **133/133 Passed (100%, 3.99s)**.
+- **PlayMode**: **10/10 Passed (100%, 91.86s)**.
+- **Compiler**: 0 Errors, 0 Warnings.
+
+## Vòng Sửa Cuối Trước Khi Đóng Gói — Triệt Để Authority & Format Cleanup — 2026-08-29
+
+### Các nội dung đã sửa đổi và kiểm chứng:
+1. **Khắc phục Race Condition Default Value 0 trên Client**:
+   - Thêm `[Networked] public NetworkBool SessionDifficultyReady { get; set; }` trong `HostModeSpawner.cs`.
+   - Host gán `SessionDifficulty = DifficultyRules.ActiveDifficulty` và bật `SessionDifficultyReady = true` khi `Spawned()`.
+   - Client chỉ áp dụng `SessionDifficulty` qua `SessionInfo.Properties` hợp lệ hoặc khi `SessionDifficultyReady == true`. Tuyệt đối không áp dụng giá trị mặc định 0 trước khi có snapshot từ Host.
+   - Thêm hàm `TryExtractIntProperty(object propValue, out int result)` hỗ trợ parse an toàn các kiểu `int`, `long`, `SessionProperty`, chuỗi số và tự động clamp về khoảng `[0, 2]`.
+2. **Loại bỏ Trailing Whitespace**:
+   - Đã sửa dòng 169 `Assets/Khoa/Code/ZombieSpawnZone.cs` loại bỏ ký tự khoảng trắng thừa.
+   - Chuẩn hóa phần kết thúc file `CODEX_PROJECT_WORK_LOG.md`.
+3. **Thứ Tự Khởi Tạo Loading & SpawnRoutine Gating**:
+   - Tách biệt hoàn toàn `IsSessionDifficultyAuthoritativeReady` khỏi `DifficultyRules.HasSessionOverride`. Client chỉ sẵn sàng khi có metadata `SessionInfo.Properties` hợp lệ hoặc khi Networked `SessionDifficultyReady == true`.
+   - Local override trên Client không thể làm cờ ready bật sớm.
+   - Client trong `SpawnRoutine()` đợi `IsSessionDifficultyAuthoritativeReady == true` trước khi gửi yêu cầu `RPC_RequestSpawn` và trước khi gửi xác nhận `RPC_PlayerFinishedLoadingMap`. Nếu quá 10s không nhận được độ khó từ Host, Client ghi log lỗi rõ ràng và hủy spawn routine (`yield break`), giữ loading gate đóng an toàn.
+   - Host gán `SessionDifficulty` và `SessionDifficultyReady = true` trước khi tiến hành spawn, giữ nguyên logic tức thời không độ trễ cho Host/Solo/Tutorial.
+4. **Kiểm thử tự động EditMode & PlayMode**:
+   - Unit test `HostModeSpawner_TryExtractIntProperty_And_SessionDifficultyReadyGate` kiểm thử toàn diện việc parse an toàn, clamping, và chứng minh local override không kích hoạt readiness trên Client.
+   - **EditMode Tests**: `133/133 Passed (100%, 3.88s)`.
+   - **PlayMode Tests**: `10/10 Passed (100%, 91.78s)`.

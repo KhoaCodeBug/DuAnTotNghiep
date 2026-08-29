@@ -2381,7 +2381,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (GateCurrentHealth <= 0f) RPC_GateBroken();
     }
 
-    private static int GetSelectedDifficulty() => Mathf.Clamp(PlayerPrefs.GetInt("GameDifficulty", 1), 0, 2);
+    private static int GetSelectedDifficulty() => DifficultyRules.ActiveDifficulty;
 
     public int CountActivePlayers()
     {
@@ -2540,6 +2540,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private void OnGUI()
     {
+        if (GameplayReadinessCoordinator.IsGameplaySuppressed || GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
         if (!IsNetworkReady || TutorialSession.IsActive || IsMilitaryIntroCinematicActive ||
             MainQuestManager.Instance == null ||
             MainQuestManager.Instance.CurrentStage != MainQuestManager.QuestStage.CityMapFound)

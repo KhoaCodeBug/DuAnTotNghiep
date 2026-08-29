@@ -55,7 +55,7 @@ public class PlayerSurvival : NetworkBehaviour
         if (HasStateAuthority)
         {
             SurvivalBalanceProfile balance = SurvivalBalanceSettings.GetActiveProfile(
-                PlayerPrefs.GetInt("GameDifficulty", 1));
+                DifficultyRules.ActiveDifficulty);
             EffectiveHungerDrainRate = balance.HungerDrainRate;
             EffectiveThirstDrainRate = balance.ThirstDrainRate;
             EffectiveDamageOverTime = balance.DamagePerSecond;

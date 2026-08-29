@@ -41,8 +41,8 @@ public static class GameplayHudLayout
     /// </summary>
     public static bool AreGameplayPromptsSuppressed()
     {
-        // 1. Kiểm tra Loading Screen
-        if (GameplayReadinessCoordinator.IsLoadingActive) return true;
+        // 1. Kiểm tra Loading & Readiness Suppression Gate
+        if (GameplayReadinessCoordinator.IsGameplaySuppressed) return true;
 
         // 2. Kiểm tra Pause Menu & Options
         if (AutoMainMenuManager.Instance != null && AutoMainMenuManager.Instance.IsPauseMenuOrOptionsOpen)

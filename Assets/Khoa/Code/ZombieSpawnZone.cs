@@ -105,7 +105,9 @@ public class ZombieSpawnZone : NetworkBehaviour
         }
 
         isSpawning = true;
-        int spawnCount = Random.Range(minZombies, maxZombies + 1);
+        float densityMultiplier = DifficultyRules.GetZombieDensityMultiplier(DifficultyRules.ActiveDifficulty);
+        int baseCount = Random.Range(minZombies, maxZombies + 1);
+        int spawnCount = Mathf.Max(1, Mathf.RoundToInt(baseCount * densityMultiplier));
 
         for (int i = 0; i < spawnCount; i++)
         {
@@ -153,7 +155,8 @@ public class ZombieSpawnZone : NetworkBehaviour
             if (hasSpawnedThisZombie) yield return new WaitForSeconds(0.2f);
         }
 
-        currentCooldown = respawnCooldown;
+        float cooldownMultiplier = densityMultiplier > 0f ? (1.0f / densityMultiplier) : 1.0f;
+        currentCooldown = respawnCooldown * cooldownMultiplier;
         isFirstWave = false; // Xong đợt 1 rồi, tắt đi để đợt sau phải chờ Cooldown
         isSpawning = false;
     }
@@ -161,10 +164,10 @@ public class ZombieSpawnZone : NetworkBehaviour
     public ZoneLevel GetEffectiveLevel()
     {
         int currentLevelInt = (int)level;
-        
-        // Đọc độ khó từ PlayerPrefs (Easy=0, Normal=1, Hardcore=2)
-        int difficulty = PlayerPrefs.GetInt("GameDifficulty", 1); 
-        
+
+        // Canonical Difficulty Single Source of Truth
+        int difficulty = DifficultyRules.ActiveDifficulty;
+
         // Nếu độ khó là Hardcore (2), tăng level lên 1 bậc
         if (difficulty == 2)
         {
@@ -175,7 +178,7 @@ public class ZombieSpawnZone : NetworkBehaviour
         {
             currentLevelInt = Mathf.Max(currentLevelInt - 1, (int)ZoneLevel.Level1);
         }
-        
+
         return (ZoneLevel)currentLevelInt;
     }
 

@@ -9,6 +9,9 @@ public static class LocalGameplayUIState
     {
         get
         {
+            if (GameplayReadinessCoordinator.IsGameplaySuppressed)
+                return true;
+
             if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput || EscapeRouteDecisionUI.IsVisible ||
                 VehicleRepairSkillCheckUI.BlocksGameplayInput ||
                 CivilianRoutePresentationController.BlocksGameplayInput ||

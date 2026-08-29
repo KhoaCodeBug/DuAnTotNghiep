@@ -40,6 +40,7 @@ public class AutoChatManager : MonoBehaviour
     private ScrollRect scrollRect;
     private RectTransform chatPanelRt;
     private Image vpBg;
+    private static readonly System.Collections.Generic.List<string> PendingPreloadMessages = new System.Collections.Generic.List<string>();
 
     // ========================= CẤU HÌNH =========================
     private const float SHOW_DURATION = 6f;
@@ -101,6 +102,7 @@ public class AutoChatManager : MonoBehaviour
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
         scaler.matchWidthOrHeight = 0.5f;
         canvasGo.AddComponent<GraphicRaycaster>();
+        GameplayReadinessCoordinator.RegisterGameplayCanvas(canvas);
 
         // --- Panel tổng (Góc dưới trái, nhích lên tránh đè Ammo UI) ---
         var panel = MakeRect("ChatPanel", canvasGo.transform,
@@ -222,6 +224,15 @@ public class AutoChatManager : MonoBehaviour
         chatInput.onEndEdit.AddListener(OnChatEndEdit);
 
         inputContainer.SetActive(false);
+
+        if (PendingPreloadMessages.Count > 0)
+        {
+            foreach (string msg in PendingPreloadMessages)
+            {
+                AppendFormattedLine(msg);
+            }
+            PendingPreloadMessages.Clear();
+        }
     }
 
     // ============================================================
@@ -380,13 +391,19 @@ public class AutoChatManager : MonoBehaviour
 
     public void AddSystemMessage(string message)
     {
-        if (chatHistory == null) return;
-
+        string prefix = GameLocalization.Get("chat.system_prefix", "SYSTEM");
         string safeMsg = PlayerDeathContext.SanitizeRichText(message);
         if (string.IsNullOrWhiteSpace(safeMsg)) return;
         if (safeMsg.Length > 180) safeMsg = safeMsg.Substring(0, 180);
 
-        AppendFormattedLine($"<color=#FFD54A>[HỆ THỐNG] {safeMsg}</color>");
+        string formatted = $"<color=#FFD54A>[{prefix}] {safeMsg}</color>";
+        if (chatHistory == null)
+        {
+            PendingPreloadMessages.Add(formatted);
+            return;
+        }
+
+        AppendFormattedLine(formatted);
     }
 
     public void AddMessage(string sender, string message)
