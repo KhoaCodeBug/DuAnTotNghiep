@@ -83,6 +83,9 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
 
     private readonly Collider2D[] nearbyZombies = new Collider2D[10];
     private ContactFilter2D zombieFilter;
+    private ContactFilter2D obstacleMovementFilter;
+    private readonly RaycastHit2D[] obstacleMovementHits = new RaycastHit2D[8];
+    private const float MovementCollisionSkin = 0.02f;
     private Rigidbody2D body;
     private Collider2D bodyCollider;
     private Animator animator;
@@ -159,6 +162,8 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
 
         zombieFilter = new ContactFilter2D { useLayerMask = true, useTriggers = false };
         zombieFilter.SetLayerMask(zombieMask);
+        obstacleMovementFilter = new ContactFilter2D { useLayerMask = true, useTriggers = false };
+        obstacleMovementFilter.SetLayerMask(obstacleMask);
     }
 
     private void SetBodyCollisionEnabled(bool enabled)
@@ -432,9 +437,31 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
 
         float moveSpeed = speed * speedMultiplier;
         float moveDistance = Mathf.Min(moveSpeed * Delta, remainingDistance);
-        body.MovePosition(body.position + facing * moveDistance);
-        NetSpeed = Delta > 0f ? moveDistance / Delta : 0f;
+        float movedDistance = MoveWithObstacleSweep(facing * moveDistance);
+        NetSpeed = Delta > 0f ? movedDistance / Delta : 0f;
         CheckProgress(goal);
+    }
+
+    private float MoveWithObstacleSweep(Vector2 movement)
+    {
+        float requestedDistance = movement.magnitude;
+        if (requestedDistance <= 0.0001f) return 0f;
+
+        Vector2 direction = movement / requestedDistance;
+        int hitCount = body.Cast(direction, obstacleMovementFilter, obstacleMovementHits,
+            requestedDistance + MovementCollisionSkin);
+        float allowedDistance = requestedDistance;
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+        {
+            RaycastHit2D hit = obstacleMovementHits[hitIndex];
+            if (hit.collider == null) continue;
+            allowedDistance = Mathf.Min(allowedDistance,
+                Mathf.Max(0f, hit.distance - MovementCollisionSkin));
+        }
+
+        if (allowedDistance > 0f)
+            body.MovePosition(body.position + direction * allowedDistance);
+        return allowedDistance;
     }
 
     private void RequestPathIfNeeded(Vector2 goal)

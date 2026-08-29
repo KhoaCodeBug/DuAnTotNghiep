@@ -1,12 +1,149 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 public sealed class ReadinessAndChatEditorTests
 {
+    private const float MinimumMultiplayerConnectionTimeoutSeconds = 120f;
+
+    [Test]
+    public void MainScene_InvisibleObstacleRegressionMarker_IsNoLongerCoveredByLegacyFenceCollider()
+    {
+        string scenePath = Path.Combine(Application.dataPath, "Scenes/Main.unity");
+        Assert.That(File.Exists(scenePath), Is.True);
+
+        string sceneYaml = File.ReadAllText(scenePath);
+        Assert.That(sceneYaml, Does.Contain("m_Name: Collider_A*TangHinh"),
+            "Keep the authored marker as the regression location for the invisible blocker.");
+        Assert.That(sceneYaml, Does.Not.Contain("m_Name: HangRao (3)"),
+            "HangRao (3) was a solid PolygonCollider2D with no renderer at the marker position.");
+    }
+
+    [TestCase("Assets/Prefab/Player.prefab")]
+    [TestCase("Assets/Prefab/Player2.prefab")]
+    public void PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay(string prefabPath)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        Assert.That(prefab, Is.Not.Null, prefabPath);
+
+        MonoBehaviour vision = prefab.GetComponents<MonoBehaviour>()
+            .FirstOrDefault(component => component != null && component.GetType().Name == "PlayerVision");
+        Assert.That(vision, Is.Not.Null, $"{prefabPath} must contain PlayerVision on its root.");
+
+        SerializedObject serializedVision = new SerializedObject(vision);
+        Assert.That(serializedVision.FindProperty("passiveVisionRadius").floatValue,
+            Is.EqualTo(1.5f).Within(0.001f));
+        Assert.That(serializedVision.FindProperty("zombieVisibilityFadeDuration").floatValue,
+            Is.GreaterThan(0f));
+        Assert.That(serializedVision.FindProperty("zombieAwarenessInitialAlpha").floatValue,
+            Is.InRange(0.05f, 0.5f));
+        Assert.That(serializedVision.FindProperty("localPlayerXRayAlpha").floatValue,
+            Is.InRange(0.1f, 0.6f));
+    }
+
+    [Test]
+    public void IndoorFog_UsesBuildingScopedPhysicsOcclusion()
+    {
+        string controllerPath = Path.Combine(Application.dataPath, "Khoa/Code/FogVisionController.cs");
+        string shaderPath = Path.Combine(Application.dataPath, "Shader/FogVisionOverlay.shader");
+        string controllerSource = File.ReadAllText(controllerPath);
+        string shaderSource = File.ReadAllText(shaderPath);
+
+        Assert.That(controllerSource, Does.Contain("ResolveIndoorStructureRoot"));
+        Assert.That(controllerSource, Does.Contain("hit.collider.transform.IsChildOf(cachedIndoorStructureRoot)"),
+            "Indoor rays must ignore unrelated outdoor fences and only accept this building's colliders.");
+        Assert.That(shaderSource, Does.Contain("_IndoorOcclusionDistances[180]"));
+        Assert.That(shaderSource, Does.Contain("visibleIndoor = insideIndoor * indoorOcclusionVisibility"),
+            "Rooms behind an internal wall must retain the dark indoor cover.");
+    }
+
+    [Test]
+    public void ZombieMovement_UsesObstacleSweep_AndEnemyStillCollidesWithObstacleLayer()
+    {
+        Assert.That(Physics2D.GetIgnoreLayerCollision(LayerMask.NameToLayer("Enemy"),
+            LayerMask.NameToLayer("Obstacle")), Is.False);
+
+        foreach (string typeName in new[] { "ZOmbieAI_Khoa", "ZombieAIKhoaRebuilt" })
+        {
+            Type zombieType = ResolveGameType(typeName);
+            MethodInfo sweep = zombieType.GetMethod("MoveWithObstacleSweep",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(sweep, Is.Not.Null, $"{typeName} must sweep its body before MovePosition.");
+            Assert.That(sweep.ReturnType, Is.EqualTo(typeof(float)));
+        }
+
+        foreach (string prefabPath in new[]
+                 {
+                     "Assets/Khoa/Zombie2Khoa.prefab",
+                     "Assets/Khoa/ZombieKhoaRebuilt.prefab",
+                     "Assets/Khoa/ZombieBossTest.prefab"
+                 })
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            Assert.That(prefab, Is.Not.Null, prefabPath);
+            Assert.That(prefab.layer, Is.EqualTo(LayerMask.NameToLayer("Enemy")), prefabPath);
+            Rigidbody2D body = prefab.GetComponent<Rigidbody2D>();
+            Assert.That(body, Is.Not.Null, prefabPath);
+            Assert.That(body.collisionDetectionMode, Is.EqualTo(CollisionDetectionMode2D.Continuous), prefabPath);
+        }
+    }
+
+    [Test]
+    public void StartingLoadout_OnlyCompletesAfterVerifiedPlacement_AndCanRetry()
+    {
+        Type inventoryType = ResolveGameType("InventorySystem");
+        PropertyInfo resolved = inventoryType.GetProperty("StartingLoadoutResolved",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo grant = inventoryType.GetMethod("TryGrantDifficultyStartingLoadout",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo placeWeapon = inventoryType.GetMethod("PlaceStartingWeaponInHotbar",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Assert.That(resolved, Is.Not.Null);
+        Assert.That(grant, Is.Not.Null);
+        Assert.That(grant.ReturnType, Is.EqualTo(typeof(bool)));
+        Assert.That(placeWeapon, Is.Not.Null);
+        Assert.That(placeWeapon.ReturnType, Is.EqualTo(typeof(bool)),
+            "A failed hotbar placement must not be marked as applied.");
+    }
+
+    [Test]
+    public void FirearmBalance_AkAndS12KMeetCloseRangeDamageAndAccuracyFloor()
+    {
+        AssertWeaponBalance("AK47", minimumDamage: 42f, maximumSpread: 1f, minimumPellets: 1);
+        AssertWeaponBalance("S12K", minimumDamage: 24f, maximumSpread: 8f, minimumPellets: 9);
+    }
+
+    private static void AssertWeaponBalance(string weaponId, float minimumDamage,
+        float maximumSpread, int minimumPellets)
+    {
+        string assetPath = Path.Combine(Application.dataPath, $"Resources/Items/{weaponId}.asset");
+        Assert.That(File.Exists(assetPath), Is.True, assetPath);
+        string yaml = File.ReadAllText(assetPath);
+
+        float damage = ParseYamlFloat(yaml, "weaponDamage");
+        float spread = ParseYamlFloat(yaml, "spreadAngle");
+        int pellets = Mathf.RoundToInt(ParseYamlFloat(yaml, "pelletCount"));
+        Assert.That(damage, Is.GreaterThanOrEqualTo(minimumDamage), $"{weaponId} damage");
+        Assert.That(spread, Is.LessThanOrEqualTo(maximumSpread), $"{weaponId} spread");
+        Assert.That(pellets, Is.GreaterThanOrEqualTo(minimumPellets), $"{weaponId} pellet count");
+    }
+
+    private static float ParseYamlFloat(string yaml, string field)
+    {
+        Match match = Regex.Match(yaml, $"^  {Regex.Escape(field)}: (?<value>-?[0-9]+(?:\\.[0-9]+)?)\\r?$",
+            RegexOptions.Multiline);
+        Assert.That(match.Success, Is.True, $"Missing YAML field '{field}'.");
+        return float.Parse(match.Groups["value"].Value,
+            System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     private static Type ResolveGameType(string name)
     {
         Type type = AppDomain.CurrentDomain.GetAssemblies()
@@ -30,6 +167,28 @@ public sealed class ReadinessAndChatEditorTests
         Type locType = ResolveGameType("GameLocalization");
         MethodInfo getMethod = locType.GetMethod("Get", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string) }, null);
         return (string)getMethod.Invoke(null, new object[] { key, null });
+    }
+
+    [Test]
+    public void FusionConnectionTimeout_CoversConcurrentMainSceneLoading()
+    {
+        string configPath = Path.Combine(Application.dataPath,
+            "Photon/Fusion/Resources/NetworkProjectConfig.fusion");
+        Assert.That(File.Exists(configPath), Is.True,
+            "Fusion NetworkProjectConfig must exist at the canonical Resources path.");
+
+        string configJson = File.ReadAllText(configPath);
+        Match timeoutMatch = Regex.Match(configJson,
+            "\\\"ConnectionTimeout\\\"\\s*:\\s*(?<seconds>[0-9]+(?:\\.[0-9]+)?)");
+        Assert.That(timeoutMatch.Success, Is.True,
+            "Fusion NetworkProjectConfig must declare ConnectionTimeout.");
+        Assert.That(float.TryParse(timeoutMatch.Groups["seconds"].Value,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out float timeoutSeconds), Is.True);
+        Assert.That(timeoutSeconds, Is.GreaterThanOrEqualTo(MinimumMultiplayerConnectionTimeoutSeconds),
+            "Host/client Editors can spend over 30 seconds loading Main concurrently; " +
+            "a shorter timeout disconnects a healthy client before readiness completes.");
     }
 
     [Test]

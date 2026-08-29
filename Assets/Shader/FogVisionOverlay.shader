@@ -53,6 +53,11 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float _IndoorExitAwarenessClearance;
                 float _IndoorExitAwarenessRadius;
                 float _IndoorExteriorFlashlightClearance;
+                float _IndoorOcclusionActive;
+                float _IndoorOcclusionRayCount;
+                float _IndoorOcclusionDistances[180];
+                float _IndoorOcclusionEdgeSoftness;
+                float _IndoorWallOccludedOpacity;
                 float _QuestBoundaryActive;
                 float2 _QuestBoundaryOrigin;
                 float2 _QuestBoundaryRight;
@@ -123,12 +128,32 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 return inside;
             }
 
+            float IndoorOcclusionVisibility(float2 directionToPixel, float distanceFromPlayer)
+            {
+                if (_IndoorOcclusionActive < 0.5 || _IndoorOcclusionRayCount < 2.0)
+                    return 1.0;
+
+                float angle = atan2(directionToPixel.y, directionToPixel.x);
+                if (angle < 0.0) angle += 6.28318530718;
+                float samplePosition = angle * _IndoorOcclusionRayCount / 6.28318530718;
+                int firstIndex = (int)floor(samplePosition);
+                int secondIndex = firstIndex + 1;
+                if (secondIndex >= (int)_IndoorOcclusionRayCount) secondIndex = 0;
+                float wallDistance = lerp(_IndoorOcclusionDistances[firstIndex],
+                                          _IndoorOcclusionDistances[secondIndex],
+                                          frac(samplePosition));
+                float feather = max(_IndoorOcclusionEdgeSoftness, 0.01);
+                return 1.0 - smoothstep(wallDistance - feather, wallDistance + feather,
+                                        distanceFromPlayer);
+            }
+
             half4 frag(Varyings input) : SV_Target
             {
                 float2 worldPosition = _FogWorldBottomLeft + input.uv.x * _FogWorldRight + input.uv.y * _FogWorldUp;
                 float2 offsetFromPlayer = worldPosition - _VisionWorldCenter;
                 float distanceFromPlayer = length(offsetFromPlayer);
                 float2 directionToPixel = distanceFromPlayer > 0.0001 ? offsetFromPlayer / distanceFromPlayer : _VisionDirection;
+                float indoorOcclusionVisibility = IndoorOcclusionVisibility(directionToPixel, distanceFromPlayer);
 
                 float angleDot = dot(directionToPixel, normalize(_VisionDirection));
                 // A deliberately broad angular feather prevents the hard, fake
@@ -139,23 +164,30 @@ Shader "ProjectZomboid/FogVisionOverlay"
                                                      angleDot);
                 float coneVisibility = rawConeVisibility;
                 coneVisibility *= 1.0 - smoothstep(_PlayerBubbleRadius * 0.55, _PlayerBubbleRadius, distanceFromPlayer);
+                coneVisibility *= indoorOcclusionVisibility;
 
                 float flashlightReach = 1.0 - smoothstep(_FlashlightRadius * 0.34,
                                                           _FlashlightRadius * 1.08,
                                                           distanceFromPlayer);
-                float flashlightVisibility = rawConeVisibility * flashlightReach * _FlashlightActive;
+                float flashlightVisibility = rawConeVisibility * flashlightReach * _FlashlightActive * indoorOcclusionVisibility;
 
                 float insideIndoor = IsInsideIndoorPolygon(worldPosition);
                 if (_IndoorActive > 0.5)
                 {
-                    float indoorOpacity = lerp(_IndoorExteriorOpacity, _IndoorAmbientOpacity, insideIndoor);
-                    float3 indoorColor = lerp(_IndoorExteriorColor.rgb, _IndoorAmbientColor.rgb, insideIndoor);
+                    float visibleIndoor = insideIndoor * indoorOcclusionVisibility;
+                    float indoorOpacity = lerp(_IndoorExteriorOpacity, _IndoorAmbientOpacity, visibleIndoor);
+                    float3 indoorColor = lerp(_IndoorExteriorColor.rgb, _IndoorAmbientColor.rgb, visibleIndoor);
+                    // The fog cover is also the final guard against Light2D leakage.
+                    // Rays through a real doorway remain unblocked; pixels behind a
+                    // structural collider become effectively opaque.
+                    indoorOpacity = max(indoorOpacity,
+                        (1.0 - indoorOcclusionVisibility) * _IndoorWallOccludedOpacity);
                     // Do not turn the exterior into a 96%-opaque black wall as
                     // soon as the player crosses an indoor trigger. A small soft
                     // area around the player keeps doorways and exits navigable.
-                    float exitAwareness = 1.0 - smoothstep(_IndoorExitAwarenessRadius * 0.28,
+                    float exitAwareness = (1.0 - smoothstep(_IndoorExitAwarenessRadius * 0.28,
                                                             _IndoorExitAwarenessRadius,
-                                                            distanceFromPlayer);
+                                                            distanceFromPlayer)) * indoorOcclusionVisibility;
                     float exteriorMask = 1.0 - insideIndoor;
                     indoorOpacity *= 1.0 - exitAwareness * exteriorMask * _IndoorExitAwarenessClearance;
 

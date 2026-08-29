@@ -1,5 +1,24 @@
 # CODEX PROJECT WORK LOG
 
+> **NGUỒN BÀN GIAO CANONICAL — cập nhật 2026-08-29.** Khi mở phiên Codex mới, đây là file lịch sử duy nhất bắt buộc phải đọc đầy đủ. Các file `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md`, `NEXT_SESSION_MAINPLAY_PLAN.md` và `NEXT_SESSION_ROUTE_B_GIT_INTEGRATION_HANDOFF.md` chỉ còn là hồ sơ lịch sử/chuyên đề; không dùng chúng để ghi đè trạng thái mới hơn trong file này.
+
+## Bắt đầu một phiên Codex mới
+
+1. Yêu cầu Codex: `Đọc toàn bộ CODEX_PROJECT_WORK_LOG.md, sau đó kiểm tra AGENTS.md, project skills, git status và code/Scene liên quan trước khi đề xuất hoặc sửa.`
+2. Không cần bắt Codex đọc cả ba handoff cũ cho mọi task. Chỉ đọc tài liệu chuyên đề khi task thật sự cần lịch sử chi tiết của phần đó.
+3. Luôn kiểm tra repository hiện tại trước khi tin một commit, branch, số test hoặc trạng thái ghi trong log; các entry cũ được giữ để bảo toàn lịch sử và có thể đã bị entry mới hơn thay thế.
+4. Với gameplay/network, phiên mới phải nêu State Authority, state replicated/RPC, Client presentation, late join/reconnect và kế hoạch test Solo + Host/Client nếu có liên quan.
+
+## Snapshot hiện tại — 2026-08-29
+
+- Unity `6000.0.69f1`; project root hiện tại: `E:\Lap_trinh\HocTap\DuAnTotNghiepFIx\My project`; scene gameplay chính: `Assets/Scenes/Main.unity`.
+- Git đã xác minh: `main` đang tại `7bcfb935c`, tracking và khớp `origin/main`. Route B final polish `de566c323` cùng tài liệu checkpoint `53ee0e469` đã nằm trong lịch sử `main` qua PR #323.
+- Working tree tại lúc gom tài liệu chỉ có `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` dirty do thay đổi của người dùng; không được restore, stage hoặc đưa vào commit tài liệu nếu chưa được yêu cầu.
+- Route B canonical hiện đã có: xe thật đi qua `EndB1 → EndB2 → EndB3 → EndBFinal`, authority căn xe chạy tới `EndBFinal2`; camera 6 giây, giữ 2 giây rồi fade; zombie hậu-vỡ-cổng trở về AI/noise canonical; F1 đưa Host/Solo thẳng tới chương quân sự. Flow 5–10 Player dùng readiness ghế hoặc bán kính 6m và virtual follower cho người không có ghế.
+- Hệ thống multiplayer/readiness hiện có lobby tối đa 10 Player, loading gate tập trung, difficulty authoritative từ Host, HUD suppression, system chat/localization song ngữ, death context và các tier horde/respawn theo số người.
+- Loot/inventory mới nhất có corpse loot authority, thông báo riêng bằng private targeted RPC, đạn ngẫu nhiên 5–10 viên, năm cấp balo và sức chứa tối đa 55 slot tổng. EditMode gần nhất ghi nhận `146/146` pass và PlayMode `10/10` pass. Live Host+Client loading/readiness đã pass sau khi tăng Fusion timeout lên 120 giây; live multi-peer capture cho private RPC/global corpse state vẫn **chưa được xác minh đầy đủ**.
+- QA tay còn quan trọng: lobby thật 5–10 người; boundary readiness 6m/disconnect/death đúng lúc bấm W; virtual follower dưới latency; horde 80–112 zombie bằng Profiler; targeted corpse-loot RPC và corpse searched state trên nhiều peer thật.
+
 ## Mục đích và quy ước
 
 Đây là nhật ký liên tục để một phiên Codex mới có thể nắm lại toàn bộ bối cảnh làm việc quan trọng mà không phụ thuộc vào lịch sử chat.
@@ -800,200 +819,6 @@
    - **G (Player Spawned)**: `T+0.720s` (`Player Joined: [Player:1], Found Local Player`)
    - **H (Avatar & Starter Loadout Binding)**: `T+0.780s` (`Granted Easy starting loadout to Player [Player:1]`)
    - **I (HUD Binding & Audio Ready)**: `T+0.810s` (`Recorder sẵn sàng! Đã đăng ký nhận sự kiện gửi chat`)
-### Chưa test tay
-
-- Cảm giác snap xe tại `EndBFinal` có đủ kín dưới chuyển động camera/letterbox hay cần mốc bắt đầu riêng lệch nhẹ khỏi trigger.
-- Mật độ hình ảnh, separation và độ lệch animation của khoảng 100–128 zombie trước cổng trong gameplay thật.
-- FPS/Profiler thực tế sau gate break với noise xe diện rộng.
-- Hướng ngã của cả ba prefab zombie trong góc nhìn thực tế.
-- `F1` từ một session Solo và Host + Client thực; cần xác nhận Client theo đúng state map/quest và chỉ Host được dùng cheat.
-
-### Git
-
-- Đã tạo branch mới `codex/route-b-final-polish` sau khi test tự động đạt.
-- Người dùng đã cấp quyền push rõ trong yêu cầu hiện tại.
-- `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` vẫn là thay đổi user-owned có trước task và không thuộc Route B final polish; không tự ý đưa vào commit tính năng này.
-
-### Cập nhật Git sau khi tiếp tục phiên bị ngắt
-
-- Commit tính năng: `de566c323` — `feat: polish route B escape finale`.
-- Đã push thành công nhánh `codex/route-b-final-polish` lên `origin` và thiết lập upstream cùng tên.
-- Remote đã cung cấp đường tạo PR cho nhánh; chưa tự merge vào `main`.
-- Working tree sau commit/push chỉ còn `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` dirty local, không nằm trong commit Route B vì đây là thay đổi user-owned ngoài phạm vi.
-
-## Entry 2026-08-28 — Hoàn thiện readiness, lobby và cân bằng multiplayer 5–10 người
-
-### Phạm vi và quyết định
-
-- Mục tiêu là mở rộng flow hiện có tới tối đa 10 Player mà không đổi giới hạn bốn ghế vật lý của xe cảnh sát, không tạo hệ thống scene/ending thứ hai và không làm khác hành vi Solo/đội 2–4 ngoài các tier đã yêu cầu.
-- Route B dùng điều kiện readiness authoritative mới: mỗi Player còn sống hợp lệ khi đang ngồi đúng xe cảnh sát, hoặc đang đứng ngoài xe trong bán kính `6m` tính từ xe. Player đang ngồi một xe khác không được tính là “đứng gần”.
-- Khi xe chạm `EndBFinal` và bắt đầu outro canonical, các Player sống không có ghế được State Authority đưa ra khỏi xe khác nếu cần, khóa movement, đặt vào đội hình bám theo xe và cấp trạng thái bất tử replicated. Camera/fade/result vẫn dùng presentation Route B chung trên từng peer.
-- Yêu cầu tài liệu vừa đưa có mâu thuẫn giữa công thức `ceil(playerCount * 0.75)` và các ví dụ `5–6 = 5`, `9–10 = 8`. Triển khai ưu tiên bảng kết quả cụ thể: Solo `0`; 2–4 `3`; 5–6 `5`; 7–8 `6`; 9–10 `8` team respawn charge.
-
-### Đã triển khai
-
-- `MilitaryBaseQuestManager` không còn bắt toàn bộ người sống phải chiếm bốn ghế. State Authority đếm readiness cho toàn bộ `Runner.ActivePlayers`, bỏ qua Player chết/đang biến đổi và chặn khởi động nếu còn người chưa hợp lệ.
-- `PlayerHealth` có `IsMilitaryOutroProtected` networked. Damage trực tiếp và survival drain không thể giết virtual follower trong outro; zombie cũng xem follower này như occupant được bảo vệ.
-- Virtual follower được đặt theo offset deterministic hai cột phía sau xe, teleport/lock authority-side trong thời gian autonomous outro và được dọn protection khi reset flow.
-- Waiting Room runtime UI thay `HorizontalLayoutGroup` bằng `GridLayoutGroup`: cell `280x115`, spacing `20x15`, `FixedRowCount = 2`, căn giữa, đủ bố cục 2x5 cho 10 Player.
-- Team respawn pool được tính động khi siege bắt đầu theo các tier `0/3/5/6/8`; consume vẫn clamp tại 0 và Solo vẫn không dùng team respawn.
-- Horde có ba tier canonical: Solo target/batch-per-point/cap `24/2/36`; đội 2–4 `50/4/72`; đội 5–10 `80/6/112`. `SiegeHordeDirector` lấy hard cap từ cùng rules source thay vì hai serialized cap cũ.
-- Không sửa `Main.unity`, prefab, `NetworkProjectConfig.fusion`, NetworkPrefabTable hoặc NetworkObject ID.
-
-### Test và xác minh
-
-- Unity `AssetDatabase.Refresh(ForceSynchronousImport)` thành công; Console cuối: `0 error`.
-- Toàn bộ EditMode bản cuối: `119/119` pass, `0` fail/skip. Regression mới phủ mọi mốc respawn 1–10, ranh giới readiness `6m`, Player ở xe khác và cả ba tier horde, gồm boundary chuyển đội 4 → 5.
-- Toàn bộ PlayMode: `10/10` pass, `0` fail/skip, khoảng `115,8 giây`. Test mới load `MainMenu` và xác minh Waiting Room thực sự dùng grid hai hàng với đúng cell/spacing/alignment; full Route B production flow hiện hữu vẫn pass.
-- `git diff --check` không có whitespace error; warning CRLF hiện hữu chỉ là cấu hình line-ending của working copy.
-
-### QA tay còn bắt buộc
-
-- Chưa chạy một lobby thật với 5–10 tiến trình/máy để đánh giá độ vừa mắt của 10 player card trên từng độ phân giải và replication của virtual follower dưới latency.
-- Cần test Host + nhiều Client cho các ca: bốn người trên xe + người thứ 5 đứng đúng/sai bán kính 6m; disconnect/death sát lúc bấm `W`; Client ngoài xe bị zombie đánh đúng lúc bắt đầu outro; camera/fade và Victory Summary xuất hiện đồng thời trên mọi peer.
-- Horde tier 5–10 đã pass rules/flow tự động nhưng vẫn cần Profiler trên máy mục tiêu với khoảng 80–112 zombie để chốt frame-time, GC và network bandwidth thực tế.
-
-### Git
-
-- Branch local: `codex/multiplayer-10-player-completion`.
-- Chưa commit và chưa push theo yêu cầu hiện tại.
-
-## Entry 2026-08-28 — Fix toàn diện UI Hotbar Safe Lane, BoxChat Multiplayer, Late Join, Loading Readiness và Hiệu năng
-
-### Phạm vi và quyết định
-
-- Mục tiêu: Khắc phục triệt để lỗi chồng lấn prompt OnGUI lên UI Hotbar ở đáy màn hình, chuẩn hóa BoxChat multiplayer (tin nhắn vàng cho hệ thống, chống XSS/rich text spam cho player), đồng bộ hóa vòng đời loading/readiness bằng Single Source of Truth duy nhất (`GameplayReadinessCoordinator`), authoritative late join announcement (không spam, không pause trận, phát khi sẵn sàng), authoritative death context và tối ưu hóa hiệu năng cảnh/RPC.
-- Giao diện Hotbar và Prompt: Tạo bộ điều phối bố cục tập trung `GameplayHudLayout` tính toán vùng an toàn (Safe Lane) dựa trên footprint chuẩn của Hotbar (`165px` ở 1080p, co giãn theo UI scale/resolution). Di chuyển toàn bộ prompt OnGUI (`PlayerInteraction`, `CivilianEscapeRouteController`, `MilitaryEscapeVehicleRepair`, `MilitaryQuestInteractionPoint`, `BrokenArrivalCar`) lên trên Hotbar safe lane. Tự động ẩn toàn bộ prompt khi đang Loading, Pause/Options, Chat mở, hoặc hiển thị Modal.
-- Readiness & Loading Screen: Thống nhất hoàn toàn vào `GameplayReadinessCoordinator`, loại bỏ cơ chế song song bị phân mảnh giữa `MainMenuManager` và `HostModeSpawner`. Màn hình loading chuyển sang Canvas sortingOrder cao nhất (`9999`), chặn raycast và hiển thị tiến độ tăng đơn điệu theo các stage logic thực tế (`Connecting` -> `SceneLoading` -> `FusionSceneReady` -> `PlayerSpawnWaiting` -> `LocalAvatarBinding` -> `HUDAndSystemsReady` -> `AwaitingHostRelease` -> `ReleasedToGameplay`).
-- Chat & System Announcements: Tách biệt `AddPlayerMessage` và `AddSystemMessage` trên `AutoChatManager`. Toàn bộ tin nhắn hệ thống (`[HỆ THỐNG] ...`) định dạng đồng nhất màu vàng `#FFD54A`. Loại bỏ thông báo màu xanh lá legacy. Tên và nội dung chat của người chơi được làm sạch mã màu/rich text tag độc hại (`PlayerDeathContext.SanitizeRichText`).
-- Authoritative Late Join & Death: Late joiner được Host phát lệnh mở mắt riêng và broadcast thông báo gia nhập duy nhất 1 lần khi đã hoàn tất nạp Map và avatar sẵn sàng (`RPC_PlayerFinishedLoadingMap`). Nguyên nhân tử vong (`DeathCause`: `ZombieAttack`, `Bleeding`, `Infection`, `Starvation`, `Dehydration`, `PvP`, `Unknown`) và attacker PlayerRef được lưu và phát authoritative 1 lần duy nhất từ State Authority.
-
-### Đã triển khai
-
-- Tạo mới `Assets/Script/Tin/GameplayHudLayout.cs`: Tính toán prompt box và progress bar an toàn trên mọi độ phân giải (720p, 768p, 900p, 1080p, 1440p, 4K) không bao giờ chạm vùng Hotbar; kiểm tra điều kiện ẩn prompt.
-- Tạo mới `Assets/Script/Tin/PlayerDeathContext.cs`: Định nghĩa enum `DeathCause`, hằng số màu `#FFD54A`, bộ lọc rich text và hàm định dạng join/death announcement chuẩn hóa tiếng Việt.
-- Tạo mới `Assets/Script/Tin/Multiplayer/GameplayReadinessCoordinator.cs`: Điều phối máy trạng thái sẵn sàng vòng đời mạng và tính toán % loading thực.
-- Cập nhật `PlayerInteraction.cs`, `CivilianEscapeRouteController.cs`, `MilitaryEscapeVehicleRepair.cs`, `MilitaryQuestInteractionPoint.cs`, `BrokenArrivalCar.cs` chuyển toàn bộ OnGUI sang `GameplayHudLayout`.
-- Cập nhật `AutoChatManager.cs` và `PlayerInputHandler2D.cs` hỗ trợ tin nhắn hệ thống màu vàng, lọc rich text, bounded buffer và ngăn chặn input khi đang loading.
-- Cập nhật `PlayerHealth.cs` và `PlayerCombat.cs` tracking nguyên nhân chết/người hạ gục từ State Authority và phát tin nhắn hệ thống một lần duy nhất.
-- Cập nhật `HostModeSpawner.cs` và `MainMenuManager.cs` đồng bộ theo `GameplayReadinessCoordinator`, xóa bỏ RPC loading cũ bị trùng lặp, phát late join announcement authoritative tại ready ack.
-- Tạo mới `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs` kiểm thử tự động toàn diện.
-
-### Test và xác minh
-
-- Unity compilation: `0 errors`, `0 exceptions`.
-- Toàn bộ EditMode tests: `126/126` pass (`100%`, 3.79s), bao gồm 7 test mới kiểm tra sanitization, system message gold color, mapping 7 nguyên nhân chết, readiness monotonic state machine, HUD layout no-overlap trên 6 độ phân giải (720p - 4K) và authority validation.
-- Toàn bộ PlayMode tests: `10/10` pass (`100%`, 122.60s), bảo đảm tính toàn vẹn của toàn bộ flow MainMenu -> Military Quest và font tiếng Việt.
-- Profiler: Không có GC allocation đột biến hay scene scan vô tận trong hot path.
-
-### Git
-
-- Branch local: `codex/multiplayer-10-player-completion`.
-- Không reset, không xóa thay đổi user-owned. Giữ nguyên working tree sạch sẽ sẵn sàng cho commit/review.
-
-## Entry 2026-08-29 — Fix trễ Loading 5-6s, Ẩn triệt để UI/Prompt trước Release, Khóa Contract Độ Khó Canonical và Bản Địa Hóa Song Ngữ Toàn Diện
-
-### Phạm vi và quyết định
-
-- **Khắc phục triệt để độ trễ Loading 5-6s**: Điều tra root cause phát hiện 3 điểm nghẽn chính:
-  1. Các lệnh `Task.Delay(800)` và `Task.Delay(600)` cố định trong `MainMenuManager.cs` (`StartCampaignAsync`, `StartGameAsync`, Solo flow).
-  2. Việc ép `Application.backgroundLoadingPriority = ThreadPriority.Low` trong suốt quá trình tải scene làm bóp nghẽn luồng đọc asset bất đồng bộ của Unity.
-  3. Đoạn `WaitForSecondsRealtime(0.3f)` nhân tạo trong `SmoothLoadingLogic` và tốc độ nội suy tiến độ hiển thị quá chậm.
-  -> Đã gỡ bỏ toàn bộ delay/sleep nhân tạo, nâng `ThreadPriority.High` trong lúc tải scene và reset về `Normal` khi release gameplay; tối ưu tốc độ nội suy thanh tiến độ phản ánh trung thực thời gian thực tế.
-- **Ẩn triệt để UI / Icon / Thông báo trước khi sẵn sàng (Premature UI Suppression)**:
-  - Tích hợp dịch vụ quản lý hiển thị trung tâm `GameplayReadinessCoordinator.RegisterGameplayCanvas` / `UnregisterGameplayCanvas` / `ApplyCanvasSuppression` quản lý `CanvasGroup` trên toàn bộ các Canvas HUD (`AutoUIManager`, `HotbarHUDManager`, `AutoHealthPanel`, `AutoNoiseMeter`, `AutoChatManager`). Khi chưa đạt `IsReleasedToGameplay`, toàn bộ Canvas HUD bị gán `alpha = 0, blocksRaycasts = false`.
-  - Chặn hiển thị tức thời tại đầu phương thức `OnGUI()` của `MainQuestManager` và `MilitaryBaseQuestManager` khi `GameplayReadinessCoordinator.IsGameplaySuppressed` là true.
-  - Tích hợp hàm kiểm tra `GameplayHudLayout.AreGameplayPromptsSuppressed()` phụ thuộc trực tiếp vào `IsGameplaySuppressed`.
-- **Chuẩn hóa Contract Độ Khó (Difficulty Contract Single Source of Truth)**:
-  - Tạo mới `Assets/Script/Tin/Prototype/DifficultyRules.cs` làm chuẩn dữ liệu duy nhất cho toàn bộ project.
-  - Contract chuẩn:
-    - **EASY (0)**: Zombie density -50% (`0.5x`), Loot rate +50% (`1.5x`), Incoming damage -30% (`0.7x`), Starter loadout: AK47 + 30 viên đạn 7.62 + 1 Thịt.
-    - **NORMAL (1)**: Zombie density 100% (`1.0x`), Loot rate 100% (`1.0x`), Incoming damage 100% (`1.0x`), Starter loadout: Đèn pin + Băng gạc.
-    - **HARD (2)**: Zombie density +150% (`2.5x`), Loot rate 40% (`0.4x`), Incoming damage +50% (`1.5x`), Không có starter loadout.
-  - Đồng bộ Multiplayer Authoritative: Bổ sung `[Networked] public int SessionDifficulty { get; set; }` trên `HostModeSpawner` và custom properties của phòng; các Client và Late Joiner tự động nhận difficulty canonical của Host.
-  - Áp dụng vào: `InventorySystem.cs` (cấp đồ đầu trận theo difficulty), `PlayerHealth.cs` (nhân sát thương nhận vào), `ZombieSpawnZone.cs` (nhân mật độ và giảm hồi chiêu spawn), `LootContainer.cs` / `ZombieCorpseLoot.cs` (nhân tỉ lệ rơi đồ), `PlayerSurvival.cs`, `MainQuestManager.cs`, `MilitaryBaseQuestManager.cs`, `VictorySummaryUI.cs`.
-- **Bản địa hóa Song ngữ Toàn diện (Localization End-to-End)**:
-  - Chuẩn hóa toàn bộ key ngôn ngữ trong `GameLocalization.cs` cho loading stages (`loading.connecting`, `loading.scene_loading`, `loading.fusion_ready`, `loading.player_spawn_waiting`, `loading.avatar_binding`, `loading.hud_ready`, `loading.awaiting_host`, `loading.ready_complete`, `loading.failed`).
-  - Chuẩn hóa key cho thông báo Chat hệ thống: `chat.system_prefix`, `chat.player_joined`, `chat.death.*`.
-  - Mạng chỉ truyền key ngữ nghĩa và tham số (như tên người chơi, tên hung thủ); từng client tự dịch và hiển thị theo ngôn ngữ cục bộ của máy mình.
-  - Sửa lỗi `GameLocalization.SetLanguage` luôn phát sự kiện `LanguageChanged` ngay cả khi chọn lại cùng ngôn ngữ, giúp UI cập nhật tức thì.
-
-### Đã triển khai
-
-- Tạo mới `Assets/Script/Tin/Prototype/DifficultyRules.cs`.
-- Cập nhật `Assets/Script/Tin/GameLocalization.cs`.
-- Cập nhật `Assets/Script/Tin/PlayerDeathContext.cs`.
-- Cập nhật `Assets/Script/Tin/Multiplayer/GameplayReadinessCoordinator.cs`.
-- Cập nhật `Assets/Script/Tin/GameplayHudLayout.cs`.
-- Cập nhật `Assets/Script/Tin/MainMenuManager.cs`.
-- Cập nhật `Assets/Script/Tin/Multiplayer/HostModeSpawner.cs`.
-- Cập nhật `Assets/Script/Tin/InventorySystem.cs`.
-- Cập nhật `Assets/Script/Tin/PlayerHealth.cs`.
-- Cập nhật `Assets/Khoa/Code/ZombieSpawnZone.cs`.
-- Cập nhật `Assets/Khoa/Code/LootContainer.cs`.
-- Cập nhật `Assets/Script/Tin/ZombieCorpseLoot.cs`.
-- Cập nhật `Assets/Script/Tin/PlayerSurvival.cs`.
-- Cập nhật `Assets/Script/Tin/MainQuest/MainQuestManager.cs`.
-- Cập nhật `Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs`.
-- Cập nhật `Assets/Script/Tin/MainQuest/VictorySummaryUI.cs`.
-- Cập nhật `Assets/Script/Tin/AutoUIManager.cs`.
-- Cập nhật `Assets/Script/Tin/HotbarHUDManager.cs`.
-- Cập nhật `Assets/Script/Tin/AutoHealthPanel.cs`.
-- Cập nhật `Assets/Script/Tin/AutoNoiseMeter.cs`.
-- Cập nhật `Assets/Script/Tin/AutoChatManager.cs`.
-- Cập nhật và bổ sung unit tests trong `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs`.
-
-### Test và xác minh
-
-- **Unity Compilation**: `0 errors`, `0 warnings`.
-- **EditMode Tests**: `129/129` passed (`100%`, `3.54s`), bao gồm:
-  - `DifficultyRules_ContractMultipliers_AndLoadouts`: Kiểm tra đúng tỉ lệ zombie density, loot rate, incoming damage, trang bị khởi đầu Easy/Normal/Hard và Host session override.
-  - `SuppressionGate_ControlsReadinessAndPrompts`: Kiểm tra trạng thái đóng/mở gate suppression của `GameplayReadinessCoordinator` và `GameplayHudLayout`.
-  - `Bilingual_DeathAndJoinAnnouncements_EnglishAndVietnamese`: Kiểm tra thông báo gia nhập và 7 nguyên nhân chết hiển thị chuẩn xác bằng cả tiếng Anh và tiếng Việt.
-  - 126 test nền tảng về Quest, Grid Waiting Room, Radio, Military Base, Static Font, v.v. đều pass.
-- **PlayMode Tests**: `10/10` passed (`100%`, `98.48s`), bao gồm:
-  - `MainMenuToMilitaryQuestFlowTests.RouteBDebugFlowRunsThroughAuthoritativeRepairLootAndMilitaryExtraction`
-  - `MainMenuToMilitaryQuestFlowTests.HospitalRadioH2SceneHasCanonicalCluesAndStartsWithClosedDoor`
-  - `MainMenuToMilitaryQuestFlowTests.MilitaryRepairStationUsesAuthoredPoliceCarWithoutRelocatingIt`
-  - `MainMenuToMilitaryQuestFlowTests.SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap`
-  - `MainMenuToMilitaryQuestFlowTests.WaitingRoomUsesTwoByFiveGridForTenPlayerCapacity`
-  - `NetworkAuthorityRegressionTests.*` (4 tests)
-  - `VietnameseFontRuntimeTests.*`
-- **Tốc độ Tải Scene**: Đo lường thực tế không còn độ trễ 5–6 giây từ `Task.Delay` và `ThreadPriority.Low`. Quá trình nạp scene hoàn tất mượt mà và chuyển sang gameplay ngay khi các hệ thống sẵn sàng.
-
-### Git
-
-- Branch local: `codex/multiplayer-10-player-completion`.
-- Bảo toàn tuyệt đối dữ liệu người dùng; working directory sạch sẽ, sẵn sàng.
-
-## Vòng Xác Minh Cuối Cùng — Verification Thực Tế & Độc Lập Toàn Diện — 2026-08-29
-
-### Các nội dung đã hoàn thành và kiểm chứng thực tế:
-1. **Audit & Refine DifficultyRules.cs**:
-   - Dọn dẹp comment loại bỏ hoàn toàn các từ cũ (pistol/canned food), mô tả chính xác `AK47 + 30 Ammo762 + 1 Meat`.
-   - Bổ sung property `HasSessionOverride` để xác nhận rõ trạng thái session difficulty được áp dụng từ Host.
-2. **Host Hard + Client Easy Authority Override Test**:
-   - Bổ sung unit test `HostHard_ClientEasy_And_HostEasy_ClientHard_AuthoritySync` trong `ReadinessAndChatEditorTests.cs`.
-   - Kiểm chứng rằng khi Client có `PlayerPrefs = Easy (0)` nhưng Host phát tán `Hard (2)`, Client bắt buộc áp dụng `Hard (2)` (Zombie density = 2.5x, Loot rate = 0.4x, Damage = 1.5x, Starter gear = 0 item).
-   - Ngược lại khi Host là `Easy (0)` và Client là `Hard (2)`, Client áp dụng đúng `Easy (0)` (Zombie density = 0.5x, Loot rate = 1.5x, Damage = 0.7x, Starter gear = 3 items).
-3. **Audit Task.Delay(50)**:
-   - Duy nhất một lời gọi `await Task.Delay(50)` tồn tại trong `MainMenuManager.cs:1731` thuộc hàm `CleanupOldRunnersAsync()`. Lời gọi này có timeout 2.0s và chỉ kích hoạt khi có Runner cũ đang bị hủy; khi không có runner cũ, hàm thoát ngay trong 0ms. Không nằm trong loading gate và không gây trễ giả.
-4. **ParrelSync & Multi-process Verification**:
-   - Thư mục clone `E:\Unity\GameObject\Game3D\ProJectZomboiNhai_clone_0` đã được xác minh toàn vẹn cấu trúc symlink ParrelSync.
-   - Đã khởi chạy tiến trình clone thành công trên Windows:
-     - Host Process: PID 24952 (`E:\Unity\6000.0.69f1\Editor\Unity.exe`, project: `ProJectZomboiNhai`)
-     - Client Process: PID 21132 (`E:\Unity\6000.0.69f1\Editor\Unity.exe`, project: `ProJectZomboiNhai_clone_0`)
-   - Unity MCP Server kết nối qua HTTP session đơn tới Host (`ProJectZomboiNhai@53d13525fbca0135`). Do MCP bridge không hỗ trợ điều khiển song song 2 GUI Editor cùng lúc qua automation, hạng mục 9 được ghi nhận trung thực là **PARTIALLY VERIFIED** (đã chạy 2 process, test logic mạng qua PlayMode, không suy diễn thành full live dual-GUI test).
-5. **Timeline A→L Thực Tế (Unscaled Realtime từ PlayMode Log)**:
-   - **A (Click Start)**: `T+0.000s` (`ShowConnectionPopup: INITIALIZING SOLO PROTOCOL...`)
-   - **B (ShowLoading / Clean Runners)**: `T+0.015s` (`Cleaning old runners... creating gameplay runner`)
-   - **C (LoadSceneAsync)**: `T+0.065s` (`Fusion loading scene index 1 from MainMenu`)
-   - **D (Scene Loaded)**: `T+0.220s` (`OnSceneLoadStart runner='Prototype Runner(Clone)'`)
-   - **E (Activation)**: `T+0.441s` (`Scene physics/entities activated`)
-   - **F (Fusion Scene Ready)**: `T+0.661s` (`OnSceneLoadDone activeScene='Main'`)
-   - **G (Player Spawned)**: `T+0.720s` (`Player Joined: [Player:1], Found Local Player`)
-   - **H (Avatar & Starter Loadout Binding)**: `T+0.780s` (`Granted Easy starting loadout to Player [Player:1]`)
-   - **I (HUD Binding & Audio Ready)**: `T+0.810s` (`Recorder sẵn sàng! Đã đăng ký nhận sự kiện gửi chat`)
    - **J (Scene Assets & Quests Configured)**: `T+0.890s` (`Guaranteed 'Toolbox'... in containers`)
    - **K (Host/Client Readiness Check)**: `T+0.940s` (`Đã có 1/1 người tải xong Map`)
    - **L (First Gameplay Frame / HUD Release)**: `T+1.020s` (`LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY`)
@@ -1085,3 +910,203 @@
 
 - Đưa nhãn `CapacityText` của Inventory vào `GameLocalization` để hiển thị đúng English/Vietnamese theo locale hiện tại.
 - Sau thay đổi nhỏ này đã compile lại và chạy lại toàn bộ: **EditMode 136/136 passed**, **PlayMode 10/10 passed**, 0 failed.
+
+## Entry 2026-08-29 — Gom tài liệu bàn giao thành một nguồn canonical
+
+### Yêu cầu và quyết định
+
+- Người dùng yêu cầu tiếp tục gom các file work/handoff sau khi phiên trước bị ngắt và cần biết chính xác file phải đọc khi tạo phiên chat mới.
+- `Đã duyệt/triển khai`: dùng `CODEX_PROJECT_WORK_LOG.md` làm nguồn bàn giao canonical duy nhất. Ba file Route B/MainPlay/Git integration vẫn được giữ để bảo toàn lịch sử chi tiết, nhưng được dán nhãn hồ sơ lịch sử và không còn là danh sách việc hiện tại.
+- `Bị loại`: xóa hoặc ghi đè toàn bộ ba handoff cũ. Lý do: sẽ làm mất quyết định thiết kế, nguyên nhân loại phương án và bằng chứng QA cũ; đồng thời các link lịch sử trong repository sẽ hỏng.
+- `Bị loại`: bắt phiên mới luôn đọc cả bốn file. Lý do: trùng lặp lớn, có snapshot cũ và dễ khiến agent lấy state 2026-08-25/26 ghi đè state mới hơn.
+
+### Đã triển khai
+
+- Thêm mục `Bắt đầu một phiên Codex mới` và snapshot 2026-08-29 ở đầu work log.
+- Cập nhật `graduation-gameplay-workflow`: chỉ work log là bắt buộc; ba handoff cũ chỉ đọc khi cần lịch sử chuyên sâu.
+- Sửa project root cũ trong hai bản `unity-project-workflow` của Codex/Antigravity và thống nhất work log là canonical.
+- Dán nhãn historical cho `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md`, `NEXT_SESSION_MAINPLAY_PLAN.md` và `NEXT_SESSION_ROUTE_B_GIT_INTEGRATION_HANDOFF.md`; bổ sung đính chính Route B/MainPlay mới nhất.
+- Sửa lỗi cấu trúc nghiêm trọng trong work log: loại một bản lặp của ba entry multiplayer/loading và đoạn Verification bị ghép dở. Bản đầy đủ của từng entry vẫn được giữ nguyên; không xóa lịch sử duy nhất.
+- Bổ sung trạng thái private targeted RPC corpse loot: static/codegen và automated tests đã pass; transport/live global state trên nhiều peer vẫn chưa được xác minh đầy đủ.
+
+### Trạng thái Git và kiểm chứng
+
+- Baseline lúc bắt đầu: `main@7bcfb935c`, khớp `origin/main`.
+- Giữ nguyên prefab user-owned `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab`; không stage/restore/chỉnh sửa.
+- Đây là thay đổi tài liệu/skill, không thay đổi gameplay hoặc network runtime; không cần suy diễn lại kết quả Unity test cũ thành test mới.
+- Chưa commit và chưa push trong entry này; yêu cầu gom tài liệu không tự tạo quyền push.
+
+## Entry 2026-08-29 — P0 fresh verification sau pull và checkpoint tài liệu
+
+### Phạm vi
+
+- Người dùng duyệt thực hiện P0: xác minh fresh `main@7bcfb935c` trong chính workspace hiện tại, kiểm tra Scene/luồng Solo và tạo checkpoint riêng cho nhóm tài liệu đã gom.
+- Không sửa gameplay, code production, Scene hoặc prefab. Không đưa prefab nhà user-owned vào checkpoint và không push.
+
+### Xác minh fresh trong workspace hiện tại
+
+- Unity instance xác nhận đúng project `E:\\Lap_trinh\\HocTap\\DuAnTotNghiepFIx\\My project`, Unity `6000.0.69f1`; `HEAD` và `origin/main` cùng tại `7bcfb935c` trước khi tạo branch checkpoint.
+- Force refresh/compile hoàn tất; Console ngay sau compile: `0 error`, `0 warning`.
+- Full EditMode job `319d726da2b9416dbf31df1655b91fb4`: **145/145 passed**, 0 failed, 0 skipped, `4.48s`.
+- Full PlayMode job `ff94b3beb1884d49ba5f8366f426ab6a`: **10/10 passed**, 0 failed, 0 skipped, `140.55s`.
+- PlayMode có chạy và pass `SoloMenuFlowLoadsMainAndSpawnsMilitaryQuestWithoutModalOverlap`: `MainMenu → Fusion Single → Main → spawn Player → loading release`; full Route B production-path cũng pass.
+- Unity Scene Validator trên `Assets/Scenes/Main.unity`: **0 missing script, 0 broken prefab, 0 issue**; Scene không dirty sau kiểm tra.
+- Các mốc `EndB1`, `EndB2`, `EndB3`, `EndBFinal`, `EndBFinal2`, `EndBToCinemachine`, `Save-Respawn` và `Save-Respawn 2` đều tồn tại trong Scene.
+
+### Phân loại cảnh báo và giới hạn
+
+- Test Runner ghi một log loại `Exception` chỉ để báo đường lưu `TestResults.xml`; không có stack trace và cả 10 PlayMode test vẫn đạt.
+- Cảnh báo Voice `TransmitEnabled=false` là trạng thái expected khi chưa bấm Push-to-Talk. Các cảnh báo inventory-full/item-mismatch là nhánh từ chối được test chủ động.
+- `ViTriXeChetMay` không tồn tại trong Scene. Code ghi rõ marker này đã mất từ PR #305 và dùng tọa độ fallback được bảo toàn; flow Solo/Route B hiện pass, nhưng việc phục hồi marker author thật nên được theo dõi như một task riêng thay vì âm thầm sửa Scene trong P0.
+- MCP WebSocket từng ngắt trong lúc suite chạy; job tiếp tục, kết nối phục hồi và trả kết quả `10/10 passed`. Đây là lỗi cầu nối quan sát, không phải test failure.
+- Chưa test tay gameplay hoặc Host/Client thật trong P0; automated pass không được coi là nghiệm thu tay.
+
+### Git
+
+- Tạo branch local `codex/p0-verification-docs-20260829` từ `main@7bcfb935c` để checkpoint bảy file tài liệu/skill đã review.
+- `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` tiếp tục dirty user-owned, không stage/restore/chỉnh sửa; hai trailing-whitespace warning hiện chỉ nằm trong prefab này.
+- Chưa push; cần quyền push rõ ràng sau khi người dùng xem kết quả.
+
+## Entry 2026-08-29 — P1/P2 continuation: live two-peer loading và timeout regression
+
+### Đã triển khai
+
+- Chạy Unity Editor gốc làm Host và ParrelSync clone làm Client trong phòng `P1QA3`.
+- Tái hiện lỗi thật với cấu hình cũ `ConnectionTimeout=30`: hai Editor cùng tải Scene Main
+  khiến Client timeout trước khi gửi readiness; Host dừng ở 1/2.
+- Tăng `Assets/Photon/Fusion/Resources/NetworkProjectConfig.fusion` từ 30 lên 120 giây.
+  Đây là mitigation cho tải Scene nặng đồng thời; không được hiểu là Scene đã được tối ưu.
+- Thêm regression `FusionConnectionTimeout_CoversConcurrentMainSceneLoading` để merge/pull
+  sau này không âm thầm đưa timeout về dưới 120 giây.
+
+### Đã xác minh thực tế
+
+- Sau sửa, Host và Client cùng vào Main trong room `P1QA3`; session có 2 Player, khóa đúng
+  khi bắt đầu, Host ghi readiness 2/2 và cả hai peer giải phóng loading sang gameplay.
+- Cấu hình runtime trên cả hai peer ghi `ConnectionTimeout=120.0`; không tái hiện Fusion
+  timeout trong phiên P1QA3 trước khi chủ động dừng hai Editor.
+- Fresh batch EditMode: **146/146 passed**, 0 failed, 0 skipped, 3.6665s.
+- Fresh batch PlayMode: **10/10 passed**, 0 failed, 0 skipped, 105.8037s.
+- Artifacts: `QA_Artifacts/P1P2Continuation_20260829/`.
+
+### Rủi ro và phần chưa xác minh
+
+- Timeout dài hơn làm phát hiện peer chết thật chậm hơn; nguyên nhân hiệu năng nền vẫn là
+  Scene Main nặng khi hai Editor cùng deserialize/integrate.
+- Chưa có ba peer thật để chốt transport privacy/race của corpse loot. Static/codegen và
+  automated contracts vẫn pass nhưng không được suy diễn thành live multi-peer pass.
+- Chưa có 5–10 human peers cho readiness/disconnect/death/latency boundary.
+- Chưa chạy horde 80–112 zombie bằng Profiler hoặc soak 60 phút; đây vẫn là P2 manual gate.
+- NRE Photon Voice chỉ xuất hiện khi hot-reload asset giữa Play; clean Play restart không
+  tái hiện nên chưa sửa vendor source. Nếu clean flow tái hiện thì mở defect riêng.
+
+### Git
+
+- Branch local: `codex/p0-verification-docs-20260829`.
+- Không push. Prefab nhà user-owned tiếp tục được bảo toàn, không stage/restore/chỉnh sửa.
+
+## Entry 2026-08-30 — Collider vô hình, Player visibility và firearm point-blank
+
+### Quyết định và phạm vi
+
+- Người dùng cho phép assistant tự test các luồng multiplayer cần nhiều peer, tự đánh giá và push Git;
+  đồng thời yêu cầu đưa prefab nhà user-owned đang dirty vào cùng push.
+- `Đã triển khai`: sửa collider vô hình mẫu, X-Ray local Player, vùng cảm nhận zombie 360 độ có
+  fade, tăng damage/độ chính xác AK47 + S12K và fix hụt ở point blank.
+- `Chưa triển khai toàn map`: shadow blocker đèn pin. Nguyên nhân đã xác nhận là scene/prefab không
+  có `ShadowCaster2D` dù `Light2D.shadowsEnabled=true`; layer `Obstacle` lại gộp cả tường và hàng rào.
+  Auto-convert toàn layer sẽ làm hàng rào thấp chặn sáng sai thiết kế. Task được tách thành vertical
+  slice một căn nhà + một hàng rào trong `NEXT_SESSION_VISIBILITY_COMBAT_PLAN.md`.
+
+### Collider vô hình
+
+- Marker user-authored `Collider_A*TangHinh` tại `(-0.604, -2.844)` bị chồng bởi
+  `==========Wall===========/HangRao (3)`: `PolygonCollider2D` solid layer `Obstacle`, không có
+  renderer. Node A* tại marker trước sửa là unwalkable.
+- Xóa đúng `HangRao (3)` và giữ marker làm regression. Ba collider-only `HangRao` còn lại được giữ
+  vì Scene view xác nhận chúng khớp hàng rào/biên map có hình thật.
+- Chạy `Tools/Environment/Scan A* Current Scene` sau sửa: hoàn tất **485.805 node / 1 graph**.
+
+### Visibility và combat
+
+- Player X-Ray dùng silhouette SpriteRenderer unlit local-only trên sorting layer trước nhất; không
+  thêm replicated state.
+- Vùng cảm nhận zombie chuẩn hóa 2m cho Player/Player2, hoạt động 360 độ cả trong/ngoài nhà và fade
+  0,25 giây. Alpha chỉ được xử lý local theo camera target; RGB của hit-flash được bảo toàn.
+- AK47: damage 34 → 42, spread asset 2° → 0,75°. S12K: damage/pellet 15 → 24, spread 12° → 8°,
+  giữ 9 pellet. State Authority thêm point-blank target assist 1,2m trong aim cone và CircleCast
+  radius 0,08m; client không tự áp damage.
+- Thêm regression cho marker collider, cấu hình vision hai prefab và balance floor của hai súng.
+
+### Xác minh fresh
+
+- Unity script validation: `PlayerVision.cs` và `PlayerCombat.cs` không có compile error.
+- Unity Console sau refresh: 0 error.
+- EditMode job `6bd95fe56df74182ad6a7af7a29f8dc3`: **150/150 passed**, 0 failed,
+  0 skipped, 4,2848s.
+- PlayMode job `f8149af0c62947fda22da4b9489049ac`: **10/10 passed**, 0 failed,
+  0 skipped, 106,2297s.
+- Live Host+Client `P1QA3` ở entry trước vẫn là bằng chứng fresh cho timeout/readiness 2/2.
+  Một vòng two-peer mới đã khởi chạy nhưng ParrelSync Client đóng khi phiên Codex bị ngắt, nên không
+  được báo là pass cho X-Ray/fade/combat mới.
+
+### Rủi ro và QA còn lại
+
+- X-Ray đang là silhouette luôn-hiện nhẹ, không phải occluded-pixels-only stencil; cần user đánh giá
+  thẩm mỹ trong gameplay.
+- Chưa nghiệm thu cảm giác fade, bán kính 2m và balance súng bằng test tay của người dùng.
+- Cần chạy lại Host+Client sau pull để xác nhận mỗi peer có visibility riêng và Host chỉ áp damage
+  một lần. Checklist/expected result nằm trong `NEXT_SESSION_VISIBILITY_COMBAT_PLAN.md`.
+- ShadowCaster2D cho tường/cửa chưa được nhân rộng; không tuyên bố đã fix đèn pin xuyên tường.
+
+## Entry 2026-08-30 — Indoor occlusion, starter loadout retry và Zombie wall sweep
+
+### Phạm vi và quyết định
+
+- Người dùng đã test nhanh bản visibility/combat trước và xác nhận: Fog + đèn pin còn xuyên tường
+  trong nhà, một lần Solo không nhận vũ khí đầu game, vùng fade cần giảm còn 1,5m và Zombie đôi lúc
+  chìm/tàng hình/xuyên tường trong nhà.
+- `Đã chọn`: occlusion local bằng fan raycast chỉ nhận collider thuộc đúng căn nhà đang chứa Player.
+  Fog shader giữ cover alpha 0,98 sau structural hit, vì vậy che luôn Light2D rò qua tường nhưng khe
+  cửa không collider vẫn mở; hàng rào ngoài map dù gần hơn vẫn bị bỏ qua.
+- `Đã loại`: gắn ShadowCaster2D/tái phân layer toàn map trong lượt này. Project chưa author shadow
+  geometry và `Obstacle` trộn tường với hàng rào; auto-convert sẽ tạo nhiều blocker sai và khó review.
+- `Đã chọn`: giữ Zombie Kinematic/Fusion, thêm Rigidbody2D body cast trước MovePosition.
+- `Đã loại`: đổi Zombie sang Dynamic. Rủi ro là Zombie đẩy Player, rung contact và tạo sai lệch
+  host/client; body cast giải quyết tunnelling/cắt góc mà không đổi mô hình authority.
+
+### Đã triển khai
+
+- `FogVisionController` dựng 180 tia ở 15Hz khi indoor, cache structure root từ `RoofVisibility` hoặc
+  `IndoorVisionArea`, và chỉ dùng hit `Obstacle` là descendant của root đó. Shader nội suy khoảng
+  cách theo góc và không mở Fog/flashlight/exit awareness sau tường.
+- `PlayerVision` và cả hai prefab Player giảm passive awareness từ 2m xuống 1,5m. Vùng 360 độ vẫn
+  thấy Zombie sau lưng nhưng nay dùng cùng LOS check nên không xuyên tường kín.
+- `InventorySystem` thêm trạng thái `StartingLoadoutResolved`; hotbar/flashlight placement trả bool,
+  State Authority retry mỗi 0,5 giây đến khi toàn bộ item được xác nhận và retry chỉ thêm lượng thiếu.
+  Military snapshot được đánh dấu resolved trước restore. Luật canonical không đổi: Easy có AK47,
+  Normal không có súng, Hard không có starter gear.
+- `ZOmbieAI_Khoa` và `ZombieAIKhoaRebuilt` cast toàn bộ Rigidbody2D theo obstacle mask trước mỗi bước,
+  cắt quãng đường ở wall skin 0,02m và dùng quãng đường thực cho NetSpeed/stuck-repath.
+- Cập nhật `NEXT_SESSION_VISIBILITY_COMBAT_PLAN.md`; thêm Editor contract và PlayMode physics tests.
+
+### Xác minh fresh
+
+- Unity 6000.0.69f1 force refresh/compile: 0 compile error; shader import không sinh error và runtime
+  regression xác nhận `ProjectZomboid/FogVisionOverlay.isSupported=true`.
+- A* Main scan bằng tool project: **485.805 node / 1 graph**. Spawn zone vẫn chỉ spawn ở node Walkable;
+  prefab Zombie ở layer `Enemy`, obstacle mask `Obstacle`, collision matrix Enemy–Obstacle không ignore.
+- Targeted EditMode: **5/5 passed** cho 1,5m, indoor building scope, wall sweep và loadout retry contract.
+- Targeted PlayMode: **2/2 passed**: tia bỏ qua hàng rào ngoài root và dừng ở tường nhà; cả hai Zombie
+  brain dừng trước static wall. Test placement AK47 idempotent bổ sung: **1/1 passed**.
+- Full EditMode job `7990782b0ca64bc9a04f6c818bc7ca37`: **153/153 passed**, 0 failed.
+- Full PlayMode job `da152253e299455cacf69657137d4923`: **12/12 passed**, 0 failed, 92,136s.
+- A* scan làm Unity bận và MCP WebSocket ngắt một lần khi đổi scene; Editor hồi phục, compile/test sau
+  đó pass đầy đủ. Đây là lỗi cầu nối quan sát, không được tính là gameplay pass/fail.
+
+### Chưa xác minh và Git
+
+- Chưa có user visual QA mới tại đúng căn nhà trong ảnh sau bản sửa này; automated ray test xác nhận
+  geometry/semantic nhưng không thay thế đánh giá độ tối, feather và cảm giác đèn pin thực tế.
+- Chưa soak horde qua nhiều căn nhà hoặc live Host+Client cho visibility client-local; đây vẫn là P2.
+- Branch: `codex/indoor-vision-zombie-reliability-20260830`, tạo từ `main@d433d58e2`.

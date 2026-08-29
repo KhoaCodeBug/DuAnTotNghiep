@@ -55,6 +55,14 @@ public class FogVisionController : MonoBehaviour
     [Range(0f, 1f), Tooltip("How much a flashlight can open the indoor exterior mask through a doorway.")]
     public float indoorExteriorFlashlightClearance = 0.68f;
     [Range(0f, 0.25f)] public float visionEdgeSoftness = 0.12f;
+    [Header("Indoor wall occlusion")]
+    [Range(64, 180), Tooltip("Number of local physics rays used to clip indoor fog/light against this building's walls.")]
+    public int indoorOcclusionRayCount = 180;
+    [Range(0.03f, 0.25f)] public float indoorOcclusionEdgeSoftness = 0.10f;
+    [Range(0.9f, 1f), Tooltip("Minimum fog cover behind a structural wall, including leaked Light2D illumination.")]
+    public float indoorWallOccludedOpacity = 0.98f;
+    [Range(5f, 30f), Tooltip("How often the local indoor visibility fan is rebuilt. This is visual-only and never networked.")]
+    public float indoorOcclusionRefreshRate = 15f;
     public Color fogColor = new Color(0.72f, 0.75f, 0.77f, 1f);
     public Color indoorAmbientColor = new Color(0.025f, 0.03f, 0.04f, 1f);
     public Color indoorExteriorColor = new Color(0.008f, 0.01f, 0.014f, 1f);
@@ -83,6 +91,11 @@ public class FogVisionController : MonoBehaviour
     private static readonly int IndoorExitAwarenessClearanceId = Shader.PropertyToID("_IndoorExitAwarenessClearance");
     private static readonly int IndoorExitAwarenessRadiusId = Shader.PropertyToID("_IndoorExitAwarenessRadius");
     private static readonly int IndoorExteriorFlashlightClearanceId = Shader.PropertyToID("_IndoorExteriorFlashlightClearance");
+    private static readonly int IndoorOcclusionActiveId = Shader.PropertyToID("_IndoorOcclusionActive");
+    private static readonly int IndoorOcclusionRayCountId = Shader.PropertyToID("_IndoorOcclusionRayCount");
+    private static readonly int IndoorOcclusionDistancesId = Shader.PropertyToID("_IndoorOcclusionDistances");
+    private static readonly int IndoorOcclusionEdgeSoftnessId = Shader.PropertyToID("_IndoorOcclusionEdgeSoftness");
+    private static readonly int IndoorWallOccludedOpacityId = Shader.PropertyToID("_IndoorWallOccludedOpacity");
     private static readonly int FogWorldBottomLeftId = Shader.PropertyToID("_FogWorldBottomLeft");
     private static readonly int FogWorldRightId = Shader.PropertyToID("_FogWorldRight");
     private static readonly int FogWorldUpId = Shader.PropertyToID("_FogWorldUp");
@@ -112,6 +125,14 @@ public class FogVisionController : MonoBehaviour
     private float tutorialRevealRadius;
     private readonly Vector4[] indoorPoints = new Vector4[16];
     private readonly List<Vector2> polygonPoints = new List<Vector2>(16);
+    private const int MaxIndoorOcclusionRays = 180;
+    private readonly float[] indoorOcclusionDistances = new float[MaxIndoorOcclusionRays];
+    private readonly List<RaycastHit2D> indoorOcclusionHits = new List<RaycastHit2D>(32);
+    private ContactFilter2D indoorObstacleFilter;
+    private Collider2D cachedIndoorCollider;
+    private Transform cachedIndoorStructureRoot;
+    private Vector2 lastOcclusionOrigin;
+    private float nextIndoorOcclusionUpdate;
     private Vector2 questBoundaryOrigin;
     private Vector2 questBoundaryRight;
     private Vector2 questBoundaryUp;
@@ -130,6 +151,10 @@ public class FogVisionController : MonoBehaviour
         worldCamera = GetComponent<Camera>();
         if (worldCamera == null) worldCamera = GetComponentInChildren<Camera>();
         fogBankTexture = Resources.Load<Texture2D>("Fog/FogBankDensity");
+        indoorObstacleFilter = new ContactFilter2D();
+        indoorObstacleFilter.useLayerMask = true;
+        indoorObstacleFilter.useTriggers = false;
+        indoorObstacleFilter.SetLayerMask(LayerMask.GetMask("Obstacle"));
         if (fogBankTexture == null)
         {
             Debug.LogError("[FogVision] Missing Resources/Fog/FogBankDensity texture.");
@@ -338,6 +363,9 @@ public class FogVisionController : MonoBehaviour
                         targetVision.ActiveIndoorCollider != null;
         int indoorPointCount = isIndoor ? BuildIndoorWorldPolygon(targetVision.ActiveIndoorCollider) : 0;
         isIndoor &= indoorPointCount >= 3;
+        float cameraRayDistance = fogWorldRight.magnitude + fogWorldUp.magnitude + 1f;
+        bool indoorOcclusionActive = isIndoor && UpdateIndoorOcclusion(
+            targetVision.ActiveIndoorCollider, visionCenter, cameraRayDistance);
 
         float nightBlend = DayNightManager.Instance != null
             ? DayNightManager.EvaluateNightBlend(DayNightManager.Instance.CurrentTime)
@@ -368,6 +396,12 @@ public class FogVisionController : MonoBehaviour
         overlayMaterial.SetFloat(IndoorExitAwarenessClearanceId, indoorExitAwarenessClearance);
         overlayMaterial.SetFloat(IndoorExitAwarenessRadiusId, indoorExitAwarenessRadius);
         overlayMaterial.SetFloat(IndoorExteriorFlashlightClearanceId, indoorExteriorFlashlightClearance);
+        overlayMaterial.SetFloat(IndoorOcclusionActiveId, indoorOcclusionActive ? 1f : 0f);
+        overlayMaterial.SetFloat(IndoorOcclusionRayCountId,
+            indoorOcclusionActive ? Mathf.Clamp(indoorOcclusionRayCount, 64, MaxIndoorOcclusionRays) : 0f);
+        overlayMaterial.SetFloatArray(IndoorOcclusionDistancesId, indoorOcclusionDistances);
+        overlayMaterial.SetFloat(IndoorOcclusionEdgeSoftnessId, indoorOcclusionEdgeSoftness);
+        overlayMaterial.SetFloat(IndoorWallOccludedOpacityId, indoorWallOccludedOpacity);
         overlayMaterial.SetFloat(QuestBoundaryActiveId, IsQuestSearchBoundaryActive ? 1f : 0f);
         overlayMaterial.SetVector(QuestBoundaryOriginId, questBoundaryOrigin);
         overlayMaterial.SetVector(QuestBoundaryRightId, questBoundaryRight);
@@ -383,6 +417,69 @@ public class FogVisionController : MonoBehaviour
     private static float Cross(Vector2 left, Vector2 right)
     {
         return left.x * right.y - left.y * right.x;
+    }
+
+    private bool UpdateIndoorOcclusion(Collider2D indoorCollider, Vector2 origin, float maxDistance)
+    {
+        if (indoorCollider == null) return false;
+
+        if (cachedIndoorCollider != indoorCollider)
+        {
+            cachedIndoorCollider = indoorCollider;
+            cachedIndoorStructureRoot = ResolveIndoorStructureRoot(indoorCollider);
+            nextIndoorOcclusionUpdate = 0f;
+        }
+
+        if (cachedIndoorStructureRoot == null) return false;
+
+        float updateInterval = 1f / Mathf.Max(5f, indoorOcclusionRefreshRate);
+        if (Time.unscaledTime < nextIndoorOcclusionUpdate &&
+            Vector2.SqrMagnitude(origin - lastOcclusionOrigin) < 0.0025f)
+            return true;
+
+        nextIndoorOcclusionUpdate = Time.unscaledTime + updateInterval;
+        lastOcclusionOrigin = origin;
+        int rayCount = Mathf.Clamp(indoorOcclusionRayCount, 64, MaxIndoorOcclusionRays);
+        float safeMaxDistance = Mathf.Max(1f, maxDistance);
+
+        for (int rayIndex = 0; rayIndex < rayCount; rayIndex++)
+        {
+            float angle = rayIndex * Mathf.PI * 2f / rayCount;
+            Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+            Physics2D.Raycast(origin, direction, indoorObstacleFilter, indoorOcclusionHits, safeMaxDistance);
+
+            float nearestStructureHit = safeMaxDistance;
+            for (int hitIndex = 0; hitIndex < indoorOcclusionHits.Count; hitIndex++)
+            {
+                RaycastHit2D hit = indoorOcclusionHits[hitIndex];
+                if (hit.collider == null || !hit.collider.transform.IsChildOf(cachedIndoorStructureRoot))
+                    continue;
+
+                nearestStructureHit = Mathf.Min(nearestStructureHit, Mathf.Max(0f, hit.distance));
+            }
+
+            indoorOcclusionDistances[rayIndex] = nearestStructureHit;
+        }
+
+        for (int rayIndex = rayCount; rayIndex < MaxIndoorOcclusionRays; rayIndex++)
+            indoorOcclusionDistances[rayIndex] = safeMaxDistance;
+
+        return true;
+    }
+
+    private static Transform ResolveIndoorStructureRoot(Collider2D indoorCollider)
+    {
+        RoofVisibility roof = indoorCollider.GetComponentInParent<RoofVisibility>();
+        if (roof != null) return roof.transform;
+
+        IndoorVisionArea indoorArea = indoorCollider.GetComponentInParent<IndoorVisionArea>();
+        if (indoorArea != null) return indoorArea.transform;
+
+        // Legacy Main houses use a trigger Tilemap named "nocnha". Its direct
+        // parent is the smallest authored structure group available at runtime.
+        return indoorCollider.transform.parent != null
+            ? indoorCollider.transform.parent
+            : indoorCollider.transform;
     }
 
     private int BuildIndoorWorldPolygon(Collider2D indoorCollider)

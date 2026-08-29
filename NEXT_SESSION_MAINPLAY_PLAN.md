@@ -1,5 +1,7 @@
 # MainPlay — Kế hoạch phiên tiếp theo
 
+> **TRẠNG THÁI TÀI LIỆU:** kế hoạch lịch sử của chương bệnh viện/finale. Không còn là danh sách task hiện tại. Khi mở phiên mới, đọc `CODEX_PROJECT_WORK_LOG.md` trước; chỉ quay lại file này khi cần lý do thiết kế H1–H5 hoặc lịch sử Route B.
+
 > Cập nhật: 2026-08-25
 > H1–H5 bệnh viện đã chốt implementation. Ưu tiên tiếp theo chuyển sang thảo luận finale căn cứ trong `NEXT_SESSION_MILITARY_FINALE_PLAN.md`.
 > Không bắt đầu bằng flow cũ Bàn Điều phối → Radio → Tủ hồ sơ và không chờ LootContainer bệnh viện.
@@ -189,3 +191,10 @@ Implementation thử nghiệm của Ox Alpha vẫn bị loại hoàn toàn; bả
 ## Prompt mở chat triển khai
 
 > Đọc `ROUTE_B_COMPLETE_FLOW_CODEX_HANDOFF.md` B4–B7 và các file finale trong mục 10. Finale đã triển khai theo flow 3 manh mối → rời mái trường → vote nhất trí tại `Car` → cinematic đóng cổng → horde + sửa 5 hạng mục; hồi sinh đội theo luật 10s/3 lượt dùng chung/Solo chết là thua. Không khôi phục Generator/150% HP/electric stun.
+
+## Đính chính kế hoạch hiện tại — 2026-08-29
+
+- H1–H5 và Route B finale không còn là task triển khai tiếp theo; final polish đã nằm trong `main` qua PR #323.
+- Các mô tả năm prefab loot runtime, extraction bằng `E`, 13 lane zombie và cutscene 2,25 giây ở phần lịch sử phía trên đã bị implementation mới thay thế; xem snapshot đầu `CODEX_PROJECT_WORK_LOG.md`.
+- Ưu tiên QA còn mở hiện nay là multiplayer thật: lobby 5–10 người, readiness 6m, disconnect/death race lúc khởi động xe, virtual follower, horde 80–112 bằng Profiler và corpse-loot targeted RPC trên nhiều peer.
+- Các feature mới sau Route B gồm loading/readiness tập trung, difficulty Host-authoritative, localization song ngữ, corpse loot, balo/capacity và private RPC audit. Chúng được ghi ở work log, không nhân bản đầy đủ vào kế hoạch lịch sử này.
