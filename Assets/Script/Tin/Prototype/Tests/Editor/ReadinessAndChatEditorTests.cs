@@ -1113,4 +1113,302 @@ public sealed class ReadinessAndChatEditorTests
 
         resetMethod.Invoke(null, null);
     }
+
+    [Test]
+    public void AutoMainMenuManager_PauseGate_IgnoresHiddenMainMenuPanel()
+    {
+        Type menuType = ResolveGameType("AutoMainMenuManager");
+        PropertyInfo gateProperty = menuType.GetProperty("IsPauseMenuOrOptionsOpen",
+            BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(gateProperty, Is.Not.Null);
+
+        Component menu = (Component)System.Runtime.Serialization.FormatterServices
+            .GetUninitializedObject(menuType);
+        GameObject hiddenMenuCanvasGo = new GameObject("TestHiddenMenuCanvas");
+        Canvas hiddenMenuCanvas = hiddenMenuCanvasGo.AddComponent<Canvas>();
+        GameObject mainPanel = new GameObject("TestHiddenMainPanel");
+        GameObject optionsPanel = new GameObject("TestHiddenOptionsPanel");
+        GameObject pausePanel = new GameObject("TestPausePanel");
+        GameObject pauseOptions = new GameObject("TestPauseOptions");
+        try
+        {
+            mainPanel.transform.SetParent(hiddenMenuCanvasGo.transform);
+            optionsPanel.transform.SetParent(hiddenMenuCanvasGo.transform);
+            hiddenMenuCanvasGo.SetActive(false);
+            pausePanel.SetActive(false);
+            pauseOptions.SetActive(false);
+
+            menuType.GetField("mainCanvas", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(menu, hiddenMenuCanvas);
+            menuType.GetField("mainPanel", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(menu, mainPanel);
+            menuType.GetField("optionsPanel", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(menu, optionsPanel);
+            menuType.GetField("pauseMenuPanel", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(menu, pausePanel);
+            menuType.GetField("pauseOptionsPanel", BindingFlags.NonPublic | BindingFlags.Instance)
+                .SetValue(menu, pauseOptions);
+
+            Assert.That((bool)gateProperty.GetValue(menu), Is.False,
+                "The hidden Main Menu panel must not block gameplay chat; only pause/options panels may do so.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(hiddenMenuCanvasGo);
+            UnityEngine.Object.DestroyImmediate(mainPanel);
+            UnityEngine.Object.DestroyImmediate(optionsPanel);
+            UnityEngine.Object.DestroyImmediate(pausePanel);
+            UnityEngine.Object.DestroyImmediate(pauseOptions);
+        }
+    }
+
+    [Test]
+    public void AutoMainMenuManager_StartedClient_DefersLoadingUntilSceneLoadCallback()
+    {
+        Type menuType = ResolveGameType("AutoMainMenuManager");
+        MethodInfo deferMethod = menuType.GetMethod("ShouldDeferClientLoadingUntilSceneLoad",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.That(deferMethod, Is.Not.Null,
+            "A client joining an already-started session must let the actual Fusion scene-load callback own loading initialization.");
+
+        Assert.That((bool)deferMethod.Invoke(null, new object[] { 1 }), Is.True,
+            "GameState=1 must defer loading until OnSceneLoadStart to avoid resetting readiness after Spawned().");
+        Assert.That((bool)deferMethod.Invoke(null, new object[] { 0 }), Is.False,
+            "GameState=0 must not be treated as an already-started session.");
+    }
+
+    [Test]
+    public void AutoChatManager_IncomingMessage_MakesChatVisibleOnScreen()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChat");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo chatGroupField = chatType.GetField("chatGroup", BindingFlags.NonPublic | BindingFlags.Instance);
+        CanvasGroup cg = chatGroupField?.GetValue(chat) as CanvasGroup;
+        Assert.That(cg, Is.Not.Null, "Chat panel must have a CanvasGroup.");
+
+        // Simulate chat closed and fully faded out
+        cg.alpha = 0f;
+
+        MethodInfo addMsgMethod = chatType.GetMethod("AddPlayerMessage", BindingFlags.Public | BindingFlags.Instance);
+        addMsgMethod.Invoke(chat, new object[] { "Survivor", "Enemy approaching!" });
+
+        Assert.That(cg.alpha, Is.EqualTo(1f), "Incoming player message must make chat panel visible (alpha = 1).");
+
+        cg.alpha = 0f;
+        MethodInfo addSysMsgMethod = chatType.GetMethod("AddSystemMessage", BindingFlags.Public | BindingFlags.Instance);
+        addSysMsgMethod.Invoke(chat, new object[] { "Zone shrinking!" });
+
+        Assert.That(cg.alpha, Is.EqualTo(1f), "Incoming system message must make chat panel visible (alpha = 1).");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_SanitizationAndLimits_ProtectsHistory()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatSanitize");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo historyField = chatType.GetField("chatHistory", BindingFlags.NonPublic | BindingFlags.Instance);
+        UnityEngine.UI.Text historyText = historyField?.GetValue(chat) as UnityEngine.UI.Text;
+        Assert.That(historyText, Is.Not.Null);
+
+        MethodInfo addMsgMethod = chatType.GetMethod("AddPlayerMessage", BindingFlags.Public | BindingFlags.Instance);
+
+        // Rich text injection attempt
+        addMsgMethod.Invoke(chat, new object[] { "<size=100>Hacker</size>", "<color=red><material=1>Inject</color></material>" });
+
+        Assert.That(historyText.text, Does.Not.Contain("<size="));
+        Assert.That(historyText.text, Does.Not.Contain("<material="));
+        Assert.That(historyText.text, Does.Contain("Hacker"));
+        Assert.That(historyText.text, Does.Contain("Inject"));
+
+        // Long text limit
+        string veryLongMessage = new string('A', 300);
+        addMsgMethod.Invoke(chat, new object[] { "Survivor", veryLongMessage });
+        Assert.That(historyText.text.Length, Is.LessThan(600), "Individual message must be clamped.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_VietnameseText_PreservedAccurately()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatVN");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo historyField = chatType.GetField("chatHistory", BindingFlags.NonPublic | BindingFlags.Instance);
+        UnityEngine.UI.Text historyText = historyField?.GetValue(chat) as UnityEngine.UI.Text;
+        Assert.That(historyText, Is.Not.Null);
+
+        MethodInfo addMsgMethod = chatType.GetMethod("AddPlayerMessage", BindingFlags.Public | BindingFlags.Instance);
+        string vnText = "Xin chào đồng đội! Tôi đang ở trạm cứu hộ quân sự.";
+        addMsgMethod.Invoke(chat, new object[] { "Chiến Binh", vnText });
+
+        Assert.That(historyText.text, Does.Contain(vnText), "Vietnamese diacritics must be preserved in chat history.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_CanOpenChat_RespectsReadinessAndTypingState()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        Type coordType = ResolveGameType("GameplayReadinessCoordinator");
+
+        GameObject chatGo = new GameObject("TestAutoChatGates");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        MethodInfo canOpenMethod = chatType.GetMethod("CanOpenChat", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo resetMethod = coordType.GetMethod("ResetCoordinator", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo startMethod = coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string) }, null)
+            ?? coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo releaseMethod = coordType.GetMethod("Release", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
+
+        // Start loading -> Cannot open chat
+        resetMethod.Invoke(null, null);
+        if (startMethod.GetParameters().Length == 1)
+            startMethod.Invoke(null, new object[] { "loading.connecting" });
+        else
+            startMethod.Invoke(null, null);
+
+        bool canOpenConnecting = (bool)canOpenMethod.Invoke(chat, null);
+        Assert.That(canOpenConnecting, Is.False, "Should not be able to open chat during loading screen.");
+
+        // Release to gameplay -> Can open chat
+        releaseMethod.Invoke(null, null);
+        bool canOpenReleased = (bool)canOpenMethod.Invoke(chat, null);
+        Assert.That(canOpenReleased, Is.True, "Should be able to open chat when released to gameplay.");
+
+        resetMethod.Invoke(null, null);
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_MessageSubmissions_ValidateEmptyWhitespaceAndTrim()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatSubmit");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo onSendField = chatType.GetField("onSendMessage", BindingFlags.Public | BindingFlags.Instance);
+        FieldInfo chatInputField = chatType.GetField("chatInput", BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo isTypingField = chatType.GetField("isTyping", BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo endEditMethod = chatType.GetMethod("OnChatEndEdit", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        string lastReceivedMsg = null;
+        int callCount = 0;
+        Action<string> handler = msg =>
+        {
+            lastReceivedMsg = msg;
+            callCount++;
+        };
+        Delegate del = Delegate.CreateDelegate(onSendField.FieldType, handler.Target, handler.Method);
+        onSendField.SetValue(chat, del);
+
+        // 1. Whitespace only -> Should not invoke
+        isTypingField.SetValue(chat, true);
+        endEditMethod.Invoke(chat, new object[] { "    \t\n   " });
+        Assert.That(callCount, Is.EqualTo(0), "Whitespace message must not be sent.");
+
+        // 2. Empty string -> Should not invoke
+        isTypingField.SetValue(chat, true);
+        endEditMethod.Invoke(chat, new object[] { "" });
+        Assert.That(callCount, Is.EqualTo(0), "Empty message must not be sent.");
+
+        // 3. Valid message with padding -> Trimmed and sent exactly once
+        isTypingField.SetValue(chat, true);
+        endEditMethod.Invoke(chat, new object[] { "   Hello World!   " });
+        Assert.That(callCount, Is.EqualTo(1), "Valid message must be sent exactly once.");
+        Assert.That(lastReceivedMsg, Is.EqualTo("Hello World!"), "Message must be trimmed.");
+
+        // 4. Typing state reset
+        bool isTyping = (bool)isTypingField.GetValue(chat);
+        Assert.That(isTyping, Is.False, "isTyping must be false after OnChatEndEdit.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_OpenAndClose_TogglesTypingAndRaycasts()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatToggle");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        MethodInfo openMethod = chatType.GetMethod("OpenChat", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo closeMethod = chatType.GetMethod("CloseChat", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo isTypingMethod = chatType.GetMethod("IsTyping", BindingFlags.Public | BindingFlags.Instance);
+        FieldInfo chatGroupField = chatType.GetField("chatGroup", BindingFlags.NonPublic | BindingFlags.Instance);
+        CanvasGroup cg = chatGroupField.GetValue(chat) as CanvasGroup;
+
+        // Open
+        openMethod.Invoke(chat, null);
+        Assert.That((bool)isTypingMethod.Invoke(chat, null), Is.True, "IsTyping must be true when chat is open.");
+        Assert.That(cg.blocksRaycasts, Is.True, "blocksRaycasts must be true when chat is open.");
+
+        // Close
+        closeMethod.Invoke(chat, null);
+        Assert.That((bool)isTypingMethod.Invoke(chat, null), Is.False, "IsTyping must be false when chat is closed.");
+        Assert.That(cg.blocksRaycasts, Is.False, "blocksRaycasts must be false when chat is closed.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void Client_DirectOrLateJoin_ShowLoadingScreen_DoesNotResetReadinessWhenReleasedOrSceneLoaded()
+    {
+        Type coordType = ResolveGameType("GameplayReadinessCoordinator");
+        Type menuType = ResolveGameType("AutoMainMenuManager");
+        Type stageEnum = ResolveGameType("GameplayReadinessCoordinator+ReadinessStage");
+
+        MethodInfo resetMethod = coordType.GetMethod("ResetCoordinator", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo setStageMethod = coordType.GetMethod("SetStage", BindingFlags.Public | BindingFlags.Static, null, new Type[] { stageEnum, typeof(float), typeof(string) }, null);
+        MethodInfo releaseMethod = coordType.GetMethod("Release", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
+        PropertyInfo stageProp = coordType.GetProperty("CurrentStage", BindingFlags.Public | BindingFlags.Static);
+        PropertyInfo releasedProp = coordType.GetProperty("IsReleasedToGameplay", BindingFlags.Public | BindingFlags.Static);
+
+        GameObject menuGo = new GameObject("TestMainMenuClientOrdering");
+        Component menu = menuGo.AddComponent(menuType);
+        MethodInfo showLoadingMethod = menuType.GetMethod("ShowLoadingScreen", BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo isLocalSceneLoadedField = menuType.GetField("isLocalSceneLoaded", BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo isLoadingScreenActiveField = menuType.GetField("isLoadingScreenActive", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        // 1. Simulate Client has completed loading and is ReleasedToGameplay
+        resetMethod.Invoke(null, null);
+        setStageMethod.Invoke(null, new object[] { Enum.Parse(stageEnum, "HUDAndSystemsReady"), 0.8f, null });
+        releaseMethod.Invoke(null, null);
+        isLocalSceneLoadedField.SetValue(menu, true);
+        isLoadingScreenActiveField.SetValue(menu, false);
+
+        Assert.That((bool)releasedProp.GetValue(null), Is.True, "Gameplay should be released.");
+
+        // 2. Call ShowLoadingScreen again (e.g. from late GameState update or late callback)
+        showLoadingMethod.Invoke(menu, null);
+
+        // 3. Must NOT reopen loading or reset stage back to Connecting
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("ReleasedToGameplay"),
+            "ShowLoadingScreen must not reset readiness when scene is loaded and gameplay is released.");
+        Assert.That((bool)releasedProp.GetValue(null), Is.True, "Gameplay must remain released.");
+        Assert.That((bool)isLoadingScreenActiveField.GetValue(menu), Is.False, "Loading screen must not become active.");
+
+        resetMethod.Invoke(null, null);
+        UnityEngine.Object.DestroyImmediate(menuGo);
+    }
 }

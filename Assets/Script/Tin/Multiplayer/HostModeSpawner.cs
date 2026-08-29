@@ -271,8 +271,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         if (Runner != null && Runner.IsServer)
         {
             bool isSolo = Runner.GameMode == GameMode.Single ||
-                          Runner.SessionInfo == null ||
-                          Runner.SessionInfo.PlayerCount <= 1;
+                          (Runner.SessionInfo != null && Runner.SessionInfo.MaxPlayers <= 1);
 
             RegisterReadyPlayer(playersLoadedSet, Runner.LocalPlayer);
 

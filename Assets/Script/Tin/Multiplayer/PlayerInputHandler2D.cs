@@ -406,24 +406,58 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null && health.isDead) return;
 
-        RPC_RequestSendChat(msg);
+        if (Object != null && Object.IsValid)
+        {
+            RPC_RequestSendChat(msg);
+        }
+        else
+        {
+            // Fallback khi chạy standalone hoặc test seam không qua NetworkRunner
+            string localName = GetComponent<PlayerNameTag>()?.PlayerName.ToString();
+            if (string.IsNullOrEmpty(localName)) localName = "Survivor";
+            string cleanMsg = PlayerDeathContext.SanitizeRichText(msg ?? string.Empty);
+            if (cleanMsg.Length > 128) cleanMsg = cleanMsg.Substring(0, 128);
+            if (!string.IsNullOrWhiteSpace(cleanMsg))
+            {
+                AutoChatManager.Instance?.AddPlayerMessage(localName, cleanMsg);
+            }
+        }
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_RequestSendChat(string message, RpcInfo info = default)
     {
-        if (!HasStateAuthority || Object == null || !Object.IsValid ||
-            info.Source != Object.InputAuthority)
+        if (!HasStateAuthority || Object == null || !Object.IsValid)
             return;
+
+        // Xác thực người gửi: Nếu là RPC mạng từ xa thì info.Source phải khớp Object.InputAuthority;
+        // Nếu là local invocation trên Host/Singleplayer thì info.Source == PlayerRef.None.
+        if (info.Source != PlayerRef.None && info.Source != Object.InputAuthority)
+        {
+            Debug.LogWarning($"[CHAT] Rejected spoofed chat request from {info.Source} for object with input authority {Object.InputAuthority}.");
+            return;
+        }
 
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null && health.isDead) return;
 
-        string senderName = HostModeSpawner.Instance != null
-            ? HostModeSpawner.Instance.GetPlayerName(info.Source)
-            : GetComponent<PlayerNameTag>()?.PlayerName.ToString();
-        senderName = PlayerDeathContext.SanitizeRichText(senderName ?? "Survivor");
-        if (string.IsNullOrEmpty(senderName)) senderName = "Survivor";
+        PlayerRef senderPlayer = info.Source != PlayerRef.None ? info.Source : Object.InputAuthority;
+
+        string senderName = null;
+        if (HostModeSpawner.Instance != null && senderPlayer != PlayerRef.None)
+        {
+            senderName = HostModeSpawner.Instance.GetPlayerName(senderPlayer);
+        }
+        if (string.IsNullOrEmpty(senderName))
+        {
+            senderName = GetComponent<PlayerNameTag>()?.PlayerName.ToString();
+        }
+        if (string.IsNullOrEmpty(senderName))
+        {
+            senderName = "Survivor";
+        }
+
+        senderName = PlayerDeathContext.SanitizeRichText(senderName);
         if (senderName.Length > 32) senderName = senderName.Substring(0, 32);
 
         string cleanMsg = PlayerDeathContext.SanitizeRichText(message ?? string.Empty);
