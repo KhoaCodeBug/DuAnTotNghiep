@@ -606,4 +606,30 @@ public sealed class ReadinessAndChatEditorTests
         Assert.That((bool)suppressedProp.GetValue(null), Is.False);
         Assert.That((bool)releasedProp.GetValue(null), Is.True);
     }
+
+    [Test]
+    public void ZombieCorpseLoot_RPC_ShowSearchResult_UsesRpcTargetAndCorrectSignature()
+    {
+        Type corpseType = ResolveGameType("ZombieCorpseLoot");
+        MethodInfo rpcMethod = corpseType.GetMethod("RPC_ShowSearchResult", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(rpcMethod, Is.Not.Null, "RPC_ShowSearchResult method must exist on ZombieCorpseLoot.");
+
+        ParameterInfo[] parameters = rpcMethod.GetParameters();
+        Assert.That(parameters.Length, Is.EqualTo(4), "RPC_ShowSearchResult must have exactly 4 parameters (recipient, resultValue, itemId, amount).");
+
+        ParameterInfo recipientParam = parameters[0];
+        Assert.That(recipientParam.Name, Is.EqualTo("recipient"));
+        Assert.That(recipientParam.ParameterType.Name, Is.EqualTo("PlayerRef"));
+
+        bool hasRpcTarget = recipientParam.GetCustomAttributes(true)
+            .Any(attr => attr.GetType().Name == "RpcTargetAttribute" || attr.GetType().Name.Contains("RpcTarget"));
+        Assert.That(hasRpcTarget, Is.True, "First parameter 'recipient' must be decorated with [RpcTarget] to ensure unicast delivery over Fusion network transport.");
+
+        Assert.That(parameters[1].Name, Is.EqualTo("resultValue"));
+        Assert.That(parameters[2].Name, Is.EqualTo("itemId"));
+        Assert.That(parameters[3].Name, Is.EqualTo("amount"));
+
+        PropertyInfo searchedProp = corpseType.GetProperty("HasCorpseBeenSearched", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(searchedProp, Is.Not.Null, "HasCorpseBeenSearched property must exist.");
+    }
 }

@@ -1,0 +1,34 @@
+# GIT DIFF INTEGRITY CHECK
+
+- **Command:** `git diff --check`
+- **Timestamp:** 2026-08-29 19:27:25 +07:00
+- **Exit Code:** 0 (Clean — 0 whitespace errors, 0 merge conflict markers, 0 corruption)
+
+---
+
+## 1. Line-Ending Warnings (Informational Only)
+
+```text
+warning: in the working copy of 'Assets/Khoa/Code/LootContainer.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/AutoUIManager.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/DevCheatManager.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/GameLocalization.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/InventorySystem.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/ItemData.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/ItemDataLoader.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/MainQuest/MilitaryBaseQuestManager.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/Prototype/Tests/Editor/InventoryAndLootCapacityTests.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/Prototype/Tests/PlayMode/MainMenuToMilitaryQuestFlowTests.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'Assets/Script/Tin/ZombieCorpseLoot.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'CODEX_PROJECT_WORK_LOG.md', LF will be replaced by CRLF the next time Git touches it
+```
+
+---
+
+## 2. Whitespace & Conflict Analysis
+
+- **Whitespace Errors:** 0
+- **Merge Conflict Markers (`<<<<<<<`, `=======`, `>>>>>>>`):** 0
+- **Syntax / Formatting Errors in Diff:** 0

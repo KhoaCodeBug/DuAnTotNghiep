@@ -1,0 +1,10 @@
+CaseID,RunNumber,PeerRole,PlayerRef,ExpectedCallbackCount,ActualObservedCallbackCount,EvidenceType,Status
+StaticCodegenCheck,N/A,AllPeers,N/A,1,1,STATIC_CODEGEN,PASS(ILWeaverCompiled)
+CaseA_PrivateLoot,1,Host(StateAuthority),0,1,UNKNOWN,UNEXECUTED,UNVERIFIED(NoRuntimeProcess)
+CaseA_PrivateLoot,1,ClientA(Actor),0,1,UNKNOWN,UNEXECUTED,UNVERIFIED(NoRuntimeProcess)
+CaseA_PrivateLoot,1,ClientB(Observer),1,0,UNKNOWN,UNEXECUTED,UNVERIFIED(NoRuntimeProcess)
+CaseB_EmptyFullTooFar,1,ClientA(Actor),0,1,UNKNOWN,UNEXECUTED,UNVERIFIED(NoRuntimeProcess)
+CaseB_EmptyFullTooFar,1,ClientB(Observer),1,0,UNKNOWN,UNEXECUTED,UNVERIFIED(NoRuntimeProcess)
+CaseC_SimultaneousRace,1,ClientA(Winner),0,1,UNKNOWN,UNEXECUTED,UNVERIFIED(NoRuntimeProcess)
+CaseC_SimultaneousRace,1,ClientB(Loser),1,1,UNKNOWN,UNEXECUTED,UNVERIFIED(NoRuntimeProcess)
+CaseD_LateJoin,1,ClientC(LateJoiner),2,0,UNKNOWN,UNEXECUTED,UNVERIFIED(NoRuntimeProcess)

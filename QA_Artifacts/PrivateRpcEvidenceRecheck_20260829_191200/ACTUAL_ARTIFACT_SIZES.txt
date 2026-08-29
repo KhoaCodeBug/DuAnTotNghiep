@@ -1,0 +1,15 @@
+# ACTUAL ARTIFACT SIZES ON DISK
+
+- **Directory:** `E:\Unity\GameObject\Game3D\ProJectZomboiNhai\QA_Artifacts\PrivateRpcEvidenceRecheck_20260829_191200\`
+- **Measurement Method:** PowerShell `Get-ChildItem | Select-Object Name, Length, LastWriteTime`
+
+---
+
+| File Name | Exact Size (Bytes) | Last Write Time | Verified on Disk? |
+| :--- | :--- | :--- | :--- |
+| `ACTUAL_TEST_INVENTORY.txt` | 2,475 bytes | 29/8/2026 19:12:33 | YES |
+| `BASELINE_GIT_STATUS.txt` | 2,122 bytes | 29/8/2026 19:12:24 | YES |
+| `EDITOR_LOG_WARNINGS.txt` | 1,134 bytes | 29/8/2026 19:12:50 | YES |
+| `RUNTIME_ROUTING_EVIDENCE.md` | 2,185 bytes | 29/8/2026 19:13:03 | YES |
+| `STATIC_RPC_VERIFICATION.md` | 1,722 bytes | 29/8/2026 19:12:56 | YES |
+| `TestResults_PlayMode.xml` | 31,944 bytes | 29/8/2026 19:05:59 | YES |

@@ -1119,6 +1119,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         inventory.AddItem(MilitaryQuestItemCatalog.GetOrCreate(MilitaryQuestItemKind.ArmoryKey), 1);
         GrantItem(inventory, "S12K", 1);
         GrantItem(inventory, "Ammo12Gauge", 24);
+        // The office safe is the first backpack-upgrade reward.  The armory
+        // later grants the military level-3 variant, while ordinary containers
+        // can roll every tier independently.
+        inventory.AddItem(BackpackItemCatalog.GetOrCreate(2), 1);
         IsOfficeSafeClaimed = true;
         RPC_ShowLocalizedQuestMessage("quest.military_safe_open", 0);
     }

@@ -1,0 +1,22 @@
+# PROCESS & ENVIRONMENT INVENTORY
+
+- **Timestamp:** 2026-08-29 19:17:30 +07:00
+- **Unity Version:** 6000.0.69f1 (64-bit)
+- **Host OS:** Windows 10/11 x64
+
+---
+
+## 1. Active Unity Processes on System
+
+| Process ID (PID) | Executable Path | Project Path | Role | Start Time | MCP Attached? |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **11748** | `E:\Unity\6000.0.69f1\Editor\Unity.exe` | `E:\Unity\GameObject\Game3D\ProJectZomboiNhai` | Primary Editor / Host | 29/8/2026 15:40:15 | **YES** (HTTP bridge connected) |
+
+---
+
+## 2. ParrelSync Clone Status
+
+- **Clone Path on Disk:** `E:\Unity\GameObject\Game3D\ProJectZomboiNhai_clone_0`
+- **Clone Status:** Folder exists with valid symlinks to `Assets` and `ProjectSettings`.
+- **Clone Process Status:** **NOT RUNNING / INACTIVE** (No secondary Unity process running for clone_0).
+- **Unity MCP Multi-Process Support:** Unity MCP is currently attached exclusively to PID 11748. It cannot issue commands or capture network packets from an unlaunched secondary clone Editor process.

@@ -41,6 +41,11 @@ public class LootContainer : NetworkBehaviour
     [Tooltip("Cơ hội một Loot Container sinh tối đa một weapon ngẫu nhiên từ Resources/Items.")]
     public float bonusWeaponDropChance = 25f;
 
+    [Header("Backpack Loot (Chỉ Host xử lý)")]
+    [Range(0f, 100f)]
+    [Tooltip("Cơ hội một Loot Container sinh một balo cấp 1-5 theo trọng số.")]
+    public float backpackDropChance = 10f;
+
     [Header("Danh sách đồ hiện tại (Realtime)")]
     public List<InventorySlot> itemsInContainer = new List<InventorySlot>();
 
@@ -129,17 +134,30 @@ public class LootContainer : NetworkBehaviour
                 float roll = Random.Range(0f, 100f);
                 if (roll <= lootRule.dropChance * lootMultiplier)
                 {
-                    int spawnAmount = Random.Range(lootRule.minAmount, lootRule.maxAmount + 1);
+                    int spawnAmount = LootQuantityRules.RollRandomAmount(
+                        lootRule.itemPrefab, lootRule.minAmount, lootRule.maxAmount);
                     StoreItemLocal(lootRule.itemPrefab, spawnAmount, RandomLootSlotLimit);
                 }
             }
         }
+
+        TryGenerateBackpackLoot(lootMultiplier);
 
         // The existing loot table does not contain AK47/S12K.  Roll one
         // optional weapon separately so a player who starts with one weapon
         // can still discover a different second weapon in the world.
         TryGenerateBonusWeapon();
         hasGeneratedLoot = true;
+    }
+
+    private void TryGenerateBackpackLoot(float lootMultiplier)
+    {
+        float effectiveChance = Mathf.Clamp(backpackDropChance * lootMultiplier, 0f, 100f);
+        if (Random.Range(0f, 100f) >= effectiveChance) return;
+
+        ItemData backpack = BackpackItemCatalog.GetOrCreate(BackpackLootRules.RollTier());
+        if (StoreItemLocal(backpack, 1, RandomLootSlotLimit))
+            Debug.Log($"[LOOT SERVER] Generated {backpack.itemName} in '{name}'.");
     }
 
     /// <summary>
@@ -521,6 +539,7 @@ public class LootContainer : NetworkBehaviour
         }
 
         int amount = slot.amount;
+        string itemId = slot.item.name;
         // Canonical transaction: add on State Authority first.  Only remove
         // from the container if the inventory accepted the full stack.  The
         // inventory's existing RPC sync then updates the owning client.
@@ -542,6 +561,7 @@ public class LootContainer : NetworkBehaviour
                 QuestRouteClueItemCatalog.GetClueId(routeClueKind),
                 QuestRouteClueItemCatalog.GetDisplayName(routeClueKind));
         }
+        RPC_NotifyLootGranted(playerTryingToLoot, itemId, amount);
         Debug.Log($"[LOOT SERVER] Granted {amount}x {slot.item.itemName} to {playerTryingToLoot}.");
     }
 
@@ -596,6 +616,33 @@ public class LootContainer : NetworkBehaviour
         {
             Debug.LogWarning($"[LOOT] {reason}");
         }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_NotifyLootGranted([RpcTarget] PlayerRef targetPlayer, string itemId, int amount)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+
+        ItemData item = ItemDataLoader.LoadItem(itemId);
+        string displayName = item != null
+            ? (item.category == ItemCategory.Backpack
+                ? BackpackItemCatalog.GetLocalizedDisplayName(item)
+                : GameLocalization.TranslateLiteral(item.itemName))
+            : itemId;
+
+        string message;
+        if (item != null && item.category == ItemCategory.Backpack)
+        {
+            int bonus = Mathf.Max(0, BackpackCapacityRules.GetStorageSlots(item) -
+                BackpackCapacityRules.BaseBackpackSlots);
+            message = string.Format(GameLocalization.Get("loot.backpack_found"), displayName, bonus);
+        }
+        else
+        {
+            message = string.Format(GameLocalization.Get("loot.picked_up"), displayName, Mathf.Max(1, amount));
+        }
+
+        AutoChatManager.Instance?.AddSystemMessage(message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

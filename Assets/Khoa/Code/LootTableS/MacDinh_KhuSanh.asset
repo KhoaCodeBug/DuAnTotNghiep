@@ -15,8 +15,8 @@ MonoBehaviour:
   lootRules:
   - itemPrefab: {fileID: 11400000, guid: a7620000000000000000000000007620, type: 2}
     dropChance: 30
-    minAmount: 16
-    maxAmount: 30
+    minAmount: 5
+    maxAmount: 10
   - itemPrefab: {fileID: 11400000, guid: 9b2a48c8c18d6294ca217fec6afbd2fe, type: 2}
     dropChance: 50
     minAmount: 1

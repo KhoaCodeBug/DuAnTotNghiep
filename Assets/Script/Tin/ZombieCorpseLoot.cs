@@ -45,6 +45,82 @@ public sealed class ZombieCorpseLootTable
     }
 }
 
+/// <summary>Deterministic math used by the loot audit and automated tests.</summary>
+public static class LootProbabilityRules
+{
+    public static float GetNoLootProbabilityPercent(float lootChancePercent, int attempts)
+    {
+        if (attempts <= 0) return 100f;
+        float chance = Mathf.Clamp01(lootChancePercent / 100f);
+        return Mathf.Pow(1f - chance, attempts) * 100f;
+    }
+
+    public static float GetAtLeastOneLootProbabilityPercent(float lootChancePercent, int attempts)
+    {
+        return 100f - GetNoLootProbabilityPercent(lootChancePercent, attempts);
+    }
+
+    public static float GetIndependentContainerAnyItemProbabilityPercent(
+        IReadOnlyList<float> dropChancesPercent, float lootMultiplier = 1f)
+    {
+        if (dropChancesPercent == null || dropChancesPercent.Count == 0) return 0f;
+        float noItem = 1f;
+        foreach (float chance in dropChancesPercent)
+            noItem *= 1f - Mathf.Clamp01(Mathf.Max(0f, chance) * lootMultiplier / 100f);
+        return (1f - noItem) * 100f;
+    }
+}
+
+/// <summary>Shared quantity policy for ordinary/random loot only.</summary>
+public static class LootQuantityRules
+{
+    public const int AmmoMinimum = 5;
+    public const int AmmoMaximum = 10;
+
+    public static bool IsAmmo(ItemData item) => item != null && item.category == ItemCategory.Ammunition;
+
+    public static int RollRandomAmount(ItemData item, int configuredMinimum, int configuredMaximum)
+    {
+        if (IsAmmo(item)) return UnityEngine.Random.Range(AmmoMinimum, AmmoMaximum + 1);
+
+        int minimum = Mathf.Max(1, Mathf.Min(configuredMinimum, configuredMaximum));
+        int maximum = Mathf.Max(minimum, configuredMaximum);
+        return UnityEngine.Random.Range(minimum, maximum + 1);
+    }
+
+    public static int GetCorpseAmount(ItemData item)
+    {
+        return IsAmmo(item) ? UnityEngine.Random.Range(AmmoMinimum, AmmoMaximum + 1) : 1;
+    }
+}
+
+/// <summary>Weighted backpack tiers used by ordinary loot containers.</summary>
+public static class BackpackLootRules
+{
+    private static readonly float[] TierWeights = { 50f, 30f, 15f, 4f, 1f };
+
+    public static int RollTier()
+    {
+        float total = 0f;
+        foreach (float weight in TierWeights) total += Mathf.Max(0f, weight);
+        float roll = UnityEngine.Random.value * total;
+        for (int i = 0; i < TierWeights.Length; i++)
+        {
+            roll -= Mathf.Max(0f, TierWeights[i]);
+            if (roll < 0f) return i + 1;
+        }
+        return TierWeights.Length;
+    }
+
+    public static float GetTierWeightPercent(int level)
+    {
+        if (level < 1 || level > TierWeights.Length) return 0f;
+        float total = 0f;
+        foreach (float weight in TierWeights) total += Mathf.Max(0f, weight);
+        return Mathf.Max(0f, TierWeights[level - 1]) / total * 100f;
+    }
+}
+
 /// <summary>
 /// Authoritative, one-use corpse loot shared by every zombie implementation.
 /// State Authority rolls the corpse contents on death and grants any item only
@@ -84,6 +160,7 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
     [Networked] private NetworkBool IsCorpse { get; set; }
     [Networked] private NetworkBool HasCorpseBeenSearched { get; set; }
     [Networked] private int LootKind { get; set; }
+    [Networked] private int LootAmount { get; set; }
     [Networked] private TickTimer CorpseDespawnTimer { get; set; }
 
     private bool isLocalSearchInProgress;
@@ -107,6 +184,7 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
         IsCorpse = false;
         HasCorpseBeenSearched = false;
         LootKind = 0;
+        LootAmount = 0;
         CorpseDespawnTimer = TickTimer.None;
     }
 
@@ -123,6 +201,8 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
         IsCorpse = true;
         HasCorpseBeenSearched = false;
         LootKind = RollCorpseLoot();
+        ItemData rolledItem = ZombieCorpseLootTable.LoadItem(LootKind);
+        LootAmount = rolledItem == null ? 0 : LootQuantityRules.GetCorpseAmount(rolledItem);
         CorpseDespawnTimer = TickTimer.CreateFromSeconds(Runner, unsearchedCorpseLifetime);
     }
 
@@ -166,52 +246,53 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
         if (!IsCorpse) return;
         if (HasCorpseBeenSearched)
         {
-            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.AlreadySearched, string.Empty, true);
+            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.AlreadySearched, string.Empty, 0);
             return;
         }
 
         if (!TryResolvePlayer(requestingPlayer, out PlayerMovement player, out InventorySystem inventory))
         {
-            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.PlayerMissing, string.Empty, false);
+            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.PlayerMissing, string.Empty, 0);
             return;
         }
 
         if (Vector2.Distance(player.transform.position, transform.position) > Mathf.Max(0.1f, corpseSearchRange))
         {
-            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.TooFar, string.Empty, false);
+            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.TooFar, string.Empty, 0);
             return;
         }
 
         // Empty corpses are still consumed by the first completed search.
-        if (LootKind == 0)
+        if (LootKind == 0 || LootAmount <= 0)
         {
             ConsumeCorpse();
-            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.Empty, string.Empty, true);
+            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.Empty, string.Empty, 0);
             return;
         }
 
         if (inventory == null)
         {
-            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.InventoryMissing, string.Empty, false);
+            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.InventoryMissing, string.Empty, 0);
             return;
         }
 
         ItemData item = ZombieCorpseLootTable.LoadItem(LootKind);
         if (item == null)
         {
-            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.InvalidLoot, string.Empty, false);
+            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.InvalidLoot, string.Empty, 0);
             return;
         }
 
-        if (!CanFitOne(inventory, item) || !inventory.AddItem(item, 1))
+        int amount = Mathf.Max(1, LootAmount);
+        if (!CanFitAmount(inventory, item, amount) || !inventory.AddItem(item, amount))
         {
-            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.InventoryFull, item.name, false);
+            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.InventoryFull, item.name, amount);
             return;
         }
 
         ConsumeCorpse();
-        RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.Granted, item.name, true);
-        Debug.Log($"[CORPSE LOOT] Granted 1x {item.itemName} to {requestingPlayer}.");
+        RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.Granted, item.name, amount);
+        Debug.Log($"[CORPSE LOOT] Granted {amount}x {item.itemName} to {requestingPlayer}.");
     }
 
     private void ConsumeCorpse()
@@ -222,19 +303,20 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowSearchResult(
-        PlayerRef recipient,
+        [RpcTarget] PlayerRef recipient,
         int resultValue,
         string itemId,
-        NetworkBool corpseWasSearched)
+        int amount)
     {
-        if (corpseWasSearched) locallyKnownSearched = true;
         if (Runner == null || Runner.LocalPlayer != recipient) return;
 
         isAwaitingSearchResult = false;
-        if (!corpseWasSearched) locallyKnownSearched = false;
 
-        string message = BuildLocalResultMessage((SearchResult)resultValue, itemId);
-        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("corpse.title"), message);
+        string message = BuildLocalResultMessage((SearchResult)resultValue, itemId, amount);
+        if (!string.IsNullOrEmpty(message))
+        {
+            AutoChatManager.Instance?.AddSystemMessage(message);
+        }
     }
 
     private int RollCorpseLoot()
@@ -250,6 +332,21 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
         return UnityEngine.Random.Range(0f, 100f) < chance && lootTable != null
             ? lootTable.RollKind()
             : 0;
+    }
+
+    public static float GetLootChancePercent(int difficulty)
+    {
+        return difficulty switch
+        {
+            0 => 45f,
+            2 => 12f,
+            _ => 30f
+        };
+    }
+
+    public static float GetNoLootProbabilityAfterSearchesPercent(int difficulty, int attempts)
+    {
+        return LootProbabilityRules.GetNoLootProbabilityPercent(GetLootChancePercent(difficulty), attempts);
     }
 
     private static bool TryResolvePlayer(
@@ -281,30 +378,38 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
         return false;
     }
 
-    private static bool CanFitOne(InventorySystem inventory, ItemData item)
+    private static bool CanFitAmount(InventorySystem inventory, ItemData item, int amount)
     {
-        if (inventory == null || item == null) return false;
+        if (inventory == null || item == null || amount <= 0) return false;
 
+        int remaining = amount;
         int slotCount = Mathf.Min(inventory.maxSlots, inventory.slots.Count);
         for (int i = 0; i < slotCount; i++)
         {
             InventorySlot slot = inventory.slots[i];
-            if (slot == null || slot.item == null || slot.amount <= 0) return true;
-            if (item.isStackable && slot.item.itemName == item.itemName && slot.amount < Mathf.Max(1, item.maxStack))
-                return true;
+            if (slot == null || slot.item == null || slot.amount <= 0)
+            {
+                remaining -= item.isStackable ? Mathf.Max(1, item.maxStack) : 1;
+            }
+            else if (item.isStackable && slot.item.itemName == item.itemName)
+            {
+                remaining -= Mathf.Max(0, Mathf.Max(1, item.maxStack) - slot.amount);
+            }
+
+            if (remaining <= 0) return true;
         }
 
         return false;
     }
 
-    private static string BuildLocalResultMessage(SearchResult result, string itemId)
+    private static string BuildLocalResultMessage(SearchResult result, string itemId, int amount)
     {
         switch (result)
         {
             case SearchResult.Granted:
                 ItemData item = ItemDataLoader.LoadItem(itemId);
                 string displayName = item != null ? GameLocalization.TranslateLiteral(item.itemName) : itemId;
-                return string.Format(GameLocalization.Get("corpse.found"), displayName);
+                return string.Format(GameLocalization.Get("corpse.found"), displayName, Mathf.Max(1, amount));
             case SearchResult.Empty:
                 return GameLocalization.Get("corpse.empty");
             case SearchResult.AlreadySearched:

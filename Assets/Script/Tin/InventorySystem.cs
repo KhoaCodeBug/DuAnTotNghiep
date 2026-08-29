@@ -19,11 +19,26 @@ public class InventorySlot
 public class InventorySystem : NetworkBehaviour
 {
     public const int HotbarSlotCount = 5;
-    public const int FixedTotalSlots = 20;
+    // Kept as a compatibility alias for old scenes/tests: the starting
+    // inventory is 15 storage slots + 5 hotbar slots.
+    public const int FixedTotalSlots = BackpackCapacityRules.InitialTotalSlots;
+    public const int MaxTotalSlots = BackpackCapacityRules.MaxTotalSlots;
 
     [Header("Cài đặt Ba lô")]
-    [Tooltip("Sức chứa cố định: 5 ô Hotbar + 15 ô Kho. Hệ thống nâng cấp balo hiện không được sử dụng.")]
+    [Tooltip("Sức chứa gồm 5 ô Hotbar và 15-50 ô Kho. Nâng cấp balo tăng phần Kho, không tăng Hotbar.")]
     public int maxSlots = FixedTotalSlots;
+
+    [SerializeField, Range(0, BackpackCapacityRules.MaxBackpackLevel)]
+    private int backpackLevel;
+
+    [Networked] private int NetworkedBackpackLevel { get; set; }
+    [Networked] private NetworkString<_64> NetworkedBackpackId { get; set; }
+    private int lastAppliedBackpackLevel = -1;
+
+    public int CurrentBackpackLevel => BackpackCapacityRules.ClampLevel(backpackLevel);
+    public int CurrentBackpackSlots => Mathf.Max(BackpackCapacityRules.BaseBackpackSlots,
+        maxSlots - HotbarSlotCount);
+    public bool HasMaximumBackpack => CurrentBackpackSlots >= BackpackCapacityRules.MaxBackpackSlots;
 
     [Header("Cài đặt Nhặt Đồ")]
     public float pickupRadius = 0.5f;
@@ -54,14 +69,25 @@ public class InventorySystem : NetworkBehaviour
     /// </summary>
     public sealed class MilitaryRespawnSnapshot
     {
-        public readonly string[] ItemIds = new string[FixedTotalSlots];
-        public readonly int[] Amounts = new int[FixedTotalSlots];
+        public readonly string[] ItemIds = new string[MaxTotalSlots];
+        public readonly int[] Amounts = new int[MaxTotalSlots];
+        public int MaxSlots = FixedTotalSlots;
+        public int BackpackLevel;
+        public string BackpackId;
     }
 
     private void Awake()
     {
-        maxSlots = FixedTotalSlots;
-        while (slots.Count < FixedTotalSlots)
+        maxSlots = BackpackCapacityRules.ClampTotalSlots(maxSlots);
+        backpackLevel = BackpackCapacityRules.GetLevelForTotalSlots(maxSlots);
+        EnsureStableSlotStorage();
+    }
+
+    private bool IsNetworkObjectReady => Object != null && Object.IsValid;
+
+    private void EnsureStableSlotStorage()
+    {
+        while (slots.Count < MaxTotalSlots)
         {
             slots.Add(new InventorySlot(null, 0));
         }
@@ -69,26 +95,97 @@ public class InventorySystem : NetworkBehaviour
 
     public bool EquipBackpack(ItemData backpack)
     {
-        if (backpack != null && backpack.category == ItemCategory.Backpack)
-            Debug.LogWarning($"[INVENTORY] Bỏ qua '{backpack.itemName}': sức chứa hiện được cố định ở {FixedTotalSlots} ô.");
-        return false;
+        if (backpack == null || backpack.category != ItemCategory.Backpack) return false;
+
+        // EditMode helpers and offline/tutorial inventories have no Fusion
+        // object; they still use the same authoritative upgrade calculation.
+        if (!IsNetworkObjectReady)
+            return ApplyBackpackUpgradeLocal(backpack);
+
+        if (!HasStateAuthority)
+        {
+            if (HasInputAuthority && Runner != null)
+                RPC_RequestEquipBackpack(backpack.name);
+            return false;
+        }
+
+        return ApplyBackpackUpgradeLocal(backpack);
     }
 
     public void SetMaxSlots(int newMax)
     {
-        if (newMax != FixedTotalSlots)
-            Debug.LogWarning($"[INVENTORY] Yêu cầu đổi sức chứa thành {newMax} bị bỏ qua; sức chứa cố định là {FixedTotalSlots} ô.");
+        int targetTotal = BackpackCapacityRules.ClampTotalSlots(newMax);
+        int targetLevel = BackpackCapacityRules.GetLevelForTotalSlots(targetTotal);
+        backpackLevel = targetLevel;
+        SetMaxSlotsLocal(targetTotal);
 
-        maxSlots = FixedTotalSlots;
-        while (slots.Count < maxSlots)
+        if (IsNetworkObjectReady && HasStateAuthority)
         {
-            slots.Add(new InventorySlot(null, 0));
+            NetworkedBackpackLevel = targetLevel;
+            NetworkedBackpackId = targetLevel <= 0 ? string.Empty : BackpackItemCatalog.GetOrCreate(targetLevel).name;
         }
+    }
+
+    private void SetMaxSlotsLocal(int targetTotal)
+    {
+        maxSlots = BackpackCapacityRules.ClampTotalSlots(targetTotal);
+        EnsureStableSlotStorage();
         UpdateUI();
+    }
+
+    private bool ApplyBackpackUpgradeLocal(ItemData backpack)
+    {
+        int storageSlots = BackpackCapacityRules.GetStorageSlots(backpack);
+        int targetTotal = BackpackCapacityRules.HotbarSlots + storageSlots;
+        if (targetTotal <= maxSlots) return false;
+
+        backpackLevel = BackpackCapacityRules.GetLevelForBackpackSlots(storageSlots);
+        SetMaxSlotsLocal(targetTotal);
+        if (IsNetworkObjectReady && HasStateAuthority)
+        {
+            NetworkedBackpackLevel = backpackLevel;
+            NetworkedBackpackId = backpack.name;
+        }
+
+        Debug.Log($"[INVENTORY] Equipped {backpack.itemName}: {CurrentBackpackSlots} storage slots.");
+        return true;
+    }
+
+    private ItemData FindOwnedBackpack(string requestedId)
+    {
+        if (string.IsNullOrWhiteSpace(requestedId)) return null;
+        for (int i = 0; i < Mathf.Min(maxSlots, slots.Count); i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot == null || slot.item == null || slot.amount <= 0 ||
+                slot.item.category != ItemCategory.Backpack) continue;
+            if (string.Equals(slot.item.name, requestedId, System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(slot.item.itemName, requestedId, System.StringComparison.OrdinalIgnoreCase))
+                return slot.item;
+        }
+        return null;
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestEquipBackpack(string requestedId, RpcInfo info = default)
+    {
+        if (!HasStateAuthority ||
+            (info.Source != PlayerRef.None && info.Source != Object.InputAuthority)) return;
+
+        ItemData requested = ItemDataLoader.LoadItem(requestedId);
+        ItemData owned = FindOwnedBackpack(requested != null ? requested.name : requestedId);
+        if (owned == null || !ApplyBackpackUpgradeLocal(owned)) return;
+
+        // The State Authority consumes the exact owned backpack after applying
+        // the upgrade; ConsumeItem's existing RPC mirrors that removal.
+        ConsumeItem(owned, 1);
     }
 
     public override void Spawned()
     {
+        InitializeReplicatedBackpackState();
+        ApplyReplicatedBackpackState();
+
         // A military checkpoint respawn replaces the NetworkObject. Restore
         // its saved inventory before the normal random starting-loadout path
         // can add duplicate gear.
@@ -116,8 +213,56 @@ public class InventorySystem : NetworkBehaviour
     {
         // Late-join/input-authority clients receive the Networked values after
         // Spawned, so retry here until their starting gear is applied.
+        ApplyReplicatedBackpackState();
         ApplyReplicatedStartingWeapon();
         ApplyReplicatedStartingFlashlight();
+    }
+
+    private void InitializeReplicatedBackpackState()
+    {
+        if (!HasStateAuthority || !IsNetworkObjectReady) return;
+
+        if (NetworkedBackpackLevel <= 0 && backpackLevel > 0)
+        {
+            NetworkedBackpackLevel = BackpackCapacityRules.ClampLevel(backpackLevel);
+            NetworkedBackpackId = BackpackItemCatalog.GetOrCreate(NetworkedBackpackLevel).name;
+        }
+        else if (NetworkedBackpackLevel <= 0)
+        {
+            NetworkedBackpackLevel = 0;
+            NetworkedBackpackId = string.Empty;
+        }
+    }
+
+    private void ApplyReplicatedBackpackState()
+    {
+        if (!IsNetworkObjectReady)
+        {
+            SetMaxSlotsLocal(maxSlots);
+            return;
+        }
+
+        int replicatedLevel = BackpackCapacityRules.ClampLevel(NetworkedBackpackLevel);
+        if (replicatedLevel <= 0)
+        {
+            // Render runs every frame.  Avoid rebuilding the UI repeatedly
+            // while the replicated baseline (level 0) remains unchanged.
+            if (lastAppliedBackpackLevel != 0 || backpackLevel != 0 ||
+                maxSlots != FixedTotalSlots)
+            {
+                lastAppliedBackpackLevel = 0;
+                backpackLevel = 0;
+                SetMaxSlotsLocal(FixedTotalSlots);
+            }
+            return;
+        }
+
+        if (lastAppliedBackpackLevel == replicatedLevel && maxSlots ==
+            BackpackCapacityRules.GetTotalSlots(replicatedLevel)) return;
+
+        backpackLevel = replicatedLevel;
+        lastAppliedBackpackLevel = replicatedLevel;
+        SetMaxSlotsLocal(BackpackCapacityRules.GetTotalSlots(replicatedLevel));
     }
 
     private void GrantDifficultyStartingLoadout()
@@ -265,7 +410,10 @@ public class InventorySystem : NetworkBehaviour
     public MilitaryRespawnSnapshot CaptureMilitaryRespawnSnapshot()
     {
         MilitaryRespawnSnapshot snapshot = new MilitaryRespawnSnapshot();
-        int count = Mathf.Min(FixedTotalSlots, slots.Count);
+        snapshot.MaxSlots = maxSlots;
+        snapshot.BackpackLevel = CurrentBackpackLevel;
+        snapshot.BackpackId = CurrentBackpackLevel > 0 ? BackpackItemCatalog.GetOrCreate(CurrentBackpackLevel).name : string.Empty;
+        int count = Mathf.Min(MaxTotalSlots, slots.Count);
         for (int i = 0; i < count; i++)
         {
             InventorySlot slot = slots[i];
@@ -279,20 +427,33 @@ public class InventorySystem : NetworkBehaviour
     private void ApplyMilitaryRespawnSnapshot(MilitaryRespawnSnapshot snapshot)
     {
         if (snapshot == null) return;
-        while (slots.Count < FixedTotalSlots) slots.Add(new InventorySlot(null, 0));
-        for (int i = 0; i < FixedTotalSlots; i++)
+        int snapshotCapacity = snapshot.MaxSlots <= 0 ? FixedTotalSlots : snapshot.MaxSlots;
+        int snapshotLevel = BackpackCapacityRules.GetLevelForTotalSlots(snapshotCapacity);
+        backpackLevel = snapshotLevel;
+        SetMaxSlotsLocal(snapshotCapacity);
+        if (HasStateAuthority && IsNetworkObjectReady)
         {
-            string itemId = snapshot.ItemIds[i];
+            NetworkedBackpackLevel = snapshotLevel;
+            NetworkedBackpackId = string.IsNullOrWhiteSpace(snapshot.BackpackId)
+                ? (snapshotLevel <= 0 ? string.Empty : BackpackItemCatalog.GetOrCreate(snapshotLevel).name)
+                : snapshot.BackpackId;
+        }
+
+        EnsureStableSlotStorage();
+        for (int i = 0; i < MaxTotalSlots; i++)
+        {
+            string itemId = i < snapshot.ItemIds.Length ? snapshot.ItemIds[i] : string.Empty;
             ItemData item = string.IsNullOrWhiteSpace(itemId) ? null : ItemDataLoader.LoadItem(itemId);
-            if (slots[i] == null) slots[i] = new InventorySlot(item, Mathf.Max(0, snapshot.Amounts[i]));
+            int savedAmount = i < snapshot.Amounts.Length ? Mathf.Max(0, snapshot.Amounts[i]) : 0;
+            if (slots[i] == null) slots[i] = new InventorySlot(item, savedAmount);
             else
             {
                 slots[i].item = item;
-                slots[i].amount = item == null ? 0 : Mathf.Max(0, snapshot.Amounts[i]);
+                slots[i].amount = item == null ? 0 : savedAmount;
             }
 
             if (HasStateAuthority && !HasInputAuthority)
-                RPC_ApplyMilitaryRespawnSlot(i, itemId, item == null ? 0 : Mathf.Max(0, snapshot.Amounts[i]));
+                RPC_ApplyMilitaryRespawnSlot(i, itemId, item == null ? 0 : savedAmount);
         }
         UpdateUI();
         if (HasStateAuthority && !HasInputAuthority) RPC_CompleteMilitaryRespawnSnapshot();
@@ -301,8 +462,8 @@ public class InventorySystem : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
     private void RPC_ApplyMilitaryRespawnSlot(int index, NetworkString<_64> itemId, int amount)
     {
-        if (index < 0 || index >= FixedTotalSlots) return;
-        while (slots.Count < FixedTotalSlots) slots.Add(new InventorySlot(null, 0));
+        if (index < 0 || index >= MaxTotalSlots) return;
+        EnsureStableSlotStorage();
         ItemData item = string.IsNullOrWhiteSpace(itemId.ToString()) ? null : ItemDataLoader.LoadItem(itemId.ToString());
         if (slots[index] == null) slots[index] = new InventorySlot(item, item == null ? 0 : Mathf.Max(0, amount));
         else
@@ -383,6 +544,7 @@ public class InventorySystem : NetworkBehaviour
     // ==========================================
     public bool AddItem(ItemData itemToAdd, int amountToAdd)
     {
+        if (itemToAdd == null || amountToAdd <= 0) return false;
         int originalAmount = amountToAdd;
 
         // 1. Nối chồng đạn/đồ gộp (Stacking): Ưu tiên tìm trong Ba lô (Slot 5->maxSlots) trước, rồi mới đến Hotbar (0->4)
@@ -461,7 +623,8 @@ public class InventorySystem : NetworkBehaviour
 
             if (emptyIndex != -1)
             {
-                int amountToStore = Mathf.Min(amountToAdd, itemToAdd.maxStack);
+                int stackLimit = itemToAdd.isStackable ? Mathf.Max(1, itemToAdd.maxStack) : 1;
+                int amountToStore = Mathf.Min(amountToAdd, stackLimit);
                 slots[emptyIndex].item = itemToAdd;
                 slots[emptyIndex].amount = amountToStore;
                 amountToAdd -= amountToStore;
@@ -558,6 +721,14 @@ public class InventorySystem : NetworkBehaviour
         }
         else if (item.category == ItemCategory.Backpack)
         {
+            // A remote client requests the upgrade on State Authority.  It
+            // must not locally consume the backpack before the server has
+            // validated ownership and capacity.
+            if (IsNetworkObjectReady && !HasStateAuthority)
+            {
+                EquipBackpack(item);
+                return;
+            }
             itemUsed = EquipBackpack(item);
         }
 
@@ -572,7 +743,7 @@ public class InventorySystem : NetworkBehaviour
             UpdateUI();
 
             // Client tự dùng đồ thì báo Server trừ đi
-            if (!isSyncing)
+            if (!isSyncing && !HasStateAuthority)
             {
                 isSyncing = true;
                 RPC_SyncItemToServer(item.itemName, 1, false);
@@ -598,7 +769,7 @@ public class InventorySystem : NetworkBehaviour
         UpdateUI();
 
         // Client tự vứt đồ thì báo Server trừ đi
-        if (!isSyncing)
+        if (!isSyncing && !HasStateAuthority)
         {
             isSyncing = true;
             RPC_SyncItemToServer(itemToDrop.itemName, 1, false);
@@ -669,7 +840,8 @@ public class InventorySystem : NetworkBehaviour
         int total = 0;
         foreach (var slot in slots)
         {
-            if (slot.item != null && slot.item.itemName == itemToCount.itemName) total += slot.amount;
+            if (slot != null && slot.item != null && slot.item.itemName == itemToCount.itemName)
+                total += slot.amount;
         }
         return total;
     }
@@ -757,20 +929,21 @@ public class InventorySystem : NetworkBehaviour
 
     private bool HasCapacityFor(ItemData item, int amount)
     {
-        if (item == null || amount <= 0 || item.maxStack <= 0) return false;
+        if (item == null || amount <= 0) return false;
 
         int capacity = 0;
         int limit = Mathf.Min(maxSlots, slots.Count);
+        int stackLimit = item.isStackable ? Mathf.Max(1, item.maxStack) : 1;
         for (int i = 0; i < limit; i++)
         {
             InventorySlot slot = slots[i];
             if (slot == null || slot.item == null || slot.amount <= 0)
             {
-                capacity += item.maxStack;
+                capacity += stackLimit;
             }
             else if (item.isStackable && slot.item.itemName == item.itemName)
             {
-                capacity += Mathf.Max(0, item.maxStack - slot.amount);
+                capacity += Mathf.Max(0, stackLimit - slot.amount);
             }
 
             if (capacity >= amount) return true;

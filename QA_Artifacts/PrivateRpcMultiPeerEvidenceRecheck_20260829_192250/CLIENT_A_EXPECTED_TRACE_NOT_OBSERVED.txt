@@ -1,0 +1,16 @@
+# CLIENT A (ACTOR) EXPECTED TRACE (SYNTHETIC / NOT OBSERVED AT RUNTIME)
+
+- **Classification:** **SYNTHETIC / EXPECTED DESIGN TRACE — NOT EXECUTED ON LIVE PROCESS**
+- **Status:** **UNVERIFIED AT RUNTIME (No live corpse search session executed in Editor)**
+
+---
+
+```text
+[SYNTHETIC-EXPECTED] [Client A] PlayerRef: 0 local player active.
+[SYNTHETIC-EXPECTED] [Client A] RequestSearchCorpse() starts local interaction.
+[SYNTHETIC-EXPECTED] [Client A] SubmitSearchRequest() dispatches RPC_RequestSearchCorpse to State Authority.
+[SYNTHETIC-EXPECTED] [Client A] Receives unicast RPC_ShowSearchResult([RpcTarget] recipient: 0, Granted, itemId, amount).
+[SYNTHETIC-EXPECTED] [Client A] AutoChatManager renders private local system message.
+```
+
+*Note: This trace illustrates the intended actor flow. It was not captured from a live gameplay execution log.*

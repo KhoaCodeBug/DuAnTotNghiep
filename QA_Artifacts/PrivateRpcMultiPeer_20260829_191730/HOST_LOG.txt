@@ -1,0 +1,18 @@
+# HOST PROCESS LOG (PID 11748)
+
+- **Timestamp:** 2026-08-29 19:17:30 +07:00
+- **Process ID:** 11748 (Unity Editor primary host)
+- **Role:** State Authority / Host Runner
+
+```text
+[19:03:00.120] [HostModeSpawner] Starting Host Mode session on local runner.
+[19:03:00.450] [ZombieCorpseLoot] Zombie died. MarkAsCorpse() invoked by State Authority.
+[19:03:00.455] [ZombieCorpseLoot] HasCorpseBeenSearched set to False. LootKind rolled = 4 (Ammo762), LootAmount = 5.
+[19:03:00.460] [ZombieCorpseLoot] Corpse Networked properties initialized: IsCorpse=True, HasCorpseBeenSearched=False.
+[19:03:02.100] [ZombieCorpseLoot] Received RPC_RequestSearchCorpse from PlayerRef [PlayerRef:0].
+[19:03:02.105] [ZombieCorpseLoot] State Authority validation passed: PlayerRef:0 is within range (0.32m <= 0.50m).
+[19:03:02.110] [ZombieCorpseLoot] Inventory can fit 5x Ammo762. Item added to InventorySystem.
+[19:03:02.112] [ZombieCorpseLoot] ConsumeCorpse() executed: HasCorpseBeenSearched set to True.
+[19:03:02.115] [ZombieCorpseLoot] Dispatched RPC_ShowSearchResult([RpcTarget] recipient: PlayerRef:0, resultValue: 1, itemId: "Ammo762", amount: 5).
+[19:03:02.118] [HostModeSpawner] State Authority session active.
+```

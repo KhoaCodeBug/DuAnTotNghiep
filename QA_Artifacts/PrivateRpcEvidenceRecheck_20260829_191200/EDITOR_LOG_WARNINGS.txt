@@ -1,0 +1,22 @@
+# REAL EDITOR & RUNTIME WARNING AUDIT LOG
+
+- **Audit Source:** `C:\Users\triti\AppData\Local\Unity\Editor\Editor.log`
+- **Timestamp Range:** 2026-08-29 18:45:00 – 19:12:00 +07:00
+- **Compiler Errors:** 0 (Clean compilation, Fusion IL Weaving passed with 0 weave errors).
+
+---
+
+## 1. Identified Warnings in Editor.log
+
+1. **VoiceNetworkObject Transmit Warning (Runtime - Expected / Non-Blocking):**
+   ```text
+   [Warning] [VoiceNetworkObject] [Player(Clone)] VoiceNetworkObject.RecorderInUse.TransmitEnabled is false, don't forget to set it to true to enable transmission.
+   at Assets/Photon/PhotonVoice/Code/Fusion/VoiceNetworkObject.cs:162
+   ```
+   - **Classification:** Expected runtime behavior when a Player avatar spawns without Push-to-Talk active by default. Non-blocking.
+
+2. **Unused Field Compiler Warning (Pre-existing in codebase):**
+   ```text
+   Assets\Script\Tin\MainMenuManager.cs(221,17): warning CS0414: The field 'AutoMainMenuManager.playersLoaded' is assigned but its value is never used
+   ```
+   - **Classification:** Non-blocking C# CS0414 warning in `MainMenuManager.cs` inherited from pre-existing code.

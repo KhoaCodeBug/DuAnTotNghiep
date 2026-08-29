@@ -1024,3 +1024,64 @@
    - Unit test `HostModeSpawner_TryExtractIntProperty_And_SessionDifficultyReadyGate` kiểm thử toàn diện việc parse an toàn, clamping, và chứng minh local override không kích hoạt readiness trên Client.
    - **EditMode Tests**: `133/133 Passed (100%, 3.88s)`.
    - **PlayMode Tests**: `10/10 Passed (100%, 91.78s)`.
+
+## Entry 2026-08-29 — Cài đặt bộ skill Unity cho Antigravity và Codex
+
+### Yêu cầu
+
+- Người dùng yêu cầu cài bộ `antigravity-awesome-skills` từ repository `benjaminasterA` cho cả Antigravity và Codex để hỗ trợ toàn bộ quy trình phát triển Unity, không chỉ multiplayer.
+
+### Đã triển khai
+
+- Tải nguồn tham khảo tại `C:\Users\triti\Downloads\antigravity-awesome-skills-benjaminasterA-clean`.
+- Cài các skill Unity/workflow đã chọn vào Antigravity global hiện tại: `C:\Users\triti\.gemini\config\skills`.
+- Cài cùng nhóm skill vào Codex global: `C:\Users\triti\.codex\skills`.
+- Nhóm đã cài gồm Unity/game development, planning, debugging, testing, UI validation, localization, production audit và Git workflow.
+- Sửa frontmatter bị xuống dòng không hợp lệ trong bản sao active của `unity-developer` và `ui-visual-validator` để Antigravity/Codex có thể phát hiện chúng.
+- Bổ sung safety override cho các skill có nguy cơ tự động refactor toàn bộ project hoặc stage/push Git quá rộng; các skill này phải tuân thủ quy tắc project và chỉ thao tác trong phạm vi được duyệt.
+
+### Xác minh
+
+- Antigravity active skill files: `24`; Codex active skill files: `35` (bao gồm skill hệ thống hiện có và các module game lồng nhau).
+- Basic frontmatter check: đạt cho toàn bộ skill files active.
+- Unity repository `main` vẫn sạch, không bị sửa code/scene/prefab bởi phiên cài đặt này.
+- Chưa xác minh bằng giao diện Antigravity vì máy không có lệnh `agy` trong PATH; cần reload/restart Antigravity rồi hỏi danh sách skill để xác nhận discovery.
+
+### Trạng thái
+
+- `Đã triển khai`: cài đặt global cho Antigravity và Codex.
+- `Đã kiểm tra file`: đạt.
+- `Đã test tay trong Antigravity`: chưa thực hiện.
+- Không commit/push thay đổi project trong phiên này.
+
+## Vòng Loot Zombie và Nâng Cấp Balo — 2026-08-29
+
+### Đã triển khai
+
+- Xác chết zombie giờ được State Authority roll loot một lần khi chết, chỉ cho phép một lượt lục thành công, kiểm tra khoảng cách/túi đầy trên Host và gửi thông báo kết quả vào system chat.
+- Thông báo nhận loot từ xác zombie và Loot Container dùng màu vàng của system chat; thông báo hiển thị tên vật phẩm và số lượng. Balo hiển thị thêm số ô kho được tăng.
+- Loot đạn ngẫu nhiên trong corpse/container bị giới hạn 5–10 viên mỗi stack roll. Các phần thưởng quân sự có chủ đích (ví dụ bundle quest) vẫn giữ số lượng authored riêng.
+- Đã thêm công thức xác suất loot và audit 20 lần tìm: Easy có 45%, Normal 30%, Hardcore 12% cho mỗi xác; xác suất không có loot sau 20 lần lần lượt xấp xỉ 0.000642%, 0.079792% và 7.756279%.
+- Đã thêm 5 cấp balo runtime ổn định: Level 1–5 có lần lượt 20/25/30/40/50 ô kho; mọi item balo dùng stable ID, được resolve ở Host/client/late join, có thể xuất hiện trong reward văn phòng quân sự và Loot Container theo trọng số 50/30/15/4/1% (sau khi container đã roll được balo).
+- Sức chứa giữ nguyên 5 ô hotbar và nâng phần kho từ 15 lên tối đa 50: tổng 20 → 25 → 30 → 35 → 45 → 55 ô. Inventory dùng slot cố định đủ 55 phần tử, UI dựng sẵn 50 ô kho và bật ScrollRect khi nâng cấp.
+- Thêm các nút/dev item để kiểm tra từng mức sức chứa và sửa snapshot respawn quân sự để giữ cả item, số ô và cấp balo.
+
+### Xác minh độc lập
+
+- Unity Bee compile sau thay đổi: `ExitCode: 0`, không có lỗi compile mới; log chỉ còn các warning obsolete/pre-existing của A* và field cũ trong `MainMenuManager.cs`.
+- EditMode Test Runner: **136/136 passed**, 0 failed.
+- PlayMode Test Runner: **10/10 passed**, 0 failed; bao gồm luồng Main Menu → Main, UI 50 ô kho có thể scroll sau khi mô phỏng nâng lên 55 tổng ô, container 20 slot và các regression test Fusion/quest hiện có.
+- `git diff --check`: không phát hiện whitespace error. Chưa commit/push/merge vì yêu cầu hiện tại chỉ triển khai và kiểm tra tính năng.
+
+### Bổ sung skill điều phối project-local
+
+- Tạo `.agents/skills/unity-project-workflow/SKILL.md` cho Antigravity và `.codex/skills/unity-project-workflow/SKILL.md` cho Codex.
+- Skill bao quát gameplay, C#, scene/prefab, UI, audio, asset, performance, localization, testing, Git và Fusion; đồng thời định tuyến sang các skill chuyên môn đã cài.
+- Bắt buộc preflight, plan có giới hạn, bảo toàn serialized reference, network gate khi liên quan, Unity compile/EditMode/PlayMode, bằng chứng runtime và handoff tách rõ trạng thái chưa kiểm chứng.
+- Không tự động refactor diện rộng, không stage/push mù và không báo thành công khi chưa có kiểm chứng mới.
+- Trạng thái: `Đã triển khai` và đã kiểm tra frontmatter; chưa commit/push.
+
+## Post-check Localization Sức Chứa — 2026-08-29
+
+- Đưa nhãn `CapacityText` của Inventory vào `GameLocalization` để hiển thị đúng English/Vietnamese theo locale hiện tại.
+- Sau thay đổi nhỏ này đã compile lại và chạy lại toàn bộ: **EditMode 136/136 passed**, **PlayMode 10/10 passed**, 0 failed.
