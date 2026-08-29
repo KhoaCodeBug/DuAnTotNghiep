@@ -1,6 +1,6 @@
 # Kế hoạch tiếp nối — Collider vô hình, FogOfWar và súng
 
-> Cập nhật: 2026-08-29. Đây là checklist tập trung cho nhóm lỗi visibility/combat.
+> Cập nhật: 2026-08-30. Đây là checklist tập trung cho nhóm lỗi visibility/combat.
 > Trạng thái tổng và lịch sử quyết định vẫn lấy từ `CODEX_PROJECT_WORK_LOG.md`.
 
 ## Tài liệu bắt buộc phải đọc khi mở phiên mới
@@ -19,7 +19,12 @@ Tài liệu/code đọc theo task:
   `Assets/Prefab/Player.prefab` và `Assets/Prefab/Player2.prefab`.
 - Combat: `Assets/Script/Tin/PlayerCombat.cs`, `Assets/Resources/Items/AK47.asset`,
   `Assets/Resources/Items/S12K.asset` và các class health zombie.
-- Regression: `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs`.
+- Starter loadout: `Assets/Script/Tin/InventorySystem.cs`,
+  `Assets/Script/Tin/Prototype/DifficultyRules.cs`, `Assets/Script/Tin/Multiplayer/HostModeSpawner.cs`.
+- Zombie/A*: `Assets/Khoa/Code/ZombieAI_Khoa.cs`, `Assets/Khoa/Code/ZombieAIKhoaRebuilt.cs`,
+  `Assets/Khoa/Code/ZombieSpawnZone.cs` và ba prefab Zombie trong `Assets/Khoa/`.
+- Regression: `Assets/Script/Tin/Prototype/Tests/Editor/ReadinessAndChatEditorTests.cs`,
+  `Assets/Script/Tin/Prototype/Tests/PlayMode/VisibilityAndZombieRegressionPlayModeTests.cs`.
 - Multiplayer/QA tồn đọng: `QA_Artifacts/P1P2Continuation_20260829/`.
 
 ## P0 — Collider vô hình tại marker `Collider_A*TangHinh`
@@ -60,22 +65,22 @@ Acceptance:
 
 ## P1B — Vùng cảm nhận zombie 360° có fade
 
-Trạng thái: **đã triển khai; cần QA runtime và profiling nhỏ**.
+Trạng thái: **đã triển khai bản 1,5m và test tự động; cần QA cảm giác runtime**.
 
-- Chuẩn hóa cả Player/Player2 ở bán kính 2m.
-- Hoạt động cả trong lẫn ngoài nhà và sau lưng.
+- Chuẩn hóa cả Player/Player2 ở bán kính 1,5m.
+- Hoạt động cả trong lẫn ngoài nhà và sau lưng; tường kín vẫn chặn cảm nhận.
 - Fade local-only 0.25 giây, alpha khởi đầu 0.18; chỉ điều khiển alpha, giữ RGB để không phá hit flash.
 
 Acceptance:
 
-- Zombie bước vào 2m từ mọi hướng chuyển mờ → rõ, không bật hình đột ngột.
+- Zombie bước vào 1,5m từ mọi hướng chuyển mờ → rõ, không bật hình đột ngột.
 - Ra khỏi vùng và không còn LOS thì fade out rồi disable renderer.
 - TutorialForceVisible vẫn ưu tiên hiển thị.
 - Hai client nhìn cùng zombie có thể thấy khác nhau theo camera/Player của chính client.
 
 ## P1C — Đèn pin bị tường chặn nhưng không bị hàng rào thấp chặn
 
-Trạng thái: **đã xác nhận nguyên nhân và thiết kế; chưa mutate toàn map**.
+Trạng thái: **đã triển khai occlusion cục bộ theo căn nhà; automated runtime pass, cần QA hình ảnh**.
 
 Nguyên nhân:
 
@@ -84,23 +89,59 @@ Nguyên nhân:
 - `Obstacle` đang gộp tường, hàng rào và vật cản di chuyển. Dùng toàn bộ layer này làm vision blocker
   sẽ khiến hàng rào ngoài trời chặn sáng vô lý.
 
-Thiết kế cần làm:
+Giải pháp đã triển khai:
 
-1. Tạo semantic riêng `VisionBlocker2D`/layer ánh sáng cho tường kết cấu, không tái sử dụng toàn bộ
-   `Obstacle`.
-2. Tạo/author `ShadowCaster2D` proxy cho tường nhà và vật thể cao; loại hàng rào thấp, bụi cây,
-   mép pavement.
-3. Cửa đóng phải cast/block LOS; cửa mở phải tắt hoặc đổi geometry shadow tương ứng.
-4. Cho `PlayerVision` raycast LOS dùng cùng semantic blocker để Fog và ánh sáng không mâu thuẫn.
-5. Làm vertical slice trên **một căn nhà + một hàng rào kế bên**, đo hình ảnh và performance trước
-   khi nhân rộng toàn map.
+1. Khi Player ở trong nhà, `FogVisionController` dựng fan 180 tia local ở 15Hz.
+2. Tia physics vẫn query `Obstacle`, nhưng chỉ nhận hit là con của đúng `RoofVisibility`/
+   `IndoorVisionArea` đang chứa Player. Vì vậy tường và đồ cản thuộc nhà chặn; hàng rào ngoài map bị bỏ qua.
+3. Shader dùng khoảng cách tia để giữ Fog gần như kín (alpha 0,98) sau tường, che cả phần Light2D
+   có thể rò; khe cửa không có collider vẫn cho ánh sáng/tầm nhìn đi qua.
+4. Không thêm collider, không đổi layer map, không phụ thuộc `ShadowCaster2D`, không đổi authority Fusion.
+5. PlayMode regression đã xác nhận một hàng rào gần hơn bị bỏ qua và tia dừng ở tường của căn nhà.
 
 Acceptance vertical slice:
 
 - Đèn pin không rọi xuyên tường kín; rọi qua cửa mở.
 - Hàng rào thấp ngoài map không cắt cone sáng.
-- Zombie sau tường không được LOS reveal nhưng vẫn hiện nếu bước vào vùng cảm nhận 2m.
+- Zombie sau tường không được LOS reveal; vùng cảm nhận 1,5m cũng không xuyên tường.
 - Không tạo collider vật lý mới hoặc thay đổi A* chỉ để giải quyết shadow.
+
+## P1E — Starter weapon Solo đôi lúc bị hụt
+
+Trạng thái: **đã sửa retry/idempotence; giữ nguyên luật độ khó**.
+
+- Easy vẫn nhận AK47 + 30 Ammo762 + Meat; Normal chỉ Flashlight + Bandage; Hard không có starter gear.
+- Trước đây code đặt `HasStartingWeapon/hasAppliedStartingWeaponLocally` dù thao tác hotbar có thể thất bại,
+  nên lỗi transient không còn đường retry.
+- Nay mỗi thao tác trả kết quả; chỉ đặt `StartingLoadoutResolved` khi toàn bộ loadout đã có đủ.
+- State Authority retry 0,5 giây/lần; retry kiểm tra số lượng hiện có nên không nhân đôi item.
+- Military respawn snapshot được đánh dấu resolved trước khi restore để không cấp starter gear chồng lên save.
+
+Acceptance:
+
+- Easy Solo luôn có đúng một AK47 trong hotbar và đủ ammo/meat sau spawn.
+- Retry không tạo AK47 hoặc item phụ trùng.
+- Normal/Hard không tự nhận súng.
+- Respawn military giữ nguyên snapshot, không tái cấp starter loadout.
+
+## P1F — Zombie chìm/tàng hình/xuyên tường trong nhà
+
+Trạng thái: **đã sửa lớp phòng thủ movement; A* scan pass, cần soak trong nhiều căn nhà**.
+
+- Layer prefab Zombie là `Enemy` và `obstacleMask` là `Obstacle`; collision matrix Enemy–Obstacle đang bật.
+- A* Main scan thành công 485.805 node / 1 graph; spawn zone chỉ spawn trên node Walkable.
+- Nguyên nhân xuyên tường còn lại là Rigidbody2D Kinematic di chuyển bằng `MovePosition`: steering/flocking có
+  thể cắt góc giữa waypoint và Kinematic không tự bị static wall đẩy lùi.
+- Cả brain cũ và rebuilt nay dùng `Rigidbody2D.Cast` theo toàn bộ thân trước mỗi bước; quãng đường được cắt
+  tại collider Obstacle, `NetSpeed` phản ánh quãng đường thực và logic stuck sẽ repath.
+- Không đổi sang Dynamic vì phương án đó có rủi ro đẩy Player, rung va chạm và lệch host/client.
+
+Acceptance:
+
+- Zombie không xuyên tường ngoài/internal wall khi chase, flock hoặc repath ở góc hẹp.
+- Zombie bị tường giữ lại phải repath, không chạy animation tại chỗ vô hạn.
+- Không bị ẩn do Fog khi đang cùng phía tường và trong LOS/vùng cảm nhận.
+- Soak trong các nhà nhỏ, school, hospital; ghi marker nếu còn vị trí spawn/sorting cụ thể.
 
 ## P1D — AK47/S12K damage, accuracy và bắn sát người
 

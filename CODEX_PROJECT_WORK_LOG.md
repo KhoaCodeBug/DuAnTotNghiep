@@ -1058,3 +1058,55 @@
 - Cần chạy lại Host+Client sau pull để xác nhận mỗi peer có visibility riêng và Host chỉ áp damage
   một lần. Checklist/expected result nằm trong `NEXT_SESSION_VISIBILITY_COMBAT_PLAN.md`.
 - ShadowCaster2D cho tường/cửa chưa được nhân rộng; không tuyên bố đã fix đèn pin xuyên tường.
+
+## Entry 2026-08-30 — Indoor occlusion, starter loadout retry và Zombie wall sweep
+
+### Phạm vi và quyết định
+
+- Người dùng đã test nhanh bản visibility/combat trước và xác nhận: Fog + đèn pin còn xuyên tường
+  trong nhà, một lần Solo không nhận vũ khí đầu game, vùng fade cần giảm còn 1,5m và Zombie đôi lúc
+  chìm/tàng hình/xuyên tường trong nhà.
+- `Đã chọn`: occlusion local bằng fan raycast chỉ nhận collider thuộc đúng căn nhà đang chứa Player.
+  Fog shader giữ cover alpha 0,98 sau structural hit, vì vậy che luôn Light2D rò qua tường nhưng khe
+  cửa không collider vẫn mở; hàng rào ngoài map dù gần hơn vẫn bị bỏ qua.
+- `Đã loại`: gắn ShadowCaster2D/tái phân layer toàn map trong lượt này. Project chưa author shadow
+  geometry và `Obstacle` trộn tường với hàng rào; auto-convert sẽ tạo nhiều blocker sai và khó review.
+- `Đã chọn`: giữ Zombie Kinematic/Fusion, thêm Rigidbody2D body cast trước MovePosition.
+- `Đã loại`: đổi Zombie sang Dynamic. Rủi ro là Zombie đẩy Player, rung contact và tạo sai lệch
+  host/client; body cast giải quyết tunnelling/cắt góc mà không đổi mô hình authority.
+
+### Đã triển khai
+
+- `FogVisionController` dựng 180 tia ở 15Hz khi indoor, cache structure root từ `RoofVisibility` hoặc
+  `IndoorVisionArea`, và chỉ dùng hit `Obstacle` là descendant của root đó. Shader nội suy khoảng
+  cách theo góc và không mở Fog/flashlight/exit awareness sau tường.
+- `PlayerVision` và cả hai prefab Player giảm passive awareness từ 2m xuống 1,5m. Vùng 360 độ vẫn
+  thấy Zombie sau lưng nhưng nay dùng cùng LOS check nên không xuyên tường kín.
+- `InventorySystem` thêm trạng thái `StartingLoadoutResolved`; hotbar/flashlight placement trả bool,
+  State Authority retry mỗi 0,5 giây đến khi toàn bộ item được xác nhận và retry chỉ thêm lượng thiếu.
+  Military snapshot được đánh dấu resolved trước restore. Luật canonical không đổi: Easy có AK47,
+  Normal không có súng, Hard không có starter gear.
+- `ZOmbieAI_Khoa` và `ZombieAIKhoaRebuilt` cast toàn bộ Rigidbody2D theo obstacle mask trước mỗi bước,
+  cắt quãng đường ở wall skin 0,02m và dùng quãng đường thực cho NetSpeed/stuck-repath.
+- Cập nhật `NEXT_SESSION_VISIBILITY_COMBAT_PLAN.md`; thêm Editor contract và PlayMode physics tests.
+
+### Xác minh fresh
+
+- Unity 6000.0.69f1 force refresh/compile: 0 compile error; shader import không sinh error và runtime
+  regression xác nhận `ProjectZomboid/FogVisionOverlay.isSupported=true`.
+- A* Main scan bằng tool project: **485.805 node / 1 graph**. Spawn zone vẫn chỉ spawn ở node Walkable;
+  prefab Zombie ở layer `Enemy`, obstacle mask `Obstacle`, collision matrix Enemy–Obstacle không ignore.
+- Targeted EditMode: **5/5 passed** cho 1,5m, indoor building scope, wall sweep và loadout retry contract.
+- Targeted PlayMode: **2/2 passed**: tia bỏ qua hàng rào ngoài root và dừng ở tường nhà; cả hai Zombie
+  brain dừng trước static wall. Test placement AK47 idempotent bổ sung: **1/1 passed**.
+- Full EditMode job `7990782b0ca64bc9a04f6c818bc7ca37`: **153/153 passed**, 0 failed.
+- Full PlayMode job `da152253e299455cacf69657137d4923`: **12/12 passed**, 0 failed, 92,136s.
+- A* scan làm Unity bận và MCP WebSocket ngắt một lần khi đổi scene; Editor hồi phục, compile/test sau
+  đó pass đầy đủ. Đây là lỗi cầu nối quan sát, không được tính là gameplay pass/fail.
+
+### Chưa xác minh và Git
+
+- Chưa có user visual QA mới tại đúng căn nhà trong ảnh sau bản sửa này; automated ray test xác nhận
+  geometry/semantic nhưng không thay thế đánh giá độ tối, feather và cảm giác đèn pin thực tế.
+- Chưa soak horde qua nhiều căn nhà hoặc live Host+Client cho visibility client-local; đây vẫn là P2.
+- Branch: `codex/indoor-vision-zombie-reliability-20260830`, tạo từ `main@d433d58e2`.

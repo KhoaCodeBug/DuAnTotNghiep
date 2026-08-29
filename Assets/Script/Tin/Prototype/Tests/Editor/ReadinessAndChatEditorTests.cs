@@ -38,13 +38,79 @@ public sealed class ReadinessAndChatEditorTests
 
         SerializedObject serializedVision = new SerializedObject(vision);
         Assert.That(serializedVision.FindProperty("passiveVisionRadius").floatValue,
-            Is.EqualTo(2f).Within(0.001f));
+            Is.EqualTo(1.5f).Within(0.001f));
         Assert.That(serializedVision.FindProperty("zombieVisibilityFadeDuration").floatValue,
             Is.GreaterThan(0f));
         Assert.That(serializedVision.FindProperty("zombieAwarenessInitialAlpha").floatValue,
             Is.InRange(0.05f, 0.5f));
         Assert.That(serializedVision.FindProperty("localPlayerXRayAlpha").floatValue,
             Is.InRange(0.1f, 0.6f));
+    }
+
+    [Test]
+    public void IndoorFog_UsesBuildingScopedPhysicsOcclusion()
+    {
+        string controllerPath = Path.Combine(Application.dataPath, "Khoa/Code/FogVisionController.cs");
+        string shaderPath = Path.Combine(Application.dataPath, "Shader/FogVisionOverlay.shader");
+        string controllerSource = File.ReadAllText(controllerPath);
+        string shaderSource = File.ReadAllText(shaderPath);
+
+        Assert.That(controllerSource, Does.Contain("ResolveIndoorStructureRoot"));
+        Assert.That(controllerSource, Does.Contain("hit.collider.transform.IsChildOf(cachedIndoorStructureRoot)"),
+            "Indoor rays must ignore unrelated outdoor fences and only accept this building's colliders.");
+        Assert.That(shaderSource, Does.Contain("_IndoorOcclusionDistances[180]"));
+        Assert.That(shaderSource, Does.Contain("visibleIndoor = insideIndoor * indoorOcclusionVisibility"),
+            "Rooms behind an internal wall must retain the dark indoor cover.");
+    }
+
+    [Test]
+    public void ZombieMovement_UsesObstacleSweep_AndEnemyStillCollidesWithObstacleLayer()
+    {
+        Assert.That(Physics2D.GetIgnoreLayerCollision(LayerMask.NameToLayer("Enemy"),
+            LayerMask.NameToLayer("Obstacle")), Is.False);
+
+        foreach (string typeName in new[] { "ZOmbieAI_Khoa", "ZombieAIKhoaRebuilt" })
+        {
+            Type zombieType = ResolveGameType(typeName);
+            MethodInfo sweep = zombieType.GetMethod("MoveWithObstacleSweep",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            Assert.That(sweep, Is.Not.Null, $"{typeName} must sweep its body before MovePosition.");
+            Assert.That(sweep.ReturnType, Is.EqualTo(typeof(float)));
+        }
+
+        foreach (string prefabPath in new[]
+                 {
+                     "Assets/Khoa/Zombie2Khoa.prefab",
+                     "Assets/Khoa/ZombieKhoaRebuilt.prefab",
+                     "Assets/Khoa/ZombieBossTest.prefab"
+                 })
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+            Assert.That(prefab, Is.Not.Null, prefabPath);
+            Assert.That(prefab.layer, Is.EqualTo(LayerMask.NameToLayer("Enemy")), prefabPath);
+            Rigidbody2D body = prefab.GetComponent<Rigidbody2D>();
+            Assert.That(body, Is.Not.Null, prefabPath);
+            Assert.That(body.collisionDetectionMode, Is.EqualTo(CollisionDetectionMode2D.Continuous), prefabPath);
+        }
+    }
+
+    [Test]
+    public void StartingLoadout_OnlyCompletesAfterVerifiedPlacement_AndCanRetry()
+    {
+        Type inventoryType = ResolveGameType("InventorySystem");
+        PropertyInfo resolved = inventoryType.GetProperty("StartingLoadoutResolved",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo grant = inventoryType.GetMethod("TryGrantDifficultyStartingLoadout",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        MethodInfo placeWeapon = inventoryType.GetMethod("PlaceStartingWeaponInHotbar",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Assert.That(resolved, Is.Not.Null);
+        Assert.That(grant, Is.Not.Null);
+        Assert.That(grant.ReturnType, Is.EqualTo(typeof(bool)));
+        Assert.That(placeWeapon, Is.Not.Null);
+        Assert.That(placeWeapon.ReturnType, Is.EqualTo(typeof(bool)),
+            "A failed hotbar placement must not be marked as applied.");
     }
 
     [Test]

@@ -30,8 +30,8 @@ public class PlayerVision : NetworkBehaviour
     public LayerMask zombieLayer;
     public LayerMask obstacleLayer;
 
-    [Tooltip("Khoảng cách cảm nhận 360 độ quanh Player. Zombie trong vùng này hiện kể cả ở sau lưng hoặc trong nhà.")]
-    public float passiveVisionRadius = 2f;
+    [Tooltip("Khoảng cách cảm nhận 360 độ quanh Player. Zombie phía sau vẫn hiện, nhưng tường kín vẫn chặn cảm nhận.")]
+    public float passiveVisionRadius = 1.5f;
 
     [Range(0.05f, 1f)]
     [Tooltip("Thời gian zombie chuyển từ mờ sang rõ hoặc ngược lại.")]
@@ -433,7 +433,8 @@ public class PlayerVision : NetworkBehaviour
             }
             // Vùng cảm nhận 360 độ luôn hoạt động: zombie sát người không thể biến mất
             // chỉ vì ở sau lưng hoặc đứng phía bên kia ranh giới indoor.
-            else if (dstToZombie <= passiveVisionRadius)
+            else if (dstToZombie <= passiveVisionRadius &&
+                     !IsSightBlocked(visionOrigin, dirToZombie, dstToZombie))
             {
                 isVisible = true;
             }
@@ -445,19 +446,7 @@ public class PlayerVision : NetworkBehaviour
                 if (angleToZombie <= currentLogicAngle / 2f)
                 {
                     // Bắn tia Raycast kiểm tra xem có kẹt tường không
-                    int hitCount = Physics2D.Raycast(visionOrigin, dirToZombie, obstacleFilter,
-                        sightObstacleHits, dstToZombie);
-                    bool blocked = false;
-                    for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
-                    {
-                        Collider2D hitCollider = sightObstacleHits[hitIndex].collider;
-                        if (hitCollider == null ||
-                            hitCollider.GetComponent<MilitaryGateVisionPassThrough>() != null)
-                            continue;
-                        blocked = true;
-                        break;
-                    }
-                    if (!blocked)
+                    if (!IsSightBlocked(visionOrigin, dirToZombie, dstToZombie))
                     {
                         isVisible = true;
                     }
@@ -471,6 +460,24 @@ public class PlayerVision : NetworkBehaviour
                 if (sr != null) SetZombieRendererVisibility(sr, isVisible, false);
             }
         }
+    }
+
+    private bool IsSightBlocked(Vector2 origin, Vector2 direction, float distance)
+    {
+        if (distance <= 0.001f) return false;
+
+        int hitCount = Physics2D.Raycast(origin, direction, obstacleFilter,
+            sightObstacleHits, distance);
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+        {
+            Collider2D hitCollider = sightObstacleHits[hitIndex].collider;
+            if (hitCollider == null ||
+                hitCollider.GetComponent<MilitaryGateVisionPassThrough>() != null)
+                continue;
+            return true;
+        }
+
+        return false;
     }
 
     private void SetZombieRendererVisibility(SpriteRenderer renderer, bool visible, bool immediate)

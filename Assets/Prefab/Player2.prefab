@@ -1296,7 +1296,7 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 64
-  passiveVisionRadius: 2
+  passiveVisionRadius: 1.5
   zombieVisibilityFadeDuration: 0.25
   zombieAwarenessInitialAlpha: 0.18
   indoorLightIntensityMultiplier: 0.12
