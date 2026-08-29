@@ -61,6 +61,8 @@ public class InventorySystem : NetworkBehaviour
     private bool hasAppliedStartingWeaponLocally;
     [Networked] private NetworkBool HasStartingFlashlight { get; set; }
     private bool hasAppliedStartingFlashlightLocally;
+    [Networked] private NetworkBool StartingLoadoutResolved { get; set; }
+    private float nextStartingLoadoutRetryTime;
 
     /// <summary>
     /// Exact fixed-slot inventory state captured by State Authority before a
@@ -192,17 +194,18 @@ public class InventorySystem : NetworkBehaviour
         if (HasStateAuthority && HostModeSpawner.Instance != null &&
             HostModeSpawner.Instance.TryTakeMilitaryInventorySnapshot(Object.InputAuthority, out MilitaryRespawnSnapshot snapshot))
         {
+            StartingLoadoutResolved = true;
             ApplyMilitaryRespawnSnapshot(snapshot);
             return;
         }
 
         // Grant starting gear based strictly on canonical difficulty rules on State Authority
-        if (HasStateAuthority && !HasStartingWeapon && !HasStartingFlashlight)
+        if (HasStateAuthority && !StartingLoadoutResolved)
         {
             if (TutorialSession.IsActive)
                 MarkTutorialLoadoutReady();
             else
-                GrantDifficultyStartingLoadout();
+                TryGrantDifficultyStartingLoadout();
         }
 
         ApplyReplicatedStartingWeapon();
@@ -265,10 +268,11 @@ public class InventorySystem : NetworkBehaviour
         SetMaxSlotsLocal(BackpackCapacityRules.GetTotalSlots(replicatedLevel));
     }
 
-    private void GrantDifficultyStartingLoadout()
+    private bool TryGrantDifficultyStartingLoadout()
     {
         int difficulty = DifficultyRules.ActiveDifficulty;
         DifficultyRules.StarterItem[] loadout = DifficultyRules.GetStarterGearLoadout(difficulty);
+        bool fullyApplied = true;
 
         foreach (var item in loadout)
         {
@@ -276,14 +280,19 @@ public class InventorySystem : NetworkBehaviour
             if (data == null)
             {
                 Debug.LogWarning($"[STARTING LOADOUT] Item '{item.ItemId}' not found in Resources/Items.");
+                fullyApplied = false;
                 continue;
             }
 
             if (item.PreferHotbar)
             {
+                if (!PlaceStartingWeaponInHotbar(data))
+                {
+                    fullyApplied = false;
+                    continue;
+                }
                 StartingWeaponId = data.name;
                 HasStartingWeapon = true;
-                PlaceStartingWeaponInHotbar(data);
                 hasAppliedStartingWeaponLocally = true;
                 HostModeSpawner spawner = HostModeSpawner.Instance;
                 if (spawner != null) spawner.CacheStartingWeapon(Object.InputAuthority, data);
@@ -292,18 +301,28 @@ public class InventorySystem : NetworkBehaviour
             {
                 if (data.name == FlashlightController.ItemId || data.itemName == FlashlightController.ItemId)
                 {
+                    if (!PlaceStartingFlashlightInBackpack())
+                    {
+                        fullyApplied = false;
+                        continue;
+                    }
                     HasStartingFlashlight = true;
-                    PlaceStartingFlashlightInBackpack();
                     hasAppliedStartingFlashlightLocally = true;
                 }
                 else
                 {
-                    AddItem(data, item.Amount);
+                    int missingAmount = Mathf.Max(0, item.Amount - GetItemAmount(data));
+                    if (missingAmount > 0 && !AddItem(data, missingAmount))
+                        fullyApplied = false;
                 }
             }
         }
 
-        Debug.Log($"[STARTING LOADOUT] Granted {DifficultyRules.GetDifficultyName(difficulty)} starting loadout to Player {Object.InputAuthority}.");
+        if (!fullyApplied) return false;
+
+        StartingLoadoutResolved = true;
+        Debug.Log($"[STARTING LOADOUT] Verified {DifficultyRules.GetDifficultyName(difficulty)} starting loadout for Player {Object.InputAuthority}.");
+        return true;
     }
 
     private void MarkTutorialLoadoutReady()
@@ -313,6 +332,7 @@ public class InventorySystem : NetworkBehaviour
         HasStartingWeapon = true;
         StartingWeaponId = string.Empty;
         hasAppliedStartingWeaponLocally = true;
+        StartingLoadoutResolved = true;
     }
 
     public bool HasItemNamed(string itemName)
@@ -340,14 +360,15 @@ public class InventorySystem : NetworkBehaviour
             return;
         }
 
-        PlaceStartingWeaponInHotbar(selectedWeapon);
-        hasAppliedStartingWeaponLocally = true;
+        hasAppliedStartingWeaponLocally = PlaceStartingWeaponInHotbar(selectedWeapon);
+        if (!hasAppliedStartingWeaponLocally) return;
         Debug.Log($"[STARTING LOADOUT] Applied {selectedWeapon.itemName} to local hotbar.");
     }
 
-    private void PlaceStartingWeaponInHotbar(ItemData weapon)
+    private bool PlaceStartingWeaponInHotbar(ItemData weapon)
     {
-        if (weapon == null) return;
+        if (weapon == null || weapon.category != ItemCategory.Weapon) return false;
+        if (HasWeapon(weapon.name) || HasWeapon(weapon.itemName)) return true;
 
         while (slots.Count < 5)
         {
@@ -369,7 +390,7 @@ public class InventorySystem : NetworkBehaviour
         if (targetSlot < 0)
         {
             Debug.LogWarning($"[STARTING LOADOUT] No empty hotbar slot for {weapon.itemName}; loadout was not applied.");
-            return;
+            return false;
         }
 
         if (slots[targetSlot] == null) slots[targetSlot] = new InventorySlot(weapon, 1);
@@ -380,19 +401,20 @@ public class InventorySystem : NetworkBehaviour
         }
 
         UpdateUI();
+        return true;
     }
 
     private void ApplyReplicatedStartingFlashlight()
     {
         if (!HasInputAuthority || hasAppliedStartingFlashlightLocally || !HasStartingFlashlight) return;
-        PlaceStartingFlashlightInBackpack();
-        hasAppliedStartingFlashlightLocally = true;
+        hasAppliedStartingFlashlightLocally = PlaceStartingFlashlightInBackpack();
     }
 
-    private void PlaceStartingFlashlightInBackpack()
+    private bool PlaceStartingFlashlightInBackpack()
     {
         ItemData flashlight = ItemDataLoader.LoadItem(FlashlightController.ItemId);
-        if (flashlight == null || HasItemNamed(FlashlightController.ItemId)) return;
+        if (flashlight == null) return false;
+        if (HasItemNamed(FlashlightController.ItemId)) return true;
 
         while (slots.Count < maxSlots) slots.Add(new InventorySlot(null, 0));
         for (int i = 5; i < maxSlots; i++)
@@ -401,10 +423,25 @@ public class InventorySystem : NetworkBehaviour
             if (slots[i] == null) slots[i] = new InventorySlot(flashlight, 1);
             else { slots[i].item = flashlight; slots[i].amount = 1; }
             UpdateUI();
-            return;
+            return true;
         }
 
         Debug.LogWarning("[FLASHLIGHT] Backpack is full; starting flashlight could not be placed.");
+        return false;
+    }
+
+    private int GetItemAmount(ItemData item)
+    {
+        if (item == null) return 0;
+        int total = 0;
+        for (int i = 0; i < Mathf.Min(maxSlots, slots.Count); i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot == null || slot.item == null || slot.amount <= 0) continue;
+            if (slot.item.name == item.name || slot.item.itemName == item.itemName)
+                total += slot.amount;
+        }
+        return total;
     }
 
     public MilitaryRespawnSnapshot CaptureMilitaryRespawnSnapshot()
@@ -508,6 +545,13 @@ public class InventorySystem : NetworkBehaviour
     // ==========================================
     public override void FixedUpdateNetwork()
     {
+        if (HasStateAuthority && !StartingLoadoutResolved && !TutorialSession.IsActive &&
+            Time.unscaledTime >= nextStartingLoadoutRetryTime)
+        {
+            nextStartingLoadoutRetryTime = Time.unscaledTime + 0.5f;
+            TryGrantDifficultyStartingLoadout();
+        }
+
         if (!HasInputAuthority) return;
         if (!Runner.IsForward) return;
 

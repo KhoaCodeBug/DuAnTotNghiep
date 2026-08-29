@@ -27,6 +27,9 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     // Mảng tĩnh tối ưu RAM cho FixedUpdateNetwork
     private Collider2D[] nearbyZombies = new Collider2D[10];
     private ContactFilter2D zombieFilter; // Thêm dòng này để fix lỗi Obsolete
+    private ContactFilter2D obstacleMovementFilter;
+    private readonly RaycastHit2D[] obstacleMovementHits = new RaycastHit2D[8];
+    private const float MovementCollisionSkin = 0.02f;
 
 
     [Header("=== Damage ===")]
@@ -209,6 +212,10 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         zombieFilter.useLayerMask = true;
 
         zombieFilter.SetLayerMask(zombieMask);
+        obstacleMovementFilter = new ContactFilter2D();
+        obstacleMovementFilter.useLayerMask = true;
+        obstacleMovementFilter.useTriggers = false;
+        obstacleMovementFilter.SetLayerMask(obstacleMask);
     }
 
     private void SetBodyCollisionEnabled(bool enabled)
@@ -641,8 +648,8 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
                 lastMoveDirection = Vector2.Lerp(lastMoveDirection, targetDir, 8f * Runner.DeltaTime);
 
-                rb.MovePosition(rb.position + lastMoveDirection * speed * speedMultiplier * Runner.DeltaTime);
-                NetSpeed = speed * speedMultiplier;
+                NetSpeed = MoveWithObstacleSweep(lastMoveDirection * speed * speedMultiplier * Runner.DeltaTime) /
+                           Mathf.Max(Runner.DeltaTime, 0.0001f);
                 CheckForStuck(playerCol.bounds.center);
             }
             else
@@ -660,8 +667,8 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
         lastMoveDirection = Vector2.Lerp(lastMoveDirection, targetMoveDir, 10f * Runner.DeltaTime);
 
-        rb.MovePosition(rb.position + lastMoveDirection * currentSpeed * Runner.DeltaTime);
-        NetSpeed = currentSpeed;
+        NetSpeed = MoveWithObstacleSweep(lastMoveDirection * currentSpeed * Runner.DeltaTime) /
+                   Mathf.Max(Runner.DeltaTime, 0.0001f);
         CheckForStuck(currentWp);
 
         float distToWp = Vector2.Distance(rb.position, currentWp);
@@ -670,6 +677,28 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         {
             currentWaypoint++;
         }
+    }
+
+    private float MoveWithObstacleSweep(Vector2 movement)
+    {
+        float requestedDistance = movement.magnitude;
+        if (requestedDistance <= 0.0001f) return 0f;
+
+        Vector2 direction = movement / requestedDistance;
+        int hitCount = rb.Cast(direction, obstacleMovementFilter, obstacleMovementHits,
+            requestedDistance + MovementCollisionSkin);
+        float allowedDistance = requestedDistance;
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
+        {
+            RaycastHit2D hit = obstacleMovementHits[hitIndex];
+            if (hit.collider == null) continue;
+            allowedDistance = Mathf.Min(allowedDistance,
+                Mathf.Max(0f, hit.distance - MovementCollisionSkin));
+        }
+
+        if (allowedDistance > 0f)
+            rb.MovePosition(rb.position + direction * allowedDistance);
+        return allowedDistance;
     }
 
     private bool CanSeePlayer(float distance, Vector2 myPos, Vector2 targetPos, Vector2 toPlayer)
