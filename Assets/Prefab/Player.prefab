@@ -1172,9 +1172,13 @@ MonoBehaviour:
   obstacleLayer:
     serializedVersion: 2
     m_Bits: 64
-  passiveVisionRadius: 0.5
+  passiveVisionRadius: 2
+  zombieVisibilityFadeDuration: 0.25
+  zombieAwarenessInitialAlpha: 0.18
   indoorLightIntensityMultiplier: 0.12
   localPlayerReadableBrightness: 0.88
+  localPlayerXRayAlpha: 0.32
+  localPlayerXRayColor: {r: 0.55, g: 0.92, b: 1, a: 1}
 --- !u!114 &-1156234459553460602
 MonoBehaviour:
   m_ObjectHideFlags: 0

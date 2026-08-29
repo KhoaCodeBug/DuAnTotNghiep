@@ -29,6 +29,11 @@ public class PlayerCombat : NetworkBehaviour
     [Header("--- Cài Đặt Tương Tác Bắn ---")]
     public LayerMask enemyLayer;
 
+    [Header("--- Hỗ Trợ Bắn Cự Ly Sát Người ---")]
+    [Min(0.25f)] public float pointBlankAssistRadius = 1.2f;
+    [Range(10f, 90f)] public float pointBlankAssistHalfAngle = 70f;
+    [Range(0f, 0.2f)] public float bulletCastRadius = 0.08f;
+
     [Header("--- Audio Settings (Cận Chiến) ---")]
     public AudioSource weaponAudioSource;
     public AudioClip swingSFX;
@@ -65,6 +70,7 @@ public class PlayerCombat : NetworkBehaviour
     [Networked] private TickTimer nextFireTimer { get; set; }
     [Networked] private TickTimer nextBashTimer { get; set; }
     private float muzzleFlashTimer = 0f;
+    private readonly Collider2D[] pointBlankCandidates = new Collider2D[24];
 
     public override void Spawned()
     {
@@ -315,7 +321,17 @@ public class PlayerCombat : NetworkBehaviour
             if (playerMove != null) playerMove.MakeNoise(currentNoiseRadius);
         }
 
-        Vector2 shootDirection = (mouseWorldPos - (Vector2)transform.position).normalized;
+        Vector2 shootDirection = mouseWorldPos - (Vector2)transform.position;
+        if (shootDirection.sqrMagnitude <= 0.0001f)
+        {
+            shootDirection = playerMove != null && playerMove.NetLastLookDir.sqrMagnitude > 0.0001f
+                ? playerMove.NetLastLookDir
+                : Vector2.up;
+        }
+        shootDirection.Normalize();
+
+        if (HasStateAuthority)
+            shootDirection = ResolvePointBlankShootDirection(shootDirection);
         RPC_ShowMuzzleFlash(shootDirection);
 
         if (HasStateAuthority)
@@ -334,8 +350,11 @@ public class PlayerCombat : NetworkBehaviour
                     spreadDir = Quaternion.Euler(0, 0, angleOffset) * shootDirection;
                 }
 
-                // 🔥 ĐỔI SANG RAYCAST ALL: Đạn bay xuyên thấu để lọc mục tiêu
-                RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, spreadDir, currentRange, enemyLayer);
+                // Cast bán kính rất nhỏ giúp đạn không lọt qua khe collider khi zombie
+                // đang chồng sát Player, nhưng vẫn giữ độ chính xác của ray ở tầm xa.
+                RaycastHit2D[] hits = bulletCastRadius > 0.001f
+                    ? Physics2D.CircleCastAll(transform.position, bulletCastRadius, spreadDir, currentRange, enemyLayer)
+                    : Physics2D.RaycastAll(transform.position, spreadDir, currentRange, enemyLayer);
 
                 foreach (RaycastHit2D hit in hits)
                 {
@@ -402,6 +421,53 @@ public class PlayerCombat : NetworkBehaviour
                 } // Đóng foreach
             } // Đóng for (pellets)
         }
+    }
+
+    private Vector2 ResolvePointBlankShootDirection(Vector2 requestedDirection)
+    {
+        int count = Physics2D.OverlapCircleNonAlloc(transform.position, pointBlankAssistRadius,
+            pointBlankCandidates, enemyLayer);
+        float minimumDot = Mathf.Cos(pointBlankAssistHalfAngle * Mathf.Deg2Rad);
+        float bestScore = float.NegativeInfinity;
+        Vector2 bestDirection = requestedDirection;
+
+        for (int i = 0; i < count; i++)
+        {
+            Collider2D candidate = pointBlankCandidates[i];
+            if (candidate == null || candidate.transform.root == transform.root || !IsLivingZombie(candidate))
+                continue;
+
+            Vector2 closest = candidate.ClosestPoint(transform.position);
+            Vector2 toTarget = closest - (Vector2)transform.position;
+            if (toTarget.sqrMagnitude <= 0.0001f)
+                toTarget = (Vector2)candidate.bounds.center - (Vector2)transform.position;
+            if (toTarget.sqrMagnitude <= 0.0001f)
+                toTarget = requestedDirection;
+
+            float distance = toTarget.magnitude;
+            Vector2 direction = toTarget / Mathf.Max(distance, 0.0001f);
+            float alignment = Vector2.Dot(requestedDirection, direction);
+            if (alignment < minimumDot) continue;
+
+            float score = alignment * 2f - distance / Mathf.Max(pointBlankAssistRadius, 0.01f);
+            if (score <= bestScore) continue;
+            bestScore = score;
+            bestDirection = direction;
+        }
+
+        return bestDirection;
+    }
+
+    private static bool IsLivingZombie(Collider2D collider)
+    {
+        ZombieAIKhoaRebuilt rebuilt = collider.GetComponentInParent<ZombieAIKhoaRebuilt>();
+        if (rebuilt != null) return !rebuilt.NetIsDead;
+
+        ZOmbieAI_Khoa legacy = collider.GetComponentInParent<ZOmbieAI_Khoa>();
+        if (legacy != null) return !legacy.NetIsDead;
+
+        ZombieHealth health = collider.GetComponentInParent<ZombieHealth>();
+        return health != null && !health.isDead;
     }
 
     private void Bash()

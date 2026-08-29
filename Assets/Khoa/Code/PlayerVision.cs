@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using Fusion;
+using System.Collections.Generic;
 
 public class PlayerVision : NetworkBehaviour
 {
@@ -29,8 +30,16 @@ public class PlayerVision : NetworkBehaviour
     public LayerMask zombieLayer;
     public LayerMask obstacleLayer;
 
-    [Tooltip("Khoảng cách cảm nhận sau lưng (Mặc định 1.5f - Vào vùng là hiện)")]
-    public float passiveVisionRadius = 1.5f;
+    [Tooltip("Khoảng cách cảm nhận 360 độ quanh Player. Zombie trong vùng này hiện kể cả ở sau lưng hoặc trong nhà.")]
+    public float passiveVisionRadius = 2f;
+
+    [Range(0.05f, 1f)]
+    [Tooltip("Thời gian zombie chuyển từ mờ sang rõ hoặc ngược lại.")]
+    public float zombieVisibilityFadeDuration = 0.25f;
+
+    [Range(0f, 0.75f)]
+    [Tooltip("Alpha khởi đầu khi zombie vừa đi vào vùng cảm nhận.")]
+    public float zombieAwarenessInitialAlpha = 0.18f;
 
     [Header("=== ÁNH SÁNG TRONG NHÀ ===")]
     [Range(0f, 1f)]
@@ -41,6 +50,12 @@ public class PlayerVision : NetworkBehaviour
     [Range(0.2f, 1f)]
     [Tooltip("Độ sáng của Player do người chơi điều khiển. Không chịu Global Light hoặc hướng của nón nhìn.")]
     public float localPlayerReadableBrightness = 0.88f;
+
+    [Range(0.05f, 0.8f)]
+    [Tooltip("Độ đậm silhouette X-Ray local-only, luôn vẽ trên vật thể đang che Player.")]
+    public float localPlayerXRayAlpha = 0.32f;
+
+    public Color localPlayerXRayColor = new Color(0.55f, 0.92f, 1f, 1f);
 
     private Collider2D[] zombiesInRadius = new Collider2D[100];
     private ContactFilter2D zombieFilter;
@@ -55,6 +70,8 @@ public class PlayerVision : NetworkBehaviour
     private Material originalPlayerMaterial;
     private Color originalPlayerColor;
     private Material localPlayerUnlitMaterial;
+    private SpriteRenderer localPlayerXRayRenderer;
+    private readonly Dictionary<SpriteRenderer, float> zombieOriginalAlphas = new Dictionary<SpriteRenderer, float>();
 
     public float CurrentVisionRadius { get; private set; }
     public float AmbientVisionRadius { get; private set; }
@@ -146,6 +163,27 @@ public class PlayerVision : NetworkBehaviour
             name = "Local Player Readability (Runtime)",
             hideFlags = HideFlags.DontSave
         };
+
+        GameObject xrayObject = new GameObject("LocalPlayerXRaySilhouette");
+        xrayObject.hideFlags = HideFlags.DontSave;
+        xrayObject.transform.SetParent(playerBodyRenderer.transform, false);
+        localPlayerXRayRenderer = xrayObject.AddComponent<SpriteRenderer>();
+        localPlayerXRayRenderer.sharedMaterial = localPlayerUnlitMaterial;
+        localPlayerXRayRenderer.enabled = false;
+
+        SortingLayer[] layers = SortingLayer.layers;
+        int frontLayerId = playerBodyRenderer.sortingLayerID;
+        int frontLayerValue = int.MinValue;
+        for (int i = 0; i < layers.Length; i++)
+        {
+            if (layers[i].value <= frontLayerValue) continue;
+            frontLayerValue = layers[i].value;
+            frontLayerId = layers[i].id;
+        }
+
+        localPlayerXRayRenderer.sortingLayerID = frontLayerId;
+        localPlayerXRayRenderer.sortingOrder = short.MaxValue;
+        localPlayerXRayRenderer.spriteSortPoint = playerBodyRenderer.spriteSortPoint;
     }
 
 
@@ -285,7 +323,7 @@ public class PlayerVision : NetworkBehaviour
             SpriteRenderer[] srs = zCollider.GetComponentsInChildren<SpriteRenderer>();
             foreach (var sr in srs)
             {
-                if (sr != null) sr.enabled = false;
+                if (sr != null) SetZombieRendererVisibility(sr, false, true);
             }
         }
     }
@@ -304,12 +342,34 @@ public class PlayerVision : NetworkBehaviour
             readableColor.g *= localPlayerReadableBrightness;
             readableColor.b *= localPlayerReadableBrightness;
             playerBodyRenderer.color = readableColor;
+            SyncLocalPlayerXRaySilhouette();
         }
-        else if (playerBodyRenderer.sharedMaterial == localPlayerUnlitMaterial)
+        else
         {
-            playerBodyRenderer.sharedMaterial = originalPlayerMaterial;
-            playerBodyRenderer.color = originalPlayerColor;
+            if (playerBodyRenderer.sharedMaterial == localPlayerUnlitMaterial)
+            {
+                playerBodyRenderer.sharedMaterial = originalPlayerMaterial;
+                playerBodyRenderer.color = originalPlayerColor;
+            }
+            if (localPlayerXRayRenderer != null)
+                localPlayerXRayRenderer.enabled = false;
         }
+    }
+
+    private void SyncLocalPlayerXRaySilhouette()
+    {
+        if (localPlayerXRayRenderer == null || playerBodyRenderer == null) return;
+
+        localPlayerXRayRenderer.enabled = playerBodyRenderer.enabled;
+        localPlayerXRayRenderer.sprite = playerBodyRenderer.sprite;
+        localPlayerXRayRenderer.flipX = playerBodyRenderer.flipX;
+        localPlayerXRayRenderer.flipY = playerBodyRenderer.flipY;
+        localPlayerXRayRenderer.drawMode = playerBodyRenderer.drawMode;
+        localPlayerXRayRenderer.size = playerBodyRenderer.size;
+
+        Color tint = localPlayerXRayColor;
+        tint.a = localPlayerXRayAlpha;
+        localPlayerXRayRenderer.color = tint;
     }
 
     private void OnDestroy()
@@ -322,6 +382,16 @@ public class PlayerVision : NetworkBehaviour
 
         if (localPlayerUnlitMaterial != null)
             Destroy(localPlayerUnlitMaterial);
+
+        foreach (KeyValuePair<SpriteRenderer, float> entry in zombieOriginalAlphas)
+        {
+            if (entry.Key == null) continue;
+            Color color = entry.Key.color;
+            color.a = entry.Value;
+            entry.Key.color = color;
+            entry.Key.enabled = true;
+        }
+        zombieOriginalAlphas.Clear();
     }
 
     private void UpdateZombieVisibility(float currentLogicAngle)
@@ -361,8 +431,9 @@ public class PlayerVision : NetworkBehaviour
             {
                 isVisible = false;
             }
-            // The close-range safety sense is outdoor-only; indoors the 80% ambient area remains a blind spot.
-            else if (!isInside && dstToZombie <= passiveVisionRadius)
+            // Vùng cảm nhận 360 độ luôn hoạt động: zombie sát người không thể biến mất
+            // chỉ vì ở sau lưng hoặc đứng phía bên kia ranh giới indoor.
+            else if (dstToZombie <= passiveVisionRadius)
             {
                 isVisible = true;
             }
@@ -393,14 +464,39 @@ public class PlayerVision : NetworkBehaviour
                 }
             }
 
-            // C. BẬT / TẮT ZOMBIE (Chỉ bật/tắt khi trạng thái có sự thay đổi để tối ưu game)
+            // C. Fade local-only. Không network alpha/renderer state vì mỗi client có
+            // camera target và vùng nhìn riêng.
             foreach (var sr in srs)
             {
-                if (sr.enabled != isVisible)
-                {
-                    sr.enabled = isVisible;
-                }
+                if (sr != null) SetZombieRendererVisibility(sr, isVisible, false);
             }
         }
+    }
+
+    private void SetZombieRendererVisibility(SpriteRenderer renderer, bool visible, bool immediate)
+    {
+        if (!zombieOriginalAlphas.TryGetValue(renderer, out float originalAlpha))
+        {
+            originalAlpha = renderer.color.a;
+            zombieOriginalAlphas.Add(renderer, originalAlpha);
+        }
+
+        Color color = renderer.color;
+        float targetAlpha = visible ? originalAlpha : 0f;
+        if (visible && !renderer.enabled)
+        {
+            renderer.enabled = true;
+            color.a = Mathf.Min(zombieAwarenessInitialAlpha, originalAlpha);
+        }
+
+        if (immediate || zombieVisibilityFadeDuration <= 0.001f)
+            color.a = targetAlpha;
+        else
+            color.a = Mathf.MoveTowards(color.a, targetAlpha,
+                Time.deltaTime * Mathf.Max(0.01f, originalAlpha) / zombieVisibilityFadeDuration);
+
+        renderer.color = color;
+        if (!visible && color.a <= 0.001f)
+            renderer.enabled = false;
     }
 }

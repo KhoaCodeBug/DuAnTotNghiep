@@ -16,7 +16,7 @@
 - Working tree tại lúc gom tài liệu chỉ có `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` dirty do thay đổi của người dùng; không được restore, stage hoặc đưa vào commit tài liệu nếu chưa được yêu cầu.
 - Route B canonical hiện đã có: xe thật đi qua `EndB1 → EndB2 → EndB3 → EndBFinal`, authority căn xe chạy tới `EndBFinal2`; camera 6 giây, giữ 2 giây rồi fade; zombie hậu-vỡ-cổng trở về AI/noise canonical; F1 đưa Host/Solo thẳng tới chương quân sự. Flow 5–10 Player dùng readiness ghế hoặc bán kính 6m và virtual follower cho người không có ghế.
 - Hệ thống multiplayer/readiness hiện có lobby tối đa 10 Player, loading gate tập trung, difficulty authoritative từ Host, HUD suppression, system chat/localization song ngữ, death context và các tier horde/respawn theo số người.
-- Loot/inventory mới nhất có corpse loot authority, thông báo riêng bằng private targeted RPC, đạn ngẫu nhiên 5–10 viên, năm cấp balo và sức chứa tối đa 55 slot tổng. EditMode gần nhất ghi nhận `145/145` pass và PlayMode `10/10` pass; live dual-peer capture cho private RPC/global corpse state vẫn **chưa được xác minh đầy đủ**.
+- Loot/inventory mới nhất có corpse loot authority, thông báo riêng bằng private targeted RPC, đạn ngẫu nhiên 5–10 viên, năm cấp balo và sức chứa tối đa 55 slot tổng. EditMode gần nhất ghi nhận `146/146` pass và PlayMode `10/10` pass. Live Host+Client loading/readiness đã pass sau khi tăng Fusion timeout lên 120 giây; live multi-peer capture cho private RPC/global corpse state vẫn **chưa được xác minh đầy đủ**.
 - QA tay còn quan trọng: lobby thật 5–10 người; boundary readiness 6m/disconnect/death đúng lúc bấm W; virtual follower dưới latency; horde 80–112 zombie bằng Profiler; targeted corpse-loot RPC và corpse searched state trên nhiều peer thật.
 
 ## Mục đích và quy ước
@@ -966,3 +966,95 @@
 - Tạo branch local `codex/p0-verification-docs-20260829` từ `main@7bcfb935c` để checkpoint bảy file tài liệu/skill đã review.
 - `Assets/Khoa/House/cannhatotamhoanchinh_FIXED.prefab` tiếp tục dirty user-owned, không stage/restore/chỉnh sửa; hai trailing-whitespace warning hiện chỉ nằm trong prefab này.
 - Chưa push; cần quyền push rõ ràng sau khi người dùng xem kết quả.
+
+## Entry 2026-08-29 — P1/P2 continuation: live two-peer loading và timeout regression
+
+### Đã triển khai
+
+- Chạy Unity Editor gốc làm Host và ParrelSync clone làm Client trong phòng `P1QA3`.
+- Tái hiện lỗi thật với cấu hình cũ `ConnectionTimeout=30`: hai Editor cùng tải Scene Main
+  khiến Client timeout trước khi gửi readiness; Host dừng ở 1/2.
+- Tăng `Assets/Photon/Fusion/Resources/NetworkProjectConfig.fusion` từ 30 lên 120 giây.
+  Đây là mitigation cho tải Scene nặng đồng thời; không được hiểu là Scene đã được tối ưu.
+- Thêm regression `FusionConnectionTimeout_CoversConcurrentMainSceneLoading` để merge/pull
+  sau này không âm thầm đưa timeout về dưới 120 giây.
+
+### Đã xác minh thực tế
+
+- Sau sửa, Host và Client cùng vào Main trong room `P1QA3`; session có 2 Player, khóa đúng
+  khi bắt đầu, Host ghi readiness 2/2 và cả hai peer giải phóng loading sang gameplay.
+- Cấu hình runtime trên cả hai peer ghi `ConnectionTimeout=120.0`; không tái hiện Fusion
+  timeout trong phiên P1QA3 trước khi chủ động dừng hai Editor.
+- Fresh batch EditMode: **146/146 passed**, 0 failed, 0 skipped, 3.6665s.
+- Fresh batch PlayMode: **10/10 passed**, 0 failed, 0 skipped, 105.8037s.
+- Artifacts: `QA_Artifacts/P1P2Continuation_20260829/`.
+
+### Rủi ro và phần chưa xác minh
+
+- Timeout dài hơn làm phát hiện peer chết thật chậm hơn; nguyên nhân hiệu năng nền vẫn là
+  Scene Main nặng khi hai Editor cùng deserialize/integrate.
+- Chưa có ba peer thật để chốt transport privacy/race của corpse loot. Static/codegen và
+  automated contracts vẫn pass nhưng không được suy diễn thành live multi-peer pass.
+- Chưa có 5–10 human peers cho readiness/disconnect/death/latency boundary.
+- Chưa chạy horde 80–112 zombie bằng Profiler hoặc soak 60 phút; đây vẫn là P2 manual gate.
+- NRE Photon Voice chỉ xuất hiện khi hot-reload asset giữa Play; clean Play restart không
+  tái hiện nên chưa sửa vendor source. Nếu clean flow tái hiện thì mở defect riêng.
+
+### Git
+
+- Branch local: `codex/p0-verification-docs-20260829`.
+- Không push. Prefab nhà user-owned tiếp tục được bảo toàn, không stage/restore/chỉnh sửa.
+
+## Entry 2026-08-30 — Collider vô hình, Player visibility và firearm point-blank
+
+### Quyết định và phạm vi
+
+- Người dùng cho phép assistant tự test các luồng multiplayer cần nhiều peer, tự đánh giá và push Git;
+  đồng thời yêu cầu đưa prefab nhà user-owned đang dirty vào cùng push.
+- `Đã triển khai`: sửa collider vô hình mẫu, X-Ray local Player, vùng cảm nhận zombie 360 độ có
+  fade, tăng damage/độ chính xác AK47 + S12K và fix hụt ở point blank.
+- `Chưa triển khai toàn map`: shadow blocker đèn pin. Nguyên nhân đã xác nhận là scene/prefab không
+  có `ShadowCaster2D` dù `Light2D.shadowsEnabled=true`; layer `Obstacle` lại gộp cả tường và hàng rào.
+  Auto-convert toàn layer sẽ làm hàng rào thấp chặn sáng sai thiết kế. Task được tách thành vertical
+  slice một căn nhà + một hàng rào trong `NEXT_SESSION_VISIBILITY_COMBAT_PLAN.md`.
+
+### Collider vô hình
+
+- Marker user-authored `Collider_A*TangHinh` tại `(-0.604, -2.844)` bị chồng bởi
+  `==========Wall===========/HangRao (3)`: `PolygonCollider2D` solid layer `Obstacle`, không có
+  renderer. Node A* tại marker trước sửa là unwalkable.
+- Xóa đúng `HangRao (3)` và giữ marker làm regression. Ba collider-only `HangRao` còn lại được giữ
+  vì Scene view xác nhận chúng khớp hàng rào/biên map có hình thật.
+- Chạy `Tools/Environment/Scan A* Current Scene` sau sửa: hoàn tất **485.805 node / 1 graph**.
+
+### Visibility và combat
+
+- Player X-Ray dùng silhouette SpriteRenderer unlit local-only trên sorting layer trước nhất; không
+  thêm replicated state.
+- Vùng cảm nhận zombie chuẩn hóa 2m cho Player/Player2, hoạt động 360 độ cả trong/ngoài nhà và fade
+  0,25 giây. Alpha chỉ được xử lý local theo camera target; RGB của hit-flash được bảo toàn.
+- AK47: damage 34 → 42, spread asset 2° → 0,75°. S12K: damage/pellet 15 → 24, spread 12° → 8°,
+  giữ 9 pellet. State Authority thêm point-blank target assist 1,2m trong aim cone và CircleCast
+  radius 0,08m; client không tự áp damage.
+- Thêm regression cho marker collider, cấu hình vision hai prefab và balance floor của hai súng.
+
+### Xác minh fresh
+
+- Unity script validation: `PlayerVision.cs` và `PlayerCombat.cs` không có compile error.
+- Unity Console sau refresh: 0 error.
+- EditMode job `6bd95fe56df74182ad6a7af7a29f8dc3`: **150/150 passed**, 0 failed,
+  0 skipped, 4,2848s.
+- PlayMode job `f8149af0c62947fda22da4b9489049ac`: **10/10 passed**, 0 failed,
+  0 skipped, 106,2297s.
+- Live Host+Client `P1QA3` ở entry trước vẫn là bằng chứng fresh cho timeout/readiness 2/2.
+  Một vòng two-peer mới đã khởi chạy nhưng ParrelSync Client đóng khi phiên Codex bị ngắt, nên không
+  được báo là pass cho X-Ray/fade/combat mới.
+
+### Rủi ro và QA còn lại
+
+- X-Ray đang là silhouette luôn-hiện nhẹ, không phải occluded-pixels-only stencil; cần user đánh giá
+  thẩm mỹ trong gameplay.
+- Chưa nghiệm thu cảm giác fade, bán kính 2m và balance súng bằng test tay của người dùng.
+- Cần chạy lại Host+Client sau pull để xác nhận mỗi peer có visibility riêng và Host chỉ áp damage
+  một lần. Checklist/expected result nằm trong `NEXT_SESSION_VISIBILITY_COMBAT_PLAN.md`.
+- ShadowCaster2D cho tường/cửa chưa được nhân rộng; không tuyên bố đã fix đèn pin xuyên tường.
