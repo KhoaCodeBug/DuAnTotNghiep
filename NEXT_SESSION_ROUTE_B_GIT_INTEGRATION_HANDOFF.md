@@ -1,5 +1,7 @@
 # NEXT SESSION — ROUTE B GIT INTEGRATION HANDOFF
 
+> **ĐÃ HOÀN TẤT / KHÔNG CHẠY LẠI NHƯ CHECKLIST HIỆN TẠI.** Đây là hồ sơ của lần integration 2026-08-26. Route B final polish sau đó đã vào `main` qua PR #323 và `main` hiện đã tiến xa hơn. Phiên mới phải đọc `CODEX_PROJECT_WORK_LOG.md`, kiểm tra Git thực tế rồi lập kế hoạch mới; không tạo safety branch/merge lại chỉ vì hướng dẫn lịch sử bên dưới.
+
 Ngày cập nhật: 2026-08-26
 
 ## Prompt dùng để mở phiên Codex mới
