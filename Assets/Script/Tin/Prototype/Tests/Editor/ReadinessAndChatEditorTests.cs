@@ -25,6 +25,13 @@ public sealed class ReadinessAndChatEditorTests
         setMethod.Invoke(null, new object[] { langVal, false });
     }
 
+    private static string GetLocalization(string key)
+    {
+        Type locType = ResolveGameType("GameLocalization");
+        MethodInfo getMethod = locType.GetMethod("Get", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string), typeof(string) }, null);
+        return (string)getMethod.Invoke(null, new object[] { key, null });
+    }
+
     [Test]
     public void ChatAuthority_RichTextSanitization_PlayerAndSystemSeparated()
     {
@@ -158,7 +165,7 @@ public sealed class ReadinessAndChatEditorTests
         MethodInfo startMethod = coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string) }, null)
             ?? coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static);
         MethodInfo setStageMethod = coordType.GetMethod("SetStage", BindingFlags.Public | BindingFlags.Static, null, new Type[] { stageEnum, typeof(float), typeof(string) }, null);
-        MethodInfo releaseMethod = coordType.GetMethod("Release", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo releaseMethod = coordType.GetMethod("Release", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
 
         PropertyInfo stageProp = coordType.GetProperty("CurrentStage", BindingFlags.Public | BindingFlags.Static);
         PropertyInfo progressProp = coordType.GetProperty("CurrentProgress", BindingFlags.Public | BindingFlags.Static);
@@ -583,7 +590,7 @@ public sealed class ReadinessAndChatEditorTests
         MethodInfo resetMethod = coordType.GetMethod("ResetCoordinator", BindingFlags.Public | BindingFlags.Static);
         MethodInfo startMethod = coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string) }, null)
             ?? coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static);
-        MethodInfo releaseMethod = coordType.GetMethod("Release", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo releaseMethod = coordType.GetMethod("Release", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
 
         PropertyInfo suppressedProp = coordType.GetProperty("IsGameplaySuppressed", BindingFlags.Public | BindingFlags.Static);
         PropertyInfo releasedProp = coordType.GetProperty("IsReleasedToGameplay", BindingFlags.Public | BindingFlags.Static);
@@ -631,5 +638,320 @@ public sealed class ReadinessAndChatEditorTests
 
         PropertyInfo searchedProp = corpseType.GetProperty("HasCorpseBeenSearched", BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.That(searchedProp, Is.Not.Null, "HasCorpseBeenSearched property must exist.");
+    }
+
+    [Test]
+    public void MilitaryCarPrefab_HasAuthoredInspectionZone_AndComponents()
+    {
+#if UNITY_EDITOR
+        GameObject carPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Hau/NewPrefab/Car/Car.prefab");
+        Assert.That(carPrefab, Is.Not.Null, "Car.prefab must exist at Assets/Hau/NewPrefab/Car/Car.prefab");
+
+        Transform zoneTransform = carPrefab.transform.Find("VungKiemTraXeCanhSat");
+        Assert.That(zoneTransform, Is.Not.Null, "Car.prefab must have child GameObject 'VungKiemTraXeCanhSat'.");
+
+        PolygonCollider2D poly = zoneTransform.GetComponent<PolygonCollider2D>();
+        Assert.That(poly, Is.Not.Null, "VungKiemTraXeCanhSat must have PolygonCollider2D attached.");
+        Assert.That(poly.isTrigger, Is.True, "VungKiemTraXeCanhSat PolygonCollider2D must be a trigger.");
+        Assert.That(poly.pathCount, Is.GreaterThan(0), "PolygonCollider2D must have authored path points.");
+
+        Type authoringType = ResolveGameType("VehicleInspectionZoneAuthoring");
+        Component authoring = zoneTransform.GetComponent(authoringType);
+        Assert.That(authoring, Is.Not.Null, "VungKiemTraXeCanhSat must have VehicleInspectionZoneAuthoring component.");
+
+        Type stationType = ResolveGameType("RoadsideVehicleRepairStation");
+        Component station = carPrefab.GetComponent(stationType);
+        Assert.That(station, Is.Not.Null, "Car.prefab root must have RoadsideVehicleRepairStation component.");
+
+        PropertyInfo polyProp = stationType.GetProperty("InspectionPolygon", BindingFlags.Public | BindingFlags.Instance);
+        PolygonCollider2D resolvedPoly = polyProp?.GetValue(station) as PolygonCollider2D;
+        Assert.That(resolvedPoly, Is.EqualTo(poly), "RoadsideVehicleRepairStation must reference VungKiemTraXeCanhSat polygon.");
+#endif
+    }
+
+    [Test]
+    public void RoadsideVehicleRepairStation_ResolvesAuthoredPolygon_WithoutDuplicateAutoZone()
+    {
+        Type authoringType = ResolveGameType("VehicleInspectionZoneAuthoring");
+        Type stationType = ResolveGameType("RoadsideVehicleRepairStation");
+
+        GameObject carGo = new GameObject("TestCar");
+        GameObject zoneGo = new GameObject("VungKiemTraXeCanhSat");
+        zoneGo.transform.SetParent(carGo.transform, false);
+
+        PolygonCollider2D authoredPoly = zoneGo.AddComponent<PolygonCollider2D>();
+        authoredPoly.SetPath(0, new Vector2[] { new Vector2(-1, 0), new Vector2(1, 0), new Vector2(1, 2), new Vector2(-1, 2) });
+        zoneGo.AddComponent(authoringType);
+
+        Component station = carGo.AddComponent(stationType);
+        MethodInfo resolveMethod = stationType.GetMethod("ResolveInspectionPolygon", new Type[] { typeof(bool) });
+        resolveMethod.Invoke(station, new object[] { true });
+
+        PropertyInfo polyProp = stationType.GetProperty("InspectionPolygon", BindingFlags.Public | BindingFlags.Instance);
+        PolygonCollider2D resolvedPoly = polyProp?.GetValue(station) as PolygonCollider2D;
+
+        Assert.That(resolvedPoly, Is.SameAs(authoredPoly), "Station must resolve to authored child polygon.");
+        Transform autoChild = carGo.transform.Find("VungKiemTraXeCanhSat [AUTO]");
+        Assert.That(autoChild, Is.Null, "Station must not create duplicate [AUTO] zone when authored zone exists.");
+
+        UnityEngine.Object.DestroyImmediate(carGo);
+    }
+
+    [Test]
+    public void RoadsideVehicleRepairStation_PlayerInsideAndOutsideZoneDetection()
+    {
+        Type stationType = ResolveGameType("RoadsideVehicleRepairStation");
+
+        GameObject carGo = new GameObject("TestCarDetection");
+        GameObject zoneGo = new GameObject("VungKiemTraXeCanhSat");
+        zoneGo.transform.SetParent(carGo.transform, false);
+
+        PolygonCollider2D authoredPoly = zoneGo.AddComponent<PolygonCollider2D>();
+        authoredPoly.SetPath(0, new Vector2[] { new Vector2(-2, 0), new Vector2(2, 0), new Vector2(2, 4), new Vector2(-2, 4) });
+
+        Component station = carGo.AddComponent(stationType);
+        MethodInfo resolveMethod = stationType.GetMethod("ResolveInspectionPolygon", new Type[] { typeof(bool) });
+        resolveMethod.Invoke(station, new object[] { true });
+
+        MethodInfo isPlayerInPositionMethod = stationType.GetMethod("IsPlayerInRepairPosition", BindingFlags.Public | BindingFlags.Instance);
+        bool inside = (bool)isPlayerInPositionMethod.Invoke(station, new object[] { new Vector3(0f, 2f, 0f) });
+        bool outside = (bool)isPlayerInPositionMethod.Invoke(station, new object[] { new Vector3(10f, 10f, 0f) });
+
+        Assert.That(inside, Is.True, "Point (0, 2) inside polygon must return true.");
+        Assert.That(outside, Is.False, "Point (10, 10) outside polygon must return false.");
+
+        UnityEngine.Object.DestroyImmediate(carGo);
+    }
+
+    [Test]
+    public void RoadsideVehicleRepairStation_FallbackAutoGenerationWhenNoAuthoring()
+    {
+        Type stationType = ResolveGameType("RoadsideVehicleRepairStation");
+
+        GameObject carGo = new GameObject("TestCarUnauthored");
+        Component station = carGo.AddComponent(stationType);
+        MethodInfo resolveMethod = stationType.GetMethod("ResolveInspectionPolygon", new Type[] { typeof(bool) });
+        resolveMethod.Invoke(station, new object[] { true });
+
+        PropertyInfo polyProp = stationType.GetProperty("InspectionPolygon", BindingFlags.Public | BindingFlags.Instance);
+        PolygonCollider2D resolvedPoly = polyProp?.GetValue(station) as PolygonCollider2D;
+
+        Assert.That(resolvedPoly, Is.Not.Null, "Station must create fallback polygon when unauthored.");
+        Assert.That(resolvedPoly.gameObject.name, Is.EqualTo("VungKiemTraXeCanhSat [AUTO]"));
+        Assert.That(resolvedPoly.isTrigger, Is.True);
+
+        // Calling Resolve again must not create another duplicate
+        resolveMethod.Invoke(station, new object[] { true });
+        int autoCount = 0;
+        for (int i = 0; i < carGo.transform.childCount; i++)
+        {
+            if (carGo.transform.GetChild(i).name == "VungKiemTraXeCanhSat [AUTO]")
+                autoCount++;
+        }
+        Assert.That(autoCount, Is.EqualTo(1), "Subsequent resolve must not create duplicate auto zones.");
+
+        UnityEngine.Object.DestroyImmediate(carGo);
+    }
+
+    [Test]
+    public void LoadingTips_BilingualLocalization_ValidAcrossAllKeys()
+    {
+        for (int i = 1; i <= 5; i++)
+        {
+            string key = $"loading.tip.{i}";
+
+            SetTestLanguage(0); // English
+            string enTip = GetLocalization(key);
+            Assert.That(enTip, Is.Not.Null.And.Not.Empty);
+            Assert.That(enTip, Does.StartWith("Tip:"), $"English tip {i} must start with 'Tip:'");
+
+            SetTestLanguage(1); // Vietnamese
+            string viTip = GetLocalization(key);
+            Assert.That(viTip, Is.Not.Null.And.Not.Empty);
+            Assert.That(viTip, Does.StartWith("Mẹo:"), $"Vietnamese tip {i} must start with 'Mẹo:'");
+        }
+    }
+
+    [Test]
+    public void ReadinessCoordinator_FailedStateIsTerminal_CannotBeReleased()
+    {
+        Type coordType = ResolveGameType("GameplayReadinessCoordinator");
+        MethodInfo resetMethod = coordType.GetMethod("ResetCoordinator", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo startMethod = coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(string) }, null)
+            ?? coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo failMethod = coordType.GetMethod("Fail", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo releaseMethod = coordType.GetMethod("Release", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
+        PropertyInfo stageProp = coordType.GetProperty("CurrentStage", BindingFlags.Public | BindingFlags.Static);
+        PropertyInfo releasedProp = coordType.GetProperty("IsReleasedToGameplay", BindingFlags.Public | BindingFlags.Static);
+
+        resetMethod.Invoke(null, null);
+        if (startMethod.GetParameters().Length == 1)
+            startMethod.Invoke(null, new object[] { "loading.connecting" });
+        else
+            startMethod.Invoke(null, null);
+
+        // Fail
+        failMethod.Invoke(null, new object[] { "Network dropped" });
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("Failed"));
+        Assert.That((bool)releasedProp.GetValue(null), Is.False);
+
+        // Release attempted while in Failed state
+        releaseMethod.Invoke(null, null);
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("Failed"), "Failed state must not be overwritten by Release().");
+        Assert.That((bool)releasedProp.GetValue(null), Is.False);
+
+        // Reset cleans it up
+        resetMethod.Invoke(null, null);
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("None"));
+    }
+
+    [Test]
+    public void RoadsideVehicleRepairStation_RejectsExternalPolygon_AndResolvesLocally()
+    {
+        Type stationType = ResolveGameType("RoadsideVehicleRepairStation");
+
+        GameObject carGo = new GameObject("TestCarLocal");
+        GameObject otherGo = new GameObject("OtherCarExternal");
+        PolygonCollider2D externalPoly = otherGo.AddComponent<PolygonCollider2D>();
+
+        Component station = carGo.AddComponent(stationType);
+        FieldInfo polyField = stationType.GetField("inspectionPolygon", BindingFlags.NonPublic | BindingFlags.Instance);
+        polyField?.SetValue(station, externalPoly);
+
+        MethodInfo resolveMethod = stationType.GetMethod("ResolveInspectionPolygon", new Type[] { typeof(bool) });
+        if (resolveMethod != null)
+            resolveMethod.Invoke(station, new object[] { false });
+        else
+            stationType.GetMethod("ResolveInspectionPolygon", BindingFlags.Public | BindingFlags.Instance).Invoke(station, null);
+
+        PropertyInfo polyProp = stationType.GetProperty("InspectionPolygon", BindingFlags.Public | BindingFlags.Instance);
+        PolygonCollider2D resolved = polyProp?.GetValue(station) as PolygonCollider2D;
+
+        Assert.That(resolved, Is.Not.EqualTo(externalPoly), "Station must reject polygon collider from external hierarchy.");
+
+        UnityEngine.Object.DestroyImmediate(carGo);
+        UnityEngine.Object.DestroyImmediate(otherGo);
+    }
+
+    [Test]
+    public void RoadsideVehicleRepairStation_AwakeAndOnValidate_DoNotCreateAutoChildPrematurely()
+    {
+        Type stationType = ResolveGameType("RoadsideVehicleRepairStation");
+
+        GameObject carGo = new GameObject("TestCarLazy");
+        Component station = carGo.AddComponent(stationType);
+
+        MethodInfo resolveNoAutoMethod = stationType.GetMethod("ResolveInspectionPolygon", new Type[] { typeof(bool) });
+        if (resolveNoAutoMethod != null)
+        {
+            resolveNoAutoMethod.Invoke(station, new object[] { false });
+            Transform autoChild = carGo.transform.Find("VungKiemTraXeCanhSat [AUTO]");
+            Assert.That(autoChild, Is.Null, "Awake/OnValidate must not create AUTO child prematurely.");
+
+            resolveNoAutoMethod.Invoke(station, new object[] { true });
+            Transform autoChildAfter = carGo.transform.Find("VungKiemTraXeCanhSat [AUTO]");
+            Assert.That(autoChildAfter, Is.Not.Null, "Configure must create AUTO child when allowed.");
+        }
+
+        UnityEngine.Object.DestroyImmediate(carGo);
+    }
+
+    [Test]
+    public void ForceCloseLoadingScreen_EarlyStagesDoNotTransitionToReleased()
+    {
+        Type coordType = ResolveGameType("GameplayReadinessCoordinator");
+        Type menuType = ResolveGameType("AutoMainMenuManager");
+        Type stageEnum = ResolveGameType("GameplayReadinessCoordinator+ReadinessStage");
+
+        MethodInfo resetMethod = coordType.GetMethod("ResetCoordinator", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo setStageMethod = coordType.GetMethod("SetStage", BindingFlags.Public | BindingFlags.Static, null, new Type[] { stageEnum, typeof(float), typeof(string) }, null);
+        PropertyInfo stageProp = coordType.GetProperty("CurrentStage", BindingFlags.Public | BindingFlags.Static);
+        PropertyInfo releasedProp = coordType.GetProperty("IsReleasedToGameplay", BindingFlags.Public | BindingFlags.Static);
+
+        GameObject menuGo = new GameObject("TestMainMenu");
+        Component menu = menuGo.AddComponent(menuType);
+        MethodInfo forceCloseMethod = menuType.GetMethod("ForceCloseLoadingScreen", BindingFlags.Public | BindingFlags.Instance);
+
+        // 1. Stage = Connecting
+        resetMethod.Invoke(null, null);
+        setStageMethod.Invoke(null, new object[] { Enum.Parse(stageEnum, "Connecting"), 0f, null });
+        forceCloseMethod.Invoke(menu, null);
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("Connecting"), "ForceCloseLoadingScreen must not release Connecting stage.");
+        Assert.That((bool)releasedProp.GetValue(null), Is.False);
+
+        // 2. Stage = PlayerSpawnWaiting
+        setStageMethod.Invoke(null, new object[] { Enum.Parse(stageEnum, "PlayerSpawnWaiting"), 0f, null });
+        forceCloseMethod.Invoke(menu, null);
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("PlayerSpawnWaiting"), "ForceCloseLoadingScreen must not release PlayerSpawnWaiting stage.");
+        Assert.That((bool)releasedProp.GetValue(null), Is.False);
+
+        // 3. Stage = Failed
+        MethodInfo failMethod = coordType.GetMethod("Fail", BindingFlags.Public | BindingFlags.Static);
+        failMethod.Invoke(null, new object[] { "Timeout test" });
+        forceCloseMethod.Invoke(menu, null);
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("Failed"), "ForceCloseLoadingScreen must not release Failed stage.");
+        Assert.That((bool)releasedProp.GetValue(null), Is.False);
+
+        resetMethod.Invoke(null, null);
+        UnityEngine.Object.DestroyImmediate(menuGo);
+    }
+
+    [Test]
+    public void ForceCloseLoadingScreen_LateStagesTransitionToReleased()
+    {
+        Type coordType = ResolveGameType("GameplayReadinessCoordinator");
+        Type menuType = ResolveGameType("AutoMainMenuManager");
+        Type stageEnum = ResolveGameType("GameplayReadinessCoordinator+ReadinessStage");
+
+        MethodInfo resetMethod = coordType.GetMethod("ResetCoordinator", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo setStageMethod = coordType.GetMethod("SetStage", BindingFlags.Public | BindingFlags.Static, null, new Type[] { stageEnum, typeof(float), typeof(string) }, null);
+        PropertyInfo stageProp = coordType.GetProperty("CurrentStage", BindingFlags.Public | BindingFlags.Static);
+        PropertyInfo releasedProp = coordType.GetProperty("IsReleasedToGameplay", BindingFlags.Public | BindingFlags.Static);
+
+        GameObject menuGo = new GameObject("TestMainMenu");
+        Component menu = menuGo.AddComponent(menuType);
+        MethodInfo forceCloseMethod = menuType.GetMethod("ForceCloseLoadingScreen", BindingFlags.Public | BindingFlags.Instance);
+
+        // 1. Stage = HUDAndSystemsReady
+        resetMethod.Invoke(null, null);
+        setStageMethod.Invoke(null, new object[] { Enum.Parse(stageEnum, "HUDAndSystemsReady"), 0f, null });
+        forceCloseMethod.Invoke(menu, null);
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("ReleasedToGameplay"), "ForceCloseLoadingScreen must release HUDAndSystemsReady stage.");
+        Assert.That((bool)releasedProp.GetValue(null), Is.True);
+
+        // 2. Stage = AwaitingHostRelease
+        resetMethod.Invoke(null, null);
+        setStageMethod.Invoke(null, new object[] { Enum.Parse(stageEnum, "AwaitingHostRelease"), 0f, null });
+        forceCloseMethod.Invoke(menu, null);
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("ReleasedToGameplay"), "ForceCloseLoadingScreen must release AwaitingHostRelease stage.");
+        Assert.That((bool)releasedProp.GetValue(null), Is.True);
+
+        resetMethod.Invoke(null, null);
+        UnityEngine.Object.DestroyImmediate(menuGo);
+    }
+
+    [Test]
+    public void ReadinessCoordinator_RequireLocalReadyRelease_GuardsEarlyStages()
+    {
+        Type coordType = ResolveGameType("GameplayReadinessCoordinator");
+        Type stageEnum = ResolveGameType("GameplayReadinessCoordinator+ReadinessStage");
+
+        MethodInfo resetMethod = coordType.GetMethod("ResetCoordinator", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo setStageMethod = coordType.GetMethod("SetStage", BindingFlags.Public | BindingFlags.Static, null, new Type[] { stageEnum, typeof(float), typeof(string) }, null);
+        MethodInfo releaseMethod = coordType.GetMethod("Release", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(bool) }, null);
+        PropertyInfo stageProp = coordType.GetProperty("CurrentStage", BindingFlags.Public | BindingFlags.Static);
+
+        // Stage = Connecting with requireLocalReady = true
+        resetMethod.Invoke(null, null);
+        setStageMethod.Invoke(null, new object[] { Enum.Parse(stageEnum, "Connecting"), 0f, null });
+        releaseMethod.Invoke(null, new object[] { true });
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("Connecting"), "Release(true) must guard against premature release at Connecting.");
+
+        // Stage = HUDAndSystemsReady with requireLocalReady = true
+        setStageMethod.Invoke(null, new object[] { Enum.Parse(stageEnum, "HUDAndSystemsReady"), 0f, null });
+        releaseMethod.Invoke(null, new object[] { true });
+        Assert.That(stageProp.GetValue(null).ToString(), Is.EqualTo("ReleasedToGameplay"), "Release(true) must release at HUDAndSystemsReady.");
+
+        resetMethod.Invoke(null, null);
     }
 }

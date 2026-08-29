@@ -68,7 +68,13 @@ public static class GameplayReadinessCoordinator
 
     public static void SetStage(ReadinessStage stage, float subProgress01 = 0f, string customMessageOrKey = null)
     {
-        if (stage < CurrentStage && stage != ReadinessStage.None && CurrentStage != ReadinessStage.Failed)
+        // Trạng thái Failed là terminal cho attempt hiện tại; tuyệt đối không cho phép ghi đè trừ khi Reset/StartLoading
+        if (CurrentStage == ReadinessStage.Failed && stage != ReadinessStage.None)
+        {
+            return;
+        }
+
+        if (stage < CurrentStage && stage != ReadinessStage.None)
         {
             // Bảo đảm tính đơn điệu (Monotonic): không được tụt stage trừ khi reset
             return;
@@ -112,6 +118,11 @@ public static class GameplayReadinessCoordinator
         }
     }
 
+    public static bool IsLocalReadyForRelease =>
+        CurrentStage == ReadinessStage.HUDAndSystemsReady ||
+        CurrentStage == ReadinessStage.AwaitingHostRelease ||
+        CurrentStage == ReadinessStage.ReleasedToGameplay;
+
     public static void UpdateSceneLoadProgress(float asyncProgress)
     {
         if (CurrentStage == ReadinessStage.SceneLoading || CurrentStage == ReadinessStage.Connecting)
@@ -122,6 +133,23 @@ public static class GameplayReadinessCoordinator
 
     public static void Release()
     {
+        Release(requireLocalReady: false);
+    }
+
+    public static void Release(bool requireLocalReady)
+    {
+        if (CurrentStage == ReadinessStage.Failed)
+        {
+            Debug.LogWarning("[READINESS] Cannot release to gameplay while in Failed state.");
+            return;
+        }
+
+        if (requireLocalReady && !IsLocalReadyForRelease && CurrentStage != ReadinessStage.None)
+        {
+            Debug.LogWarning($"[READINESS] Cannot release to gameplay: local stage '{CurrentStage}' is not ready for release.");
+            return;
+        }
+
         SetStage(ReadinessStage.ReleasedToGameplay, 1.0f, "loading.ready_complete");
     }
 

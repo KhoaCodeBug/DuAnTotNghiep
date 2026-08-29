@@ -244,6 +244,14 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             yield return null;
         }
 
+        // KIỂM TRA BẮT BUỘC: Nếu hết spawnTimeout mà chưa có PlayerObject -> Báo lỗi, không đi tiếp!
+        if (Runner == null || Runner.GetPlayerObject(Runner.LocalPlayer) == null)
+        {
+            Debug.LogError("[SPAWNER] Spawn timed out: PlayerObject for LocalPlayer was not instantiated. Aborting gameplay entry.");
+            GameplayReadinessCoordinator.Fail(string.Format(GameLocalization.Get("loading.failed"), "Player Spawn Timeout"));
+            yield break;
+        }
+
         GameplayReadinessCoordinator.SetStage(
             GameplayReadinessCoordinator.ReadinessStage.LocalAvatarBinding, 0.6f, "loading.avatar_binding");
         yield return null;
@@ -259,10 +267,32 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             yield break;
         }
 
-        // 3. Báo cáo cho Host: "Sếp ơi em đã tải Map xong và toàn bộ hệ thống local đã sẵn sàng!"
-        RPC_PlayerFinishedLoadingMap(Runner.LocalPlayer);
-        GameplayReadinessCoordinator.SetStage(
-            GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease, 0.95f, "loading.awaiting_host");
+        // 3. Báo cáo cho Host hoặc tự động mở mắt trong Solo
+        if (Runner != null && Runner.IsServer)
+        {
+            bool isSolo = Runner.GameMode == GameMode.Single ||
+                          Runner.SessionInfo == null ||
+                          Runner.SessionInfo.PlayerCount <= 1;
+
+            RegisterReadyPlayer(playersLoadedSet, Runner.LocalPlayer);
+
+            if (isSolo)
+            {
+                IsMatchStarted = true;
+                RPC_OpenEyesForAll();
+            }
+            else
+            {
+                CheckAndStartGame();
+                StartCoroutine(HostReadinessTimeoutWatchdog());
+            }
+        }
+        else
+        {
+            RPC_PlayerFinishedLoadingMap(Runner.LocalPlayer);
+            GameplayReadinessCoordinator.SetStage(
+                GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease, 0.95f, "loading.awaiting_host");
+        }
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -598,15 +628,34 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         return "name:" + (string.IsNullOrWhiteSpace(fallbackName) ? player.ToString() : fallbackName.Trim());
     }
 
-    private void CheckAndStartGame()
+    private IEnumerator HostReadinessTimeoutWatchdog()
+    {
+        float waitTimeout = 10f;
+        while (waitTimeout > 0f && !IsMatchStarted)
+        {
+            waitTimeout -= Time.deltaTime;
+            yield return null;
+        }
+
+        if (Runner != null && Runner.IsServer && !IsMatchStarted && playersLoadedSet.Count > 0)
+        {
+            Debug.LogWarning($"[SPAWNER WATCHDOG] Host timeout reached. Starting match with {playersLoadedSet.Count} ready players.");
+            CheckAndStartGame(force: true);
+        }
+    }
+
+    public void CheckAndStartGame(bool force = false)
     {
         if (!Runner.IsServer || IsMatchStarted) return;
 
-        int currentPlayersInRoom = Runner.SessionInfo.PlayerCount;
-        Debug.Log($"[ĐIỂM DANH] Đã có {playersLoadedSet.Count}/{currentPlayersInRoom} người tải xong Map.");
+        int currentPlayersInRoom = (Runner.SessionInfo != null && Runner.SessionInfo.PlayerCount > 0)
+            ? Runner.SessionInfo.PlayerCount
+            : 1;
 
-        // NẾU TẤT CẢ ĐÃ TẢI XONG -> PHÁT LỆNH GO!!!
-        if (playersLoadedSet.Count >= currentPlayersInRoom && playersLoadedSet.Count > 0)
+        Debug.Log($"[ĐIỂM DANH] Đã có {playersLoadedSet.Count}/{currentPlayersInRoom} người tải xong Map. (force={force})");
+
+        // NẾU TẤT CẢ ĐÃ TẢI XONG HOẶC ĐẠT TIMEOUT -> PHÁT LỆNH GO!!!
+        if ((playersLoadedSet.Count >= currentPlayersInRoom && playersLoadedSet.Count > 0) || (force && playersLoadedSet.Count > 0))
         {
             IsMatchStarted = true;
             RPC_OpenEyesForAll();
@@ -623,7 +672,17 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         }
         else
         {
-            GameplayReadinessCoordinator.Release();
+            if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ||
+                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease ||
+                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.ReleasedToGameplay ||
+                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.None)
+            {
+                GameplayReadinessCoordinator.Release();
+            }
+            else
+            {
+                Debug.LogWarning($"[SPAWNER] RPC_OpenEyesForAll deferred: local stage is '{GameplayReadinessCoordinator.CurrentStage}'.");
+            }
         }
     }
 
@@ -637,7 +696,17 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         }
         else
         {
-            GameplayReadinessCoordinator.Release();
+            if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ||
+                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease ||
+                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.ReleasedToGameplay ||
+                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.None)
+            {
+                GameplayReadinessCoordinator.Release();
+            }
+            else
+            {
+                Debug.LogWarning($"[SPAWNER] RPC_OpenEyesForLateJoiner deferred: local stage is '{GameplayReadinessCoordinator.CurrentStage}'.");
+            }
         }
     }
 
