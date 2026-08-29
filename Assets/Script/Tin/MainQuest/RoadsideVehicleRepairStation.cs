@@ -4,20 +4,39 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class RoadsideVehicleRepairStation : MonoBehaviour
 {
+    [Header("Inspection Zone")]
+    [Tooltip("Optional authorable polygon for the military police car. Assign one here, or attach VehicleInspectionZoneAuthoring on a child object.")]
+    [SerializeField] private PolygonCollider2D inspectionPolygon;
     [SerializeField, Min(0.2f)] private float inspectionDuration = 1.6f;
     [SerializeField, Min(0.01f)] private float zoneLineWidth = 0.06f;
 
     private MilitaryBaseQuestManager manager;
     private VehicleControllerFusion vehicle;
-    private PolygonCollider2D inspectionPolygon;
     private LineRenderer frontZoneLine;
     private ArrivalCarInspectionUI inspectionUI;
     private Coroutine inspectionRoutine;
     private float nextInspectionAllowedAt;
 
+    public PolygonCollider2D InspectionPolygon => inspectionPolygon;
+
     public Vector2 InteractionPosition => inspectionPolygon != null
-        ? inspectionPolygon.bounds.center
+        ? (Vector2)inspectionPolygon.bounds.center
         : (Vector2)transform.position;
+
+    private bool IsValidLocalPolygon(PolygonCollider2D candidate)
+    {
+        return candidate != null && (candidate.transform == transform || candidate.transform.IsChildOf(transform));
+    }
+
+    private void Awake()
+    {
+        ResolveInspectionPolygon(allowCreateAutoFallback: false);
+    }
+
+    private void OnValidate()
+    {
+        ResolveInspectionPolygon(allowCreateAutoFallback: false);
+    }
 
     public void Configure(MilitaryBaseQuestManager targetManager, VehicleControllerFusion targetVehicle)
     {
@@ -28,7 +47,7 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
         // local inspection presentation below.
         if (vehicle != null && vehicle.HasStateAuthority)
             vehicle.SetRepairEntryLocked(true);
-        BuildInspectionPolygon();
+        ResolveInspectionPolygon(allowCreateAutoFallback: true);
         if (inspectionUI == null)
         {
             inspectionUI = GetComponent<ArrivalCarInspectionUI>();
@@ -118,44 +137,93 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
 
     public void StopTimedRepairAudio() => inspectionUI?.StopRepairAudioForNetwork();
 
-    private void BuildInspectionPolygon()
+    public void ResolveInspectionPolygon(bool allowCreateAutoFallback = true)
     {
+        // 1. Kiểm tra serialized reference có thuộc hierarchy của xe không
+        if (inspectionPolygon != null)
+        {
+            if (IsValidLocalPolygon(inspectionPolygon))
+            {
+                inspectionPolygon.isTrigger = true;
+                inspectionPolygon.enabled = true;
+                return;
+            }
+            // Reference trỏ ra ngoài hierarchy -> Bỏ qua và resolve local
+            inspectionPolygon = null;
+        }
+
+        // 2. Kiểm tra child có gắn VehicleInspectionZoneAuthoring
+        var childAuthoring = GetComponentInChildren<VehicleInspectionZoneAuthoring>(true);
+        if (childAuthoring != null && childAuthoring.TryGetComponent<PolygonCollider2D>(out var authoredPolygon) && IsValidLocalPolygon(authoredPolygon))
+        {
+            inspectionPolygon = authoredPolygon;
+        }
+
+        // 3. Kiểm tra child PolygonCollider2D theo tên chuẩn
         if (inspectionPolygon == null)
         {
-            GameObject authoredZone = GameObject.Find("VungKiemTraXeCanhSat");
-            if (authoredZone != null) inspectionPolygon = authoredZone.GetComponent<PolygonCollider2D>();
+            PolygonCollider2D[] childPolygons = GetComponentsInChildren<PolygonCollider2D>(true);
+            for (int i = 0; i < childPolygons.Length; i++)
+            {
+                if (IsInspectionZoneName(childPolygons[i].gameObject.name) && IsValidLocalPolygon(childPolygons[i]))
+                {
+                    inspectionPolygon = childPolygons[i];
+                    break;
+                }
+            }
+        }
+
+        // 4. Fallback runtime tự động tạo (chỉ khi allowCreateAutoFallback = true)
+        if (inspectionPolygon == null && allowCreateAutoFallback)
+        {
+            Transform existingAuto = transform.Find("VungKiemTraXeCanhSat [AUTO]");
+            if (existingAuto != null && existingAuto.TryGetComponent<PolygonCollider2D>(out var existingPoly))
+            {
+                inspectionPolygon = existingPoly;
+            }
+            else
+            {
+                GameObject zone = new GameObject("VungKiemTraXeCanhSat [AUTO]");
+                zone.transform.SetParent(transform, false);
+                inspectionPolygon = zone.AddComponent<PolygonCollider2D>();
+
+                Vector2 forward = vehicle != null ? vehicle.VisionDirection : Vector2.up;
+                if (forward.sqrMagnitude < 0.01f) forward = Vector2.up;
+                forward.Normalize();
+                Vector2 right = new Vector2(forward.y, -forward.x);
+                Vector2 origin = vehicle != null ? (Vector2)vehicle.transform.position : (Vector2)transform.position;
+                Vector2[] worldPoints =
+                {
+                    origin + forward * 0.75f - right * 1.0f,
+                    origin + forward * 0.75f + right * 1.0f,
+                    origin + forward * 2.65f + right * 1.35f,
+                    origin + forward * 2.65f - right * 1.35f
+                };
+                Vector2[] localPoints = new Vector2[worldPoints.Length];
+                for (int i = 0; i < worldPoints.Length; i++)
+                    localPoints[i] = inspectionPolygon.transform.InverseTransformPoint(worldPoints[i]);
+                inspectionPolygon.pathCount = 1;
+                inspectionPolygon.SetPath(0, localPoints);
+            }
         }
 
         if (inspectionPolygon != null)
         {
             inspectionPolygon.isTrigger = true;
             inspectionPolygon.enabled = true;
-            return;
         }
+    }
 
-        GameObject zone = new GameObject("VungKiemTraXeCanhSat [AUTO]");
-        zone.transform.SetParent(transform, false);
-        inspectionPolygon = zone.AddComponent<PolygonCollider2D>();
+    private void BuildInspectionPolygon()
+    {
+        ResolveInspectionPolygon(allowCreateAutoFallback: true);
+    }
 
-        Vector2 forward = vehicle != null ? vehicle.VisionDirection : Vector2.up;
-        if (forward.sqrMagnitude < 0.01f) forward = Vector2.up;
-        forward.Normalize();
-        Vector2 right = new Vector2(forward.y, -forward.x);
-        Vector2 origin = vehicle != null ? vehicle.transform.position : transform.position;
-        Vector2[] worldPoints =
-        {
-            origin + forward * 0.75f - right * 1.0f,
-            origin + forward * 0.75f + right * 1.0f,
-            origin + forward * 2.65f + right * 1.35f,
-            origin + forward * 2.65f - right * 1.35f
-        };
-        Vector2[] localPoints = new Vector2[worldPoints.Length];
-        for (int i = 0; i < worldPoints.Length; i++)
-            localPoints[i] = inspectionPolygon.transform.InverseTransformPoint(worldPoints[i]);
-        inspectionPolygon.pathCount = 1;
-        inspectionPolygon.SetPath(0, localPoints);
-        inspectionPolygon.isTrigger = true;
-        inspectionPolygon.enabled = true;
+    private static bool IsInspectionZoneName(string name)
+    {
+        return name == "VungKiemTraXeCanhSat" || name == "VungKiemTraXe" ||
+               name == "VungKiemTraXeCanhSat [AUTO]" || name == "ViTriKiemTraXe" ||
+               name == "Vehicle Inspection Zone";
     }
 
     private void BuildFrontZonePresentation()

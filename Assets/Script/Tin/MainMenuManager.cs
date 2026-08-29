@@ -55,6 +55,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private GameObject loadingScreenPanel;
     private RectTransform loadingFillBar;
     private TextMeshProUGUI loadingPercentText;
+    private TextMeshProUGUI loadingTipText;
+    private RectTransform loadingSpinnerRect;
+    private GameObject loadingErrorBackButton;
+    private int currentLoadingTipIndex = 1;
     private Coroutine loadingCoroutine;
 
     private bool isLoadingScreenActive = false;
@@ -1288,28 +1292,55 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void GenerateLoadingScreen(GameObject canvasGO)
     {
         loadingScreenPanel = CreateBasePanel("LoadingScreenPanel", canvasGO);
-        loadingScreenPanel.AddComponent<Image>().color = new Color(0.05f, 0.05f, 0.05f, 1f);
+        loadingScreenPanel.AddComponent<Image>().color = new Color(0.04f, 0.04f, 0.05f, 1f);
 
-        loadingTitleText = CreateTitleText(loadingScreenPanel, GameLocalization.Get("menu.death_loading"), 0.6f);
+        loadingTitleText = CreateTitleText(loadingScreenPanel, GameLocalization.Get("menu.death_loading"), 0.70f);
 
+        // Spinner / Activity Indicator
+        GameObject spinnerObj = new GameObject("LoadingSpinner");
+        spinnerObj.transform.SetParent(loadingScreenPanel.transform, false);
+        loadingSpinnerRect = spinnerObj.AddComponent<RectTransform>();
+        loadingSpinnerRect.anchorMin = new Vector2(0.5f, 0.54f);
+        loadingSpinnerRect.anchorMax = new Vector2(0.5f, 0.54f);
+        loadingSpinnerRect.sizeDelta = new Vector2(46f, 46f);
+        Image spinnerImg = spinnerObj.AddComponent<Image>();
+        spinnerImg.color = new Color(1f, 0.82f, 0.2f, 0.9f);
+
+        // Progress Bar
         GameObject borderBar = new GameObject("BorderBar"); borderBar.transform.SetParent(loadingScreenPanel.transform, false);
-        RectTransform borderRt = borderBar.AddComponent<RectTransform>(); borderRt.anchorMin = new Vector2(0.19f, 0.38f); borderRt.anchorMax = new Vector2(0.81f, 0.47f); borderRt.offsetMin = Vector2.zero; borderRt.offsetMax = Vector2.zero;
-        borderBar.AddComponent<Image>().color = new Color(0.5f, 0.5f, 0.5f, 1f);
+        RectTransform borderRt = borderBar.AddComponent<RectTransform>(); borderRt.anchorMin = new Vector2(0.18f, 0.42f); borderRt.anchorMax = new Vector2(0.82f, 0.46f); borderRt.offsetMin = Vector2.zero; borderRt.offsetMax = Vector2.zero;
+        borderBar.AddComponent<Image>().color = new Color(0.35f, 0.35f, 0.38f, 1f);
 
         GameObject bgBar = new GameObject("BgBar"); bgBar.transform.SetParent(borderBar.transform, false);
-        RectTransform bgRt = bgBar.AddComponent<RectTransform>(); bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one; bgRt.offsetMin = new Vector2(5, 5); bgRt.offsetMax = new Vector2(-5, -5);
-        bgBar.AddComponent<Image>().color = new Color(0.1f, 0.1f, 0.1f, 1f);
+        RectTransform bgRt = bgBar.AddComponent<RectTransform>(); bgRt.anchorMin = Vector2.zero; bgRt.anchorMax = Vector2.one; bgRt.offsetMin = new Vector2(3, 3); bgRt.offsetMax = new Vector2(-3, -3);
+        bgBar.AddComponent<Image>().color = new Color(0.08f, 0.08f, 0.1f, 1f);
 
         GameObject fillBar = new GameObject("FillBar"); fillBar.transform.SetParent(bgBar.transform, false);
         loadingFillBar = fillBar.AddComponent<RectTransform>(); loadingFillBar.anchorMin = new Vector2(0, 0); loadingFillBar.anchorMax = new Vector2(0, 1); loadingFillBar.offsetMin = Vector2.zero; loadingFillBar.offsetMax = Vector2.zero;
-        fillBar.AddComponent<Image>().color = new Color(1f, 0.8f, 0f, 1f);
+        fillBar.AddComponent<Image>().color = new Color(1f, 0.82f, 0.15f, 1f);
 
+        // Percent & Status Text
         GameObject pctObj = new GameObject("PercentText"); pctObj.transform.SetParent(loadingScreenPanel.transform, false);
         loadingPercentText = pctObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) loadingPercentText.font = gameFont;
-        loadingPercentText.alignment = TextAlignmentOptions.Center; loadingPercentText.color = Color.white; loadingPercentText.fontSize = 28; loadingPercentText.fontStyle = FontStyles.Bold;
+        loadingPercentText.alignment = TextAlignmentOptions.Center; loadingPercentText.color = Color.white; loadingPercentText.fontSize = 24; loadingPercentText.fontStyle = FontStyles.Bold;
         loadingPercentText.text = "0%";
         loadingPercentText.outlineWidth = 0.2f; loadingPercentText.outlineColor = Color.black;
-        RectTransform pctRt = pctObj.GetComponent<RectTransform>(); pctRt.anchorMin = new Vector2(0.1f, 0.3f); pctRt.anchorMax = new Vector2(0.9f, 0.35f); pctRt.offsetMin = Vector2.zero; pctRt.offsetMax = Vector2.zero;
+        RectTransform pctRt = pctObj.GetComponent<RectTransform>(); pctRt.anchorMin = new Vector2(0.1f, 0.35f); pctRt.anchorMax = new Vector2(0.9f, 0.41f); pctRt.offsetMin = Vector2.zero; pctRt.offsetMax = Vector2.zero;
+
+        // Survival Tip Text Box
+        GameObject tipObj = new GameObject("TipText"); tipObj.transform.SetParent(loadingScreenPanel.transform, false);
+        loadingTipText = tipObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) loadingTipText.font = gameFont;
+        loadingTipText.alignment = TextAlignmentOptions.Center; loadingTipText.color = new Color(0.85f, 0.85f, 0.85f, 0.95f); loadingTipText.fontSize = 18; loadingTipText.fontStyle = FontStyles.Italic;
+        loadingTipText.text = string.Empty;
+        loadingTipText.outlineWidth = 0.15f; loadingTipText.outlineColor = new Color(0f, 0f, 0f, 0.8f);
+        RectTransform tipRt = tipObj.GetComponent<RectTransform>(); tipRt.anchorMin = new Vector2(0.15f, 0.22f); tipRt.anchorMax = new Vector2(0.85f, 0.33f); tipRt.offsetMin = Vector2.zero; tipRt.offsetMax = Vector2.zero;
+
+        // Error Retry / Back Button (chỉ hiện khi gặp lỗi Failed)
+        loadingErrorBackButton = CreateMenuButton(loadingScreenPanel, "BACK TO MENU", () =>
+        {
+            AbortLoadingAndReturnToMenu();
+        }, new Vector2(0.5f, 0.12f), true, new Vector2(240, 45), 20f);
+        loadingErrorBackButton.SetActive(false);
 
         loadingScreenPanel.AddComponent<CanvasGroup>();
         loadingScreenPanel.SetActive(false);
@@ -1617,6 +1648,14 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private IEnumerator SmoothLoadingLogic()
     {
         float displayedProgress = 0.05f;
+        float elapsedLoadingTime = 0f;
+        float tipTimer = 0f;
+        float globalLoadingTimeout = 35f;
+        currentLoadingTipIndex = UnityEngine.Random.Range(1, 6);
+        UpdateLoadingTipDisplay();
+
+        if (loadingErrorBackButton != null)
+            loadingErrorBackButton.SetActive(false);
 
         if (loadingScreenPanel.TryGetComponent<CanvasGroup>(out var cg))
         {
@@ -1627,6 +1666,48 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // Lắng nghe tiến độ thật từ GameplayReadinessCoordinator
         while (!isHostSignaledGo && !GameplayReadinessCoordinator.IsReleasedToGameplay)
         {
+            // Nếu đã rơi vào trạng thái Failed -> Thoát ngay vào nhánh Error Path
+            if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.Failed)
+            {
+                break;
+            }
+
+            elapsedLoadingTime += Time.unscaledDeltaTime;
+            tipTimer += Time.unscaledDeltaTime;
+            if (tipTimer >= 4f)
+            {
+                tipTimer = 0f;
+                currentLoadingTipIndex = (currentLoadingTipIndex % 5) + 1;
+                UpdateLoadingTipDisplay();
+            }
+
+            if (loadingSpinnerRect != null)
+            {
+                loadingSpinnerRect.Rotate(0f, 0f, -240f * Time.unscaledDeltaTime);
+            }
+
+            // Global Timeout: Nếu quá 35s mà chưa vào game, kích hoạt lỗi
+            if (elapsedLoadingTime >= globalLoadingTimeout)
+            {
+                Debug.LogError($"[LOADING TIMEOUT] Global loading timeout reached ({elapsedLoadingTime:F1}s). Failing readiness attempt.");
+                GameplayReadinessCoordinator.Fail(string.Format(GameLocalization.Get("loading.failed"), "Timeout"));
+                break;
+            }
+
+            // Watchdog Release: CHỈ kích hoạt khi stage chính xác là HUDAndSystemsReady hoặc AwaitingHostRelease
+            // Tuyệt đối không bao giờ release khi Failed
+            if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ||
+                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease)
+            {
+                if (elapsedLoadingTime >= 25f || (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease && elapsedLoadingTime >= 8f))
+                {
+                    Debug.LogWarning($"[LOADING WATCHDOG] Safety release triggered after {elapsedLoadingTime:F1}s to prevent soft-lock.");
+                    isHostSignaledGo = true;
+                    GameplayReadinessCoordinator.Release();
+                    break;
+                }
+            }
+
             float targetProgress = Mathf.Max(0.05f, GameplayReadinessCoordinator.CurrentProgress);
             if (targetProgress > 0.95f) targetProgress = 0.95f;
 
@@ -1646,7 +1727,27 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             yield return null;
         }
 
-        // Host phát lệnh giải phóng -> Tiến lên 100%
+        // XỬ LÝ NHÁNH LỖI (ERROR PATH) - Không được giả vào gameplay
+        if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.Failed)
+        {
+            Debug.LogError($"[LOADING] Entering explicit error path: {GameplayReadinessCoordinator.CurrentStatusText}");
+            if (loadingPercentText != null)
+            {
+                loadingPercentText.text = $"<color=#FF5555>{GameplayReadinessCoordinator.CurrentStatusText}</color>";
+            }
+            if (loadingFillBar != null)
+            {
+                if (loadingFillBar.TryGetComponent<Image>(out var fillImg))
+                    fillImg.color = new Color(0.85f, 0.25f, 0.25f, 1f);
+            }
+            if (loadingErrorBackButton != null)
+            {
+                loadingErrorBackButton.SetActive(true);
+            }
+            yield break;
+        }
+
+        // Host phát lệnh giải phóng hoặc watchdog release -> Tiến lên 100%
         while (displayedProgress < 1f)
         {
             displayedProgress = Mathf.MoveTowards(displayedProgress, 1f, Time.unscaledDeltaTime * 10f);
@@ -1654,6 +1755,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 loadingFillBar.anchorMax = new Vector2(displayedProgress, 1f);
             if (loadingPercentText != null)
                 loadingPercentText.text = GameLocalization.Get("loading.ready_complete");
+            if (loadingSpinnerRect != null)
+                loadingSpinnerRect.Rotate(0f, 0f, -240f * Time.unscaledDeltaTime);
             yield return null;
         }
 
@@ -1681,6 +1784,48 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         Debug.Log("=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===");
     }
+
+    public void AbortLoadingAndReturnToMenu()
+    {
+        if (loadingCoroutine != null)
+        {
+            StopCoroutine(loadingCoroutine);
+            loadingCoroutine = null;
+        }
+
+        if (activeRunner != null)
+        {
+            activeRunner.Shutdown();
+            activeRunner = null;
+        }
+
+        GameplayReadinessCoordinator.ResetCoordinator();
+        isLoadingScreenActive = false;
+        isLocalSceneLoaded = false;
+        isHostSignaledGo = false;
+
+        if (loadingScreenPanel != null)
+        {
+            loadingScreenPanel.SetActive(false);
+            if (loadingErrorBackButton != null)
+                loadingErrorBackButton.SetActive(false);
+            if (loadingFillBar != null && loadingFillBar.TryGetComponent<Image>(out var fillImg))
+                fillImg.color = new Color(1f, 0.82f, 0.15f, 1f);
+        }
+
+        if (mainCanvas != null)
+        {
+            mainCanvas.gameObject.SetActive(true);
+            OpenPanel(mainPanel.GetComponent<CanvasGroup>());
+        }
+    }
+
+    private void UpdateLoadingTipDisplay()
+    {
+        if (loadingTipText == null) return;
+        string tipKey = $"loading.tip.{currentLoadingTipIndex}";
+        loadingTipText.text = GameLocalization.Get(tipKey, string.Empty);
+    }
     private void RestoreNetworkAfterLoading()
     {
         if (activeRunner != null)
@@ -1691,8 +1836,18 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void ForceCloseLoadingScreen()
     {
-        isHostSignaledGo = true;
-        GameplayReadinessCoordinator.Release();
+        // CHỈ cho phép giải phóng khi local stage chính xác là HUDAndSystemsReady hoặc AwaitingHostRelease (hoặc đã ReleasedToGameplay)
+        if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ||
+            GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease ||
+            GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.ReleasedToGameplay)
+        {
+            isHostSignaledGo = true;
+            GameplayReadinessCoordinator.Release();
+        }
+        else
+        {
+            Debug.LogWarning($"[LOADING] ForceCloseLoadingScreen deferred: Local readiness stage is '{GameplayReadinessCoordinator.CurrentStage}'. Must reach HUDAndSystemsReady/AwaitingHostRelease before release.");
+        }
     }
 
     public void OnSceneLoadDone(NetworkRunner runner)
@@ -2135,7 +2290,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private GameObject CreateBasePanel(string name, GameObject parent) { GameObject p = new GameObject(name); p.transform.SetParent(parent.transform, false); RectTransform r = p.AddComponent<RectTransform>(); r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero; return p; }
     private void CreateLabel(GameObject parent, string text, Vector2 anchorMin, Vector2 anchorMax) { GameObject labelObj = new GameObject("Label"); labelObj.transform.SetParent(parent.transform, false); TextMeshProUGUI labelTxt = labelObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) labelTxt.font = gameFont; labelTxt.text = GameLocalization.TranslateLiteral(text); labelTxt.color = new Color(0.8f, 0.8f, 0.8f, 1f); labelTxt.alignment = TextAlignmentOptions.Center; labelTxt.enableAutoSizing = true; labelTxt.fontSizeMin = 14; labelTxt.fontSizeMax = 20; RectTransform labelRect = labelObj.GetComponent<RectTransform>(); labelRect.anchorMin = anchorMin; labelRect.anchorMax = anchorMax; labelRect.offsetMin = Vector2.zero; labelRect.offsetMax = Vector2.zero; }
     private GameObject CreateInputField(GameObject parent, string name, string placeholderTxt, Vector2 anchorMin, Vector2 anchorMax) { GameObject inputObj = new GameObject(name); inputObj.transform.SetParent(parent.transform, false); RectTransform rect = inputObj.AddComponent<RectTransform>(); rect.anchorMin = anchorMin; rect.anchorMax = anchorMax; rect.offsetMin = Vector2.zero; rect.offsetMax = Vector2.zero; Image bg = inputObj.AddComponent<Image>(); bg.color = new Color(0.05f, 0.05f, 0.05f, 1f); TMP_InputField inputField = inputObj.AddComponent<TMP_InputField>(); inputField.targetGraphic = bg; inputField.characterLimit = 20; GameObject viewportObj = new GameObject("Viewport"); viewportObj.transform.SetParent(inputObj.transform, false); RectTransform vpRect = viewportObj.AddComponent<RectTransform>(); vpRect.anchorMin = Vector2.zero; vpRect.anchorMax = Vector2.one; vpRect.offsetMin = new Vector2(15, 0); vpRect.offsetMax = new Vector2(-15, 0); viewportObj.AddComponent<RectMask2D>(); GameObject textObj = new GameObject("Text"); textObj.transform.SetParent(viewportObj.transform, false); TextMeshProUGUI txt = textObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) txt.font = gameFont; txt.color = Color.white; txt.alignment = TextAlignmentOptions.Left; txt.enableAutoSizing = true; txt.fontSizeMin = 15; txt.fontSizeMax = 30; txt.textWrappingMode = TextWrappingModes.NoWrap; txt.overflowMode = TextOverflowModes.Truncate; RectTransform txtRect = textObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; GameObject phObj = new GameObject("Placeholder"); phObj.transform.SetParent(viewportObj.transform, false); TextMeshProUGUI pTxt = phObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) pTxt.font = gameFont; pTxt.text = GameLocalization.TranslateLiteral(placeholderTxt); pTxt.color = Color.gray; pTxt.alignment = TextAlignmentOptions.Left; pTxt.enableAutoSizing = true; pTxt.fontSizeMin = 15; pTxt.fontSizeMax = 30; pTxt.textWrappingMode = TextWrappingModes.NoWrap; pTxt.overflowMode = TextOverflowModes.Truncate; RectTransform phRect = phObj.GetComponent<RectTransform>(); phRect.anchorMin = Vector2.zero; phRect.anchorMax = Vector2.one; phRect.offsetMin = Vector2.zero; phRect.offsetMax = Vector2.zero; inputField.textViewport = vpRect; inputField.textComponent = txt; inputField.placeholder = pTxt; return inputObj; }
-    private void CreateMenuButton(GameObject parent, string text, UnityEngine.Events.UnityAction action, Vector2? customAnchor = null, bool isCenter = false, Vector2? customSize = null, float customFontSize = 35f) { GameObject btnObj = new GameObject("Btn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); if (customAnchor.HasValue) { rect.anchorMin = customAnchor.Value; rect.anchorMax = customAnchor.Value; if (isCenter) { rect.pivot = new Vector2(0.5f, 0.5f); } else { rect.pivot = (customAnchor.Value.x > 0.5f) ? new Vector2(1f, 0.5f) : new Vector2(0f, 0.5f); } } rect.sizeDelta = customSize.HasValue ? customSize.Value : new Vector2(300, 50); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = GameLocalization.TranslateLiteral(text); bool isRightAligned = !isCenter && customAnchor.HasValue && customAnchor.Value.x > 0.5f; tmpText.alignment = isCenter ? TextAlignmentOptions.Center : (isRightAligned ? TextAlignmentOptions.Right : TextAlignmentOptions.Left); tmpText.color = new Color(0.7f, 0.7f, 0.7f, 1f); tmpText.textWrappingMode = TextWrappingModes.NoWrap; tmpText.enableAutoSizing = false; tmpText.fontSize = customFontSize; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, isCenter || isRightAligned); }
+    private GameObject CreateMenuButton(GameObject parent, string text, UnityEngine.Events.UnityAction action, Vector2? customAnchor = null, bool isCenter = false, Vector2? customSize = null, float customFontSize = 35f) { GameObject btnObj = new GameObject("Btn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); if (customAnchor.HasValue) { rect.anchorMin = customAnchor.Value; rect.anchorMax = customAnchor.Value; if (isCenter) { rect.pivot = new Vector2(0.5f, 0.5f); } else { rect.pivot = (customAnchor.Value.x > 0.5f) ? new Vector2(1f, 0.5f) : new Vector2(0f, 0.5f); } } rect.sizeDelta = customSize.HasValue ? customSize.Value : new Vector2(300, 50); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = GameLocalization.TranslateLiteral(text); bool isRightAligned = !isCenter && customAnchor.HasValue && customAnchor.Value.x > 0.5f; tmpText.alignment = isCenter ? TextAlignmentOptions.Center : (isRightAligned ? TextAlignmentOptions.Right : TextAlignmentOptions.Left); tmpText.color = new Color(0.7f, 0.7f, 0.7f, 1f); tmpText.textWrappingMode = TextWrappingModes.NoWrap; tmpText.enableAutoSizing = false; tmpText.fontSize = customFontSize; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, isCenter || isRightAligned); return btnObj; }
     private TextMeshProUGUI CreateTextBtn(GameObject parent, string text, Vector2 anchorValue, UnityEngine.Events.UnityAction action) { GameObject btnObj = new GameObject("TextBtn_" + text); btnObj.transform.SetParent(parent.transform, false); RectTransform rect = btnObj.AddComponent<RectTransform>(); rect.anchorMin = anchorValue; rect.anchorMax = anchorValue; rect.pivot = new Vector2(0.5f, 0.5f); rect.sizeDelta = new Vector2(150, 40); Image btnImg = btnObj.AddComponent<Image>(); btnImg.color = new Color(1, 1, 1, 0); Button btn = btnObj.AddComponent<Button>(); btn.onClick.AddListener(action); GameObject txtObj = new GameObject("Text"); txtObj.transform.SetParent(btnObj.transform, false); TextMeshProUGUI tmpText = txtObj.AddComponent<TextMeshProUGUI>(); if (gameFont != null) tmpText.font = gameFont; tmpText.text = GameLocalization.TranslateLiteral(text); tmpText.alignment = TextAlignmentOptions.Center; tmpText.color = Color.gray; tmpText.enableAutoSizing = true; tmpText.fontSizeMin = 14; tmpText.fontSizeMax = 20; RectTransform txtRect = txtObj.GetComponent<RectTransform>(); txtRect.anchorMin = Vector2.zero; txtRect.anchorMax = Vector2.one; txtRect.offsetMin = Vector2.zero; txtRect.offsetMax = Vector2.zero; AutoMenuButtonEffect effect = btnObj.AddComponent<AutoMenuButtonEffect>(); effect.Setup(tmpText, true); return tmpText; }
 
     private void GenerateOptionsPanel(GameObject canvasGO)
