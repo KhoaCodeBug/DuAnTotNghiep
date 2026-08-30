@@ -12,18 +12,22 @@ public class PlayerVision : NetworkBehaviour
     public AnimationCurve radiusCurve;
     public AnimationCurve intensityCurve;
 
-    [Header("=== ĐÈN PIN: NGUỒN SÁNG THẬT ===")]
-    [Range(0.1f, 2f)] public float flashlightWorldIntensity = 0.85f;
+    [Header("=== ĐÈN PIN: NGUỒN SÁNG ĐỊNH HƯỚNG THẬT ===")]
+    [Range(4f, 20f)] public float flashlightRange = 11.5f;
+    [Range(10f, 90f)] public float flashlightNormalInnerAngle = 35f;
+    [Range(20f, 120f)] public float flashlightNormalOuterAngle = 55f;
+    [Range(10f, 90f)] public float flashlightAimInnerAngle = 22f;
+    [Range(20f, 120f)] public float flashlightAimOuterAngle = 40f;
+    [Range(0.1f, 2f)] public float flashlightWorldIntensity = 0.95f;
     [Range(0f, 1f)] public float flashlightFalloffIntensity = 0.82f;
     [Range(0f, 0.5f)] public float flashlightInnerRadiusRatio = 0.16f;
-    [Range(1f, 20f)] public float flashlightLightTransitionSpeed = 10f;
-    public Color flashlightWorldColor = new Color(1f, 0.91f, 0.72f, 1f);
+    [Range(1f, 20f)] public float flashlightLightTransitionSpeed = 12f;
+    public Color flashlightWorldColor = new Color(1f, 0.93f, 0.78f, 1f);
 
-    [Header("=== Cài đặt Ngắm Bắn (Chuột Phải) ===")]
-    public float normalInnerAngle = 100f;
-    public float normalOuterAngle = 140f;
-    public float aimInnerAngle = 80f;
-    public float aimOuterAngle = 120f;
+    [Header("=== TẦM NHÌN MẮT THƯỜNG / AMBIENT ===")]
+    [Range(1f, 8f)] public float ambientNightRadius = 2.8f;
+    [Range(0f, 1f)] public float ambientNightIntensity = 0.08f;
+    [Range(0f, 1f)] public float indoorAmbientNightIntensity = 0.035f;
     public float aimTransitionSpeed = 8f;
 
     [Header("=== FOG OF WAR (Tầm nhìn thực tế) ===")]
@@ -31,7 +35,7 @@ public class PlayerVision : NetworkBehaviour
     public LayerMask obstacleLayer;
 
     [Tooltip("Khoảng cách cảm nhận 360 độ quanh Player. Zombie phía sau vẫn hiện, nhưng tường kín vẫn chặn cảm nhận.")]
-    public float passiveVisionRadius = 1.5f;
+    public float passiveVisionRadius = 1.8f;
 
     [Range(0.05f, 1f)]
     [Tooltip("Thời gian zombie chuyển từ mờ sang rõ hoặc ngược lại.")]
@@ -43,7 +47,7 @@ public class PlayerVision : NetworkBehaviour
 
     [Header("=== ÁNH SÁNG TRONG NHÀ ===")]
     [Range(0f, 1f)]
-    [Tooltip("Ánh sáng mắt người trong nhà. Đèn pin sau này sẽ dùng mức sáng mạnh riêng.")]
+    [Tooltip("Ánh sáng mắt người trong nhà khi không bật đèn pin.")]
     public float indoorLightIntensityMultiplier = 0.12f;
 
     [Header("=== HIỂN THỊ PLAYER CỤC BỘ ===")]
@@ -80,9 +84,32 @@ public class PlayerVision : NetworkBehaviour
         ? playerInteraction.CurrentVehicleController
         : null;
     public bool IsUsingVehicleVision => CurrentVisionVehicle != null;
-    public Vector2 VisionWorldPosition => IsUsingVehicleVision
+
+    private static bool ShouldRenderPhysicalLight(
+        bool isTarget,
+        bool usingVehicleVision,
+        bool isIndoor,
+        bool flashlightActive)
+    {
+        if (!isTarget || usingVehicleVision) return false;
+        return !isIndoor || !flashlightActive;
+    }
+
+    public Transform FlashlightOriginTransform
+    {
+        get
+        {
+            if (pMove != null && pMove.flashlightTransform != null) return pMove.flashlightTransform;
+            if (playerLight != null) return playerLight.transform;
+            return transform;
+        }
+    }
+
+    public Vector2 FlashlightOrigin => IsUsingVehicleVision
         ? CurrentVisionVehicle.VisionOrigin
-        : (Vector2)transform.position;
+        : (Vector2)FlashlightOriginTransform.position;
+
+    public Vector2 VisionWorldPosition => FlashlightOrigin;
     public Vector2 VisionWorldDirection
     {
         get
@@ -92,6 +119,17 @@ public class PlayerVision : NetworkBehaviour
             return direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.up;
         }
     }
+
+    // FOW and gameplay LOS use the survivor body as their eye origin. The
+    // flashlight origin may be offset on a child transform and belongs to the
+    // later flashlight pass, not to the base visibility contract.
+    public Vector2 LineOfSightOrigin => IsUsingVehicleVision
+        ? CurrentVisionVehicle.VisionOrigin
+        : (pMove != null ? (Vector2)pMove.transform.position : (Vector2)transform.position);
+    public Vector2 LineOfSightDirection => VisionWorldDirection;
+    public float LineOfSightRadius => IsUsingVehicleVision ? CurrentVisionRadius : AmbientVisionRadius;
+    public LayerMask VisionObstacleLayer => obstacleLayer;
+
     public Collider2D ActiveIndoorCollider => !IsUsingVehicleVision && roofDetector != null
         ? roofDetector.CurrentIndoorCollider
         : null;
@@ -133,6 +171,14 @@ public class PlayerVision : NetworkBehaviour
         playerLight.targetSortingLayers = sortingLayerIds;
         playerLight.shadowsEnabled = true;
         playerLight.shadowSoftness = 0.82f;
+
+        // NOTE ON PHYSICAL LIGHT SHADOW LIMITATION:
+        // Enabling shadowsEnabled prepares the Light2D for any ShadowCaster2D components if authored in the future.
+        // However, because this project contains 0 authored ShadowCaster2D components on walls, physical Light2D
+        // does not cast hardware shadow boundaries on its own.
+        // The authoritative visual and gameplay line-of-sight barrier is provided by FogVisionController
+        // (180-ray building-scoped physics occlusion) and FogVisionOverlay.shader (_IndoorWallOccludedOpacity = 1.0),
+        // combined with PlayerVision.IsSightBlocked raycasts against structural obstacles.
     }
 
     private void SetupLocalPlayerReadability()
@@ -224,9 +270,16 @@ public class PlayerVision : NetworkBehaviour
         bool useVehicleVision = IsUsingVehicleVision;
         SetLocalPlayerReadability(isTarget && !useVehicleVision);
 
+        bool isInside = ActiveIndoorCollider != null;
+
         if (playerLight != null)
         {
-            playerLight.gameObject.SetActive(isTarget && !useVehicleVision);
+            bool renderPhysicalLight = ShouldRenderPhysicalLight(
+                isTarget,
+                useVehicleVision,
+                isInside,
+                IsFlashlightActive);
+            playerLight.gameObject.SetActive(renderPhysicalLight);
         }
 
         if (!isTarget)
@@ -247,70 +300,106 @@ public class PlayerVision : NetworkBehaviour
 
         if (playerLight == null) return;
 
-        // 1. ÁNH SÁNG NGÀY ĐÊM
+        // 1. ÁNH SÁNG NGÀY ĐÊM VÀ ĐÈN PIN
         if (DayNightManager.Instance != null)
         {
             float timePercent = DayNightManager.Instance.GetTimePercent();
             float baseRadius = radiusCurve.Evaluate(timePercent);
-            bool isInside = ActiveIndoorCollider != null;
             float fogMultiplier = !isInside && FogVisionController.Instance != null
                 ? FogVisionController.Instance.GetOutdoorVisionMultiplier()
                 : 1f;
 
-            // The flashlight brings practical visibility back to the 10:00 AM
-            // radius, while the fog renderer still leaves a soft haze in front.
-            float flashlightDayRadius = radiusCurve.Evaluate(10f / 24f);
-            float naturalVisionRadius = baseRadius * fogMultiplier;
+            float naturalVisionRadius = isInside ? Mathf.Min(baseRadius, ambientNightRadius) : baseRadius * fogMultiplier;
             AmbientVisionRadius = naturalVisionRadius;
-            CurrentVisionRadius = IsFlashlightActive
-                ? Mathf.Max(naturalVisionRadius, flashlightDayRadius)
-                : naturalVisionRadius;
-            float baseIntensity = intensityCurve.Evaluate(timePercent);
-            float naturalIntensity = baseIntensity * (isInside ? indoorLightIntensityMultiplier : 1f);
-            float targetLightRadius = IsFlashlightActive ? CurrentVisionRadius : naturalVisionRadius;
-            float targetLightIntensity = IsFlashlightActive
-                ? Mathf.Max(naturalIntensity, flashlightWorldIntensity)
-                : naturalIntensity;
-            Color targetLightColor = IsFlashlightActive ? flashlightWorldColor : Color.white;
+
+            bool questOverlayOpen = QuestFlowUIPrototype.Instance != null &&
+                                    QuestFlowUIPrototype.Instance.IsQuestOverlayOpen;
+            bool isAiming = HasInputAuthority ? !questOverlayOpen && Input.GetMouseButton(1) : pMove.NetIsAiming;
+
+            float targetLightRadius;
+            float targetLightIntensity;
+            Color targetLightColor;
+            float targetFalloff;
+            float targetInnerRadius;
+            float targetInnerAngle;
+            float targetOuterAngle;
+
+            if (IsFlashlightActive)
+            {
+                CurrentVisionRadius = flashlightRange;
+                targetInnerAngle = isAiming ? flashlightAimInnerAngle : flashlightNormalInnerAngle;
+                targetOuterAngle = isAiming ? flashlightAimOuterAngle : flashlightNormalOuterAngle;
+                CurrentVisionAngle = targetOuterAngle;
+
+                targetLightRadius = flashlightRange;
+                targetLightIntensity = flashlightWorldIntensity;
+                targetLightColor = flashlightWorldColor;
+                targetFalloff = flashlightFalloffIntensity;
+                targetInnerRadius = flashlightRange * flashlightInnerRadiusRatio;
+            }
+            else
+            {
+                CurrentVisionRadius = naturalVisionRadius;
+                CurrentVisionAngle = 360f;
+                targetInnerAngle = 0f;
+                targetOuterAngle = 360f;
+
+                targetLightRadius = naturalVisionRadius;
+                float baseIntensity = intensityCurve.Evaluate(timePercent);
+                float naturalIntensity = baseIntensity * (isInside ? indoorAmbientNightIntensity : 1f);
+                targetLightIntensity = Mathf.Min(naturalIntensity, isInside ? indoorAmbientNightIntensity : ambientNightIntensity);
+                targetLightColor = Color.white;
+                targetFalloff = 0.55f;
+                targetInnerRadius = 0f;
+            }
+
             float transition = 1f - Mathf.Exp(-flashlightLightTransitionSpeed * Time.deltaTime);
 
-            // This is the actual URP 2D light. It illuminates lit tiles/sprites,
-            // respects ShadowCaster2D walls, and softly falls off before the fog
-            // shader reaches its own feathered edge.
             playerLight.pointLightOuterRadius = Mathf.Lerp(playerLight.pointLightOuterRadius, targetLightRadius, transition);
-            playerLight.pointLightInnerRadius = Mathf.Lerp(playerLight.pointLightInnerRadius,
-                IsFlashlightActive ? targetLightRadius * flashlightInnerRadiusRatio : 0f, transition);
+            playerLight.pointLightInnerRadius = Mathf.Lerp(playerLight.pointLightInnerRadius, targetInnerRadius, transition);
             playerLight.intensity = Mathf.Lerp(playerLight.intensity, targetLightIntensity, transition);
-            playerLight.falloffIntensity = Mathf.Lerp(playerLight.falloffIntensity,
-                IsFlashlightActive ? flashlightFalloffIntensity : 0.55f, transition);
+            playerLight.falloffIntensity = Mathf.Lerp(playerLight.falloffIntensity, targetFalloff, transition);
             playerLight.color = Color.Lerp(playerLight.color, targetLightColor, transition);
+
+            playerLight.pointLightInnerAngle = Mathf.Lerp(playerLight.pointLightInnerAngle, targetInnerAngle, Time.deltaTime * aimTransitionSpeed);
+            playerLight.pointLightOuterAngle = Mathf.Lerp(playerLight.pointLightOuterAngle, targetOuterAngle, Time.deltaTime * aimTransitionSpeed);
         }
         else
         {
             CurrentVisionRadius = playerLight.pointLightOuterRadius;
             AmbientVisionRadius = CurrentVisionRadius;
+            CurrentVisionAngle = playerLight.pointLightOuterAngle;
         }
 
-        // 2. BÓP GÓC KHI NGẮM BẮN
-        bool questOverlayOpen = QuestFlowUIPrototype.Instance != null &&
-                                QuestFlowUIPrototype.Instance.IsQuestOverlayOpen;
-        bool isAiming = HasInputAuthority ? !questOverlayOpen && Input.GetMouseButton(1) : pMove.NetIsAiming;
-        float physicalInner = isAiming ? aimInnerAngle : normalInnerAngle;
-        float physicalOuter = isAiming ? aimOuterAngle : normalOuterAngle;
-        float targetInner = physicalInner;
-        float targetOuter = physicalOuter;
-        if (IsFlashlightActive)
+        // 2. ĐỒNG BỘ TÂM VÀ HƯỚNG XOAY CỦA LIGHT2D VỚI FLASHLIGHT ORIGIN & AIM DIRECTION
+        if (playerLight != null)
         {
-            targetInner = Mathf.Max(targetInner, 105f);
-            targetOuter = Mathf.Max(targetOuter, 145f);
-        }
-        CurrentVisionAngle = targetOuter;
+            if (IsUsingVehicleVision)
+            {
+                playerLight.transform.position = CurrentVisionVehicle.VisionOrigin;
+                float vehicleAngle = Mathf.Atan2(CurrentVisionVehicle.VisionDirection.y, CurrentVisionVehicle.VisionDirection.x) * Mathf.Rad2Deg;
+                playerLight.transform.rotation = Quaternion.Euler(0, 0, vehicleAngle - 90f);
+            }
+            else
+            {
+                if (playerLight.transform != FlashlightOriginTransform &&
+                    (playerLight.transform.parent == null || playerLight.transform.parent == transform))
+                {
+                    playerLight.transform.position = FlashlightOrigin;
+                }
 
-        playerLight.pointLightInnerAngle = Mathf.Lerp(playerLight.pointLightInnerAngle, targetInner, Time.deltaTime * aimTransitionSpeed);
-        playerLight.pointLightOuterAngle = Mathf.Lerp(playerLight.pointLightOuterAngle, targetOuter, Time.deltaTime * aimTransitionSpeed);
+                Vector2 lookDir = VisionWorldDirection;
+                if (lookDir.sqrMagnitude > 0.0001f)
+                {
+                    float lookAngle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg;
+                    Quaternion targetLightRot = Quaternion.Euler(0, 0, lookAngle - 90f);
+                    playerLight.transform.rotation = Quaternion.Lerp(playerLight.transform.rotation, targetLightRot, flashlightLightTransitionSpeed * Time.deltaTime);
+                }
+            }
+        }
 
         // 3. FOG OF WAR - TẮT/BẬT ZOMBIE
-        UpdateZombieVisibility(targetOuter);
+        UpdateZombieVisibility(CurrentVisionAngle);
     }
 
     private void HideAllZombies()
@@ -396,8 +485,8 @@ public class PlayerVision : NetworkBehaviour
 
     private void UpdateZombieVisibility(float currentLogicAngle)
     {
-        Vector2 visionOrigin = VisionWorldPosition;
-        Vector2 lookDir = VisionWorldDirection;
+        Vector2 visionOrigin = LineOfSightOrigin;
+        Vector2 lookDir = LineOfSightDirection;
         float visionRadius = CurrentVisionRadius;
 
         int zombieCount = Physics2D.OverlapCircle(visionOrigin, 40f, zombieFilter, zombiesInRadius);
@@ -424,28 +513,20 @@ public class PlayerVision : NetworkBehaviour
             {
                 isVisible = true;
             }
-
-            // Without a flashlight, indoor vision cannot reveal exterior zombie silhouettes.
-            // With one, the regular radius/cone/LOS checks below may see through an open doorway.
-            else if (isInside && !indoorCollider.OverlapPoint(zCollider.bounds.center) && !IsFlashlightActive)
-            {
-                isVisible = false;
-            }
-            // Vùng cảm nhận 360 độ luôn hoạt động: zombie sát người không thể biến mất
-            // chỉ vì ở sau lưng hoặc đứng phía bên kia ranh giới indoor.
+            // Vùng cảm nhận 360 độ luôn hoạt động: zombie sát người trong tầm nhìn trực tiếp
             else if (dstToZombie <= passiveVisionRadius &&
                      !IsSightBlocked(visionOrigin, dirToZombie, dstToZombie))
             {
                 isVisible = true;
             }
-            // B. NHÌN TRỰC TIẾP TRONG BÁN KÍNH ĐÈN PIN
+            // Tầm nhìn trực tiếp: trong bán kính nhìn thấy (ambient 360 hoặc nón đèn pin) và không bị cản tường
             else if (dstToZombie <= visionRadius)
             {
                 float angleToZombie = Vector2.Angle(lookDir, dirToZombie);
 
                 if (angleToZombie <= currentLogicAngle / 2f)
                 {
-                    // Bắn tia Raycast kiểm tra xem có kẹt tường không
+                    // Bắn tia Raycast kiểm tra xem có kẹt tường / cửa đóng không
                     if (!IsSightBlocked(visionOrigin, dirToZombie, dstToZombie))
                     {
                         isVisible = true;
@@ -464,20 +545,8 @@ public class PlayerVision : NetworkBehaviour
 
     private bool IsSightBlocked(Vector2 origin, Vector2 direction, float distance)
     {
-        if (distance <= 0.001f) return false;
-
-        int hitCount = Physics2D.Raycast(origin, direction, obstacleFilter,
-            sightObstacleHits, distance);
-        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++)
-        {
-            Collider2D hitCollider = sightObstacleHits[hitIndex].collider;
-            if (hitCollider == null ||
-                hitCollider.GetComponent<MilitaryGateVisionPassThrough>() != null)
-                continue;
-            return true;
-        }
-
-        return false;
+        return VisionLineOfSight.IsBlocked(origin, direction, distance,
+            obstacleFilter, sightObstacleHits);
     }
 
     private void SetZombieRendererVisibility(SpriteRenderer renderer, bool visible, bool immediate)
