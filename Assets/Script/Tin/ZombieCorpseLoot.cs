@@ -14,22 +14,25 @@ public interface IZombieCorpseSearchTarget
 public sealed class ZombieCorpseLootTable
 {
     [Header("Tỉ lệ vật phẩm khi xác có loot")]
-    [Range(0f, 100f)] public float waterWeight = 35f;
-    [Range(0f, 100f)] public float bandageWeight = 30f;
-    [Range(0f, 100f)] public float medicineWeight = 20f;
-    [Range(0f, 100f)] public float ammoWeight = 15f;
+    [Range(0f, 100f)] public float waterWeight = 25f;
+    [Range(0f, 100f)] public float bandageWeight = 45f;
+    [Range(0f, 100f)] public float medicineWeight = 15f;
+    [Range(0f, 100f)] public float ammoWeight = 10f;
+    [Range(0f, 100f)] public float ammo12GaugeWeight = 5f;
 
     public int RollKind()
     {
         float total = Mathf.Max(0f, waterWeight) + Mathf.Max(0f, bandageWeight) +
-                      Mathf.Max(0f, medicineWeight) + Mathf.Max(0f, ammoWeight);
+                      Mathf.Max(0f, medicineWeight) + Mathf.Max(0f, ammoWeight) +
+                      Mathf.Max(0f, ammo12GaugeWeight);
         if (total <= 0f) return 0;
 
         float roll = UnityEngine.Random.value * total;
         if ((roll -= Mathf.Max(0f, waterWeight)) < 0f) return 1;
         if ((roll -= Mathf.Max(0f, bandageWeight)) < 0f) return 2;
         if ((roll -= Mathf.Max(0f, medicineWeight)) < 0f) return 3;
-        return 4;
+        if ((roll -= Mathf.Max(0f, ammoWeight)) < 0f) return 4;
+        return 5;
     }
 
     public static ItemData LoadItem(int kind)
@@ -40,6 +43,7 @@ public sealed class ZombieCorpseLootTable
             2 => ItemDataLoader.LoadItem("Bandage"),
             3 => ItemDataLoader.LoadItem("PainKiller"),
             4 => ItemDataLoader.LoadItem("Ammo762"),
+            5 => ItemDataLoader.LoadItem("Ammo12Gauge"),
             _ => null
         };
     }
@@ -74,14 +78,34 @@ public static class LootProbabilityRules
 /// <summary>Shared quantity policy for ordinary/random loot only.</summary>
 public static class LootQuantityRules
 {
-    public const int AmmoMinimum = 5;
-    public const int AmmoMaximum = 10;
+    public const int Ammo762Minimum = 15;
+    public const int Ammo762Maximum = 30;
+    public const int Ammo12GaugeFixedAmount = 5;
+
+    // Compatibility aliases for existing balance/audit callers.  All random
+    // rifle-ammo rolls now use the expanded 15-30 range.
+    public const int AmmoMinimum = Ammo762Minimum;
+    public const int AmmoMaximum = Ammo762Maximum;
 
     public static bool IsAmmo(ItemData item) => item != null && item.category == ItemCategory.Ammunition;
 
+    public static bool IsAmmo762(ItemData item) => IsNamedItem(item, "Ammo762", "7.62mm Ammo");
+
+    public static bool IsAmmo12Gauge(ItemData item) => IsNamedItem(item, "Ammo12Gauge", "12 Gauge Ammo");
+
     public static int RollRandomAmount(ItemData item, int configuredMinimum, int configuredMaximum)
     {
-        if (IsAmmo(item)) return UnityEngine.Random.Range(AmmoMinimum, AmmoMaximum + 1);
+        if (IsAmmo762(item)) return UnityEngine.Random.Range(Ammo762Minimum, Ammo762Maximum + 1);
+        if (IsAmmo12Gauge(item))
+        {
+            int authoredMinimum = Mathf.Max(1, Mathf.Min(configuredMinimum, configuredMaximum));
+            int authoredMaximum = Mathf.Max(authoredMinimum, configuredMaximum);
+            // TutorialKitchenLootTable intentionally authors a 12-round
+            // guaranteed stack.  Preserve explicit fixed authoring while the
+            // ordinary default table uses the canonical fixed amount of five.
+            if (authoredMinimum == authoredMaximum) return authoredMinimum;
+            return Ammo12GaugeFixedAmount;
+        }
 
         int minimum = Mathf.Max(1, Mathf.Min(configuredMinimum, configuredMaximum));
         int maximum = Mathf.Max(minimum, configuredMaximum);
@@ -90,7 +114,17 @@ public static class LootQuantityRules
 
     public static int GetCorpseAmount(ItemData item)
     {
-        return IsAmmo(item) ? UnityEngine.Random.Range(AmmoMinimum, AmmoMaximum + 1) : 1;
+        if (IsAmmo762(item)) return UnityEngine.Random.Range(Ammo762Minimum, Ammo762Maximum + 1);
+        if (IsAmmo12Gauge(item)) return Ammo12GaugeFixedAmount;
+        return 1;
+    }
+
+    private static bool IsNamedItem(ItemData item, string assetName, string displayName)
+    {
+        if (!IsAmmo(item)) return false;
+        return string.Equals(item.name, assetName, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(item.itemName, assetName, StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(item.itemName, displayName, StringComparison.OrdinalIgnoreCase);
     }
 }
 

@@ -14,30 +14,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   lootRules:
   - itemPrefab: {fileID: 11400000, guid: a7620000000000000000000000007620, type: 2}
-    dropChance: 30
-    minAmount: 5
-    maxAmount: 10
+    dropChance: 20
+    minAmount: 15
+    maxAmount: 30
   - itemPrefab: {fileID: 11400000, guid: 9b2a48c8c18d6294ca217fec6afbd2fe, type: 2}
-    dropChance: 50
+    dropChance: 35
     minAmount: 1
     maxAmount: 1
   - itemPrefab: {fileID: 11400000, guid: fae581eeb7321c5489edd85a61c3a320, type: 2}
-    dropChance: 30
-    minAmount: 1
-    maxAmount: 1
-  - itemPrefab: {fileID: 11400000, guid: 2df18970909eaf04c88464db7cb5a4ed, type: 2}
-    dropChance: 60
-    minAmount: 1
-    maxAmount: 1
-  - itemPrefab: {fileID: 11400000, guid: 51b118704da36cc4185910d2a51b1261, type: 2}
     dropChance: 20
     minAmount: 1
     maxAmount: 1
+  - itemPrefab: {fileID: 11400000, guid: 2df18970909eaf04c88464db7cb5a4ed, type: 2}
+    dropChance: 40
+    minAmount: 1
+    maxAmount: 1
+  - itemPrefab: {fileID: 11400000, guid: 51b118704da36cc4185910d2a51b1261, type: 2}
+    dropChance: 15
+    minAmount: 1
+    maxAmount: 1
   - itemPrefab: {fileID: 11400000, guid: dd0d8f6dbe899b548878105a5a9741f7, type: 2}
-    dropChance: 60
+    dropChance: 45
     minAmount: 1
     maxAmount: 1
   - itemPrefab: {fileID: 11400000, guid: 6de1eb1fa3b69d246a599b1370184fc9, type: 2}
-    dropChance: 30
+    dropChance: 15
     minAmount: 5
-    maxAmount: 10
+    maxAmount: 5

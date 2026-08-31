@@ -273,9 +273,41 @@ public class InventorySystem : NetworkBehaviour
         int difficulty = DifficultyRules.ActiveDifficulty;
         DifficultyRules.StarterItem[] loadout = DifficultyRules.GetStarterGearLoadout(difficulty);
         bool fullyApplied = true;
+        ItemData selectedStarterWeapon = null;
 
         foreach (var item in loadout)
         {
+            if (string.Equals(item.ItemId, DifficultyRules.RandomStarterWeaponId,
+                System.StringComparison.OrdinalIgnoreCase))
+            {
+                if (selectedStarterWeapon == null)
+                    selectedStarterWeapon = ResolveStartingWeapon();
+
+                if (selectedStarterWeapon == null)
+                {
+                    fullyApplied = false;
+                    continue;
+                }
+
+                bool weaponApplied = PlaceStartingWeaponInHotbar(selectedStarterWeapon);
+                if (!weaponApplied)
+                {
+                    fullyApplied = false;
+                    continue;
+                }
+
+                StartingWeaponId = selectedStarterWeapon.name;
+                HasStartingWeapon = true;
+                hasAppliedStartingWeaponLocally = true;
+
+                if (!AddStartingWeaponMagazine(selectedStarterWeapon))
+                    fullyApplied = false;
+
+                HostModeSpawner spawner = HostModeSpawner.Instance;
+                if (spawner != null) spawner.CacheStartingWeapon(Object.InputAuthority, selectedStarterWeapon);
+                continue;
+            }
+
             ItemData data = ItemDataLoader.LoadItem(item.ItemId);
             if (data == null)
             {
@@ -323,6 +355,51 @@ public class InventorySystem : NetworkBehaviour
         StartingLoadoutResolved = true;
         Debug.Log($"[STARTING LOADOUT] Verified {DifficultyRules.GetDifficultyName(difficulty)} starting loadout for Player {Object.InputAuthority}.");
         return true;
+    }
+
+    private ItemData ResolveStartingWeapon()
+    {
+        string existingId = StartingWeaponId.ToString();
+        if (HasStartingWeapon && DifficultyRules.IsStarterWeaponId(existingId))
+        {
+            ItemData existing = ItemDataLoader.LoadItem(existingId);
+            if (existing != null && existing.category == ItemCategory.Weapon)
+                return existing;
+        }
+
+        List<ItemData> availableWeapons = new List<ItemData>();
+        foreach (string weaponId in DifficultyRules.GetStarterWeaponPool())
+        {
+            ItemData weapon = ItemDataLoader.LoadItem(weaponId);
+            if (weapon != null && weapon.category == ItemCategory.Weapon)
+                availableWeapons.Add(weapon);
+        }
+
+        if (availableWeapons.Count == 0)
+        {
+            Debug.LogWarning("[STARTING LOADOUT] No valid starter weapon exists in the configured pool.");
+            return null;
+        }
+
+        ItemData selected = availableWeapons[Random.Range(0, availableWeapons.Count)];
+        StartingWeaponId = selected.name;
+        HasStartingWeapon = true;
+        return selected;
+    }
+
+    private bool AddStartingWeaponMagazine(ItemData weapon)
+    {
+        if (weapon == null || weapon.category != ItemCategory.Weapon ||
+            weapon.ammoTypeRequired == null || weapon.magazineCapacity <= 0)
+        {
+            Debug.LogWarning($"[STARTING LOADOUT] Weapon '{weapon?.name}' has no valid magazine configuration.");
+            return false;
+        }
+
+        ItemData ammo = weapon.ammoTypeRequired;
+        int magazineAmount = Mathf.Max(1, weapon.magazineCapacity);
+        int missingAmount = Mathf.Max(0, magazineAmount - GetItemAmount(ammo));
+        return missingAmount <= 0 || AddItem(ammo, missingAmount);
     }
 
     private void MarkTutorialLoadoutReady()
