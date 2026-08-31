@@ -1,1 +1,15 @@
-{"house":"nhachinhxaydautien (12)","x":-39.2,"y":44.3,"hour":13.5,"directionX":0,"directionY":1,"zoom":3,"flashlight":true,"prototype":true,"label":"v2-user-test-ready","cameraUp":1.2}
+{
+  "house": "nhachinhxaydautien (12)",
+  "x": -39.2,
+  "y": 44.3,
+  "directionX": 0,
+  "directionY": 1,
+  "zoom": 3,
+  "cameraUp": 1.2,
+  "prototype": true,
+  "flashlightConeFeather": 0.2,
+  "flashlightBoundaryFadeDistance": 0.65,
+  "hour": 13.5,
+  "flashlight": false,
+  "label": "shadow-final-review-ready"
+}

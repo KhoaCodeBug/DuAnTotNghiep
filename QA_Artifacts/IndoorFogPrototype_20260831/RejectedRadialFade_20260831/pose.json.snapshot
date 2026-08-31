@@ -1,0 +1,15 @@
+{
+  "house": "nhachinhxaydautien (12)",
+  "x": -39.8,
+  "y": 44.9,
+  "directionX": 1,
+  "directionY": 0.3,
+  "zoom": 2.3,
+  "cameraUp": 1.2,
+  "prototype": true,
+  "flashlightConeFeather": 0.5,
+  "flashlightBoundaryFadeDistance": 1.5,
+  "hour": 13.5,
+  "flashlight": true,
+  "label": "boundary-candidate-edge"
+}

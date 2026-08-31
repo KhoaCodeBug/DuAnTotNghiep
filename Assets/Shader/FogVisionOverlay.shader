@@ -64,6 +64,9 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float2 _IndoorOcclusionOrigin;
                 float _IndoorOcclusionEdgeSoftness;
                 float _IndoorWallOccludedOpacity;
+                float _IndoorFlashlightBoundaryFade;
+                float _IndoorShadowEdgeCount;
+                float4 _IndoorShadowEdges[16];
                 float _QuestBoundaryActive;
                 float2 _QuestBoundaryOrigin;
                 float2 _QuestBoundaryRight;
@@ -196,6 +199,35 @@ Shader "ProjectZomboid/FogVisionOverlay"
                     testedDistance);
             }
 
+            float IndoorShadowEdgeFade(float2 worldPosition)
+            {
+                if (_FlashlightActive < 0.5 || _IndoorFlashlightBoundaryFade <= 0.0)
+                    return 0.0;
+                float2 offset = worldPosition - _IndoorOcclusionOrigin;
+                float fade = 0.0;
+                [loop]
+                for (int i = 0; i < (int)_IndoorShadowEdgeCount; i++)
+                {
+                    float4 edge = _IndoorShadowEdges[i];
+                    float along = dot(offset, edge.xy);
+                    float side = (edge.x * offset.y - edge.y * offset.x) * sign(edge.w);
+                    // Only the visible side beyond the near blocker is graded.
+                    // Ordinary ray/wall contact is NOT a fade boundary.
+                    // The shadow ray continues beyond the far sampled wall.
+                    // Cutting at that hit leaves a bright seam on projected art
+                    // whose footprint is slightly beyond the physics surface.
+                    float segment = smoothstep(edge.z, edge.z + 0.15, along);
+                    // Cover the narrow existing reconstruction band on either
+                    // side without a sign cutoff (which produces a bright seam).
+                    // The caller only raises opacity; accepted visibility is
+                    // applied once by the final cover blend, never expanded.
+                    float inward = 1.0 - smoothstep(0.0, _IndoorFlashlightBoundaryFade,
+                        abs(side));
+                    fade = max(fade, inward * segment);
+                }
+                return fade;
+            }
+
             half4 frag(Varyings input) : SV_Target
             {
                 float2 worldPosition = _FogWorldBottomLeft + input.uv.x * _FogWorldRight + input.uv.y * _FogWorldUp;
@@ -247,13 +279,24 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 {
                     insideIndoor = max(originalInside, IsInsideIndoorPolygon(visibilityPosition));
                     float visible = insideIndoor * indoorOcclusionVisibility;
-                    // Narrow the flashlight feather slightly; soften lighting on visible surfaces
-                    // without dilating visibility into the room behind the wall.
-                    float lightCone = smoothstep(_VisionCosHalfAngle + _IndoorSurfaceLighting.z,
-                        _VisionCosHalfAngle + _IndoorSurfaceLighting.z + 0.20, angleDot);
+                    // Grade flashlight intensity across the visible floor and projected art.
+                    // Keep the accepted dark outer edge; start fading earlier INSIDE the
+                    // beam instead of blurring occlusion or revealing an adjacent room.
+                    float lightEdge = _VisionCosHalfAngle + _IndoorSurfaceLighting.z;
+                    float lightCore = min(0.999, lightEdge + max(0.20, _IndoorSurfaceLighting.w));
+                    float lightCone = smoothstep(lightEdge, lightCore, angleDot);
                     float illumination = lightCone * flashlightReach * _FlashlightActive;
                     float ambientOpacity = saturate(_IndoorSurfaceLighting.x + (1 - rawConeVisibility) * 0.12);
                     float surfaceOpacity = lerp(ambientOpacity, _IndoorSurfaceLighting.y, illumination);
+                    // Preserve the bright wall face. Only cast-shadow silhouettes
+                    // grade inward; the accepted visibility/cover remains intact.
+                    // Do not multiply by visible here: the blend below already
+                    // applies it. Double weighting creates a bright seam in the
+                    // partially occluded band instead of meeting the dark cover.
+                    float flashlightBoundaryFade = IndoorShadowEdgeFade(visibilityPosition) *
+                        _FlashlightActive * lightCone;
+                    surfaceOpacity = lerp(surfaceOpacity, _IndoorWallOccludedOpacity,
+                        flashlightBoundaryFade);
                     float opacity = lerp(_IndoorExteriorOpacity, surfaceOpacity, visible);
                     opacity = max(opacity, (1 - indoorOcclusionVisibility) * _IndoorWallOccludedOpacity);
                     float exitAwareness = (1 - smoothstep(_IndoorExitAwarenessRadius * 0.28,

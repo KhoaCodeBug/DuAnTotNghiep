@@ -22,6 +22,10 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
     [Range(0f, 1f)] public float nightAmbientOpacity = 0.15f;
     [Range(0f, 1f)] public float litOpacity = 0.08f;
     [Range(0f, 0.3f)] public float coneInset = 0.06f;
+    [Tooltip("Flashlight intensity transition in cosine space. A wider ramp dims inward; the outer cone and wall visibility stay unchanged.")]
+    [Range(0.2f, 0.6f)] public float flashlightConeFeather = 0.20f;
+    [Tooltip("Fade width on the lit side of a cast-shadow edge, not distance to a wall face. Zero preserves V2 for A/B comparison.")]
+    [Range(0f, 2.5f)] public float flashlightBoundaryFadeDistance = 0.65f;
 
     public RenderTexture Atlas { get; private set; }
     public Vector4 AtlasBounds { get; private set; }

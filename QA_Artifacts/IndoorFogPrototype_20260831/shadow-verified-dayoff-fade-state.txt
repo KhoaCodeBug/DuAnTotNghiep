@@ -1,0 +1,22 @@
+{
+    "house": "nhachinhxaydautien (12)",
+    "x": -39.20000076293945,
+    "y": 44.29999923706055,
+    "hour": 13.5,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": false,
+    "prototype": true,
+    "label": "shadow-verified-dayoff-fade",
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421
+}
+actual=(-39.20, 44.30, -0.03) direction=(0.00, 1.00)
+health=85.67027 dead=false
+indoor===========Map========== /Map/nhachinhxaydautien (12)/nocnha (1)
+mask=1 surface=1 flashlight=0 angle=140
+light=0.1153594 global=1.391357 innerAngle=100 outerAngle=140
+surfaces=67 buildMs=2.0939
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=0 movementEnabled=False
