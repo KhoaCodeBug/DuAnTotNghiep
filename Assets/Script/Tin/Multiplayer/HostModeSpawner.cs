@@ -181,7 +181,12 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             yield return null;
         }
 
-        if (Runner == null) yield break;
+        if (Runner == null)
+        {
+            GameplayReadinessCoordinator.Fail(
+                string.Format(GameLocalization.Get("loading.failed"), "Network Runner unavailable"));
+            yield break;
+        }
 
         // 🔥 ĐỢI CHO ĐẾN KHI CLIENT NHẬN ĐƯỢC DIFFICULTY AUTHORITATIVE HỢP LỆ TRƯỚC KHI TIẾN HÀNH SPAWN
         if (Runner != null && !Runner.IsServer)
@@ -264,26 +269,18 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         if (Runner != null && !Runner.IsServer && !IsSessionDifficultyAuthoritativeReady)
         {
             Debug.LogError("[SPAWNER] Difficulty authoritative not ready before loading acknowledgement. Aborting ready report.");
+            GameplayReadinessCoordinator.Fail(
+                string.Format(GameLocalization.Get("loading.failed"), "Authoritative difficulty unavailable"));
             yield break;
         }
 
-        // 3. Báo cáo cho Host hoặc tự động mở mắt trong Solo
+        // 3. Báo cáo readiness theo từng player. Không chờ toàn bộ phòng tải xong.
         if (Runner != null && Runner.IsServer)
         {
-            bool isSolo = Runner.GameMode == GameMode.Single ||
-                          (Runner.SessionInfo != null && Runner.SessionInfo.MaxPlayers <= 1);
-
-            RegisterReadyPlayer(playersLoadedSet, Runner.LocalPlayer);
-
-            if (isSolo)
+            if (RegisterReadyPlayer(playersLoadedSet, Runner.LocalPlayer))
             {
                 IsMatchStarted = true;
-                RPC_OpenEyesForAll();
-            }
-            else
-            {
-                CheckAndStartGame();
-                StartCoroutine(HostReadinessTimeoutWatchdog());
+                RPC_ReleaseReadyPlayer(Runner.LocalPlayer);
             }
         }
         else
@@ -597,22 +594,14 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             return;
         }
 
-        // Nhánh 1: Nếu game đã bắt đầu từ lâu, đây là người đi trễ (Late Joiner)
-        if (IsMatchStarted)
-        {
-            RPC_OpenEyesForLateJoiner(authoritativePlayer); // Gọi riêng nó mở mắt lập tức
-            string pName = GetPlayerName(authoritativePlayer);
-            if (!lateJoinAnnouncedPlayers.Contains(authoritativePlayer))
-            {
-                lateJoinAnnouncedPlayers.Add(authoritativePlayer);
-                RPC_AnnounceLateJoin(pName);
-            }
-            return;
-        }
+        bool matchWasAlreadyStarted = IsMatchStarted;
+        if (!RegisterReadyPlayer(playersLoadedSet, authoritativePlayer)) return;
 
-        // Nhánh 2: Game chưa bắt đầu, đang ở đoạn Đồng Bộ Đầu Trận
-        if (RegisterReadyPlayer(playersLoadedSet, authoritativePlayer))
-            CheckAndStartGame();
+        IsMatchStarted = true;
+        RPC_ReleaseReadyPlayer(authoritativePlayer);
+
+        if (matchWasAlreadyStarted && lateJoinAnnouncedPlayers.Add(authoritativePlayer))
+            RPC_AnnounceLateJoin(GetPlayerName(authoritativePlayer));
     }
 
     public static bool RegisterReadyPlayer(ISet<PlayerRef> readyPlayers, PlayerRef player)
@@ -627,43 +616,9 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         return "name:" + (string.IsNullOrWhiteSpace(fallbackName) ? player.ToString() : fallbackName.Trim());
     }
 
-    private IEnumerator HostReadinessTimeoutWatchdog()
-    {
-        float waitTimeout = 10f;
-        while (waitTimeout > 0f && !IsMatchStarted)
-        {
-            waitTimeout -= Time.deltaTime;
-            yield return null;
-        }
-
-        if (Runner != null && Runner.IsServer && !IsMatchStarted && playersLoadedSet.Count > 0)
-        {
-            Debug.LogWarning($"[SPAWNER WATCHDOG] Host timeout reached. Starting match with {playersLoadedSet.Count} ready players.");
-            CheckAndStartGame(force: true);
-        }
-    }
-
-    public void CheckAndStartGame(bool force = false)
-    {
-        if (!Runner.IsServer || IsMatchStarted) return;
-
-        int currentPlayersInRoom = (Runner.SessionInfo != null && Runner.SessionInfo.PlayerCount > 0)
-            ? Runner.SessionInfo.PlayerCount
-            : 1;
-
-        Debug.Log($"[ĐIỂM DANH] Đã có {playersLoadedSet.Count}/{currentPlayersInRoom} người tải xong Map. (force={force})");
-
-        // NẾU TẤT CẢ ĐÃ TẢI XONG HOẶC ĐẠT TIMEOUT -> PHÁT LỆNH GO!!!
-        if ((playersLoadedSet.Count >= currentPlayersInRoom && playersLoadedSet.Count > 0) || (force && playersLoadedSet.Count > 0))
-        {
-            IsMatchStarted = true;
-            RPC_OpenEyesForAll();
-        }
-    }
-
-    // Lệnh phát thanh cho TOÀN BỘ SERVER cùng mở mắt (Đẩy Loading lên 100%)
+    // Host chỉ giải phóng đúng player đã báo readiness thành công.
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_OpenEyesForAll()
+    public void RPC_ReleaseReadyPlayer([RpcTarget] PlayerRef targetPlayer)
     {
         if (AutoMainMenuManager.Instance != null)
         {
@@ -680,31 +635,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             }
             else
             {
-                Debug.LogWarning($"[SPAWNER] RPC_OpenEyesForAll deferred: local stage is '{GameplayReadinessCoordinator.CurrentStage}'.");
-            }
-        }
-    }
-
-    // Lệnh gọi điện riêng cho thằng đi trễ (Late Joiner) bảo nó mở mắt
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_OpenEyesForLateJoiner([RpcTarget] PlayerRef targetPlayer)
-    {
-        if (AutoMainMenuManager.Instance != null)
-        {
-            AutoMainMenuManager.Instance.ForceCloseLoadingScreen();
-        }
-        else
-        {
-            if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ||
-                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease ||
-                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.ReleasedToGameplay ||
-                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.None)
-            {
-                GameplayReadinessCoordinator.Release();
-            }
-            else
-            {
-                Debug.LogWarning($"[SPAWNER] RPC_OpenEyesForLateJoiner deferred: local stage is '{GameplayReadinessCoordinator.CurrentStage}'.");
+                Debug.LogWarning($"[SPAWNER] RPC_ReleaseReadyPlayer deferred: local stage is '{GameplayReadinessCoordinator.CurrentStage}'.");
             }
         }
     }
@@ -803,11 +734,6 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             playersLoadedSet.Remove(player);
             lateJoinAnnouncedPlayers.Remove(player);
 
-            // 🔥 FIX LỖI 1: Kẹt Loading. Nếu có đứa rớt mạng lúc đang ở sảnh chờ load, tự động check và cho những người còn lại vào game!
-            if (!IsMatchStarted)
-            {
-                CheckAndStartGame();
-            }
         }
     }
 }

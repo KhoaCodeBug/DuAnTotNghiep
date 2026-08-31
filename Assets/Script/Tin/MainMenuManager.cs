@@ -1704,10 +1704,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         // Lắng nghe tiến độ thật từ GameplayReadinessCoordinator
-        while (!isHostSignaledGo && !GameplayReadinessCoordinator.IsReleasedToGameplay)
+        while (!GameplayReadinessCoordinator.IsReleasedToGameplay)
         {
             // Nếu đã rơi vào trạng thái Failed -> Thoát ngay vào nhánh Error Path
             if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.Failed)
+            {
+                break;
+            }
+
+            if (TryReleasePendingHostSignal())
             {
                 break;
             }
@@ -1732,20 +1737,6 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 Debug.LogError($"[LOADING TIMEOUT] Global loading timeout reached ({elapsedLoadingTime:F1}s). Failing readiness attempt.");
                 GameplayReadinessCoordinator.Fail(string.Format(GameLocalization.Get("loading.failed"), "Timeout"));
                 break;
-            }
-
-            // Watchdog Release: CHỈ kích hoạt khi stage chính xác là HUDAndSystemsReady hoặc AwaitingHostRelease
-            // Tuyệt đối không bao giờ release khi Failed
-            if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ||
-                GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease)
-            {
-                if (elapsedLoadingTime >= 25f || (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease && elapsedLoadingTime >= 8f))
-                {
-                    Debug.LogWarning($"[LOADING WATCHDOG] Safety release triggered after {elapsedLoadingTime:F1}s to prevent soft-lock.");
-                    isHostSignaledGo = true;
-                    GameplayReadinessCoordinator.Release();
-                    break;
-                }
             }
 
             float targetProgress = Mathf.Max(0.05f, GameplayReadinessCoordinator.CurrentProgress);
@@ -1876,18 +1867,23 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     public void ForceCloseLoadingScreen()
     {
-        // CHỈ cho phép giải phóng khi local stage chính xác là HUDAndSystemsReady hoặc AwaitingHostRelease (hoặc đã ReleasedToGameplay)
-        if (GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ||
-            GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.AwaitingHostRelease ||
-            GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.ReleasedToGameplay)
-        {
-            isHostSignaledGo = true;
-            GameplayReadinessCoordinator.Release();
-        }
-        else
-        {
-            Debug.LogWarning($"[LOADING] ForceCloseLoadingScreen deferred: Local readiness stage is '{GameplayReadinessCoordinator.CurrentStage}'. Must reach HUDAndSystemsReady/AwaitingHostRelease before release.");
-        }
+        // RPC có thể tới trước callback local cuối cùng. Giữ tín hiệu và tiêu thụ ngay khi local an toàn.
+        isHostSignaledGo = true;
+        if (!TryReleasePendingHostSignal())
+            Debug.Log($"[LOADING] Player release is pending at local stage '{GameplayReadinessCoordinator.CurrentStage}'.");
+    }
+
+    private bool TryReleasePendingHostSignal()
+    {
+        if (!isHostSignaledGo ||
+            GameplayReadinessCoordinator.CurrentStage == GameplayReadinessCoordinator.ReadinessStage.Failed)
+            return false;
+
+        if (!GameplayReadinessCoordinator.IsLocalReadyForRelease)
+            return false;
+
+        GameplayReadinessCoordinator.Release(requireLocalReady: true);
+        return GameplayReadinessCoordinator.IsReleasedToGameplay;
     }
 
     public void OnSceneLoadDone(NetworkRunner runner)
