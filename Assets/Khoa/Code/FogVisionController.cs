@@ -98,6 +98,9 @@ public class FogVisionController : MonoBehaviour
     private static readonly int IndoorOcclusionOriginId = Shader.PropertyToID("_IndoorOcclusionOrigin");
     private static readonly int IndoorOcclusionEdgeSoftnessId = Shader.PropertyToID("_IndoorOcclusionEdgeSoftness");
     private static readonly int IndoorWallOccludedOpacityId = Shader.PropertyToID("_IndoorWallOccludedOpacity");
+    private static readonly int IndoorFlashlightBoundaryFadeId = Shader.PropertyToID("_IndoorFlashlightBoundaryFade");
+    private static readonly int IndoorShadowEdgeCountId = Shader.PropertyToID("_IndoorShadowEdgeCount");
+    private static readonly int IndoorShadowEdgesId = Shader.PropertyToID("_IndoorShadowEdges");
     private static readonly int FogWorldBottomLeftId = Shader.PropertyToID("_FogWorldBottomLeft");
     private static readonly int FogWorldRightId = Shader.PropertyToID("_FogWorldRight");
     private static readonly int FogWorldUpId = Shader.PropertyToID("_FogWorldUp");
@@ -129,6 +132,11 @@ public class FogVisionController : MonoBehaviour
     private readonly List<Vector2> polygonPoints = new List<Vector2>(16);
     private const int MaxIndoorOcclusionRays = 180;
     private readonly float[] indoorOcclusionDistances = new float[MaxIndoorOcclusionRays];
+    private const int MaxIndoorShadowEdges = 16;
+    private readonly Vector4[] indoorShadowEdges = new Vector4[MaxIndoorShadowEdges];
+    private int indoorShadowEdgeCount;
+    private int indoorOcclusionRevision;
+    private int indoorShadowEdgeRevision = -1;
     private readonly List<RaycastHit2D> indoorOcclusionHits = new List<RaycastHit2D>(32);
     private ContactFilter2D indoorObstacleFilter;
     private Collider2D cachedIndoorCollider;
@@ -377,6 +385,18 @@ public class FogVisionController : MonoBehaviour
             ? targetVision.ActiveIndoorCollider.GetComponentInParent<IndoorFogSurfaceMap>() : null;
         bool useSurfaceMap = surfaceMap != null && surfaceMap.indoorVolume == targetVision.ActiveIndoorCollider && surfaceMap.EnsureAtlas();
         overlayMaterial.SetFloat("_IndoorSurfaceActive", useSurfaceMap ? 1f : 0f);
+        overlayMaterial.SetFloat(IndoorFlashlightBoundaryFadeId,
+            useSurfaceMap ? Mathf.Clamp(surfaceMap.flashlightBoundaryFadeDistance, 0f, 2.5f) : 0f);
+        bool useShadowFade = useSurfaceMap && indoorOcclusionActive && targetVision.IsFlashlightActive &&
+                             surfaceMap.flashlightBoundaryFadeDistance > 0f;
+        if (useShadowFade && indoorShadowEdgeRevision != indoorOcclusionRevision)
+        {
+            BuildIndoorShadowEdges(Mathf.Clamp(indoorOcclusionRayCount, 64, MaxIndoorOcclusionRays));
+            indoorShadowEdgeRevision = indoorOcclusionRevision;
+        }
+        overlayMaterial.SetFloat(IndoorShadowEdgeCountId,
+            useShadowFade ? indoorShadowEdgeCount : 0);
+        overlayMaterial.SetVectorArray(IndoorShadowEdgesId, indoorShadowEdges);
         if (useSurfaceMap)
         {
             overlayMaterial.SetTexture("_IndoorSurfaceAtlas", surfaceMap.Atlas);
@@ -384,7 +404,7 @@ public class FogVisionController : MonoBehaviour
             overlayMaterial.SetFloat("_IndoorSurfaceProbe", surfaceMap.surfaceProbeInset);
             overlayMaterial.SetVector("_IndoorSurfaceLighting", new Vector4(
                 Mathf.Lerp(surfaceMap.dayAmbientOpacity, surfaceMap.nightAmbientOpacity, nightBlend),
-                surfaceMap.litOpacity, surfaceMap.coneInset, 0f));
+                surfaceMap.litOpacity, surfaceMap.coneInset, surfaceMap.flashlightConeFeather));
         }
         Color nightFogColor = new Color(0.075f, 0.105f, 0.17f, fogColor.a);
         overlayMaterial.SetColor(FogColorId, Color.Lerp(fogColor, nightFogColor, nightBlend * 0.78f));
@@ -480,7 +500,33 @@ public class FogVisionController : MonoBehaviour
         for (int rayIndex = rayCount; rayIndex < MaxIndoorOcclusionRays; rayIndex++)
             indoorOcclusionDistances[rayIndex] = safeMaxDistance;
 
+        indoorOcclusionRevision++;
         return true;
+    }
+
+    private void BuildIndoorShadowEdges(int rayCount)
+    {
+        // A wall face is a continuous run of hits. A shadow silhouette is a
+        // depth discontinuity at a corner/doorway, from a near hit to a far hit.
+        // Reuse the existing scan: no additional physics casts or map traversal.
+        indoorShadowEdgeCount = 0;
+        float step = 2f * Mathf.PI / rayCount;
+        for (int i = 0; i < rayCount; i++)
+        {
+            float first = indoorOcclusionDistances[i];
+            float second = indoorOcclusionDistances[(i + 1) % rayCount];
+            float near = Mathf.Min(first, second);
+            float far = Mathf.Max(first, second);
+            if (far - near < Mathf.Max(0.5f, near * step * 4f)) continue;
+            // Overflow conservatively disables the optional fade. Never pick
+            // arbitrary first edges and leave part of a complex room graded.
+            if (indoorShadowEdgeCount == MaxIndoorShadowEdges)
+            { indoorShadowEdgeCount = 0; return; }
+            float angle = (i + 0.5f) * step;
+            indoorShadowEdges[indoorShadowEdgeCount++] = new Vector4(
+                Mathf.Cos(angle), Mathf.Sin(angle), near,
+                second > first ? far : -far);
+        }
     }
 
     private static bool IsIndoorStructuralHit(Collider2D indoorCollider, Transform structureRoot,

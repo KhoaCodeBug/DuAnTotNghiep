@@ -1,5 +1,15 @@
 # Fog indoor — prototype một nhà, 2026-08-31
 
+**Cập nhật Sol-High cuối:** radial fade làm tối toàn tường đã bị loại. Candidate hiện tại giữ nguyên lõi sáng của tường/decor và chỉ grade tại silhouette near→far ở góc/cửa; xem `SHADOW_BOUNDARY_REVIEW.md` cùng bộ `shadow-verified-*`. Self-review tốt hơn rõ so regression nhưng dải vẫn hẹp hơn concept ở vài góc, user chưa test tay, chưa push.
+
+**Quyết định cuối:** user duyệt tối sớm phía sáng và vòng thử tiếp theo, với kiểm tra hình ảnh khắt khe/nhiều vị trí-hướng/nhà lân cận. Xem [BOUNDARY_FADE_NEXT_ITERATION.md](BOUNDARY_FADE_NEXT_ITERATION.md). Bản gradient cũ chưa đạt; không lấy trạng thái lịch sử bên dưới làm phê duyệt kết quả.
+
+## Cập nhật mới nhất — sau user test V2
+
+**Phản hồi sau test gradient: CHƯA ĐẠT.** User vẫn thấy ranh sáng/tối phải cắt gắt, khác concept; xem mục User review mới nhất trong FLASHLIGHT_GRADIENT_REVIEW.md. Hiện chỉ đánh giá hướng xử lý ranh cuối, chưa triển khai tiếp. Unity đã dừng.
+
+Save point V2 đã push tại `ee0554d14`, hiện có trong `main` qua merge PR #326 (`5aa09d71c`). Gradient **chỉ đèn pin** đã triển khai local, kiểm thử 44/44 EditMode và 5/5 PlayMode; đang chờ user test tay, chưa push phần mới. Tầm nhìn thường giữ nguyên. Đọc [FLASHLIGHT_GRADIENT_REVIEW.md](FLASHLIGHT_GRADIENT_REVIEW.md) để xem thay đổi, ảnh từng bước, hiệu năng, giới hạn, test thực tế và Git hiện tại. Các mục V1/V2 bên dưới là lịch sử tại thời điểm viết, không thay trạng thái mới này.
+
 ## Trạng thái
 
 User đã duyệt ảnh concept với hai chỉnh sửa: phần tường phải tối sớm hơn ở rìa bên phải, và ảnh không đèn là mức buổi tối, ban ngày chỉ sáng nhẹ hơn. Prototype đã triển khai và kiểm tra Solo. **Chưa nghiệm thu bằng test tay, chưa bật mặc định trong Main, chưa sẵn sàng nhân rộng toàn map.**

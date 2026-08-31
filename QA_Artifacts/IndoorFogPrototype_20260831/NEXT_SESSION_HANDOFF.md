@@ -1,4 +1,28 @@
-# Indoor Fog Surface Prototype — V1 user review and V2 handoff
+# Indoor Fog Surface — flashlight gradient handoff
+
+## Quy tắc bàn giao model — user chốt 2026-08-31
+
+Mọi task tiếp tục mặc định dùng **Sol - High**. Khi tạo task, truyền rõ `model="gpt-5.6-sol"`, `thinking="high"`; không để cấu hình mặc định của app chọn Luna. Khi tiếp tục một task có sẵn, giữ/chọn Sol - High và xác minh metadata. Chỉ đổi khi user yêu cầu khác. Lượt sửa sau phản hồi ảnh 16:05 đã xác minh `gpt-5.6-sol/high` trong turn_context.
+
+**Kết quả sửa Sol-High mới nhất:** radial fade (`boundary-candidate-edge.png`) làm tối cả mặt tường đã bị loại và giữ tại `RejectedRadialFade_20260831/`. Candidate mới chỉ grade silhouette near→far ở góc/cửa; ảnh `shadow-verified-*` giữ lõi tường/decor sáng như V2 và tối mép phải. Xem `SHADOW_BOUNDARY_REVIEW.md`: EditMode 4/4, PlayMode 5/5, A/B/A perf và giới hạn. Dải vẫn hẹp hơn concept ở vài góc; user chưa test tay, chưa push.
+
+Task tiếp tục: `01a056fe-f433-72a1-88a1-28d920414269` (tạo trực tiếp cùng project Unity). Task nguồn `01a0561f-527b-7ea3-8cdb-5910cf3849ae` dừng triển khai sau bàn giao. Bản sao trước chuyển: `E:/Lap_trinh/HocTap/DuAnTotNghiepFIx/CodexBackups/IndoorFogBoundaryHandoff_20260831_154446/`, gồm patch tracked và ZIP133file chưa tracked, đã xác minh số entry; base ee0554d14. Không tự áp patch lên cây hiện tại đang có đủ thay đổi.
+
+## PHÊ DUYỆT MỚI NHẤT — bắt đầu vòng fade ranh có giới hạn
+
+User đã chấp nhận tối sớm ở phía sáng và cho làm tiếp; yêu cầu khắt khe với hình ảnh và logic ở nhiều vị trí/hướng/nhà khác. Đọc BOUNDARY_FADE_NEXT_ITERATION.md trước mọi mục cũ. Agent chọn chuyển sang task mới trước vòng triển khai; tiếp tục đúng project/local changes, không push. Các dòng dưới nói chỉ thảo luận/chưa cho implementation đã hết hiệu lực. Vẫn giữ đánh giá bản cone-only CHƯA ĐẠT và V2 là savepoint. Không nhân rộng chưa kiểm chứng.
+
+## Current state — supersedes ALL historical sections below
+
+UPDATE after manual review: flashlight gradient is REJECTED / not good enough. User marked the hard right-hand light/dark boundary in `Gradient_UserReview_20260831/`; cone-angle feather + Light2D core changes did not address the desired final boundary. Read the newest user-review section in FLASHLIGHT_GRADIENT_REVIEW.md. Discussion only at this point: assess inward darkening near final visible-region boundary; no new implementation approved yet. Preserve V2/save point and local experiment. Unity stopped after user finished testing. Future test handoff must enable existing God Mode, switch torch OFF, and restore movement before saying ready; God Mode was not successfully enabled in the last setup.
+
+Read `FLASHLIGHT_GRADIENT_REVIEW.md` first. V2 was manually accepted except the intensity transition; tiny wall rim tolerated. Save point `ee0554d14` was pushed and subsequently merged externally through PR #326 into main `5aa09d71c` (same tree); the remote feature branch is now deleted. Local branch remains `codex/restore-indoor-vision-20260831` with uncommitted flashlight gradient + QA/docs. Do not recreate the remote branch or push unaccepted work automatically.
+
+Implemented: wider inward intensity ramp (`flashlightConeFeather=.5`) plus matching Light2D inner core ~61.21 degrees ONLY with flashlight in opt-in sample house. Outer/gameplay cone145 unchanged; OFF100/140 and other-house torch105/145 unchanged. No occlusion/atlas/scene/prefab/Fusion changes. 44/44 EditMode + 5/5 PlayMode pass, 180-step motion and screenshots, same-binary A/B/A profile recorded in review. User has NOT manually accepted this gradient yet. Do not restart V1 flicker investigation. Await/handle latest user feedback, preserve new local code/evidence.
+
+Runtime fixture: sample house `nhachinhxaydautien (12)`, player(-39.2,44.3), up, 13:30, flashlight ON, pose.json. Apply Runtime Pose after a new Solo session, then Return Manual Control. The component is runtime-only. Final screenshot/state `gradient-manual-ready`. Practical tests and limitations are in review. Backlog: ordinary-vision gradient after flashlight acceptance, minor wall rim, dynamic atlas/build/multiplayer before expansion.
+
+## Historical V1/V2 handoff (retained for evidence)
 
 Date: 2026-08-31
 
