@@ -26,7 +26,7 @@ public static class IndoorFogPrototypeQA
     private static PlayerMovement motionProbePlayer;
     private static StringBuilder motionProbeData;
     private static float[] motionProbePreviousRays;
-    private const string MotionFolder = Folder + "/ShadowBoundary_Motion";
+    private const string MotionFolder = Folder + "/FlashlightGradient_Motion";
 
     [Serializable] public class Pose
     {
@@ -41,8 +41,8 @@ public static class IndoorFogPrototypeQA
         public bool prototype;
         public string label = "baseline";
         public float cameraUp = 1.2f;
-        public float flashlightConeFeather = 0.20f;
-        public float flashlightBoundaryFadeDistance = 0.65f;
+        public float flashlightConeFeather = 0.50f;
+        public float flashlightBoundaryFadeDistance = 1.50f;
     }
 
     [MenuItem("Tools/QA/Indoor Fog/Start Solo Automation")]
@@ -151,14 +151,7 @@ public static class IndoorFogPrototypeQA
             " innerAngle=" + vision.playerLight.pointLightInnerAngle + " outerAngle=" + vision.playerLight.pointLightOuterAngle +
             "\nsurfaces=" + (surface != null ? surface.SurfaceCount : 0) + " buildMs=" + (surface != null ? surface.LastBuildMilliseconds : 0) +
             "\nflashlightConeFeather=" + (surface != null ? surface.flashlightConeFeather : 0) +
-            " boundaryFadeDistance=" + (surface != null ? surface.flashlightBoundaryFadeDistance : 0) +
-            " shadowEdgeCount=" + material.GetFloat("_IndoorShadowEdgeCount") +
-            " movementEnabled=" + player.enabled +
-            " godMode=" + DevCheatManager.Instance.isGodMode +
-            " cheatMenuOpen=" + DevCheatManager.Instance.IsMenuOpen);
-        var rays = (float[])typeof(FogVisionController).GetField("indoorOcclusionDistances", Private).GetValue(fog);
-        File.WriteAllText(Folder + "/" + label + "-rays.csv", "index,distance\n" +
-            string.Join("\n", rays.Select((d, i) => i + "," + d.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+            " boundaryFadeDistance=" + (surface != null ? surface.flashlightBoundaryFadeDistance : 0));
     }
 
     [MenuItem("Tools/QA/Indoor Fog/Dump Surface Atlas")]
@@ -370,28 +363,6 @@ public static class IndoorFogPrototypeQA
         PZ_CameraController.Instance.offset = previousCameraOffset;
         posePlayer = null;
         Debug.Log("[IndoorFogQA] Manual controls restored; prototype remains in this runtime house only.");
-    }
-
-    [MenuItem("Tools/QA/Indoor Fog/Prepare Final Review State")]
-    public static void PrepareFinalReviewState()
-    {
-        if (!EditorApplication.isPlaying || PlayerMovement.LocalPlayerInstance == null)
-            throw new InvalidOperationException("Start Solo before preparing review state.");
-        var player = PlayerMovement.LocalPlayerInstance;
-        if (posePlayer == player) ReturnManualControl();
-        player.enabled = true;
-        var inventory = player.GetComponent<InventorySystem>();
-        var flashlight = player.GetComponent<FlashlightController>();
-        if (flashlight.IsFlashlightActive)
-            for (int i = 0; i < Mathf.Min(5, inventory.slots.Count); i++)
-                if (IsFlashlight(inventory.slots[i].item))
-                { flashlight.TryToggleFromHotbar(i); break; }
-        DevCheatManager cheat = DevCheatManager.Instance;
-        cheat.isGodMode = true;
-        if (cheat.IsMenuOpen) cheat.ToggleMenu();
-        Debug.Log("[IndoorFogQA] Final review state: movement=" + player.enabled +
-            " flashlight=" + flashlight.IsFlashlightActive + " godMode=" + cheat.isGodMode +
-            " cheatMenuOpen=" + cheat.IsMenuOpen);
     }
 
     [MenuItem("Tools/QA/Indoor Fog/Inspect House Tiles")]

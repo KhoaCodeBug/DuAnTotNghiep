@@ -13,37 +13,6 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
     private const string Folder = "QA_Artifacts/IndoorFogPrototype_20260831";
     private static readonly BindingFlags Private = BindingFlags.NonPublic | BindingFlags.Instance;
 
-    [TestCase("continuous-wall", 0)]
-    [TestCase("two-silhouettes", 2)]
-    [TestCase("overflow", 0)]
-    public void ShadowEdges_GradeSilhouettesNotWholeWall_AndOverflowConservatively(string scenario, int expected)
-    {
-        // Keep the object inactive: only exercise classification of cached rays,
-        // without creating the live overlay or changing its singleton.
-        var fixture = new GameObject("Shadow edge classifier test");
-        fixture.SetActive(false);
-        try
-        {
-            Type type = Type.GetType("FogVisionController, Assembly-CSharp");
-            var fog = fixture.AddComponent(type);
-            var rays = (float[])type.GetField("indoorOcclusionDistances", Private).GetValue(fog);
-            for (int i = 0; i < rays.Length; i++)
-                rays[i] = scenario == "overflow" ? (i % 2 == 0 ? 5f : 15f) :
-                    scenario == "two-silhouettes" && i >= 20 && i < 60 ? 15f : 5f;
-            float[] original = (float[])rays.Clone();
-            type.GetMethod("BuildIndoorShadowEdges", Private).Invoke(fog, new object[] { rays.Length });
-            Assert.That((int)type.GetField("indoorShadowEdgeCount", Private).GetValue(fog), Is.EqualTo(expected));
-            CollectionAssert.AreEqual(original, rays, "Optional grading must not alter the accepted occlusion rays.");
-            var edges = (Vector4[])type.GetField("indoorShadowEdges", Private).GetValue(fog);
-            for (int i = 0; i < expected; i++)
-            {
-                Assert.That(new Vector2(edges[i].x, edges[i].y).magnitude, Is.EqualTo(1f).Within(0.0001f));
-                Assert.That(edges[i].z, Is.EqualTo(5f), "Do not start grading before the near blocker.");
-            }
-        }
-        finally { UnityEngine.Object.DestroyImmediate(fixture); }
-    }
-
     [UnityTest, Timeout(180000)]
     public IEnumerator SurfaceProjection_RealSolo_CachesAtlasAndStaysInsideOptInHouse()
     {
@@ -79,8 +48,8 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
                 float y = i == 7 ? 30.77f : i == 8 ? -0.7f : 44.3f;
                 int dx = i == 5 ? 1 : i == 6 ? -1 : 0;
                 int dy = dx == 0 ? 1 : 0;
-                names[i] = names[i].Replace("v3-", "shadow-regression-");
-                string pose = "{\"house\":\"nhachinhxaydautien (12)\",\"flashlightConeFeather\":0.2,\"flashlightBoundaryFadeDistance\":0.65,\"x\":" + F(x) + ",\"y\":" + F(y) +
+                names[i] = names[i].Replace("v3-", "gradient-regression-");
+                string pose = "{\"house\":\"nhachinhxaydautien (12)\",\"flashlightConeFeather\":0.5,\"flashlightBoundaryFadeDistance\":1.5,\"x\":" + F(x) + ",\"y\":" + F(y) +
                     ",\"hour\":" + F(hour) + ",\"directionX\":" + dx + ",\"directionY\":" + dy +
                     ",\"zoom\":3,\"cameraUp\":1.2,\"flashlight\":" + torch.ToString().ToLowerInvariant() +
                     ",\"prototype\":" + active.ToString().ToLowerInvariant() + ",\"label\":\"" + names[i] + "\"}";
@@ -97,13 +66,7 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
                 Assert.That(material.GetFloat("_IndoorActive"), Is.EqualTo(i == 7 ? 0 : 1), names[i]);
                 Assert.That(material.GetFloat("_FlashlightActive"), Is.EqualTo(torch ? 1 : 0), names[i]);
                 Assert.That(material.GetFloat("_IndoorFlashlightBoundaryFade"),
-                    Is.EqualTo(expectedSurface ? 0.65f : 0f).Within(0.01f), names[i]);
-                if (!expectedSurface || !torch)
-                    Assert.That(material.GetFloat("_IndoorShadowEdgeCount"), Is.Zero,
-                        "No shadow grading may survive OFF, another house, outside or disable.");
-                else
-                    Assert.That(material.GetFloat("_IndoorShadowEdgeCount"), Is.GreaterThan(0f),
-                        "The real sample must actually exercise shadow-edge grading, not pass with it disabled.");
+                    Is.EqualTo(expectedSurface ? 1.5f : 0f).Within(0.01f), names[i]);
                 Assert.That(material.shader.isSupported, Is.True);
                 var localPlayer = (Component)movement.GetField("LocalPlayerInstance").GetValue(null);
                 Component vision = localPlayer.GetComponent("PlayerVision");
@@ -113,8 +76,10 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
                 float sightAngle = (float)vision.GetType().GetProperty("CurrentVisionAngle").GetValue(vision);
                 Assert.That(outerAngle, Is.EqualTo(torch ? 145f : 140f).Within(0.1f), "Outer beam must not expand.");
                 Assert.That(sightAngle, Is.EqualTo(torch ? 145f : 140f), "Gameplay sight angle stays unchanged.");
-                Assert.That(innerAngle, Is.EqualTo(torch ? 105f : 100f).Within(0.1f),
-                    "Keep the accepted bright core, including lit wall and decor in the sample house.");
+                if (expectedSurface && torch)
+                    Assert.That(innerAngle, Is.InRange(55f, 70f), "Real flashlight must have a broad intensity ramp in the sample house.");
+                else
+                    Assert.That(innerAngle, Is.EqualTo(torch ? 105f : 100f).Within(0.1f), "Unaided sight and other houses keep their light profile.");
                 if (expectedSurface)
                 {
                     var atlas = material.GetTexture("_IndoorSurfaceAtlas") as RenderTexture;
