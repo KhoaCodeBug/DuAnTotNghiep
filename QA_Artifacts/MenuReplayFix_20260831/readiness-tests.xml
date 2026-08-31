@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="43" result="Passed" total="43" passed="43" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.4993382">
+  <test-suite type="TestSuite" id="1200" name="DuAnTotNghiep" fullname="DuAnTotNghiep" runstate="Runnable" testcasecount="174" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.499338" total="43" passed="43" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="Assembly" id="1195" name="ProjectZomboiNhai.QuestUI.Tests.Editor.dll" fullname="E:/Lap_trinh/HocTap/DuAnTotNghiepFIx/My project/Library/ScriptAssemblies/ProjectZomboiNhai.QuestUI.Tests.Editor.dll" runstate="Runnable" testcasecount="174" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.494764" total="43" passed="43" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="5704" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+        <property name="EditorOnly" value="True" />
+      </properties>
+      <test-suite type="TestFixture" id="1130" name="ReadinessAndChatEditorTests" fullname="ReadinessAndChatEditorTests" classname="ReadinessAndChatEditorTests" runstate="Runnable" testcasecount="43" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.493497" total="43" passed="43" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1171" name="AutoChatManager_CanOpenChat_RespectsReadinessAndTypingState" fullname="ReadinessAndChatEditorTests.AutoChatManager_CanOpenChat_RespectsReadinessAndTypingState" methodname="AutoChatManager_CanOpenChat_RespectsReadinessAndTypingState" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1921121702" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.007311" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1168" name="AutoChatManager_IncomingMessage_MakesChatVisibleOnScreen" fullname="ReadinessAndChatEditorTests.AutoChatManager_IncomingMessage_MakesChatVisibleOnScreen" methodname="AutoChatManager_IncomingMessage_MakesChatVisibleOnScreen" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1458416842" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.008992" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1172" name="AutoChatManager_MessageSubmissions_ValidateEmptyWhitespaceAndTrim" fullname="ReadinessAndChatEditorTests.AutoChatManager_MessageSubmissions_ValidateEmptyWhitespaceAndTrim" methodname="AutoChatManager_MessageSubmissions_ValidateEmptyWhitespaceAndTrim" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="623271236" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.003144" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1173" name="AutoChatManager_OpenAndClose_TogglesTypingAndRaycasts" fullname="ReadinessAndChatEditorTests.AutoChatManager_OpenAndClose_TogglesTypingAndRaycasts" methodname="AutoChatManager_OpenAndClose_TogglesTypingAndRaycasts" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="719958734" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.003225" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1169" name="AutoChatManager_SanitizationAndLimits_ProtectsHistory" fullname="ReadinessAndChatEditorTests.AutoChatManager_SanitizationAndLimits_ProtectsHistory" methodname="AutoChatManager_SanitizationAndLimits_ProtectsHistory" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="25125010" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.006785" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1170" name="AutoChatManager_VietnameseText_PreservedAccurately" fullname="ReadinessAndChatEditorTests.AutoChatManager_VietnameseText_PreservedAccurately" methodname="AutoChatManager_VietnameseText_PreservedAccurately" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1770890396" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.003243" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1166" name="AutoMainMenuManager_PauseGate_IgnoresHiddenMainMenuPanel" fullname="ReadinessAndChatEditorTests.AutoMainMenuManager_PauseGate_IgnoresHiddenMainMenuPanel" methodname="AutoMainMenuManager_PauseGate_IgnoresHiddenMainMenuPanel" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="520559755" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.002214" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1167" name="AutoMainMenuManager_StartedClient_DefersLoadingUntilSceneLoadCallback" fullname="ReadinessAndChatEditorTests.AutoMainMenuManager_StartedClient_DefersLoadingUntilSceneLoadCallback" methodname="AutoMainMenuManager_StartedClient_DefersLoadingUntilSceneLoadCallback" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1729084537" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.000857" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1144" name="Bilingual_DeathAndJoinAnnouncements_EnglishAndVietnamese" fullname="ReadinessAndChatEditorTests.Bilingual_DeathAndJoinAnnouncements_EnglishAndVietnamese" methodname="Bilingual_DeathAndJoinAnnouncements_EnglishAndVietnamese" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="939479427" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001981" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1140" name="ChatAuthority_RichTextSanitization_PlayerAndSystemSeparated" fullname="ReadinessAndChatEditorTests.ChatAuthority_RichTextSanitization_PlayerAndSystemSeparated" methodname="ChatAuthority_RichTextSanitization_PlayerAndSystemSeparated" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="245641942" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.000706" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1174" name="Client_DirectOrLateJoin_ShowLoadingScreen_DoesNotResetReadinessWhenReleasedOrSceneLoaded" fullname="ReadinessAndChatEditorTests.Client_DirectOrLateJoin_ShowLoadingScreen_DoesNotResetReadinessWhenReleasedOrSceneLoaded" methodname="Client_DirectOrLateJoin_ShowLoadingScreen_DoesNotResetReadinessWhenReleasedOrSceneLoaded" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="687972056" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.002269" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[MENU FLOW] ShowLoadingScreen ignored: Scene is already loaded or gameplay is released.
+]]></output>
+        </test-case>
+        <test-case id="1142" name="DeathAnnouncement_MapsAllCausesCorrectly" fullname="ReadinessAndChatEditorTests.DeathAnnouncement_MapsAllCausesCorrectly" methodname="DeathAnnouncement_MapsAllCausesCorrectly" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="2014005215" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001104" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1148" name="DifficultyRules_ContractMultipliers_AndLoadouts" fullname="ReadinessAndChatEditorTests.DifficultyRules_ContractMultipliers_AndLoadouts" methodname="DifficultyRules_ContractMultipliers_AndLoadouts" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1115286167" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001369" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1138" name="FirearmBalance_AkAndS12KMeetCloseRangeDamageAndAccuracyFloor" fullname="ReadinessAndChatEditorTests.FirearmBalance_AkAndS12KMeetCloseRangeDamageAndAccuracyFloor" methodname="FirearmBalance_AkAndS12KMeetCloseRangeDamageAndAccuracyFloor" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="937976451" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.003668" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1163" name="ForceCloseLoadingScreen_EarlyStagesDoNotTransitionToReleased" fullname="ReadinessAndChatEditorTests.ForceCloseLoadingScreen_EarlyStagesDoNotTransitionToReleased" methodname="ForceCloseLoadingScreen_EarlyStagesDoNotTransitionToReleased" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1580264870" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.003159" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[LOADING] ForceCloseLoadingScreen deferred: Local readiness stage is 'Connecting'. Must reach HUDAndSystemsReady/AwaitingHostRelease before release.
+[LOADING] ForceCloseLoadingScreen deferred: Local readiness stage is 'PlayerSpawnWaiting'. Must reach HUDAndSystemsReady/AwaitingHostRelease before release.
+[LOADING] ForceCloseLoadingScreen deferred: Local readiness stage is 'Failed'. Must reach HUDAndSystemsReady/AwaitingHostRelease before release.
+]]></output>
+        </test-case>
+        <test-case id="1164" name="ForceCloseLoadingScreen_LateStagesTransitionToReleased" fullname="ReadinessAndChatEditorTests.ForceCloseLoadingScreen_LateStagesTransitionToReleased" methodname="ForceCloseLoadingScreen_LateStagesTransitionToReleased" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="705825233" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001166" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1139" name="FusionConnectionTimeout_CoversConcurrentMainSceneLoading" fullname="ReadinessAndChatEditorTests.FusionConnectionTimeout_CoversConcurrentMainSceneLoading" methodname="FusionConnectionTimeout_CoversConcurrentMainSceneLoading" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1182121031" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001483" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1146" name="GameplayHudLayout_PromptRectNeverOverlapsHotbar_AcrossAllResolutions" fullname="ReadinessAndChatEditorTests.GameplayHudLayout_PromptRectNeverOverlapsHotbar_AcrossAllResolutions" methodname="GameplayHudLayout_PromptRectNeverOverlapsHotbar_AcrossAllResolutions" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="380839586" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001001" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1149" name="HostHard_ClientEasy_And_HostEasy_ClientHard_AuthoritySync" fullname="ReadinessAndChatEditorTests.HostHard_ClientEasy_And_HostEasy_ClientHard_AuthoritySync" methodname="HostHard_ClientEasy_And_HostEasy_ClientHard_AuthoritySync" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1573115437" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001102" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1147" name="HostModeSpawner_AuthValidation_AndReadyPlayerSet" fullname="ReadinessAndChatEditorTests.HostModeSpawner_AuthValidation_AndReadyPlayerSet" methodname="HostModeSpawner_AuthValidation_AndReadyPlayerSet" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="671060721" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.002613" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1150" name="HostModeSpawner_TryExtractIntProperty_And_SessionDifficultyReadyGate" fullname="ReadinessAndChatEditorTests.HostModeSpawner_TryExtractIntProperty_And_SessionDifficultyReadyGate" methodname="HostModeSpawner_TryExtractIntProperty_And_SessionDifficultyReadyGate" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="821482147" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.002295" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1135" name="IndoorFog_UsesBuildingScopedPhysicsOcclusion" fullname="ReadinessAndChatEditorTests.IndoorFog_UsesBuildingScopedPhysicsOcclusion" methodname="IndoorFog_UsesBuildingScopedPhysicsOcclusion" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1274741629" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001020" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1143" name="JoinAnnouncement_FormatsCorrectly" fullname="ReadinessAndChatEditorTests.JoinAnnouncement_FormatsCorrectly" methodname="JoinAnnouncement_FormatsCorrectly" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1185472705" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.000739" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1159" name="LoadingTips_BilingualLocalization_ValidAcrossAllKeys" fullname="ReadinessAndChatEditorTests.LoadingTips_BilingualLocalization_ValidAcrossAllKeys" methodname="LoadingTips_BilingualLocalization_ValidAcrossAllKeys" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="699440329" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.003755" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1152" name="LocalizationMatrix_AllLoadingStagesAndDifficultyDescriptions_Bilingual" fullname="ReadinessAndChatEditorTests.LocalizationMatrix_AllLoadingStagesAndDifficultyDescriptions_Bilingual" methodname="LocalizationMatrix_AllLoadingStagesAndDifficultyDescriptions_Bilingual" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="2028860456" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.010454" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1131" name="MainScene_InvisibleObstacleRegressionMarker_IsNoLongerCoveredByLegacyFenceCollider" fullname="ReadinessAndChatEditorTests.MainScene_InvisibleObstacleRegressionMarker_IsNoLongerCoveredByLegacyFenceCollider" methodname="MainScene_InvisibleObstacleRegressionMarker_IsNoLongerCoveredByLegacyFenceCollider" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1982584692" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.328766" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1155" name="MilitaryCarPrefab_HasAuthoredInspectionZone_AndComponents" fullname="ReadinessAndChatEditorTests.MilitaryCarPrefab_HasAuthoredInspectionZone_AndComponents" methodname="MilitaryCarPrefab_HasAuthoredInspectionZone_AndComponents" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="474846778" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.003278" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-suite type="ParameterizedMethod" id="1134" name="PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay" fullname="ReadinessAndChatEditorTests.PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay" classname="ReadinessAndChatEditorTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.046421" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-case id="1132" name="PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay(&quot;Assets/Prefab/Player.prefab&quot;)" fullname="ReadinessAndChatEditorTests.PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay(&quot;Assets/Prefab/Player.prefab&quot;)" methodname="PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="186936311" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.014053" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+          <test-case id="1133" name="PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay(&quot;Assets/Prefab/Player2.prefab&quot;)" fullname="ReadinessAndChatEditorTests.PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay(&quot;Assets/Prefab/Player2.prefab&quot;)" methodname="PlayerVisionPrefabs_UseConsistentAwarenessFadeAndLocalXRay" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1320626375" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.020082" asserts="0">
+            <properties>
+              <property name="retryIteration" value="0" />
+              <property name="repeatIteration" value="0" />
+            </properties>
+          </test-case>
+        </test-suite>
+        <test-case id="1160" name="ReadinessCoordinator_FailedStateIsTerminal_CannotBeReleased" fullname="ReadinessAndChatEditorTests.ReadinessCoordinator_FailedStateIsTerminal_CannotBeReleased" methodname="ReadinessCoordinator_FailedStateIsTerminal_CannotBeReleased" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="410186002" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.002033" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[READINESS] Cannot release to gameplay while in Failed state.
+]]></output>
+        </test-case>
+        <test-case id="1165" name="ReadinessCoordinator_RequireLocalReadyRelease_GuardsEarlyStages" fullname="ReadinessAndChatEditorTests.ReadinessCoordinator_RequireLocalReadyRelease_GuardsEarlyStages" methodname="ReadinessCoordinator_RequireLocalReadyRelease_GuardsEarlyStages" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="182277581" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.003262" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[READINESS] Cannot release to gameplay: local stage 'Connecting' is not ready for release.
+]]></output>
+        </test-case>
+        <test-case id="1145" name="ReadinessStateMachine_ProgressMonotonic_AndStages" fullname="ReadinessAndChatEditorTests.ReadinessStateMachine_ProgressMonotonic_AndStages" methodname="ReadinessStateMachine_ProgressMonotonic_AndStages" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1899916078" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001897" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1162" name="RoadsideVehicleRepairStation_AwakeAndOnValidate_DoNotCreateAutoChildPrematurely" fullname="ReadinessAndChatEditorTests.RoadsideVehicleRepairStation_AwakeAndOnValidate_DoNotCreateAutoChildPrematurely" methodname="RoadsideVehicleRepairStation_AwakeAndOnValidate_DoNotCreateAutoChildPrematurely" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="19533518" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.002168" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1158" name="RoadsideVehicleRepairStation_FallbackAutoGenerationWhenNoAuthoring" fullname="ReadinessAndChatEditorTests.RoadsideVehicleRepairStation_FallbackAutoGenerationWhenNoAuthoring" methodname="RoadsideVehicleRepairStation_FallbackAutoGenerationWhenNoAuthoring" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="728821911" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001133" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1157" name="RoadsideVehicleRepairStation_PlayerInsideAndOutsideZoneDetection" fullname="ReadinessAndChatEditorTests.RoadsideVehicleRepairStation_PlayerInsideAndOutsideZoneDetection" methodname="RoadsideVehicleRepairStation_PlayerInsideAndOutsideZoneDetection" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1361730799" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.002423" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1161" name="RoadsideVehicleRepairStation_RejectsExternalPolygon_AndResolvesLocally" fullname="ReadinessAndChatEditorTests.RoadsideVehicleRepairStation_RejectsExternalPolygon_AndResolvesLocally" methodname="RoadsideVehicleRepairStation_RejectsExternalPolygon_AndResolvesLocally" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1649065886" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001715" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1156" name="RoadsideVehicleRepairStation_ResolvesAuthoredPolygon_WithoutDuplicateAutoZone" fullname="ReadinessAndChatEditorTests.RoadsideVehicleRepairStation_ResolvesAuthoredPolygon_WithoutDuplicateAutoZone" methodname="RoadsideVehicleRepairStation_ResolvesAuthoredPolygon_WithoutDuplicateAutoZone" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1861639679" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001489" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1151" name="StarterGear_ItemAssetsExist_AndLoadSuccessfully" fullname="ReadinessAndChatEditorTests.StarterGear_ItemAssetsExist_AndLoadSuccessfully" methodname="StarterGear_ItemAssetsExist_AndLoadSuccessfully" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="954148902" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001308" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1137" name="StartingLoadout_OnlyCompletesAfterVerifiedPlacement_AndCanRetry" fullname="ReadinessAndChatEditorTests.StartingLoadout_OnlyCompletesAfterVerifiedPlacement_AndCanRetry" methodname="StartingLoadout_OnlyCompletesAfterVerifiedPlacement_AndCanRetry" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="812374559" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.000585" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1153" name="SuppressionGate_ControlsReadinessAndPrompts" fullname="ReadinessAndChatEditorTests.SuppressionGate_ControlsReadinessAndPrompts" methodname="SuppressionGate_ControlsReadinessAndPrompts" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="415915600" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001367" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1141" name="SystemMessage_UsesUnifiedGoldColor" fullname="ReadinessAndChatEditorTests.SystemMessage_UsesUnifiedGoldColor" methodname="SystemMessage_UsesUnifiedGoldColor" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="703220082" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.000388" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1154" name="ZombieCorpseLoot_RPC_ShowSearchResult_UsesRpcTargetAndCorrectSignature" fullname="ReadinessAndChatEditorTests.ZombieCorpseLoot_RPC_ShowSearchResult_UsesRpcTargetAndCorrectSignature" methodname="ZombieCorpseLoot_RPC_ShowSearchResult_UsesRpcTargetAndCorrectSignature" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="100156828" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.001171" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1136" name="ZombieMovement_UsesObstacleSweep_AndEnemyStillCollidesWithObstacleLayer" fullname="ReadinessAndChatEditorTests.ZombieMovement_UsesObstacleSweep_AndEnemyStillCollidesWithObstacleLayer" methodname="ZombieMovement_UsesObstacleSweep_AndEnemyStillCollidesWithObstacleLayer" classname="ReadinessAndChatEditorTests" runstate="Runnable" seed="1175019473" result="Passed" start-time="2026-08-31 03:10:42Z" end-time="2026-08-31 03:10:42Z" duration="0.008430" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/Admin/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

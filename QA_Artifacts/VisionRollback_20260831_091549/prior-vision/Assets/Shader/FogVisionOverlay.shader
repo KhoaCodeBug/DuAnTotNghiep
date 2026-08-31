@@ -8,7 +8,6 @@ Shader "ProjectZomboid/FogVisionOverlay"
         _IndoorExteriorColor ("Indoor Exterior Color", Color) = (0.008, 0.01, 0.014, 1)
         _FogDensity ("Fog Density", Range(0, 1)) = 0.8
         _FogBankTex ("Fog Bank Density", 2D) = "black" {}
-        [HideInInspector] _IndoorSurfaceAtlas ("Indoor Surface Projection", 2D) = "black" {}
     }
 
     SubShader
@@ -47,10 +46,6 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float _FlashlightRadius;
                 float _FlashlightIllumination;
                 float _IndoorActive;
-                float _IndoorSurfaceActive;
-                float4 _IndoorSurfaceBounds;
-                float4 _IndoorSurfaceLighting;
-                float _IndoorSurfaceProbe;
                 float _IndoorPointCount;
                 float4 _IndoorPoints[16];
                 float _IndoorAmbientOpacity;
@@ -61,7 +56,6 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float _IndoorOcclusionActive;
                 float _IndoorOcclusionRayCount;
                 float _IndoorOcclusionDistances[180];
-                float2 _IndoorOcclusionOrigin;
                 float _IndoorOcclusionEdgeSoftness;
                 float _IndoorWallOccludedOpacity;
                 float _QuestBoundaryActive;
@@ -77,8 +71,6 @@ Shader "ProjectZomboid/FogVisionOverlay"
 
             TEXTURE2D(_FogBankTex);
             SAMPLER(sampler_FogBankTex);
-            TEXTURE2D(_IndoorSurfaceAtlas);
-            SAMPLER(sampler_IndoorSurfaceAtlas);
 
             Varyings vert(Attributes input)
             {
@@ -136,95 +128,32 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 return inside;
             }
 
-            float IndoorOcclusionVisibility(float2 worldPosition, float distanceInset, float surfaceProjection)
+            float IndoorOcclusionVisibility(float2 directionToPixel, float distanceFromPlayer)
             {
                 if (_IndoorOcclusionActive < 0.5 || _IndoorOcclusionRayCount < 2.0)
                     return 1.0;
 
-                // Distances belong to the origin used by the last physics scan.
-                // Keeping this origin paired with its samples prevents the mask from
-                // sliding against walls while the Player moves between scan updates.
-                float2 offsetFromScan = worldPosition - _IndoorOcclusionOrigin;
-                float distanceFromScan = length(offsetFromScan);
-                float2 directionToPixel = distanceFromScan > 0.0001
-                    ? offsetFromScan / distanceFromScan : float2(1, 0);
                 float angle = atan2(directionToPixel.y, directionToPixel.x);
                 if (angle < 0.0) angle += 6.28318530718;
                 float samplePosition = angle * _IndoorOcclusionRayCount / 6.28318530718;
                 int firstIndex = (int)floor(samplePosition);
                 int secondIndex = firstIndex + 1;
                 if (secondIndex >= (int)_IndoorOcclusionRayCount) secondIndex = 0;
-                float feather = max(_IndoorOcclusionEdgeSoftness, 0.01);
-                float testedDistance = max(0, distanceFromScan - distanceInset);
-                float firstVisibility = 1.0 - smoothstep(
-                    _IndoorOcclusionDistances[firstIndex] - feather,
-                    _IndoorOcclusionDistances[firstIndex] + feather, testedDistance);
-                float secondVisibility = 1.0 - smoothstep(
-                    _IndoorOcclusionDistances[secondIndex] - feather,
-                    _IndoorOcclusionDistances[secondIndex] + feather, testedDistance);
-                if (surfaceProjection > 0.5)
-                {
-                    // Only configured static wall/decor pixels receive angular
-                    // reconstruction. A non-negative cubic B-spline suppresses an
-                    // isolated ray flip and makes the transition C1-continuous,
-                    // without opening floor/actors behind the wall.
-                    int rayCount = (int)_IndoorOcclusionRayCount;
-                    int previousIndex = firstIndex > 0 ? firstIndex - 1 : rayCount - 1;
-                    int nextIndex = secondIndex + 1 < rayCount ? secondIndex + 1 : 0;
-                    float previousVisibility = 1.0 - smoothstep(
-                        _IndoorOcclusionDistances[previousIndex] - feather,
-                        _IndoorOcclusionDistances[previousIndex] + feather, testedDistance);
-                    float nextVisibility = 1.0 - smoothstep(
-                        _IndoorOcclusionDistances[nextIndex] - feather,
-                        _IndoorOcclusionDistances[nextIndex] + feather, testedDistance);
-                    float t = frac(samplePosition);
-                    float t2 = t * t;
-                    float t3 = t2 * t;
-                    float4 weights = float4(
-                        (1.0 - 3.0 * t + 3.0 * t2 - t3) / 6.0,
-                        (4.0 - 6.0 * t2 + 3.0 * t3) / 6.0,
-                        (1.0 + 3.0 * t + 3.0 * t2 - 3.0 * t3) / 6.0,
-                        t3 / 6.0);
-                    return dot(weights, float4(previousVisibility, firstVisibility,
-                        secondVisibility, nextVisibility));
-                }
-                // Preserve the accepted world/floor occlusion shape. Interpolating
-                // the hit distance remains strict for gameplay-bearing pixels.
                 float wallDistance = lerp(_IndoorOcclusionDistances[firstIndex],
-                    _IndoorOcclusionDistances[secondIndex], frac(samplePosition));
+                                          _IndoorOcclusionDistances[secondIndex],
+                                          frac(samplePosition));
+                float feather = max(_IndoorOcclusionEdgeSoftness, 0.01);
                 return 1.0 - smoothstep(wallDistance - feather, wallDistance + feather,
-                    testedDistance);
+                                        distanceFromPlayer);
             }
 
             half4 frag(Varyings input) : SV_Target
             {
                 float2 worldPosition = _FogWorldBottomLeft + input.uv.x * _FogWorldRight + input.uv.y * _FogWorldUp;
-                float2 visibilityPosition = worldPosition;
-                float surfacePixel = 0;
-                if (_IndoorActive > 0.5 && _IndoorSurfaceActive > 0.5)
-                {
-                    float2 atlasUv = (worldPosition - _IndoorSurfaceBounds.xy) / _IndoorSurfaceBounds.zw;
-                    if (all(atlasUv >= 0) && all(atlasUv <= 1))
-                    {
-                        float4 surface = SAMPLE_TEXTURE2D(_IndoorSurfaceAtlas, sampler_IndoorSurfaceAtlas, atlasUv);
-                        surfacePixel = step(0.5, surface.a);
-                        visibilityPosition = lerp(worldPosition, _IndoorSurfaceBounds.xy + surface.xy * _IndoorSurfaceBounds.zw, surfacePixel);
-                    }
-                }
-                float2 offsetFromPlayer = visibilityPosition - _VisionWorldCenter;
+                float2 offsetFromPlayer = worldPosition - _VisionWorldCenter;
                 float distanceFromPlayer = length(offsetFromPlayer);
                 float2 directionToPixel = distanceFromPlayer > 0.0001 ? offsetFromPlayer / distanceFromPlayer : _VisionDirection;
-                float indoorOcclusionVisibility = IndoorOcclusionVisibility(
-                    visibilityPosition, surfacePixel * _IndoorSurfaceProbe, surfacePixel);
-                float originalInside = 0;
-                if (_IndoorActive > 0.5 && _IndoorSurfaceActive > 0.5)
-                {
-                    // Surface projection repairs over-occlusion of tall art. It must not
-                    // carve new black strips into pixels already visible in the accepted map.
-                    indoorOcclusionVisibility = max(indoorOcclusionVisibility,
-                        IndoorOcclusionVisibility(worldPosition, 0, 0));
-                    originalInside = IsInsideIndoorPolygon(worldPosition);
-                }
+                float indoorOcclusionVisibility = IndoorOcclusionVisibility(directionToPixel, distanceFromPlayer);
 
                 float angleDot = dot(directionToPixel, normalize(_VisionDirection));
                 // A deliberately broad angular feather prevents the hard, fake
@@ -243,26 +172,6 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float flashlightVisibility = rawConeVisibility * flashlightReach * _FlashlightActive * indoorOcclusionVisibility;
 
                 float insideIndoor = IsInsideIndoorPolygon(worldPosition);
-                if (_IndoorActive > 0.5 && _IndoorSurfaceActive > 0.5)
-                {
-                    insideIndoor = max(originalInside, IsInsideIndoorPolygon(visibilityPosition));
-                    float visible = insideIndoor * indoorOcclusionVisibility;
-                    // Narrow the flashlight feather slightly; soften lighting on visible surfaces
-                    // without dilating visibility into the room behind the wall.
-                    float lightCone = smoothstep(_VisionCosHalfAngle + _IndoorSurfaceLighting.z,
-                        _VisionCosHalfAngle + _IndoorSurfaceLighting.z + 0.20, angleDot);
-                    float illumination = lightCone * flashlightReach * _FlashlightActive;
-                    float ambientOpacity = saturate(_IndoorSurfaceLighting.x + (1 - rawConeVisibility) * 0.12);
-                    float surfaceOpacity = lerp(ambientOpacity, _IndoorSurfaceLighting.y, illumination);
-                    float opacity = lerp(_IndoorExteriorOpacity, surfaceOpacity, visible);
-                    opacity = max(opacity, (1 - indoorOcclusionVisibility) * _IndoorWallOccludedOpacity);
-                    float exitAwareness = (1 - smoothstep(_IndoorExitAwarenessRadius * 0.28,
-                        _IndoorExitAwarenessRadius, distanceFromPlayer)) * indoorOcclusionVisibility;
-                    opacity *= 1 - exitAwareness * (1 - insideIndoor) * _IndoorExitAwarenessClearance;
-                    opacity *= 1 - flashlightVisibility * (1 - insideIndoor) * _IndoorExteriorFlashlightClearance;
-                    float3 color = lerp(_IndoorExteriorColor.rgb, _IndoorAmbientColor.rgb, visible);
-                    return half4(color, saturate(opacity));
-                }
                 if (_IndoorActive > 0.5)
                 {
                     float visibleIndoor = insideIndoor * indoorOcclusionVisibility;

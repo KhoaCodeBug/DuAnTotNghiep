@@ -1,0 +1,6 @@
+{
+  "integration": {"jobId":"75cc0c4b5a0a421b932d50822efda2c0","total":1,"passed":1,"failed":0,"durationSeconds":31.7723142},
+  "editMode": {"jobId":"6c0247d57ee948328ad7372d81e14a50","total":44,"passed":44,"failed":0,"durationSeconds":30.2683895},
+  "playMode": {"jobId":"8d10a50c13f74cb7b47e9ccd55a0d14b","total":5,"passed":5,"failed":0,"durationSeconds":21.8535742},
+  "consoleErrors": 0
+}

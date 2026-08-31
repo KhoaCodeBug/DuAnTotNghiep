@@ -10,7 +10,6 @@ using UnityEngine.UI;
 [DisallowMultipleComponent]
 public class FogVisionController : MonoBehaviour
 {
-    private static readonly Unity.Profiling.ProfilerMarker RenderMarker = new Unity.Profiling.ProfilerMarker("FogVision.UpdateMaterial");
     public static FogVisionController Instance { get; private set; }
 
     [Header("Outdoor weather (00:00 / 09:00 / 12:00 / 17:00 / 19:30 / 24:00)")]
@@ -95,7 +94,6 @@ public class FogVisionController : MonoBehaviour
     private static readonly int IndoorOcclusionActiveId = Shader.PropertyToID("_IndoorOcclusionActive");
     private static readonly int IndoorOcclusionRayCountId = Shader.PropertyToID("_IndoorOcclusionRayCount");
     private static readonly int IndoorOcclusionDistancesId = Shader.PropertyToID("_IndoorOcclusionDistances");
-    private static readonly int IndoorOcclusionOriginId = Shader.PropertyToID("_IndoorOcclusionOrigin");
     private static readonly int IndoorOcclusionEdgeSoftnessId = Shader.PropertyToID("_IndoorOcclusionEdgeSoftness");
     private static readonly int IndoorWallOccludedOpacityId = Shader.PropertyToID("_IndoorWallOccludedOpacity");
     private static readonly int FogWorldBottomLeftId = Shader.PropertyToID("_FogWorldBottomLeft");
@@ -195,7 +193,7 @@ public class FogVisionController : MonoBehaviour
 
         overlayImage.enabled = true;
         UpdateWeatherState();
-        using (RenderMarker.Auto()) UpdateMaterial();
+        UpdateMaterial();
     }
 
     public float GetOutdoorVisionMultiplier()
@@ -372,20 +370,6 @@ public class FogVisionController : MonoBehaviour
         float nightBlend = DayNightManager.Instance != null
             ? DayNightManager.EvaluateNightBlend(DayNightManager.Instance.CurrentTime)
             : 0f;
-        // Explicit opt-in only: unconfigured interiors retain their accepted renderer.
-        IndoorFogSurfaceMap surfaceMap = isIndoor
-            ? targetVision.ActiveIndoorCollider.GetComponentInParent<IndoorFogSurfaceMap>() : null;
-        bool useSurfaceMap = surfaceMap != null && surfaceMap.indoorVolume == targetVision.ActiveIndoorCollider && surfaceMap.EnsureAtlas();
-        overlayMaterial.SetFloat("_IndoorSurfaceActive", useSurfaceMap ? 1f : 0f);
-        if (useSurfaceMap)
-        {
-            overlayMaterial.SetTexture("_IndoorSurfaceAtlas", surfaceMap.Atlas);
-            overlayMaterial.SetVector("_IndoorSurfaceBounds", surfaceMap.AtlasBounds);
-            overlayMaterial.SetFloat("_IndoorSurfaceProbe", surfaceMap.surfaceProbeInset);
-            overlayMaterial.SetVector("_IndoorSurfaceLighting", new Vector4(
-                Mathf.Lerp(surfaceMap.dayAmbientOpacity, surfaceMap.nightAmbientOpacity, nightBlend),
-                surfaceMap.litOpacity, surfaceMap.coneInset, 0f));
-        }
         Color nightFogColor = new Color(0.075f, 0.105f, 0.17f, fogColor.a);
         overlayMaterial.SetColor(FogColorId, Color.Lerp(fogColor, nightFogColor, nightBlend * 0.78f));
         overlayMaterial.SetFloat(FogDensityId, CurrentFogDensity);
@@ -416,7 +400,6 @@ public class FogVisionController : MonoBehaviour
         overlayMaterial.SetFloat(IndoorOcclusionRayCountId,
             indoorOcclusionActive ? Mathf.Clamp(indoorOcclusionRayCount, 64, MaxIndoorOcclusionRays) : 0f);
         overlayMaterial.SetFloatArray(IndoorOcclusionDistancesId, indoorOcclusionDistances);
-        overlayMaterial.SetVector(IndoorOcclusionOriginId, lastOcclusionOrigin);
         overlayMaterial.SetFloat(IndoorOcclusionEdgeSoftnessId, indoorOcclusionEdgeSoftness);
         overlayMaterial.SetFloat(IndoorWallOccludedOpacityId, indoorWallOccludedOpacity);
         overlayMaterial.SetFloat(QuestBoundaryActiveId, IsQuestSearchBoundaryActive ? 1f : 0f);

@@ -1,0 +1,9 @@
+Indoor Fog Surface V1 snapshot
+Date: 2026-08-31
+Branch: codex/restore-indoor-vision-20260831
+HEAD: ddf440424
+Stable pre-prototype checkpoint: codex/checkpoint-vision-menu-stable-20260831 @ ddf440424
+Archive: E:\Lap_trinh\HocTap\DuAnTotNghiepFIx\My project\QA_Artifacts\IndoorFogPrototype_20260831\IndoorFogSurfaceV1-snapshot-20260831.zip
+SHA256: B4B102EFD5542A30A4A9414ECED2B1F083189023E619D04AD8801F8EF7E854BB
+Status: user-reviewed prototype with known hard-transition and near-wall streak/flicker defects; not stable acceptance.
+No commit or push was created.

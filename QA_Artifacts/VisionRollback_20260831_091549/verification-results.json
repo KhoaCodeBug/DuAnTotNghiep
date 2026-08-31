@@ -1,0 +1,140 @@
+{
+  "edit": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"Test job status retrieved.\",\"error\":null,\"data\":{\"job_id\":\"10a89167a5254d1fba4ce7ed46e8dd8f\",\"status\":\"succeeded\",\"mode\":\"EditMode\",\"started_unix_ms\":1788144240517,\"finished_unix_ms\":1788144243677,\"last_update_unix_ms\":1788144243677,\"progress\":{\"completed\":173,\"total\":173,\"current_test_full_name\":null,\"current_test_started_unix_ms\":1788144243628,\"last_finished_test_full_name\":\"VietnameseStaticFontTests.TmpSettingsAndLiberationUseSerializedStaticFallback\",\"last_finished_unix_ms\":1788144243630,\"stuck_suspected\":false,\"editor_is_focused\":true,\"blocked_reason\":null,\"failures_so_far\":[],\"failures_capped\":false},\"error\":null,\"result\":{\"mode\":\"EditMode\",\"summary\":{\"total\":173,\"passed\":173,\"failed\":0,\"skipped\":0,\"durationSeconds\":2.8449938,\"resultState\":\"Passed\"},\"results\":[]}},\"hint\":null}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "success": true,
+        "message": "Test job status retrieved.",
+        "error": null,
+        "data": {
+          "job_id": "10a89167a5254d1fba4ce7ed46e8dd8f",
+          "status": "succeeded",
+          "mode": "EditMode",
+          "started_unix_ms": 1788144240517,
+          "finished_unix_ms": 1788144243677,
+          "last_update_unix_ms": 1788144243677,
+          "progress": {
+            "completed": 173,
+            "total": 173,
+            "current_test_full_name": null,
+            "current_test_started_unix_ms": 1788144243628,
+            "last_finished_test_full_name": "VietnameseStaticFontTests.TmpSettingsAndLiberationUseSerializedStaticFallback",
+            "last_finished_unix_ms": 1788144243630,
+            "stuck_suspected": false,
+            "editor_is_focused": true,
+            "blocked_reason": null,
+            "failures_so_far": [],
+            "failures_capped": false
+          },
+          "error": null,
+          "result": {
+            "mode": "EditMode",
+            "summary": {
+              "total": 173,
+              "passed": 173,
+              "failed": 0,
+              "skipped": 0,
+              "durationSeconds": 2.8449938,
+              "resultState": "Passed"
+            },
+            "results": []
+          }
+        },
+        "hint": null
+      }
+    },
+    "isError": false
+  },
+  "play": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"Test job status retrieved.\",\"error\":null,\"data\":{\"job_id\":\"daef476b9fb9434d804963f92c56e6eb\",\"status\":\"succeeded\",\"mode\":\"PlayMode\",\"started_unix_ms\":1788144113958,\"finished_unix_ms\":1788144226254,\"last_update_unix_ms\":1788144226254,\"progress\":{\"completed\":15,\"total\":15,\"current_test_full_name\":null,\"current_test_started_unix_ms\":1788144226080,\"last_finished_test_full_name\":\"VisibilityAndZombieRegressionPlayModeTests.ZombieVisibility_SplitRoofTriggerKeepsNearbyIndoorZombieVisible\",\"last_finished_unix_ms\":1788144226132,\"stuck_suspected\":false,\"editor_is_focused\":true,\"blocked_reason\":null,\"failures_so_far\":[],\"failures_capped\":false},\"error\":null,\"result\":{\"mode\":\"PlayMode\",\"summary\":{\"total\":15,\"passed\":15,\"failed\":0,\"skipped\":0,\"durationSeconds\":106.6487751,\"resultState\":\"Passed\"},\"results\":[]}},\"hint\":null}"
+      }
+    ],
+    "structuredContent": {
+      "result": {
+        "success": true,
+        "message": "Test job status retrieved.",
+        "error": null,
+        "data": {
+          "job_id": "daef476b9fb9434d804963f92c56e6eb",
+          "status": "succeeded",
+          "mode": "PlayMode",
+          "started_unix_ms": 1788144113958,
+          "finished_unix_ms": 1788144226254,
+          "last_update_unix_ms": 1788144226254,
+          "progress": {
+            "completed": 15,
+            "total": 15,
+            "current_test_full_name": null,
+            "current_test_started_unix_ms": 1788144226080,
+            "last_finished_test_full_name": "VisibilityAndZombieRegressionPlayModeTests.ZombieVisibility_SplitRoofTriggerKeepsNearbyIndoorZombieVisible",
+            "last_finished_unix_ms": 1788144226132,
+            "stuck_suspected": false,
+            "editor_is_focused": true,
+            "blocked_reason": null,
+            "failures_so_far": [],
+            "failures_capped": false
+          },
+          "error": null,
+          "result": {
+            "mode": "PlayMode",
+            "summary": {
+              "total": 15,
+              "passed": 15,
+              "failed": 0,
+              "skipped": 0,
+              "durationSeconds": 106.6487751,
+              "resultState": "Passed"
+            },
+            "results": []
+          }
+        },
+        "hint": null
+      }
+    },
+    "isError": false
+  },
+  "consoleAfterPlay": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"success\":true,\"message\":\"Retrieved 3 log entries.\",\"data\":[{\"type\":\"Error\",\"message\":\"There can be only one active Event System.\",\"file\":\"./Library/PackageCache/com.unity.ugui@fed111d25ba7/Runtime/UGUI/EventSystem/EventSystem.cs\",\"line\":452,\"stackTrace\":\"UnityEngine.EventSystems.EventSystem:OnEnable () (at ./Library/PackageCache/com.unity.ugui@fed111d25ba7/Runtime/UGUI/EventSystem/EventSystem.cs:452)\\n\"},{\"type\":\"Error\",\"message\":\"There are 2 event systems in the scene. Please ensure there is always exactly one event system in the scene\",\"file\":\"./Library/PackageCache/com.unity.ugui@fed111d25ba7/Runtime/UGUI/EventSystem/EventSystem.cs\",\"line\":543,\"stackTrace\":\"UnityEngine.EventSystems.EventSystem:Update () (at ./Library/PackageCache/com.unity.ugui@fed111d25ba7/Runtime/UGUI/EventSystem/EventSystem.cs:543)\\n\"},{\"type\":\"Exception\",\"message\":\"Saving results to: C:/Users/Admin/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\\\\TestResults.xml\\n\",\"file\":\"C:\\\\build\\\\output\\\\unity\\\\unity\\\\Runtime\\\\Export\\\\Debug\\\\Debug.bindings.h\",\"line\":40,\"stackTrace\":null}]}"
+      }
+    ],
+    "structuredContent": {
+      "success": true,
+      "message": "Retrieved 3 log entries.",
+      "data": [
+        {
+          "type": "Error",
+          "message": "There can be only one active Event System.",
+          "file": "./Library/PackageCache/com.unity.ugui@fed111d25ba7/Runtime/UGUI/EventSystem/EventSystem.cs",
+          "line": 452,
+          "stackTrace": "UnityEngine.EventSystems.EventSystem:OnEnable () (at ./Library/PackageCache/com.unity.ugui@fed111d25ba7/Runtime/UGUI/EventSystem/EventSystem.cs:452)\n"
+        },
+        {
+          "type": "Error",
+          "message": "There are 2 event systems in the scene. Please ensure there is always exactly one event system in the scene",
+          "file": "./Library/PackageCache/com.unity.ugui@fed111d25ba7/Runtime/UGUI/EventSystem/EventSystem.cs",
+          "line": 543,
+          "stackTrace": "UnityEngine.EventSystems.EventSystem:Update () (at ./Library/PackageCache/com.unity.ugui@fed111d25ba7/Runtime/UGUI/EventSystem/EventSystem.cs:543)\n"
+        },
+        {
+          "type": "Exception",
+          "message": "Saving results to: C:/Users/Admin/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\\TestResults.xml\n",
+          "file": "C:\\build\\output\\unity\\unity\\Runtime\\Export\\Debug\\Debug.bindings.h",
+          "line": 40,
+          "stackTrace": null
+        }
+      ]
+    },
+    "isError": false
+  }
+}
