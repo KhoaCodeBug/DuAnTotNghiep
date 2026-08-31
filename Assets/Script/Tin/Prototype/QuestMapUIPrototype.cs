@@ -323,6 +323,25 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
             return;
 
         dragging = false;
+        if (!open)
+        {
+            if (militaryUnlockRevealRoutine != null)
+            {
+                StopCoroutine(militaryUnlockRevealRoutine);
+                militaryUnlockRevealRoutine = null;
+            }
+            if (unlockRevealRoutine != null)
+            {
+                StopCoroutine(unlockRevealRoutine);
+                unlockRevealRoutine = null;
+            }
+            if (countrysideUnlockRevealRoutine != null)
+            {
+                StopCoroutine(countrysideUnlockRevealRoutine);
+                countrysideUnlockRevealRoutine = null;
+            }
+            if (unlockRevealRoot != null) unlockRevealRoot.SetActive(false);
+        }
         root.SetActive(open);
         if (worldMapCamera != null)
             worldMapCamera.enabled = open;

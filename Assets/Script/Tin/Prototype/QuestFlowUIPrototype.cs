@@ -828,6 +828,13 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             mapPrototype.SetOpen(false);
         if (clueReadingRoot != null)
             clueReadingRoot.SetActive(false);
+        if (completionRoutine != null)
+        {
+            StopCoroutine(completionRoutine);
+            completionRoutine = null;
+        }
+        if (completionRoot != null)
+            completionRoot.SetActive(false);
     }
 
     public bool HasBuiltElement(string elementName)

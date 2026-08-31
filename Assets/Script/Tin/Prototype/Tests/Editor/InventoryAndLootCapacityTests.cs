@@ -102,7 +102,7 @@ public sealed class InventoryAndLootCapacityTests
     }
 
     [Test]
-    public void BackpackQuestMilestonesMapToHospitalLevelFourAndMilitaryLevelFive()
+    public void BackpackQuestMilestonesMapToHospitalLevelFourAndRadioLevelFive()
     {
         Type rulesType = RequireType("BackpackQuestRewardRules, Assembly-CSharp");
         Type milestoneType = RequireType("BackpackQuestRewardMilestone, Assembly-CSharp");
@@ -112,9 +112,9 @@ public sealed class InventoryAndLootCapacityTests
         MethodInfo markClaimed = RequireMethod(rulesType, "MarkClaimed", typeof(int), typeof(int));
 
         object hospital = Enum.Parse(milestoneType, "HospitalArrival");
-        object military = Enum.Parse(milestoneType, "MilitaryBaseEntry");
+        object radio = Enum.Parse(milestoneType, "RadioRestoration");
         Assert.That((int)getRewardLevel.Invoke(null, new[] { hospital }), Is.EqualTo(4));
-        Assert.That((int)getRewardLevel.Invoke(null, new[] { military }), Is.EqualTo(5));
+        Assert.That((int)getRewardLevel.Invoke(null, new[] { radio }), Is.EqualTo(5));
 
         int mask = 0;
         Assert.That((bool)isClaimed.Invoke(null, new object[] { mask, 4 }), Is.False);
@@ -124,10 +124,99 @@ public sealed class InventoryAndLootCapacityTests
         Assert.That((int)markClaimed.Invoke(null, new object[] { afterHospital, 4 }), Is.EqualTo(afterHospital),
             "A repeated hospital trigger must not produce a second claim.");
 
-        int afterMilitary = (int)markClaimed.Invoke(null, new object[] { afterHospital, 5 });
-        Assert.That((bool)isClaimed.Invoke(null, new object[] { afterMilitary, 5 }), Is.True);
-        Assert.That((bool)isClaimed.Invoke(null, new object[] { afterMilitary, 3 }), Is.False,
+        int afterRadio = (int)markClaimed.Invoke(null, new object[] { afterHospital, 5 });
+        Assert.That((bool)isClaimed.Invoke(null, new object[] { afterRadio, 5 }), Is.True);
+        Assert.That((bool)isClaimed.Invoke(null, new object[] { afterRadio, 3 }), Is.False,
             "Backpack levels 1-3 are capacity-only and have no quest milestone claim.");
+    }
+
+    [Test]
+    public void BackpackLootRules_OrdinaryLootOnlyRollsLevelsOneThroughThreeWithApprovedWeights()
+    {
+        Type lootRulesType = RequireType("BackpackLootRules, Assembly-CSharp");
+        MethodInfo rollTier = RequireMethod(lootRulesType, "RollTier");
+        MethodInfo getWeight = RequireMethod(lootRulesType, "GetTierWeightPercent", typeof(int));
+
+        Assert.That((float)getWeight.Invoke(null, new object[] { 1 }), Is.EqualTo(70f).Within(0.001f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 2 }), Is.EqualTo(25f).Within(0.001f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 3 }), Is.EqualTo(5f).Within(0.001f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 4 }), Is.EqualTo(0f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 5 }), Is.EqualTo(0f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 0 }), Is.EqualTo(0f));
+
+        for (int i = 0; i < 500; i++)
+        {
+            int tier = (int)rollTier.Invoke(null, null);
+            Assert.That(tier, Is.InRange(1, 3), "Ordinary loot must roll only tiers 1, 2 or 3.");
+        }
+
+        Type containerType = RequireType("LootContainer, Assembly-CSharp");
+        GameObject host = new GameObject("Container Default Test");
+        try
+        {
+            host.AddComponent<BoxCollider2D>();
+            host.AddComponent<SpriteRenderer>();
+            Component container = host.AddComponent(containerType);
+            Assert.That(container, Is.Not.Null);
+            FieldInfo chanceField = RequireField(containerType, "backpackDropChance");
+            Assert.That((float)chanceField.GetValue(container), Is.EqualTo(5f).Within(0.001f),
+                "Default backpackDropChance on LootContainer must be 5%.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(host);
+        }
+    }
+
+    [Test]
+    public void BackpackPickupPredicate_RejectsEqualOrLower_AcceptsHigher_NoDowngrade()
+    {
+        Type inventoryType = RequireType("InventorySystem, Assembly-CSharp");
+        Type catalogType = RequireType("BackpackItemCatalog, Assembly-CSharp");
+        Type itemType = RequireType("ItemData, Assembly-CSharp");
+        MethodInfo getOrCreate = RequireMethod(catalogType, "GetOrCreate", typeof(int), typeof(bool));
+        MethodInfo canAccept = RequireMethod(inventoryType, "CanAcceptBackpackLoot", itemType);
+
+        GameObject host = new GameObject("Backpack Predicate Test");
+        try
+        {
+            Component inventory = host.AddComponent(inventoryType);
+            InvokePrivate(inventory, "Awake");
+
+            object bp1 = getOrCreate.Invoke(null, new object[] { 1, false });
+            object bp2 = getOrCreate.Invoke(null, new object[] { 2, false });
+            object bp3 = getOrCreate.Invoke(null, new object[] { 3, false });
+            object bp5 = getOrCreate.Invoke(null, new object[] { 5, false });
+
+            // Initial level is 0
+            Assert.That((bool)canAccept.Invoke(inventory, new[] { bp1 }), Is.True,
+                "Level 0 inventory must accept level 1 backpack loot.");
+            Assert.That((bool)canAccept.Invoke(inventory, new[] { bp2 }), Is.True);
+            Assert.That((bool)canAccept.Invoke(inventory, new[] { bp3 }), Is.True);
+
+            // Set level to 2 (total 30 slots)
+            inventoryType.GetMethod("SetMaxSlots")?.Invoke(inventory, new object[] { 30 });
+            PropertyInfo currentLevelProp = inventoryType.GetProperty("CurrentBackpackLevel");
+            Assert.That((int)currentLevelProp.GetValue(inventory), Is.EqualTo(2));
+
+            Assert.That((bool)canAccept.Invoke(inventory, new[] { bp1 }), Is.False,
+                "Level 2 inventory must reject level 1 backpack loot (no downgrade).");
+            Assert.That((bool)canAccept.Invoke(inventory, new[] { bp2 }), Is.False,
+                "Level 2 inventory must reject level 2 backpack loot (no duplicate/equal loot).");
+            Assert.That((bool)canAccept.Invoke(inventory, new[] { bp3 }), Is.True,
+                "Level 2 inventory must accept level 3 backpack loot (upgrade).");
+
+            // Set level to 5 (total 55 slots)
+            inventoryType.GetMethod("SetMaxSlots")?.Invoke(inventory, new object[] { 55 });
+            Assert.That((int)currentLevelProp.GetValue(inventory), Is.EqualTo(5));
+
+            Assert.That((bool)canAccept.Invoke(inventory, new[] { bp3 }), Is.False);
+            Assert.That((bool)canAccept.Invoke(inventory, new[] { bp5 }), Is.False);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(host);
+        }
     }
 
     [Test]
@@ -174,6 +263,88 @@ public sealed class InventoryAndLootCapacityTests
         {
             UnityEngine.Object.DestroyImmediate(host);
         }
+    }
+
+    [Test]
+    public void TwoPlayersContestOrdinaryBackpackLoot_HigherLevelRejected_LowerLevelCanLootItem()
+    {
+        Type inventoryType = RequireType("InventorySystem, Assembly-CSharp");
+        Type catalogType = RequireType("BackpackItemCatalog, Assembly-CSharp");
+        Type containerType = RequireType("LootContainer, Assembly-CSharp");
+        Type itemType = RequireType("ItemData, Assembly-CSharp");
+        MethodInfo getOrCreate = RequireMethod(catalogType, "GetOrCreate", typeof(int), typeof(bool));
+        MethodInfo canAccept = RequireMethod(inventoryType, "CanAcceptBackpackLoot", itemType);
+
+        GameObject p1Host = new GameObject("Player 1 (High Tier)");
+        GameObject p2Host = new GameObject("Player 2 (Low Tier)");
+        GameObject containerHost = new GameObject("Contested Container");
+        try
+        {
+            Component inv1 = p1Host.AddComponent(inventoryType);
+            InvokePrivate(inv1, "Awake");
+            inventoryType.GetMethod("SetMaxSlots")?.Invoke(inv1, new object[] { 35 }); // Level 3
+
+            Component inv2 = p2Host.AddComponent(inventoryType);
+            InvokePrivate(inv2, "Awake");
+            inventoryType.GetMethod("SetMaxSlots")?.Invoke(inv2, new object[] { 20 }); // Level 0
+
+            object lootItem = getOrCreate.Invoke(null, new object[] { 2, false }); // Level 2 backpack in container
+
+            // Player 1 (Level 3) tries to loot Level 2 backpack -> Rejected
+            Assert.That((bool)canAccept.Invoke(inv1, new[] { lootItem }), Is.False,
+                "Higher level player cannot loot lower/equal tier backpack.");
+
+            // Player 2 (Level 0) tries to loot Level 2 backpack -> Accepted
+            Assert.That((bool)canAccept.Invoke(inv2, new[] { lootItem }), Is.True,
+                "Lower level player can loot the backpack from the container.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(p1Host);
+            UnityEngine.Object.DestroyImmediate(p2Host);
+            UnityEngine.Object.DestroyImmediate(containerHost);
+        }
+    }
+
+    [Test]
+    public void DuplicateOrReconnectClaimRequest_DoesNotInvokePresentationCallbackTwice()
+    {
+        Type inventoryType = RequireType("InventorySystem, Assembly-CSharp");
+        MethodInfo requestClaim = RequireMethod(inventoryType, "RequestClaimLevelFiveBackpackReward", typeof(Action));
+
+        GameObject host = new GameObject("Idempotent Claim Test");
+        try
+        {
+            Component inventory = host.AddComponent(inventoryType);
+            InvokePrivate(inventory, "Awake");
+
+            int callbackCount = 0;
+            Action callback = () => { callbackCount++; };
+
+            // First claim invocation
+            requestClaim.Invoke(inventory, new object[] { callback });
+            Assert.That(callbackCount, Is.EqualTo(1), "First claim must invoke the presentation callback.");
+
+            // Duplicate claim invocation (e.g. late join / reconnect / duplicate event)
+            requestClaim.Invoke(inventory, new object[] { callback });
+            Assert.That(callbackCount, Is.EqualTo(1), "Duplicate claim must NOT re-invoke the presentation callback.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(host);
+        }
+    }
+
+    [Test]
+    public void MilitaryBaseEntry_HasNoBackpackRewardPath()
+    {
+        Type rulesType = RequireType("BackpackQuestRewardRules, Assembly-CSharp");
+        Type milestoneType = RequireType("BackpackQuestRewardMilestone, Assembly-CSharp");
+        MethodInfo getRewardLevel = RequireMethod(rulesType, "GetRewardLevel", milestoneType);
+
+        object militaryEntry = Enum.Parse(milestoneType, "MilitaryBaseEntry");
+        Assert.That((int)getRewardLevel.Invoke(null, new[] { militaryEntry }), Is.EqualTo(0),
+            "MilitaryBaseEntry must not grant any backpack reward level.");
     }
 
     [Test]
@@ -458,23 +629,23 @@ public sealed class InventoryAndLootCapacityTests
         Type rulesType = RequireType("BackpackLootRules");
         MethodInfo getWeight = RequireMethod(rulesType, "GetTierWeightPercent", typeof(int));
 
-        Assert.That((float)getWeight.Invoke(null, new object[] { 1 }), Is.EqualTo(50f));
-        Assert.That((float)getWeight.Invoke(null, new object[] { 2 }), Is.EqualTo(30f));
-        Assert.That((float)getWeight.Invoke(null, new object[] { 3 }), Is.EqualTo(15f));
-        Assert.That((float)getWeight.Invoke(null, new object[] { 4 }), Is.EqualTo(4f));
-        Assert.That((float)getWeight.Invoke(null, new object[] { 5 }), Is.EqualTo(1f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 1 }), Is.EqualTo(70f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 2 }), Is.EqualTo(25f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 3 }), Is.EqualTo(5f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 4 }), Is.EqualTo(0f));
+        Assert.That((float)getWeight.Invoke(null, new object[] { 5 }), Is.EqualTo(0f));
 
         Type diffRulesType = RequireType("DifficultyRules");
         MethodInfo getLootMult = RequireMethod(diffRulesType, "GetLootRateMultiplier", typeof(int));
 
-        float baseBackpackChance = 10f;
+        float baseBackpackChance = 5f;
         float easyMult = (float)getLootMult.Invoke(null, new object[] { 0 });
         float normMult = (float)getLootMult.Invoke(null, new object[] { 1 });
         float hardMult = (float)getLootMult.Invoke(null, new object[] { 2 });
 
-        Assert.That(baseBackpackChance * easyMult, Is.EqualTo(15f));
-        Assert.That(baseBackpackChance * normMult, Is.EqualTo(10f));
-        Assert.That(baseBackpackChance * hardMult, Is.EqualTo(4f));
+        Assert.That(baseBackpackChance * easyMult, Is.EqualTo(7.5f));
+        Assert.That(baseBackpackChance * normMult, Is.EqualTo(5f));
+        Assert.That(baseBackpackChance * hardMult, Is.EqualTo(2f));
 
         Type containerType = RequireType("LootContainer, Assembly-CSharp");
         GameObject host = new GameObject("Loot Bonus Chance Test");
@@ -489,6 +660,10 @@ public sealed class InventoryAndLootCapacityTests
             Assert.That(weaponChance * easyMult, Is.EqualTo(22.5f));
             Assert.That(weaponChance * normMult, Is.EqualTo(15f));
             Assert.That(weaponChance * hardMult, Is.EqualTo(6f));
+
+            FieldInfo backpackChanceField = RequireField(containerType, "backpackDropChance");
+            float backpackChance = (float)backpackChanceField.GetValue(container);
+            Assert.That(backpackChance, Is.EqualTo(5f));
         }
         finally
         {
@@ -500,11 +675,12 @@ public sealed class InventoryAndLootCapacityTests
     public void QuestRewards_OfficeSafeAndArmoryBackpackDistinction()
     {
         Type backpackCatalog = RequireType("BackpackItemCatalog");
-        Type militaryCatalog = RequireType("MilitaryQuestItemCatalog");
+        Type militaryCatalog = RequireType("MilitaryQuestItemKind");
+        Type militaryCatalogType = RequireType("MilitaryQuestItemCatalog");
         Type itemType = RequireType("ItemData");
         Type rulesType = RequireType("BackpackCapacityRules");
 
-        // Safe reward: Level 2 generic backpack -> 25 storage / 30 total
+        // Catalog items remain available for presentation and testing
         MethodInfo getGeneric = RequireMethod(backpackCatalog, "GetOrCreate", typeof(int), typeof(bool));
         object safeBackpack = getGeneric.Invoke(null, new object[] { 2, false });
         Assert.That(safeBackpack, Is.Not.Null);
@@ -512,9 +688,8 @@ public sealed class InventoryAndLootCapacityTests
         MethodInfo getStorage = RequireMethod(rulesType, "GetStorageSlots", itemType);
         Assert.That((int)getStorage.Invoke(null, new[] { safeBackpack }), Is.EqualTo(25));
 
-        // Armory reward: Level 3 military backpack -> 30 storage / 35 total
-        MethodInfo getMilitary = RequireMethod(militaryCatalog, "GetOrCreate", RequireType("MilitaryQuestItemKind"));
-        object militaryEnumVal = Enum.Parse(RequireType("MilitaryQuestItemKind"), "LevelThreeBackpack");
+        MethodInfo getMilitary = RequireMethod(militaryCatalogType, "GetOrCreate", militaryCatalog);
+        object militaryEnumVal = Enum.Parse(militaryCatalog, "LevelThreeBackpack");
         object armoryBackpack = getMilitary.Invoke(null, new[] { militaryEnumVal });
         Assert.That(armoryBackpack, Is.Not.Null);
         Assert.That(ReadObjectName(armoryBackpack), Is.EqualTo("MilitaryBackpackLevel3"));

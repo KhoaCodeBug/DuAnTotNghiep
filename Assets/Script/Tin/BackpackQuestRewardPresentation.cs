@@ -38,13 +38,19 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
     // multiplayer simulation and local E interactions remain usable while
     // the owner reads the notification.
     public static bool BlocksGameplayInput => false;
+    public static bool IsVisible => instance != null && instance.root != null && instance.root.activeSelf;
+    private System.Action onPresentationCompleted;
 
-    public static void Show(int level, ItemData backpack)
+    public static void Show(int level, ItemData backpack, System.Action onCompleted = null)
     {
-        if (!Application.isPlaying || !BackpackQuestRewardRules.IsRewardLevel(level)) return;
+        if (!Application.isPlaying || !BackpackQuestRewardRules.IsRewardLevel(level))
+        {
+            onCompleted?.Invoke();
+            return;
+        }
 
         BackpackQuestRewardPresentation presenter = GetOrCreate();
-        presenter.ShowInternal(level, backpack);
+        presenter.ShowInternal(level, backpack, onCompleted);
     }
 
     private static BackpackQuestRewardPresentation GetOrCreate()
@@ -76,8 +82,9 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         if (instance == this) instance = null;
     }
 
-    private void ShowInternal(int level, ItemData backpack)
+    private void ShowInternal(int level, ItemData backpack, System.Action onCompleted)
     {
+        onPresentationCompleted = onCompleted;
         EnsureCanvas();
         ApplyRewardStyle(level);
 
@@ -97,6 +104,11 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         capacityLabel.text = string.Format(GameLocalization.Get("backpack.quest.capacity"),
             BackpackCapacityRules.GetBackpackSlots(level), BackpackCapacityRules.MaxBackpackSlots);
         iconImage.sprite = backpack != null ? backpack.icon : null;
+        if (iconImage.sprite == null)
+        {
+            ItemData catalogBackpack = BackpackItemCatalog.GetOrCreate(level);
+            if (catalogBackpack != null) iconImage.sprite = catalogBackpack.icon;
+        }
         iconImage.enabled = iconImage.sprite != null;
 
         if (presentationRoutine != null) StopCoroutine(presentationRoutine);
@@ -174,6 +186,9 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
 
         if (root != null) root.SetActive(false);
         RestoreAutoCanvasSuppression();
+        System.Action callback = onPresentationCompleted;
+        onPresentationCompleted = null;
+        callback?.Invoke();
     }
 
     private void RestoreAutoCanvasSuppression()

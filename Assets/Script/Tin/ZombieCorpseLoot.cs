@@ -131,19 +131,19 @@ public static class LootQuantityRules
 /// <summary>Weighted backpack tiers used by ordinary loot containers.</summary>
 public static class BackpackLootRules
 {
-    private static readonly float[] TierWeights = { 50f, 30f, 15f, 4f, 1f };
+    private static readonly float[] TierWeights = { 70f, 25f, 5f };
+
+    public const float Level1Weight = 70f;
+    public const float Level2Weight = 25f;
+    public const float Level3Weight = 5f;
 
     public static int RollTier()
     {
-        float total = 0f;
-        foreach (float weight in TierWeights) total += Mathf.Max(0f, weight);
+        float total = Level1Weight + Level2Weight + Level3Weight;
         float roll = UnityEngine.Random.value * total;
-        for (int i = 0; i < TierWeights.Length; i++)
-        {
-            roll -= Mathf.Max(0f, TierWeights[i]);
-            if (roll < 0f) return i + 1;
-        }
-        return TierWeights.Length;
+        if ((roll -= Level1Weight) < 0f) return 1;
+        if ((roll -= Level2Weight) < 0f) return 2;
+        return 3;
     }
 
     public static float GetTierWeightPercent(int level)
@@ -318,6 +318,12 @@ public sealed class ZombieCorpseLoot : NetworkBehaviour, IZombieCorpseSearchTarg
         }
 
         int amount = Mathf.Max(1, LootAmount);
+        if (item.category == ItemCategory.Backpack && !inventory.CanAcceptBackpackLoot(item))
+        {
+            RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.InventoryFull, item.name, amount);
+            return;
+        }
+
         if (!CanFitAmount(inventory, item, amount) || !inventory.AddItem(item, amount))
         {
             RPC_ShowSearchResult(requestingPlayer, (int)SearchResult.InventoryFull, item.name, amount);
