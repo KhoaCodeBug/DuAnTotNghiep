@@ -1,0 +1,50 @@
+    [Test]
+    public void StartingWeaponPlacement_IsVerifiedAndIdempotent()
+    {
+        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
+        Assert.That(inventoryType, Is.Not.Null);
+        GameObject player = new GameObject("Starter loadout regression player");
+        Component inventory = player.AddComponent(inventoryType);
+        UnityEngine.Object ak47 = Resources.Load("Items/AK47");
+        UnityEngine.Object s12k = Resources.Load("Items/S12K");
+        Assert.That(ak47, Is.Not.Null);
+        Assert.That(s12k, Is.Not.Null);
+
+        MethodInfo place = inventoryType.GetMethod("PlaceStartingWeaponInHotbar",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That((bool)place.Invoke(inventory, new object[] { ak47 }), Is.True);
+        Assert.That((bool)place.Invoke(inventory, new object[] { ak47 }), Is.True,
+            "A retry must recognize the weapon already placed instead of duplicating it.");
+
+        var slots = (System.Collections.IList)inventoryType.GetField("slots").GetValue(inventory);
+        int akCount = 0;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            object slot = slots[i];
+            if (slot == null) continue;
+            UnityEngine.Object item = slot.GetType().GetField("item").GetValue(slot) as UnityEngine.Object;
+            int amount = (int)slot.GetType().GetField("amount").GetValue(slot);
+            if (item != null && item.name == "AK47") akCount += amount;
+        }
+        Assert.That(akCount, Is.EqualTo(1));
+        UnityEngine.Object.DestroyImmediate(player);
+
+        // Test S12K in a separate inventory instance
+        GameObject player2 = new GameObject("Starter loadout regression player 2");
+        Component inventory2 = player2.AddComponent(inventoryType);
+        Assert.That((bool)place.Invoke(inventory2, new object[] { s12k }), Is.True);
+        Assert.That((bool)place.Invoke(inventory2, new object[] { s12k }), Is.True);
+        var slots2 = (System.Collections.IList)inventoryType.GetField("slots").GetValue(inventory2);
+        int s12kCount = 0;
+        for (int i = 0; i < slots2.Count; i++)
+        {
+            object slot = slots2[i];
+            if (slot == null) continue;
+            UnityEngine.Object item = slot.GetType().GetField("item").GetValue(slot) as UnityEngine.Object;
+            int amount = (int)slot.GetType().GetField("amount").GetValue(slot);
+            if (item != null && item.name == "S12K") s12kCount += amount;
+        }
+        Assert.That(s12kCount, Is.EqualTo(1));
+        UnityEngine.Object.DestroyImmediate(player2);
+    }
+

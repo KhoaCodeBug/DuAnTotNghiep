@@ -1,0 +1,13 @@
+00_outdoor requested=(-62.29, 30.77) actual=(-62.29, 30.77, -0.03) indoor=none mask=0
+00_outdoor flashlight off/on/off passed; indoor scope unchanged.
+01_hospital_large requested=(-46.65, 16.41) actual=(-46.65, 16.41, -0.03) indoor=nocnha mask=1
+01_hospital_large flashlight off/on/off passed; indoor scope unchanged.
+02_outdoor_after_hospital requested=(-62.29, 30.77) actual=(-62.29, 30.77, -0.03) indoor=none mask=0
+02_outdoor_after_hospital flashlight off/on/off passed; indoor scope unchanged.
+03_hospital_small requested=(-49.58, 37.43) actual=(-49.58, 37.43, -0.03) indoor=nocnha (1) mask=1
+03_hospital_small flashlight off/on/off passed; indoor scope unchanged.
+04_school requested=(11.36, 49.93) actual=(11.36, 49.93, -0.03) indoor=__SchoolRoofTrigger_FIXED mask=1
+04_school flashlight off/on/off passed; indoor scope unchanged.
+QA fixture: school clues complete before testing school exit.
+05_outdoor_after_school requested=(11.36, 37.50) actual=(11.36, 37.50, -0.03) indoor=none mask=0
+05_outdoor_after_school flashlight off/on/off passed; indoor scope unchanged.

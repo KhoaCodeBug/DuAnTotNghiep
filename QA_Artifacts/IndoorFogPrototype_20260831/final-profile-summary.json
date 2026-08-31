@@ -1,0 +1,74 @@
+[
+  {
+    "file": "final-A-baseline-profile.csv",
+    "samples": 240,
+    "deltaMs": {
+      "p95Ms": 42.2994,
+      "medianMs": 19.2322
+    },
+    "CPU Main Thread Frame Time": {
+      "p95Ms": 38.8325,
+      "medianMs": 17.6134
+    },
+    "CPU Render Thread Frame Time": {
+      "p95Ms": 3.926,
+      "medianMs": 2.2925
+    },
+    "GPU Frame Time": {
+      "p95Ms": 3.416064,
+      "medianMs": 3.380224
+    },
+    "FogVision.UpdateMaterial": {
+      "p95Ms": 0.8678,
+      "medianMs": 0.0528
+    }
+  },
+  {
+    "file": "final-A2-baseline-profile.csv",
+    "samples": 240,
+    "deltaMs": {
+      "p95Ms": 53.6715,
+      "medianMs": 20.3885
+    },
+    "CPU Main Thread Frame Time": {
+      "p95Ms": 49.2976,
+      "medianMs": 19.0526
+    },
+    "CPU Render Thread Frame Time": {
+      "p95Ms": 4.7872,
+      "medianMs": 2.4255
+    },
+    "GPU Frame Time": {
+      "p95Ms": 3.26144,
+      "medianMs": 3.227648
+    },
+    "FogVision.UpdateMaterial": {
+      "p95Ms": 1.2361,
+      "medianMs": 0.068
+    }
+  },
+  {
+    "file": "final-B-prototype-profile.csv",
+    "samples": 240,
+    "deltaMs": {
+      "p95Ms": 21.1056,
+      "medianMs": 18.02611
+    },
+    "CPU Main Thread Frame Time": {
+      "p95Ms": 20.7226,
+      "medianMs": 16.3789
+    },
+    "CPU Render Thread Frame Time": {
+      "p95Ms": 2.6104,
+      "medianMs": 2.1178
+    },
+    "GPU Frame Time": {
+      "p95Ms": 3.489792,
+      "medianMs": 3.456
+    },
+    "FogVision.UpdateMaterial": {
+      "p95Ms": 0.805,
+      "medianMs": 0.0568
+    }
+  }
+]

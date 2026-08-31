@@ -1,0 +1,19 @@
+{
+    "house": "nhachinhxaydautien (12)",
+    "x": -68.0,
+    "y": -0.699999988079071,
+    "hour": 13.5,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": true,
+    "prototype": true,
+    "label": "v3-other-house",
+    "cameraUp": 1.2000000476837159
+}
+actual=(-68.00, -0.70, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/nhachinhxaydautien (10)/nocnha (1)
+mask=1 surface=0 flashlight=1 angle=145
+light=0.8500001 global=1.391357
+surfaces=0 buildMs=0

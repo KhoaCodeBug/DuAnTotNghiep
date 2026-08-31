@@ -1,0 +1,3 @@
+Original HEAD: a23c33247323ed2d7670869c11298bc67aa0832e
+Restore vision from: 7987af306 plus recovered uncommitted school-visibility patch from task 01a05047-5995-79b1-984a-f38ca91e1466.
+Pre-existing Console: two loading timeout errors (36.4s), unrelated to rollback. Git working tree clean before task.
