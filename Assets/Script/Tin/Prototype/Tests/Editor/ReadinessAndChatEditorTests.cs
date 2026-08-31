@@ -1426,4 +1426,65 @@ public sealed class ReadinessAndChatEditorTests
         resetMethod.Invoke(null, null);
         UnityEngine.Object.DestroyImmediate(menuGo);
     }
+
+    [Test]
+    public void HostModeSpawner_PerPlayerReadiness_ReleasesOnlyTheAuthenticatedReadyPlayer()
+    {
+        string spawnerPath = Path.Combine(Application.dataPath,
+            "Script/Tin/Multiplayer/HostModeSpawner.cs");
+        Assert.That(File.Exists(spawnerPath), Is.True, spawnerPath);
+
+        string source = File.ReadAllText(spawnerPath);
+        Assert.That(source, Does.Contain("RPC_ReleaseReadyPlayer(authoritativePlayer)"),
+            "Each authenticated readiness report must release that player immediately.");
+        Assert.That(source, Does.Contain("[RpcTarget] PlayerRef targetPlayer"),
+            "The release RPC must target one ready player instead of the entire room.");
+        Assert.That(source, Does.Not.Contain("HostReadinessTimeoutWatchdog"),
+            "Ready players must not wait for the former ten-second room watchdog.");
+        Assert.That(source, Does.Not.Contain("playersLoadedSet.Count >= currentPlayersInRoom"),
+            "Gameplay entry must not be gated by every connected player finishing loading.");
+    }
+
+    [Test]
+    public void ForceCloseLoadingScreen_EarlyHostSignal_IsConsumedWhenLocalReadinessBecomesSafe()
+    {
+        Type coordType = ResolveGameType("GameplayReadinessCoordinator");
+        Type menuType = ResolveGameType("AutoMainMenuManager");
+        Type stageEnum = ResolveGameType("GameplayReadinessCoordinator+ReadinessStage");
+
+        MethodInfo resetMethod = coordType.GetMethod("ResetCoordinator", BindingFlags.Public | BindingFlags.Static);
+        MethodInfo startMethod = coordType.GetMethod("StartLoading", BindingFlags.Public | BindingFlags.Static,
+            null, new[] { typeof(string) }, null);
+        MethodInfo setStageMethod = coordType.GetMethod("SetStage", BindingFlags.Public | BindingFlags.Static,
+            null, new[] { stageEnum, typeof(float), typeof(string) }, null);
+        PropertyInfo releasedProp = coordType.GetProperty("IsReleasedToGameplay",
+            BindingFlags.Public | BindingFlags.Static);
+        MethodInfo forceCloseMethod = menuType.GetMethod("ForceCloseLoadingScreen",
+            BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo consumePendingMethod = menuType.GetMethod("TryReleasePendingHostSignal",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        Assert.That(consumePendingMethod, Is.Not.Null,
+            "The menu needs a condition-based path that retains and consumes an early host signal.");
+
+        GameObject menuGo = new GameObject("TestPendingPerPlayerRelease");
+        Component menu = menuGo.AddComponent(menuType);
+
+        resetMethod.Invoke(null, null);
+        startMethod.Invoke(null, new object[] { "loading.connecting" });
+        forceCloseMethod.Invoke(menu, null);
+        Assert.That((bool)releasedProp.GetValue(null), Is.False,
+            "An early host signal must not bypass local avatar/HUD readiness.");
+
+        object hudReadyStage = Enum.Parse(stageEnum, "HUDAndSystemsReady");
+        setStageMethod.Invoke(null, new[] { hudReadyStage, (object)0.8f, "loading.hud_ready" });
+        bool consumed = (bool)consumePendingMethod.Invoke(menu, null);
+
+        Assert.That(consumed, Is.True, "The retained host signal must be consumed at the first safe local stage.");
+        Assert.That((bool)releasedProp.GetValue(null), Is.True,
+            "A locally ready player must enter gameplay without waiting for other players.");
+
+        resetMethod.Invoke(null, null);
+        UnityEngine.Object.DestroyImmediate(menuGo);
+    }
 }
