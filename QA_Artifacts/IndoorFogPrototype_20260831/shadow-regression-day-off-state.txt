@@ -18,5 +18,5 @@ health=100 dead=false
 indoor===========Map========== /Map/nhachinhxaydautien (12)/nocnha (1)
 mask=1 surface=1 flashlight=0 angle=140
 light=0.1153593 global=1.391357 innerAngle=100 outerAngle=140
-surfaces=67 buildMs=11.3755
-flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=0 movementEnabled=False
+surfaces=67 buildMs=8.7441
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=0 movementEnabled=False godMode=False cheatMenuOpen=False

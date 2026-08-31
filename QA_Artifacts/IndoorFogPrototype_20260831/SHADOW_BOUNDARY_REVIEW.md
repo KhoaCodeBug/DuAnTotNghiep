@@ -43,3 +43,9 @@ Runtime cuối đang Play tại nhà mẫu. `shadow-final-review-ready-state.txt
 ## Git
 
 Base/HEAD `ee0554d149a15fd89b3a370fab974058f235e668`, branch local `codex/restore-indoor-vision-20260831`, upstream đã bị xóa ngoài phiên. Candidate và QA/docs đang dirty local; không commit/push/merge. Bản radial bị loại và ảnh test được giữ, không reset/clean.
+
+## User review sau bàn giao
+
+User đã test tay nhanh và đánh giá chung **rất tốt**, đủ điều kiện làm checkpoint an toàn. Vùng sáng–tối trong ảnh `ShadowBoundary_UserReview_20260831/user-approved-gradient.png` có chuyển giao mềm, rõ; chưa hoàn hảo nhưng đã đạt mức chấp nhận hiện tại.
+
+Lỗi còn lại trong `user-decor-black-rims.png`: viền/vệt đen khi chiếu sát tường có nhiều decor. Đây nhiều khả năng là bất liên tục giữa surface projection/footpoint của nhiều sprite decor và mask occlusion theo góc, không phải phản xạ ánh sáng vật lý. Có thể cải tiến, nhưng sửa trực tiếp blocker hiện tại có rủi ro làm quay lại leak hoặc flicker; quyết định hiện tại là backlog, không chặn checkpoint/mở rộng pilot.
