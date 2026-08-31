@@ -102,6 +102,92 @@ public sealed class InventoryAndLootCapacityTests
     }
 
     [Test]
+    public void BackpackQuestMilestonesMapToHospitalLevelFourAndMilitaryLevelFive()
+    {
+        Type rulesType = RequireType("BackpackQuestRewardRules, Assembly-CSharp");
+        Type milestoneType = RequireType("BackpackQuestRewardMilestone, Assembly-CSharp");
+        MethodInfo getRewardLevel = RequireMethod(rulesType, "GetRewardLevel", milestoneType);
+        MethodInfo getClaimBit = RequireMethod(rulesType, "GetClaimBit", typeof(int));
+        MethodInfo isClaimed = RequireMethod(rulesType, "IsClaimed", typeof(int), typeof(int));
+        MethodInfo markClaimed = RequireMethod(rulesType, "MarkClaimed", typeof(int), typeof(int));
+
+        object hospital = Enum.Parse(milestoneType, "HospitalArrival");
+        object military = Enum.Parse(milestoneType, "MilitaryBaseEntry");
+        Assert.That((int)getRewardLevel.Invoke(null, new[] { hospital }), Is.EqualTo(4));
+        Assert.That((int)getRewardLevel.Invoke(null, new[] { military }), Is.EqualTo(5));
+
+        int mask = 0;
+        Assert.That((bool)isClaimed.Invoke(null, new object[] { mask, 4 }), Is.False);
+        int afterHospital = (int)markClaimed.Invoke(null, new object[] { mask, 4 });
+        Assert.That(afterHospital, Is.EqualTo((int)getClaimBit.Invoke(null, new object[] { 4 })));
+        Assert.That((bool)isClaimed.Invoke(null, new object[] { afterHospital, 4 }), Is.True);
+        Assert.That((int)markClaimed.Invoke(null, new object[] { afterHospital, 4 }), Is.EqualTo(afterHospital),
+            "A repeated hospital trigger must not produce a second claim.");
+
+        int afterMilitary = (int)markClaimed.Invoke(null, new object[] { afterHospital, 5 });
+        Assert.That((bool)isClaimed.Invoke(null, new object[] { afterMilitary, 5 }), Is.True);
+        Assert.That((bool)isClaimed.Invoke(null, new object[] { afterMilitary, 3 }), Is.False,
+            "Backpack levels 1-3 are capacity-only and have no quest milestone claim.");
+    }
+
+    [Test]
+    public void QuestBackpackRewardUpgradesOnlyThroughTheAuthorityRewardApi()
+    {
+        Type inventoryType = RequireType("InventorySystem, Assembly-CSharp");
+        Type catalogType = RequireType("BackpackItemCatalog, Assembly-CSharp");
+        Type itemType = RequireType("ItemData, Assembly-CSharp");
+        MethodInfo getOrCreate = RequireMethod(catalogType, "GetOrCreate", typeof(int), typeof(bool));
+        MethodInfo reward = RequireMethod(inventoryType, "TryGrantQuestBackpackReward", typeof(int));
+        FieldInfo maxSlots = RequireField(inventoryType, "maxSlots");
+
+        GameObject host = new GameObject("Backpack Quest Reward Test");
+        try
+        {
+            Component inventory = host.AddComponent(inventoryType);
+            InvokePrivate(inventory, "Awake");
+
+            Assert.That((bool)reward.Invoke(inventory, new object[] { 4 }), Is.True);
+            Assert.That((int)maxSlots.GetValue(inventory), Is.EqualTo(45));
+            Assert.That((bool)reward.Invoke(inventory, new object[] { 4 }), Is.False,
+                "The same hospital milestone must be idempotent.");
+
+            Assert.That((bool)reward.Invoke(inventory, new object[] { 5 }), Is.True);
+            Assert.That((int)maxSlots.GetValue(inventory), Is.EqualTo(55));
+            Assert.That((bool)reward.Invoke(inventory, new object[] { 5 }), Is.False,
+                "The same military-entry milestone must be idempotent.");
+            Assert.That((bool)reward.Invoke(inventory, new object[] { 3 }), Is.False,
+                "The quest reward API must never downgrade or grant levels 1-3.");
+
+            object ordinaryLevelFive = getOrCreate.Invoke(null, new object[] { 5, false });
+            MethodInfo equip = RequireMethod(inventoryType, "EquipBackpack", itemType);
+            Assert.That((bool)equip.Invoke(inventory, new[] { ordinaryLevelFive }), Is.False,
+                "Ordinary loot/equip cannot re-trigger an already claimed quest milestone.");
+
+            Type presentationType = RequireType("BackpackQuestRewardPresentation, Assembly-CSharp");
+            PropertyInfo inputLock = presentationType.GetProperty("BlocksGameplayInput",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(inputLock, Is.Not.Null);
+            Assert.That((bool)inputLock.GetValue(null), Is.False,
+                "The backpack reveal must not block a player's immediate multiplayer interaction.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(host);
+        }
+    }
+
+    [Test]
+    public void BackpackCatalogResolvesFiveProjectIconTextures()
+    {
+        for (int level = 1; level <= 5; level++)
+        {
+            Texture2D iconTexture = Resources.Load<Texture2D>("Backpacks/BackpackLevel" + level);
+            Assert.That(iconTexture, Is.Not.Null,
+                "Missing project backpack icon resource for level " + level + ".");
+        }
+    }
+
+    [Test]
     public void CorpseLootProbabilityExplainsTwentyEmptySearches()
     {
         Type corpseType = RequireType("ZombieCorpseLoot, Assembly-CSharp");

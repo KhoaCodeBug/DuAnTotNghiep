@@ -165,6 +165,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     private Coroutine authorityHospitalRadioSpawnRoutine;
     private Transform cachedHospitalZombieEntryA;
     private Transform cachedHospitalZombieEntryB;
+    private MainQuestStartTrigger activeHospitalEntryTrigger;
+    private float nextHospitalBackpackRewardScanTime;
     private readonly List<NetworkPrefabRef> cachedHospitalRadioZombiePrefabs = new List<NetworkPrefabRef>();
     private readonly List<HospitalRadioKeyLootPoint> cachedHospitalRadioKeyLootPoints =
         new List<HospitalRadioKeyLootPoint>();
@@ -309,6 +311,8 @@ public sealed class MainQuestManager : NetworkBehaviour
             IsHospitalRadioRecovered = false;
             HospitalRadioCheckpointCount = 0;
             HospitalRadioThreatSpawnCount = 0;
+            activeHospitalEntryTrigger = null;
+            nextHospitalBackpackRewardScanTime = 0f;
         }
 
         ApplyMapAccess();
@@ -325,6 +329,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         focusRoutine = null;
         authoritySafetyRoutine = null;
         authorityHospitalRadioSpawnRoutine = null;
+        activeHospitalEntryTrigger = null;
+        nextHospitalBackpackRewardScanTime = 0f;
         localFadeAlpha = 0f;
         localClueNoticeAlpha = 0f;
         localLocationTitleAlpha = 0f;
@@ -349,6 +355,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         TickArrivalCarRepair();
         TickHospitalRadioRestore();
+        TickHospitalBackpackRewards();
 
         if (!IsArrivalCarRepaired || RepairedArrivalCarObject == null || IsCivilianEscapeComplete)
             return;
@@ -1429,6 +1436,36 @@ public sealed class MainQuestManager : NetworkBehaviour
         AuthorityCompleteHospitalRadio(completedBy, point.transform.position);
     }
 
+    /// <summary>
+    /// Hospital level 4 is a personal arrival reward. The first player is
+    /// granted immediately by the validated entry request, while teammates
+    /// and late joiners receive it only when their authoritative avatar enters
+    /// the same hospital trigger. This keeps the reward shared in progression
+    /// but personal in inventory ownership.
+    /// </summary>
+    private void TickHospitalBackpackRewards()
+    {
+        if (!HasStateAuthority || CurrentStage < QuestStage.FindCityMap ||
+            activeHospitalEntryTrigger == null || Runner == null ||
+            Time.unscaledTime < nextHospitalBackpackRewardScanTime)
+            return;
+
+        nextHospitalBackpackRewardScanTime = Time.unscaledTime + 0.25f;
+        foreach (PlayerRef playerRef in Runner.ActivePlayers)
+        {
+            if (!Runner.TryGetPlayerObject(playerRef, out NetworkObject playerObject) ||
+                playerObject == null || !playerObject.IsValid ||
+                !playerObject.TryGetComponent(out PlayerMovement player) ||
+                !IsLivingPlayer(player) ||
+                !activeHospitalEntryTrigger.Contains(player.transform.position))
+                continue;
+
+            InventorySystem inventory = player.GetComponent<InventorySystem>();
+            inventory?.TryGrantQuestBackpackReward(
+                BackpackQuestRewardRules.HospitalBackpackLevel);
+        }
+    }
+
     private void AuthorityTriggerHospitalRadioThreat(PlayerRef completedBy, Vector3 radioPosition,
         int completedSegment)
     {
@@ -1543,6 +1580,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (!MainQuestStartTrigger.TryGet(triggerId, out MainQuestStartTrigger trigger) || trigger == null) return;
         if (!TryGetRequestingPlayer(requester, out PlayerMovement player) || !trigger.Contains(player.transform.position)) return;
 
+        activeHospitalEntryTrigger = trigger;
         AuthorityStartOfficeInvestigation(requester);
     }
 
@@ -1577,6 +1615,11 @@ public sealed class MainQuestManager : NetworkBehaviour
         cachedHospitalRadioZombiePrefabs.Clear();
         NetworkHospitalInvestigationStage = (int)HospitalInvestigationStage.FindShiftLog;
         NetworkQuestStage = (int)QuestStage.FindCityMap;
+        if (TryGetRequestingPlayer(requester, out PlayerMovement arrivingPlayer))
+        {
+            arrivingPlayer.GetComponent<InventorySystem>()?.TryGrantQuestBackpackReward(
+                BackpackQuestRewardRules.HospitalBackpackLevel);
+        }
         RPC_ShowLocalizedQuestMessage("quest.office_new_objective", 0, 0);
         RPC_ShowOfficeSearchStarted(requester);
     }

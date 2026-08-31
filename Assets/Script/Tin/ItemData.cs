@@ -206,6 +206,20 @@ public static class BackpackItemCatalog
 
     private static Sprite CreateIcon(int level, bool military)
     {
+        // Backpack PNGs live in Resources so runtime-created catalog items use
+        // the same art on Host, client and late joiner. Keep the generated icon
+        // below as a safe fallback for tests or partial asset imports.
+        Texture2D authoredTexture = Resources.Load<Texture2D>(
+            "Backpacks/" + BackpackIdPrefix + level);
+        if (authoredTexture != null)
+        {
+            Sprite authoredSprite = Sprite.Create(authoredTexture,
+                new Rect(0f, 0f, authoredTexture.width, authoredTexture.height),
+                new Vector2(0.5f, 0.5f), Mathf.Max(authoredTexture.width, authoredTexture.height));
+            authoredSprite.name = (military ? MilitaryLevel3Id : BackpackIdPrefix + level) + "_ICON";
+            return authoredSprite;
+        }
+
         const int size = 32;
         Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
         {

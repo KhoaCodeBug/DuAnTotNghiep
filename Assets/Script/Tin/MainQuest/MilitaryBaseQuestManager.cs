@@ -159,6 +159,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private Transform escapeVehicleOutroTarget;
     private Transform escapeCameraTarget;
     private float nextEscapeStartDeniedAt;
+    private float nextMilitaryBackpackRewardScanTime;
 
     public bool IsNetworkReady => hasSpawned && Object != null && Object.IsValid && Runner != null && Runner.IsRunning;
     public Phase CurrentPhase => IsNetworkReady ? (Phase)MilitaryPhase : Phase.NotReached;
@@ -287,6 +288,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         militaryDeathObservedAt.Clear();
         voteParticipants.Clear();
         voteApprovals.Clear();
+        nextMilitaryBackpackRewardScanTime = 0f;
     }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
@@ -297,11 +299,13 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         MilitaryRouteVoteUI.Close();
         cinematicController?.StopImmediate();
         escapePresentation?.StopImmediate();
+        nextMilitaryBackpackRewardScanTime = 0f;
     }
 
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
+        TickMilitaryBackpackRewards();
         TickRepairSkillCheck();
         if (IsMilitaryRouteVoteActive) PruneDisconnectedVoters();
         if (IsMilitaryIntroCinematicActive) LockAllLivingPlayersForCinematic();
@@ -322,6 +326,41 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         }
 
         if (GovernsRespawn) TickAuthorityAutoRespawn();
+    }
+
+    /// <summary>
+    /// Level 5 is a personal reward for physically entering the military area
+    /// after the hospital mission has been completed. State Authority checks
+    /// the PolygonCollider2D and each player's authoritative object, so a
+    /// client cannot claim it remotely and one player's arrival does not
+    /// silently grant it to teammates still outside the zone.
+    /// </summary>
+    private void TickMilitaryBackpackRewards()
+    {
+        MainQuestManager mainQuest = MainQuestManager.Instance;
+        if (mainQuest == null || !mainQuest.IsNetworkReady ||
+            mainQuest.CurrentStage < MainQuestManager.QuestStage.CityMapFound ||
+            Runner == null || Time.unscaledTime < nextMilitaryBackpackRewardScanTime)
+            return;
+
+        nextMilitaryBackpackRewardScanTime = Time.unscaledTime + 0.25f;
+        ResolveMilitaryAreaTrigger();
+        if (militaryAreaTrigger == null) return;
+
+        foreach (PlayerRef playerRef in Runner.ActivePlayers)
+        {
+            if (!Runner.TryGetPlayerObject(playerRef, out NetworkObject playerObject) ||
+                playerObject == null || !playerObject.IsValid ||
+                !playerObject.TryGetComponent(out PlayerMovement player) ||
+                player == null || !militaryAreaTrigger.OverlapPoint(player.transform.position))
+                continue;
+
+            PlayerHealth health = player.GetComponent<PlayerHealth>();
+            if (health != null && (health.isDead || health.isTransforming)) continue;
+
+            player.GetComponent<InventorySystem>()?.TryGrantQuestBackpackReward(
+                BackpackQuestRewardRules.MilitaryBackpackLevel);
+        }
     }
 
     public override void Render()

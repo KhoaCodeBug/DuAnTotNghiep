@@ -164,7 +164,8 @@ public class AutoUIManager : MonoBehaviour
         // This is deliberately local-only; the shared multiplayer simulation keeps running.
         if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
             VehicleRepairSkillCheckUI.BlocksGameplayInput ||
-            MilitaryRouteBEscapePresentation.BlocksGameplayInput) return;
+            MilitaryRouteBEscapePresentation.BlocksGameplayInput ||
+            BackpackQuestRewardPresentation.BlocksGameplayInput) return;
 
         // The quest journal/map is a full-screen modal owned by another canvas.
         // Do not let inventory/trade input reopen hidden panels underneath it.
@@ -2338,7 +2339,8 @@ public class AutoUIManager : MonoBehaviour
         bool isTrade = tradeWindowPanel != null && tradeWindowPanel.activeSelf;
 
         return isInv || isLoot || isTrade || questOverlayOpen ||
-               RouteBRadioBroadcastUI.BlocksLocalGameplayInput;
+               RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
+               BackpackQuestRewardPresentation.BlocksGameplayInput;
     }
 
     private void GenerateSpectatorUI(GameObject canvasGO)

@@ -33,12 +33,17 @@ public class InventorySystem : NetworkBehaviour
 
     [Networked] private int NetworkedBackpackLevel { get; set; }
     [Networked] private NetworkString<_64> NetworkedBackpackId { get; set; }
+    [Networked] private int NetworkedQuestBackpackRewardClaimMask { get; set; }
+    private int localQuestBackpackRewardClaimMask;
     private int lastAppliedBackpackLevel = -1;
 
     public int CurrentBackpackLevel => BackpackCapacityRules.ClampLevel(backpackLevel);
     public int CurrentBackpackSlots => Mathf.Max(BackpackCapacityRules.BaseBackpackSlots,
         maxSlots - HotbarSlotCount);
     public bool HasMaximumBackpack => CurrentBackpackSlots >= BackpackCapacityRules.MaxBackpackSlots;
+    public int QuestBackpackRewardClaimMask => IsNetworkObjectReady
+        ? NetworkedQuestBackpackRewardClaimMask
+        : localQuestBackpackRewardClaimMask;
 
     [Header("Cài đặt Nhặt Đồ")]
     public float pickupRadius = 0.5f;
@@ -76,6 +81,7 @@ public class InventorySystem : NetworkBehaviour
         public int MaxSlots = FixedTotalSlots;
         public int BackpackLevel;
         public string BackpackId;
+        public int QuestBackpackRewardClaimMask;
     }
 
     private void Awake()
@@ -114,6 +120,40 @@ public class InventorySystem : NetworkBehaviour
         return ApplyBackpackUpgradeLocal(backpack);
     }
 
+    /// <summary>
+    /// Grants a quest milestone backpack directly to this player's inventory.
+    /// The method is intentionally separate from EquipBackpack so ordinary loot
+    /// upgrades never trigger the hospital/military quest rewards.
+    /// </summary>
+    public bool TryGrantQuestBackpackReward(int level)
+    {
+        if (!BackpackQuestRewardRules.IsRewardLevel(level) ||
+            (IsNetworkObjectReady && !HasStateAuthority))
+            return false;
+
+        int currentMask = QuestBackpackRewardClaimMask;
+        if (BackpackQuestRewardRules.IsClaimed(currentMask, level)) return false;
+
+        ItemData rewardBackpack = BackpackItemCatalog.GetOrCreate(level);
+        if (rewardBackpack == null) return false;
+
+        int currentLevel = CurrentBackpackLevel;
+        bool upgraded = currentLevel < level;
+        if (upgraded && !ApplyBackpackUpgradeLocal(rewardBackpack)) return false;
+
+        SetQuestBackpackRewardClaimMask(
+            BackpackQuestRewardRules.MarkClaimed(currentMask, level));
+
+        // If a player already found an equal-or-higher backpack in loot, keep
+        // the quest claim idempotent without silently downgrading their gear.
+        if (currentLevel <= level)
+            NotifyQuestBackpackReward(level, rewardBackpack);
+
+        Debug.Log($"[BACKPACK QUEST] Claimed level {level} milestone reward " +
+                  $"for {name}; equipped level is now {CurrentBackpackLevel}.");
+        return true;
+    }
+
     public void SetMaxSlots(int newMax)
     {
         int targetTotal = BackpackCapacityRules.ClampTotalSlots(newMax);
@@ -133,6 +173,25 @@ public class InventorySystem : NetworkBehaviour
         maxSlots = BackpackCapacityRules.ClampTotalSlots(targetTotal);
         EnsureStableSlotStorage();
         UpdateUI();
+    }
+
+    private void SetQuestBackpackRewardClaimMask(int claimMask)
+    {
+        localQuestBackpackRewardClaimMask = claimMask;
+        if (IsNetworkObjectReady && HasStateAuthority)
+            NetworkedQuestBackpackRewardClaimMask = claimMask;
+    }
+
+    private void NotifyQuestBackpackReward(int level, ItemData backpack)
+    {
+        if (IsNetworkObjectReady && HasStateAuthority && !HasInputAuthority)
+        {
+            RPC_ShowQuestBackpackReward(level, backpack != null ? backpack.name : string.Empty);
+            return;
+        }
+
+        if (!IsNetworkObjectReady || HasInputAuthority)
+            BackpackQuestRewardPresentation.Show(level, backpack);
     }
 
     private bool ApplyBackpackUpgradeLocal(ItemData backpack)
@@ -181,6 +240,15 @@ public class InventorySystem : NetworkBehaviour
         // The State Authority consumes the exact owned backpack after applying
         // the upgrade; ConsumeItem's existing RPC mirrors that removal.
         ConsumeItem(owned, 1);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_ShowQuestBackpackReward(int level, string backpackId)
+    {
+        if (!BackpackQuestRewardRules.IsRewardLevel(level)) return;
+        ItemData backpack = ItemDataLoader.LoadItem(backpackId);
+        if (backpack == null) backpack = BackpackItemCatalog.GetOrCreate(level);
+        BackpackQuestRewardPresentation.Show(level, backpack);
     }
 
     public override void Spawned()
@@ -527,6 +595,7 @@ public class InventorySystem : NetworkBehaviour
         snapshot.MaxSlots = maxSlots;
         snapshot.BackpackLevel = CurrentBackpackLevel;
         snapshot.BackpackId = CurrentBackpackLevel > 0 ? BackpackItemCatalog.GetOrCreate(CurrentBackpackLevel).name : string.Empty;
+        snapshot.QuestBackpackRewardClaimMask = QuestBackpackRewardClaimMask;
         int count = Mathf.Min(MaxTotalSlots, slots.Count);
         for (int i = 0; i < count; i++)
         {
@@ -545,6 +614,7 @@ public class InventorySystem : NetworkBehaviour
         int snapshotLevel = BackpackCapacityRules.GetLevelForTotalSlots(snapshotCapacity);
         backpackLevel = snapshotLevel;
         SetMaxSlotsLocal(snapshotCapacity);
+        SetQuestBackpackRewardClaimMask(snapshot.QuestBackpackRewardClaimMask);
         if (HasStateAuthority && IsNetworkObjectReady)
         {
             NetworkedBackpackLevel = snapshotLevel;
