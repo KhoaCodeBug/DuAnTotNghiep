@@ -38,8 +38,8 @@ public class LootContainer : NetworkBehaviour
 
     [Header("Weapon Loot (Chỉ Host xử lý)")]
     [Range(0f, 100f)]
-    [Tooltip("Cơ hội một Loot Container sinh tối đa một weapon ngẫu nhiên từ Resources/Items.")]
-    public float bonusWeaponDropChance = 25f;
+    [Tooltip("Cơ hội cơ sở một Loot Container sinh tối đa một weapon ngẫu nhiên; được nhân theo độ khó.")]
+    public float bonusWeaponDropChance = 15f;
 
     [Header("Backpack Loot (Chỉ Host xử lý)")]
     [Range(0f, 100f)]
@@ -146,7 +146,7 @@ public class LootContainer : NetworkBehaviour
         // The existing loot table does not contain AK47/S12K.  Roll one
         // optional weapon separately so a player who starts with one weapon
         // can still discover a different second weapon in the world.
-        TryGenerateBonusWeapon();
+        TryGenerateBonusWeapon(lootMultiplier);
         hasGeneratedLoot = true;
     }
 
@@ -228,9 +228,10 @@ public class LootContainer : NetworkBehaviour
         return true;
     }
 
-    private void TryGenerateBonusWeapon()
+    private void TryGenerateBonusWeapon(float lootMultiplier)
     {
-        if (Random.Range(0f, 100f) > bonusWeaponDropChance) return;
+        float effectiveChance = Mathf.Clamp(bonusWeaponDropChance * lootMultiplier, 0f, 100f);
+        if (Random.Range(0f, 100f) >= effectiveChance) return;
 
         List<ItemData> weaponPool = new List<ItemData>();
         foreach (ItemData item in Resources.LoadAll<ItemData>("Items"))

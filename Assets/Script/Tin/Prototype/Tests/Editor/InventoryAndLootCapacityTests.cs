@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEditor;
 using UnityEngine;
 
 /// <summary>
@@ -124,29 +125,49 @@ public sealed class InventoryAndLootCapacityTests
     }
 
     [Test]
-    public void RandomAmmoLootIsAlwaysFiveThroughTen()
+    public void RandomAmmoLootUsesApprovedPerItemQuantities()
     {
         Type itemType = RequireType("ItemData, Assembly-CSharp");
         Type categoryType = RequireType("ItemCategory, Assembly-CSharp");
         Type quantityType = RequireType("LootQuantityRules, Assembly-CSharp");
         MethodInfo rollAmount = RequireMethod(quantityType, "RollRandomAmount", itemType, typeof(int), typeof(int));
+        MethodInfo getCorpseAmount = RequireMethod(quantityType, "GetCorpseAmount", itemType);
 
-        ScriptableObject ammo = ScriptableObject.CreateInstance(itemType);
+        ScriptableObject ammo762 = ScriptableObject.CreateInstance(itemType);
+        ScriptableObject ammo12Gauge = ScriptableObject.CreateInstance(itemType);
         try
         {
-            SetField(ammo, "category", Enum.Parse(categoryType, "Ammunition"));
-            SetField(ammo, "itemName", "Test ammo");
-            SetField(ammo, "maxStack", 30);
-            SetField(ammo, "isStackable", true);
+            SetField(ammo762, "category", Enum.Parse(categoryType, "Ammunition"));
+            SetField(ammo762, "itemName", "Ammo762");
+            SetField(ammo762, "maxStack", 30);
+            SetField(ammo762, "isStackable", true);
+            SetField(ammo12Gauge, "category", Enum.Parse(categoryType, "Ammunition"));
+            SetField(ammo12Gauge, "itemName", "Ammo12Gauge");
+            SetField(ammo12Gauge, "maxStack", 10);
+            SetField(ammo12Gauge, "isStackable", true);
+
+            UnityEngine.Random.InitState(42);
             for (int i = 0; i < 100; i++)
             {
-                int amount = (int)rollAmount.Invoke(null, new object[] { ammo, 16, 30 });
-                Assert.That(amount, Is.InRange(5, 10));
+                int rifleAmount = (int)rollAmount.Invoke(null, new object[] { ammo762, 15, 30 });
+                Assert.That(rifleAmount, Is.InRange(15, 30), "Ammo762 random loot must be 15-30 inclusive.");
+                int rifleCorpseAmount = (int)getCorpseAmount.Invoke(null, new object[] { ammo762 });
+                Assert.That(rifleCorpseAmount, Is.InRange(15, 30), "Ammo762 corpse loot must be 15-30 inclusive.");
+
+                int shotgunAmount = (int)rollAmount.Invoke(null, new object[] { ammo12Gauge, 5, 5 });
+                Assert.That(shotgunAmount, Is.EqualTo(5), "Ordinary Ammo12Gauge loot must be exactly 5.");
+                int shotgunCorpseAmount = (int)getCorpseAmount.Invoke(null, new object[] { ammo12Gauge });
+                Assert.That(shotgunCorpseAmount, Is.EqualTo(5), "Corpse Ammo12Gauge loot must be exactly 5.");
+
+                int authoredTutorialAmount = (int)rollAmount.Invoke(null, new object[] { ammo12Gauge, 12, 12 });
+                Assert.That(authoredTutorialAmount, Is.EqualTo(12),
+                    "Explicit authored tutorial quantities must override the ordinary gauge default.");
             }
         }
         finally
         {
-            UnityEngine.Object.DestroyImmediate(ammo);
+            UnityEngine.Object.DestroyImmediate(ammo762);
+            UnityEngine.Object.DestroyImmediate(ammo12Gauge);
         }
     }
 
@@ -262,31 +283,42 @@ public sealed class InventoryAndLootCapacityTests
         try
         {
             SetField(ammo, "category", Enum.Parse(categoryType, "Ammunition"));
-            SetField(ammo, "itemName", "7.62mm Ammo");
+            SetField(ammo, "itemName", "Ammo762");
+            SetField(ammo, "maxStack", 30);
+            ScriptableObject ammo12Gauge = ScriptableObject.CreateInstance(itemType);
+            SetField(ammo12Gauge, "category", Enum.Parse(categoryType, "Ammunition"));
+            SetField(ammo12Gauge, "itemName", "Ammo12Gauge");
+            SetField(ammo12Gauge, "maxStack", 10);
             SetField(med, "category", Enum.Parse(categoryType, "Medical"));
             SetField(med, "itemName", "Bandage");
 
-            bool hitMin = false;
-            bool hitMax = false;
-            for (int i = 0; i < 500; i++)
+            try
             {
-                int rolled = (int)rollAmount.Invoke(null, new object[] { ammo, 1, 1 });
-                Assert.That(rolled, Is.InRange(5, 10), "Ammo roll must always be 5-10 inclusive.");
-                if (rolled == 5) hitMin = true;
-                if (rolled == 10) hitMax = true;
+                for (int i = 0; i < 100; i++)
+                {
+                    int rolled = (int)rollAmount.Invoke(null, new object[] { ammo, 15, 30 });
+                    Assert.That(rolled, Is.InRange(15, 30), "Ammo762 roll must always be 15-30 inclusive.");
 
-                int corpseAmt = (int)getCorpseAmount.Invoke(null, new object[] { ammo });
-                Assert.That(corpseAmt, Is.InRange(5, 10), "Corpse ammo must always be 5-10 inclusive.");
+                    int corpseAmt = (int)getCorpseAmount.Invoke(null, new object[] { ammo });
+                    Assert.That(corpseAmt, Is.InRange(15, 30), "Corpse Ammo762 must always be 15-30 inclusive.");
+
+                    int gaugeAmount = (int)rollAmount.Invoke(null, new object[] { ammo12Gauge, 5, 5 });
+                    Assert.That(gaugeAmount, Is.EqualTo(5));
+                    int authoredAmount = (int)rollAmount.Invoke(null, new object[] { ammo12Gauge, 12, 12 });
+                    Assert.That(authoredAmount, Is.EqualTo(12));
+                }
+
+                // Non-ammo items: quantity must remain one.
+                int nonAmmoCorpse = (int)getCorpseAmount.Invoke(null, new object[] { med });
+                Assert.That(nonAmmoCorpse, Is.EqualTo(1));
+
+                int nonAmmoRoll = (int)rollAmount.Invoke(null, new object[] { med, 1, 1 });
+                Assert.That(nonAmmoRoll, Is.EqualTo(1));
             }
-            Assert.That(hitMin, Is.True, "Random ammo distribution must include lower boundary 5.");
-            Assert.That(hitMax, Is.True, "Random ammo distribution must include upper boundary 10.");
-
-            // Non-ammo items: quantity must NOT be clamped to 5-10
-            int nonAmmoCorpse = (int)getCorpseAmount.Invoke(null, new object[] { med });
-            Assert.That(nonAmmoCorpse, Is.EqualTo(1));
-
-            int nonAmmoRoll = (int)rollAmount.Invoke(null, new object[] { med, 1, 1 });
-            Assert.That(nonAmmoRoll, Is.EqualTo(1));
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(ammo12Gauge);
+            }
         }
         finally
         {
@@ -306,12 +338,15 @@ public sealed class InventoryAndLootCapacityTests
         float bandageWeight = (float)ReadField(table, "bandageWeight");
         float medicineWeight = (float)ReadField(table, "medicineWeight");
         float ammoWeight = (float)ReadField(table, "ammoWeight");
+        float ammo12GaugeWeight = (float)ReadField(table, "ammo12GaugeWeight");
 
-        Assert.That(waterWeight, Is.EqualTo(35f));
-        Assert.That(bandageWeight, Is.EqualTo(30f));
-        Assert.That(medicineWeight, Is.EqualTo(20f));
-        Assert.That(ammoWeight, Is.EqualTo(15f));
-        Assert.That(waterWeight + bandageWeight + medicineWeight + ammoWeight, Is.EqualTo(100f));
+        Assert.That(waterWeight, Is.EqualTo(25f));
+        Assert.That(bandageWeight, Is.EqualTo(45f));
+        Assert.That(medicineWeight, Is.EqualTo(15f));
+        Assert.That(ammoWeight, Is.EqualTo(10f));
+        Assert.That(ammo12GaugeWeight, Is.EqualTo(5f));
+        Assert.That(waterWeight + bandageWeight + medicineWeight + ammoWeight + ammo12GaugeWeight,
+            Is.EqualTo(100f));
 
         object item1 = loadItem.Invoke(null, new object[] { 1 });
         object item2 = loadItem.Invoke(null, new object[] { 2 });
@@ -326,6 +361,9 @@ public sealed class InventoryAndLootCapacityTests
         Assert.That(ReadObjectName(item3), Is.EqualTo("PainKiller"));
         Assert.That(item4, Is.Not.Null);
         Assert.That(ReadObjectName(item4), Is.EqualTo("Ammo762"));
+        object item5 = loadItem.Invoke(null, new object[] { 5 });
+        Assert.That(item5, Is.Not.Null);
+        Assert.That(ReadObjectName(item5), Is.EqualTo("Ammo12Gauge"));
     }
 
     [Test]
@@ -351,6 +389,25 @@ public sealed class InventoryAndLootCapacityTests
         Assert.That(baseBackpackChance * easyMult, Is.EqualTo(15f));
         Assert.That(baseBackpackChance * normMult, Is.EqualTo(10f));
         Assert.That(baseBackpackChance * hardMult, Is.EqualTo(4f));
+
+        Type containerType = RequireType("LootContainer, Assembly-CSharp");
+        GameObject host = new GameObject("Loot Bonus Chance Test");
+        try
+        {
+            host.AddComponent<BoxCollider2D>();
+            host.AddComponent<SpriteRenderer>();
+            Component container = host.AddComponent(containerType);
+            FieldInfo weaponChanceField = RequireField(containerType, "bonusWeaponDropChance");
+            float weaponChance = (float)weaponChanceField.GetValue(container);
+            Assert.That(weaponChance, Is.EqualTo(15f));
+            Assert.That(weaponChance * easyMult, Is.EqualTo(22.5f));
+            Assert.That(weaponChance * normMult, Is.EqualTo(15f));
+            Assert.That(weaponChance * hardMult, Is.EqualTo(6f));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(host);
+        }
     }
 
     [Test]
@@ -389,26 +446,134 @@ public sealed class InventoryAndLootCapacityTests
         MethodInfo getDamage = RequireMethod(diffRulesType, "GetIncomingDamageMultiplier", typeof(int));
         MethodInfo getLoadout = RequireMethod(diffRulesType, "GetStarterGearLoadout", typeof(int));
 
-        // EASY MODE (0): Density 0.5x, Loot 1.5x, Damage 0.7x, Loadout: AK47 + 30 Ammo762 + 1 Meat (3 items)
+        // EASY MODE (0): Density 0.5x, Loot 1.5x, Damage 0.7x, six starter entries.
         Assert.That((float)getDensity.Invoke(null, new object[] { 0 }), Is.EqualTo(0.5f));
         Assert.That((float)getLoot.Invoke(null, new object[] { 0 }), Is.EqualTo(1.5f));
         Assert.That((float)getDamage.Invoke(null, new object[] { 0 }), Is.EqualTo(0.7f));
         Array easyLoadout = (Array)getLoadout.Invoke(null, new object[] { 0 });
-        Assert.That(easyLoadout.Length, Is.EqualTo(3));
+        Assert.That(easyLoadout.Length, Is.EqualTo(6));
 
-        // NORMAL MODE (1): Density 1.0x, Loot 1.0x, Damage 1.0x, Loadout: Flashlight + Bandage (2 items)
+        // NORMAL MODE (1): Density 1.0x, Loot 1.0x, Damage 1.0x, three starter entries.
         Assert.That((float)getDensity.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Assert.That((float)getLoot.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Assert.That((float)getDamage.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Array normLoadout = (Array)getLoadout.Invoke(null, new object[] { 1 });
-        Assert.That(normLoadout.Length, Is.EqualTo(2));
+        Assert.That(normLoadout.Length, Is.EqualTo(3));
 
-        // HARD MODE (2): Density 2.5x, Loot 0.4x, Damage 1.5x, Loadout: 0 items
+        // HARD MODE (2): Density 2.5x, Loot 0.4x, Damage 1.5x, flashlight only.
         Assert.That((float)getDensity.Invoke(null, new object[] { 2 }), Is.EqualTo(2.5f));
         Assert.That((float)getLoot.Invoke(null, new object[] { 2 }), Is.EqualTo(0.4f));
         Assert.That((float)getDamage.Invoke(null, new object[] { 2 }), Is.EqualTo(1.5f));
         Array hardLoadout = (Array)getLoadout.Invoke(null, new object[] { 2 });
-        Assert.That(hardLoadout.Length, Is.EqualTo(0));
+        Assert.That(hardLoadout.Length, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void StarterLoadout_UsesCurrentWeaponPoolAndExactFixedQuantities()
+    {
+        Type diffRulesType = RequireType("DifficultyRules, Assembly-CSharp");
+        MethodInfo getPool = RequireMethod(diffRulesType, "GetStarterWeaponPool");
+        MethodInfo getLoadout = RequireMethod(diffRulesType, "GetStarterGearLoadout", typeof(int));
+
+        Array pool = (Array)getPool.Invoke(null, null);
+        string[] expectedPool = { "AK47", "S12K" };
+        Assert.That(pool.Length, Is.EqualTo(expectedPool.Length));
+        foreach (string expectedWeapon in expectedPool)
+            Assert.That(pool.Cast<object>().Select(value => value.ToString()), Does.Contain(expectedWeapon));
+
+        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "Water", 3);
+        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "Meat", 3);
+        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "Flashlight", 1);
+        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "Bandage", 5);
+        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "PainKiller", 1);
+
+        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 1 }), "Flashlight", 1);
+        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 1 }), "Bandage", 3);
+        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 2 }), "Flashlight", 1);
+
+        foreach (int difficulty in new[] { 0, 1 })
+        {
+            Array loadout = (Array)getLoadout.Invoke(null, new object[] { difficulty });
+            int randomWeaponEntries = 0;
+            foreach (object entry in loadout)
+            {
+                FieldInfo preferHotbar = entry.GetType().GetField("PreferHotbar");
+                if (preferHotbar == null || !(bool)preferHotbar.GetValue(entry)) continue;
+
+                randomWeaponEntries++;
+                string itemId = (string)entry.GetType().GetField("ItemId").GetValue(entry);
+                int amount = (int)entry.GetType().GetField("Amount").GetValue(entry);
+                Assert.That(pool.Cast<object>().Select(value => value.ToString()), Does.Not.Contain(itemId),
+                    "The starter loadout must resolve a random weapon instead of hard-coding one pool item.");
+                Assert.That(amount, Is.EqualTo(1));
+            }
+
+            Assert.That(randomWeaponEntries, Is.EqualTo(1),
+                "Easy and Normal must each contain exactly one random starter weapon entry.");
+        }
+    }
+
+    [Test]
+    public void AuthoredLootTables_UseApprovedRatesAndPreserveTutorialGaugeException()
+    {
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Ammo762", 20f, 15, 30);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Bandage", 35f, 1, 1);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "EnergyWater", 20f, 1, 1);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Meat", 40f, 1, 1);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "PainKiller", 15f, 1, 1);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Water", 45f, 1, 1);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Ammo12Gauge", 15f, 5, 5);
+
+        // The tutorial intentionally authors a 12-round shotgun stack.  The
+        // ordinary/default policy must not rewrite this authored exception.
+        AssertLootTableRule("Assets/Resources/Tutorial/TutorialKitchenLootTable.asset",
+            "Ammo12Gauge", 100f, 12, 12);
+    }
+
+    private static void AssertStarterFixedAmount(Array loadout, string itemId, int expectedAmount)
+    {
+        object matchingEntry = null;
+        foreach (object entry in loadout)
+        {
+            string candidateId = (string)entry.GetType().GetField("ItemId").GetValue(entry);
+            if (string.Equals(candidateId, itemId, StringComparison.OrdinalIgnoreCase))
+            {
+                matchingEntry = entry;
+                break;
+            }
+        }
+
+        Assert.That(matchingEntry, Is.Not.Null, $"Starter loadout must contain '{itemId}'.");
+        int amount = (int)matchingEntry.GetType().GetField("Amount").GetValue(matchingEntry);
+        Assert.That(amount, Is.EqualTo(expectedAmount), $"Starter amount for '{itemId}'.");
+    }
+
+    private static void AssertLootTableRule(string assetPath, string itemName,
+        float expectedChance, int expectedMinimum, int expectedMaximum)
+    {
+        UnityEngine.Object tableAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
+        Assert.That(tableAsset, Is.Not.Null, assetPath);
+
+        SerializedObject serializedTable = new SerializedObject(tableAsset);
+        SerializedProperty rules = serializedTable.FindProperty("lootRules");
+        Assert.That(rules, Is.Not.Null, $"Missing lootRules on {assetPath}.");
+
+        for (int i = 0; i < rules.arraySize; i++)
+        {
+            SerializedProperty rule = rules.GetArrayElementAtIndex(i);
+            UnityEngine.Object item = rule.FindPropertyRelative("itemPrefab")?.objectReferenceValue;
+            if (item == null || !string.Equals(item.name, itemName, StringComparison.OrdinalIgnoreCase)) continue;
+
+            Assert.That(rule.FindPropertyRelative("dropChance").floatValue, Is.EqualTo(expectedChance),
+                $"Drop chance for {itemName} in {assetPath}.");
+            Assert.That(rule.FindPropertyRelative("minAmount").intValue, Is.EqualTo(expectedMinimum),
+                $"Minimum amount for {itemName} in {assetPath}.");
+            Assert.That(rule.FindPropertyRelative("maxAmount").intValue, Is.EqualTo(expectedMaximum),
+                $"Maximum amount for {itemName} in {assetPath}.");
+            return;
+        }
+
+        Assert.Fail($"Loot table '{assetPath}' must contain item '{itemName}'.");
     }
 
     [Test]

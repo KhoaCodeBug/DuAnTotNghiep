@@ -116,10 +116,39 @@ public static class DifficultyRules
         }
     }
 
+    public const string RandomStarterWeaponId = "__RANDOM_STARTER_WEAPON__";
+
+    private static readonly string[] StarterWeaponPool =
+    {
+        "AK47",
+        "S12K"
+    };
+
     /// <summary>
-    /// Easy: AK47 + 30 Ammo762 + 1 Meat (Starter assault rifle, 7.62mm ammunition, and sustenance)
-    /// Normal: 1 Flashlight + 1 Bandage
-    /// Hard: Empty (No starter gear)
+    /// The current starter weapon pool.  The State Authority selects one item
+    /// from this pool once per player; clients only consume the replicated ID.
+    /// </summary>
+    public static string[] GetStarterWeaponPool()
+    {
+        return (string[])StarterWeaponPool.Clone();
+    }
+
+    public static bool IsStarterWeaponId(string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(itemId)) return false;
+        foreach (string candidate in StarterWeaponPool)
+        {
+            if (string.Equals(candidate, itemId, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Easy: random weapon + one matching magazine, 3 Water, 3 Meat,
+    /// 1 Flashlight, 5 Bandage, and 1 PainKiller.
+    /// Normal: random weapon + one matching magazine, 1 Flashlight, and 3 Bandage.
+    /// Hard: 1 Flashlight.
     /// </summary>
     public static StarterItem[] GetStarterGearLoadout(int difficulty)
     {
@@ -127,16 +156,23 @@ public static class DifficultyRules
         {
             0 => new StarterItem[]
             {
-                new StarterItem("AK47", 1, preferHotbar: true),
-                new StarterItem("Ammo762", 30, preferHotbar: false),
-                new StarterItem("Meat", 1, preferHotbar: false)
+                new StarterItem(RandomStarterWeaponId, 1, preferHotbar: true),
+                new StarterItem("Water", 3, preferHotbar: false),
+                new StarterItem("Meat", 3, preferHotbar: false),
+                new StarterItem("Flashlight", 1, preferHotbar: false),
+                new StarterItem("Bandage", 5, preferHotbar: false),
+                new StarterItem("PainKiller", 1, preferHotbar: false)
             },
             1 => new StarterItem[]
             {
+                new StarterItem(RandomStarterWeaponId, 1, preferHotbar: true),
                 new StarterItem("Flashlight", 1, preferHotbar: false),
-                new StarterItem("Bandage", 1, preferHotbar: false)
+                new StarterItem("Bandage", 3, preferHotbar: false)
             },
-            2 => Array.Empty<StarterItem>(),
+            2 => new StarterItem[]
+            {
+                new StarterItem("Flashlight", 1, preferHotbar: false)
+            },
             _ => Array.Empty<StarterItem>()
         };
     }

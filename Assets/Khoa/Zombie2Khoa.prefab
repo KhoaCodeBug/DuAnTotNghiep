@@ -422,9 +422,10 @@ MonoBehaviour:
   normalLootChance: 30
   hardcoreLootChance: 12
   lootTable:
-    waterWeight: 35
-    bandageWeight: 30
-    medicineWeight: 20
-    ammoWeight: 15
+    waterWeight: 25
+    bandageWeight: 45
+    medicineWeight: 15
+    ammoWeight: 10
+    ammo12GaugeWeight: 5
   unsearchedCorpseLifetime: 120
   searchedCorpseLifetime: 20

@@ -37,12 +37,12 @@ public static class S12KSetupHelper
             {
                 var newRule = new LootContainer.LootSpawnData();
                 newRule.itemPrefab = ammo12g;
-                newRule.dropChance = 30f;
+                newRule.dropChance = 15f;
                 newRule.minAmount = 5;
-                newRule.maxAmount = 10;
+                newRule.maxAmount = 5;
                 lootTable.lootRules.Add(newRule);
                 EditorUtility.SetDirty(lootTable);
-                Debug.Log("[S12K Setup] ✅ Đã thêm 12 Gauge Ammo vào loot table (30% chance, random 5-10 viên)!");
+                Debug.Log("[S12K Setup] ✅ Đã thêm 12 Gauge Ammo vào loot table (15% chance, cố định 5 viên)!");
             }
             else
             {

@@ -495,21 +495,21 @@ public sealed class ReadinessAndChatEditorTests
         Assert.That((float)getLootMethod.Invoke(null, new object[] { 0 }), Is.EqualTo(1.5f));
         Assert.That((float)getDamageMethod.Invoke(null, new object[] { 0 }), Is.EqualTo(0.7f));
         Array easyLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 0 });
-        Assert.That(easyLoadout.Length, Is.EqualTo(3));
+        Assert.That(easyLoadout.Length, Is.EqualTo(6));
 
         // 2. Normal Mode (1)
         Assert.That((float)getDensityMethod.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Assert.That((float)getLootMethod.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Assert.That((float)getDamageMethod.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Array normalLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 1 });
-        Assert.That(normalLoadout.Length, Is.EqualTo(2));
+        Assert.That(normalLoadout.Length, Is.EqualTo(3));
 
         // 3. Hard Mode (2)
         Assert.That((float)getDensityMethod.Invoke(null, new object[] { 2 }), Is.EqualTo(2.5f));
         Assert.That((float)getLootMethod.Invoke(null, new object[] { 2 }), Is.EqualTo(0.4f));
         Assert.That((float)getDamageMethod.Invoke(null, new object[] { 2 }), Is.EqualTo(1.5f));
         Array hardLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 2 });
-        Assert.That(hardLoadout.Length, Is.EqualTo(0));
+        Assert.That(hardLoadout.Length, Is.EqualTo(1));
 
         // 4. Session Difficulty Canonical Override
         resetSessionDiffMethod.Invoke(null, null);
@@ -553,7 +553,7 @@ public sealed class ReadinessAndChatEditorTests
             Assert.That((float)getLootMethod.Invoke(null, new object[] { effectiveDiff }), Is.EqualTo(0.4f));
             Assert.That((float)getDamageMethod.Invoke(null, new object[] { effectiveDiff }), Is.EqualTo(1.5f));
             Array hardLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { effectiveDiff });
-            Assert.That(hardLoadout.Length, Is.EqualTo(0), "Hard difficulty must yield 0 starter items.");
+            Assert.That(hardLoadout.Length, Is.EqualTo(1), "Hard difficulty must yield flashlight only.");
 
             // Scenario 2: Client has local PlayerPrefs = Hard (2), but Host broadcasts Easy (0)
             resetSessionDiffMethod.Invoke(null, null);
@@ -570,7 +570,7 @@ public sealed class ReadinessAndChatEditorTests
             Assert.That((float)getLootMethod.Invoke(null, new object[] { effectiveDiff }), Is.EqualTo(1.5f));
             Assert.That((float)getDamageMethod.Invoke(null, new object[] { effectiveDiff }), Is.EqualTo(0.7f));
             Array easyLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { effectiveDiff });
-            Assert.That(easyLoadout.Length, Is.EqualTo(3), "Easy difficulty must yield 3 starter items (AK47, Ammo762, Meat).");
+            Assert.That(easyLoadout.Length, Is.EqualTo(6), "Easy difficulty must yield six starter entries.");
         }
         finally
         {
@@ -663,26 +663,40 @@ public sealed class ReadinessAndChatEditorTests
         Assert.That(getLoadoutMethod, Is.Not.Null);
         Assert.That(loadItemMethod, Is.Not.Null);
 
-        // Test Easy loadout items: AK47, Ammo762, Meat
+        // Test Easy loadout fixed entries; the weapon entry is resolved by State Authority.
         Array easyLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 0 });
-        Assert.That(easyLoadout.Length, Is.EqualTo(3));
+        Assert.That(easyLoadout.Length, Is.EqualTo(6));
         for (int i = 0; i < easyLoadout.Length; i++)
         {
             object entry = easyLoadout.GetValue(i);
             FieldInfo itemIdField = entry.GetType().GetField("ItemId");
+            FieldInfo preferHotbarField = entry.GetType().GetField("PreferHotbar");
             string itemId = (string)itemIdField.GetValue(entry);
+            if (preferHotbarField != null && (bool)preferHotbarField.GetValue(entry))
+            {
+                Assert.That(itemId, Is.Not.Null.And.Not.Empty,
+                    "The random starter weapon entry must have a non-empty resolver ID.");
+                continue;
+            }
             object itemAsset = loadItemMethod.Invoke(null, new object[] { itemId });
             Assert.That(itemAsset, Is.Not.Null, $"Starter item '{itemId}' must exist and load successfully in Resources/Items!");
         }
 
-        // Test Normal loadout items: Flashlight, Bandage
+        // Test Normal loadout fixed entries; the weapon entry is resolved by State Authority.
         Array normalLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 1 });
-        Assert.That(normalLoadout.Length, Is.EqualTo(2));
+        Assert.That(normalLoadout.Length, Is.EqualTo(3));
         for (int i = 0; i < normalLoadout.Length; i++)
         {
             object entry = normalLoadout.GetValue(i);
             FieldInfo itemIdField = entry.GetType().GetField("ItemId");
+            FieldInfo preferHotbarField = entry.GetType().GetField("PreferHotbar");
             string itemId = (string)itemIdField.GetValue(entry);
+            if (preferHotbarField != null && (bool)preferHotbarField.GetValue(entry))
+            {
+                Assert.That(itemId, Is.Not.Null.And.Not.Empty,
+                    "The random starter weapon entry must have a non-empty resolver ID.");
+                continue;
+            }
             object itemAsset = loadItemMethod.Invoke(null, new object[] { itemId });
             Assert.That(itemAsset, Is.Not.Null, $"Starter item '{itemId}' must exist and load successfully in Resources/Items!");
         }
