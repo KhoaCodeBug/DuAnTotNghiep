@@ -1110,3 +1110,71 @@
   geometry/semantic nhưng không thay thế đánh giá độ tối, feather và cảm giác đèn pin thực tế.
 - Chưa soak horde qua nhiều căn nhà hoặc live Host+Client cho visibility client-local; đây vẫn là P2.
 - Branch: `codex/indoor-vision-zombie-reliability-20260830`, tạo từ `main@d433d58e2`.
+
+## Entry 2026-08-31 — Phục hồi PlayerVision/Fog của task QA cũ
+
+### Yêu cầu và căn cứ
+
+- Người dùng yêu cầu bỏ cơ chế vision/FOW mới của Tín vì mất Fog cũ, fan che tường bị áp ra ngoài map gây mảng đen lớn. Đã cho phép điều khiển Unity để kiểm tra kỹ, không cho phép push.
+- Task đúng đã đọc: `01a05047-5995-79b1-984a-f38ca91e1466`, **QA Fog, starter loadout và zombie indoor**. Không dùng task nhầm `01a050a2-ea70-7bb3-953e-f21ba5c9905a` làm nguồn phục hồi.
+- Trước sửa: `main == origin/main == a23c33247323ed2d7670869c11298bc67aa0832e`, working tree sạch.
+- Nguồn cũ: `7987af306` (checkpoint gameplay `01455503e`) cộng patch sửa mái trường chưa commit ở cuối task cũ. Không bỏ sót patch chỉ vì nó chưa nằm trong Git commit.
+
+### Backup, phạm vi và quyết định
+
+- Tạo nhánh an toàn `codex/backup-vision-before-restore-20260831` tại HEAD ban đầu; giữ nguyên main và lịch sử của Tín.
+- Làm việc trên `codex/restore-indoor-vision-20260831`, HEAD vẫn `a23c33247`, thay đổi chưa commit.
+- ZIP nguồn trước sửa, nguồn cũ, patch lịch sử và snapshot ba file đã phục hồi nằm trong `QA_Artifacts/VisionRollback_20260831_091549/`; hash, chi tiết và cách test ở `FINAL_REPORT.md` trong thư mục đó.
+- Chọn phục hồi có giới hạn cho vision. Loại phương án reset toàn repository/cherry-pick cả nhánh vì sẽ kéo theo inventory, loading và các thay đổi khác ngoài yêu cầu.
+
+### Đã sửa và cố ý giữ nguyên
+
+- `Assets/Khoa/Code/FogVisionController.cs` và `Assets/Shader/FogVisionOverlay.shader` khớp nội dung Git tại `7987af306`.
+- `Assets/Khoa/Code/PlayerVision.cs` khớp đúng bản cuối task cũ gồm fallback mái trường nhiều polygon; Git blob `0f9415ea35d81e5498b4f2f82e54555613f2ad0d`.
+- Khôi phục Fog/thời tiết, cone, fade và đèn pin cũ; fan occlusion theo tường chỉ chạy khi có indoor trigger. Giữ fallback hình học cho tường bệnh viện/trường nằm ngoài hierarchy mái.
+- Loại `VisionLineOfSight.cs`, `FowLosArtifactRunner.cs` cùng meta thuộc triển khai mới đã bỏ; không còn code reference hoặc GUID reference trong scene/prefab/asset.
+- Khôi phục tests indoor/mái trường; bỏ tests riêng của thiết kế FOW ngoài trời đã bị yêu cầu hoàn tác. Giữ test AK47/S12K placement hiện tại và các tests chat/readiness khác.
+- Bổ sung runtime regression đi qua sáu vị trí thực, kiểm tra indoor mask và bật/tắt đèn pin; UnityTearDown unload map để không nhiễu test hình học riêng.
+- Không sửa scene, prefab, Inventory/DifficultyRules, loading/readiness, chat, combat, AI, quest hay multiplayer. Hai prefab Player cũng không khác checkpoint nguồn.
+- Network: phục hồi presentation local theo camera/Player hiện hữu, không thêm State Authority/RPC/replicated state và không thay đổi spawn, damage hay inventory authority.
+
+### Xác minh mới
+
+- Unity 6000.0.69f1 compile thành công, không ghi nhận C#/shader compile error. Runtime xác nhận shader supported.
+- Full EditMode: **173/173 passed**, 0 failed/skip, 2.8449938s; job `10a89167a5254d1fba4ce7ed46e8dd8f`.
+- Full PlayMode: **15/15 passed**, 0 failed/skip, 106.6487751s; job `daef476b9fb9434d804963f92c56e6eb`.
+- Có lượt runtime Solo Easy và Medium. Medium dùng đèn pin starter thật qua đường equip/toggle production. Sau menu Button events, fixture dùng teleport Fusion production để đặt Player chính xác, không giả là đã đi bộ hoàn thành quest.
+- Sáu điểm: ngoài trời `(-62.29,30.77)` → bệnh viện lớn `(-46.646,16.413)` → ngoài trời → bệnh viện nhỏ `(-49.584,37.427)` → trường `(11.36,49.93)` → ngoài trường `(11.36,37.50)`. Indoor mask lần lượt **0/1/0/1/1/0**; cả sáu điểm đèn **off/on/off** đúng, phạm vi mask không đổi.
+- Đã xem ảnh cover trong nhà và ngoài trời; không còn fan đen lớn ở các điểm outdoor lấy mẫu. 12 ảnh cùng log tọa độ/mask: `QA_Artifacts/VisionRollback_Runtime/`. XML và kết quả tool: thư mục backup nêu trên.
+- Các fail trung gian được phân loại: quest đưa Player lại trường khi chưa đủ manh mối; reflection sai assembly/property của clue mask; ca map thật chưa unload collider làm hai test dựng riêng fail. Đã sửa fixture/teardown, không sửa production để né assertions. Nhóm vision sau teardown **5/5**, full suite sau đó **15/15**.
+- Kiểm tra ảnh cuối phát hiện full suite còn VictorySummaryUI từ test quest che gameplay; lượt standalone ngay sau đó cũng còn nền menu. Không dùng ảnh bị che làm bằng chứng. Force compile và xác nhận domain reload xong, chạy riêng ca vision **1/1 passed**, 22.5454773s, job `98b547a20c5a4c5a8d56104f426a7ff7`; đã mở xem ảnh gameplay mới, lưu bản cố định tại `QA_Artifacts/VisionRollback_20260831_091549/verified-runtime/`. Full suite có assertions state/physics, không phải pixel assertions cho menu/quest overlay.
+- `git diff --check` pass; xác nhận không có diff production ngoài vision. Unity kết thúc Play và trở về MainMenu.
+
+### Test thực tế, rủi ro và bàn giao
+
+- Test tay: MainMenu → Solo → Medium → trang bị đèn từ túi lên hotbar, chọn slot và click trái. Quan sát ngoài đường/sát hàng rào khi đổi hướng; vào bệnh viện và trường, bật/tắt đèn; ra ngoài sau khi đủ điều kiện quest. Mong đợi tường kín trong nhà che phía sau, cửa mở còn nhìn được, không kéo indoor mask ra ngoài map, zombie gần trong mái trường không tàng hình vì polygon chia mảnh.
+- Đã thử thao tác desktop Solo Medium nhưng nền menu còn che map sau tải; Console có `ShowLoadingScreen ignored: Scene is already loaded or gameplay is released`. Một lượt sau reload cũng chưa vào được gameplay qua click. **Không báo manual flow này pass**. Domain Reload bị tắt là khả năng gây trạng thái tĩnh sót, chưa kết luận nguyên nhân; không sửa loading trong task vision.
+- Trước sửa đã có loading timeout 36.4s. Sau test còn hai thông báo EventSystem trùng và log `Saving results to...` do runner phân loại Exception. Không coi Console hoàn toàn sạch hoặc đã sửa các lỗi này.
+- Chưa QA Host+Client, build player, soak horde toàn map, nhiều góc cửa/giờ ngày đêm hoặc nghiệm thu cảm giác Fog của người dùng. Solo/test tự động không thay thế các mục đó.
+- Git: nhánh `codex/restore-indoor-vision-20260831`, HEAD `a23c33247`; thay đổi local chưa stage/commit, không push/merge. Main/backup vẫn giữ nguyên HEAD trước sửa. Không có yêu cầu push trong lượt này.
+
+## Entry 2026-08-31 — Hotfix Play lại bị kẹt nền MainMenu
+
+- **Đã duyệt:** user chưa test Fog được, yêu cầu sửa nhanh lỗi Main đã tải/nhạc và HUD đã chạy nhưng nền menu còn che; kèm ảnh Hotbar sinh lại lúc đóng scene. Xác nhận đã nắm implementation Fog cũ; chưa tự nhận biết mọi bug chưa được mô tả.
+- **Nguyên nhân:** coordinator static ReleasedToGameplay sót khi Domain Reload tắt; guard ShowLoadingScreen return trước khi coroutine ẩn menu được chạy. New runner attempt chưa reset trạng thái lượt trước. Menu OnDestroy còn bật lại UI, trong khi Hotbar getter có thể tạo object ngay cả ngoài Play/đang shutdown.
+- **Đã triển khai:** GameplayReadinessCoordinator reset state/events/Canvas registry ở SubsystemRegistration; MainMenuManager reset loading attempt sau cleanup và trước StartGame, giữ nguyên guard cho callback trễ cùng trận; OnDestroy không activate HUD. HotbarHUDManager chặn tạo instance ngoài Play/quitting và reset cờ mỗi runtime; AutoUIManager khởi tạo Hotbar bằng null-safe access.
+- Không đổi scene/prefab/ProjectSettings, readiness release criteria, Authority/RPC, inventory hay Fog. Không chọn bật Domain Reload hoặc bỏ guard Client để chữa triệu chứng. PlayerVision vẫn có blob `0f9415ea35d81e5498b4f2f82e54555613f2ad0d`; Fog controller/shader vẫn khớp nguồn đã phục hồi.
+- **Xác minh:** compile không lỗi, diff check pass. Integration `MenuReplayLifecycleEditorTests` **1/1 pass** (job `5ee7bb969f064115b86973ccafcb234f`, 25.8672943s): ba EnterPlayMode/ExitPlayMode liên tiếp không Domain Reload; mỗi vòng vào Solo Medium, assert Player/readiness, menu Canvas inactive, sau Exit không còn Hotbar. Đã mở xem cả ba ảnh map thật. `ReadinessAndChatEditorTests` **43/43 pass** (job `c076cdddbcbc4b67bec057f2a0f4655d`), giữ các gate Client/late join/Failed/local-ready.
+- **Thao tác trực tiếp:** click Solo Medium vào map thành công lượt đầu; Stop không error Hotbar sót. Lượt click tiếp theo công cụ gặp focus (EventSystem isFocused=false); không báo ba lượt test tay pass. Ba vòng xác minh là automation qua Button events trong Play thật. Không còn gameplay Error sau ca vòng lặp; vẫn có log TestRunner Saving results được tool phân loại Exception.
+- **Test tay đề nghị:** MainMenu → Play → Solo → chọn độ khó → vào Main; nền menu phải biến mất và map/Player/HUD hiện. Stop rồi Play lại ít nhất hai lần, không compile/restart Unity; không còn Hotbar ngoài Play. User chưa nghiệm thu.
+- **Giới hạn:** chưa Host+Client, build hoặc full suite sau hotfix; không dùng số 173/15 của lượt phục hồi trước làm bằng chứng mới cho hotfix.
+- Báo cáo, backup bốn file trước sửa, XML và ảnh: `QA_Artifacts/MenuReplayFix_20260831/`. Git vẫn `codex/restore-indoor-vision-20260831@a23c33247`, toàn bộ thay đổi local chưa commit/push/merge.
+
+## Entry 2026-08-31 — User xác nhận checkpoint, thảo luận chi tiết Fog indoor
+
+- **Đã test tay/xác nhận:** user nói "được rồi", yêu cầu xem trạng thái sau phục hồi vision và hotfix menu là checkpoint an toàn để quay về nếu các cải tiến tiếp theo sai.
+- Lưu checkpoint Git local trên nhánh `codex/checkpoint-vision-menu-stable-20260831`; không push/merge. Các ZIP và ảnh QA trước đó vẫn giữ local trong QA_Artifacts.
+- **Chỉ thảo luận, chưa duyệt triển khai:** ảnh indoor có vùng sàn sáng nhưng phần trên của tường/decor vẫn bị Fog che. User muốn biết giải pháp và mức phức tạp; nếu đòi tái cấu trúc lớn thì cân nhắc bỏ tính năng. Không sửa gameplay/shader/scene trong lượt này.
+- Đọc code xác nhận fan raycast 2D đo tới collider Obstacle của nhà; full-screen Fog shader lấy XY từ vị trí pixel, chưa có thông tin pixel thuộc mặt tường/decor nào hoặc chân/chiều cao của đối tượng. Đây là nguyên nhân có cơ sở cho sai lệch giữa visibility trên sàn và sprite cao; chưa xác minh từng collider/material của vật trong ảnh.
+- Hướng đang cân nhắc: giữ logic chặn sau tường, bổ sung cách hiển thị mặt tường/decor đang nhìn thấy dựa trên vị trí chân/đoạn tường. Không chọn nới mask toàn cục vì có nguy cơ lộ sàn/đồ/zombie phòng sau; chưa hứa phạm vi nhỏ cho toàn map khi chưa kiểm kê cách ghép tilemap và sprite.
+- Cần xác nhận: mặt tường/decor nào được sáng và chỉ phần nằm trong vùng nhìn hay cả vật; áp dụng với/không đèn pin; nếu bỏ thì bỏ riêng che theo tường hay toàn bộ Fog indoor. Chưa coi các lựa chọn này là yêu cầu đã chốt.

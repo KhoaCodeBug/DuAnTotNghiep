@@ -9,10 +9,21 @@ using UnityEngine.SceneManagement;
 public class HotbarHUDManager : MonoBehaviour
 {
     private static HotbarHUDManager instance;
+    private static bool isShuttingDown;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetRuntimeState()
+    {
+        instance = null;
+        isShuttingDown = false;
+    }
+
+    private void OnApplicationQuit() => isShuttingDown = true;
     public static HotbarHUDManager Instance
     {
         get
         {
+            if (isShuttingDown || !Application.isPlaying) return null;
             if (instance == null)
             {
                 instance = FindFirstObjectByType<HotbarHUDManager>();

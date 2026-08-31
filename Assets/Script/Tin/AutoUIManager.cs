@@ -103,7 +103,7 @@ public class AutoUIManager : MonoBehaviour
         // A previous session may have hidden the persistent hotbar while the
         // player was dead, then destroyed this manager during shutdown before
         // it could restore the HUD. Every fresh gameplay UI starts visible.
-        HotbarHUDManager.Instance.SetHUDVisible(true);
+        HotbarHUDManager.Instance?.SetHUDVisible(true);
         GameLocalization.LanguageChanged += RefreshLocalizedText;
         RefreshLocalizedText();
         GameplayReadinessCoordinator.ApplyCanvasSuppression();

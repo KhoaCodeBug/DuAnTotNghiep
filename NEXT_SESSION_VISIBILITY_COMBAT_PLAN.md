@@ -3,6 +3,22 @@
 > Cập nhật: 2026-08-30. Đây là checklist tập trung cho nhóm lỗi visibility/combat.
 > Trạng thái tổng và lịch sử quyết định vẫn lấy từ `CODEX_PROJECT_WORK_LOG.md`.
 
+## Cập nhật 2026-08-31 — Khôi phục vision trước bản FOW toàn map
+
+- Người dùng yêu cầu bỏ cơ chế FOW/LOS mới của Tín vì mất cảm giác Fog cũ và tạo mảng đen ngoài trời.
+- Đã khôi phục Fog controller/shader từ checkpoint local `7987af306` (gameplay `01455503e`),
+  cùng đúng patch PlayerVision sửa mái trường chưa commit của phiên `01a05047-5995-79b1-984a-f38ca91e1466`.
+- Ngoài trời dùng Fog/thời tiết, góc nhìn và đèn pin cũ; fan che theo tường chỉ chạy khi có indoor trigger.
+  Giữ hình học nhận tường công trình lớn ngoài hierarchy và fallback mái trường bị chia nhiều polygon.
+- Không khôi phục inventory/readiness của checkpoint cũ trong lượt này: loading/chat/loot/network hiện tại giữ nguyên.
+- Backup toàn trạng thái Git: `codex/backup-vision-before-restore-20260831` tại `a23c33247`.
+  ZIP vision và patch lịch sử: `QA_Artifacts/VisionRollback_20260831_091549/`.
+- Kết quả kiểm tra mới và giới hạn nghiệm thu nằm ở entry 2026-08-31 trong work log.
+- Test tay ưu tiên: MainMenu → Solo → Medium (có đèn pin trong túi); trang bị đèn lên hotbar,
+  quan sát Fog/góc nhìn ngoài trời, bật/tắt đèn pin,
+  vào/ra nhà rồi bệnh viện/trường; ngoài trời không được giữ mảng đen từ indoor, tường kín trong nhà vẫn chặn.
+- Chưa nghiệm thu thay người dùng; không tự push/merge.
+
 ## Tài liệu bắt buộc phải đọc khi mở phiên mới
 
 1. `AGENTS.md` ở project root.

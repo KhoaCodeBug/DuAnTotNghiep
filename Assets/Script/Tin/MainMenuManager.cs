@@ -1466,6 +1466,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
         Debug.Log($"[MENU FLOW] Cleaning old runners before mode={mode}, room='{roomName}'.");
         await CleanupOldRunnersAsync();
+        if (this == null || isMenuDestroyed) return;
+        ResetLoadingForNewSession();
         Debug.Log("[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.");
 
         activeRunner = Instantiate(runnerPrefab);
@@ -1578,6 +1580,23 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             ShowError(errorMsg);
             OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
         }
+    }
+
+    private void ResetLoadingForNewSession()
+    {
+        // This is a new runner/attempt, unlike a late callback in the same match.
+        // Reset before StartGame can emit any scene/readiness callbacks.
+        if (loadingCoroutine != null) StopCoroutine(loadingCoroutine);
+        loadingCoroutine = null;
+        isLoadingScreenActive = false;
+        isLocalSceneLoaded = false;
+        isHostSignaledGo = false;
+        hasDetectedGameStart = false;
+        playersLoaded = 0;
+        GameplayReadinessCoordinator.ResetCoordinator();
+        if (loadingScreenPanel != null) loadingScreenPanel.SetActive(false);
+        if (mainCanvas != null) mainCanvas.gameObject.SetActive(true);
+        Application.backgroundLoadingPriority = ThreadPriority.Normal;
     }
 
     private async void ConnectToLobby()
@@ -2304,8 +2323,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private void OnDestroy()
     {
         GameLocalization.LanguageChanged -= RefreshLocalizedDynamicTexts;
-        EnableGameplayUI();
         isMenuDestroyed = true;
+        // Teardown must not activate HUD objects: their Awake can create a new
+        // hotbar while Unity is closing the scene. Loading completion owns reveal.
+        temporarilyDisabledObjects.Clear();
         if (Instance == this) Instance = null;
     }
     private GameObject CreateBasePanel(string name, GameObject parent) { GameObject p = new GameObject(name); p.transform.SetParent(parent.transform, false); RectTransform r = p.AddComponent<RectTransform>(); r.anchorMin = Vector2.zero; r.anchorMax = Vector2.one; r.offsetMin = Vector2.zero; r.offsetMax = Vector2.zero; return p; }

@@ -37,6 +37,19 @@ public static class GameplayReadinessCoordinator
 
     private static readonly HashSet<Canvas> RegisteredGameplayCanvases = new HashSet<Canvas>();
 
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetRuntimeState()
+    {
+        // Enter Play Mode can keep static fields when Domain Reload is disabled.
+        // No callbacks or Canvas references from the previous runtime may survive.
+        OnProgressUpdated = null;
+        OnReleased = null;
+        OnFailed = null;
+        OnSuppressionChanged = null;
+        RegisteredGameplayCanvases.Clear();
+        ResetCoordinator();
+    }
+
     public static string CurrentStatusText
     {
         get

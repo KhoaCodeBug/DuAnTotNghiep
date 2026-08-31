@@ -56,8 +56,9 @@ public sealed class ReadinessAndChatEditorTests
         string shaderSource = File.ReadAllText(shaderPath);
 
         Assert.That(controllerSource, Does.Contain("ResolveIndoorStructureRoot"));
-        Assert.That(controllerSource, Does.Contain("hit.collider.transform.IsChildOf(cachedIndoorStructureRoot)"),
-            "Indoor rays must ignore unrelated outdoor fences and only accept this building's colliders.");
+        Assert.That(controllerSource, Does.Contain("IsIndoorStructuralHit"));
+        Assert.That(controllerSource, Does.Contain("indoorCollider.OverlapPoint(pointBeforeWall)"),
+            "Large-building walls may live outside the roof trigger hierarchy and must be linked by indoor geometry.");
         Assert.That(shaderSource, Does.Contain("_IndoorOcclusionDistances[180]"));
         Assert.That(shaderSource, Does.Contain("visibleIndoor = insideIndoor * indoorOcclusionVisibility"),
             "Rooms behind an internal wall must retain the dark indoor cover.");
