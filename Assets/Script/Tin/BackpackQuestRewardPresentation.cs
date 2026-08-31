@@ -33,7 +33,6 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
     private TextMeshProUGUI capacityLabel;
     private Coroutine presentationRoutine;
     private bool ownsAutoCanvasSuppression;
-    private bool isPlaying;
 
     // This is an informational reward reveal, not a gameplay modal. The
     // multiplayer simulation and local E interactions remain usable while
@@ -106,7 +105,6 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         // teammate's interaction or make the owner miss an immediate E prompt.
         ownsAutoCanvasSuppression = false;
 
-        isPlaying = true;
         root.SetActive(true);
         rootGroup.alpha = 0f;
         scanPulse.localScale = Vector3.one * 0.62f;
@@ -174,7 +172,6 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
             presentationRoutine = null;
         }
 
-        isPlaying = false;
         if (root != null) root.SetActive(false);
         RestoreAutoCanvasSuppression();
     }
