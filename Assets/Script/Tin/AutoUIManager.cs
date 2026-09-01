@@ -650,13 +650,7 @@ public class AutoUIManager : MonoBehaviour
 
     private void GenerateEntireUI()
     {
-        if (FindAnyObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
-        {
-            GameObject eventSystem = new GameObject("EventSystem");
-            eventSystem.AddComponent<UnityEngine.EventSystems.EventSystem>();
-            eventSystem.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
-            DontDestroyOnLoad(eventSystem);
-        }
+        AutoChatManager.EnsureEventSystem();
 
         GameObject canvasGO = new GameObject("AutoCanvas");
         mainCanvas = canvasGO.AddComponent<Canvas>();

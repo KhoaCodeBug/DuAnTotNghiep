@@ -422,6 +422,7 @@ GameObject:
   - component: {fileID: 3891386804179499026}
   - component: {fileID: -1156234459553460602}
   - component: {fileID: 7138400065112945721}
+  - component: {fileID: 8623404620491128783}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -1210,6 +1211,19 @@ MonoBehaviour:
   _IsEquippedInHotbar:
     _value: 0
   _Battery01: 0
+--- !u!114 &8623404620491128783
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4457333233239025546}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a86f533fd9917dd4da8601e9eb542c96, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  LogLevel: 1
 --- !u!1 &4528869163461110736
 GameObject:
   m_ObjectHideFlags: 0

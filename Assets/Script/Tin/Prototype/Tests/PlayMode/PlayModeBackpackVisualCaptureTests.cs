@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using NUnit.Framework;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
@@ -65,6 +66,19 @@ public sealed class PlayModeBackpackVisualCaptureTests
 
         // Wait for intro/scene settling
         yield return new WaitForSecondsRealtime(2.0f);
+
+        // Capture fresh gameplay and UI state post-transition to prove lifecycle and canvas input remain intact
+        yield return CaptureDeterministicScreen(Path.Combine(ScreenshotDir, "runtime_lifecycle_cleanup_gameplay_ui.png"));
+
+        // Assert exactly one active EventSystem and exactly one BaseInputModule post scene transition
+        EventSystem[] activeEventSystems = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        Assert.That(activeEventSystems.Length, Is.EqualTo(1),
+            "After MainMenu -> Main transition, exactly one EventSystem must be active.");
+        BaseInputModule[] modules = activeEventSystems[0].GetComponents<BaseInputModule>();
+        Assert.That(modules.Length, Is.EqualTo(1),
+            "Canonical EventSystem must have exactly one BaseInputModule.");
+        Assert.That(modules[0].GetType().Name, Is.EqualTo("InputSystemUIInputModule"),
+            "Canonical EventSystem must use InputSystemUIInputModule.");
 
         Type presenterType = Type.GetType("BackpackQuestRewardPresentation, Assembly-CSharp");
         Type catalogType = Type.GetType("BackpackItemCatalog, Assembly-CSharp");

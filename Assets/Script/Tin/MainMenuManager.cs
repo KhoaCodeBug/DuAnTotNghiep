@@ -760,13 +760,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void GenerateEntireMenu()
     {
-        if (FindAnyObjectByType<EventSystem>() == null)
-        {
-            GameObject esObj = new GameObject("EventSystem");
-            EventSystem es = esObj.AddComponent<EventSystem>(); es.sendNavigationEvents = false;
-            esObj.AddComponent<StandaloneInputModule>();
-            DontDestroyOnLoad(esObj);
-        }
+        AutoChatManager.EnsureEventSystem();
 
         GameObject canvasGO = new GameObject("AutoMenuCanvas");
         DontDestroyOnLoad(canvasGO);
