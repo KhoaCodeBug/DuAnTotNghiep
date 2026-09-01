@@ -2853,11 +2853,21 @@ public sealed class MainQuestManager : NetworkBehaviour
             return;
         }
 
+        int preClaimLevel = inventory != null && inventory.CurrentBackpackLevel >= 0
+            ? inventory.CurrentBackpackLevel
+            : (inventory != null && inventory.LastCapturedLevelFivePreviousLevel >= 0
+                ? inventory.LastCapturedLevelFivePreviousLevel
+                : 4);
+
         void StartBackpackPresentation()
         {
             RouteBRadioBroadcastUI.CloseIfOpen();
             EscapeRouteDecisionUI.CloseIfOpen();
-            BackpackQuestRewardPresentation.Show(BackpackQuestRewardRules.RadioBackpackLevel, backpack, () =>
+            int previousLevel = inventory != null && inventory.LastCapturedLevelFivePreviousLevel >= 0
+                ? inventory.LastCapturedLevelFivePreviousLevel
+                : preClaimLevel;
+
+            BackpackQuestRewardPresentation.ShowWithPreviousLevel(BackpackQuestRewardRules.RadioBackpackLevel, backpack, previousLevel, () =>
             {
                 onComplete?.Invoke();
                 System.Action pending = pendingLevelFiveBackpackClaims;

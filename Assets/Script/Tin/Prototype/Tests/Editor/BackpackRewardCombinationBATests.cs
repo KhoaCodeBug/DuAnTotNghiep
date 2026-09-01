@@ -157,6 +157,11 @@ public sealed class BackpackRewardCombinationBATests
                 "Notification A must be visible after Effect B completes.");
 
             string bodyL4 = (string)notificationBodyProp.GetValue(null);
+            string titleL4 = (string)notificationTitleProp.GetValue(null);
+            string fullL4 = (titleL4 ?? "") + " " + (bodyL4 ?? "");
+            Assert.That(fullL4.ToUpperInvariant().Contains("LEVEL 3 → LEVEL 4") || fullL4.ToUpperInvariant().Contains("CẤP 3 → CẤP 4"), Is.True,
+                "Level 4 notification must visibly display LEVEL 3 → LEVEL 4 transition.");
+
             MethodInfo getLocalizedDisplayName = catalogType.GetMethod("GetLocalizedDisplayName", BindingFlags.Public | BindingFlags.Static);
             Assert.That(getLocalizedDisplayName, Is.Not.Null, "GetLocalizedDisplayName method must exist on BackpackItemCatalog.");
 
@@ -174,6 +179,11 @@ public sealed class BackpackRewardCombinationBATests
             finishPresentation.Invoke(presenter, null);
 
             string bodyL5 = (string)notificationBodyProp.GetValue(null);
+            string titleL5 = (string)notificationTitleProp.GetValue(null);
+            string fullL5 = (titleL5 ?? "") + " " + (bodyL5 ?? "");
+            Assert.That(fullL5.ToUpperInvariant().Contains("LEVEL 4 → LEVEL 5") || fullL5.ToUpperInvariant().Contains("CẤP 4 → CẤP 5"), Is.True,
+                "Level 5 notification must visibly display LEVEL 4 → LEVEL 5 transition.");
+
             string expectedNameL5 = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp5 });
             Assert.That(bodyL5, Does.Contain(expectedNameL5), "Level 5 notification must include the localized backpack item name.");
             Assert.That(bodyL5.ToLowerInvariant().Contains("radio"), Is.True,
@@ -185,6 +195,115 @@ public sealed class BackpackRewardCombinationBATests
         finally
         {
             Object.DestroyImmediate(host);
+        }
+    }
+
+    [Test]
+    public void NotificationA_NonSequentialUpgrade_FromLevelTwoToLevelFour_ShowsDynamicLevelAndCapacityTransition()
+    {
+        GameObject host = new GameObject("Test_NonSequential_Host");
+        try
+        {
+            Component presenter = host.AddComponent(presenterType);
+            MethodInfo showWithPrev = presenterType.GetMethod("ShowWithPreviousLevel",
+                BindingFlags.Public | BindingFlags.Static);
+            MethodInfo showInternal = presenterType.GetMethod("ShowInternal",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo finishPresentation = presenterType.GetMethod("FinishPresentation",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            PropertyInfo notificationBodyProp = presenterType.GetProperty("LastNotificationBody",
+                BindingFlags.Public | BindingFlags.Static);
+            PropertyInfo notificationTitleProp = presenterType.GetProperty("LastNotificationTitle",
+                BindingFlags.Public | BindingFlags.Static);
+
+            MethodInfo getOrCreate = catalogType.GetMethod("GetOrCreate",
+                BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int), typeof(bool) }, null);
+            object bp4 = getOrCreate.Invoke(null, new object[] { 4, false });
+
+            Component activePresenter = presenter;
+            if (showWithPrev != null)
+            {
+                showWithPrev.Invoke(null, new object[] { 4, bp4, 2, null });
+                activePresenter = (Component)presenterType.GetField("instance", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null) ?? presenter;
+            }
+            else
+            {
+                showInternal.Invoke(presenter, new object[] { 4, bp4, null });
+            }
+
+            finishPresentation.Invoke(activePresenter, null);
+
+            string body = (string)notificationBodyProp.GetValue(null);
+            string title = (string)notificationTitleProp.GetValue(null);
+            string full = (title ?? "") + " " + (body ?? "");
+
+            // 1. Current-to-reward level transition: LEVEL 2 → LEVEL 4
+            Assert.That(full.ToUpperInvariant().Contains("LEVEL 2 → LEVEL 4") || full.ToUpperInvariant().Contains("CẤP 2 → CẤP 4"), Is.True,
+                "Non-sequential notification must visibly show LEVEL 2 → LEVEL 4 transition.");
+
+            // 2. Dynamic capacity transition: level 2 has 25 slots, level 4 has 40 slots -> 25 → 40 (+15 SLOTS)
+            Assert.That(body, Does.Contain("25 → 40"),
+                "Non-sequential notification body must show dynamic capacity transition 25 → 40 (not hardcoded 30 → 40).");
+            Assert.That(body, Does.Contain("+15"),
+                "Non-sequential notification body must show +15 slots delta (40 - 25).");
+
+            // 3. API contract requirement: ShowWithPreviousLevel entry point must exist
+            Assert.That(showWithPrev, Is.Not.Null,
+                "BackpackQuestRewardPresentation must expose ShowWithPreviousLevel(int level, ItemData backpack, int previousLevel, Action onCompleted).");
+        }
+        finally
+        {
+            Object.DestroyImmediate(host);
+            presenterType.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        }
+    }
+
+    [Test]
+    public void NotificationA_NonSequentialUpgrade_FromLevelZeroToLevelFour_ShowsLevelZeroTransitionAndTwentyFiveDelta()
+    {
+        GameObject host = new GameObject("Test_LevelZeroToLevelFour_Host");
+        try
+        {
+            Component presenter = host.AddComponent(presenterType);
+            MethodInfo showWithPrev = presenterType.GetMethod("ShowWithPreviousLevel",
+                BindingFlags.Public | BindingFlags.Static);
+            Assert.That(showWithPrev, Is.Not.Null,
+                "BackpackQuestRewardPresentation must expose ShowWithPreviousLevel(int level, ItemData backpack, int previousLevel, Action onCompleted).");
+
+            MethodInfo finishPresentation = presenterType.GetMethod("FinishPresentation",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            PropertyInfo notificationBodyProp = presenterType.GetProperty("LastNotificationBody",
+                BindingFlags.Public | BindingFlags.Static);
+            PropertyInfo notificationTitleProp = presenterType.GetProperty("LastNotificationTitle",
+                BindingFlags.Public | BindingFlags.Static);
+
+            MethodInfo getOrCreate = catalogType.GetMethod("GetOrCreate",
+                BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int), typeof(bool) }, null);
+            object bp4 = getOrCreate.Invoke(null, new object[] { 4, false });
+
+            // Trigger reward presentation explicitly for Level 4 with previous level = 0
+            showWithPrev.Invoke(null, new object[] { 4, bp4, 0, null });
+            Component activePresenter = (Component)presenterType.GetField("instance", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null) ?? presenter;
+            finishPresentation.Invoke(activePresenter, null);
+
+            string body = (string)notificationBodyProp.GetValue(null);
+            string title = (string)notificationTitleProp.GetValue(null);
+            string full = (title ?? "") + " " + (body ?? "");
+
+            // 1. Current-to-reward level transition: LEVEL 0 → LEVEL 4
+            Assert.That(full.ToUpperInvariant().Contains("LEVEL 0 → LEVEL 4") || full.ToUpperInvariant().Contains("CẤP 0 → CẤP 4"), Is.True,
+                "Level 0 to level 4 notification must visibly show LEVEL 0 → LEVEL 4 transition.");
+
+            // 2. Dynamic capacity transition: level 0 has 15 slots, level 4 has 40 slots -> STORAGE 15 → 40 (+25 SLOTS)
+            Assert.That(body, Does.Contain("15 → 40"),
+                "Level 0 to level 4 notification body must show dynamic capacity transition 15 → 40.");
+            Assert.That(body, Does.Contain("+25"),
+                "Level 0 to level 4 notification body must show +25 slots delta (40 - 15).");
+        }
+        finally
+        {
+            Object.DestroyImmediate(host);
+            presenterType.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
         }
     }
 
@@ -375,6 +494,11 @@ public sealed class BackpackRewardCombinationBATests
             Assert.That((bool)isPresenterVisible.GetValue(null), Is.False, "Effect B must be closed after completion.");
             Assert.That((bool)isNotifVisible.GetValue(null), Is.True, "Notification A must be visible after Effect B completes.");
             string notifBody = (string)notifBodyProp.GetValue(null);
+            string notifTitle = (string)presenterType.GetProperty("LastNotificationTitle", BindingFlags.Public | BindingFlags.Static).GetValue(null);
+            string fullNotif = (notifTitle ?? "") + " " + (notifBody ?? "");
+            Assert.That(fullNotif.ToUpperInvariant().Contains("LEVEL 4 → LEVEL 5") || fullNotif.ToUpperInvariant().Contains("CẤP 4 → CẤP 5"), Is.True,
+                "Level 5 notification must visibly display LEVEL 4 → LEVEL 5 transition.");
+
             Assert.That(notifBody, Does.Contain("40 → 50"), "Notification body must show 40 → 50.");
             MethodInfo getLocalizedDisplayName = catalogType.GetMethod("GetLocalizedDisplayName", BindingFlags.Public | BindingFlags.Static);
             object bp5Item = catalogType.GetMethod("GetOrCreate", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int), typeof(bool) }, null)

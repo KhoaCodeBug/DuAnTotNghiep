@@ -156,15 +156,23 @@ public class InventorySystem : NetworkBehaviour
         SetQuestBackpackRewardClaimMask(
             BackpackQuestRewardRules.MarkClaimed(currentMask, level));
 
+        if (level == BackpackQuestRewardRules.RadioBackpackLevel)
+        {
+            lastCapturedLevelFivePreviousLevel = currentLevel;
+        }
+
         // For hospital level 4, notify presentation immediately. For level 5,
         // presentation is sequenced after the local map reveal closes.
         if (currentLevel <= level && level != BackpackQuestRewardRules.RadioBackpackLevel)
-            NotifyQuestBackpackReward(level, rewardBackpack);
+            NotifyQuestBackpackReward(level, rewardBackpack, currentLevel);
 
         Debug.Log($"[BACKPACK QUEST] Claimed level {level} milestone reward " +
                   $"for {name}; equipped level is now {CurrentBackpackLevel}.");
         return true;
     }
+
+    private int lastCapturedLevelFivePreviousLevel = -1;
+    public int LastCapturedLevelFivePreviousLevel => lastCapturedLevelFivePreviousLevel;
 
     private System.Action pendingLevelFiveGrantedCallback;
 
@@ -174,6 +182,8 @@ public class InventorySystem : NetworkBehaviour
         {
             return;
         }
+
+        lastCapturedLevelFivePreviousLevel = CurrentBackpackLevel;
 
         if (!IsNetworkObjectReady || HasStateAuthority)
         {
@@ -188,12 +198,12 @@ public class InventorySystem : NetworkBehaviour
         if (HasInputAuthority && Runner != null)
         {
             pendingLevelFiveGrantedCallback = onGranted;
-            RPC_RequestClaimQuestBackpackReward(Runner.LocalPlayer, BackpackQuestRewardRules.RadioBackpackLevel);
+            RPC_RequestClaimQuestBackpackReward(Runner.LocalPlayer, BackpackQuestRewardRules.RadioBackpackLevel, CurrentBackpackLevel);
         }
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
-    private void RPC_RequestClaimQuestBackpackReward(PlayerRef requester, int level, RpcInfo info = default)
+    private void RPC_RequestClaimQuestBackpackReward(PlayerRef requester, int level, int clientPreviousLevel = -1, RpcInfo info = default)
     {
         if (requester == PlayerRef.None || (info.Source != PlayerRef.None && info.Source != requester))
         {
@@ -219,16 +229,22 @@ public class InventorySystem : NetworkBehaviour
             }
         }
 
+        int preGrantLevel = CurrentBackpackLevel >= 0 ? CurrentBackpackLevel : clientPreviousLevel;
         if (TryGrantQuestBackpackReward(level))
         {
-            RPC_ConfirmQuestBackpackReward(requester, level);
+            RPC_ConfirmQuestBackpackReward(requester, level, preGrantLevel);
         }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ConfirmQuestBackpackReward([RpcTarget] PlayerRef targetPlayer, int level)
+    private void RPC_ConfirmQuestBackpackReward([RpcTarget] PlayerRef targetPlayer, int level, int previousLevel = -1)
     {
         if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+
+        if (previousLevel >= 0)
+        {
+            lastCapturedLevelFivePreviousLevel = previousLevel;
+        }
 
         System.Action callback = pendingLevelFiveGrantedCallback;
         pendingLevelFiveGrantedCallback = null;
@@ -308,16 +324,16 @@ public class InventorySystem : NetworkBehaviour
             NetworkedQuestBackpackRewardClaimMask = claimMask;
     }
 
-    private void NotifyQuestBackpackReward(int level, ItemData backpack)
+    private void NotifyQuestBackpackReward(int level, ItemData backpack, int previousLevel = -1)
     {
         if (IsNetworkObjectReady && HasStateAuthority && !HasInputAuthority)
         {
-            RPC_ShowQuestBackpackReward(level, backpack != null ? backpack.name : string.Empty);
+            RPC_ShowQuestBackpackReward(level, backpack != null ? backpack.name : string.Empty, previousLevel);
             return;
         }
 
         if (Application.isPlaying && (!IsNetworkObjectReady || HasInputAuthority))
-            BackpackQuestRewardPresentation.Show(level, backpack);
+            BackpackQuestRewardPresentation.ShowWithPreviousLevel(level, backpack, previousLevel);
     }
 
     private bool ApplyBackpackUpgradeLocal(ItemData backpack)
@@ -369,12 +385,12 @@ public class InventorySystem : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-    private void RPC_ShowQuestBackpackReward(int level, string backpackId)
+    private void RPC_ShowQuestBackpackReward(int level, string backpackId, int previousLevel = -1)
     {
         if (!BackpackQuestRewardRules.IsRewardLevel(level)) return;
         ItemData backpack = ItemDataLoader.LoadItem(backpackId);
         if (backpack == null) backpack = BackpackItemCatalog.GetOrCreate(level);
-        BackpackQuestRewardPresentation.Show(level, backpack);
+        BackpackQuestRewardPresentation.ShowWithPreviousLevel(level, backpack, previousLevel);
     }
 
     public override void Spawned()

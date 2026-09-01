@@ -99,6 +99,17 @@ public sealed class PlayModeBackpackVisualCaptureTests
         PropertyInfo notifBodyProp = presenterType.GetProperty("LastNotificationBody", BindingFlags.Public | BindingFlags.Static);
 
         // --- LEVEL 4 PRESENTATION ---
+        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
+        Assert.That(inventoryType, Is.Not.Null, "InventorySystem type must exist.");
+        Component inventory = player.GetComponent(inventoryType);
+        Assert.That(inventory, Is.Not.Null, "Player must have an InventorySystem component.");
+
+        PropertyInfo currentLevelProp = inventoryType.GetProperty("CurrentBackpackLevel", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(currentLevelProp, Is.Not.Null, "InventorySystem must have CurrentBackpackLevel property.");
+        int l4PrevLevel = (int)currentLevelProp.GetValue(inventory);
+        Debug.Log($"[TEST PLAYMODE] Captured L4 previousLevel={l4PrevLevel} from InventorySystem (expected 0 for maxSlots=20).");
+        Assert.That(l4PrevLevel, Is.EqualTo(0), "Initial player backpack level before L4 quest grant must be 0 for default loadout.");
+
         object bp4 = getOrCreate.Invoke(null, new object[] { 4, false });
         Assert.That(bp4, Is.Not.Null, "Level 4 backpack item must exist.");
         FieldInfo iconField = bp4.GetType().GetField("icon");
@@ -110,8 +121,14 @@ public sealed class PlayModeBackpackVisualCaptureTests
         Assert.That(bp4Icon.texture != null && bp4Icon.texture.width >= 500, Is.True,
             $"Level 4 backpack icon texture must be authored art (actual width={bp4Icon.texture?.width}).");
 
-        bool level4Completed = false;
-        showMethod.Invoke(null, new object[] { 4, bp4, (Action)(() => level4Completed = true) });
+        // Authoritatively grant Level 4 quest backpack via InventorySystem
+        MethodInfo tryGrantMethod = inventoryType.GetMethod("TryGrantQuestBackpackReward", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(tryGrantMethod, Is.Not.Null, "InventorySystem must have TryGrantQuestBackpackReward.");
+        bool grantSuccess = (bool)tryGrantMethod.Invoke(inventory, new object[] { 4 });
+        Assert.That(grantSuccess, Is.True, "Authoritative TryGrantQuestBackpackReward(4) must succeed.");
+
+        int postL4Level = (int)currentLevelProp.GetValue(inventory);
+        Assert.That(postL4Level, Is.EqualTo(4), "Player backpack level must be upgraded to 4 post-grant.");
 
         // 1) During Effect B: Notification A must NOT be visible yet
         yield return new WaitForSecondsRealtime(0.9f);
@@ -136,17 +153,47 @@ public sealed class PlayModeBackpackVisualCaptureTests
         yield return CaptureDeterministicScreen(l4EffectBScreen);
 
         // 2) Wait for Effect B to complete -> Notification A appears!
-        yield return new WaitForSecondsRealtime(1.8f);
-        Assert.That(level4Completed, Is.True, "Level 4 presentation should finish.");
+        float l4NotifWaitStart = Time.realtimeSinceStartup;
+        while (!(bool)isNotifVisibleProp.GetValue(null) && Time.realtimeSinceStartup - l4NotifWaitStart < 6f)
+        {
+            yield return null;
+        }
         Assert.That((bool)isNotifVisibleProp.GetValue(null), Is.True, "Notification A must be visible after Effect B.");
+
+        Type capacityRulesType = Type.GetType("BackpackCapacityRules, Assembly-CSharp");
+        MethodInfo getBackpackSlots = capacityRulesType?.GetMethod("GetBackpackSlots", BindingFlags.Public | BindingFlags.Static);
+        int expectedPrevSlotsL4 = (int)getBackpackSlots.Invoke(null, new object[] { l4PrevLevel });
+        MethodInfo getStorageSlots = capacityRulesType?.GetMethod("GetStorageSlots", BindingFlags.Public | BindingFlags.Static, null, new Type[] { bp4.GetType() }, null);
+        int expectedNewSlotsL4 = (int)getStorageSlots.Invoke(null, new object[] { bp4 });
+        int expectedDeltaL4 = expectedNewSlotsL4 - expectedPrevSlotsL4;
+
+        string expectedL4LevelTransition = $"LEVEL {l4PrevLevel} → LEVEL 4";
+        string expectedL4LevelTransitionVi = $"CẤP {l4PrevLevel} → CẤP 4";
+        string expectedL4CapacityTransition = $"{expectedPrevSlotsL4} → {expectedNewSlotsL4}";
+        string expectedL4Delta = $"+{expectedDeltaL4}";
+
         string l4Body = (string)notifBodyProp.GetValue(null);
-        Assert.That(l4Body, Does.Contain("30 → 40"), "Level 4 notification must show 30 -> 40.");
+        PropertyInfo notifTitleProp = presenterType.GetProperty("LastNotificationTitle", BindingFlags.Public | BindingFlags.Static);
+        string l4Title = notifTitleProp != null ? (string)notifTitleProp.GetValue(null) : string.Empty;
+        string l4Full = (l4Title ?? "") + " " + (l4Body ?? "");
+
+        Assert.That(l4Full.ToUpperInvariant().Contains(expectedL4LevelTransition) || l4Full.ToUpperInvariant().Contains(expectedL4LevelTransitionVi), Is.True,
+            $"Level 4 runtime notification must include dynamic transition ({expectedL4LevelTransition}). Actual title: '{l4Title}', body: '{l4Body}'.");
+
+        Assert.That(l4Body, Does.Contain(expectedL4CapacityTransition),
+            $"Level 4 notification must show dynamic capacity transition {expectedL4CapacityTransition}. Actual body: '{l4Body}'.");
+        Assert.That(l4Body, Does.Contain(expectedL4Delta),
+            $"Level 4 notification must show delta {expectedL4Delta}. Actual body: '{l4Body}'.");
+
         MethodInfo getLocalizedDisplayName = catalogType.GetMethod("GetLocalizedDisplayName", BindingFlags.Public | BindingFlags.Static);
         string expectedL4Name = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp4 });
         Assert.That(l4Body, Does.Contain(expectedL4Name), "Level 4 notification must contain the backpack item display name.");
         Assert.That(l4Body.ToLowerInvariant().Contains("hospital") || l4Body.ToLowerInvariant().Contains("bệnh viện"), Is.True,
             "Level 4 notification must contain hospital reward reason.");
 
+        // Let Notification A's slide/fade-in settle so the runtime evidence captures
+        // the readable final HUD state, matching the Level 5 capture below.
+        yield return new WaitForSecondsRealtime(0.4f);
         string l4NotifCamera = Path.Combine(ScreenshotDir, "runtime_level4_notification_a_camera.png");
         string l4NotifScreen = Path.Combine(ScreenshotDir, "runtime_level4_notification_a_screencapture.png");
         CaptureCanvasScreenshot(presenterType, l4NotifCamera);
@@ -159,6 +206,10 @@ public sealed class PlayModeBackpackVisualCaptureTests
         yield return new WaitForSecondsRealtime(0.5f);
 
         // --- LEVEL 5 FULL DETERMINISTIC SEQUENCE: Triggered through MainQuestManager ---
+        int l5PrevLevel = (int)currentLevelProp.GetValue(inventory);
+        Debug.Log($"[TEST PLAYMODE] Captured L5 previousLevel={l5PrevLevel} from InventorySystem (expected 4 post-L4).");
+        Assert.That(l5PrevLevel, Is.EqualTo(4), "Player backpack level before L5 grant must be 4.");
+
         // Authoritative sequence: Map Fragment Reward -> Map Reveal -> Map Closes -> Level-5 Claim/Presentation -> Effect B -> Notification A
         Type questManagerType = Type.GetType("MainQuestManager, Assembly-CSharp");
         Assert.That(questManagerType, Is.Not.Null, "MainQuestManager must exist.");
@@ -239,9 +290,28 @@ public sealed class PlayModeBackpackVisualCaptureTests
             yield return null;
         }
         Assert.That((bool)isNotifVisibleProp.GetValue(null), Is.True, "Notification A must be visible after Effect B.");
-        string l5Body = (string)notifBodyProp.GetValue(null);
-        Assert.That(l5Body, Does.Contain("40 → 50"), "Level 5 notification must show 40 -> 50.");
+
         object bp5Item = getOrCreate.Invoke(null, new object[] { 5, false });
+        int expectedPrevSlotsL5 = (int)getBackpackSlots.Invoke(null, new object[] { l5PrevLevel });
+        int expectedNewSlotsL5 = (int)getStorageSlots.Invoke(null, new object[] { bp5Item });
+        int expectedDeltaL5 = expectedNewSlotsL5 - expectedPrevSlotsL5;
+
+        string expectedL5LevelTransition = $"LEVEL {l5PrevLevel} → LEVEL 5";
+        string expectedL5LevelTransitionVi = $"CẤP {l5PrevLevel} → CẤP 5";
+        string expectedL5CapacityTransition = $"{expectedPrevSlotsL5} → {expectedNewSlotsL5}";
+        string expectedL5Delta = $"+{expectedDeltaL5}";
+
+        string l5Body = (string)notifBodyProp.GetValue(null);
+        string l5Title = notifTitleProp != null ? (string)notifTitleProp.GetValue(null) : string.Empty;
+        string l5Full = (l5Title ?? "") + " " + (l5Body ?? "");
+
+        Assert.That(l5Full.ToUpperInvariant().Contains(expectedL5LevelTransition) || l5Full.ToUpperInvariant().Contains(expectedL5LevelTransitionVi), Is.True,
+            $"Level 5 runtime notification must include dynamic transition ({expectedL5LevelTransition}). Actual title: '{l5Title}', body: '{l5Body}'.");
+        Assert.That(l5Body, Does.Contain(expectedL5CapacityTransition),
+            $"Level 5 notification must show dynamic capacity transition {expectedL5CapacityTransition}. Actual body: '{l5Body}'.");
+        Assert.That(l5Body, Does.Contain(expectedL5Delta),
+            $"Level 5 notification must show delta {expectedL5Delta}. Actual body: '{l5Body}'.");
+
         string expectedL5Name = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp5Item });
         Assert.That(l5Body, Does.Contain(expectedL5Name), "Level 5 notification must contain the backpack item display name.");
         Assert.That(l5Body.ToLowerInvariant().Contains("radio"), Is.True,

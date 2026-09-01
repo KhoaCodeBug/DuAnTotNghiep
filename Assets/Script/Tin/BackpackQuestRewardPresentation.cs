@@ -44,6 +44,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
     private bool isPresentationActive;
     private bool isNotificationActive;
     private int currentPresentedLevel = 4;
+    private int currentPreviousBackpackLevel = -1;
     private ItemData currentRewardBackpack;
     private string lastNotificationTitle = string.Empty;
     private string lastNotificationBody = string.Empty;
@@ -71,6 +72,11 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
 
     public static void Show(int level, ItemData backpack, System.Action onCompleted = null)
     {
+        ShowWithPreviousLevel(level, backpack, -1, onCompleted);
+    }
+
+    public static void ShowWithPreviousLevel(int level, ItemData backpack, int previousLevel, System.Action onCompleted = null)
+    {
         if (!BackpackQuestRewardRules.IsRewardLevel(level))
         {
             onCompleted?.Invoke();
@@ -78,6 +84,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         }
 
         BackpackQuestRewardPresentation presenter = GetOrCreate();
+        presenter.currentPreviousBackpackLevel = previousLevel;
         presenter.ShowInternal(level, backpack, onCompleted);
     }
 
@@ -116,6 +123,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         if (instance != null)
         {
             instance.currentRewardBackpack = null;
+            instance.currentPreviousBackpackLevel = -1;
             instance.isPresentationActive = false;
             instance.isNotificationActive = false;
             if (instance.presentationRoutine != null) instance.StopCoroutine(instance.presentationRoutine);
@@ -164,14 +172,12 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
 
     private void Awake()
     {
-        PurgeStalePreviewObjects();
-
         if (instance != null && instance != this)
         {
             if (Application.isPlaying)
-                Destroy(instance.gameObject);
+                Destroy(gameObject);
             else
-                DestroyImmediate(instance.gameObject);
+                DestroyImmediate(gameObject);
         }
 
         instance = this;
@@ -183,6 +189,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         isPresentationActive = false;
         isNotificationActive = false;
         currentRewardBackpack = null;
+        currentPreviousBackpackLevel = -1;
         if (presentationRoutine != null) StopCoroutine(presentationRoutine);
         if (notificationRoutine != null) StopCoroutine(notificationRoutine);
         if (instance == this) instance = null;
@@ -203,6 +210,19 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         }
         instance = this;
         currentPresentedLevel = level;
+        if (currentPreviousBackpackLevel < 0)
+        {
+            PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+            InventorySystem inv = localPlayer != null ? localPlayer.GetComponent<InventorySystem>() : null;
+            if (inv != null && inv.CurrentBackpackLevel >= 0 && inv.CurrentBackpackLevel < level)
+            {
+                currentPreviousBackpackLevel = inv.CurrentBackpackLevel;
+            }
+            else
+            {
+                currentPreviousBackpackLevel = level == BackpackQuestRewardRules.RadioBackpackLevel ? 4 : 3;
+            }
+        }
         currentRewardBackpack = backpack != null ? backpack : BackpackItemCatalog.GetOrCreate(level);
         onPresentationCompleted = onCompleted;
         EnsureCanvas();
@@ -347,17 +367,30 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
             displayName = BackpackItemCatalog.GetDisplayName(level);
         }
 
+        int prevLevel = currentPreviousBackpackLevel >= 0
+            ? currentPreviousBackpackLevel
+            : (level == BackpackQuestRewardRules.RadioBackpackLevel ? 4 : 3);
+
+        int prevSlots = BackpackCapacityRules.GetBackpackSlots(prevLevel);
+        int newSlots = currentRewardBackpack != null
+            ? BackpackCapacityRules.GetStorageSlots(currentRewardBackpack)
+            : BackpackCapacityRules.GetBackpackSlots(level);
+        int delta = Mathf.Max(0, newSlots - prevSlots);
+
         string reason = level == BackpackQuestRewardRules.HospitalBackpackLevel
             ? GameLocalization.Get("backpack.notification.reason.level4", "Hospital milestone completed")
             : GameLocalization.Get("backpack.notification.reason.level5", "Radio restoration milestone completed");
 
-        string capacity = level == BackpackQuestRewardRules.HospitalBackpackLevel
-            ? GameLocalization.Get("backpack.notification.level4", "STORAGE 30 → 40 (+10 SLOTS)")
-            : GameLocalization.Get("backpack.notification.level5", "STORAGE 40 → 50 (+10 SLOTS)");
+        string capFormat = GameLocalization.Get("backpack.notification.capacity_transition", "STORAGE {0} → {1} (+{2} SLOTS)");
+        string capacity = string.Format(capFormat, prevSlots, newSlots, delta);
+
+        string titleFormat = GameLocalization.Get("backpack.notification.title_transition", "BACKPACK LEVEL {0} → LEVEL {1}");
+        lastNotificationTitle = string.Format(titleFormat, prevLevel, level);
 
         string bodyFormat = GameLocalization.Get("backpack.notification.body_format", "{0}\n{1}  •  {2}");
-        lastNotificationTitle = GameLocalization.Get("backpack.notification.title", "BACKPACK REWARD RECEIVED");
         lastNotificationBody = string.Format(bodyFormat, displayName, reason, capacity);
+
+        currentPreviousBackpackLevel = -1;
 
         notificationTitleLabel.text = lastNotificationTitle;
         notificationBodyLabel.text = lastNotificationBody;
