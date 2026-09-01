@@ -26,6 +26,7 @@ public static class IndoorFogPrototypeQA
     private static PlayerMovement motionProbePlayer;
     private static StringBuilder motionProbeData;
     private static float[] motionProbePreviousRays;
+    private static Pose poseOverride;
     private const string MotionFolder = Folder + "/ShadowBoundary_Motion";
 
     [Serializable] public class Pose
@@ -74,8 +75,21 @@ public static class IndoorFogPrototypeQA
     [MenuItem("Tools/QA/Indoor Fog/Apply Runtime Pose")]
     public static void ApplyPose()
     {
+        poseOverride = null;
+        ApplyPoseData(JsonUtility.FromJson<Pose>(File.ReadAllText(Folder + "/pose.json")));
+    }
+
+    public static void ApplyPoseJson(string json)
+    {
+        poseOverride = JsonUtility.FromJson<Pose>(json);
+        ApplyPoseData(poseOverride);
+    }
+
+    public static void ClearPoseOverride() => poseOverride = null;
+
+    private static void ApplyPoseData(Pose pose)
+    {
         if (!EditorApplication.isPlaying) throw new InvalidOperationException("Runtime-only fixture.");
-        var pose = JsonUtility.FromJson<Pose>(File.ReadAllText(Folder + "/pose.json"));
         var player = PlayerMovement.LocalPlayerInstance;
         if (player == null || !player.HasStateAuthority) throw new InvalidOperationException("Solo authority player required.");
         if (posePlayer != player)
@@ -114,13 +128,23 @@ public static class IndoorFogPrototypeQA
         Physics2D.SyncTransforms();
         var root = UnityEngine.Object.FindObjectsByType<RoofVisibility>(FindObjectsInactive.Include, FindObjectsSortMode.None)
             .First(r => r.name == pose.house);
-        var surface = root.GetComponent<IndoorFogSurfaceMap>();
+        var surface = root.GetComponentInParent<IndoorFogSurfaceMap>();
         if (pose.prototype)
         {
-            if (surface == null) surface = root.gameObject.AddComponent<IndoorFogSurfaceMap>();
-            surface.indoorVolume = root.GetComponentsInChildren<Collider2D>().First(c => c.isTrigger && c.GetComponent<Tilemap>() != null);
-            surface.surfaces = root.GetComponentsInChildren<Tilemap>().Where(m => m.name == "tuongnha (1)" || m.name == "Trangtri").ToArray();
-            surface.spriteSurfaces = root.GetComponentsInChildren<SpriteRenderer>();
+            // Backward-compatible sample-house fallback only. MainPlay pilot sites
+            // must use the explicit serialized references authored in the scene.
+            if (surface == null)
+            {
+                Tilemap[] sampleSurfaces = root.GetComponentsInChildren<Tilemap>()
+                    .Where(m => m.name == "tuongnha (1)" || m.name == "Trangtri").ToArray();
+                if (sampleSurfaces.Length == 0)
+                    throw new InvalidOperationException("Selected pilot site has no authored IndoorFogSurfaceMap: " + pose.house);
+                surface = root.gameObject.AddComponent<IndoorFogSurfaceMap>();
+                surface.indoorVolume = root.GetComponentsInChildren<Collider2D>()
+                    .First(c => c.isTrigger && c.GetComponent<Tilemap>() != null);
+                surface.surfaces = sampleSurfaces;
+                surface.spriteSurfaces = root.GetComponentsInChildren<SpriteRenderer>();
+            }
             surface.flashlightConeFeather = pose.flashlightConeFeather;
             surface.flashlightBoundaryFadeDistance = pose.flashlightBoundaryFadeDistance;
             surface.enabled = true;
@@ -133,7 +157,7 @@ public static class IndoorFogPrototypeQA
     public static void Capture()
     {
         if (!EditorApplication.isPlaying) throw new InvalidOperationException("Runtime-only capture.");
-        var pose = JsonUtility.FromJson<Pose>(File.ReadAllText(Folder + "/pose.json"));
+        var pose = poseOverride ?? JsonUtility.FromJson<Pose>(File.ReadAllText(Folder + "/pose.json"));
         string label = System.IO.Path.GetFileName(pose.label);
         ScreenCapture.CaptureScreenshot(Folder + "/" + label + ".png");
         var player = PlayerMovement.LocalPlayerInstance;
@@ -149,10 +173,15 @@ public static class IndoorFogPrototypeQA
             " flashlight=" + material.GetFloat("_FlashlightActive") + " angle=" + vision.CurrentVisionAngle +
             "\nlight=" + vision.playerLight.intensity + " global=" + DayNightManager.Instance.globalLight.intensity +
             " innerAngle=" + vision.playerLight.pointLightInnerAngle + " outerAngle=" + vision.playerLight.pointLightOuterAngle +
-            "\nsurfaces=" + (surface != null ? surface.SurfaceCount : 0) + " buildMs=" + (surface != null ? surface.LastBuildMilliseconds : 0) +
+            "\nsurfaces=" + (surface != null ? surface.SurfaceCount : 0) +
+            " scannedCells=" + (surface != null ? surface.ScannedCellCount : 0) +
+            " atlasBytes=" + (surface != null ? surface.AtlasMemoryBytes : 0) +
+            " buildMs=" + (surface != null ? surface.LastBuildMilliseconds : 0) +
             "\nflashlightConeFeather=" + (surface != null ? surface.flashlightConeFeather : 0) +
             " boundaryFadeDistance=" + (surface != null ? surface.flashlightBoundaryFadeDistance : 0) +
             " shadowEdgeCount=" + material.GetFloat("_IndoorShadowEdgeCount") +
+            " shadowCandidateCount=" + typeof(FogVisionController).GetField(
+                "indoorShadowCandidateCount", Private).GetValue(fog) +
             " movementEnabled=" + player.enabled +
             " godMode=" + DevCheatManager.Instance.isGodMode +
             " cheatMenuOpen=" + DevCheatManager.Instance.IsMenuOpen);

@@ -66,7 +66,7 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float _IndoorWallOccludedOpacity;
                 float _IndoorFlashlightBoundaryFade;
                 float _IndoorShadowEdgeCount;
-                float4 _IndoorShadowEdges[16];
+                float4 _IndoorShadowEdges[32];
                 float _QuestBoundaryActive;
                 float2 _QuestBoundaryOrigin;
                 float2 _QuestBoundaryRight;

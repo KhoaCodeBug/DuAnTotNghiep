@@ -1574,6 +1574,7 @@ GameObject:
   - component: {fileID: 928237499185615993}
   - component: {fileID: 125941798857356712}
   - component: {fileID: 980044808403529025}
+  - component: {fileID: 467690829933616528}
   m_Layer: 0
   m_Name: nhachinhxaydautien
   m_TagString: Untagged
@@ -1823,8 +1824,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 32b94fd0e16fe35479a85712faac9c79, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   roofTilemaps:
   - {fileID: 7243750855202420253}
   fadeDuration: 0.3
@@ -1839,11 +1840,37 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 95fd1479611eec74faae3ec184a4aa50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   locationType: 0
   locationId: HOUSE_MAIN_051
   displayName: "Nh\xE0 d\xE2n c\u01B0 051 (nhachinhxaydautien)"
+--- !u!114 &467690829933616528
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2711228744547681615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d59af03658410d4e8a98ce5a16f6aa4, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  indoorVolume: {fileID: 1451302912153696648}
+  surfaces:
+  - {fileID: 7583196268889121435}
+  - {fileID: 1726771845903904915}
+  spriteSurfaces:
+  - {fileID: 3903841014978877906}
+  atlasResolution: 1024
+  surfaceProbeInset: 0.08
+  dayAmbientOpacity: 0.86
+  nightAmbientOpacity: 0.15
+  litOpacity: 0.08
+  coneInset: 0.06
+  flashlightConeFeather: 0.2
+  flashlightBoundaryFadeDistance: 0.65
 --- !u!1 &3125551133315245035
 GameObject:
   m_ObjectHideFlags: 0
@@ -3395,6 +3422,11 @@ PrefabInstance:
 --- !u!4 &47873139234465625 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3711370972077485252, guid: 659ba4155f07401459a1e3cee73283a0, type: 3}
+  m_PrefabInstance: {fileID: 3687151090224434077}
+  m_PrefabAsset: {fileID: 0}
+--- !u!212 &3903841014978877906 stripped
+SpriteRenderer:
+  m_CorrespondingSourceObject: {fileID: 362081109027000911, guid: 659ba4155f07401459a1e3cee73283a0, type: 3}
   m_PrefabInstance: {fileID: 3687151090224434077}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &4189023122623555616 stripped
