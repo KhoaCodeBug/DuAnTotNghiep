@@ -33,6 +33,8 @@ public class AutoChatManager : MonoBehaviour
         }
     }
 
+    public static AutoChatManager ExistingInstance => instance;
+
     private CanvasGroup chatGroup;
     private Text chatHistory;
     private InputField chatInput;
@@ -67,19 +69,79 @@ public class AutoChatManager : MonoBehaviour
 
     void Awake()
     {
-        if (instance != null && instance != this)
+        if (Application.isPlaying)
         {
-            if (Application.isPlaying) Destroy(gameObject);
-            else DestroyImmediate(gameObject);
-            return;
+            if (instance != null && instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            instance = this;
         }
-        instance = this;
+        else
+        {
+            if (instance != null && instance != this)
+            {
+                if (instance.gameObject != null && instance.gameObject.name.Contains("AUTO CHAT MANAGER"))
+                {
+                    DestroyImmediate(instance.gameObject);
+                }
+            }
+            instance = this;
+        }
         BuildChatUI();
     }
 
     void OnDestroy()
     {
         if (instance == this) instance = null;
+    }
+
+    public static void ResetForTests()
+    {
+        if (instance != null)
+        {
+            if (instance.gameObject != null)
+            {
+                if (Application.isPlaying) Destroy(instance.gameObject);
+                else DestroyImmediate(instance.gameObject);
+            }
+            instance = null;
+        }
+    }
+
+    private bool isSuppressedByReward;
+
+    public bool IsRewardSuppressed
+    {
+        get
+        {
+            if (BackpackQuestRewardPresentation.IsVisible)
+            {
+                return true;
+            }
+            if (isSuppressedByReward)
+            {
+                isSuppressedByReward = false;
+            }
+            return false;
+        }
+    }
+
+    public bool IsChatVisible => chatPanelRt != null && chatPanelRt.gameObject.activeSelf && chatGroup != null && chatGroup.alpha > 0.01f;
+
+    public void SetSuppressedByReward(bool suppressed)
+    {
+        isSuppressedByReward = suppressed;
+        if (chatPanelRt != null)
+        {
+            chatPanelRt.gameObject.SetActive(!suppressed);
+        }
+        if (chatGroup != null && suppressed)
+        {
+            chatGroup.alpha = 0f;
+            chatGroup.blocksRaycasts = false;
+        }
     }
 
     public static void EnsureEventSystem()
@@ -294,6 +356,24 @@ public class AutoChatManager : MonoBehaviour
             }
         }
 
+        if (IsRewardSuppressed)
+        {
+            if (chatGroup != null)
+            {
+                chatGroup.alpha = 0f;
+                chatGroup.blocksRaycasts = false;
+            }
+            if (chatPanelRt != null && chatPanelRt.gameObject.activeSelf)
+            {
+                chatPanelRt.gameObject.SetActive(false);
+            }
+            return;
+        }
+        else if (chatPanelRt != null && !chatPanelRt.gameObject.activeSelf)
+        {
+            chatPanelRt.gameObject.SetActive(true);
+        }
+
         if (chatGroup != null)
         {
             // NẾU ĐANG GÕ CHỮ HOẶC ĐANG KÉO: Reset thời gian mờ và sáng hẳn lên
@@ -474,10 +554,26 @@ public class AutoChatManager : MonoBehaviour
         else
             chatHistory.text += "\n" + formattedLine;
 
-        fadeTimer = SHOW_DURATION;
-        if (chatGroup != null)
+        if (IsRewardSuppressed)
         {
-            chatGroup.alpha = 1f;
+            fadeTimer = 0f;
+            if (chatGroup != null)
+            {
+                chatGroup.alpha = 0f;
+                chatGroup.blocksRaycasts = false;
+            }
+            if (chatPanelRt != null)
+            {
+                chatPanelRt.gameObject.SetActive(false);
+            }
+        }
+        else
+        {
+            fadeTimer = SHOW_DURATION;
+            if (chatGroup != null)
+            {
+                chatGroup.alpha = 1f;
+            }
         }
 
         Canvas.ForceUpdateCanvases();

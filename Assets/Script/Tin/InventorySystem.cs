@@ -253,7 +253,8 @@ public class InventorySystem : NetworkBehaviour
             yield return null;
         }
 
-        MainQuestManager.Instance?.ClaimAndPresentLevelFiveBackpack();
+        MainQuestManager mainQuest = MainQuestManager.Instance;
+        mainQuest?.TriggerLevelFiveRewardSequence(true);
     }
 
     public void ReconcileLateJoinRadioBackpackReward()
@@ -315,7 +316,7 @@ public class InventorySystem : NetworkBehaviour
             return;
         }
 
-        if (!IsNetworkObjectReady || HasInputAuthority)
+        if (Application.isPlaying && (!IsNetworkObjectReady || HasInputAuthority))
             BackpackQuestRewardPresentation.Show(level, backpack);
     }
 

@@ -224,9 +224,15 @@ public sealed class MainQuestManager : NetworkBehaviour
             return 1f - Mathf.Clamp01(remaining / ArrivalCarRepairDurationSeconds);
         }
     }
+    private EscapeEndingRoute localLockedEscapeRoute = EscapeEndingRoute.None;
+    public EscapeEndingRoute LocalLockedEscapeRoute
+    {
+        get => localLockedEscapeRoute;
+        set => localLockedEscapeRoute = value;
+    }
     public EscapeEndingRoute LockedEscapeRoute => IsNetworkReady
         ? (EscapeEndingRoute)LockedEscapeRouteValue
-        : EscapeEndingRoute.None;
+        : localLockedEscapeRoute;
     public CivilianRouteStage CurrentCivilianRouteStage => IsNetworkReady
         ? (CivilianRouteStage)CivilianRouteStageValue
         : CivilianRouteStage.PreparingCar;
@@ -2756,38 +2762,41 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     private bool isMilitaryMapRewardSequenceRunning;
+    public bool IsMilitaryMapRewardSequenceRunning => isMilitaryMapRewardSequenceRunning;
+    private System.Action pendingLevelFiveBackpackClaims;
+
+    public void TriggerLevelFiveRewardSequence(bool introduceRouteChoice = true)
+    {
+        PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+        InventorySystem inventory = localPlayer != null ? localPlayer.GetComponent<InventorySystem>() : null;
+        if (inventory != null && inventory.HasClaimedQuestBackpackReward(BackpackQuestRewardRules.RadioBackpackLevel))
+        {
+            return;
+        }
+
+        HandleMilitaryMapFragmentFound(introduceRouteChoice);
+    }
 
     private void HandleMilitaryMapFragmentFound(bool introduceRouteChoice)
     {
         if (isMilitaryMapRewardSequenceRunning) return;
         isMilitaryMapRewardSequenceRunning = true;
 
+        RouteBRadioBroadcastUI.CloseIfOpen();
+        EscapeRouteDecisionUI.CloseIfOpen();
+        BackpackQuestRewardPresentation.DismissNotification();
+
         QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
         flow?.QueueMilitaryMapUnlockReveal();
-
-        if (LockedEscapeRoute != EscapeEndingRoute.None)
-        {
-            isMilitaryMapRewardSequenceRunning = false;
-            CloseStaleRouteIntroduction(flow);
-            ClaimAndPresentLevelFiveBackpack();
-            return;
-        }
 
         if (flow != null)
         {
             flow.PlayMilitaryMapRewardAfterDialogue(() =>
             {
-                if (LockedEscapeRoute != EscapeEndingRoute.None)
-                {
-                    isMilitaryMapRewardSequenceRunning = false;
-                    CloseStaleRouteIntroduction(flow);
-                    ClaimAndPresentLevelFiveBackpack();
-                    return;
-                }
-
                 flow.PlayMilitaryMapReveal(() =>
                 {
                     isMilitaryMapRewardSequenceRunning = false;
+                    CloseStaleRouteIntroduction(flow);
                     OnMilitaryMapSequenceComplete(introduceRouteChoice);
                 });
             });
@@ -2795,28 +2804,45 @@ public sealed class MainQuestManager : NetworkBehaviour
         else
         {
             isMilitaryMapRewardSequenceRunning = false;
+            CloseStaleRouteIntroduction(flow);
             OnMilitaryMapSequenceComplete(introduceRouteChoice);
         }
     }
 
     private void OnMilitaryMapSequenceComplete(bool introduceRouteChoice)
     {
+        ClaimAndPresentLevelFiveBackpack(() =>
+        {
+            // Effect B has finished, and authoritative grant is complete (FinishPresentation timing/API preserved).
+            // Defer the route choice story and AutoChat clue banner until after Notification A has dismissed.
+            BackpackQuestRewardPresentation.RegisterPostNotificationAction(() =>
+            {
+                ExecutePostBackpackFlow(introduceRouteChoice);
+            });
+        });
+    }
+
+    private void ExecutePostBackpackFlow(bool introduceRouteChoice)
+    {
         AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
             "Phát hiện manh mối mới - bấm M để kiểm tra");
         ShowLocalQuestEvent("MẢNH BẢN ĐỒ 2", "Vị trí căn cứ quân sự đã được ghi vào bản đồ.");
 
-        ClaimAndPresentLevelFiveBackpack(() =>
+        if (introduceRouteChoice && LockedEscapeRoute == EscapeEndingRoute.None)
         {
-            if (introduceRouteChoice && LockedEscapeRoute == EscapeEndingRoute.None)
-            {
-                RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
-                    EscapeRouteDecisionUI.ShowPreMilitaryChoice);
-            }
-        });
+            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
+                EscapeRouteDecisionUI.ShowPreMilitaryChoice);
+        }
     }
 
     public void ClaimAndPresentLevelFiveBackpack(System.Action onComplete = null)
     {
+        if (isMilitaryMapRewardSequenceRunning)
+        {
+            pendingLevelFiveBackpackClaims += onComplete;
+            return;
+        }
+
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
         InventorySystem inventory = localPlayer != null ? localPlayer.GetComponent<InventorySystem>() : null;
         ItemData backpack = BackpackItemCatalog.GetOrCreate(BackpackQuestRewardRules.RadioBackpackLevel);
@@ -2829,18 +2855,14 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         void StartBackpackPresentation()
         {
-            if (LockedEscapeRoute != EscapeEndingRoute.None)
-            {
-                onComplete?.Invoke();
-                return;
-            }
-
+            RouteBRadioBroadcastUI.CloseIfOpen();
+            EscapeRouteDecisionUI.CloseIfOpen();
             BackpackQuestRewardPresentation.Show(BackpackQuestRewardRules.RadioBackpackLevel, backpack, () =>
             {
-                string notif = GameLocalization.Get("backpack.quest.level5.upgraded", "Đã nâng cấp lên balo cấp 5.");
-                AutoChatManager.Instance?.AddMessage("BALO CẤP 5", notif);
-                ShowLocalQuestEvent("BALO CẤP 5", notif);
                 onComplete?.Invoke();
+                System.Action pending = pendingLevelFiveBackpackClaims;
+                pendingLevelFiveBackpackClaims = null;
+                pending?.Invoke();
             });
         }
 
@@ -2858,6 +2880,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         flow?.CloseAllQuestOverlays();
         EscapeRouteDecisionUI.CloseIfOpen();
+        RouteBRadioBroadcastUI.CloseIfOpen();
         AutoUIManager.Instance?.SetQuestOverlayOpen(false);
     }
 
@@ -3103,7 +3126,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void OnGUI()
     {
-        if (GameplayReadinessCoordinator.IsGameplaySuppressed || GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
+        if (GameplayReadinessCoordinator.IsGameplaySuppressed || GameplayHudLayout.AreGameplayPromptsSuppressed() || BackpackQuestRewardPresentation.IsVisible) return;
 
         if (localQuestEventAlpha > 0.001f) DrawQuestEventNotice();
         if (localClueNoticeAlpha > 0.001f) DrawClueNotice();
@@ -3174,30 +3197,32 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void DrawQuestEventNotice()
     {
+        if (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible) return;
+
         int previousDepth = GUI.depth;
         Color previousColor = GUI.color;
         GUI.depth = -1450;
 
-        float width = Mathf.Min(760f, Screen.width - 40f);
+        float width = Mathf.Min(680f, Screen.width - 48f);
         float bodyWidth = width - 44f;
         GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.025f), 18, 28),
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.025f), 16, 26),
             fontStyle = FontStyle.Bold,
             wordWrap = false,
-            clipping = TextClipping.Overflow
+            clipping = TextClipping.Clip
         };
         GUIStyle bodyStyle = new GUIStyle(titleStyle)
         {
             alignment = TextAnchor.UpperCenter,
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.016f), 13, 18),
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.016f), 12, 16),
             fontStyle = FontStyle.Normal,
             wordWrap = true,
-            clipping = TextClipping.Overflow
+            clipping = TextClipping.Clip
         };
-        float bodyHeight = Mathf.Max(34f, bodyStyle.CalcHeight(new GUIContent(localQuestEventBody), bodyWidth));
-        float height = 56f + bodyHeight + 16f;
+        float bodyHeight = Mathf.Max(32f, bodyStyle.CalcHeight(new GUIContent(localQuestEventBody), bodyWidth));
+        float height = Mathf.Min(Screen.height * 0.25f, 52f + bodyHeight + 14f);
         Rect panel = new Rect((Screen.width - width) * 0.5f, 78f, width, height);
         GUI.color = new Color(0.015f, 0.02f, 0.02f, localQuestEventAlpha * 0.9f);
         GUI.DrawTexture(panel, Texture2D.whiteTexture);
@@ -3205,9 +3230,9 @@ public sealed class MainQuestManager : NetworkBehaviour
         GUI.DrawTexture(new Rect(panel.x, panel.y, 4f, panel.height), Texture2D.whiteTexture);
         GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 2f), Texture2D.whiteTexture);
 
-        DrawShadowedLabel(new Rect(panel.x + 14f, panel.y + 8f, panel.width - 28f, 34f),
+        DrawShadowedLabel(new Rect(panel.x + 14f, panel.y + 8f, panel.width - 28f, 32f),
             localQuestEventTitle, titleStyle, new Color(1f, 0.76f, 0.27f), localQuestEventAlpha, 2f);
-        DrawShadowedLabel(new Rect(panel.x + 22f, panel.y + 48f, bodyWidth, bodyHeight),
+        DrawShadowedLabel(new Rect(panel.x + 22f, panel.y + 44f, bodyWidth, bodyHeight),
             localQuestEventBody, bodyStyle, new Color(0.94f, 0.95f, 0.94f), localQuestEventAlpha, 1f);
 
         GUI.color = previousColor;
@@ -3216,12 +3241,14 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void DrawClueNotice()
     {
+        if (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible) return;
+
         int previousDepth = GUI.depth;
         Color previousColor = GUI.color;
         GUI.depth = -1400;
 
-        float width = Mathf.Min(760f, Screen.width - 40f);
-        float height = 104f;
+        float width = Mathf.Min(680f, Screen.width - 48f);
+        float height = 100f;
         Rect panel = new Rect((Screen.width - width) * 0.5f, Screen.height * 0.27f, width, height);
 
         GUI.color = new Color(0.015f, 0.02f, 0.025f, localClueNoticeAlpha * 0.82f);
@@ -3233,19 +3260,21 @@ public sealed class MainQuestManager : NetworkBehaviour
         GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.032f), 23, 34),
-            fontStyle = FontStyle.Bold
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.032f), 20, 30),
+            fontStyle = FontStyle.Bold,
+            clipping = TextClipping.Clip
         };
         GUIStyle subtitleStyle = new GUIStyle(titleStyle)
         {
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.018f), 14, 20),
-            fontStyle = FontStyle.Normal
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.018f), 13, 18),
+            fontStyle = FontStyle.Normal,
+            clipping = TextClipping.Clip
         };
 
-        DrawShadowedLabel(new Rect(panel.x + 12f, panel.y + 10f, panel.width - 24f, 48f),
+        DrawShadowedLabel(new Rect(panel.x + 12f, panel.y + 10f, panel.width - 24f, 44f),
             GameLocalization.Get("quest.clue_title"), titleStyle,
             new Color(1f, 0.82f, 0.2f), localClueNoticeAlpha, 2f);
-        DrawShadowedLabel(new Rect(panel.x + 12f, panel.y + 56f, panel.width - 24f, 30f),
+        DrawShadowedLabel(new Rect(panel.x + 12f, panel.y + 52f, panel.width - 24f, 28f),
             GameLocalization.Get("quest.clue_subtitle"), subtitleStyle,
             new Color(0.92f, 0.94f, 0.96f), localClueNoticeAlpha, 1f);
 

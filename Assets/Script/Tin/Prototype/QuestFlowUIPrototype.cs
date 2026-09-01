@@ -11,7 +11,46 @@ using UnityEngine.UI;
 /// </summary>
 public sealed class QuestFlowUIPrototype : MonoBehaviour
 {
-    public static QuestFlowUIPrototype Instance { get; private set; }
+    private static QuestFlowUIPrototype instance;
+    public static QuestFlowUIPrototype Instance
+    {
+        get
+        {
+            if (instance == null && Application.isPlaying)
+            {
+                instance = FindFirstObjectByType<QuestFlowUIPrototype>(FindObjectsInactive.Include);
+            }
+            if (instance == null) return null;
+            return instance;
+        }
+        private set => instance = value;
+    }
+
+    public static void ResetInstanceForTests()
+    {
+        instance = null;
+    }
+
+    public Action PendingMilitaryMapRewardCallback { get; private set; }
+    public Action PendingMilitaryMapRevealCallback { get; private set; }
+    public bool DeferRevealCallbackForTests { get; set; } = false;
+
+    public void CompleteMilitaryMapRewardForTests()
+    {
+        Action cb = PendingMilitaryMapRewardCallback;
+        PendingMilitaryMapRewardCallback = null;
+        if (completionRoot != null) completionRoot.SetActive(false);
+        cb?.Invoke();
+    }
+
+    public void CompleteMilitaryMapRevealForTests()
+    {
+        Action cb = PendingMilitaryMapRevealCallback;
+        PendingMilitaryMapRevealCallback = null;
+        if (mapPrototype != null) mapPrototype.SetOpen(false);
+        cb?.Invoke();
+    }
+
     public event Action MapFragment1Acquired;
     private static readonly Color Ink = new Color(0.025f, 0.045f, 0.043f, 0.98f);
     private static readonly Color Panel = new Color(0.055f, 0.082f, 0.078f, 0.98f);
@@ -221,7 +260,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private void OnDestroy()
     {
         QuestUILocalization.LanguageChanged -= ApplyLocalization;
-        if (Instance == this) Instance = null;
+        if (instance == this) instance = null;
     }
 
     private void Update()
@@ -306,6 +345,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     /// <summary>Builds the hierarchy when called from EditMode tests.</summary>
     public void EnsureBuiltForTests()
     {
+        Instance = this;
         QuestUILocalization.LanguageChanged -= ApplyLocalization;
         QuestUILocalization.LanguageChanged += ApplyLocalization;
         if (built)
@@ -612,6 +652,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     public void PlayMilitaryMapRewardAfterDialogue(Action onFinished = null)
     {
         EnsureBuiltForTests();
+        PendingMilitaryMapRewardCallback = onFinished;
         // Fragment 2 is a physical torn paper reward, just like Fragment 1.
         // The full raster belongs to the map screen and must never be presented
         // as though the player received the whole town map as an inventory item.
@@ -621,16 +662,27 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             L("COORDINATION INVESTIGATION COMPLETE", "HOÀN THÀNH ĐIỀU TRA KHU ĐIỀU PHỐI"),
             L("Military route recovered", "Đã tìm thấy bản đồ tuyến quân sự"),
             L("MAP FRAGMENT 2 — MILITARY ROUTE", "MẢNH BẢN ĐỒ 2 — TUYẾN QUÂN SỰ"),
-            onFinished, true);
+            () =>
+            {
+                PendingMilitaryMapRewardCallback = null;
+                onFinished?.Invoke();
+            }, true);
     }
 
     public void PlayMilitaryMapReveal(Action onFinished = null)
     {
         EnsureBuiltForTests();
+        PendingMilitaryMapRevealCallback = onFinished;
         SetJournalOpen(false);
+        if (DeferRevealCallbackForTests && !Application.isPlaying)
+        {
+            if (mapPrototype != null) mapPrototype.SetOpen(true);
+            return;
+        }
         mapPrototype.PlayMilitaryDestinationReveal(() =>
         {
             mapPrototype.SetOpen(false);
+            PendingMilitaryMapRevealCallback = null;
             onFinished?.Invoke();
         });
     }
@@ -766,7 +818,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     public void QueueMilitaryMapUnlockReveal()
     {
         EnsureBuiltForTests();
-        mapPrototype.QueueMilitaryDestinationReveal();
+        mainQuestProgress?.RegisterMapFragment2AddedToInventory();
+        mapPrototype?.QueueMilitaryDestinationReveal();
     }
 
     public void DebugUnlockHospitalAndMilitaryMapRegions()

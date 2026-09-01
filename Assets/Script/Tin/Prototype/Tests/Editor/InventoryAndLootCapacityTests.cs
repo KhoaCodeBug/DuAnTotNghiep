@@ -13,6 +13,13 @@ using UnityEngine;
 /// </summary>
 public sealed class InventoryAndLootCapacityTests
 {
+    [TearDown]
+    public void TearDown()
+    {
+        Type.GetType("BackpackQuestRewardPresentation, Assembly-CSharp")?.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        Type.GetType("AutoChatManager, Assembly-CSharp")?.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+    }
+
     [Test]
     public void PlayerInventory_StartsAtTwentyAndSupportsFiftyFiveStableSlots()
     {

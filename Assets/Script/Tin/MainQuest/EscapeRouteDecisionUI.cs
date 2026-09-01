@@ -41,6 +41,7 @@ public sealed class EscapeRouteDecisionUI : MonoBehaviour
 
     private static bool CanShowRouteIntroduction()
     {
+        if (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible) return false;
         MainQuestManager quest = MainQuestManager.Instance;
         if (quest == null || quest.LockedEscapeRoute == EscapeEndingRoute.None) return true;
 

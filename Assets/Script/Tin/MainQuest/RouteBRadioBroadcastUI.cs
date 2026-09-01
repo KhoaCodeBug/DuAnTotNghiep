@@ -72,6 +72,16 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
     public static void ShowCue(RouteBAudioCueId cueId, Action onCompleted)
     {
         RouteBRadioBroadcastUI ui = EnsureInstance();
+        if (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible)
+        {
+            if (Application.isPlaying)
+            {
+                ui.StartCoroutine(ui.WaitBackpackFlowDismissedThenShowCue(cueId, onCompleted));
+                return;
+            }
+            return;
+        }
+
         // Never let a later milestone interrupt a cue that owns a story-flow
         // callback. Ordinary milestone cues are queued so all 15 recordings
         // remain audible even when two network events arrive close together.
@@ -83,6 +93,15 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
             return;
         }
         ui.BeginSingleCue(RouteBAudioContent.Get(cueId), onCompleted);
+    }
+
+    private IEnumerator WaitBackpackFlowDismissedThenShowCue(RouteBAudioCueId cueId, Action onCompleted)
+    {
+        while (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible)
+        {
+            yield return null;
+        }
+        ShowCue(cueId, onCompleted);
     }
 
     /// <summary>
@@ -369,9 +388,8 @@ public sealed class RouteBRadioBroadcastUI : MonoBehaviour
         {
             Canvas candidate = canvases[i];
             if (candidate == null || candidate == canvas || !candidate.gameObject.scene.IsValid()) continue;
-            // Fog is part of the rendered world, not an interactive gameplay
-            // HUD. Keep it active under dialogue and the following route choice.
             if (candidate.gameObject.name == "Local Fog Vision Overlay") continue;
+            if (candidate.gameObject.name.IndexOf("Backpack", StringComparison.OrdinalIgnoreCase) >= 0) continue;
             if (!suppressedCanvases.ContainsKey(candidate))
                 suppressedCanvases.Add(candidate, candidate.enabled);
             candidate.enabled = false;
