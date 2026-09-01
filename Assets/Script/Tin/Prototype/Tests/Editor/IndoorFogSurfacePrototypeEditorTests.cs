@@ -1,5 +1,7 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
@@ -11,6 +13,7 @@ using UnityEngine.TestTools;
 public sealed class IndoorFogSurfacePrototypeEditorTests
 {
     private static readonly BindingFlags Private = BindingFlags.NonPublic | BindingFlags.Instance;
+    private static readonly BindingFlags PrivateStatic = BindingFlags.NonPublic | BindingFlags.Static;
 
     [Test]
     public void SurfaceProjection_SparseTilemapScanIsClippedToIndoorBounds()
@@ -89,6 +92,65 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
         finally { UnityEngine.Object.DestroyImmediate(fixture); }
     }
 
+    [Test]
+    public void ShadowEdges_TemporalTracksPreserveIdentityUseHysteresisAndResetOnTeleport()
+    {
+        var fixture = new GameObject("Shadow edge temporal stability test");
+        fixture.SetActive(false);
+        try
+        {
+            Type type = Type.GetType("FogVisionController, Assembly-CSharp");
+            var fog = fixture.AddComponent(type);
+            var rays = (float[])type.GetField("indoorOcclusionDistances", Private).GetValue(fog);
+            FieldInfo originField = type.GetField("lastOcclusionOrigin", Private);
+            FieldInfo countField = type.GetField("indoorShadowEdgeCount", Private);
+            FieldInfo idsField = type.GetField("indoorShadowEdgeIds", Private);
+            FieldInfo edgesField = type.GetField("indoorShadowEdges", Private);
+            FieldInfo targetsField = type.GetField("indoorShadowTargetEdges", Private);
+            FieldInfo weightsField = type.GetField("indoorShadowTargetWeights", Private);
+            MethodInfo build = type.GetMethod("BuildIndoorShadowEdges", Private);
+            MethodInfo update = type.GetMethod("UpdateIndoorShadowEdgePresentation", Private);
+
+            SetTwoSilhouetteRays(rays, 20, 60);
+            originField.SetValue(fog, Vector2.zero);
+            build.Invoke(fog, new object[] { rays.Length });
+            int count = (int)countField.GetValue(fog);
+            Assert.That(count, Is.EqualTo(2));
+            var originalIds = ((int[])idsField.GetValue(fog)).Take(count).ToArray();
+
+            SetTwoSilhouetteRays(rays, 21, 61);
+            originField.SetValue(fog, new Vector2(0.04f, 0f));
+            build.Invoke(fog, new object[] { rays.Length });
+            CollectionAssert.AreEquivalent(originalIds, ((int[])idsField.GetValue(fog)).Take(count).ToArray(),
+                "A one-ray micro shift must keep the same temporal edge identities.");
+            var before = ((Vector4[])edgesField.GetValue(fog))[0];
+            var target = ((Vector4[])targetsField.GetValue(fog))[0];
+            update.Invoke(fog, new object[] { 1f / 60f });
+            var after = ((Vector4[])edgesField.GetValue(fog))[0];
+            float beforeError = Vector2.Angle(new Vector2(before.x, before.y), new Vector2(target.x, target.y));
+            float afterError = Vector2.Angle(new Vector2(after.x, after.y), new Vector2(target.x, target.y));
+            Assert.That(afterError, Is.LessThan(beforeError), "Presentation should converge toward the new scan.");
+            Assert.That(afterError, Is.GreaterThan(0.001f), "One frame must not snap fully to the new scan.");
+
+            for (int i = 0; i < rays.Length; i++) rays[i] = 5f;
+            build.Invoke(fog, new object[] { rays.Length });
+            build.Invoke(fog, new object[] { rays.Length });
+            Assert.That(((float[])weightsField.GetValue(fog)).Take(count), Is.All.EqualTo(1f),
+                "Exit grace must absorb two missing scans.");
+            build.Invoke(fog, new object[] { rays.Length });
+            Assert.That(((float[])weightsField.GetValue(fog)).Take(count), Is.All.EqualTo(0f),
+                "The third missing scan should start a smooth fade-out.");
+
+            SetTwoSilhouetteRays(rays, 20, 60);
+            originField.SetValue(fog, new Vector2(3f, 0f));
+            build.Invoke(fog, new object[] { rays.Length });
+            var teleportedIds = ((int[])idsField.GetValue(fog)).Take((int)countField.GetValue(fog)).ToArray();
+            Assert.That(originalIds.Intersect(teleportedIds), Is.Empty,
+                "A teleport must reset history instead of dragging old geometry across the map.");
+        }
+        finally { UnityEngine.Object.DestroyImmediate(fixture); }
+    }
+
     [UnityTest, Timeout(180000)]
     public IEnumerator SurfaceProjection_MainPlayStressSites_BuildReuseCaptureAndRelease()
     {
@@ -150,6 +212,7 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
                     if (site == 0 && variant == 0)
                     {
                         float[] microOffsets = { -0.08f, -0.04f, 0f, 0.04f, 0.08f };
+                        HashSet<int> previousTrackIds = null;
                         foreach (float offset in microOffsets)
                         {
                             string microLabel = label + "-micro-" + F(offset);
@@ -162,14 +225,32 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
 
                             int candidateCount = (int)fogType.GetField("indoorShadowCandidateCount", Private).GetValue(fog);
                             int edgeCount = Mathf.RoundToInt(material.GetFloat("_IndoorShadowEdgeCount"));
+                            int[] allTrackIds = (int[])fogType.GetField("indoorShadowEdgeIds", Private).GetValue(fog);
+                            var trackIds = new HashSet<int>(allTrackIds.Take(edgeCount));
                             Assert.That(candidateCount, Is.GreaterThan(16).And.LessThanOrEqualTo(64),
                                 microLabel + " must exercise the former 16-edge overflow boundary.");
-                            Assert.That(edgeCount, Is.EqualTo(Mathf.Min(candidateCount, 32)),
-                                microLabel + " must retain the strongest silhouette fades instead of reverting to sharp legacy shadows.");
+                            Assert.That(edgeCount, Is.GreaterThan(0).And.LessThanOrEqualTo(32),
+                                microLabel + " must keep bounded temporal silhouette tracks.");
+                            if (previousTrackIds != null)
+                            {
+                                int overlap = previousTrackIds.Count(trackIds.Contains);
+                                int required = Mathf.Max(1, Mathf.Min(previousTrackIds.Count, trackIds.Count) / 2);
+                                Assert.That(overlap, Is.GreaterThanOrEqualTo(required),
+                                    microLabel + " must preserve at least half of the edge identities across a 4 cm move.");
+                            }
+                            previousTrackIds = trackIds;
+                            qa.GetMethod("Capture").Invoke(null, null);
+                            yield return new WaitForSecondsRealtime(0.15f);
                         }
 
                         qa.GetMethod("ApplyPoseJson").Invoke(null, new object[] { pose });
                         yield return new WaitForSecondsRealtime(0.4f);
+                        qa.GetMethod("Profile").Invoke(null, null);
+                        float profileDeadline = Time.realtimeSinceStartup + 20f;
+                        while (qa.GetField("recorders", PrivateStatic).GetValue(null) != null &&
+                               Time.realtimeSinceStartup < profileDeadline) yield return null;
+                        Assert.That(qa.GetField("recorders", PrivateStatic).GetValue(null), Is.Null,
+                            "Indoor fog profile should complete within 20 seconds.");
                     }
 
                     var atlas = (RenderTexture)surfaceType.GetProperty("Atlas").GetValue(siteSurface);
@@ -205,5 +286,11 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
     }
 
     private static string F(float value) => value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static void SetTwoSilhouetteRays(float[] rays, int startInclusive, int endExclusive)
+    {
+        for (int i = 0; i < rays.Length; i++)
+            rays[i] = i >= startInclusive && i < endExclusive ? 15f : 5f;
+    }
 
 }

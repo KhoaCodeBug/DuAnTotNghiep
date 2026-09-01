@@ -67,6 +67,7 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float _IndoorFlashlightBoundaryFade;
                 float _IndoorShadowEdgeCount;
                 float4 _IndoorShadowEdges[32];
+                float4 _IndoorShadowEdgeMeta[32];
                 float _QuestBoundaryActive;
                 float2 _QuestBoundaryOrigin;
                 float2 _QuestBoundaryRight;
@@ -209,21 +210,25 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 for (int i = 0; i < (int)_IndoorShadowEdgeCount; i++)
                 {
                     float4 edge = _IndoorShadowEdges[i];
+                    float edgeWeight = saturate(_IndoorShadowEdgeMeta[i].x);
                     float along = dot(offset, edge.xy);
                     float side = (edge.x * offset.y - edge.y * offset.x) * sign(edge.w);
                     // Only the visible side beyond the near blocker is graded.
                     // Ordinary ray/wall contact is NOT a fade boundary.
-                    // The shadow ray continues beyond the far sampled wall.
-                    // Cutting at that hit leaves a bright seam on projected art
-                    // whose footprint is slightly beyond the physics surface.
                     float segment = smoothstep(edge.z, edge.z + 0.15, along);
+                    // This path is evaluated on the projected surface position.
+                    // Stop shortly after the far sampled surface instead of
+                    // letting one discrete ray edge create an infinite protrusion.
+                    float farPadding = max(0.22, _IndoorSurfaceProbe + 0.16);
+                    segment *= 1.0 - smoothstep(abs(edge.w) + farPadding,
+                        abs(edge.w) + farPadding + 0.22, along);
                     // Cover the narrow existing reconstruction band on either
                     // side without a sign cutoff (which produces a bright seam).
                     // The caller only raises opacity; accepted visibility is
                     // applied once by the final cover blend, never expanded.
                     float inward = 1.0 - smoothstep(0.0, _IndoorFlashlightBoundaryFade,
                         abs(side));
-                    fade = max(fade, inward * segment);
+                    fade = max(fade, inward * segment * edgeWeight);
                 }
                 return fade;
             }

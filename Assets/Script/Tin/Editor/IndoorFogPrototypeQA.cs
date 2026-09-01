@@ -159,11 +159,13 @@ public static class IndoorFogPrototypeQA
         if (!EditorApplication.isPlaying) throw new InvalidOperationException("Runtime-only capture.");
         var pose = poseOverride ?? JsonUtility.FromJson<Pose>(File.ReadAllText(Folder + "/pose.json"));
         string label = System.IO.Path.GetFileName(pose.label);
-        ScreenCapture.CaptureScreenshot(Folder + "/" + label + ".png");
+        string screenshotPath = Folder + "/" + label + ".png";
         var player = PlayerMovement.LocalPlayerInstance;
         var vision = player.GetComponent<PlayerVision>();
         var fog = FogVisionController.Instance;
         var material = (Material)typeof(FogVisionController).GetField("overlayMaterial", Private).GetValue(fog);
+        if (Application.isBatchMode) CaptureBatchScreenshot(screenshotPath, fog, material);
+        else ScreenCapture.CaptureScreenshot(screenshotPath);
         var surface = vision.ActiveIndoorCollider != null ? vision.ActiveIndoorCollider.GetComponentInParent<IndoorFogSurfaceMap>() : null;
         File.WriteAllText(Folder + "/" + label + "-state.txt", JsonUtility.ToJson(pose, true) +
             "\nactual=" + player.transform.position + " direction=" + vision.VisionWorldDirection +
@@ -188,6 +190,59 @@ public static class IndoorFogPrototypeQA
         var rays = (float[])typeof(FogVisionController).GetField("indoorOcclusionDistances", Private).GetValue(fog);
         File.WriteAllText(Folder + "/" + label + "-rays.csv", "index,distance\n" +
             string.Join("\n", rays.Select((d, i) => i + "," + d.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+        int edgeCount = Mathf.RoundToInt(material.GetFloat("_IndoorShadowEdgeCount"));
+        var edges = (Vector4[])typeof(FogVisionController).GetField("indoorShadowEdges", Private).GetValue(fog);
+        var meta = (Vector4[])typeof(FogVisionController).GetField("indoorShadowEdgeMeta", Private).GetValue(fog);
+        File.WriteAllText(Folder + "/" + label + "-edges.csv", "slot,id,angle,near,far,side,strength,weight,missedScans\n" +
+            string.Join("\n", Enumerable.Range(0, edgeCount).Select(i => i + "," + Mathf.RoundToInt(meta[i].z) + "," +
+                Mathf.Atan2(edges[i].y, edges[i].x).ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
+                edges[i].z.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
+                Mathf.Abs(edges[i].w).ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
+                Mathf.Sign(edges[i].w).ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
+                meta[i].y.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," +
+                meta[i].x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + Mathf.RoundToInt(meta[i].w))));
+    }
+
+    private static void CaptureBatchScreenshot(string path, FogVisionController fog, Material overlayMaterial)
+    {
+        var camera = (Camera)typeof(FogVisionController).GetField("worldCamera", Private).GetValue(fog);
+        if (camera == null) throw new InvalidOperationException("Fog world camera is required for batch capture.");
+        const int width = 1280;
+        const int height = 720;
+        var scene = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32);
+        var composite = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
+        RenderTexture previousActive = RenderTexture.active;
+        RenderTexture previousTarget = camera.targetTexture;
+        var screenshot = new Texture2D(width, height, TextureFormat.RGB24, false);
+        try
+        {
+            camera.targetTexture = scene;
+            camera.Render();
+            camera.targetTexture = previousTarget;
+            Graphics.Blit(scene, composite);
+            RenderTexture.active = composite;
+            GL.PushMatrix();
+            GL.LoadOrtho();
+            overlayMaterial.SetPass(0);
+            GL.Begin(GL.QUADS);
+            GL.TexCoord2(0f, 0f); GL.Vertex3(0f, 0f, 0f);
+            GL.TexCoord2(1f, 0f); GL.Vertex3(1f, 0f, 0f);
+            GL.TexCoord2(1f, 1f); GL.Vertex3(1f, 1f, 0f);
+            GL.TexCoord2(0f, 1f); GL.Vertex3(0f, 1f, 0f);
+            GL.End();
+            GL.PopMatrix();
+            screenshot.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            screenshot.Apply();
+            File.WriteAllBytes(path, screenshot.EncodeToPNG());
+        }
+        finally
+        {
+            camera.targetTexture = previousTarget;
+            RenderTexture.active = previousActive;
+            UnityEngine.Object.Destroy(screenshot);
+            RenderTexture.ReleaseTemporary(composite);
+            RenderTexture.ReleaseTemporary(scene);
+        }
     }
 
     [MenuItem("Tools/QA/Indoor Fog/Dump Surface Atlas")]
@@ -352,7 +407,8 @@ public static class IndoorFogPrototypeQA
     {
         if (!EditorApplication.isPlaying) throw new InvalidOperationException("Runtime-only profiling.");
         StopProfile();
-        profileLabel = Path.GetFileName(JsonUtility.FromJson<Pose>(File.ReadAllText(Folder + "/pose.json")).label);
+        var pose = poseOverride ?? JsonUtility.FromJson<Pose>(File.ReadAllText(Folder + "/pose.json"));
+        profileLabel = Path.GetFileName(pose.label);
         recorders = new Unity.Profiling.ProfilerRecorder[CounterNames.Length];
         for (int i = 0; i < CounterNames.Length; i++)
             recorders[i] = Unity.Profiling.ProfilerRecorder.StartNew(i == 5 ? Unity.Profiling.ProfilerCategory.Scripts : Unity.Profiling.ProfilerCategory.Render, CounterNames[i], 1);

@@ -101,6 +101,7 @@ public class FogVisionController : MonoBehaviour
     private static readonly int IndoorFlashlightBoundaryFadeId = Shader.PropertyToID("_IndoorFlashlightBoundaryFade");
     private static readonly int IndoorShadowEdgeCountId = Shader.PropertyToID("_IndoorShadowEdgeCount");
     private static readonly int IndoorShadowEdgesId = Shader.PropertyToID("_IndoorShadowEdges");
+    private static readonly int IndoorShadowEdgeMetaId = Shader.PropertyToID("_IndoorShadowEdgeMeta");
     private static readonly int FogWorldBottomLeftId = Shader.PropertyToID("_FogWorldBottomLeft");
     private static readonly int FogWorldRightId = Shader.PropertyToID("_FogWorldRight");
     private static readonly int FogWorldUpId = Shader.PropertyToID("_FogWorldUp");
@@ -134,10 +135,28 @@ public class FogVisionController : MonoBehaviour
     private readonly float[] indoorOcclusionDistances = new float[MaxIndoorOcclusionRays];
     private const int MaxIndoorShadowEdges = 32;
     private const int MaxReasonableIndoorShadowCandidates = 64;
+    private const float IndoorShadowEnterStrength = 1.08f;
+    private const float IndoorShadowExitStrength = 0.82f;
+    private const int IndoorShadowExitGraceScans = 2;
+    private const float IndoorShadowTeleportResetDistance = 1.25f;
     private readonly Vector4[] indoorShadowEdges = new Vector4[MaxIndoorShadowEdges];
+    private readonly Vector4[] indoorShadowTargetEdges = new Vector4[MaxIndoorShadowEdges];
+    private readonly Vector4[] indoorShadowEdgeMeta = new Vector4[MaxIndoorShadowEdges];
     private readonly float[] indoorShadowEdgeStrengths = new float[MaxIndoorShadowEdges];
+    private readonly float[] indoorShadowTargetStrengths = new float[MaxIndoorShadowEdges];
+    private readonly float[] indoorShadowTargetWeights = new float[MaxIndoorShadowEdges];
+    private readonly int[] indoorShadowEdgeIds = new int[MaxIndoorShadowEdges];
+    private readonly int[] indoorShadowMissedScans = new int[MaxIndoorShadowEdges];
+    private readonly Vector4[] rawIndoorShadowEdges = new Vector4[MaxIndoorOcclusionRays];
+    private readonly float[] rawIndoorShadowStrengths = new float[MaxIndoorOcclusionRays];
+    private readonly bool[] rawIndoorShadowUsed = new bool[MaxIndoorOcclusionRays];
     private int indoorShadowEdgeCount;
     private int indoorShadowCandidateCount;
+    private int rawIndoorShadowEdgeCount;
+    private int nextIndoorShadowEdgeId = 1;
+    private bool indoorShadowHistoryValid;
+    private bool shadowFadeWasActive;
+    private Vector2 indoorShadowHistoryOrigin;
     private int indoorOcclusionRevision;
     private int indoorShadowEdgeRevision = -1;
     private readonly List<RaycastHit2D> indoorOcclusionHits = new List<RaycastHit2D>(32);
@@ -398,14 +417,22 @@ public class FogVisionController : MonoBehaviour
             useSurfaceMap ? Mathf.Clamp(surfaceMap.flashlightBoundaryFadeDistance, 0f, 2.5f) : 0f);
         bool useShadowFade = useSurfaceMap && indoorOcclusionActive && targetVision.IsFlashlightActive &&
                              surfaceMap.flashlightBoundaryFadeDistance > 0f;
+        if (useShadowFade != shadowFadeWasActive)
+        {
+            ResetIndoorShadowHistory();
+            shadowFadeWasActive = useShadowFade;
+        }
         if (useShadowFade && indoorShadowEdgeRevision != indoorOcclusionRevision)
         {
             BuildIndoorShadowEdges(Mathf.Clamp(indoorOcclusionRayCount, 64, MaxIndoorOcclusionRays));
             indoorShadowEdgeRevision = indoorOcclusionRevision;
         }
+        if (useShadowFade)
+            UpdateIndoorShadowEdgePresentation(Time.unscaledDeltaTime);
         overlayMaterial.SetFloat(IndoorShadowEdgeCountId,
             useShadowFade ? indoorShadowEdgeCount : 0);
         overlayMaterial.SetVectorArray(IndoorShadowEdgesId, indoorShadowEdges);
+        overlayMaterial.SetVectorArray(IndoorShadowEdgeMetaId, indoorShadowEdgeMeta);
         if (useSurfaceMap)
         {
             overlayMaterial.SetTexture("_IndoorSurfaceAtlas", surfaceMap.Atlas);
@@ -465,6 +492,8 @@ public class FogVisionController : MonoBehaviour
         if (activeSurfaceMap == next) return;
         if (activeSurfaceMap != null) activeSurfaceMap.ReleaseAtlas();
         activeSurfaceMap = next;
+        ResetIndoorShadowHistory();
+        shadowFadeWasActive = false;
     }
 
     private static float Cross(Vector2 left, Vector2 right)
@@ -525,8 +554,8 @@ public class FogVisionController : MonoBehaviour
         // A wall face is a continuous run of hits. A shadow silhouette is a
         // depth discontinuity at a corner/doorway, from a near hit to a far hit.
         // Reuse the existing scan: no additional physics casts or map traversal.
-        indoorShadowEdgeCount = 0;
         indoorShadowCandidateCount = 0;
+        rawIndoorShadowEdgeCount = 0;
         float step = 2f * Mathf.PI / rayCount;
         for (int i = 0; i < rayCount; i++)
         {
@@ -536,39 +565,226 @@ public class FogVisionController : MonoBehaviour
             float far = Mathf.Max(first, second);
             float threshold = Mathf.Max(0.5f, near * step * 4f);
             float jump = far - near;
-            if (jump < threshold) continue;
-            indoorShadowCandidateCount++;
-            float angle = (i + 0.5f) * step;
-            var candidate = new Vector4(Mathf.Cos(angle), Mathf.Sin(angle), near,
-                second > first ? far : -far);
             float strength = jump / threshold;
-            if (indoorShadowEdgeCount < MaxIndoorShadowEdges)
-            {
-                indoorShadowEdges[indoorShadowEdgeCount] = candidate;
-                indoorShadowEdgeStrengths[indoorShadowEdgeCount] = strength;
-                indoorShadowEdgeCount++;
-                continue;
-            }
-
-            // A real large interior may contain more silhouettes than the old
-            // 16-edge prototype limit. Do not switch the entire effect off when
-            // movement changes 17 edges to 16; retain the strongest stable set.
-            int weakest = 0;
-            for (int edge = 1; edge < MaxIndoorShadowEdges; edge++)
-                if (indoorShadowEdgeStrengths[edge] < indoorShadowEdgeStrengths[weakest])
-                    weakest = edge;
-            if (strength > indoorShadowEdgeStrengths[weakest])
-            {
-                indoorShadowEdges[weakest] = candidate;
-                indoorShadowEdgeStrengths[weakest] = strength;
-            }
+            if (strength < IndoorShadowExitStrength) continue;
+            if (strength >= 1f) indoorShadowCandidateCount++;
+            float angle = (i + 0.5f) * step;
+            rawIndoorShadowEdges[rawIndoorShadowEdgeCount] = new Vector4(
+                Mathf.Cos(angle), Mathf.Sin(angle), near, second > first ? far : -far);
+            rawIndoorShadowStrengths[rawIndoorShadowEdgeCount] = strength;
+            rawIndoorShadowEdgeCount++;
         }
 
         // Alternating/noisy ray data is not valid room geometry. Keep the old
         // conservative fallback for that malformed case without penalising the
         // 17-32 legitimate silhouettes found in School or Hospital.
         if (indoorShadowCandidateCount > MaxReasonableIndoorShadowCandidates)
-            indoorShadowEdgeCount = 0;
+        {
+            int malformedCandidateCount = indoorShadowCandidateCount;
+            ResetIndoorShadowHistory();
+            // Preserve the diagnostic count so QA can distinguish malformed
+            // scan fallback from an ordinary room with no silhouettes.
+            indoorShadowCandidateCount = malformedCandidateCount;
+            return;
+        }
+
+        Vector2 newOrigin = lastOcclusionOrigin;
+        if (indoorShadowHistoryValid &&
+            Vector2.Distance(indoorShadowHistoryOrigin, newOrigin) > IndoorShadowTeleportResetDistance)
+            ResetIndoorShadowHistory();
+
+        if (!indoorShadowHistoryValid)
+        {
+            InitializeIndoorShadowTracks(newOrigin);
+            return;
+        }
+
+        RebaseIndoorShadowTracks(indoorShadowHistoryOrigin, newOrigin);
+        indoorShadowHistoryOrigin = newOrigin;
+        for (int i = 0; i < rawIndoorShadowEdgeCount; i++) rawIndoorShadowUsed[i] = false;
+
+        for (int track = 0; track < indoorShadowEdgeCount; track++)
+        {
+            int raw = FindBestRawShadowMatch(indoorShadowTargetEdges[track], rawIndoorShadowUsed);
+            if (raw >= 0)
+            {
+                rawIndoorShadowUsed[raw] = true;
+                indoorShadowMissedScans[track] = 0;
+                indoorShadowTargetEdges[track] = rawIndoorShadowEdges[raw];
+                indoorShadowTargetStrengths[track] = rawIndoorShadowStrengths[raw];
+                indoorShadowTargetWeights[track] = 1f;
+            }
+            else
+            {
+                indoorShadowMissedScans[track]++;
+                if (indoorShadowMissedScans[track] > IndoorShadowExitGraceScans)
+                    indoorShadowTargetWeights[track] = 0f;
+            }
+        }
+
+        // Entry hysteresis: weak threshold-crossing noise may keep an existing
+        // track alive, but it cannot create a new shadow edge until it clears
+        // the stronger enter threshold. Full capacity never churns by scan order.
+        while (indoorShadowEdgeCount < MaxIndoorShadowEdges)
+        {
+            int raw = FindStrongestUnusedRawShadow(IndoorShadowEnterStrength);
+            if (raw < 0) break;
+            rawIndoorShadowUsed[raw] = true;
+            AddIndoorShadowTrack(rawIndoorShadowEdges[raw], rawIndoorShadowStrengths[raw], 0f);
+        }
+    }
+
+    private void InitializeIndoorShadowTracks(Vector2 origin)
+    {
+        indoorShadowEdgeCount = 0;
+        for (int i = 0; i < rawIndoorShadowEdgeCount; i++) rawIndoorShadowUsed[i] = false;
+        while (indoorShadowEdgeCount < MaxIndoorShadowEdges)
+        {
+            int raw = FindStrongestUnusedRawShadow(1f);
+            if (raw < 0) break;
+            rawIndoorShadowUsed[raw] = true;
+            AddIndoorShadowTrack(rawIndoorShadowEdges[raw], rawIndoorShadowStrengths[raw], 1f);
+        }
+        indoorShadowHistoryOrigin = origin;
+        indoorShadowHistoryValid = indoorShadowEdgeCount > 0;
+    }
+
+    private void AddIndoorShadowTrack(Vector4 edge, float strength, float initialWeight)
+    {
+        int track = indoorShadowEdgeCount++;
+        indoorShadowEdges[track] = edge;
+        indoorShadowTargetEdges[track] = edge;
+        indoorShadowEdgeStrengths[track] = strength;
+        indoorShadowTargetStrengths[track] = strength;
+        indoorShadowEdgeMeta[track] = new Vector4(initialWeight, strength, 0f, 0f);
+        indoorShadowTargetWeights[track] = 1f;
+        indoorShadowEdgeIds[track] = nextIndoorShadowEdgeId++;
+        indoorShadowMissedScans[track] = 0;
+    }
+
+    private int FindStrongestUnusedRawShadow(float minimumStrength)
+    {
+        int best = -1;
+        for (int raw = 0; raw < rawIndoorShadowEdgeCount; raw++)
+        {
+            if (rawIndoorShadowUsed[raw] || rawIndoorShadowStrengths[raw] < minimumStrength) continue;
+            if (best < 0 || rawIndoorShadowStrengths[raw] > rawIndoorShadowStrengths[best]) best = raw;
+        }
+        return best;
+    }
+
+    private int FindBestRawShadowMatch(Vector4 track, bool[] used)
+    {
+        Vector2 trackDirection = new Vector2(track.x, track.y).normalized;
+        float trackFar = Mathf.Abs(track.w);
+        float trackSide = Mathf.Sign(track.w);
+        int best = -1;
+        float bestScore = float.PositiveInfinity;
+        for (int raw = 0; raw < rawIndoorShadowEdgeCount; raw++)
+        {
+            if (used[raw] || Mathf.Sign(rawIndoorShadowEdges[raw].w) != trackSide) continue;
+            Vector4 candidate = rawIndoorShadowEdges[raw];
+            Vector2 candidateDirection = new Vector2(candidate.x, candidate.y).normalized;
+            float angle = Vector2.Angle(trackDirection, candidateDirection);
+            if (angle > 7f) continue;
+            float nearTolerance = Mathf.Max(0.9f, Mathf.Min(track.z, candidate.z) * 0.25f);
+            float farTolerance = Mathf.Max(1.75f, Mathf.Min(trackFar, Mathf.Abs(candidate.w)) * 0.22f);
+            float nearDelta = Mathf.Abs(track.z - candidate.z);
+            float farDelta = Mathf.Abs(trackFar - Mathf.Abs(candidate.w));
+            if (nearDelta > nearTolerance || farDelta > farTolerance) continue;
+            float score = angle / 7f + nearDelta / nearTolerance + farDelta / farTolerance;
+            if (score < bestScore) { bestScore = score; best = raw; }
+        }
+        return best;
+    }
+
+    private void RebaseIndoorShadowTracks(Vector2 oldOrigin, Vector2 newOrigin)
+    {
+        if (oldOrigin == newOrigin) return;
+        for (int track = 0; track < indoorShadowEdgeCount; track++)
+        {
+            indoorShadowEdges[track] = RebaseIndoorShadowEdge(indoorShadowEdges[track], oldOrigin, newOrigin);
+            indoorShadowTargetEdges[track] = RebaseIndoorShadowEdge(indoorShadowTargetEdges[track], oldOrigin, newOrigin);
+        }
+    }
+
+    private static Vector4 RebaseIndoorShadowEdge(Vector4 edge, Vector2 oldOrigin, Vector2 newOrigin)
+    {
+        Vector2 oldDirection = new Vector2(edge.x, edge.y).normalized;
+        Vector2 nearWorld = oldOrigin + oldDirection * edge.z;
+        Vector2 farWorld = oldOrigin + oldDirection * Mathf.Abs(edge.w);
+        Vector2 nearOffset = nearWorld - newOrigin;
+        float near = nearOffset.magnitude;
+        Vector2 direction = near > 0.0001f ? nearOffset / near : oldDirection;
+        float far = Mathf.Max(near + 0.01f, Vector2.Dot(farWorld - newOrigin, direction));
+        return new Vector4(direction.x, direction.y, near, Mathf.Sign(edge.w) * far);
+    }
+
+    private void UpdateIndoorShadowEdgePresentation(float deltaTime)
+    {
+        float geometryBlend = 1f - Mathf.Exp(-12f * Mathf.Max(0f, deltaTime));
+        float enterBlend = 1f - Mathf.Exp(-16f * Mathf.Max(0f, deltaTime));
+        float exitBlend = 1f - Mathf.Exp(-9f * Mathf.Max(0f, deltaTime));
+        for (int track = indoorShadowEdgeCount - 1; track >= 0; track--)
+        {
+            Vector4 current = indoorShadowEdges[track];
+            Vector4 target = indoorShadowTargetEdges[track];
+            Vector2 direction = Vector2.Lerp(
+                new Vector2(current.x, current.y), new Vector2(target.x, target.y), geometryBlend).normalized;
+            float near = Mathf.Lerp(current.z, target.z, geometryBlend);
+            float far = Mathf.Lerp(Mathf.Abs(current.w), Mathf.Abs(target.w), geometryBlend);
+            indoorShadowEdges[track] = new Vector4(direction.x, direction.y, near, Mathf.Sign(target.w) * far);
+            indoorShadowEdgeStrengths[track] = Mathf.Lerp(
+                indoorShadowEdgeStrengths[track], indoorShadowTargetStrengths[track], geometryBlend);
+            float weight = indoorShadowEdgeMeta[track].x;
+            float weightBlend = indoorShadowTargetWeights[track] > weight ? enterBlend : exitBlend;
+            weight = Mathf.Lerp(weight, indoorShadowTargetWeights[track], weightBlend);
+            indoorShadowEdgeMeta[track] = new Vector4(weight, indoorShadowEdgeStrengths[track],
+                indoorShadowEdgeIds[track], indoorShadowMissedScans[track]);
+            if (weight < 0.005f && indoorShadowTargetWeights[track] <= 0f)
+                RemoveIndoorShadowTrack(track);
+        }
+        if (indoorShadowEdgeCount == 0) indoorShadowHistoryValid = false;
+    }
+
+    private void RemoveIndoorShadowTrack(int track)
+    {
+        int last = indoorShadowEdgeCount - 1;
+        if (track != last)
+        {
+            indoorShadowEdges[track] = indoorShadowEdges[last];
+            indoorShadowTargetEdges[track] = indoorShadowTargetEdges[last];
+            indoorShadowEdgeMeta[track] = indoorShadowEdgeMeta[last];
+            indoorShadowEdgeStrengths[track] = indoorShadowEdgeStrengths[last];
+            indoorShadowTargetStrengths[track] = indoorShadowTargetStrengths[last];
+            indoorShadowTargetWeights[track] = indoorShadowTargetWeights[last];
+            indoorShadowEdgeIds[track] = indoorShadowEdgeIds[last];
+            indoorShadowMissedScans[track] = indoorShadowMissedScans[last];
+        }
+        indoorShadowEdgeCount--;
+        indoorShadowEdges[indoorShadowEdgeCount] = Vector4.zero;
+        indoorShadowTargetEdges[indoorShadowEdgeCount] = Vector4.zero;
+        indoorShadowEdgeMeta[indoorShadowEdgeCount] = Vector4.zero;
+    }
+
+    private void ResetIndoorShadowHistory()
+    {
+        indoorShadowEdgeCount = 0;
+        indoorShadowCandidateCount = 0;
+        rawIndoorShadowEdgeCount = 0;
+        indoorShadowHistoryValid = false;
+        indoorShadowEdgeRevision = -1;
+        for (int i = 0; i < MaxIndoorShadowEdges; i++)
+        {
+            indoorShadowEdges[i] = Vector4.zero;
+            indoorShadowTargetEdges[i] = Vector4.zero;
+            indoorShadowEdgeMeta[i] = Vector4.zero;
+            indoorShadowEdgeStrengths[i] = 0f;
+            indoorShadowTargetStrengths[i] = 0f;
+            indoorShadowTargetWeights[i] = 0f;
+            indoorShadowEdgeIds[i] = 0;
+            indoorShadowMissedScans[i] = 0;
+        }
     }
 
     private static bool IsIndoorStructuralHit(Collider2D indoorCollider, Transform structureRoot,
