@@ -30,7 +30,9 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
     public RenderTexture Atlas { get; private set; }
     public Vector4 AtlasBounds { get; private set; }
     public int SurfaceCount { get; private set; }
+    public int ScannedCellCount { get; private set; }
     public double LastBuildMilliseconds { get; private set; }
+    public long AtlasMemoryBytes => Atlas != null ? (long)Atlas.width * Atlas.height * 8L : 0L;
     private bool attemptedBuild;
 
     private struct Surface
@@ -59,16 +61,22 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         Bounds bounds = indoorVolume.bounds;
         bounds.Expand(new Vector3(4f, 5f, 0f));
         AtlasBounds = new Vector4(bounds.min.x, bounds.min.y, bounds.size.x, bounds.size.y);
+        ScannedCellCount = 0;
         if (surfaces != null)
         foreach (Tilemap map in surfaces)
         {
             if (map == null || !map.gameObject.activeInHierarchy) continue;
             var renderer = map.GetComponent<TilemapRenderer>();
             if (renderer == null || !renderer.enabled) continue;
-            // A sparse, map-wide Tilemap must never turn this local build into a map scan.
-            if ((long)map.cellBounds.size.x * map.cellBounds.size.y * map.cellBounds.size.z > 10000)
-            { Debug.LogWarning("[IndoorFogSurface] Tilemap too broad for the local prototype: " + map.name, this); continue; }
-            foreach (Vector3Int cell in map.cellBounds.allPositionsWithin)
+            BoundsInt localCells = GetClippedCellBounds(map, bounds);
+            long candidateCount = (long)localCells.size.x * localCells.size.y * localCells.size.z;
+            // Stress buildings use sparse Tilemaps whose serialized cellBounds span much
+            // more than one building. Iterate only the active indoor bounds, and keep a
+            // hard guard so malformed authoring cannot become a scene-wide scan.
+            if (candidateCount > 20000)
+            { Debug.LogWarning("[IndoorFogSurface] Indoor cell window is too broad: " + map.name, this); continue; }
+            ScannedCellCount += (int)candidateCount;
+            foreach (Vector3Int cell in localCells.allPositionsWithin)
             {
                 Sprite sprite = map.GetSprite(cell);
                 if (sprite == null || map.GetColor(cell).a * map.color.a < 0.5f) continue;
@@ -84,6 +92,7 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         foreach (SpriteRenderer renderer in spriteSurfaces)
         {
             if (renderer == null || renderer.sprite == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy) continue;
+            if (!Intersects2D(bounds, renderer.bounds)) continue;
             entries.Add(new Surface { sprite = renderer.sprite,
                 matrix = renderer.localToWorldMatrix * Matrix4x4.Scale(new Vector3(renderer.flipX ? -1f : 1f, renderer.flipY ? -1f : 1f, 1f)),
                 layer = SortingLayer.GetLayerValueFromID(renderer.sortingLayerID), order = renderer.sortingOrder, depth = renderer.transform.position.y });
@@ -91,7 +100,12 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         entries.Sort((a, b) => a.layer != b.layer ? a.layer.CompareTo(b.layer) :
             a.order != b.order ? a.order.CompareTo(b.order) : b.depth.CompareTo(a.depth));
         SurfaceCount = entries.Count;
-        if (SurfaceCount == 0) return false;
+        if (SurfaceCount == 0)
+        {
+            timer.Stop();
+            LastBuildMilliseconds = timer.Elapsed.TotalMilliseconds;
+            return false;
+        }
 
         int width = Mathf.Clamp(atlasResolution, 256, 1536);
         int height = Mathf.Max(128, Mathf.RoundToInt(width * bounds.size.y / bounds.size.x));
@@ -123,6 +137,28 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         timer.Stop();
         LastBuildMilliseconds = timer.Elapsed.TotalMilliseconds;
         return true;
+    }
+
+    private static BoundsInt GetClippedCellBounds(Tilemap map, Bounds worldBounds)
+    {
+        Vector3Int a = map.WorldToCell(new Vector3(worldBounds.min.x, worldBounds.min.y, 0f));
+        Vector3Int b = map.WorldToCell(new Vector3(worldBounds.min.x, worldBounds.max.y, 0f));
+        Vector3Int c = map.WorldToCell(new Vector3(worldBounds.max.x, worldBounds.min.y, 0f));
+        Vector3Int d = map.WorldToCell(new Vector3(worldBounds.max.x, worldBounds.max.y, 0f));
+        Vector3Int min = Vector3Int.Min(Vector3Int.Min(a, b), Vector3Int.Min(c, d)) - new Vector3Int(2, 2, 0);
+        Vector3Int max = Vector3Int.Max(Vector3Int.Max(a, b), Vector3Int.Max(c, d)) + new Vector3Int(3, 3, 1);
+        BoundsInt authored = map.cellBounds;
+        min = Vector3Int.Max(min, authored.min);
+        max = Vector3Int.Min(max, authored.max);
+        if (max.x <= min.x || max.y <= min.y || max.z <= min.z)
+            return new BoundsInt(min, Vector3Int.zero);
+        return new BoundsInt(min, max - min);
+    }
+
+    private static bool Intersects2D(Bounds left, Bounds right)
+    {
+        return left.min.x <= right.max.x && left.max.x >= right.min.x &&
+               left.min.y <= right.max.y && left.max.y >= right.min.y;
     }
 
     private static Mesh CreateSurfaceMesh(Sprite sprite)
@@ -180,9 +216,13 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         return float.IsPositiveInfinity(lowest) ? 0f : Mathf.Min(lowest, 0.12f);
     }
 
-    private void OnDisable()
+    public void ReleaseAtlas()
     {
         if (Atlas != null) { Atlas.Release(); Destroy(Atlas); Atlas = null; }
         attemptedBuild = false;
+        SurfaceCount = 0;
+        ScannedCellCount = 0;
     }
+
+    private void OnDisable() => ReleaseAtlas();
 }

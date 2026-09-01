@@ -132,15 +132,19 @@ public class FogVisionController : MonoBehaviour
     private readonly List<Vector2> polygonPoints = new List<Vector2>(16);
     private const int MaxIndoorOcclusionRays = 180;
     private readonly float[] indoorOcclusionDistances = new float[MaxIndoorOcclusionRays];
-    private const int MaxIndoorShadowEdges = 16;
+    private const int MaxIndoorShadowEdges = 32;
+    private const int MaxReasonableIndoorShadowCandidates = 64;
     private readonly Vector4[] indoorShadowEdges = new Vector4[MaxIndoorShadowEdges];
+    private readonly float[] indoorShadowEdgeStrengths = new float[MaxIndoorShadowEdges];
     private int indoorShadowEdgeCount;
+    private int indoorShadowCandidateCount;
     private int indoorOcclusionRevision;
     private int indoorShadowEdgeRevision = -1;
     private readonly List<RaycastHit2D> indoorOcclusionHits = new List<RaycastHit2D>(32);
     private ContactFilter2D indoorObstacleFilter;
     private Collider2D cachedIndoorCollider;
     private Transform cachedIndoorStructureRoot;
+    private IndoorFogSurfaceMap activeSurfaceMap;
     private Vector2 lastOcclusionOrigin;
     private float nextIndoorOcclusionUpdate;
     private Vector2 questBoundaryOrigin;
@@ -179,6 +183,7 @@ public class FogVisionController : MonoBehaviour
 
     private void OnDestroy()
     {
+        SetActiveSurfaceMap(null);
         if (Instance == this) Instance = null;
         if (overlayRoot != null) Destroy(overlayRoot);
         if (overlayMaterial != null) Destroy(overlayMaterial);
@@ -195,6 +200,7 @@ public class FogVisionController : MonoBehaviour
             targetMovement.Object == null || !targetMovement.Object.IsValid ||
             (targetHealth != null && (targetHealth.isDead || targetHealth.isTransforming)))
         {
+            SetActiveSurfaceMap(null);
             targetVision = null;
             targetMovement = null;
             overlayImage.enabled = false;
@@ -383,7 +389,10 @@ public class FogVisionController : MonoBehaviour
         // Explicit opt-in only: unconfigured interiors retain their accepted renderer.
         IndoorFogSurfaceMap surfaceMap = isIndoor
             ? targetVision.ActiveIndoorCollider.GetComponentInParent<IndoorFogSurfaceMap>() : null;
-        bool useSurfaceMap = surfaceMap != null && surfaceMap.indoorVolume == targetVision.ActiveIndoorCollider && surfaceMap.EnsureAtlas();
+        if (surfaceMap != null && (!surfaceMap.isActiveAndEnabled || surfaceMap.indoorVolume != targetVision.ActiveIndoorCollider))
+            surfaceMap = null;
+        SetActiveSurfaceMap(surfaceMap);
+        bool useSurfaceMap = surfaceMap != null && surfaceMap.EnsureAtlas();
         overlayMaterial.SetFloat("_IndoorSurfaceActive", useSurfaceMap ? 1f : 0f);
         overlayMaterial.SetFloat(IndoorFlashlightBoundaryFadeId,
             useSurfaceMap ? Mathf.Clamp(surfaceMap.flashlightBoundaryFadeDistance, 0f, 2.5f) : 0f);
@@ -451,6 +460,13 @@ public class FogVisionController : MonoBehaviour
         overlayMaterial.SetTexture(FogBankTextureId, fogBankTexture);
     }
 
+    private void SetActiveSurfaceMap(IndoorFogSurfaceMap next)
+    {
+        if (activeSurfaceMap == next) return;
+        if (activeSurfaceMap != null) activeSurfaceMap.ReleaseAtlas();
+        activeSurfaceMap = next;
+    }
+
     private static float Cross(Vector2 left, Vector2 right)
     {
         return left.x * right.y - left.y * right.x;
@@ -510,6 +526,7 @@ public class FogVisionController : MonoBehaviour
         // depth discontinuity at a corner/doorway, from a near hit to a far hit.
         // Reuse the existing scan: no additional physics casts or map traversal.
         indoorShadowEdgeCount = 0;
+        indoorShadowCandidateCount = 0;
         float step = 2f * Mathf.PI / rayCount;
         for (int i = 0; i < rayCount; i++)
         {
@@ -517,16 +534,41 @@ public class FogVisionController : MonoBehaviour
             float second = indoorOcclusionDistances[(i + 1) % rayCount];
             float near = Mathf.Min(first, second);
             float far = Mathf.Max(first, second);
-            if (far - near < Mathf.Max(0.5f, near * step * 4f)) continue;
-            // Overflow conservatively disables the optional fade. Never pick
-            // arbitrary first edges and leave part of a complex room graded.
-            if (indoorShadowEdgeCount == MaxIndoorShadowEdges)
-            { indoorShadowEdgeCount = 0; return; }
+            float threshold = Mathf.Max(0.5f, near * step * 4f);
+            float jump = far - near;
+            if (jump < threshold) continue;
+            indoorShadowCandidateCount++;
             float angle = (i + 0.5f) * step;
-            indoorShadowEdges[indoorShadowEdgeCount++] = new Vector4(
-                Mathf.Cos(angle), Mathf.Sin(angle), near,
+            var candidate = new Vector4(Mathf.Cos(angle), Mathf.Sin(angle), near,
                 second > first ? far : -far);
+            float strength = jump / threshold;
+            if (indoorShadowEdgeCount < MaxIndoorShadowEdges)
+            {
+                indoorShadowEdges[indoorShadowEdgeCount] = candidate;
+                indoorShadowEdgeStrengths[indoorShadowEdgeCount] = strength;
+                indoorShadowEdgeCount++;
+                continue;
+            }
+
+            // A real large interior may contain more silhouettes than the old
+            // 16-edge prototype limit. Do not switch the entire effect off when
+            // movement changes 17 edges to 16; retain the strongest stable set.
+            int weakest = 0;
+            for (int edge = 1; edge < MaxIndoorShadowEdges; edge++)
+                if (indoorShadowEdgeStrengths[edge] < indoorShadowEdgeStrengths[weakest])
+                    weakest = edge;
+            if (strength > indoorShadowEdgeStrengths[weakest])
+            {
+                indoorShadowEdges[weakest] = candidate;
+                indoorShadowEdgeStrengths[weakest] = strength;
+            }
         }
+
+        // Alternating/noisy ray data is not valid room geometry. Keep the old
+        // conservative fallback for that malformed case without penalising the
+        // 17-32 legitimate silhouettes found in School or Hospital.
+        if (indoorShadowCandidateCount > MaxReasonableIndoorShadowCandidates)
+            indoorShadowEdgeCount = 0;
     }
 
     private static bool IsIndoorStructuralHit(Collider2D indoorCollider, Transform structureRoot,
