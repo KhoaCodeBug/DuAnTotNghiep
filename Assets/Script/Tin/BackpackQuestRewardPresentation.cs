@@ -44,6 +44,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
     private bool isPresentationActive;
     private bool isNotificationActive;
     private int currentPresentedLevel = 4;
+    private ItemData currentRewardBackpack;
     private string lastNotificationTitle = string.Empty;
     private string lastNotificationBody = string.Empty;
     private System.Action onPresentationCompleted;
@@ -114,6 +115,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         OnNotificationDismissed = null;
         if (instance != null)
         {
+            instance.currentRewardBackpack = null;
             instance.isPresentationActive = false;
             instance.isNotificationActive = false;
             if (instance.presentationRoutine != null) instance.StopCoroutine(instance.presentationRoutine);
@@ -180,6 +182,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
     {
         isPresentationActive = false;
         isNotificationActive = false;
+        currentRewardBackpack = null;
         if (presentationRoutine != null) StopCoroutine(presentationRoutine);
         if (notificationRoutine != null) StopCoroutine(notificationRoutine);
         if (instance == this) instance = null;
@@ -200,12 +203,13 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         }
         instance = this;
         currentPresentedLevel = level;
+        currentRewardBackpack = backpack != null ? backpack : BackpackItemCatalog.GetOrCreate(level);
         onPresentationCompleted = onCompleted;
         EnsureCanvas();
         ApplyRewardStyle(level);
 
         // Populate backpack icon
-        iconImage.sprite = backpack != null ? backpack.icon : null;
+        iconImage.sprite = currentRewardBackpack != null ? currentRewardBackpack.icon : null;
         if (iconImage.sprite == null)
         {
             ItemData catalogBackpack = BackpackItemCatalog.GetOrCreate(level);
@@ -332,16 +336,39 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         EnsureCanvas();
         currentPresentedLevel = level;
 
-        lastNotificationTitle = GameLocalization.Get("backpack.notification.title", "BACKPACK UPGRADED");
-        lastNotificationBody = level == BackpackQuestRewardRules.HospitalBackpackLevel
+        if (currentRewardBackpack == null || currentRewardBackpack.backpackLevel != level)
+        {
+            currentRewardBackpack = BackpackItemCatalog.GetOrCreate(level);
+        }
+
+        string displayName = BackpackItemCatalog.GetLocalizedDisplayName(currentRewardBackpack);
+        if (string.IsNullOrEmpty(displayName))
+        {
+            displayName = BackpackItemCatalog.GetDisplayName(level);
+        }
+
+        string reason = level == BackpackQuestRewardRules.HospitalBackpackLevel
+            ? GameLocalization.Get("backpack.notification.reason.level4", "Hospital milestone completed")
+            : GameLocalization.Get("backpack.notification.reason.level5", "Radio restoration milestone completed");
+
+        string capacity = level == BackpackQuestRewardRules.HospitalBackpackLevel
             ? GameLocalization.Get("backpack.notification.level4", "STORAGE 30 → 40 (+10 SLOTS)")
             : GameLocalization.Get("backpack.notification.level5", "STORAGE 40 → 50 (+10 SLOTS)");
+
+        string bodyFormat = GameLocalization.Get("backpack.notification.body_format", "{0}\n{1}  •  {2}");
+        lastNotificationTitle = GameLocalization.Get("backpack.notification.title", "BACKPACK REWARD RECEIVED");
+        lastNotificationBody = string.Format(bodyFormat, displayName, reason, capacity);
 
         notificationTitleLabel.text = lastNotificationTitle;
         notificationBodyLabel.text = lastNotificationBody;
 
-        ItemData catalogBackpack = BackpackItemCatalog.GetOrCreate(level);
-        notificationIconImage.sprite = catalogBackpack != null ? catalogBackpack.icon : null;
+        Sprite rewardIcon = currentRewardBackpack != null ? currentRewardBackpack.icon : null;
+        if (rewardIcon == null)
+        {
+            ItemData catalogBackpack = BackpackItemCatalog.GetOrCreate(level);
+            if (catalogBackpack != null) rewardIcon = catalogBackpack.icon;
+        }
+        notificationIconImage.sprite = rewardIcon;
         notificationIconImage.enabled = notificationIconImage.sprite != null;
 
         bool hospitalReward = level == BackpackQuestRewardRules.HospitalBackpackLevel;
@@ -520,7 +547,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         // --- NOTIFICATION A: HUD TOAST ---
         notificationRect = CreateRect("Notification HUD", canvasObject.transform,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -68f), new Vector2(440f, 74f));
+            new Vector2(0f, -68f), new Vector2(440f, 88f));
         notificationHud = notificationRect.gameObject;
         notificationGroup = notificationHud.AddComponent<CanvasGroup>();
         notificationGroup.blocksRaycasts = false;
@@ -542,7 +569,7 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
 
         RectTransform notifIconFrame = CreateRect("Notif Icon Frame", notificationHud.transform,
             new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(12f, 0f), new Vector2(50f, 50f));
+            new Vector2(14f, 0f), new Vector2(56f, 56f));
         Image notifFrameImg = notifIconFrame.gameObject.AddComponent<Image>();
         notifFrameImg.sprite = GetSolidSprite();
         notifFrameImg.color = new Color(0.04f, 0.07f, 0.08f, 1f);
@@ -554,15 +581,15 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         notificationIconImage.preserveAspect = true;
         notificationIconImage.raycastTarget = false;
 
-        notificationTitleLabel = CreateText("Notification Title", notificationHud.transform, 13f, FontStyles.Bold,
+        notificationTitleLabel = CreateText("Notification Title", notificationHud.transform, 12f, FontStyles.Bold,
             new Color(0.98f, 0.64f, 0.20f, 1f), TextAlignmentOptions.Left,
             new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(70f, 13f), new Vector2(-80f, 22f));
+            new Vector2(80f, 22f), new Vector2(-92f, 20f));
 
-        notificationBodyLabel = CreateText("Notification Body", notificationHud.transform, 15f, FontStyles.Bold,
+        notificationBodyLabel = CreateText("Notification Body", notificationHud.transform, 12.5f, FontStyles.Bold,
             Color.white, TextAlignmentOptions.Left,
             new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(0f, 0.5f),
-            new Vector2(70f, -13f), new Vector2(-80f, 24f));
+            new Vector2(80f, -12f), new Vector2(-92f, 44f));
 
         notificationHud.SetActive(false);
     }

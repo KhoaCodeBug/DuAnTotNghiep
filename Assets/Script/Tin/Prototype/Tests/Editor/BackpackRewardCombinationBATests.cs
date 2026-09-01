@@ -157,6 +157,13 @@ public sealed class BackpackRewardCombinationBATests
                 "Notification A must be visible after Effect B completes.");
 
             string bodyL4 = (string)notificationBodyProp.GetValue(null);
+            MethodInfo getLocalizedDisplayName = catalogType.GetMethod("GetLocalizedDisplayName", BindingFlags.Public | BindingFlags.Static);
+            Assert.That(getLocalizedDisplayName, Is.Not.Null, "GetLocalizedDisplayName method must exist on BackpackItemCatalog.");
+
+            string expectedNameL4 = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp4 });
+            Assert.That(bodyL4, Does.Contain(expectedNameL4), "Level 4 notification must include the localized backpack item name.");
+            Assert.That(bodyL4.ToLowerInvariant().Contains("hospital") || bodyL4.ToLowerInvariant().Contains("bệnh viện"), Is.True,
+                "Level 4 notification must include hospital milestone reward reason.");
             Assert.That(bodyL4, Does.Contain("30"), "Level 4 notification must show previous capacity 30.");
             Assert.That(bodyL4, Does.Contain("40"), "Level 4 notification must show upgraded capacity 40.");
             Assert.That(bodyL4, Does.Contain("+10"), "Level 4 notification must show +10 slots delta.");
@@ -167,6 +174,10 @@ public sealed class BackpackRewardCombinationBATests
             finishPresentation.Invoke(presenter, null);
 
             string bodyL5 = (string)notificationBodyProp.GetValue(null);
+            string expectedNameL5 = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp5 });
+            Assert.That(bodyL5, Does.Contain(expectedNameL5), "Level 5 notification must include the localized backpack item name.");
+            Assert.That(bodyL5.ToLowerInvariant().Contains("radio"), Is.True,
+                "Level 5 notification must include radio milestone reward reason.");
             Assert.That(bodyL5, Does.Contain("40"), "Level 5 notification must show previous capacity 40.");
             Assert.That(bodyL5, Does.Contain("50"), "Level 5 notification must show upgraded capacity 50.");
             Assert.That(bodyL5, Does.Contain("+10"), "Level 5 notification must show +10 slots delta.");
@@ -365,6 +376,12 @@ public sealed class BackpackRewardCombinationBATests
             Assert.That((bool)isNotifVisible.GetValue(null), Is.True, "Notification A must be visible after Effect B completes.");
             string notifBody = (string)notifBodyProp.GetValue(null);
             Assert.That(notifBody, Does.Contain("40 → 50"), "Notification body must show 40 → 50.");
+            MethodInfo getLocalizedDisplayName = catalogType.GetMethod("GetLocalizedDisplayName", BindingFlags.Public | BindingFlags.Static);
+            object bp5Item = catalogType.GetMethod("GetOrCreate", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(int), typeof(bool) }, null)
+                .Invoke(null, new object[] { 5, false });
+            string expectedL5Name = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp5Item });
+            Assert.That(notifBody, Does.Contain(expectedL5Name), "Notification body must include Level 5 backpack display name.");
+            Assert.That(notifBody.ToLowerInvariant().Contains("radio"), Is.True, "Notification body must include radio reward reason.");
             trace.Add("8_NotificationA_Shown");
 
             // Verify full deterministic trace order

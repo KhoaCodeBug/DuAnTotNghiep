@@ -139,7 +139,13 @@ public sealed class PlayModeBackpackVisualCaptureTests
         yield return new WaitForSecondsRealtime(1.8f);
         Assert.That(level4Completed, Is.True, "Level 4 presentation should finish.");
         Assert.That((bool)isNotifVisibleProp.GetValue(null), Is.True, "Notification A must be visible after Effect B.");
-        Assert.That((string)notifBodyProp.GetValue(null), Does.Contain("30 → 40"), "Level 4 notification must show 30 -> 40.");
+        string l4Body = (string)notifBodyProp.GetValue(null);
+        Assert.That(l4Body, Does.Contain("30 → 40"), "Level 4 notification must show 30 -> 40.");
+        MethodInfo getLocalizedDisplayName = catalogType.GetMethod("GetLocalizedDisplayName", BindingFlags.Public | BindingFlags.Static);
+        string expectedL4Name = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp4 });
+        Assert.That(l4Body, Does.Contain(expectedL4Name), "Level 4 notification must contain the backpack item display name.");
+        Assert.That(l4Body.ToLowerInvariant().Contains("hospital") || l4Body.ToLowerInvariant().Contains("bệnh viện"), Is.True,
+            "Level 4 notification must contain hospital reward reason.");
 
         string l4NotifCamera = Path.Combine(ScreenshotDir, "runtime_level4_notification_a_camera.png");
         string l4NotifScreen = Path.Combine(ScreenshotDir, "runtime_level4_notification_a_screencapture.png");
@@ -233,7 +239,13 @@ public sealed class PlayModeBackpackVisualCaptureTests
             yield return null;
         }
         Assert.That((bool)isNotifVisibleProp.GetValue(null), Is.True, "Notification A must be visible after Effect B.");
-        Assert.That((string)notifBodyProp.GetValue(null), Does.Contain("40 → 50"), "Level 5 notification must show 40 -> 50.");
+        string l5Body = (string)notifBodyProp.GetValue(null);
+        Assert.That(l5Body, Does.Contain("40 → 50"), "Level 5 notification must show 40 -> 50.");
+        object bp5Item = getOrCreate.Invoke(null, new object[] { 5, false });
+        string expectedL5Name = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp5Item });
+        Assert.That(l5Body, Does.Contain(expectedL5Name), "Level 5 notification must contain the backpack item display name.");
+        Assert.That(l5Body.ToLowerInvariant().Contains("radio"), Is.True,
+            "Level 5 notification must contain radio reward reason.");
 
         // Regression assertion: Assert NO story/dialogue/route-choice panel during Notification A
         AssertZeroOverlaysDuringBackpackRewardFlow(duringEffectB: false);
