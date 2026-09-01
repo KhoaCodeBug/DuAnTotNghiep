@@ -64,6 +64,7 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
             AutoUIManager.Instance.SetQuestOverlayOpen(true);
         }
         AutoHealthPanel.Instance?.SetOpenState(false);
+        QuestFlowUIPrototype.Instance?.CloseAllQuestOverlays();
 
         Transform hostVisual = null;
         float avatarDeadline = Time.realtimeSinceStartup + 5f;

@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.UI;
+using Object = UnityEngine.Object;
 
 public sealed class QuestFlowUIPrototypeTests
 {
@@ -815,6 +818,28 @@ public sealed class QuestFlowUIPrototypeTests
         {
             Object.DestroyImmediate(texture);
         }
+    }
+
+    [Test]
+    public void OptionOnePresentationSequence_MapClosesBeforeBackpackPresenter_NotificationEmittedOnlyAfterAnimation()
+    {
+        bool mapRevealFinished = false;
+
+        prototype.PlayMilitaryMapRewardAfterDialogue(() => { });
+        Assert.That(prototype.HasBuiltElement("Map Fragment Reward Art"), Is.True);
+
+        prototype.PlayMilitaryMapReveal(() => { mapRevealFinished = true; });
+        Assert.That(mapRevealFinished, Is.True);
+        Assert.That(prototype.IsMapOpen, Is.False,
+            "When military map reveal finishes, the map overlay must be closed before the backpack presenter starts.");
+
+        Type backpackPresenterType = Type.GetType("BackpackQuestRewardPresentation, Assembly-CSharp");
+        Assert.That(backpackPresenterType, Is.Not.Null);
+        PropertyInfo inputLock = backpackPresenterType.GetProperty("BlocksGameplayInput",
+            BindingFlags.Public | BindingFlags.Static);
+        Assert.That(inputLock, Is.Not.Null);
+        Assert.That((bool)inputLock.GetValue(null), Is.False,
+            "Backpack quest reward must not block teammate gameplay input.");
     }
 
     [Test]

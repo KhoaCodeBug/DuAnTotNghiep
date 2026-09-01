@@ -43,8 +43,8 @@ public class LootContainer : NetworkBehaviour
 
     [Header("Backpack Loot (Chỉ Host xử lý)")]
     [Range(0f, 100f)]
-    [Tooltip("Cơ hội một Loot Container sinh một balo cấp 1-5 theo trọng số.")]
-    public float backpackDropChance = 10f;
+    [Tooltip("Cơ hội một Loot Container sinh một balo cấp 1-3 theo trọng số.")]
+    public float backpackDropChance = 5f;
 
     [Header("Danh sách đồ hiện tại (Realtime)")]
     public List<InventorySlot> itemsInContainer = new List<InventorySlot>();
@@ -155,7 +155,10 @@ public class LootContainer : NetworkBehaviour
         float effectiveChance = Mathf.Clamp(backpackDropChance * lootMultiplier, 0f, 100f);
         if (Random.Range(0f, 100f) >= effectiveChance) return;
 
-        ItemData backpack = BackpackItemCatalog.GetOrCreate(BackpackLootRules.RollTier());
+        int rolledTier = BackpackLootRules.RollTier();
+        if (rolledTier < 1 || rolledTier > 3) return;
+
+        ItemData backpack = BackpackItemCatalog.GetOrCreate(rolledTier);
         if (StoreItemLocal(backpack, 1, RandomLootSlotLimit))
             Debug.Log($"[LOOT SERVER] Generated {backpack.itemName} in '{name}'.");
     }
@@ -539,6 +542,18 @@ public class LootContainer : NetworkBehaviour
             }
         }
 
+        // Backpacks must strictly exceed the player's current equipped level.
+        // If rejected, keep the item in the container for eligible teammates.
+        if (slot.item.category == ItemCategory.Backpack)
+        {
+            if (!playerInventory.CanAcceptBackpackLoot(slot.item))
+            {
+                RPC_NotifyLootDenied(playerTryingToLoot, GameLocalization.Get("loot.backpack_denied",
+                    "Bạn đang có balo cấp cao hơn; balo này để đồng đội khác loot."));
+                return;
+            }
+        }
+
         int amount = slot.amount;
         string itemId = slot.item.name;
         // Canonical transaction: add on State Authority first.  Only remove
@@ -602,12 +617,23 @@ public class LootContainer : NetworkBehaviour
     // RPC_RequestTakeItem, so changing this UI cannot bypass the limit.
     public bool CanLocalPlayerLootItem(ItemData itemData)
     {
-        if (itemData == null || itemData.category != ItemCategory.Weapon) return true;
+        if (itemData == null) return false;
 
         InventorySystem inventory = GetLocalInventoryCached();
         if (inventory == null) return false;
-        if (inventory.GetWeaponItemCount() >= 2) return false;
-        return !inventory.HasWeapon(itemData.name) && !inventory.HasWeapon(itemData.itemName);
+
+        if (itemData.category == ItemCategory.Weapon)
+        {
+            if (inventory.GetWeaponItemCount() >= 2) return false;
+            return !inventory.HasWeapon(itemData.name) && !inventory.HasWeapon(itemData.itemName);
+        }
+
+        if (itemData.category == ItemCategory.Backpack)
+        {
+            return inventory.CanAcceptBackpackLoot(itemData);
+        }
+
+        return true;
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

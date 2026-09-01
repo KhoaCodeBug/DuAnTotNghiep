@@ -299,13 +299,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         MilitaryRouteVoteUI.Close();
         cinematicController?.StopImmediate();
         escapePresentation?.StopImmediate();
-        nextMilitaryBackpackRewardScanTime = 0f;
     }
 
     public override void FixedUpdateNetwork()
     {
         if (!HasStateAuthority) return;
-        TickMilitaryBackpackRewards();
         TickRepairSkillCheck();
         if (IsMilitaryRouteVoteActive) PruneDisconnectedVoters();
         if (IsMilitaryIntroCinematicActive) LockAllLivingPlayersForCinematic();
@@ -326,41 +324,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         }
 
         if (GovernsRespawn) TickAuthorityAutoRespawn();
-    }
-
-    /// <summary>
-    /// Level 5 is a personal reward for physically entering the military area
-    /// after the hospital mission has been completed. State Authority checks
-    /// the PolygonCollider2D and each player's authoritative object, so a
-    /// client cannot claim it remotely and one player's arrival does not
-    /// silently grant it to teammates still outside the zone.
-    /// </summary>
-    private void TickMilitaryBackpackRewards()
-    {
-        MainQuestManager mainQuest = MainQuestManager.Instance;
-        if (mainQuest == null || !mainQuest.IsNetworkReady ||
-            mainQuest.CurrentStage < MainQuestManager.QuestStage.CityMapFound ||
-            Runner == null || Time.unscaledTime < nextMilitaryBackpackRewardScanTime)
-            return;
-
-        nextMilitaryBackpackRewardScanTime = Time.unscaledTime + 0.25f;
-        ResolveMilitaryAreaTrigger();
-        if (militaryAreaTrigger == null) return;
-
-        foreach (PlayerRef playerRef in Runner.ActivePlayers)
-        {
-            if (!Runner.TryGetPlayerObject(playerRef, out NetworkObject playerObject) ||
-                playerObject == null || !playerObject.IsValid ||
-                !playerObject.TryGetComponent(out PlayerMovement player) ||
-                player == null || !militaryAreaTrigger.OverlapPoint(player.transform.position))
-                continue;
-
-            PlayerHealth health = player.GetComponent<PlayerHealth>();
-            if (health != null && (health.isDead || health.isTransforming)) continue;
-
-            player.GetComponent<InventorySystem>()?.TryGrantQuestBackpackReward(
-                BackpackQuestRewardRules.MilitaryBackpackLevel);
-        }
     }
 
     public override void Render()
@@ -1142,7 +1105,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GrantItem(inventory, "S12K", 1);
         GrantItem(inventory, "Ammo762", 120);
         GrantItem(inventory, "Ammo12Gauge", 60);
-        inventory.AddItem(MilitaryQuestItemCatalog.GetOrCreate(MilitaryQuestItemKind.LevelThreeBackpack), 1);
         RPC_ShowLocalizedQuestMessage("quest.military_armory_open", 0);
     }
 
@@ -1158,10 +1120,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         inventory.AddItem(MilitaryQuestItemCatalog.GetOrCreate(MilitaryQuestItemKind.ArmoryKey), 1);
         GrantItem(inventory, "S12K", 1);
         GrantItem(inventory, "Ammo12Gauge", 24);
-        // The office safe is the first backpack-upgrade reward.  The armory
-        // later grants the military level-3 variant, while ordinary containers
-        // can roll every tier independently.
-        inventory.AddItem(BackpackItemCatalog.GetOrCreate(2), 1);
         IsOfficeSafeClaimed = true;
         RPC_ShowLocalizedQuestMessage("quest.military_safe_open", 0);
     }

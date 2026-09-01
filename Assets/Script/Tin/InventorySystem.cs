@@ -101,6 +101,18 @@ public class InventorySystem : NetworkBehaviour
         }
     }
 
+    public bool CanAcceptBackpackLoot(ItemData backpackItem)
+    {
+        if (backpackItem == null || backpackItem.category != ItemCategory.Backpack) return false;
+        int itemLevel = backpackItem.backpackLevel > 0
+            ? backpackItem.backpackLevel
+            : BackpackCapacityRules.GetLevelForBackpackSlots(BackpackCapacityRules.GetStorageSlots(backpackItem));
+        return itemLevel > CurrentBackpackLevel;
+    }
+
+    public bool HasClaimedQuestBackpackReward(int level) =>
+        BackpackQuestRewardRules.IsClaimed(QuestBackpackRewardClaimMask, level);
+
     public bool EquipBackpack(ItemData backpack)
     {
         if (backpack == null || backpack.category != ItemCategory.Backpack) return false;
@@ -144,14 +156,127 @@ public class InventorySystem : NetworkBehaviour
         SetQuestBackpackRewardClaimMask(
             BackpackQuestRewardRules.MarkClaimed(currentMask, level));
 
-        // If a player already found an equal-or-higher backpack in loot, keep
-        // the quest claim idempotent without silently downgrading their gear.
-        if (currentLevel <= level)
+        // For hospital level 4, notify presentation immediately. For level 5,
+        // presentation is sequenced after the local map reveal closes.
+        if (currentLevel <= level && level != BackpackQuestRewardRules.RadioBackpackLevel)
             NotifyQuestBackpackReward(level, rewardBackpack);
 
         Debug.Log($"[BACKPACK QUEST] Claimed level {level} milestone reward " +
                   $"for {name}; equipped level is now {CurrentBackpackLevel}.");
         return true;
+    }
+
+    private System.Action pendingLevelFiveGrantedCallback;
+
+    public void RequestClaimLevelFiveBackpackReward(System.Action onGranted = null)
+    {
+        if (HasClaimedQuestBackpackReward(BackpackQuestRewardRules.RadioBackpackLevel))
+        {
+            return;
+        }
+
+        if (!IsNetworkObjectReady || HasStateAuthority)
+        {
+            bool granted = TryGrantQuestBackpackReward(BackpackQuestRewardRules.RadioBackpackLevel);
+            if (granted)
+            {
+                onGranted?.Invoke();
+            }
+            return;
+        }
+
+        if (HasInputAuthority && Runner != null)
+        {
+            pendingLevelFiveGrantedCallback = onGranted;
+            RPC_RequestClaimQuestBackpackReward(Runner.LocalPlayer, BackpackQuestRewardRules.RadioBackpackLevel);
+        }
+    }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestClaimQuestBackpackReward(PlayerRef requester, int level, RpcInfo info = default)
+    {
+        if (requester == PlayerRef.None || (info.Source != PlayerRef.None && info.Source != requester))
+        {
+            Debug.LogWarning($"[BACKPACK QUEST] Rejected claim request: source={info.Source}, requested={requester}.");
+            return;
+        }
+
+        if (Object != null && Object.IsValid && Object.InputAuthority != PlayerRef.None && Object.InputAuthority != requester)
+        {
+            Debug.LogWarning($"[BACKPACK QUEST] Rejected claim request: requester={requester} does not match InputAuthority={Object.InputAuthority}.");
+            return;
+        }
+
+        if (!BackpackQuestRewardRules.IsRewardLevel(level)) return;
+
+        if (level == BackpackQuestRewardRules.RadioBackpackLevel)
+        {
+            MainQuestManager mainQuest = MainQuestManager.Instance;
+            if (mainQuest == null || !mainQuest.IsHospitalRadioRecovered)
+            {
+                Debug.LogWarning("[BACKPACK QUEST] Rejected level 5 claim: Radio 3/3 is not recovered yet.");
+                return;
+            }
+        }
+
+        if (TryGrantQuestBackpackReward(level))
+        {
+            RPC_ConfirmQuestBackpackReward(requester, level);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ConfirmQuestBackpackReward([RpcTarget] PlayerRef targetPlayer, int level)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+
+        System.Action callback = pendingLevelFiveGrantedCallback;
+        pendingLevelFiveGrantedCallback = null;
+        callback?.Invoke();
+    }
+
+    private bool hasPendingRadioBackpackHandoffTriggered;
+
+    public void TriggerLateOrPendingRadioBackpackRewardHandoff()
+    {
+        if (hasPendingRadioBackpackHandoffTriggered) return;
+        if (HasClaimedQuestBackpackReward(BackpackQuestRewardRules.RadioBackpackLevel)) return;
+
+        hasPendingRadioBackpackHandoffTriggered = true;
+        StartCoroutine(WaitForMapClosedThenPresentRoutine());
+    }
+
+    private System.Collections.IEnumerator WaitForMapClosedThenPresentRoutine()
+    {
+        while (QuestFlowUIPrototype.Instance != null && QuestFlowUIPrototype.Instance.IsQuestOverlayOpen)
+        {
+            yield return null;
+        }
+
+        MainQuestManager.Instance?.ClaimAndPresentLevelFiveBackpack();
+    }
+
+    public void ReconcileLateJoinRadioBackpackReward()
+    {
+        if (!HasStateAuthority || !IsNetworkObjectReady) return;
+        MainQuestManager mainQuest = MainQuestManager.Instance;
+        if (mainQuest == null || !mainQuest.IsHospitalRadioRecovered) return;
+
+        if (!HasClaimedQuestBackpackReward(BackpackQuestRewardRules.RadioBackpackLevel) &&
+            CurrentBackpackLevel < BackpackQuestRewardRules.RadioBackpackLevel)
+        {
+            if (Object.InputAuthority != PlayerRef.None)
+            {
+                RPC_HandoffPendingRadioBackpackReward(Object.InputAuthority);
+            }
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_HandoffPendingRadioBackpackReward([RpcTarget] PlayerRef targetPlayer)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        TriggerLateOrPendingRadioBackpackRewardHandoff();
     }
 
     public void SetMaxSlots(int newMax)
@@ -278,6 +403,11 @@ public class InventorySystem : NetworkBehaviour
 
         ApplyReplicatedStartingWeapon();
         ApplyReplicatedStartingFlashlight();
+
+        if (HasStateAuthority)
+        {
+            ReconcileLateJoinRadioBackpackReward();
+        }
     }
 
     public override void Render()
@@ -287,6 +417,17 @@ public class InventorySystem : NetworkBehaviour
         ApplyReplicatedBackpackState();
         ApplyReplicatedStartingWeapon();
         ApplyReplicatedStartingFlashlight();
+
+        if (HasInputAuthority && !hasPendingRadioBackpackHandoffTriggered)
+        {
+            MainQuestManager mainQuest = MainQuestManager.Instance;
+            if (mainQuest != null && mainQuest.IsHospitalRadioRecovered &&
+                !HasClaimedQuestBackpackReward(BackpackQuestRewardRules.RadioBackpackLevel) &&
+                CurrentBackpackLevel < BackpackQuestRewardRules.RadioBackpackLevel)
+            {
+                TriggerLateOrPendingRadioBackpackRewardHandoff();
+            }
+        }
     }
 
     private void InitializeReplicatedBackpackState()
@@ -1104,6 +1245,15 @@ public class InventorySystem : NetworkBehaviour
         {
             Debug.LogWarning($"[INVENTORY] Rejected out-of-range pickup '{pickup.item.itemName}'.");
             return;
+        }
+
+        if (pickup.item.category == ItemCategory.Backpack)
+        {
+            if (!CanAcceptBackpackLoot(pickup.item))
+            {
+                Debug.LogWarning($"[INVENTORY] Rejected pickup '{pickup.item.itemName}': player already has equal or higher backpack level.");
+                return;
+            }
         }
 
         // Item identity and quantity come only from the server-owned pickup.

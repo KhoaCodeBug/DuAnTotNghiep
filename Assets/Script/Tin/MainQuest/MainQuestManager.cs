@@ -85,8 +85,6 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Header("Hospital Radio restoration")]
     [Tooltip("Thời gian một hoặc nhiều người chơi cần giữ E tổng cộng để phục hồi tín hiệu.")]
     [SerializeField, Min(1f)] private float hospitalRadioRestoreDuration = 14f;
-    [Tooltip("Chỉ người chơi ở gần Radio khi phục hồi xong mới nghe bản ghi; transcript vẫn lưu cho cả đội.")]
-    [SerializeField, Min(1f)] private float hospitalRadioHearingDistance = 8f;
     [Tooltip("Bán kính tiếng nhiễu ở hai mốc đầu thu hút zombie đang có quanh bệnh viện.")]
     [SerializeField, Min(1f)] private float hospitalRadioNoiseRadius = 28f;
     [SerializeField, Min(0.05f)] private float hospitalRadioZombieSpawnDelay = 0.25f;
@@ -1743,8 +1741,6 @@ public sealed class MainQuestManager : NetworkBehaviour
             if (player == null || player.Object == null || !player.Object.IsValid || !IsLivingPlayer(player)) continue;
             PlayerRef target = player.Object.InputAuthority;
             if (target == PlayerRef.None || notified.Contains(target)) continue;
-            if (target != completedBy &&
-                Vector2.Distance(player.transform.position, radioPosition) > hospitalRadioHearingDistance) continue;
             notified.Add(target);
             RPC_PlayHospitalRadioRecording(target, target == completedBy);
         }
@@ -2759,37 +2755,103 @@ public sealed class MainQuestManager : NetworkBehaviour
             "Đã mở toàn bộ hai vùng bản đồ Bệnh viện và Quân sự.");
     }
 
+    private bool isMilitaryMapRewardSequenceRunning;
+
     private void HandleMilitaryMapFragmentFound(bool introduceRouteChoice)
     {
+        if (isMilitaryMapRewardSequenceRunning) return;
+        isMilitaryMapRewardSequenceRunning = true;
+
         QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
         flow?.QueueMilitaryMapUnlockReveal();
-        AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
-            "Phát hiện manh mối mới - bấm M để kiểm tra");
-        ShowLocalQuestEvent("MẢNH BẢN ĐỒ 2", "Vị trí căn cứ quân sự đã được ghi vào bản đồ.");
-        if (!introduceRouteChoice || LockedEscapeRoute != EscapeEndingRoute.None) return;
-        RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
-            EscapeRouteDecisionUI.ShowPreMilitaryChoice);
-    }
 
-    private void ContinueMilitaryMapReveal(QuestFlowUIPrototype flow)
-    {
         if (LockedEscapeRoute != EscapeEndingRoute.None)
         {
+            isMilitaryMapRewardSequenceRunning = false;
             CloseStaleRouteIntroduction(flow);
+            ClaimAndPresentLevelFiveBackpack();
             return;
         }
 
-        flow.PlayMilitaryMapReveal(() =>
+        if (flow != null)
+        {
+            flow.PlayMilitaryMapRewardAfterDialogue(() =>
+            {
+                if (LockedEscapeRoute != EscapeEndingRoute.None)
+                {
+                    isMilitaryMapRewardSequenceRunning = false;
+                    CloseStaleRouteIntroduction(flow);
+                    ClaimAndPresentLevelFiveBackpack();
+                    return;
+                }
+
+                flow.PlayMilitaryMapReveal(() =>
+                {
+                    isMilitaryMapRewardSequenceRunning = false;
+                    OnMilitaryMapSequenceComplete(introduceRouteChoice);
+                });
+            });
+        }
+        else
+        {
+            isMilitaryMapRewardSequenceRunning = false;
+            OnMilitaryMapSequenceComplete(introduceRouteChoice);
+        }
+    }
+
+    private void OnMilitaryMapSequenceComplete(bool introduceRouteChoice)
+    {
+        AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
+            "Phát hiện manh mối mới - bấm M để kiểm tra");
+        ShowLocalQuestEvent("MẢNH BẢN ĐỒ 2", "Vị trí căn cứ quân sự đã được ghi vào bản đồ.");
+
+        ClaimAndPresentLevelFiveBackpack(() =>
+        {
+            if (introduceRouteChoice && LockedEscapeRoute == EscapeEndingRoute.None)
+            {
+                RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
+                    EscapeRouteDecisionUI.ShowPreMilitaryChoice);
+            }
+        });
+    }
+
+    public void ClaimAndPresentLevelFiveBackpack(System.Action onComplete = null)
+    {
+        PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+        InventorySystem inventory = localPlayer != null ? localPlayer.GetComponent<InventorySystem>() : null;
+        ItemData backpack = BackpackItemCatalog.GetOrCreate(BackpackQuestRewardRules.RadioBackpackLevel);
+
+        if (inventory != null && inventory.HasClaimedQuestBackpackReward(BackpackQuestRewardRules.RadioBackpackLevel))
+        {
+            onComplete?.Invoke();
+            return;
+        }
+
+        void StartBackpackPresentation()
         {
             if (LockedEscapeRoute != EscapeEndingRoute.None)
             {
-                CloseStaleRouteIntroduction(flow);
+                onComplete?.Invoke();
                 return;
             }
-            BeginLocalMilitaryReveal(
-                () => RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
-                    EscapeRouteDecisionUI.ShowPreMilitaryChoice));
-        });
+
+            BackpackQuestRewardPresentation.Show(BackpackQuestRewardRules.RadioBackpackLevel, backpack, () =>
+            {
+                string notif = GameLocalization.Get("backpack.quest.level5.upgraded", "Đã nâng cấp lên balo cấp 5.");
+                AutoChatManager.Instance?.AddMessage("BALO CẤP 5", notif);
+                ShowLocalQuestEvent("BALO CẤP 5", notif);
+                onComplete?.Invoke();
+            });
+        }
+
+        if (inventory != null)
+        {
+            inventory.RequestClaimLevelFiveBackpackReward(StartBackpackPresentation);
+        }
+        else
+        {
+            StartBackpackPresentation();
+        }
     }
 
     private static void CloseStaleRouteIntroduction(QuestFlowUIPrototype flow)

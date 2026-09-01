@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using NUnit.Framework;
+using UnityEngine;
 
 public sealed class HospitalRadioRoomRulesTests
 {
@@ -203,5 +204,105 @@ public sealed class HospitalRadioRoomRulesTests
             if (rpcAttributes[i].GetType().FullName == "Fusion.RpcAttribute") hasRpcContract = true;
         Assert.That(hasRpcContract, Is.True,
             "Clients must request key pickup through a Fusion RPC validated by State Authority.");
+    }
+
+    [Test]
+    public void RadioThreeOfThreeMapsToLevelFiveQuestMilestoneReward()
+    {
+        Type rulesType = Type.GetType("BackpackQuestRewardRules, Assembly-CSharp");
+        Assert.That(rulesType, Is.Not.Null);
+        Type milestoneType = Type.GetType("BackpackQuestRewardMilestone, Assembly-CSharp");
+        Assert.That(milestoneType, Is.Not.Null);
+
+        object radioMilestone = Enum.Parse(milestoneType, "RadioRestoration");
+        MethodInfo getRewardLevel = rulesType.GetMethod("GetRewardLevel", BindingFlags.Public | BindingFlags.Static);
+        Assert.That((int)getRewardLevel.Invoke(null, new[] { radioMilestone }), Is.EqualTo(5));
+
+        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
+        Assert.That(inventoryType, Is.Not.Null);
+        MethodInfo claimMethod = inventoryType.GetMethod("RequestClaimLevelFiveBackpackReward",
+            BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(claimMethod, Is.Not.Null,
+            "InventorySystem must provide a durable per-player request method for the level 5 reward.");
+    }
+
+    [Test]
+    public void EveryActivePlayerGetsPendingLevelFiveClaim_AndForeignPlayerClaimIsRejected()
+    {
+        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
+        Assert.That(inventoryType, Is.Not.Null);
+
+        GameObject p1Host = new GameObject("Player 1");
+        GameObject p2Host = new GameObject("Player 2");
+        try
+        {
+            Component inv1 = p1Host.AddComponent(inventoryType);
+            Component inv2 = p2Host.AddComponent(inventoryType);
+
+            MethodInfo tryGrant = inventoryType.GetMethod("TryGrantQuestBackpackReward",
+                BindingFlags.Public | BindingFlags.Instance);
+            MethodInfo hasClaimed = inventoryType.GetMethod("HasClaimedQuestBackpackReward",
+                BindingFlags.Public | BindingFlags.Instance);
+
+            // Initially neither player has claimed level 5
+            Assert.That((bool)hasClaimed.Invoke(inv1, new object[] { 5 }), Is.False);
+            Assert.That((bool)hasClaimed.Invoke(inv2, new object[] { 5 }), Is.False);
+
+            // Player 1 claims their reward
+            Assert.That((bool)tryGrant.Invoke(inv1, new object[] { 5 }), Is.True);
+            Assert.That((bool)hasClaimed.Invoke(inv1, new object[] { 5 }), Is.True);
+            Assert.That((bool)hasClaimed.Invoke(inv2, new object[] { 5 }), Is.False,
+                "Player 1's claim must not prematurely mark Player 2's milestone as claimed.");
+
+            // Player 2 claims their independent reward
+            Assert.That((bool)tryGrant.Invoke(inv2, new object[] { 5 }), Is.True);
+            Assert.That((bool)hasClaimed.Invoke(inv2, new object[] { 5 }), Is.True);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(p1Host);
+            UnityEngine.Object.DestroyImmediate(p2Host);
+        }
+    }
+
+    [Test]
+    public void LateJoinOrReconnectingPlayer_ReceivesPendingClaimHandoff_AndClaimsAuthoritativelyOnce()
+    {
+        Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
+        Assert.That(inventoryType, Is.Not.Null);
+
+        GameObject lateJoinerHost = new GameObject("Late Joiner");
+        try
+        {
+            Component inv = lateJoinerHost.AddComponent(inventoryType);
+            MethodInfo triggerHandoff = inventoryType.GetMethod("TriggerLateOrPendingRadioBackpackRewardHandoff",
+                BindingFlags.Public | BindingFlags.Instance);
+            MethodInfo tryGrant = inventoryType.GetMethod("TryGrantQuestBackpackReward",
+                BindingFlags.Public | BindingFlags.Instance);
+            MethodInfo hasClaimed = inventoryType.GetMethod("HasClaimedQuestBackpackReward",
+                BindingFlags.Public | BindingFlags.Instance);
+            MethodInfo requestClaim = inventoryType.GetMethod("RequestClaimLevelFiveBackpackReward",
+                BindingFlags.Public | BindingFlags.Instance);
+
+            Assert.That(triggerHandoff, Is.Not.Null, "InventorySystem must expose a durable late-join/reconnect handoff.");
+
+            // Late joiner starts unclaimed
+            Assert.That((bool)hasClaimed.Invoke(inv, new object[] { 5 }), Is.False);
+
+            // First claim execution
+            int presentationCount = 0;
+            Action callback = () => { presentationCount++; };
+            requestClaim.Invoke(inv, new object[] { callback });
+            Assert.That(presentationCount, Is.EqualTo(1));
+            Assert.That((bool)hasClaimed.Invoke(inv, new object[] { 5 }), Is.True);
+
+            // Reconnecting/replaying after claim is already recorded
+            requestClaim.Invoke(inv, new object[] { callback });
+            Assert.That(presentationCount, Is.EqualTo(1), "Recorded claim must never re-invoke presentation callback.");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(lateJoinerHost);
+        }
     }
 }
