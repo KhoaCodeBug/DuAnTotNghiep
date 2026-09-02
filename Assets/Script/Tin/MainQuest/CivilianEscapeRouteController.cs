@@ -137,7 +137,7 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
                 fontSize = 16,
                 fontStyle = FontStyle.Bold
             };
-            string countdown = $"Bắt đầu đếm ngược rời thành phố: {Mathf.CeilToInt(forceGatherTimer)}s...";
+            string countdown = string.Format(GameLocalization.Get("quest.civilian.countdown"), Mathf.CeilToInt(forceGatherTimer));
             GUI.Box(new Rect(Screen.width * 0.5f - 260f, 72f, 520f, 42f), countdown, countdownStyle);
         }
 
@@ -149,8 +149,8 @@ public sealed class CivilianEscapeRouteController : MonoBehaviour
             fontStyle = FontStyle.Bold
         };
         string prompt = localTeamReady
-            ? "[E]  BẮT ĐẦU VƯỢT VÒNG PHONG TỎA  •  ĐIỂM KHÔNG THỂ QUAY LẠI"
-            : "CHỜ CÁC THÀNH VIÊN CÒN SỐNG TẬP KẾT GẦN XE";
+            ? GameLocalization.Get("quest.civilian.prompt_drive")
+            : GameLocalization.Get("quest.civilian.prompt_wait_team");
         Rect promptRect = GameplayHudLayout.GetBottomCenterPromptRect(620f, 42f);
         GUI.Box(promptRect, prompt, style);
     }

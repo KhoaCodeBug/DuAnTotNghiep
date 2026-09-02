@@ -13,7 +13,8 @@ public sealed class QuestSearchBoundaryBlocker : MonoBehaviour
     {
         if (Time.unscaledTime < nextWarningTime || other.GetComponentInParent<PlayerMovement>() == null) return;
         nextWarningTime = Time.unscaledTime + 2.5f;
-        AutoChatManager.Instance?.AddMessage("GIỚI HẠN KHU VỰC",
-            "Phía ngoài chưa an toàn. Hãy tìm manh mối trong khu được đánh dấu trên bản đồ.");
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.Get("quest.boundary.sender"),
+            GameLocalization.Get("quest.boundary.warning"));
     }
 }

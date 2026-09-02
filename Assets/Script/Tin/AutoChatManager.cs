@@ -43,6 +43,9 @@ public class AutoChatManager : MonoBehaviour
     private ScrollRect scrollRect;
     private RectTransform chatPanelRt;
     private Image vpBg;
+    private const int MaxHistoryLines = 30;
+    private const int MaxHistoryCharacters = 1200;
+    private readonly System.Collections.Generic.List<string> messageHistory = new System.Collections.Generic.List<string>();
     private static readonly System.Collections.Generic.List<string> PendingPreloadMessages = new System.Collections.Generic.List<string>();
 
     // ========================= CẤU HÌNH =========================
@@ -96,12 +99,16 @@ public class AutoChatManager : MonoBehaviour
     void OnDestroy()
     {
         if (instance == this) instance = null;
+        messageHistory.Clear();
+        PendingPreloadMessages.Clear();
     }
 
     public static void ResetForTests()
     {
+        PendingPreloadMessages.Clear();
         if (instance != null)
         {
+            instance.messageHistory.Clear();
             if (instance.gameObject != null)
             {
                 if (Application.isPlaying) Destroy(instance.gameObject);
@@ -630,6 +637,8 @@ public class AutoChatManager : MonoBehaviour
         if (chatHistory == null)
         {
             PendingPreloadMessages.Add(formatted);
+            if (PendingPreloadMessages.Count > MaxHistoryLines)
+                PendingPreloadMessages.RemoveAt(0);
             return;
         }
 
@@ -647,6 +656,8 @@ public class AutoChatManager : MonoBehaviour
         if (chatHistory == null)
         {
             PendingPreloadMessages.Add(formatted);
+            if (PendingPreloadMessages.Count > MaxHistoryLines)
+                PendingPreloadMessages.RemoveAt(0);
             return;
         }
 
@@ -670,14 +681,33 @@ public class AutoChatManager : MonoBehaviour
     {
         if (chatHistory == null) return;
 
-        // Chống phình RAM: Cắt bớt lịch sử cũ khi quá dài
-        if (chatHistory.text.Length > 3000)
-            chatHistory.text = chatHistory.text.Substring(chatHistory.text.Length - 1500);
+        if (messageHistory.Count == 0 && !string.IsNullOrEmpty(chatHistory.text))
+        {
+            string[] existing = chatHistory.text.Split('\n');
+            for (int i = 0; i < existing.Length; i++)
+            {
+                if (!string.IsNullOrEmpty(existing[i]))
+                    messageHistory.Add(existing[i]);
+            }
+        }
 
-        if (string.IsNullOrEmpty(chatHistory.text))
-            chatHistory.text = formattedLine;
-        else
-            chatHistory.text += "\n" + formattedLine;
+        messageHistory.Add(formattedLine);
+        while (messageHistory.Count > MaxHistoryLines)
+        {
+            messageHistory.RemoveAt(0);
+        }
+
+        int totalChars = 0;
+        for (int i = 0; i < messageHistory.Count; i++)
+            totalChars += messageHistory[i].Length + 1;
+
+        while (totalChars > MaxHistoryCharacters && messageHistory.Count > 1)
+        {
+            totalChars -= (messageHistory[0].Length + 1);
+            messageHistory.RemoveAt(0);
+        }
+
+        chatHistory.text = string.Join("\n", messageHistory);
 
         if (IsRewardSuppressed)
         {
@@ -701,7 +731,18 @@ public class AutoChatManager : MonoBehaviour
             }
         }
 
-        Canvas.ForceUpdateCanvases();
+        if (isActiveAndEnabled && gameObject.activeInHierarchy)
+        {
+            try
+            {
+                Canvas.ForceUpdateCanvases();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AutoChatManager] Canvas update warning: {ex.Message}");
+            }
+        }
+
         if (scrollRect != null)
             scrollRect.verticalNormalizedPosition = 0f;
     }

@@ -54,7 +54,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
             instance.station?.CloseInspectionForMinigame();
             instance.state = PanelState.Minigame;
             instance.BeginLocalPresentation();
-            instance.statusMessage = "BẮT ĐẦU SỬA XE";
+            instance.statusMessage = GameLocalization.Get("quest.skill_check.start");
         }
         else
         {
@@ -71,9 +71,9 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
         if (instance == null) return;
         instance.statusMessage = result switch
         {
-            VehicleRepairSkillCheckResult.Perfect => "PERFECT  +7%",
-            VehicleRepairSkillCheckResult.Success => "THÀNH CÔNG  +3.5%",
-            _ => "TRƯỢT  -2%  •  TẠM DỪNG 1 GIÂY"
+            VehicleRepairSkillCheckResult.Perfect => GameLocalization.Get("quest.skill_check.perfect"),
+            VehicleRepairSkillCheckResult.Success => GameLocalization.Get("quest.skill_check.success"),
+            _ => GameLocalization.Get("quest.skill_check.miss")
         };
         instance.statusUntil = Time.unscaledTime + 1.35f;
     }
@@ -99,7 +99,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
     public static void NotifyCompleted(PoliceCarRepairAction action, bool allComplete)
     {
         if (instance == null) return;
-        instance.statusMessage = allComplete ? "ĐÃ HOÀN TẤT ĐỦ 5 HẠNG MỤC" : "HẠNG MỤC SỬA CHỮA HOÀN TẤT";
+        instance.statusMessage = allComplete ? GameLocalization.Get("quest.skill_check.all_done") : GameLocalization.Get("quest.skill_check.item_done");
         instance.statusUntil = Time.unscaledTime + 3f;
         instance.EndLocalPresentation();
         instance.state = PanelState.Closed;
@@ -159,7 +159,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
             manager.RequestCancelRepairSkillCheck();
             EndLocalPresentation();
             state = PanelState.Closed;
-            station?.ReopenInspection("ĐÃ DỪNG SỬA. TIẾN ĐỘ HẠNG MỤC ĐƯỢC GIỮ LẠI.");
+            station?.ReopenInspection(GameLocalization.Get("quest.skill_check.stopped_saved"));
             return;
         }
 
@@ -239,12 +239,12 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
             if (ringTexture != null) GUI.DrawTexture(ring, ringTexture, ScaleMode.StretchToFill, true);
             DrawNeedle(ring, CurrentNeedleAngle());
             GUI.Label(new Rect(ring.x, ring.y + ring.height + 4f, ring.width, promptHeight),
-                "SPACE  CANH THỜI ĐIỂM", CenteredStyle(Mathf.Max(8, Mathf.RoundToInt(16f * uiScale)),
+                GameLocalization.Get("quest.skill_check.space_hint"), CenteredStyle(Mathf.Max(8, Mathf.RoundToInt(16f * uiScale)),
                     FontStyle.Bold));
         }
         else
         {
-            GUI.Label(ring, manager.RepairPenaltyRemaining > 0f ? "ĐANG KHẮC PHỤC..." : "CHUẨN BỊ SKILL-CHECK",
+            GUI.Label(ring, manager.RepairPenaltyRemaining > 0f ? GameLocalization.Get("quest.skill_check.recovering") : GameLocalization.Get("quest.skill_check.preparing"),
                 CenteredStyle(Mathf.Max(9, Mathf.RoundToInt(20f * uiScale)), FontStyle.Bold));
         }
 
@@ -252,7 +252,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
         DrawProgressBar(new Rect((Screen.width - barWidth) * 0.5f, barY, barWidth, barHeight),
             manager.RepairSkillCheckProgress, Mathf.Max(8, Mathf.RoundToInt(14f * uiScale)));
         GUI.Label(new Rect(10f, barY + barHeight + 2f, Screen.width - 20f, footerHeight),
-            "ESC  RỜI SỬA  •  TIẾN ĐỘ ĐƯỢC GIỮ LẠI",
+            GameLocalization.Get("quest.skill_check.esc_hint"),
             CenteredStyle(Mathf.Max(8, Mathf.RoundToInt(12f * uiScale)), FontStyle.Bold));
     }
 
@@ -322,7 +322,7 @@ public sealed class VehicleRepairSkillCheckUI : MonoBehaviour
         GUI.DrawTexture(new Rect(rect.x + 4f, rect.y + 4f,
             (rect.width - 8f) * Mathf.Clamp01(progress / 100f), rect.height - 8f), Texture2D.whiteTexture);
         GUI.color = old;
-        GUI.Label(rect, $"TIẾN ĐỘ SỬA  {progress:0.0}%", CenteredStyle(fontSize, FontStyle.Bold));
+        GUI.Label(rect, string.Format(GameLocalization.Get("quest.skill_check.progress_bar"), progress), CenteredStyle(fontSize, FontStyle.Bold));
     }
 
     private static void DrawScreenDim()

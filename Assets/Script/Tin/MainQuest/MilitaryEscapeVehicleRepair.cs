@@ -144,7 +144,7 @@ public sealed class MilitaryEscapeVehicleRepair : MonoBehaviour
             GUI.color = new Color(0.22f, 0.85f, 0.42f);
             GUI.DrawTexture(new Rect(bar.x + 3f, bar.y + 3f, width, bar.height - 6f), Texture2D.whiteTexture);
             GUI.color = previous;
-            GUI.Label(bar, $"SỬA XE  {manager.VehicleRepairProgress:0}%", style);
+            GUI.Label(bar, string.Format(GameLocalization.Get("quest.military.repair_progress_label"), Mathf.RoundToInt(manager.VehicleRepairProgress)), style);
         }
     }
 
@@ -154,24 +154,25 @@ public sealed class MilitaryEscapeVehicleRepair : MonoBehaviour
         {
             case MilitaryBaseQuestManager.Phase.NotReached:
             case MilitaryBaseQuestManager.Phase.Investigating:
-                return "[E]  KIỂM TRA XE QUÂN SỰ";
+                return GameLocalization.Get("quest.military.prompt_inspect_vehicle");
             case MilitaryBaseQuestManager.Phase.SiegeAndRepair:
                 if (!manager.HasAllParts)
-                    return "[E]  LẮP PHỤ TÙNG  •  " + GetPartStatus();
+                    return string.Format(GameLocalization.Get("quest.military.prompt_install_parts"), GetPartStatus());
                 return interruptedUntilKeyRelease
-                    ? "THẢ [E] RỒI GIỮ LẠI ĐỂ TIẾP TỤC SỬA"
-                    : "GIỮ [E]  SỬA XE";
+                    ? GameLocalization.Get("quest.military.prompt_resume_repair")
+                    : GameLocalization.Get("quest.military.prompt_hold_repair");
             case MilitaryBaseQuestManager.Phase.ReadyToEscape:
-                return "[E]  TẬP HỢP ĐỘI VÀ THOÁT KHỎI CĂN CỨ";
+                return GameLocalization.Get("quest.military.prompt_escape_base");
             default:
                 return string.Empty;
         }
     }
 
     private string GetPartStatus() =>
-        $"Ắc quy {(manager.HasBatteryInstalled ? "■" : "□")}  " +
-        $"Nhiên liệu {(manager.HasFuelInstalled ? "■" : "□")}  " +
-        $"Bộ sửa {(manager.HasRepairKitInstalled ? "■" : "□")}";
+        string.Format(GameLocalization.Get("quest.military.repair_parts_status"),
+            manager.HasBatteryInstalled ? "■" : "□",
+            manager.HasFuelInstalled ? "■" : "□",
+            manager.HasRepairKitInstalled ? "■" : "□");
 
     private bool IsLocalPlayerNear()
     {

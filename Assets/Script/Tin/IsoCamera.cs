@@ -23,6 +23,11 @@ public class PZ_CameraController : MonoBehaviour
         Instance = this;
     }
 
+    private void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     [Header("--- PZ Camera Panning ---")]
     public float smoothFollow = 0.12f;
     public float maxLookAhead = 6f;
@@ -43,7 +48,7 @@ public class PZ_CameraController : MonoBehaviour
 
     public void SetTarget(Transform targetTransform)
     {
-        if (targetTransform == null) return;
+        if (this == null || !gameObject || targetTransform == null) return;
         player = targetTransform;
         hasTarget = true;
         isSpectatingMode = false;
@@ -54,6 +59,7 @@ public class PZ_CameraController : MonoBehaviour
 
     public void SpectateTarget(Transform targetTransform)
     {
+        if (this == null || !gameObject) return;
         player = targetTransform;
         hasTarget = targetTransform != null;
         isSpectatingMode = targetTransform != null;

@@ -35,7 +35,7 @@ public class AutoNoiseMeter : MonoBehaviour
     private float pulseTimer;
     private float heardVoiceTimer;
     private float sourceTimer;
-    private string sourceName = "YÊN LẶNG";
+    private string sourceName;
     private bool tutorialHighlight;
 
     public static void SetMovementNoise(bool isMoving, bool isRunning, bool isCrouching)
@@ -76,16 +76,42 @@ public class AutoNoiseMeter : MonoBehaviour
         }
 
         instance = this;
+        sourceName = GameLocalization.Get("noise.silent");
         BuildUi();
+    }
+
+    private void OnEnable()
+    {
+        GameLocalization.LanguageChanged += OnLanguageChanged;
+        RefreshLanguage();
+    }
+
+    private void OnDisable()
+    {
+        GameLocalization.LanguageChanged -= OnLanguageChanged;
     }
 
     private void OnDestroy()
     {
+        GameLocalization.LanguageChanged -= OnLanguageChanged;
         if (canvasObject != null && canvasObject.TryGetComponent<Canvas>(out var c))
         {
             GameplayReadinessCoordinator.UnregisterGameplayCanvas(c);
         }
         if (instance == this) instance = null;
+    }
+
+    private void OnLanguageChanged()
+    {
+        RefreshLanguage();
+    }
+
+    private void RefreshLanguage()
+    {
+        if (title != null)
+            title.text = GameLocalization.Get("noise.title");
+        if (sourceLabel != null && sourceTimer <= 0f)
+            sourceLabel.text = GameLocalization.Get("noise.silent");
     }
 
     private GameObject canvasObject;
@@ -226,9 +252,12 @@ public class AutoNoiseMeter : MonoBehaviour
 
     private void UpdateVisuals()
     {
+        if (segments == null) return;
+
         int activeSegments = Mathf.CeilToInt(displayedNoise * SegmentCount);
-        for (int i = 0; i < SegmentCount; i++)
+        for (int i = 0; i < SegmentCount && i < segments.Length; i++)
         {
+            if (segments[i] == null) continue;
             Color color = GetSegmentColor(i / (float)(SegmentCount - 1));
             bool active = i < activeSegments;
             float pulse = pulseTimer > 0f ? 0.18f : 0f;
@@ -239,18 +268,29 @@ public class AutoNoiseMeter : MonoBehaviour
         Color levelColor = GetSegmentColor(Mathf.Clamp01(displayedNoise));
         bool heardVoice = heardVoiceTimer > 0f;
         float tutorialPulse = tutorialHighlight ? 0.5f + Mathf.PingPong(Time.unscaledTime * 2.4f, 0.5f) : 0f;
-        border.color = tutorialHighlight
-            ? new Color(1f, 0.82f, 0.12f, tutorialPulse)
-            : heardVoice
-            ? new Color(0.15f, 0.85f, 1f, 0.65f)
-            : new Color(levelColor.r, levelColor.g, levelColor.b, 0.18f + (pulseTimer > 0f ? 0.3f : 0f));
-        panel.color = heardVoice
-            ? new Color(0.025f, 0.08f, 0.1f, 0.94f)
-            : new Color(0.025f, 0.035f, 0.045f, 0.9f);
 
-        sourceLabel.text = heardVoice ? GameLocalization.Get("noise.voice")
-            : (sourceTimer > 0f ? sourceName : GameLocalization.Get("noise.silent"));
-        sourceLabel.color = heardVoice ? new Color(0.4f, 0.9f, 1f, 1f) : levelColor;
+        if (border != null)
+        {
+            border.color = tutorialHighlight
+                ? new Color(1f, 0.82f, 0.12f, tutorialPulse)
+                : heardVoice
+                ? new Color(0.15f, 0.85f, 1f, 0.65f)
+                : new Color(levelColor.r, levelColor.g, levelColor.b, 0.18f + (pulseTimer > 0f ? 0.3f : 0f));
+        }
+
+        if (panel != null)
+        {
+            panel.color = heardVoice
+                ? new Color(0.025f, 0.08f, 0.1f, 0.94f)
+                : new Color(0.025f, 0.035f, 0.045f, 0.9f);
+        }
+
+        if (sourceLabel != null)
+        {
+            sourceLabel.text = heardVoice ? GameLocalization.Get("noise.voice")
+                : (sourceTimer > 0f ? sourceName : GameLocalization.Get("noise.silent"));
+            sourceLabel.color = heardVoice ? new Color(0.4f, 0.9f, 1f, 1f) : levelColor;
+        }
     }
 
     private Color GetSegmentColor(float t)
