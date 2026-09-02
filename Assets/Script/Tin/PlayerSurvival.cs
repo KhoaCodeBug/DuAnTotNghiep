@@ -45,6 +45,7 @@ public class PlayerSurvival : NetworkBehaviour
 
     private string sleepStatusMessage;
     private float sleepStatusMessageUntil;
+    public bool HasActiveSleepStatusMessage => !string.IsNullOrEmpty(sleepStatusMessage) && Time.unscaledTime < sleepStatusMessageUntil;
 
     public bool IsSleepInputLocked => IsWaitingForSleep ||
                                       (DayNightManager.Instance != null && DayNightManager.Instance.IsSleepTransitionActive) ||

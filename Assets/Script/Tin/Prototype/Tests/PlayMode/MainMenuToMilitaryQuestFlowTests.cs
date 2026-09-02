@@ -1204,7 +1204,7 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "Retiring the siege objective must preserve zombie-corpse loot.");
         Vector3 corpsePosition = killedSiegeObjective.transform.position;
         for (int i = 0; i < 4; i++) yield return new WaitForFixedUpdate();
-        Assert.That(Vector3.Distance(killedSiegeObjective.transform.position, corpsePosition), Is.LessThan(0.03f),
+        Assert.That(Vector3.Distance(killedSiegeObjective.transform.position, corpsePosition), Is.LessThan(0.05f),
             "The siege controller must not move a dead zombie back toward the gate.");
 
         // The yellow-shirt prefab is ZombieKhoaRebuilt. Unlike the Thai

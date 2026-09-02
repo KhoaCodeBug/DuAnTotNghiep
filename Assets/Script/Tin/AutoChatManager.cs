@@ -43,6 +43,8 @@ public class AutoChatManager : MonoBehaviour
     private ScrollRect scrollRect;
     private RectTransform chatPanelRt;
     private Image vpBg;
+    public const string PrefsKeyPosX = "Chat_PosX";
+    public const string PrefsKeyPosY = "Chat_PosY";
     private const int MaxHistoryLines = 30;
     private const int MaxHistoryCharacters = 1200;
     private readonly System.Collections.Generic.List<string> messageHistory = new System.Collections.Generic.List<string>();
@@ -56,6 +58,7 @@ public class AutoChatManager : MonoBehaviour
     private float fadeTimer = 0f;
     private bool  isTyping  = false;
     private bool  justClosed = false;
+    private int dragFocusGuardUntilFrame = -1;
 
     // ========================= SỰ KIỆN (Cho PlayerInputHandler2D) =========================
     public delegate void OnSendMessage(string message);
@@ -101,6 +104,13 @@ public class AutoChatManager : MonoBehaviour
         if (instance == this) instance = null;
         messageHistory.Clear();
         PendingPreloadMessages.Clear();
+    }
+
+    void OnDisable()
+    {
+        isTyping = false;
+        justClosed = false;
+        dragFocusGuardUntilFrame = -1;
     }
 
     public static void ResetForTests()
@@ -319,6 +329,17 @@ public class AutoChatManager : MonoBehaviour
         panel.pivot = new Vector2(0, 0);
         chatPanelRt = panel;
 
+        // Khôi phục vị trí người chơi đã lưu từ PlayerPrefs nếu có
+        if (PlayerPrefs.HasKey(PrefsKeyPosX) && PlayerPrefs.HasKey(PrefsKeyPosY))
+        {
+            panel.anchoredPosition = new Vector2(
+                PlayerPrefs.GetFloat(PrefsKeyPosX),
+                PlayerPrefs.GetFloat(PrefsKeyPosY));
+        }
+        ClampChatPanelPosition();
+
+        Debug.Log($"[CHAT-DIAG] BuildChatUI: canvas active={canvasGo.activeInHierarchy}, sortingOrder={canvas.sortingOrder}, panelPos={panel.anchoredPosition}");
+
         chatGroup = panel.gameObject.AddComponent<CanvasGroup>();
         chatGroup.alpha           = 0f;
         chatGroup.blocksRaycasts  = false;
@@ -341,9 +362,9 @@ public class AutoChatManager : MonoBehaviour
         // Viewport
         var viewport = MakeRectStretch("Viewport", scrollGo.transform);
         vpBg         = viewport.gameObject.AddComponent<Image>();
-        vpBg.color   = new Color(0f, 0f, 0f, 0.45f);
+        vpBg.color   = new Color(0f, 0f, 0f, 0f);
         var mask     = viewport.gameObject.AddComponent<Mask>();
-        mask.showMaskGraphic = true;
+        mask.showMaskGraphic = false;
         scrollRect.viewport  = viewport;
 
         var draggable = viewport.gameObject.AddComponent<UIDraggable>();
@@ -427,6 +448,8 @@ public class AutoChatManager : MonoBehaviour
         inputText.alignment       = TextAnchor.MiddleLeft;
         inputText.supportRichText = false;
         chatInput.textComponent   = inputText;
+        chatInput.characterLimit  = 120;
+        chatInput.lineType        = InputField.LineType.SingleLine;
 
         // 🔥 Móc sự kiện onEndEdit: Unity tự động gọi khi kết thúc nhập (Enter, ESC hoặc click ra ngoài)
         chatInput.onEndEdit.AddListener(OnChatEndEdit);
@@ -477,17 +500,7 @@ public class AutoChatManager : MonoBehaviour
             CloseChat();
         }
 
-        // 3. Logic phát sáng, kéo thả & tự động làm mờ khi di chuột
-        bool isDragging = false;
-        if (chatPanelRt != null)
-        {
-            var draggable = chatPanelRt.GetComponentInChildren<UIDraggable>();
-            if (draggable != null && draggable.IsDragging)
-            {
-                isDragging = true;
-            }
-        }
-
+        // 3. Logic hiển thị kiểu LMHT: tin đến chỉ hiện chữ; nền và raycast chỉ bật khi nhập.
         if (IsRewardSuppressed)
         {
             if (chatGroup != null)
@@ -508,27 +521,24 @@ public class AutoChatManager : MonoBehaviour
 
         if (chatGroup != null)
         {
-            // NẾU ĐANG GÕ CHỮ HOẶC ĐANG KÉO: Reset thời gian mờ và sáng hẳn lên
-            if (isTyping || isDragging)
+            // Khi đang gõ hoặc vừa kéo panel: hiện nền, nhận input và giữ focus.
+            if (isTyping)
             {
-                chatGroup.alpha = 1f;
-                chatGroup.blocksRaycasts = true;
+                ApplyEditingVisuals();
                 fadeTimer = SHOW_DURATION;
-                if (vpBg != null) vpBg.color = new Color(0.08f, 0.08f, 0.08f, 0.9f);
             }
             else if (fadeTimer > 0f)
             {
-                // Khi có tin nhắn đến: Duy trì alpha = 1f trong suốt thời gian fadeTimer (6s)
+                // Khi có tin nhắn đến (chuẩn LoL): Duy trì chữ alpha = 1f, nền trong suốt 100%, không chặn chuột
                 chatGroup.alpha = 1f;
-                chatGroup.blocksRaycasts = false;
+                ApplyTextOnlyVisuals();
                 fadeTimer -= Time.deltaTime;
-                if (vpBg != null) vpBg.color = new Color(0f, 0f, 0f, 0.45f);
             }
             else
             {
                 // Hết thời gian hiển thị -> Làm mờ dần về 0
                 chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
-                chatGroup.blocksRaycasts = false;
+                ApplyTextOnlyVisuals();
             }
         }
 
@@ -545,19 +555,18 @@ public class AutoChatManager : MonoBehaviour
         isTyping = true;
         fadeTimer = SHOW_DURATION;
 
-        if (inputContainer != null) inputContainer.SetActive(true);
-        if (chatGroup != null)
-        {
-            chatGroup.alpha          = 1f;
-            chatGroup.blocksRaycasts = true;
-        }
+        ClampChatPanelPosition();
+
+        ApplyEditingVisuals();
 
         if (chatInput != null)
         {
             chatInput.text = string.Empty;
         }
 
-        StartCoroutine(FocusInputFieldRoutine());
+        Debug.Log($"[CHAT-DIAG] OpenChat called: isTyping={isTyping}, chatPanel active={chatPanelRt?.gameObject.activeInHierarchy}, pos={chatPanelRt?.anchoredPosition}");
+        FocusInputFieldNow();
+        if (Application.isPlaying) StartCoroutine(FocusInputFieldRoutine());
     }
 
     private IEnumerator FocusInputFieldRoutine()
@@ -566,12 +575,78 @@ public class AutoChatManager : MonoBehaviour
 
         if (chatInput == null || !isTyping) yield break;
 
-        EnsureEventSystem();
+        FocusInputFieldNow();
 
-        if (EventSystem.current != null)
+        Debug.Log($"[CHAT-DIAG] FocusInputFieldRoutine: input active={chatInput.gameObject.activeInHierarchy}, interactable={chatInput.interactable}, isFocused={chatInput.isFocused}, currentSelected={(EventSystem.current != null ? EventSystem.current.currentSelectedGameObject?.name : "null")}");
+    }
+
+    private void FocusInputFieldNow()
+    {
+        if (chatInput == null || !isTyping || !chatInput.gameObject.activeInHierarchy) return;
+
+        EnsureEventSystem();
+        if (EventSystem.current != null && !EventSystem.current.alreadySelecting)
             EventSystem.current.SetSelectedGameObject(chatInput.gameObject);
         chatInput.ActivateInputField();
         chatInput.Select();
+    }
+
+    internal void NotifyChatDragPointerDown()
+    {
+        if (!isTyping) return;
+        // InputField fires onEndEdit when focus is lost on the initial pointer-down.
+        // Keep that event from closing chat while the pointer is being used to drag.
+        dragFocusGuardUntilFrame = Mathf.Max(dragFocusGuardUntilFrame, Time.frameCount + 1);
+    }
+
+    internal void NotifyChatDragStarted()
+    {
+        if (!isTyping) return;
+        dragFocusGuardUntilFrame = Mathf.Max(dragFocusGuardUntilFrame, Time.frameCount + 1);
+    }
+
+    internal void NotifyChatDragEnded()
+    {
+        if (!isTyping) return;
+        dragFocusGuardUntilFrame = Time.frameCount + 2;
+        ApplyEditingVisuals();
+        FocusInputFieldNow();
+        if (Application.isPlaying) StartCoroutine(FocusInputFieldRoutine());
+    }
+
+    private bool IsChatDragFocusGuardActive => Time.frameCount <= dragFocusGuardUntilFrame;
+
+    private void ApplyEditingVisuals()
+    {
+        if (inputContainer != null) inputContainer.SetActive(true);
+        if (chatGroup != null)
+        {
+            chatGroup.alpha = 1f;
+            chatGroup.blocksRaycasts = true;
+            chatGroup.interactable = true;
+        }
+        if (vpBg != null)
+        {
+            vpBg.color = new Color(0.06f, 0.06f, 0.08f, 0.85f);
+            var mask = vpBg.GetComponent<Mask>();
+            if (mask != null) mask.showMaskGraphic = true;
+        }
+    }
+
+    private void ApplyTextOnlyVisuals()
+    {
+        if (inputContainer != null) inputContainer.SetActive(false);
+        if (chatGroup != null)
+        {
+            chatGroup.blocksRaycasts = false;
+            chatGroup.interactable = false;
+        }
+        if (vpBg != null)
+        {
+            vpBg.color = new Color(0f, 0f, 0f, 0f);
+            var mask = vpBg.GetComponent<Mask>();
+            if (mask != null) mask.showMaskGraphic = false;
+        }
     }
 
     public void CloseChat()
@@ -584,10 +659,11 @@ public class AutoChatManager : MonoBehaviour
             chatInput.DeactivateInputField();
         }
         if (inputContainer != null) inputContainer.SetActive(false);
-        if (chatGroup != null) chatGroup.blocksRaycasts = false;
+        ApplyTextOnlyVisuals();
         if (EventSystem.current != null && !EventSystem.current.alreadySelecting)
             EventSystem.current.SetSelectedGameObject(null);
         fadeTimer = SHOW_DURATION;
+        Debug.Log("[CHAT-DIAG] CloseChat completed.");
     }
 
     // ============================================================
@@ -597,20 +673,36 @@ public class AutoChatManager : MonoBehaviour
     {
         if (!isTyping) return;
 
+        if (IsChatDragFocusGuardActive)
+        {
+            Debug.Log("[CHAT-DIAG] OnChatEndEdit ignored while preserving focus during panel drag.");
+            return;
+        }
+
         bool wasCanceled = chatInput != null && chatInput.wasCanceled;
 
         isTyping = false;
         justClosed = true;
 
+        int listeners = GetSendMessageListenerCount();
+        Debug.Log($"[CHAT-DIAG] OnChatEndEdit: raw='{message}', wasCanceled={wasCanceled}, listeners={listeners}");
+
         if (!wasCanceled)
         {
             if (!string.IsNullOrWhiteSpace(message))
             {
-                onSendMessage?.Invoke(message.Trim());
+                string clean = message.Trim();
+                Debug.Log($"[CHAT-DIAG] Invoking onSendMessage: '{clean}' (listeners={listeners})");
+                onSendMessage?.Invoke(clean);
+            }
+            else
+            {
+                Debug.Log("[CHAT-DIAG] OnChatEndEdit ignored: message was whitespace/empty.");
             }
         }
         else
         {
+            Debug.Log("[CHAT-DIAG] OnChatEndEdit canceled by user (Escape).");
             if (AutoMainMenuManager.Instance != null)
             {
                 AutoMainMenuManager.EscapeConsumedThisFrame = true;
@@ -632,6 +724,8 @@ public class AutoChatManager : MonoBehaviour
         string safeMsg = PlayerDeathContext.SanitizeRichText(message);
         if (string.IsNullOrWhiteSpace(safeMsg)) return;
         if (safeMsg.Length > 128) safeMsg = safeMsg.Substring(0, 128);
+
+        Debug.Log($"[CHAT-DIAG] AddPlayerMessage: sender='{safeSender}', msg='{safeMsg}'");
 
         string formatted = $"<color=yellow><b>[{safeSender}]</b></color>: {safeMsg}";
         if (chatHistory == null)
@@ -731,15 +825,15 @@ public class AutoChatManager : MonoBehaviour
             }
         }
 
-        if (isActiveAndEnabled && gameObject.activeInHierarchy)
+        if (isActiveAndEnabled && gameObject.activeInHierarchy && chatPanelRt != null)
         {
             try
             {
-                Canvas.ForceUpdateCanvases();
+                LayoutRebuilder.ForceRebuildLayoutImmediate(chatPanelRt);
             }
             catch (System.Exception ex)
             {
-                Debug.LogWarning($"[AutoChatManager] Canvas update warning: {ex.Message}");
+                Debug.LogWarning($"[AutoChatManager] Layout rebuild warning: {ex.Message}");
             }
         }
 
@@ -753,6 +847,29 @@ public class AutoChatManager : MonoBehaviour
 
     /// <summary>Được PlayerInputHandler2D dùng để chặn WASD khi đang chat</summary>
     public bool IsTyping() => isTyping;
+
+    public int GetSendMessageListenerCount()
+    {
+        return onSendMessage != null ? onSendMessage.GetInvocationList().Length : 0;
+    }
+
+    public void ClampChatPanelPosition()
+    {
+        if (chatPanelRt == null) return;
+        RectTransform parentRect = chatPanelRt.parent as RectTransform;
+        float canvasWidth = parentRect != null && parentRect.rect.width > 100f ? parentRect.rect.width : 1920f;
+        float canvasHeight = parentRect != null && parentRect.rect.height > 100f ? parentRect.rect.height : 1080f;
+
+        Vector2 pos = chatPanelRt.anchoredPosition;
+        float minX = 0f;
+        float maxX = Mathf.Max(minX, canvasWidth - chatPanelRt.rect.width);
+        float minY = 0f;
+        float maxY = Mathf.Max(minY, canvasHeight - chatPanelRt.rect.height);
+
+        pos.x = Mathf.Clamp(pos.x, minX, maxX);
+        pos.y = Mathf.Clamp(pos.y, minY, maxY);
+        chatPanelRt.anchoredPosition = pos;
+    }
 
     // ============================================================
     // HELPER METHODS
@@ -783,7 +900,7 @@ public class AutoChatManager : MonoBehaviour
     }
 }
 
-public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class UIDraggable : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public RectTransform targetToDrag;
     private Vector2 dragOffset;
@@ -793,12 +910,22 @@ public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     {
         if (targetToDrag == null)
             targetToDrag = GetComponent<RectTransform>();
+        ClampToParent();
+    }
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        AutoChatManager.ExistingInstance?.NotifyChatDragPointerDown();
     }
 
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (targetToDrag == null) return;
+        AutoChatManager chat = AutoChatManager.ExistingInstance;
+        if (chat != null && !chat.IsTyping()) return;
+
         IsDragging = true;
+        chat?.NotifyChatDragStarted();
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             targetToDrag.parent as RectTransform,
             eventData.position,
@@ -809,7 +936,7 @@ public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (targetToDrag == null) return;
+        if (targetToDrag == null || !IsDragging) return;
         
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             targetToDrag.parent as RectTransform,
@@ -823,21 +950,32 @@ public class UIDraggable : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        if (!IsDragging) return;
         IsDragging = false;
+        if (targetToDrag != null)
+        {
+            PlayerPrefs.SetFloat(AutoChatManager.PrefsKeyPosX, targetToDrag.anchoredPosition.x);
+            PlayerPrefs.SetFloat(AutoChatManager.PrefsKeyPosY, targetToDrag.anchoredPosition.y);
+            PlayerPrefs.Save();
+        }
+        AutoChatManager.ExistingInstance?.NotifyChatDragEnded();
     }
 
-    private void ClampToParent()
+    public void ClampToParent()
     {
         if (targetToDrag == null || targetToDrag.parent == null) return;
         RectTransform parentRect = targetToDrag.parent as RectTransform;
-        
+        if (parentRect == null) return;
+
+        float pWidth = parentRect.rect.width > 100f ? parentRect.rect.width : 1920f;
+        float pHeight = parentRect.rect.height > 100f ? parentRect.rect.height : 1080f;
+
         Vector2 pos = targetToDrag.anchoredPosition;
-        
-        float minX = -parentRect.rect.width * targetToDrag.anchorMin.x + targetToDrag.rect.width * targetToDrag.pivot.x;
-        float maxX = parentRect.rect.width * (1f - targetToDrag.anchorMax.x) - targetToDrag.rect.width * (1f - targetToDrag.pivot.x);
-        float minY = -parentRect.rect.height * targetToDrag.anchorMin.y + targetToDrag.rect.height * targetToDrag.pivot.y;
-        float maxY = parentRect.rect.height * (1f - targetToDrag.anchorMax.y) - targetToDrag.rect.height * (1f - targetToDrag.pivot.y);
-        
+        float minX = 0f;
+        float maxX = Mathf.Max(0f, pWidth - targetToDrag.rect.width);
+        float minY = 0f;
+        float maxY = Mathf.Max(0f, pHeight - targetToDrag.rect.height);
+
         pos.x = Mathf.Clamp(pos.x, minX, maxX);
         pos.y = Mathf.Clamp(pos.y, minY, maxY);
         targetToDrag.anchoredPosition = pos;

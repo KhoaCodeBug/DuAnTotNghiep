@@ -253,6 +253,7 @@ public static class GameLocalization
         { "loading.tip.5", new[] { "Tip: In multiplayer, stay close to teammates and cover them while performing tasks.", "Mẹo: Khi chơi nhiều người, hãy đi cùng đồng đội và yểm trợ nhau khi sửa chữa." } },
         { "chat.system_prefix", new[] { "SYSTEM", "HỆ THỐNG" } },
         { "chat.player_joined", new[] { "{0} joined the match.", "{0} đã vào trận." } },
+        { "chat.player_left", new[] { "{0} has left the match.", "{0} đã rời khỏi trận đấu." } },
         { "chat.death.zombie", new[] { "{0} died to a zombie attack.", "{0} đã chết vì bị zombie tấn công." } },
         { "chat.death.bleeding", new[] { "{0} bled out.", "{0} đã chết vì mất máu." } },
         { "chat.death.infection", new[] { "{0} succumbed to the infection.", "{0} đã chết vì nhiễm trùng." } },

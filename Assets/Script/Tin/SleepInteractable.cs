@@ -58,7 +58,7 @@ public sealed class SleepInteractable : MonoBehaviour
         if (movement == null || !IsClosestUsableBed(movement.transform)) return;
 
         PlayerSurvival survival = movement.GetComponent<PlayerSurvival>();
-        if (survival == null || survival.IsSleepInputLocked) return;
+        if (survival == null || survival.IsSleepInputLocked || survival.HasActiveSleepStatusMessage) return;
 
         // The proximity prompt is an interaction hint, not a persistent error.
         // Invalid-hour feedback is emitted by PlayerSurvival only after the

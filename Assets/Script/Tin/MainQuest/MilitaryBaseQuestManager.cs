@@ -452,6 +452,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         bool grantsFinalMapFragment = clueIndex == 2 && finalMapFragmentRecipients.Add(requester);
         RPC_ShowSchoolClueDialogue(requester, clueIndex, firstTeamDiscovery, SchoolClueCount,
             MilitaryStoryFlowRules.RequiredSchoolClues, grantsFinalMapFragment);
+        if (firstTeamDiscovery && SchoolClueCount >= MilitaryStoryFlowRules.RequiredSchoolClues)
+        {
+            RPC_ShowQuestMessage(string.Format(GameLocalization.Get("quest.military.clues_progress_complete"),
+                SchoolClueCount, MilitaryStoryFlowRules.RequiredSchoolClues));
+        }
     }
 
     private void ServerHandleSchoolRoofExit(PlayerRef requester)
@@ -784,11 +789,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             _ => GameLocalization.Get("quest.military.clue_dialogue_none")
         };
         RouteBRadioBroadcastUI.ShowSelfDialogue(line);
-        if (firstTeamDiscovery)
+        if (firstTeamDiscovery && collected < required)
+        {
             AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.clues_sender"),
-                collected >= required
-                    ? string.Format(GameLocalization.Get("quest.military.clues_progress_complete"), collected, required)
-                    : string.Format(GameLocalization.Get("quest.military.clues_progress"), collected, required));
+                string.Format(GameLocalization.Get("quest.military.clues_progress"), collected, required));
+        }
         if (grantsFinalMapFragment)
         {
             QuestFlowUIPrototype.Instance?.RegisterFinalMapFragmentForLocalPlayer();
@@ -1184,7 +1189,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (inventory == null || !inventory.AddItem(MilitaryQuestItemCatalog.GetOrCreate(kind), 1)) return;
 
         SetPartCacheClaimed(kind);
-        RPC_ShowLocalizedQuestMessage("quest.military_collected", (int)kind);
+        RPC_ShowLocalizedQuestMessage("quest.military_collected", (int)kind, requester);
     }
 
     private void ServerInstallPart(PlayerRef requester, MilitaryQuestItemKind kind)
@@ -1198,7 +1203,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
         inventory.ConsumeItem(item, 1);
         SetPartInstalled(kind);
-        RPC_ShowLocalizedQuestMessage("quest.military_installed", (int)kind);
+        RPC_ShowLocalizedQuestMessage("quest.military_installed", (int)kind, requester);
     }
 
     private void ServerProgressRepair(PlayerRef requester, float deltaSeconds)
@@ -1736,9 +1741,12 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             else
                 VehicleRepairSkillCheckUI.NotifyCompleted(completedAction, allComplete);
         }
-        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), allComplete
-            ? GameLocalization.Get("quest.military.repair_complete_all")
-            : GameLocalization.Get("quest.military.repair_complete_single"));
+        if (allComplete || (Runner != null && Runner.LocalPlayer == target))
+        {
+            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), allComplete
+                ? GameLocalization.Get("quest.military.repair_complete_all")
+                : GameLocalization.Get("quest.military.repair_complete_single"));
+        }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1753,8 +1761,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), message);
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowLocalizedQuestMessage(string localizationKey, int itemKind)
+    private void RPC_ShowLocalizedQuestMessage(string localizationKey, int itemKind, PlayerRef focusPlayer = default)
     {
+        if (focusPlayer != PlayerRef.None && Runner != null && Runner.LocalPlayer != focusPlayer)
+            return;
+
         string message = GameLocalization.Get(localizationKey, localizationKey);
         if (localizationKey == "quest.military_collected" || localizationKey == "quest.military_installed")
         {

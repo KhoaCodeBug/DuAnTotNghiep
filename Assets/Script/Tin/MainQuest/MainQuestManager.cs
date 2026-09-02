@@ -2699,7 +2699,11 @@ public sealed class MainQuestManager : NetworkBehaviour
             completedStep == 1 ? "quest.office_step1" : "quest.office_step2";
         string title = GameLocalization.Get(key + "_title");
         string body = GameLocalization.Get(key + "_body");
-        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.investigation_sender"), body);
+        bool isMilestoneComplete = completedStep >= 2;
+        if (isMilestoneComplete || (Runner != null && Runner.LocalPlayer == focusPlayer))
+        {
+            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.investigation_sender"), body);
+        }
         if (Runner != null && Runner.LocalPlayer == focusPlayer)
         {
             if (completedStep == 0)

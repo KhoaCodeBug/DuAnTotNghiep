@@ -49,4 +49,11 @@ public static class PlayerDeathContext
         if (string.IsNullOrWhiteSpace(safeName)) safeName = "Survivor";
         return string.Format(GameLocalization.Get("chat.player_joined"), safeName);
     }
+
+    public static string FormatLeftMessage(string playerName)
+    {
+        string safeName = SanitizeRichText(playerName);
+        if (string.IsNullOrWhiteSpace(safeName)) safeName = "Survivor";
+        return string.Format(GameLocalization.Get("chat.player_left"), safeName);
+    }
 }
