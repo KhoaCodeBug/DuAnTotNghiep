@@ -493,7 +493,8 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Assert.That(leftTireHotspot, Is.Not.Null, "The vehicle diagram must expose clickable part hotspots.");
         leftTireHotspot.onClick.Invoke();
         Assert.That(ReadProperty(inspectionUI, "SelectedPartId").ToString(), Is.EqualTo("front_left"));
-        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("THAY LINH KIỆN"));
+        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(),
+            Is.EqualTo(GetLocalizedText("arrival_ui.action_replace").ToUpperInvariant()));
         TMP_Text selectedPartTitle = (FindInactiveTransform("Selected Part Title") as RectTransform)
             ?.GetComponent<TMP_Text>();
         Assert.That(selectedPartTitle, Is.Not.Null);
@@ -508,12 +509,14 @@ public sealed class MainMenuToMilitaryQuestFlowTests
         Button healthyTireHotspot = FindInactiveButtonUnder(inspectionUI, "Vehicle Part Hotspot front_right");
         Assert.That(healthyTireHotspot, Is.Not.Null);
         healthyTireHotspot.onClick.Invoke();
-        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("KIỂM TRA"),
+        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(),
+            Is.EqualTo(GetLocalizedText("arrival_ui.action_inspect").ToUpperInvariant()),
             "A temporary 60%+ tire must not consume the only replacement tire.");
         Button exhaustHotspot = FindInactiveButtonUnder(inspectionUI, "Vehicle Part Hotspot exhaust");
         Assert.That(exhaustHotspot, Is.Not.Null);
         exhaustHotspot.onClick.Invoke();
-        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(), Is.EqualTo("KIỂM TRA"));
+        Assert.That(ReadProperty(inspectionUI, "SelectedPartActionText").ToString(),
+            Is.EqualTo(GetLocalizedText("arrival_ui.action_inspect").ToUpperInvariant()));
         Assert.That(FindInactiveTransform("Damaged Hood Polygon"), Is.Not.Null,
             "The damaged hood should use an irregular translucent polygon, not a square label.");
         Assert.That(FindInactiveTransform("Repair Requirements Panel"), Is.Null,
@@ -659,7 +662,8 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             "Start Engine must become available after all four repairs.");
         TMP_Text startEngineText = startEngineButton.GetComponentInChildren<TMP_Text>(true);
         Assert.That(startEngineText, Is.Not.Null);
-        Assert.That(startEngineText.text, Is.EqualTo("KHỞI ĐỘNG XE"));
+        Assert.That(startEngineText.text,
+            Is.EqualTo(GetLocalizedText("arrival_ui.start_vehicle_btn").ToUpperInvariant()));
         startEngineButton.onClick.Invoke();
         float repairDeadline = Time.realtimeSinceStartup + 10f;
         while (!ReadBool(mainQuest, "IsArrivalCarRepaired") && Time.realtimeSinceStartup < repairDeadline)
@@ -1813,5 +1817,12 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.That(field, Is.Not.Null, "Missing field: " + fieldName);
         field.SetValue(target, value);
+    }
+
+    private static string GetLocalizedText(string key)
+    {
+        Type locType = Type.GetType("GameLocalization, Assembly-CSharp");
+        MethodInfo getMethod = locType?.GetMethod("Get", new[] { typeof(string), typeof(string) });
+        return getMethod?.Invoke(null, new object[] { key, null }) as string ?? string.Empty;
     }
 }

@@ -760,13 +760,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 
     private void GenerateEntireMenu()
     {
-        if (FindAnyObjectByType<EventSystem>() == null)
-        {
-            GameObject esObj = new GameObject("EventSystem");
-            EventSystem es = esObj.AddComponent<EventSystem>(); es.sendNavigationEvents = false;
-            esObj.AddComponent<StandaloneInputModule>();
-            DontDestroyOnLoad(esObj);
-        }
+        AutoChatManager.EnsureEventSystem();
 
         GameObject canvasGO = new GameObject("AutoMenuCanvas");
         DontDestroyOnLoad(canvasGO);
@@ -980,7 +974,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         CreateMenuButton(multiplayerPanel, "JOIN GAME", () => { hostArea.SetActive(false); joinArea.SetActive(true); ConnectToLobby(); }, new Vector2(0.7f, 0.85f), true, new Vector2(350, 50));
 
         CreateTitleText(hostArea, "HOST SETTINGS", 0.9f); CreateLabel(hostArea, "ROOM NAME:", new Vector2(0.1f, 0.7f), new Vector2(0.3f, 0.75f));
-        GameObject roomInputObj = CreateInputField(hostArea, "HostRoomName", "VD: Refugee Camp...", new Vector2(0.35f, 0.68f), new Vector2(0.9f, 0.77f)); TMP_InputField roomInput = roomInputObj.GetComponent<TMP_InputField>();
+        GameObject roomInputObj = CreateInputField(hostArea, "HostRoomName", GameLocalization.Get("room_placeholder"), new Vector2(0.35f, 0.68f), new Vector2(0.9f, 0.77f)); TMP_InputField roomInput = roomInputObj.GetComponent<TMP_InputField>();
         // --- PHẦN CHỈNH SỐ NGƯỜI CHƠI (THAY CHO INPUT FIELD) ---
         CreateLabel(hostArea, "MAX PLAYERS:", new Vector2(0.1f, 0.55f), new Vector2(0.3f, 0.6f));
 
@@ -1717,6 +1711,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 break;
             }
 
+            // Condition-based readiness: In standalone tutorial, once the scene is loaded and ready,
+            // release the loading screen so the player can watch and interact with the intro sequence.
+            if (TutorialSession.IsActive && isLocalSceneLoaded &&
+                GameplayReadinessCoordinator.CurrentStage >= GameplayReadinessCoordinator.ReadinessStage.FusionSceneReady)
+            {
+                GameplayReadinessCoordinator.Release();
+                break;
+            }
+
             elapsedLoadingTime += Time.unscaledDeltaTime;
             tipTimer += Time.unscaledDeltaTime;
             if (tipTimer >= 4f)
@@ -1734,8 +1737,13 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             // Global Timeout: Nếu quá 35s mà chưa vào game, kích hoạt lỗi
             if (elapsedLoadingTime >= globalLoadingTimeout)
             {
-                Debug.LogError($"[LOADING TIMEOUT] Global loading timeout reached ({elapsedLoadingTime:F1}s). Failing readiness attempt.");
-                GameplayReadinessCoordinator.Fail(string.Format(GameLocalization.Get("loading.failed"), "Timeout"));
+                string blockedReason = !isLocalSceneLoaded ? "Scene/Runner Loading" :
+                    (GameplayReadinessCoordinator.CurrentStage < GameplayReadinessCoordinator.ReadinessStage.PlayerSpawnWaiting ? "Player Spawn Wait" :
+                    (GameplayReadinessCoordinator.CurrentStage < GameplayReadinessCoordinator.ReadinessStage.LocalAvatarBinding ? "Avatar Binding" :
+                    (GameplayReadinessCoordinator.CurrentStage < GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ? "HUD & Systems" :
+                    "Host Release Signal")));
+                Debug.LogError($"[LOADING TIMEOUT] Global loading timeout reached ({elapsedLoadingTime:F1}s) at stage '{GameplayReadinessCoordinator.CurrentStage}'. Blocked component: {blockedReason}. Failing readiness attempt.");
+                GameplayReadinessCoordinator.Fail(string.Format(GameLocalization.Get("loading.failed"), $"Timeout: {blockedReason}"));
                 break;
             }
 
@@ -2208,6 +2216,8 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         RefreshCharacterLanguage();
         ShowDifficultyInfo(visibleDifficultyInfo);
         if (loadingTitleText != null) loadingTitleText.text = GameLocalization.Get("menu.death_loading");
+        if (toggleText != null) toggleText.text = GameLocalization.TranslateLiteral(hostHasPassword ? "[ YES ]" : "[ NO ]");
+        UpdateDropdownTexts();
     }
     private void ChangeCharacter(int direction) { previewID = (previewID + direction + characterNames.Length) % characterNames.Length; RefreshCharacterLanguage(); UpdatePreview(); }
 

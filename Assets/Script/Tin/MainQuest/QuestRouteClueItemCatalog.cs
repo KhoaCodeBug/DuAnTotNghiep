@@ -6,10 +6,30 @@ public static class QuestRouteClueItemCatalog
 {
     private static readonly Dictionary<QuestRouteClueKind, ItemData> Items = new();
 
+    static QuestRouteClueItemCatalog()
+    {
+        GameLocalization.LanguageChanged -= RefreshItemDataNames;
+        GameLocalization.LanguageChanged += RefreshItemDataNames;
+    }
+
+    public static void RefreshItemDataNames()
+    {
+        foreach (var kvp in Items)
+        {
+            if (kvp.Value != null)
+            {
+                kvp.Value.itemName = GetDisplayName(kvp.Key);
+            }
+        }
+    }
+
     public static ItemData GetOrCreate(QuestRouteClueKind kind)
     {
         if (Items.TryGetValue(kind, out ItemData existing) && existing != null)
+        {
+            existing.itemName = GetDisplayName(kind);
             return existing;
+        }
 
         ItemData item = ScriptableObject.CreateInstance<ItemData>();
         item.name = GetClueId(kind);
@@ -39,11 +59,19 @@ public static class QuestRouteClueItemCatalog
 
     public static bool TryGetKind(string identifier, out QuestRouteClueKind kind)
     {
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            kind = default;
+            return false;
+        }
+
         for (int i = 0; i < 3; i++)
         {
             QuestRouteClueKind candidate = (QuestRouteClueKind)i;
             if (string.Equals(identifier, GetClueId(candidate), System.StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(identifier, GetDisplayName(candidate), System.StringComparison.OrdinalIgnoreCase))
+                string.Equals(identifier, GetDisplayName(candidate), System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(identifier, GetLegacyVietnameseName(candidate), System.StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(identifier, GetCanonicalEnglishName(candidate), System.StringComparison.OrdinalIgnoreCase))
             {
                 kind = candidate;
                 return true;
@@ -52,6 +80,20 @@ public static class QuestRouteClueItemCatalog
         kind = default;
         return false;
     }
+
+    private static string GetLegacyVietnameseName(QuestRouteClueKind kind) => kind switch
+    {
+        QuestRouteClueKind.DeliveryInvoice => "Phiếu điều chuyển vật tư",
+        QuestRouteClueKind.TransitDiagram => "Thông báo đổi tuyến sơ tán",
+        _ => "Ghi chú của nhân viên trực"
+    };
+
+    private static string GetCanonicalEnglishName(QuestRouteClueKind kind) => kind switch
+    {
+        QuestRouteClueKind.DeliveryInvoice => "Supply Transfer Invoice",
+        QuestRouteClueKind.TransitDiagram => "Evacuation Route Change Notice",
+        _ => "Duty Officer's Note"
+    };
 
     public static string GetClueId(QuestRouteClueKind kind) => kind switch
     {
@@ -62,30 +104,23 @@ public static class QuestRouteClueItemCatalog
 
     public static string GetDisplayName(QuestRouteClueKind kind) => kind switch
     {
-        QuestRouteClueKind.DeliveryInvoice => "Phiếu điều chuyển vật tư",
-        QuestRouteClueKind.TransitDiagram => "Thông báo đổi tuyến sơ tán",
-        _ => "Ghi chú của nhân viên trực"
+        QuestRouteClueKind.DeliveryInvoice => GameLocalization.Get("quest.route_clue.invoice.name"),
+        QuestRouteClueKind.TransitDiagram => GameLocalization.Get("quest.route_clue.diagram.name"),
+        _ => GameLocalization.Get("quest.route_clue.note.name")
     };
 
     public static string GetReadingText(QuestRouteClueKind kind) => kind switch
     {
-        QuestRouteClueKind.DeliveryInvoice =>
-            "Phiếu điều chuyển khẩn: “Toàn bộ thuốc, nhiên liệu dự phòng và dụng cụ sửa chữa còn lại " +
-            "được chuyển về Văn phòng Điều phối Khu Dân Cư trước 18:00. Không giao trực tiếp tại điểm sơ tán.” " +
-            "Người giao khoanh một đoạn đường phía đông và ghi thêm: “cổng màu tím”.",
-        QuestRouteClueKind.TransitDiagram =>
-            "Thông báo vận hành: “Tuyến sơ tán dân sự đã bị hủy. Các chuyến xe còn hoạt động phải chuyển " +
-            "qua trạm kiểm soát khu quân sự. Sơ đồ tuyến mới được lưu tại Văn phòng Điều phối.”",
-        _ =>
-            "Mảnh giấy viết vội: “Tôi đã khóa hồ sơ tuyến cuối trong tủ lưu trữ. Chìa khóa vẫn ở bàn điều phối; " +
-            "bản ghi liên lạc còn trong radio. Nếu không còn ai quay lại, hãy mang bản đồ đến trạm quân sự.”"
+        QuestRouteClueKind.DeliveryInvoice => GameLocalization.Get("quest.route_clue.invoice.reading"),
+        QuestRouteClueKind.TransitDiagram => GameLocalization.Get("quest.route_clue.diagram.reading"),
+        _ => GameLocalization.Get("quest.route_clue.note.reading")
     };
 
     public static string GetInferenceText(QuestRouteClueKind kind) => kind switch
     {
-        QuestRouteClueKind.DeliveryInvoice => "SUY LUẬN: Nhiên liệu và dụng cụ sửa xe từng được tập kết tại văn phòng cổng tím.",
-        QuestRouteClueKind.TransitDiagram => "SUY LUẬN: Muốn đến điểm sơ tán phải tìm sơ đồ tuyến nằm trong văn phòng.",
-        _ => "SUY LUẬN: Trong văn phòng cần kiểm tra bàn điều phối, radio rồi tủ lưu trữ."
+        QuestRouteClueKind.DeliveryInvoice => GameLocalization.Get("quest.route_clue.invoice.inference"),
+        QuestRouteClueKind.TransitDiagram => GameLocalization.Get("quest.route_clue.diagram.inference"),
+        _ => GameLocalization.Get("quest.route_clue.note.inference")
     };
 
     public static string GetShortLabel(ItemData item)
@@ -93,9 +128,9 @@ public static class QuestRouteClueItemCatalog
         if (!TryGetKind(item, out QuestRouteClueKind kind)) return string.Empty;
         return kind switch
         {
-            QuestRouteClueKind.DeliveryInvoice => "VẬT TƯ",
-            QuestRouteClueKind.TransitDiagram => "SƠ TÁN",
-            _ => "NHÂN VIÊN TRỰC"
+            QuestRouteClueKind.DeliveryInvoice => GameLocalization.Get("quest.route_clue.invoice.short"),
+            QuestRouteClueKind.TransitDiagram => GameLocalization.Get("quest.route_clue.diagram.short"),
+            _ => GameLocalization.Get("quest.route_clue.note.short")
         };
     }
 

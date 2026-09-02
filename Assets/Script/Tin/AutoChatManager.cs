@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -33,6 +34,8 @@ public class AutoChatManager : MonoBehaviour
         }
     }
 
+    public static AutoChatManager ExistingInstance => instance;
+
     private CanvasGroup chatGroup;
     private Text chatHistory;
     private InputField chatInput;
@@ -40,6 +43,9 @@ public class AutoChatManager : MonoBehaviour
     private ScrollRect scrollRect;
     private RectTransform chatPanelRt;
     private Image vpBg;
+    private const int MaxHistoryLines = 30;
+    private const int MaxHistoryCharacters = 1200;
+    private readonly System.Collections.Generic.List<string> messageHistory = new System.Collections.Generic.List<string>();
     private static readonly System.Collections.Generic.List<string> PendingPreloadMessages = new System.Collections.Generic.List<string>();
 
     // ========================= CẤU HÌNH =========================
@@ -67,30 +73,218 @@ public class AutoChatManager : MonoBehaviour
 
     void Awake()
     {
-        if (instance != null && instance != this)
+        if (Application.isPlaying)
         {
-            if (Application.isPlaying) Destroy(gameObject);
-            else DestroyImmediate(gameObject);
-            return;
+            if (instance != null && instance != this)
+            {
+                Destroy(gameObject);
+                return;
+            }
+            instance = this;
         }
-        instance = this;
+        else
+        {
+            if (instance != null && instance != this)
+            {
+                if (instance.gameObject != null && instance.gameObject.name.Contains("AUTO CHAT MANAGER"))
+                {
+                    DestroyImmediate(instance.gameObject);
+                }
+            }
+            instance = this;
+        }
         BuildChatUI();
     }
 
     void OnDestroy()
     {
         if (instance == this) instance = null;
+        messageHistory.Clear();
+        PendingPreloadMessages.Clear();
+    }
+
+    public static void ResetForTests()
+    {
+        PendingPreloadMessages.Clear();
+        if (instance != null)
+        {
+            instance.messageHistory.Clear();
+            if (instance.gameObject != null)
+            {
+                if (Application.isPlaying) Destroy(instance.gameObject);
+                else DestroyImmediate(instance.gameObject);
+            }
+            instance = null;
+        }
+    }
+
+    private bool isSuppressedByReward;
+
+    public bool IsRewardSuppressed
+    {
+        get
+        {
+            if (BackpackQuestRewardPresentation.IsVisible)
+            {
+                return true;
+            }
+            if (isSuppressedByReward)
+            {
+                isSuppressedByReward = false;
+            }
+            return false;
+        }
+    }
+
+    public bool IsChatVisible => chatPanelRt != null && chatPanelRt.gameObject.activeSelf && chatGroup != null && chatGroup.alpha > 0.01f;
+
+    public void SetSuppressedByReward(bool suppressed)
+    {
+        isSuppressedByReward = suppressed;
+        if (chatPanelRt != null)
+        {
+            chatPanelRt.gameObject.SetActive(!suppressed);
+        }
+        if (chatGroup != null && suppressed)
+        {
+            chatGroup.alpha = 0f;
+            chatGroup.blocksRaycasts = false;
+        }
+    }
+
+    private static Type ResolveInputSystemUIInputModuleType()
+    {
+        Type type = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem");
+        if (type != null) return type;
+        type = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule, Unity.InputSystem.ForUI");
+        if (type != null) return type;
+        type = Type.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule");
+        if (type != null) return type;
+
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            type = assembly.GetType("UnityEngine.InputSystem.UI.InputSystemUIInputModule");
+            if (type != null) return type;
+        }
+        return null;
     }
 
     public static void EnsureEventSystem()
     {
-        if (EventSystem.current == null && FindFirstObjectByType<EventSystem>() == null)
+        EventSystem[] activeSystems = UnityEngine.Object.FindObjectsByType<EventSystem>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+
+        if (activeSystems == null || activeSystems.Length == 0)
         {
             var esGo = new GameObject("EventSystem");
-            var es = esGo.AddComponent<EventSystem>();
-            es.sendNavigationEvents = false;
-            esGo.AddComponent<StandaloneInputModule>();
-            if (Application.isPlaying) DontDestroyOnLoad(esGo);
+            var newEs = esGo.AddComponent<EventSystem>();
+            newEs.sendNavigationEvents = false;
+
+            Type inputType = ResolveInputSystemUIInputModuleType();
+            if (inputType != null)
+            {
+                esGo.AddComponent(inputType);
+            }
+            return;
+        }
+
+        Type inputModuleType = ResolveInputSystemUIInputModuleType();
+
+        EventSystem canonical = null;
+        if (activeSystems.Length == 1)
+        {
+            canonical = activeSystems[0];
+        }
+        else
+        {
+            int bestScore = int.MinValue;
+            var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+
+            for (int i = 0; i < activeSystems.Length; i++)
+            {
+                EventSystem candidate = activeSystems[i];
+                if (candidate == null) continue;
+
+                int score = 0;
+                // Prefer system with InputSystemUIInputModule
+                if (inputModuleType != null && candidate.GetComponent(inputModuleType) != null)
+                    score += 20;
+                else if (candidate.GetComponent("InputSystemUIInputModule") != null)
+                    score += 20;
+
+                // Prefer system authored in the active scene
+                if (candidate.gameObject.scene.IsValid() && candidate.gameObject.scene == activeScene)
+                    score += 10;
+
+                // Deprecate previous menu systems during transition
+                if (candidate.gameObject.name.IndexOf("MainMenu", StringComparison.OrdinalIgnoreCase) >= 0)
+                    score -= 5;
+
+                if (candidate.gameObject.name == "EventSystem")
+                    score += 2;
+
+                if (candidate == EventSystem.current)
+                    score += 1;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    canonical = candidate;
+                }
+            }
+
+            if (canonical == null) canonical = activeSystems[0];
+
+            // Deactivate and remove duplicate EventSystems immediately
+            for (int i = 0; i < activeSystems.Length; i++)
+            {
+                EventSystem duplicate = activeSystems[i];
+                if (duplicate != null && duplicate != canonical && duplicate.gameObject != null)
+                {
+                    duplicate.gameObject.SetActive(false);
+                    if (Application.isPlaying)
+                    {
+                        UnityEngine.Object.Destroy(duplicate.gameObject);
+                    }
+                    else
+                    {
+                        UnityEngine.Object.DestroyImmediate(duplicate.gameObject);
+                    }
+                }
+            }
+        }
+
+        if (canonical != null)
+        {
+            var standaloneModules = canonical.GetComponents<StandaloneInputModule>();
+            for (int i = 0; i < standaloneModules.Length; i++)
+            {
+                var sm = standaloneModules[i];
+                if (sm != null)
+                {
+                    if (Application.isPlaying) UnityEngine.Object.Destroy(sm);
+                    else UnityEngine.Object.DestroyImmediate(sm);
+                }
+            }
+
+            Component inputModule = inputModuleType != null
+                ? canonical.GetComponent(inputModuleType)
+                : canonical.GetComponent("InputSystemUIInputModule");
+
+            if (inputModule == null && inputModuleType != null)
+            {
+                inputModule = canonical.gameObject.AddComponent(inputModuleType);
+            }
+
+            var allModules = canonical.GetComponents<BaseInputModule>();
+            for (int i = 0; i < allModules.Length; i++)
+            {
+                var mod = allModules[i];
+                if (mod != null && mod != inputModule)
+                {
+                    if (Application.isPlaying) UnityEngine.Object.Destroy(mod);
+                    else UnityEngine.Object.DestroyImmediate(mod);
+                }
+            }
         }
     }
 
@@ -294,6 +488,24 @@ public class AutoChatManager : MonoBehaviour
             }
         }
 
+        if (IsRewardSuppressed)
+        {
+            if (chatGroup != null)
+            {
+                chatGroup.alpha = 0f;
+                chatGroup.blocksRaycasts = false;
+            }
+            if (chatPanelRt != null && chatPanelRt.gameObject.activeSelf)
+            {
+                chatPanelRt.gameObject.SetActive(false);
+            }
+            return;
+        }
+        else if (chatPanelRt != null && !chatPanelRt.gameObject.activeSelf)
+        {
+            chatPanelRt.gameObject.SetActive(true);
+        }
+
         if (chatGroup != null)
         {
             // NẾU ĐANG GÕ CHỮ HOẶC ĐANG KÉO: Reset thời gian mờ và sáng hẳn lên
@@ -425,6 +637,8 @@ public class AutoChatManager : MonoBehaviour
         if (chatHistory == null)
         {
             PendingPreloadMessages.Add(formatted);
+            if (PendingPreloadMessages.Count > MaxHistoryLines)
+                PendingPreloadMessages.RemoveAt(0);
             return;
         }
 
@@ -442,6 +656,8 @@ public class AutoChatManager : MonoBehaviour
         if (chatHistory == null)
         {
             PendingPreloadMessages.Add(formatted);
+            if (PendingPreloadMessages.Count > MaxHistoryLines)
+                PendingPreloadMessages.RemoveAt(0);
             return;
         }
 
@@ -465,22 +681,68 @@ public class AutoChatManager : MonoBehaviour
     {
         if (chatHistory == null) return;
 
-        // Chống phình RAM: Cắt bớt lịch sử cũ khi quá dài
-        if (chatHistory.text.Length > 3000)
-            chatHistory.text = chatHistory.text.Substring(chatHistory.text.Length - 1500);
-
-        if (string.IsNullOrEmpty(chatHistory.text))
-            chatHistory.text = formattedLine;
-        else
-            chatHistory.text += "\n" + formattedLine;
-
-        fadeTimer = SHOW_DURATION;
-        if (chatGroup != null)
+        if (messageHistory.Count == 0 && !string.IsNullOrEmpty(chatHistory.text))
         {
-            chatGroup.alpha = 1f;
+            string[] existing = chatHistory.text.Split('\n');
+            for (int i = 0; i < existing.Length; i++)
+            {
+                if (!string.IsNullOrEmpty(existing[i]))
+                    messageHistory.Add(existing[i]);
+            }
         }
 
-        Canvas.ForceUpdateCanvases();
+        messageHistory.Add(formattedLine);
+        while (messageHistory.Count > MaxHistoryLines)
+        {
+            messageHistory.RemoveAt(0);
+        }
+
+        int totalChars = 0;
+        for (int i = 0; i < messageHistory.Count; i++)
+            totalChars += messageHistory[i].Length + 1;
+
+        while (totalChars > MaxHistoryCharacters && messageHistory.Count > 1)
+        {
+            totalChars -= (messageHistory[0].Length + 1);
+            messageHistory.RemoveAt(0);
+        }
+
+        chatHistory.text = string.Join("\n", messageHistory);
+
+        if (IsRewardSuppressed)
+        {
+            fadeTimer = 0f;
+            if (chatGroup != null)
+            {
+                chatGroup.alpha = 0f;
+                chatGroup.blocksRaycasts = false;
+            }
+            if (chatPanelRt != null)
+            {
+                chatPanelRt.gameObject.SetActive(false);
+            }
+        }
+        else
+        {
+            fadeTimer = SHOW_DURATION;
+            if (chatGroup != null)
+            {
+                chatGroup.alpha = 1f;
+            }
+        }
+
+        if (isActiveAndEnabled && gameObject.activeInHierarchy)
+        {
+            try
+            {
+                Canvas.ForceUpdateCanvases();
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AutoChatManager] Canvas update warning: {ex.Message}");
+            }
+        }
+
         if (scrollRect != null)
             scrollRect.verticalNormalizedPosition = 0f;
     }

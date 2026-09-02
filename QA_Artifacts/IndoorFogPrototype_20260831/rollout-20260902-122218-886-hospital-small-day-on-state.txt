@@ -1,0 +1,22 @@
+{
+    "house": "nocnha (1)",
+    "x": -49.58399963378906,
+    "y": 37.426998138427737,
+    "hour": 13.5,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": true,
+    "prototype": true,
+    "label": "rollout-20260902-122218-886-hospital-small-day-on",
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421
+}
+actual=(-49.58, 37.43, -0.03) direction=(0.00, 1.00)
+health=56.6875 dead=false
+indoor===========Map========== /Map/hospital/Hospital_Small_FIXED/nocnha (1)
+mask=1 surface=1 flashlight=1 angle=145
+light=0.8500001 global=1.391357 innerAngle=105 outerAngle=145
+surfaces=312 scannedCells=15848 atlasBytes=5398528 buildMs=10.6122
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=2 shadowCandidateCount=2 movementEnabled=False godMode=False cheatMenuOpen=False

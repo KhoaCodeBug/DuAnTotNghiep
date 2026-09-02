@@ -141,7 +141,7 @@ public class PlayerHealth : NetworkBehaviour
         hasBroadcastDeathAnnouncement = false;
 
         movementScript = GetComponent<PlayerMovement>();
-        anim = GetComponent<Animator>();
+        anim = GetComponentInChildren<Animator>();
         spriteRend = GetComponentInChildren<SpriteRenderer>();
         survivalSystem = GetComponent<PlayerSurvival>();
 
@@ -256,7 +256,29 @@ public class PlayerHealth : NetworkBehaviour
 
                 if (zombieTurnPrefab.IsValid)
                 {
-                    Runner.Spawn(zombieTurnPrefab, transform.position, Quaternion.identity);
+                    Vector3 spawnPos = transform.position;
+                    if (UnityEngine.AI.NavMesh.SamplePosition(spawnPos, out UnityEngine.AI.NavMeshHit navHit, 2f, UnityEngine.AI.NavMesh.AllAreas))
+                    {
+                        spawnPos = navHit.position;
+                    }
+
+                    NetworkObject spawnedZombie = Runner.Spawn(zombieTurnPrefab, spawnPos, Quaternion.identity);
+                    if (spawnedZombie != null)
+                    {
+                        var agent = spawnedZombie.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                        if (agent != null)
+                        {
+                            if (UnityEngine.AI.NavMesh.SamplePosition(spawnedZombie.transform.position, out UnityEngine.AI.NavMeshHit agentHit, 2f, UnityEngine.AI.NavMesh.AllAreas))
+                            {
+                                agent.enabled = true;
+                                agent.Warp(agentHit.position);
+                            }
+                            else
+                            {
+                                agent.enabled = false;
+                            }
+                        }
+                    }
                 }
 
                 // 👇 THÊM ĐOẠN NÀY VÀO TRƯỚC KHI DESPAWN 👇
@@ -523,7 +545,10 @@ public class PlayerHealth : NetworkBehaviour
                 killerName = HostModeSpawner.Instance.GetPlayerName(LastAttackerPlayerRef);
             }
 
-            RPC_BroadcastDeathSystemMessage(victimName, (int)LastDeathCause, killerName);
+            string safeVictim = string.IsNullOrWhiteSpace(victimName) ? string.Empty : victimName;
+            string safeKiller = string.IsNullOrWhiteSpace(killerName) ? string.Empty : killerName;
+
+            RPC_BroadcastDeathSystemMessage(safeVictim, (int)LastDeathCause, safeKiller);
         }
 
         if (isBitten)
@@ -542,7 +567,9 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_BroadcastDeathSystemMessage(string victimName, int deathCause, string killerName)
     {
-        string deathMessage = PlayerDeathContext.FormatDeathMessage(victimName, (DeathCause)deathCause, killerName);
+        string safeVictim = string.IsNullOrWhiteSpace(victimName) ? "Survivor" : victimName;
+        string safeKiller = string.IsNullOrWhiteSpace(killerName) ? null : killerName;
+        string deathMessage = PlayerDeathContext.FormatDeathMessage(safeVictim, (DeathCause)deathCause, safeKiller);
         AutoChatManager.Instance?.AddSystemMessage(deathMessage);
     }
 

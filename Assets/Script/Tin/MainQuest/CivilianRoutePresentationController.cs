@@ -69,6 +69,26 @@ public sealed class CivilianRoutePresentationController : MonoBehaviour
         presentationRoutine = StartCoroutine(OutroRoutine(repairedVehicle, outroEnd, survivalSeconds));
     }
 
+    private void OnEnable()
+    {
+        GameLocalization.LanguageChanged += OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged()
+    {
+        if (bannerPanel != null && bannerPanel.gameObject.activeInHierarchy)
+        {
+            if (eyebrowText != null) eyebrowText.text = GameLocalization.Get("quest.civilian.cinematic_eyebrow");
+            if (titleText != null) titleText.text = GameLocalization.Get("quest.civilian.cinematic_title");
+            if (bodyText != null) bodyText.text = GameLocalization.Get("quest.civilian.cinematic_body");
+        }
+        if (outroTitle != null && outroTitle.gameObject.activeInHierarchy)
+        {
+            outroTitle.text = GameLocalization.Get("quest.civilian.outro_title");
+            if (outroSubtitle != null) outroSubtitle.text = GameLocalization.Get("quest.civilian.outro_subtitle");
+        }
+    }
+
     private IEnumerator CarReadyRoutine(Vector2 checkpoint, Vector2 cityExit)
     {
         BlocksGameplayInput = true;
@@ -82,9 +102,9 @@ public sealed class CivilianRoutePresentationController : MonoBehaviour
             checkpoint, cityExit, MainQuestManager.CivilianRouteStage.CarReady);
         flow?.SetCivilianCityMapUnlocked(true);
 
-        eyebrowText.text = "TUYẾN THOÁT HIỂM A  //  PHƯƠNG TIỆN SẴN SÀNG";
-        titleText.text = "XE ĐÃ HOẠT ĐỘNG";
-        bodyText.text = "Đã xác định một tuyến đường có thể rời khỏi thành phố";
+        eyebrowText.text = GameLocalization.Get("quest.civilian.cinematic_eyebrow");
+        titleText.text = GameLocalization.Get("quest.civilian.cinematic_title");
+        bodyText.text = GameLocalization.Get("quest.civilian.cinematic_body");
         rootGroup.alpha = 0f;
         bannerPanel.localScale = Vector3.one * 0.9f;
         accentLine.rectTransform.localScale = new Vector3(0f, 1f, 1f);
@@ -199,8 +219,8 @@ public sealed class CivilianRoutePresentationController : MonoBehaviour
 
         SetFadeAlpha(1f);
         if (outroRoadLooper != null) outroRoadLooper.StopLoop();
-        outroTitle.text = "ĐÃ RỜI KHỎI THÀNH PHỐ";
-        outroSubtitle.text = "Một chặng đường mới đang chờ phía trước...";
+        outroTitle.text = GameLocalization.Get("quest.civilian.outro_title");
+        outroSubtitle.text = GameLocalization.Get("quest.civilian.outro_subtitle");
         elapsed = 0f;
         const float titleSeconds = 2.15f;
         while (elapsed < titleSeconds)
@@ -522,6 +542,7 @@ public sealed class CivilianRoutePresentationController : MonoBehaviour
 
     private void OnDisable()
     {
+        GameLocalization.LanguageChanged -= OnLanguageChanged;
         BlocksGameplayInput = false;
         RestoreOutroObjects();
     }

@@ -33,6 +33,22 @@ public sealed class BackpackRewardVisualQATests
         File.WriteAllBytes(filePath, pngData);
     }
 
+    [SetUp]
+    public void SetUp()
+    {
+        Type.GetType("BackpackQuestRewardPresentation, Assembly-CSharp")?.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        Type.GetType("AutoChatManager, Assembly-CSharp")?.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        QuestFlowUIPrototype.ResetInstanceForTests();
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        Type.GetType("BackpackQuestRewardPresentation, Assembly-CSharp")?.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        Type.GetType("AutoChatManager, Assembly-CSharp")?.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        QuestFlowUIPrototype.ResetInstanceForTests();
+    }
+
     [Test]
     public void GenerateVisualQAEvidenceScreenshots()
     {
@@ -153,8 +169,8 @@ public sealed class BackpackRewardVisualQATests
                 CanvasGroup rootGroup = host4.GetComponentInChildren<CanvasGroup>(true);
                 if (rootGroup != null) rootGroup.alpha = 1f;
 
-                Transform rewardCard = host4.transform.Find("Canvas/Root/Reward Card");
-                if (rewardCard != null) rewardCard.localScale = Vector3.one;
+                Transform iconFrame = host4.transform.Find("Backpack Quest Reward Canvas/Reward Root/Center Icon Frame");
+                if (iconFrame != null) iconFrame.localScale = Vector3.one;
 
                 Canvas canvas = host4.GetComponentInChildren<Canvas>();
                 if (canvas != null)
@@ -172,12 +188,14 @@ public sealed class BackpackRewardVisualQATests
             }
         }
 
-        // Stage 5: Final level-5 upgrade notification visible
+        // Stage 5: Final level-5 upgrade notification A visible
         GameObject host5 = new GameObject("Host 5");
         try
         {
-            QuestFlowUIPrototype flow = host5.AddComponent<QuestFlowUIPrototype>();
-            flow.EnsureBuiltForTests();
+            Component presenter = host5.AddComponent(presenterType);
+            MethodInfo showNotification = presenterType.GetMethod("ShowUpgradeNotification",
+                BindingFlags.Public | BindingFlags.Static);
+            showNotification?.Invoke(null, new object[] { 5 });
 
             Canvas canvas = host5.GetComponentInChildren<Canvas>();
             if (canvas != null)
@@ -186,20 +204,8 @@ public sealed class BackpackRewardVisualQATests
                 canvas.worldCamera = cam;
             }
 
-            GameObject bannerObj = new GameObject("Notification Banner", typeof(RectTransform), typeof(Image));
-            bannerObj.transform.SetParent(canvas.transform, false);
-            RectTransform bannerRect = bannerObj.GetComponent<RectTransform>();
-            bannerRect.sizeDelta = new Vector2(650f, 90f);
-            bannerRect.anchoredPosition = new Vector2(0f, 250f);
-            bannerObj.GetComponent<Image>().color = new Color(0.08f, 0.12f, 0.11f, 0.95f);
-
-            GameObject textObj = new GameObject("Notification Text", typeof(RectTransform), typeof(TextMeshProUGUI));
-            textObj.transform.SetParent(bannerObj.transform, false);
-            TextMeshProUGUI text = textObj.GetComponent<TextMeshProUGUI>();
-            text.fontSize = 22f;
-            text.alignment = TextAlignmentOptions.Center;
-            text.color = new Color(1f, 0.78f, 0.2f, 1f);
-            text.text = "<b>BALO CẤP 5</b>\nĐã nâng cấp lên balo cấp 5 (55 ô kho).";
+            CanvasGroup notifGroup = host5.GetComponentInChildren<CanvasGroup>(true);
+            if (notifGroup != null) notifGroup.alpha = 1f;
 
             cam.Render();
             SaveRenderTextureToPng(rt, Path.Combine(ScreenshotDir, "backpack_radio_05_upgrade_notification.png"));

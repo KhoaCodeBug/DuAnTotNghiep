@@ -4,6 +4,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using GameLocalization = QuestUILocalization;
 
 /// <summary>
 /// Interactive Canvas/TMP journal for both halves of Route B and the parallel
@@ -11,7 +12,46 @@ using UnityEngine.UI;
 /// </summary>
 public sealed class QuestFlowUIPrototype : MonoBehaviour
 {
-    public static QuestFlowUIPrototype Instance { get; private set; }
+    private static QuestFlowUIPrototype instance;
+    public static QuestFlowUIPrototype Instance
+    {
+        get
+        {
+            if (instance == null && Application.isPlaying)
+            {
+                instance = FindFirstObjectByType<QuestFlowUIPrototype>(FindObjectsInactive.Include);
+            }
+            if (instance == null) return null;
+            return instance;
+        }
+        private set => instance = value;
+    }
+
+    public static void ResetInstanceForTests()
+    {
+        instance = null;
+    }
+
+    public Action PendingMilitaryMapRewardCallback { get; private set; }
+    public Action PendingMilitaryMapRevealCallback { get; private set; }
+    public bool DeferRevealCallbackForTests { get; set; } = false;
+
+    public void CompleteMilitaryMapRewardForTests()
+    {
+        Action cb = PendingMilitaryMapRewardCallback;
+        PendingMilitaryMapRewardCallback = null;
+        if (completionRoot != null) completionRoot.SetActive(false);
+        cb?.Invoke();
+    }
+
+    public void CompleteMilitaryMapRevealForTests()
+    {
+        Action cb = PendingMilitaryMapRevealCallback;
+        PendingMilitaryMapRevealCallback = null;
+        if (mapPrototype != null) mapPrototype.SetOpen(false);
+        cb?.Invoke();
+    }
+
     public event Action MapFragment1Acquired;
     private static readonly Color Ink = new Color(0.025f, 0.045f, 0.043f, 0.98f);
     private static readonly Color Panel = new Color(0.055f, 0.082f, 0.078f, 0.98f);
@@ -221,7 +261,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     private void OnDestroy()
     {
         QuestUILocalization.LanguageChanged -= ApplyLocalization;
-        if (Instance == this) Instance = null;
+        if (instance == this) instance = null;
     }
 
     private void Update()
@@ -306,6 +346,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     /// <summary>Builds the hierarchy when called from EditMode tests.</summary>
     public void EnsureBuiltForTests()
     {
+        Instance = this;
         QuestUILocalization.LanguageChanged -= ApplyLocalization;
         QuestUILocalization.LanguageChanged += ApplyLocalization;
         if (built)
@@ -349,6 +390,22 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         SetNamedText("Open Map Button Text", L("[M]  OPEN MAP", "[M]  MỞ BẢN ĐỒ"));
         SetNamedText("Car Requirements Header", L("ITEMS TO FIND  •  LIVE INVENTORY", "VẬT PHẨM CẦN TÌM  •  CẬP NHẬT THEO TÚI ĐỒ"));
         SetNamedText("Open Map Hint", L("[M] OPEN MAP", "[M] MỞ BẢN ĐỒ"));
+        SetNamedText("Clue Reading Close Hint", GameLocalization.Get("quest.route_clue.close_hint"));
+        if (clueReadingEyebrow != null && IsClueReadingOpen)
+        {
+            if (clueReadingTitle != null && (clueReadingTitle.text == "RECOVERED RADIO RECORDING" || clueReadingTitle.text == "BẢN GHI RADIO ĐÃ KHÔI PHỤC"))
+            {
+                clueReadingEyebrow.text = GameLocalization.Get("quest.hospital.transcript.eyebrow");
+                clueReadingTitle.text = GameLocalization.Get("quest.hospital.transcript.title");
+                clueReadingBody.text = CurrentHospitalRadioTranscript;
+                clueReadingConclusion.text = GameLocalization.Get("quest.hospital.transcript.conclusion");
+            }
+            else
+            {
+                clueReadingEyebrow.text = GameLocalization.Get("quest.route_clue.eyebrow") +
+                                          mainQuestProgress.RouteClueCount + " / " + PreMilitaryQuestProgress.RequiredRouteClues;
+            }
+        }
         mapPrototype?.Refresh();
         RefreshQuestPresentation();
     }
@@ -560,9 +617,9 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         SetJournalOpen(false);
         if (mapPrototype != null) mapPrototype.SetOpen(false);
 
-        clueReadingEyebrow.text = "MANH MỐI TUYẾN ĐƯỜNG  //  " +
+        clueReadingEyebrow.text = GameLocalization.Get("quest.route_clue.eyebrow") +
                                   mainQuestProgress.RouteClueCount + " / " + PreMilitaryQuestProgress.RequiredRouteClues;
-        clueReadingTitle.text = string.IsNullOrWhiteSpace(title) ? "MANH MỐI KHÔNG RÕ" : title.ToUpperInvariant();
+        clueReadingTitle.text = string.IsNullOrWhiteSpace(title) ? GameLocalization.Get("quest.route_clue.fallback_title") : title.ToUpperInvariant();
         clueReadingBody.text = body ?? string.Empty;
         clueReadingConclusion.text = inference ?? string.Empty;
         clueReadingRoot.SetActive(true);
@@ -589,13 +646,10 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             return;
         SetJournalOpen(false);
         if (mapPrototype != null) mapPrototype.SetOpen(false);
-        clueReadingEyebrow.text = L("HOSPITAL ARCHIVE  //  SAVED TRANSCRIPT",
-            "LƯU TRỮ BỆNH VIỆN  //  TRANSCRIPT ĐÃ LƯU");
-        clueReadingTitle.text = L("RECOVERED RADIO RECORDING", "BẢN GHI RADIO ĐÃ KHÔI PHỤC");
+        clueReadingEyebrow.text = GameLocalization.Get("quest.hospital.transcript.eyebrow");
+        clueReadingTitle.text = GameLocalization.Get("quest.hospital.transcript.title");
         clueReadingBody.text = CurrentHospitalRadioTranscript;
-        clueReadingConclusion.text = L(
-            "Conclusion: the convoy withdrew to North Base; the recording does not confirm anyone is alive there.",
-            "Kết luận: đoàn xe đã rút về Căn cứ phía Bắc; bản ghi không xác nhận ở đó còn người sống.");
+        clueReadingConclusion.text = GameLocalization.Get("quest.hospital.transcript.conclusion");
         clueReadingRoot.SetActive(true);
         clueReadingRoot.transform.SetAsLastSibling();
     }
@@ -612,6 +666,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     public void PlayMilitaryMapRewardAfterDialogue(Action onFinished = null)
     {
         EnsureBuiltForTests();
+        PendingMilitaryMapRewardCallback = onFinished;
         // Fragment 2 is a physical torn paper reward, just like Fragment 1.
         // The full raster belongs to the map screen and must never be presented
         // as though the player received the whole town map as an inventory item.
@@ -621,16 +676,27 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             L("COORDINATION INVESTIGATION COMPLETE", "HOÀN THÀNH ĐIỀU TRA KHU ĐIỀU PHỐI"),
             L("Military route recovered", "Đã tìm thấy bản đồ tuyến quân sự"),
             L("MAP FRAGMENT 2 — MILITARY ROUTE", "MẢNH BẢN ĐỒ 2 — TUYẾN QUÂN SỰ"),
-            onFinished, true);
+            () =>
+            {
+                PendingMilitaryMapRewardCallback = null;
+                onFinished?.Invoke();
+            }, true);
     }
 
     public void PlayMilitaryMapReveal(Action onFinished = null)
     {
         EnsureBuiltForTests();
+        PendingMilitaryMapRevealCallback = onFinished;
         SetJournalOpen(false);
+        if (DeferRevealCallbackForTests && !Application.isPlaying)
+        {
+            if (mapPrototype != null) mapPrototype.SetOpen(true);
+            return;
+        }
         mapPrototype.PlayMilitaryDestinationReveal(() =>
         {
             mapPrototype.SetOpen(false);
+            PendingMilitaryMapRevealCallback = null;
             onFinished?.Invoke();
         });
     }
@@ -766,7 +832,8 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     public void QueueMilitaryMapUnlockReveal()
     {
         EnsureBuiltForTests();
-        mapPrototype.QueueMilitaryDestinationReveal();
+        mainQuestProgress?.RegisterMapFragment2AddedToInventory();
+        mapPrototype?.QueueMilitaryDestinationReveal();
     }
 
     public void DebugUnlockHospitalAndMilitaryMapRegions()
@@ -1087,7 +1154,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
             FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 0f),
             new Vector2(754f, 56f), new Vector2(30f, 29f));
 
-        Text(panel, "Clue Reading Close Hint", "[SPACE / E]  CẤT MANH MỐI", 13f, Muted, FontStyles.Bold,
+        Text(panel, "Clue Reading Close Hint", GameLocalization.Get("quest.route_clue.close_hint"), 13f, Muted, FontStyles.Bold,
             TextAlignmentOptions.Right, new Vector2(1f, 0f), new Vector2(310f, 28f), new Vector2(-38f, 24f));
         clueReadingRoot.SetActive(false);
     }

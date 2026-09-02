@@ -224,9 +224,15 @@ public sealed class MainQuestManager : NetworkBehaviour
             return 1f - Mathf.Clamp01(remaining / ArrivalCarRepairDurationSeconds);
         }
     }
+    private EscapeEndingRoute localLockedEscapeRoute = EscapeEndingRoute.None;
+    public EscapeEndingRoute LocalLockedEscapeRoute
+    {
+        get => localLockedEscapeRoute;
+        set => localLockedEscapeRoute = value;
+    }
     public EscapeEndingRoute LockedEscapeRoute => IsNetworkReady
         ? (EscapeEndingRoute)LockedEscapeRouteValue
-        : EscapeEndingRoute.None;
+        : localLockedEscapeRoute;
     public CivilianRouteStage CurrentCivilianRouteStage => IsNetworkReady
         ? (CivilianRouteStage)CivilianRouteStageValue
         : CivilianRouteStage.PreparingCar;
@@ -430,8 +436,8 @@ public sealed class MainQuestManager : NetworkBehaviour
 
             case QuestStage.SearchNeighborhood:
                 Debug.LogWarning("[QUEST TEST] F12 không dịch chuyển: mục tiêu hiện tại cần tìm hồ sơ trong LootContainer.");
-                AutoChatManager.Instance?.AddMessage("QUEST TEST",
-                    "F12 bị bỏ qua: nhiệm vụ tìm hồ sơ dùng LootContainer.");
+                AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.test_sender"),
+                    GameLocalization.Get("quest.debug.f12_skipped_loot"));
                 return;
 
             case QuestStage.LocateOffice:
@@ -480,7 +486,8 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         DebugTeleportPlayer(player, destination);
         Debug.Log($"[QUEST TEST] F12: đã dịch chuyển tới {targetName}.");
-        AutoChatManager.Instance?.AddMessage("QUEST TEST", $"Đã dịch chuyển tới {targetName}.");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.test_sender"),
+            string.Format(GameLocalization.Get("quest.debug.teleported_to"), targetName));
 #endif
     }
 
@@ -603,8 +610,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
             case QuestStage.CityMapFound:
                 Debug.Log("[QUEST TEST] Nửa đầu Tuyến B đã xong. Dùng F10 hoặc CheatMenu để chạy phần căn cứ.");
-                RPC_ShowDebugShortcutMessage(requester,
-                    "Đã mở tuyến quân sự. Dùng F10 hoặc CheatMenu để chạy nhiệm vụ căn cứ.");
+                RPC_ShowDebugShortcutMessage(requester, "quest.debug.route_b_military_unlocked");
                 break;
         }
 #endif
@@ -622,9 +628,8 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         if (CurrentStage != QuestStage.SearchNeighborhood)
         {
-            const string unavailable = "F7 chỉ hoạt động khi nhiệm vụ tìm kiếm manh mối trong khu dân cư đang diễn ra.";
-            Debug.Log("[QUEST TEST] " + unavailable);
-            RPC_ShowDebugShortcutMessage(requester, unavailable);
+            Debug.Log("[QUEST TEST] " + GameLocalization.Get("quest.debug.f7_only_neighborhood"));
+            RPC_ShowDebugShortcutMessage(requester, "quest.debug.f7_only_neighborhood");
             return;
         }
 
@@ -640,9 +645,10 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowDebugShortcutMessage([RpcTarget] PlayerRef targetPlayer, string message)
+    private void RPC_ShowDebugShortcutMessage([RpcTarget] PlayerRef targetPlayer, string messageKey)
     {
-        AutoChatManager.Instance?.AddMessage("QUEST TEST", message);
+        string localized = GameLocalization.Get(messageKey, fallback: messageKey);
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.test_sender"), localized);
     }
 
 #if UNITY_EDITOR
@@ -687,15 +693,15 @@ public sealed class MainQuestManager : NetworkBehaviour
             if (item != null && inventory.AddItem(item, 1))
                 addedCount++;
             else
-                failedItems.Add(ArrivalCarItemCatalog.GetDisplayName(kind));
+                failedItems.Add(GameLocalization.TranslateLiteral(ArrivalCarItemCatalog.GetDisplayName(kind)));
         }
 
         string message = failedItems.Count == 0
-            ? $"F8 đã cấp {addedCount} món còn thiếu. Túi đồ hiện đủ 5/5 vật phẩm sửa xe."
-            : $"F8 không thể cấp: {string.Join(", ", failedItems)}. Hãy dọn ô trống trong túi rồi thử lại.";
+            ? string.Format(GameLocalization.Get("quest.debug.f8_granted"), addedCount)
+            : string.Format(GameLocalization.Get("quest.debug.f8_failed"), string.Join(", ", failedItems));
 
         Debug.Log("[EDITOR TEST] " + message);
-        AutoChatManager.Instance?.AddMessage("EDITOR TEST", message);
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.editor_test_sender"), message);
     }
 #endif
 
@@ -890,7 +896,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (ArrivalCarRepairRules.IsApplied(ArrivalCarRepairMask, action))
         {
             RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f,
-                "Hạng mục này đã được sửa hoàn tất.");
+                "quest.arrival.repair_already_complete");
             return;
         }
 
@@ -904,10 +910,10 @@ public sealed class MainQuestManager : NetworkBehaviour
                 return;
             }
 
-            string message = ActiveArrivalCarRepairer == requester
-                ? "Bạn đang sửa một hạng mục khác."
-                : "Một người chơi khác đang sửa chiếc xe này.";
-            RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f, message);
+            string messageKey = ActiveArrivalCarRepairer == requester
+                ? "quest.arrival.repair_busy_other"
+                : "quest.arrival.repair_in_progress_other";
+            RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f, messageKey);
             return;
         }
 
@@ -916,7 +922,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             !car.CanInspect(player.transform.position))
         {
             RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f,
-                "Hãy đứng trong vùng kiểm tra trước capo để sửa xe.");
+                "quest.arrival.repair_stand_front");
             return;
         }
 
@@ -924,7 +930,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (health != null && (health.isDead || health.isTransforming))
         {
             RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f,
-                "Không thể sửa xe trong trạng thái hiện tại.");
+                "quest.arrival.repair_state_invalid");
             return;
         }
 
@@ -933,7 +939,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (inventory == null || !HasEveryArrivalCarItem(inventory, requirements))
         {
             RPC_ShowArrivalCarRepairStartResult(requester, false, (int)action, 0f,
-                "Thiếu vật phẩm phù hợp. Mở nhật ký [J] để xem checklist.");
+                "quest.arrival.repair_item_missing");
             return;
         }
 
@@ -963,7 +969,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         PlayerRef repairer = ActiveArrivalCarRepairer;
         if (!TryGetRequestingPlayer(repairer, out PlayerMovement player))
         {
-            AuthorityInterruptArrivalCarRepair(repairer, "Người sửa xe đã rời trận.");
+            AuthorityInterruptArrivalCarRepair(repairer, "quest.military.repair_interrupted_left");
             return;
         }
 
@@ -973,14 +979,14 @@ public sealed class MainQuestManager : NetworkBehaviour
         if ((health != null && (health.isDead || health.isTransforming)) || car == null ||
             !car.CanInspect(player.transform.position))
         {
-            AuthorityInterruptArrivalCarRepair(repairer, "Việc sửa xe đã bị gián đoạn.");
+            AuthorityInterruptArrivalCarRepair(repairer, "quest.military.repair_interrupted_generic");
             return;
         }
 
         if (!ArrivalCarRepairTimer.Expired(Runner)) return;
         if (!System.Enum.IsDefined(typeof(ArrivalCarRepairAction), ActiveArrivalCarRepairActionValue))
         {
-            AuthorityInterruptArrivalCarRepair(repairer, "Dữ liệu hạng mục sửa xe không hợp lệ.");
+            AuthorityInterruptArrivalCarRepair(repairer, "quest.arrival.repair_invalid_data");
             return;
         }
 
@@ -989,8 +995,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         ArrivalCarItemKind[] requirements = ArrivalCarItemCatalog.GetRequiredItems(action);
         if (inventory == null || !HasEveryArrivalCarItem(inventory, requirements))
         {
-            AuthorityInterruptArrivalCarRepair(repairer,
-                "Vật phẩm sửa chữa không còn trong túi đồ.");
+            AuthorityInterruptArrivalCarRepair(repairer, "quest.military.repair_interrupted_item_missing");
             return;
         }
 
@@ -999,8 +1004,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             ItemData consumable = FindArrivalCarItem(inventory, requirements[0]);
             if (consumable == null || inventory.ConsumeItem(consumable, 1) != 1)
             {
-                AuthorityInterruptArrivalCarRepair(repairer,
-                    "Vật phẩm vừa thay đổi trong túi đồ. Hãy kiểm tra lại [J].");
+                AuthorityInterruptArrivalCarRepair(repairer, "quest.arrival.repair_inventory_changed");
                 return;
             }
         }
@@ -1040,21 +1044,21 @@ public sealed class MainQuestManager : NetworkBehaviour
             !car.CanInspect(player.transform.position))
         {
             RPC_ShowArrivalCarStartResult(requester, false,
-                "Phải đứng trong vùng kiểm tra trước mũi xe để khởi động.");
+                "quest.arrival.start_stand_front");
             return;
         }
 
         if (!ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask))
         {
             RPC_ShowArrivalCarStartResult(requester, false,
-                "Động cơ, nhiên liệu, ắc quy và lốp trước trái chưa được xử lý đầy đủ.");
+                "quest.arrival.start_parts_incomplete");
             return;
         }
 
         if (!SpawnRepairedArrivalCar(car, player.Object))
         {
             RPC_ShowArrivalCarStartResult(requester, false,
-                "Không thể kích hoạt phương tiện. Hãy thử lại hoặc kiểm tra cấu hình prefab xe.");
+                "quest.arrival.start_failed_prefab");
             return;
         }
 
@@ -1062,7 +1066,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         ConfigureCivilianEscapeRoute(RepairedArrivalCarObject.transform.position);
         CivilianRouteStageValue = (int)CivilianRouteStage.CarReady;
         RPC_ShowArrivalCarStartResult(requester, true,
-            "Động cơ đã nổ máy. Xe dân sự đã sẵn sàng để khám phá và thoát hiểm.");
+            "quest.arrival.start_success");
         RPC_ShowLocalizedQuestMessage("quest.route_a_started", 0, 0);
         RPC_ShowCivilianMapUnlocked(CivilianCheckpointPosition, CivilianCityExitPosition);
     }
@@ -2213,11 +2217,11 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private static string GetArrivalCarActionSuccessMessage(ArrivalCarRepairAction action) => action switch
     {
-        ArrivalCarRepairAction.RepairCore => "Đã xử lý nắp capo, bộ đề và động cơ. Búa và bộ dụng cụ được giữ lại.",
-        ArrivalCarRepairAction.AddFuel => "Đã đổ can nhiên liệu vào bình.",
-        ArrivalCarRepairAction.ReplaceBattery => "Đã lắp ắc quy mới. Đây là hạng mục bắt buộc trước khi khởi động.",
-        ArrivalCarRepairAction.ReplaceTire => "Đã thay lốp trước trái bị hỏng. Đây là hạng mục bắt buộc trước khi chạy.",
-        _ => "Đã cập nhật tình trạng xe."
+        ArrivalCarRepairAction.RepairCore => "quest.arrival.repair_core_success",
+        ArrivalCarRepairAction.AddFuel => "quest.arrival.add_fuel_success",
+        ArrivalCarRepairAction.ReplaceBattery => "quest.arrival.replace_battery_success",
+        ArrivalCarRepairAction.ReplaceTire => "quest.arrival.replace_tire_success",
+        _ => "quest.arrival.status_updated"
     };
 
     private void ConfigureCivilianEscapeRoute(Vector2 origin)
@@ -2426,7 +2430,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowQuestMessage(string message)
     {
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", message);
+        string localized = GameLocalization.Get(message, fallback: message);
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), localized);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -2435,13 +2440,13 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (Runner == null || Runner.LocalPlayer != focusPlayer) return;
         HospitalRadioInteractionRole role = (HospitalRadioInteractionRole)roleValue;
         string message = role == HospitalRadioInteractionRole.Door
-            ? "Đã mở Trạm liên lạc phụ trợ. Radio hiện sẵn sàng để kiểm tra."
-            : "Radio đã sẵn sàng. Nội dung phát sóng và phục hồi tín hiệu sẽ bắt đầu ở H3.";
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ BỆNH VIỆN", message);
-        ShowLocalQuestEvent(role == HospitalRadioInteractionRole.Door
-                ? "TRẠM RADIO ĐÃ MỞ"
-                : "RADIO SẴN SÀNG",
-            message);
+            ? GameLocalization.Get("quest.hospital.door_opened")
+            : GameLocalization.Get("quest.hospital.radio_ready");
+        string title = role == HospitalRadioInteractionRole.Door
+            ? GameLocalization.Get("quest.hospital.door_opened_title")
+            : GameLocalization.Get("quest.hospital.radio_ready_title");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.hospital.sender"), message);
+        ShowLocalQuestEvent(title, message);
         Debug.Log("[HOSPITAL H2] " + message);
     }
 
@@ -2450,10 +2455,10 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
         QuestFlowUIPrototype.Instance?.NotifyAuthoritativeQuestStage((int)QuestStage.CityMapFound);
-        AutoChatManager.Instance?.AddMessage("BẢN GHI RADIO ĐÃ KHÔI PHỤC",
-            "Transcript đã lưu trong Nhật ký. Bộ nhớ máy chứa tọa độ Căn cứ phía Bắc; chưa rõ ở đó còn ai sống.");
-        ShowLocalQuestEvent("MẢNH BẢN ĐỒ 2",
-            "Đã trích xuất tần số đèn hiệu và tọa độ từ bộ nhớ Radio.");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.radio.restored_sender"),
+            GameLocalization.Get("quest.radio.restored_body"));
+        ShowLocalQuestEvent(GameLocalization.Get("quest.radio.map_fragment_title"),
+            GameLocalization.Get("quest.radio.map_fragment_body"));
         RouteBRadioBroadcastUI.ShowHospitalRecording(() => HandleMilitaryMapFragmentFound(ownsMilitaryReveal));
     }
 
@@ -2464,13 +2469,9 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (localPlayer == null || Vector2.Distance(localPlayer.transform.position, radioPosition) > 24f) return;
 
         HospitalRadioMilestonePresentation.Play(radioPosition);
-        AutoNoiseMeter.ReportTransientNoise(1f, "RADIO NHIỄU");
-        bool vietnamese = QuestUILocalization.IsVietnamese;
-        string title = vietnamese ? $"RADIO BÙNG NHIỄU  •  CHẶNG {completedSegment}/3"
-            : $"RADIO NOISE BURST  •  STAGE {completedSegment}/3";
-        string body = vietnamese
-            ? "Có tiếng động bên ngoài. Bạn có thể ra kiểm tra hoặc tiếp tục sửa Radio."
-            : "There is movement outside. You may investigate or continue repairing the Radio.";
+        AutoNoiseMeter.ReportTransientNoise(1f, GameLocalization.Get("quest.hospital.radio_noise_source"));
+        string title = string.Format(GameLocalization.Get("quest.hospital.radio_threat_title"), completedSegment);
+        string body = GameLocalization.Get("quest.hospital.radio_threat_body");
         AutoChatManager.Instance?.AddMessage(title, body);
         ShowLocalQuestEvent(title, body);
     }
@@ -2483,13 +2484,13 @@ public sealed class MainQuestManager : NetworkBehaviour
         string message = stage switch
         {
             HospitalInvestigationStage.FindRadioKey =>
-                "Cửa bị khóa. Chìa dự phòng đã được đánh dấu trong khu văn phòng trưởng ca.",
+                GameLocalization.Get("quest.hospital.door_locked_find_key"),
             HospitalInvestigationStage.FindShiftLog2 =>
-                "Cửa bị khóa. Kiểm tra văn phòng trưởng ca phía sau quầy tiếp tân.",
-            _ => "Cửa bị khóa. Kiểm tra sổ trực tại quầy tiếp tân để tìm nơi cất chìa dự phòng."
+                GameLocalization.Get("quest.hospital.door_locked_find_log2"),
+            _ => GameLocalization.Get("quest.hospital.door_locked_find_log1")
         };
-        AutoChatManager.Instance?.AddMessage("CỬA TRẠM RADIO", message);
-        ShowLocalQuestEvent("CẦN CHÌA KHÓA", message);
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.hospital.door_sender"), message);
+        ShowLocalQuestEvent(GameLocalization.Get("quest.hospital.need_key_title"), message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -2499,36 +2500,27 @@ public sealed class MainQuestManager : NetworkBehaviour
         HospitalQuestClueRole role = (HospitalQuestClueRole)roleValue;
         if (role == HospitalQuestClueRole.ShiftLog)
         {
-            const string body = "Khu điều trị đã đóng.\n" +
-                                "Toàn bộ liên lạc khẩn cấp chuyển sang Trạm phụ trợ phía sau bệnh viện.\n" +
-                                "Chìa khóa dự phòng do trưởng ca giữ tại văn phòng hành chính.\n\n" +
-                                "Nhật ký: Kiểm tra văn phòng trưởng ca phía sau quầy tiếp tân.";
-            AutoChatManager.Instance?.AddMessage("SỔ TRỰC BỆNH VIỆN",
-                "Chìa khóa Trạm Radio do trưởng ca giữ tại văn phòng hành chính.");
-            ShowLocalQuestEvent("SỔ TRỰC BỆNH VIỆN", body);
+            string body = GameLocalization.Get("quest.hospital.shift_log_body");
+            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.hospital.shift_log_sender"),
+                GameLocalization.Get("quest.hospital.shift_log_chat"));
+            ShowLocalQuestEvent(GameLocalization.Get("quest.hospital.shift_log_sender"), body);
             return;
         }
 
-        const string secondBody = "Lệnh phong tỏa cấp đỏ đã được xác nhận.\n" +
-                                  "Đoàn xe không được dừng tại bệnh viện.\n" +
-                                  "Nhân viên liên lạc có dấu hiệu nhiễm bệnh và đã tự khóa mình tại Trạm phụ trợ để giữ kênh Radio hoạt động.\n\n" +
-                                  "Sổ bàn giao cho biết chìa dự phòng được giấu trong khu văn phòng.\n" +
-                                  "Nhật ký: Tìm chìa khóa Radio tại vị trí đã được đánh dấu.";
-        AutoChatManager.Instance?.AddMessage("VĂN PHÒNG TRƯỞNG CA",
-            "Đã xác định một vị trí có thể cất chìa dự phòng. Waypoint đã được cập nhật.");
-        ShowLocalQuestEvent("LỆNH PHONG TỎA CẤP ĐỎ", secondBody);
+        string secondBody = GameLocalization.Get("quest.hospital.red_alert_body");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.hospital.supervisor_sender"),
+            GameLocalization.Get("quest.hospital.supervisor_chat"));
+        ShowLocalQuestEvent(GameLocalization.Get("quest.hospital.red_alert_title"), secondBody);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowHospitalRadioKeyCollected([RpcTarget] PlayerRef targetPlayer)
     {
         if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
-        const string body = "Đã nhặt chìa khóa dự phòng của Trạm Radio.\n" +
-                            "Chìa khóa là trạng thái dùng chung của toàn đội và không chiếm ô inventory.\n\n" +
-                            "Nhật ký: Mở Trạm liên lạc phụ trợ phía sau bệnh viện.";
-        AutoChatManager.Instance?.AddMessage("CHÌA KHÓA RADIO",
-            "Đội đã nhận chìa khóa dùng chung. Waypoint chuyển tới Trạm Radio.");
-        ShowLocalQuestEvent("ĐÃ NHẶT CHÌA KHÓA RADIO", body);
+        string body = GameLocalization.Get("quest.hospital.radio_key_body");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.hospital.radio_key_sender"),
+            GameLocalization.Get("quest.hospital.radio_key_chat"));
+        ShowLocalQuestEvent(GameLocalization.Get("quest.hospital.radio_key_title"), body);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -2621,9 +2613,10 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowArrivalCarRepairStartResult([RpcTarget] PlayerRef targetPlayer, bool accepted,
-        int actionValue, float durationSeconds, string message)
+        int actionValue, float durationSeconds, string messageKey)
     {
         if (Runner.LocalPlayer != targetPlayer) return;
+        string message = string.IsNullOrEmpty(messageKey) ? string.Empty : GameLocalization.Get(messageKey, messageKey);
         ArrivalCarInspectionUI inspection = ArrivalCarInspectionUI.ActiveInstance;
         if (inspection != null)
             inspection.NotifyRepairStartResult(
@@ -2633,27 +2626,32 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowArrivalCarRepairInterrupted([RpcTarget] PlayerRef targetPlayer, string message)
+    private void RPC_ShowArrivalCarRepairInterrupted([RpcTarget] PlayerRef targetPlayer, string messageKey)
     {
         if (Runner.LocalPlayer != targetPlayer) return;
+        string message = string.IsNullOrEmpty(messageKey) ? string.Empty : GameLocalization.Get(messageKey, messageKey);
         ArrivalCarInspectionUI.ActiveInstance?.NotifyRepairInterrupted(message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowArrivalCarRepairResult([RpcTarget] PlayerRef targetPlayer, bool success,
-        int actionValue, string message)
+        int actionValue, string messageKey)
     {
         if (Runner.LocalPlayer != targetPlayer) return;
-        AutoChatManager.Instance?.AddMessage(success ? "SỬA XE" : "KHÔNG THỂ SỬA", message);
+        string message = string.IsNullOrEmpty(messageKey) ? string.Empty : GameLocalization.Get(messageKey, messageKey);
+        string sender = GameLocalization.Get(success ? "quest.arrival.repair_title_success" : "quest.arrival.repair_title_fail");
+        AutoChatManager.Instance?.AddMessage(sender, message);
         ArrivalCarInspectionUI.ActiveInstance?.NotifyRepairResult(
             (ArrivalCarRepairAction)actionValue, success, message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowArrivalCarStartResult([RpcTarget] PlayerRef targetPlayer, bool success, string message)
+    private void RPC_ShowArrivalCarStartResult([RpcTarget] PlayerRef targetPlayer, bool success, string messageKey)
     {
         if (Runner.LocalPlayer != targetPlayer) return;
-        AutoChatManager.Instance?.AddMessage(success ? "KHỞI ĐỘNG XE" : "KHÔNG THỂ KHỞI ĐỘNG", message);
+        string message = string.IsNullOrEmpty(messageKey) ? string.Empty : GameLocalization.Get(messageKey, messageKey);
+        string sender = GameLocalization.Get(success ? "quest.arrival.start_title_success" : "quest.arrival.start_title_fail");
+        AutoChatManager.Instance?.AddMessage(sender, message);
         ArrivalCarInspectionUI.ActiveInstance?.NotifyStartResult(success, message);
     }
 
@@ -2751,43 +2749,46 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void RPC_DebugUnlockHospitalAndMilitaryMapRegions()
     {
         QuestFlowUIPrototype.Instance?.DebugUnlockHospitalAndMilitaryMapRegions();
-        AutoChatManager.Instance?.AddMessage("QUEST TEST",
-            "Đã mở toàn bộ hai vùng bản đồ Bệnh viện và Quân sự.");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.test_sender"),
+            GameLocalization.Get("quest.debug.map_regions_unlocked"));
     }
 
     private bool isMilitaryMapRewardSequenceRunning;
+    public bool IsMilitaryMapRewardSequenceRunning => isMilitaryMapRewardSequenceRunning;
+    private System.Action pendingLevelFiveBackpackClaims;
+
+    public void TriggerLevelFiveRewardSequence(bool introduceRouteChoice = true)
+    {
+        PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+        InventorySystem inventory = localPlayer != null ? localPlayer.GetComponent<InventorySystem>() : null;
+        if (inventory != null && inventory.HasClaimedQuestBackpackReward(BackpackQuestRewardRules.RadioBackpackLevel))
+        {
+            return;
+        }
+
+        HandleMilitaryMapFragmentFound(introduceRouteChoice);
+    }
 
     private void HandleMilitaryMapFragmentFound(bool introduceRouteChoice)
     {
         if (isMilitaryMapRewardSequenceRunning) return;
         isMilitaryMapRewardSequenceRunning = true;
 
+        RouteBRadioBroadcastUI.CloseIfOpen();
+        EscapeRouteDecisionUI.CloseIfOpen();
+        BackpackQuestRewardPresentation.DismissNotification();
+
         QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
         flow?.QueueMilitaryMapUnlockReveal();
-
-        if (LockedEscapeRoute != EscapeEndingRoute.None)
-        {
-            isMilitaryMapRewardSequenceRunning = false;
-            CloseStaleRouteIntroduction(flow);
-            ClaimAndPresentLevelFiveBackpack();
-            return;
-        }
 
         if (flow != null)
         {
             flow.PlayMilitaryMapRewardAfterDialogue(() =>
             {
-                if (LockedEscapeRoute != EscapeEndingRoute.None)
-                {
-                    isMilitaryMapRewardSequenceRunning = false;
-                    CloseStaleRouteIntroduction(flow);
-                    ClaimAndPresentLevelFiveBackpack();
-                    return;
-                }
-
                 flow.PlayMilitaryMapReveal(() =>
                 {
                     isMilitaryMapRewardSequenceRunning = false;
+                    CloseStaleRouteIntroduction(flow);
                     OnMilitaryMapSequenceComplete(introduceRouteChoice);
                 });
             });
@@ -2795,28 +2796,51 @@ public sealed class MainQuestManager : NetworkBehaviour
         else
         {
             isMilitaryMapRewardSequenceRunning = false;
+            CloseStaleRouteIntroduction(flow);
             OnMilitaryMapSequenceComplete(introduceRouteChoice);
         }
     }
 
     private void OnMilitaryMapSequenceComplete(bool introduceRouteChoice)
     {
-        AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
-            "Phát hiện manh mối mới - bấm M để kiểm tra");
-        ShowLocalQuestEvent("MẢNH BẢN ĐỒ 2", "Vị trí căn cứ quân sự đã được ghi vào bản đồ.");
-
         ClaimAndPresentLevelFiveBackpack(() =>
         {
-            if (introduceRouteChoice && LockedEscapeRoute == EscapeEndingRoute.None)
+            if (this == null || !gameObject) return;
+            // Effect B has finished, and authoritative grant is complete (FinishPresentation timing/API preserved).
+            // Defer the route choice story and AutoChat clue banner until after Notification A has dismissed.
+            BackpackQuestRewardPresentation.RegisterPostNotificationAction(() =>
             {
-                RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
-                    EscapeRouteDecisionUI.ShowPreMilitaryChoice);
-            }
+                if (this == null || !gameObject) return;
+                ExecutePostBackpackFlow(introduceRouteChoice);
+            });
         });
+    }
+
+    private void ExecutePostBackpackFlow(bool introduceRouteChoice)
+    {
+        if (this == null || !gameObject) return;
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.Get("quest.military.new_clue_title"),
+            GameLocalization.Get("quest.military.new_clue_body"));
+        ShowLocalQuestEvent(
+            GameLocalization.Get("quest.radio.map_fragment_title"),
+            GameLocalization.Get("quest.radio.map_fragment_recorded"));
+
+        if (introduceRouteChoice && LockedEscapeRoute == EscapeEndingRoute.None)
+        {
+            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.MilitaryRouteRevealed,
+                EscapeRouteDecisionUI.ShowPreMilitaryChoice);
+        }
     }
 
     public void ClaimAndPresentLevelFiveBackpack(System.Action onComplete = null)
     {
+        if (isMilitaryMapRewardSequenceRunning)
+        {
+            pendingLevelFiveBackpackClaims += onComplete;
+            return;
+        }
+
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
         InventorySystem inventory = localPlayer != null ? localPlayer.GetComponent<InventorySystem>() : null;
         ItemData backpack = BackpackItemCatalog.GetOrCreate(BackpackQuestRewardRules.RadioBackpackLevel);
@@ -2827,20 +2851,28 @@ public sealed class MainQuestManager : NetworkBehaviour
             return;
         }
 
+        int preClaimLevel = inventory != null && inventory.CurrentBackpackLevel >= 0
+            ? inventory.CurrentBackpackLevel
+            : (inventory != null && inventory.LastCapturedLevelFivePreviousLevel >= 0
+                ? inventory.LastCapturedLevelFivePreviousLevel
+                : 4);
+
         void StartBackpackPresentation()
         {
-            if (LockedEscapeRoute != EscapeEndingRoute.None)
-            {
-                onComplete?.Invoke();
-                return;
-            }
+            if (this == null || !gameObject) return;
+            RouteBRadioBroadcastUI.CloseIfOpen();
+            EscapeRouteDecisionUI.CloseIfOpen();
+            int previousLevel = inventory != null && inventory.LastCapturedLevelFivePreviousLevel >= 0
+                ? inventory.LastCapturedLevelFivePreviousLevel
+                : preClaimLevel;
 
-            BackpackQuestRewardPresentation.Show(BackpackQuestRewardRules.RadioBackpackLevel, backpack, () =>
+            BackpackQuestRewardPresentation.ShowWithPreviousLevel(BackpackQuestRewardRules.RadioBackpackLevel, backpack, previousLevel, () =>
             {
-                string notif = GameLocalization.Get("backpack.quest.level5.upgraded", "Đã nâng cấp lên balo cấp 5.");
-                AutoChatManager.Instance?.AddMessage("BALO CẤP 5", notif);
-                ShowLocalQuestEvent("BALO CẤP 5", notif);
+                if (this == null || !gameObject) return;
                 onComplete?.Invoke();
+                System.Action pending = pendingLevelFiveBackpackClaims;
+                pendingLevelFiveBackpackClaims = null;
+                pending?.Invoke();
             });
         }
 
@@ -2858,6 +2890,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         flow?.CloseAllQuestOverlays();
         EscapeRouteDecisionUI.CloseIfOpen();
+        RouteBRadioBroadcastUI.CloseIfOpen();
         AutoUIManager.Instance?.SetQuestOverlayOpen(false);
     }
 
@@ -2872,8 +2905,9 @@ public sealed class MainQuestManager : NetworkBehaviour
             () =>
             {
                 QuestFlowUIPrototype.Instance?.QueueMapUnlockReveal();
-                AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
-                    "Phát hiện manh mối mới - bấm M để kiểm tra");
+                AutoChatManager.Instance?.AddMessage(
+                    GameLocalization.Get("quest.military.new_clue_title"),
+                    GameLocalization.Get("quest.military.new_clue_body"));
                 ShowLocateOfficeObjectiveNotification();
             });
     }
@@ -2897,31 +2931,96 @@ public sealed class MainQuestManager : NetworkBehaviour
         ShowLocalQuestEvent(GameLocalization.Get(found ? "quest.cabinet_found_title" : "quest.cabinet_empty_title"), message);
     }
 
-    private void ShowLocalQuestEvent(string title, string body)
+    private struct QuestEventNoticeItem
     {
-        localQuestEventTitle = title;
-        localQuestEventBody = body;
-        if (questEventRoutine != null)
-            StopCoroutine(questEventRoutine);
-        questEventRoutine = StartCoroutine(QuestEventNoticeRoutine());
+        public string title;
+        public string body;
+        public float holdSeconds;
     }
 
-    private IEnumerator QuestEventNoticeRoutine()
+    private readonly Queue<QuestEventNoticeItem> pendingQuestEvents = new Queue<QuestEventNoticeItem>();
+    private float currentQuestEventNoticeBottom = 0f;
+
+    public bool IsQuestEventNoticeActive => localQuestEventAlpha > 0.001f;
+    public int PendingQuestEventCount => pendingQuestEvents.Count;
+    public string CurrentQuestEventTitle => localQuestEventTitle;
+    public string CurrentQuestEventBody => localQuestEventBody;
+    public float CurrentQuestEventNoticeBottom => (localQuestEventAlpha > 0.001f) ? currentQuestEventNoticeBottom : 0f;
+
+    private void ShowLocalQuestEvent(string title, string body)
     {
-        localQuestEventAlpha = 0f;
-        for (float elapsed = 0f; elapsed < questEventFadeInSeconds; elapsed += Time.unscaledDeltaTime)
+        if (this == null || !gameObject || !isActiveAndEnabled)
+            return;
+
+        pendingQuestEvents.Enqueue(new QuestEventNoticeItem
         {
-            localQuestEventAlpha = CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeInSeconds));
-            yield return null;
-        }
-        localQuestEventAlpha = 1f;
-        yield return new WaitForSecondsRealtime(questEventHoldSeconds);
-        for (float elapsed = 0f; elapsed < questEventFadeOutSeconds; elapsed += Time.unscaledDeltaTime)
+            title = title,
+            body = body,
+            holdSeconds = questEventHoldSeconds
+        });
+
+        if (questEventRoutine == null)
+            questEventRoutine = StartCoroutine(ProcessQuestEventNoticesRoutine());
+    }
+
+    private IEnumerator ProcessQuestEventNoticesRoutine()
+    {
+        while (pendingQuestEvents.Count > 0)
         {
-            localQuestEventAlpha = 1f - CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeOutSeconds));
-            yield return null;
+            // Do not begin displaying while backpack presentation or notification is active, or gameplay is suppressed
+            while (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible || GameplayReadinessCoordinator.IsGameplaySuppressed)
+            {
+                yield return null;
+            }
+
+            QuestEventNoticeItem current = pendingQuestEvents.Dequeue();
+            localQuestEventTitle = current.title;
+            localQuestEventBody = current.body;
+
+            // 1. Fade in
+            localQuestEventAlpha = 0f;
+            for (float elapsed = 0f; elapsed < questEventFadeInSeconds; elapsed += Time.unscaledDeltaTime)
+            {
+                while (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible)
+                {
+                    yield return null;
+                }
+                localQuestEventAlpha = CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeInSeconds));
+                yield return null;
+            }
+            localQuestEventAlpha = 1f;
+
+            // 2. Hold - pause hold timer while backpack notification is active
+            float holdElapsed = 0f;
+            float targetHold = current.holdSeconds > 0f ? current.holdSeconds : questEventHoldSeconds;
+            while (holdElapsed < targetHold)
+            {
+                if (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible)
+                {
+                    yield return null;
+                    continue;
+                }
+                holdElapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            // 3. Fade out
+            for (float elapsed = 0f; elapsed < questEventFadeOutSeconds; elapsed += Time.unscaledDeltaTime)
+            {
+                while (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible)
+                {
+                    yield return null;
+                }
+                localQuestEventAlpha = 1f - CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeOutSeconds));
+                yield return null;
+            }
+            localQuestEventAlpha = 0f;
+
+            if (pendingQuestEvents.Count > 0)
+            {
+                yield return new WaitForSecondsRealtime(0.2f);
+            }
         }
-        localQuestEventAlpha = 0f;
         questEventRoutine = null;
     }
 
@@ -3103,7 +3202,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void OnGUI()
     {
-        if (GameplayReadinessCoordinator.IsGameplaySuppressed || GameplayHudLayout.AreGameplayPromptsSuppressed()) return;
+        if (GameplayReadinessCoordinator.IsGameplaySuppressed || GameplayHudLayout.AreGameplayPromptsSuppressed() || BackpackQuestRewardPresentation.IsVisible) return;
 
         if (localQuestEventAlpha > 0.001f) DrawQuestEventNotice();
         if (localClueNoticeAlpha > 0.001f) DrawClueNotice();
@@ -3169,45 +3268,49 @@ public sealed class MainQuestManager : NetworkBehaviour
             fontStyle = FontStyle.Bold,
             alignment = TextAnchor.MiddleCenter
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 260f, 24f, 520f, 38f), objective, style);
+        Rect objectiveRect = GameplayHudLayout.GetTopCenterObjectiveRect();
+        GUI.Box(objectiveRect, objective, style);
     }
 
     private void DrawQuestEventNotice()
     {
+        if (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible) return;
+
         int previousDepth = GUI.depth;
         Color previousColor = GUI.color;
         GUI.depth = -1450;
 
-        float width = Mathf.Min(760f, Screen.width - 40f);
+        float width = Mathf.Min(680f, Screen.width - 48f);
         float bodyWidth = width - 44f;
         GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.025f), 18, 28),
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.025f), 16, 26),
             fontStyle = FontStyle.Bold,
             wordWrap = false,
-            clipping = TextClipping.Overflow
+            clipping = TextClipping.Clip
         };
         GUIStyle bodyStyle = new GUIStyle(titleStyle)
         {
             alignment = TextAnchor.UpperCenter,
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.016f), 13, 18),
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.016f), 12, 16),
             fontStyle = FontStyle.Normal,
             wordWrap = true,
-            clipping = TextClipping.Overflow
+            clipping = TextClipping.Clip
         };
-        float bodyHeight = Mathf.Max(34f, bodyStyle.CalcHeight(new GUIContent(localQuestEventBody), bodyWidth));
-        float height = 56f + bodyHeight + 16f;
-        Rect panel = new Rect((Screen.width - width) * 0.5f, 78f, width, height);
+        float bodyHeight = Mathf.Max(32f, bodyStyle.CalcHeight(new GUIContent(localQuestEventBody), bodyWidth));
+        float height = Mathf.Min(Screen.height * 0.25f, 52f + bodyHeight + 14f);
+        Rect panel = GameplayHudLayout.GetTopCenterQuestEventNoticeRect(width, height);
+        currentQuestEventNoticeBottom = panel.yMax;
         GUI.color = new Color(0.015f, 0.02f, 0.02f, localQuestEventAlpha * 0.9f);
         GUI.DrawTexture(panel, Texture2D.whiteTexture);
         GUI.color = new Color(1f, 0.67f, 0.14f, localQuestEventAlpha);
         GUI.DrawTexture(new Rect(panel.x, panel.y, 4f, panel.height), Texture2D.whiteTexture);
         GUI.DrawTexture(new Rect(panel.x, panel.y, panel.width, 2f), Texture2D.whiteTexture);
 
-        DrawShadowedLabel(new Rect(panel.x + 14f, panel.y + 8f, panel.width - 28f, 34f),
+        DrawShadowedLabel(new Rect(panel.x + 14f, panel.y + 8f, panel.width - 28f, 32f),
             localQuestEventTitle, titleStyle, new Color(1f, 0.76f, 0.27f), localQuestEventAlpha, 2f);
-        DrawShadowedLabel(new Rect(panel.x + 22f, panel.y + 48f, bodyWidth, bodyHeight),
+        DrawShadowedLabel(new Rect(panel.x + 22f, panel.y + 44f, bodyWidth, bodyHeight),
             localQuestEventBody, bodyStyle, new Color(0.94f, 0.95f, 0.94f), localQuestEventAlpha, 1f);
 
         GUI.color = previousColor;
@@ -3216,12 +3319,14 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void DrawClueNotice()
     {
+        if (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible) return;
+
         int previousDepth = GUI.depth;
         Color previousColor = GUI.color;
         GUI.depth = -1400;
 
-        float width = Mathf.Min(760f, Screen.width - 40f);
-        float height = 104f;
+        float width = Mathf.Min(680f, Screen.width - 48f);
+        float height = 100f;
         Rect panel = new Rect((Screen.width - width) * 0.5f, Screen.height * 0.27f, width, height);
 
         GUI.color = new Color(0.015f, 0.02f, 0.025f, localClueNoticeAlpha * 0.82f);
@@ -3233,19 +3338,21 @@ public sealed class MainQuestManager : NetworkBehaviour
         GUIStyle titleStyle = new GUIStyle(GUI.skin.label)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.032f), 23, 34),
-            fontStyle = FontStyle.Bold
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.032f), 20, 30),
+            fontStyle = FontStyle.Bold,
+            clipping = TextClipping.Clip
         };
         GUIStyle subtitleStyle = new GUIStyle(titleStyle)
         {
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.018f), 14, 20),
-            fontStyle = FontStyle.Normal
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.018f), 13, 18),
+            fontStyle = FontStyle.Normal,
+            clipping = TextClipping.Clip
         };
 
-        DrawShadowedLabel(new Rect(panel.x + 12f, panel.y + 10f, panel.width - 24f, 48f),
+        DrawShadowedLabel(new Rect(panel.x + 12f, panel.y + 10f, panel.width - 24f, 44f),
             GameLocalization.Get("quest.clue_title"), titleStyle,
             new Color(1f, 0.82f, 0.2f), localClueNoticeAlpha, 2f);
-        DrawShadowedLabel(new Rect(panel.x + 12f, panel.y + 56f, panel.width - 24f, 30f),
+        DrawShadowedLabel(new Rect(panel.x + 12f, panel.y + 52f, panel.width - 24f, 28f),
             GameLocalization.Get("quest.clue_subtitle"), subtitleStyle,
             new Color(0.92f, 0.94f, 0.96f), localClueNoticeAlpha, 1f);
 
@@ -3340,11 +3447,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         };
 
         Vector2 markerPosition;
+        float angle = 0f;
         if (isOnScreen)
         {
             markerPosition = targetGui + new Vector2(0f, -42f + Mathf.Sin(Time.unscaledTime * 3.2f) * 4f);
-            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
-                "▼", arrowStyle, new Color(1f, 0.82f, 0.12f), pulse, 2f);
         }
         else
         {
@@ -3360,11 +3466,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             markerPosition = center + direction * Mathf.Min(scaleX, scaleY);
             markerPosition.y = Mathf.Clamp(markerPosition.y, topMargin, Screen.height - bottomMargin);
 
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            GUIUtility.RotateAroundPivot(angle, markerPosition);
-            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
-                "▶", arrowStyle, new Color(1f, 0.82f, 0.12f), pulse, 2f);
-            GUI.matrix = previousMatrix;
+            angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         }
 
         float distance = PlayerMovement.LocalPlayerInstance != null
@@ -3376,9 +3478,35 @@ public sealed class MainQuestManager : NetworkBehaviour
         float labelWidth = 190f;
         float labelX = Mathf.Clamp(markerPosition.x - labelWidth * 0.5f, 8f, Screen.width - labelWidth - 8f);
         float labelY = isOnScreen ? markerPosition.y - 34f : markerPosition.y + 31f;
-        labelY = Mathf.Clamp(labelY, 50f, Screen.height - 36f);
+        Rect arrowRect = new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f);
+        Rect labelRect = new Rect(labelX, labelY, labelWidth, 28f);
+
+        // Compute union of arrow + label group and clamp together
+        float groupMinX = Mathf.Min(arrowRect.xMin, labelRect.xMin);
+        float groupMaxX = Mathf.Max(arrowRect.xMax, labelRect.xMax);
+        float groupMinY = Mathf.Min(arrowRect.yMin, labelRect.yMin);
+        float groupMaxY = Mathf.Max(arrowRect.yMax, labelRect.yMax);
+        Rect groupRect = new Rect(groupMinX, groupMinY, groupMaxX - groupMinX, groupMaxY - groupMinY);
+        Rect clampedGroup = GameplayHudLayout.ClampWaypointGroupAroundTopCenter(groupRect);
+        float deltaY = clampedGroup.y - groupRect.y;
+
+        markerPosition.y += deltaY;
+        arrowRect.y += deltaY;
+        labelRect.y += deltaY;
+
+        if (isOnScreen)
+        {
+            DrawShadowedLabel(arrowRect, "▼", arrowStyle, new Color(1f, 0.82f, 0.12f), pulse, 2f);
+        }
+        else
+        {
+            GUIUtility.RotateAroundPivot(angle, markerPosition);
+            DrawShadowedLabel(arrowRect, "▶", arrowStyle, new Color(1f, 0.82f, 0.12f), pulse, 2f);
+            GUI.matrix = previousMatrix;
+        }
+
         GUI.color = new Color(0.03f, 0.035f, 0.04f, 0.88f);
-        GUI.Box(new Rect(labelX, labelY, labelWidth, 28f), markerText, markerStyle);
+        GUI.Box(labelRect, markerText, markerStyle);
 
         GUI.matrix = previousMatrix;
         GUI.color = previousColor;
@@ -3426,11 +3554,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         markerStyle.normal.textColor = new Color(0.9f, 1f, 0.97f, 1f);
 
         Vector2 markerPosition;
+        float angle = 0f;
         if (isOnScreen)
         {
             markerPosition = targetGui + new Vector2(0f, -42f + Mathf.Sin(Time.unscaledTime * 3.2f) * 4f);
-            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
-                "▼", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
         }
         else
         {
@@ -3444,11 +3571,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             float scaleY = availableY / Mathf.Max(0.001f, Mathf.Abs(direction.y));
             markerPosition = center + direction * Mathf.Min(scaleX, scaleY);
             markerPosition.y = Mathf.Clamp(markerPosition.y, topMargin, Screen.height - bottomMargin);
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            GUIUtility.RotateAroundPivot(angle, markerPosition);
-            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
-                "▶", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
-            GUI.matrix = previousMatrix;
+            angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         }
 
         float distance = PlayerMovement.LocalPlayerInstance != null
@@ -3460,13 +3583,41 @@ public sealed class MainQuestManager : NetworkBehaviour
         float labelX = Mathf.Clamp(markerPosition.x - labelWidth * 0.5f, 8f, Screen.width - labelWidth - 8f);
         float labelY = isOnScreen ? markerPosition.y - 34f : markerPosition.y + 31f;
         labelY = Mathf.Clamp(labelY, 50f, Screen.height - 36f);
+
+        Rect arrowRect = new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f);
+        Rect labelRect = new Rect(labelX, labelY, labelWidth, 28f);
+
+        // Compute union of arrow + label group and clamp together
+        float groupMinX = Mathf.Min(arrowRect.xMin, labelRect.xMin);
+        float groupMaxX = Mathf.Max(arrowRect.xMax, labelRect.xMax);
+        float groupMinY = Mathf.Min(arrowRect.yMin, labelRect.yMin);
+        float groupMaxY = Mathf.Max(arrowRect.yMax, labelRect.yMax);
+        Rect groupRect = new Rect(groupMinX, groupMinY, groupMaxX - groupMinX, groupMaxY - groupMinY);
+        Rect clampedGroup = GameplayHudLayout.ClampWaypointGroupAroundTopCenter(groupRect);
+        float deltaY = clampedGroup.y - groupRect.y;
+
+        markerPosition.y += deltaY;
+        arrowRect.y += deltaY;
+        labelRect.y += deltaY;
+
+        if (isOnScreen)
+        {
+            DrawShadowedLabel(arrowRect, "▼", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
+        }
+        else
+        {
+            GUIUtility.RotateAroundPivot(angle, markerPosition);
+            DrawShadowedLabel(arrowRect, "▶", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
+            GUI.matrix = previousMatrix;
+        }
+
         // GUI.color also multiplies textColor, which made this label nearly
         // black. Tint only the box background and leave the text at full
         // contrast.
         GUI.color = Color.white;
         GUI.backgroundColor = new Color(0.03f, 0.045f, 0.043f, 0.9f);
         GUI.contentColor = Color.white;
-        GUI.Box(new Rect(labelX, labelY, labelWidth, 28f), markerText, markerStyle);
+        GUI.Box(labelRect, markerText, markerStyle);
 
         GUI.matrix = previousMatrix;
         GUI.color = previousColor;

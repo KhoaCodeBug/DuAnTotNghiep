@@ -86,7 +86,7 @@ public sealed class MilitaryRouteVoteUI : MonoBehaviour
         };
         eyebrow.normal.textColor = new Color(1f, 0.68f, 0.16f);
         GUI.Label(new Rect(panel.x + 30f, panel.y + 28f, panel.width - 60f, 28f),
-            "ĐIỂM KHÔNG THỂ QUAY LẠI  //  BIỂU QUYẾT TOÀN ĐỘI", eyebrow);
+            GameLocalization.Get("quest.vote.eyebrow"), eyebrow);
 
         GUIStyle title = new GUIStyle(GUI.skin.label)
         {
@@ -97,7 +97,7 @@ public sealed class MilitaryRouteVoteUI : MonoBehaviour
         };
         title.normal.textColor = Color.white;
         GUI.Label(new Rect(panel.x + 38f, panel.y + 70f, panel.width - 76f, 62f),
-            "TIẾP TỤC TUYẾN CỐT TRUYỆN QUÂN SỰ?", title);
+            GameLocalization.Get("quest.vote.title"), title);
 
         GUIStyle body = new GUIStyle(GUI.skin.label)
         {
@@ -107,8 +107,7 @@ public sealed class MilitaryRouteVoteUI : MonoBehaviour
         };
         body.normal.textColor = new Color(0.82f, 0.86f, 0.84f);
         GUI.Label(new Rect(panel.x + 58f, panel.y + 142f, panel.width - 116f, 90f),
-            "Nếu toàn đội đồng ý, Flow cốt truyện chính sẽ bắt đầu và không thể quay lại tuyến tự do trong session này. " +
-            "Chỉ cần một người từ chối, biểu quyết sẽ hủy và xe có thể được kiểm tra lại sau.", body);
+            GameLocalization.Get("quest.vote.body"), body);
 
         GUIStyle counter = new GUIStyle(GUI.skin.label)
         {
@@ -120,14 +119,14 @@ public sealed class MilitaryRouteVoteUI : MonoBehaviour
             ? new Color(0.42f, 1f, 0.55f)
             : new Color(1f, 0.83f, 0.32f);
         string status = submittedApproval
-            ? $"ĐÃ ĐỒNG Ý  •  ĐANG CHỜ {approvedCount}/{requiredCount}"
-            : $"PHIẾU ĐỒNG Ý: {approvedCount}/{requiredCount}";
+            ? string.Format(GameLocalization.Get("quest.vote.status_waiting"), approvedCount, requiredCount)
+            : string.Format(GameLocalization.Get("quest.vote.status_counts"), approvedCount, requiredCount);
         GUI.Label(new Rect(panel.x + 40f, panel.y + 240f, panel.width - 80f, 36f), status, counter);
 
         if (!submittedApproval && GUI.Button(new Rect(panel.x + panel.width - 330f, panel.y + 304f, 280f, 54f),
-                "[ENTER / Y]  ĐỒNG Ý"))
+                GameLocalization.Get("quest.vote.btn_agree")))
             Submit(true);
-        if (GUI.Button(new Rect(panel.x + 50f, panel.y + 304f, 230f, 54f), "[ESC / N]  TỪ CHỐI"))
+        if (GUI.Button(new Rect(panel.x + 50f, panel.y + 304f, 230f, 54f), GameLocalization.Get("quest.vote.btn_decline")))
             Submit(false);
 
         GUI.color = oldColor;

@@ -18,6 +18,9 @@ public sealed class VictorySummaryUI : MonoBehaviour
     private TMP_Text titleText;
     private TMP_Text subtitleText;
     private Button mainMenuButton;
+    private TMP_Text buttonLabelText;
+    private float cachedSurvivalSeconds;
+    private EscapeEndingRoute cachedRoute;
 
     public bool IsVisible => canvas != null && canvas.enabled && gameObject.activeSelf;
     public static bool IsShowing => instance != null && instance.IsVisible;
@@ -55,9 +58,28 @@ public sealed class VictorySummaryUI : MonoBehaviour
         if (canvas == null) Build();
     }
 
+    private void OnEnable()
+    {
+        GameLocalization.LanguageChanged += OnLanguageChanged;
+    }
+
+    private void OnDisable()
+    {
+        GameLocalization.LanguageChanged -= OnLanguageChanged;
+    }
+
     private void OnDestroy()
     {
+        GameLocalization.LanguageChanged -= OnLanguageChanged;
         if (instance == this) instance = null;
+    }
+
+    private void OnLanguageChanged()
+    {
+        if (IsVisible)
+        {
+            RefreshTexts();
+        }
     }
 
     private void Build()
@@ -79,12 +101,12 @@ public sealed class VictorySummaryUI : MonoBehaviour
         panel.pivot = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(620f, 430f);
 
-        titleText = CreateText("Victory Title", panel, "NHIỆM VỤ HOÀN THÀNH", 40,
+        titleText = CreateText("Victory Title", panel, GameLocalization.Get("victory.title.military"), 40,
             new Color(0.35f, 1f, 0.55f));
         SetRect(titleText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -62f), new Vector2(560f, 70f));
         titleText.fontStyle = FontStyles.Bold;
 
-        subtitleText = CreateText("Victory Subtitle", panel, "ĐỘI SỐNG SÓT ĐÃ RỜI KHỎI THÀNH PHỐ", 18,
+        subtitleText = CreateText("Victory Subtitle", panel, GameLocalization.Get("victory.subtitle.military"), 18,
             new Color(0.8f, 0.9f, 0.82f));
         SetRect(subtitleText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -116f), new Vector2(560f, 36f));
 
@@ -99,26 +121,33 @@ public sealed class VictorySummaryUI : MonoBehaviour
         buttonObject.GetComponent<Image>().color = new Color(0.2f, 0.65f, 0.34f, 1f);
         mainMenuButton = buttonObject.GetComponent<Button>();
         mainMenuButton.onClick.AddListener(ReturnToMainMenu);
-        TMP_Text buttonText = CreateText("Button Label", buttonRect, "QUAY VỀ MAIN MENU", 20, Color.white);
-        Stretch(buttonText.rectTransform);
-        buttonText.fontStyle = FontStyles.Bold;
+        buttonLabelText = CreateText("Button Label", buttonRect, GameLocalization.Get("victory.return_menu"), 20, Color.white);
+        Stretch(buttonLabelText.rectTransform);
+        buttonLabelText.fontStyle = FontStyles.Bold;
 
         canvas.enabled = false;
     }
 
-    private void Show(float survivalSeconds, EscapeEndingRoute route)
+    private void RefreshTexts()
     {
-        CloseBlockingGameplayUI();
-        gameObject.SetActive(true);
-        canvas.enabled = true;
-        canvasGroup.alpha = 0f;
-        canvasGroup.blocksRaycasts = true;
-        titleText.text = route == EscapeEndingRoute.CivilianCar
-            ? "THOÁT HIỂM THÀNH CÔNG"
-            : "NHIỆM VỤ HOÀN THÀNH";
-        subtitleText.text = route == EscapeEndingRoute.CivilianCar
-            ? "ĐỘI SỐNG SÓT ĐÃ VƯỢT VÒNG PHONG TỎA BẰNG XE DÂN SỰ"
-            : "ĐỘI SỐNG SÓT ĐÃ RỜI THÀNH PHỐ QUA TUYẾN QUÂN SỰ";
+        if (titleText != null)
+        {
+            titleText.text = cachedRoute == EscapeEndingRoute.CivilianCar
+                ? GameLocalization.Get("victory.title.civilian")
+                : GameLocalization.Get("victory.title.military");
+        }
+
+        if (subtitleText != null)
+        {
+            subtitleText.text = cachedRoute == EscapeEndingRoute.CivilianCar
+                ? GameLocalization.Get("victory.subtitle.civilian")
+                : GameLocalization.Get("victory.subtitle.military");
+        }
+
+        if (buttonLabelText != null)
+        {
+            buttonLabelText.text = GameLocalization.Get("victory.return_menu");
+        }
 
         int killCount = 0;
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
@@ -127,15 +156,31 @@ public sealed class VictorySummaryUI : MonoBehaviour
 
         string difficulty = DifficultyRules.ActiveDifficulty switch
         {
-            0 => "Dễ",
-            2 => "Hardcore",
-            _ => "Thường"
+            0 => GameLocalization.Get("difficulty.name.easy"),
+            2 => GameLocalization.Get("difficulty.name.hardcore"),
+            _ => GameLocalization.Get("difficulty.name.normal")
         };
-        TimeSpan duration = TimeSpan.FromSeconds(Mathf.Max(0f, survivalSeconds));
-        summaryText.text =
-            $"THỜI GIAN SINH TỒN     {duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}\n\n" +
-            $"ZOMBIE ĐÃ HẠ           {killCount}\n\n" +
-            $"ĐỘ KHÓ                 {difficulty}";
+        TimeSpan duration = TimeSpan.FromSeconds(Mathf.Max(0f, cachedSurvivalSeconds));
+        if (summaryText != null)
+        {
+            summaryText.text =
+                $"{GameLocalization.Get("victory.stat.survival_time")}     {duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}\n\n" +
+                $"{GameLocalization.Get("victory.stat.zombies_killed")}           {killCount}\n\n" +
+                $"{GameLocalization.Get("victory.stat.difficulty")}                 {difficulty}";
+        }
+    }
+
+    private void Show(float survivalSeconds, EscapeEndingRoute route)
+    {
+        CloseBlockingGameplayUI();
+        cachedSurvivalSeconds = survivalSeconds;
+        cachedRoute = route;
+        gameObject.SetActive(true);
+        canvas.enabled = true;
+        canvasGroup.alpha = 0f;
+        canvasGroup.blocksRaycasts = true;
+
+        RefreshTexts();
 
         StopAllCoroutines();
         StartCoroutine(FadeInRoutine());

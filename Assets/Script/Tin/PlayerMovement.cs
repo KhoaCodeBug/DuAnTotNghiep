@@ -177,12 +177,27 @@ public class PlayerMovement : NetworkBehaviour
             NetLastLookDir = Vector2.down;
         }
 
-        Fusion.Addons.Physics.NetworkRigidbody2D netRb = GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>();
-        SpriteRenderer sprite = GetComponentInChildren<SpriteRenderer>();
-
-        if (netRb != null && sprite != null && sprite.transform != this.transform)
+        if (anim == null)
         {
-            netRb.InterpolationTarget = sprite.transform;
+            anim = GetComponentInChildren<Animator>();
+        }
+
+        Fusion.Addons.Physics.NetworkRigidbody2D netRb = GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>();
+        if (netRb != null && netRb.InterpolationTarget == null)
+        {
+            Transform visualTransform = transform.Find("Visual");
+            if (visualTransform != null)
+            {
+                netRb.InterpolationTarget = visualTransform;
+            }
+            else
+            {
+                SpriteRenderer sprite = GetComponentInChildren<SpriteRenderer>();
+                if (sprite != null && sprite.transform != this.transform)
+                {
+                    netRb.InterpolationTarget = sprite.transform;
+                }
+            }
         }
 
         // Nếu nhân vật này LÀ CỦA MÌNH (Mình có quyền bấm nút điều khiển nó)

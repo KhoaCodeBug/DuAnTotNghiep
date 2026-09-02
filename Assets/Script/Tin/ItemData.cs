@@ -142,7 +142,20 @@ public static class BackpackItemCatalog
     {
         level = Mathf.Clamp(level, 1, BackpackCapacityRules.MaxBackpackLevel);
         string id = military && level == 3 ? MilitaryLevel3Id : BackpackIdPrefix + level;
-        if (Items.TryGetValue(id, out ItemData existing) && existing != null) return existing;
+        if (Items.TryGetValue(id, out ItemData existing) && existing != null)
+        {
+            // If existing item was created with the 32x32 fallback solid square,
+            // upgrade to authored art if available in Resources.
+            if (existing.icon != null && existing.icon.rect.width <= 32)
+            {
+                Sprite refreshed = CreateIcon(level, military);
+                if (refreshed != null && refreshed.rect.width > 32)
+                {
+                    existing.icon = refreshed;
+                }
+            }
+            return existing;
+        }
 
         ItemData item = ScriptableObject.CreateInstance<ItemData>();
         item.name = id;
@@ -159,6 +172,11 @@ public static class BackpackItemCatalog
         // display identifier when syncing to a client.
         Items[item.itemName] = item;
         return item;
+    }
+
+    public static void ResetCache()
+    {
+        Items.Clear();
     }
 
     public static bool TryLoad(string identifier, out ItemData item)
@@ -207,23 +225,53 @@ public static class BackpackItemCatalog
     private static Sprite CreateIcon(int level, bool military)
     {
         // Backpack PNGs live in Resources so runtime-created catalog items use
-        // the same art on Host, client and late joiner. Keep the generated icon
-        // below as a safe fallback for tests or partial asset imports.
-        Texture2D authoredTexture = Resources.Load<Texture2D>(
-            "Backpacks/" + BackpackIdPrefix + level);
-        if (authoredTexture != null)
+        // the same art on Host, client and late joiner.
+        string resourceName = (military && level == 3 ? MilitaryLevel3Id : BackpackIdPrefix + level);
+        string resourcePath = "Backpacks/" + BackpackIdPrefix + level;
+
+        // 1. First attempt: Load as Sprite directly (native Sprite import type)
+        Sprite authoredSprite = Resources.Load<Sprite>(resourcePath);
+
+        // 2. If imported with Multiple spriteMode (SpriteSheet), Resources.Load<Sprite>
+        // returns null while Resources.LoadAll<Sprite> returns all sub-sprites.
+        if (authoredSprite == null)
         {
-            Sprite authoredSprite = Sprite.Create(authoredTexture,
-                new Rect(0f, 0f, authoredTexture.width, authoredTexture.height),
-                new Vector2(0.5f, 0.5f), Mathf.Max(authoredTexture.width, authoredTexture.height));
-            authoredSprite.name = (military ? MilitaryLevel3Id : BackpackIdPrefix + level) + "_ICON";
+            Sprite[] allSprites = Resources.LoadAll<Sprite>(resourcePath);
+            if (allSprites != null && allSprites.Length > 0)
+            {
+                for (int i = 0; i < allSprites.Length; i++)
+                {
+                    if (allSprites[i] != null)
+                    {
+                        authoredSprite = allSprites[i];
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 3. Fallback: Load as Texture2D and create runtime Sprite
+        if (authoredSprite == null)
+        {
+            Texture2D authoredTexture = Resources.Load<Texture2D>(resourcePath);
+            if (authoredTexture != null)
+            {
+                authoredSprite = Sprite.Create(authoredTexture,
+                    new Rect(0f, 0f, authoredTexture.width, authoredTexture.height),
+                    new Vector2(0.5f, 0.5f), Mathf.Max(authoredTexture.width, authoredTexture.height));
+            }
+        }
+
+        if (authoredSprite != null)
+        {
             return authoredSprite;
         }
 
+        // 4. Generated solid-color fallback for headless tests or missing assets
         const int size = 32;
         Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
         {
-            name = (military ? MilitaryLevel3Id : BackpackIdPrefix + level) + "_ICON",
+            name = resourceName + "_ICON",
             filterMode = FilterMode.Point,
             wrapMode = TextureWrapMode.Clamp,
             hideFlags = HideFlags.DontSave

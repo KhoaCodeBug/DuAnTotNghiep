@@ -24,6 +24,7 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
     private float fadeAlpha;
     private float letterboxAlpha;
     private string subtitle = string.Empty;
+    private string subtitleKey = string.Empty;
 
     public bool IsPlaying => routine != null;
 
@@ -40,7 +41,8 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
         if (routine != null) StopCoroutine(routine);
         routine = null;
         RestorePlayers();
-        FogVisionController.Instance?.ClearMilitaryCinematicVision();
+        if (FogVisionController.Instance != null && FogVisionController.Instance.gameObject != null)
+            FogVisionController.Instance.ClearMilitaryCinematicVision();
         RestoreLocalCamera();
         if (hostClone != null) Destroy(hostClone);
         hostClone = null;
@@ -50,7 +52,9 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
         fadeAlpha = 0f;
         letterboxAlpha = 0f;
         subtitle = string.Empty;
-        AutoUIManager.Instance?.SetQuestOverlayOpen(false);
+        subtitleKey = string.Empty;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.gameObject != null)
+            AutoUIManager.Instance.SetQuestOverlayOpen(false);
     }
 
     private IEnumerator PlayRoutine(PlayerRef hostPlayer, Vector2 stagedStartPosition)
@@ -75,7 +79,7 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
         }
         if (hostVisual == null)
         {
-            Debug.LogError("[MILITARY CINEMATIC] Không tìm thấy avatar sống để tạo visual sau 5 giây.");
+            Debug.LogError(GameLocalization.Get("cinematic.military.error_no_avatar"));
             AutoUIManager.Instance?.SetQuestOverlayOpen(false);
             routine = null;
             yield break;
@@ -83,7 +87,7 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
         hostMovement = hostVisual != null ? hostVisual.GetComponent<PlayerMovement>() : null;
         Vector2 carPosition = manager != null ? manager.PoliceCarPosition : Vector2.zero;
         Vector2 gatePosition = manager != null ? manager.GateClosingPosition : carPosition + Vector2.left * 4f;
-        Debug.Log($"[MILITARY CINEMATIC] Bắt đầu cảnh tại {stagedStartPosition}; xe {carPosition}; cổng {gatePosition}.");
+        Debug.Log(string.Format(GameLocalization.Get("cinematic.military.log_scene_started"), stagedStartPosition, carPosition, gatePosition));
 
         yield return Fade(0f, 1f, 0.45f);
         hostClone = CreatePlayerVisualClone(hostVisual, hostMovement);
@@ -105,7 +109,7 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
         Vector2 carApproach = carPosition + new Vector2(-0.8f, -0.15f);
         yield return MoveCloneAtGameplaySpeed(carApproach,
             hostMovement != null ? hostMovement.walkSpeed : 4f, false);
-        Debug.Log("[MILITARY CINEMATIC] Host đã đi bộ tới xe.");
+        Debug.Log(GameLocalization.Get("cinematic.military.log_walked_to_car"));
         manager?.PoliceVehicle?.PlayCinematicDoorSequence();
         yield return new WaitForSecondsRealtime(1.1f);
         if (hostClone != null) hostClone.SetActive(false);
@@ -121,14 +125,16 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
             hostClone.transform.position = carPosition + new Vector2(-0.9f, -0.2f);
             hostClone.SetActive(true);
         }
-        subtitle = "Chết tiệt... xe hỏng rồi. Phải mau chóng tìm cách sửa lại xe và tẩu thoát khỏi đây!";
+        subtitleKey = "cinematic.military.broken_car_subtitle";
+        subtitle = GameLocalization.Get(subtitleKey);
         yield return new WaitForSecondsRealtime(2.25f);
+        subtitleKey = string.Empty;
         subtitle = string.Empty;
 
         Vector2 insideGate = gatePosition + new Vector2(0f, 1.15f);
         yield return MoveCloneAtGameplaySpeed(insideGate,
             (hostMovement != null ? hostMovement.runSpeed : 7f) * EnergyDrinkRunSpeedMultiplier, true);
-        Debug.Log("[MILITARY CINEMATIC] Host đã chạy tới vị trí đóng cổng.");
+        Debug.Log(GameLocalization.Get("cinematic.military.log_ran_to_gate"));
         yield return Fade(0f, 1f, 0.5f);
 
         if (manager != null && manager.HasStateAuthority)
@@ -144,29 +150,79 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
         hostCloneAnimators = System.Array.Empty<Animator>();
         hostMovement = null;
         cinematicVisionLight = null;
-        yield return Fade(1f, 0f, 0.65f);
         letterboxAlpha = 0f;
-        AutoUIManager.Instance?.SetQuestOverlayOpen(false);
-        routine = null;
+        yield return Fade(1f, 0f, 0.45f);
 
-        // Start the siege radio only after the cinematic has restored the
-        // gameplay canvas. RouteBRadioBroadcastUI snapshots foreign Canvas
-        // states while it owns presentation; starting it earlier captured the
-        // intentionally-disabled AutoCanvas and restored it disabled forever.
+        routine = null;
+        if (AutoUIManager.Instance != null && AutoUIManager.Instance.gameObject != null)
+            AutoUIManager.Instance.SetQuestOverlayOpen(false);
         if (manager != null && manager.Runner != null && manager.Runner.LocalPlayer == hostPlayer)
             RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.SiegeStarted);
     }
 
     private Transform ResolvePlayerTransform(PlayerRef player)
     {
-        if (manager != null && manager.Runner != null && manager.Runner.TryGetPlayerObject(player, out NetworkObject obj) &&
+        // 1. Check Fusion Runner's PlayerObject mapping if available
+        if (manager != null && manager.Runner != null && player != PlayerRef.None &&
+            manager.Runner.TryGetPlayerObject(player, out NetworkObject obj) &&
             obj != null && obj.IsValid)
         {
-            PlayerHealth health = obj.GetComponent<PlayerHealth>();
-            PlayerMovement movement = obj.GetComponent<PlayerMovement>();
-            if (movement != null && health != null && !health.isDead && !health.isTransforming)
-                return obj.transform;
+            PlayerMovement pm = obj.GetComponent<PlayerMovement>() ?? obj.GetComponentInChildren<PlayerMovement>();
+            PlayerHealth ph = obj.GetComponent<PlayerHealth>() ?? obj.GetComponentInChildren<PlayerHealth>();
+            if (pm != null && (ph == null || (!ph.isDead && !ph.isTransforming)))
+                return pm.transform;
         }
+
+        // 2. Search scene PlayerMovements matching the specified player by InputAuthority or StateAuthority
+        PlayerMovement[] allPlayers = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
+        if (player != PlayerRef.None)
+        {
+            for (int i = 0; i < allPlayers.Length; i++)
+            {
+                PlayerMovement pm = allPlayers[i];
+                if (pm == null || pm.gameObject == null || pm.Object == null || !pm.Object.IsValid) continue;
+                if (pm.Object.InputAuthority == player || pm.Object.StateAuthority == player)
+                {
+                    PlayerHealth ph = pm.GetComponent<PlayerHealth>() ?? pm.GetComponentInChildren<PlayerHealth>();
+                    if (ph == null || (!ph.isDead && !ph.isTransforming))
+                        return pm.transform;
+                }
+            }
+        }
+
+        // 3. Check LocalPlayerInstance if alive
+        if (PlayerMovement.LocalPlayerInstance != null && PlayerMovement.LocalPlayerInstance.gameObject != null)
+        {
+            PlayerMovement pm = PlayerMovement.LocalPlayerInstance;
+            PlayerHealth ph = pm.GetComponent<PlayerHealth>() ?? pm.GetComponentInChildren<PlayerHealth>();
+            if (ph == null || (!ph.isDead && !ph.isTransforming))
+                return pm.transform;
+        }
+
+        // 4. Fallback to any living player in the scene (prefer StateAuthority/Host)
+        PlayerMovement bestLiving = null;
+        for (int i = 0; i < allPlayers.Length; i++)
+        {
+            PlayerMovement pm = allPlayers[i];
+            if (pm == null || pm.gameObject == null) continue;
+            PlayerHealth ph = pm.GetComponent<PlayerHealth>() ?? pm.GetComponentInChildren<PlayerHealth>();
+            if (ph != null && (ph.isDead || ph.isTransforming)) continue;
+
+            if (pm.Object != null && pm.Object.IsValid && pm.Object.HasStateAuthority)
+                return pm.transform;
+
+            if (bestLiving == null)
+                bestLiving = pm;
+        }
+        if (bestLiving != null) return bestLiving.transform;
+
+        // 5. Ultimate fallback: Return any PlayerMovement transform in the scene so the cinematic visual never fails
+        for (int i = 0; i < allPlayers.Length; i++)
+        {
+            if (allPlayers[i] != null && allPlayers[i].gameObject != null)
+                return allPlayers[i].transform;
+        }
+
         return null;
     }
 
@@ -340,13 +396,19 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
 
     private static void FocusCamera(Transform target)
     {
-        if (target != null) PZ_CameraController.Instance?.SetTarget(target);
+        PZ_CameraController cam = PZ_CameraController.Instance;
+        if (target != null && cam != null && cam.gameObject != null)
+            cam.SetTarget(target);
     }
 
     private static void RestoreLocalCamera()
     {
-        if (PlayerMovement.LocalPlayerInstance != null)
-            PZ_CameraController.Instance?.SetTarget(PlayerMovement.LocalPlayerInstance.transform);
+        PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
+        PZ_CameraController cam = PZ_CameraController.Instance;
+        if (localPlayer != null && localPlayer.gameObject != null && cam != null && cam.gameObject != null)
+        {
+            cam.SetTarget(localPlayer.transform);
+        }
     }
 
     private IEnumerator MoveCloneAtGameplaySpeed(Vector2 destination, float movementSpeed, bool running)
@@ -455,7 +517,10 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
             GUI.DrawTexture(new Rect(0f, Screen.height - bar, Screen.width, bar), Texture2D.whiteTexture);
         }
 
-        if (!string.IsNullOrEmpty(subtitle))
+        string currentSubtitle = !string.IsNullOrEmpty(subtitleKey)
+            ? GameLocalization.Get(subtitleKey)
+            : subtitle;
+        if (!string.IsNullOrEmpty(currentSubtitle))
         {
             GUIStyle style = new GUIStyle(GUI.skin.label)
             {
@@ -465,7 +530,7 @@ public sealed class MilitaryRouteCinematicController : MonoBehaviour
                 wordWrap = true
             };
             style.normal.textColor = Color.white;
-            GUI.Label(new Rect(Screen.width * 0.15f, Screen.height - 118f, Screen.width * 0.7f, 64f), subtitle, style);
+            GUI.Label(new Rect(Screen.width * 0.15f, Screen.height - 118f, Screen.width * 0.7f, 64f), currentSubtitle, style);
         }
 
         if (fadeAlpha > 0.001f)
