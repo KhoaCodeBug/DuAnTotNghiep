@@ -74,6 +74,7 @@ public static class GameLocalization
         { "trade.lock", new[] { "LOCK", "KHÓA LẠI" } },
         { "trade.unlock", new[] { "UNLOCK", "MỞ KHÓA" } },
         { "chat.placeholder", new[] { "Press Enter to chat...", "Nhấn Enter để chat..." } },
+        { "chat.input_placeholder", new[] { "Type a message...", "Nhập tin nhắn..." } },
         { "trade.confirmed", new[] { "DEAL CONFIRMED!", "ĐÃ CHỐT KÈO!" } },
         { "trade.locked", new[] { "LOCKED!", "ĐÃ KHÓA!" } },
         { "trade.incoming", new[] { "INCOMING TRADE!\nAnother player wants to trade items with you.", "GIAO DỊCH ĐANG TỚI!\nMột người chơi khác muốn trao đổi đồ với bạn." } },

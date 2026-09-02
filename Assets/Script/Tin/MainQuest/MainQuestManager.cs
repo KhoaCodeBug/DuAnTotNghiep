@@ -375,7 +375,8 @@ public sealed class MainQuestManager : NetworkBehaviour
                 if (checkpointDistance <= civilianEscapeTriggerRadius)
                 {
                     CivilianRouteStageValue = (int)CivilianRouteStage.AwaitingTeam;
-                    RPC_ShowLocalizedQuestMessage("quest.route_a_regroup", 0, 0);
+                    RPC_ShowLocalizedQuestMessage("quest.route_a_regroup", 0, 0,
+                        RepairedArrivalCarObject.InputAuthority, false);
                 }
                 break;
             case CivilianRouteStage.AwaitingTeam:
@@ -710,7 +711,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     /// stable scene IDs are replicated so every client and late joiner uses the
     /// same quest area regardless of its random spawn point.
     /// </summary>
-    public bool TryInitializeNeighborhood(IReadOnlyList<string> houseIds)
+    public bool TryInitializeNeighborhood(IReadOnlyList<string> houseIds, PlayerRef focusPlayer = default)
     {
         if (!IsNetworkReady || !HasStateAuthority || !IsArrivalCarInspected || IsNeighborhoodConfigured ||
             CurrentStage != QuestStage.NotStarted || houseIds == null)
@@ -745,7 +746,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         IsNeighborhoodConfigured = true;
         NetworkQuestStage = (int)QuestStage.SearchNeighborhood;
         DistributeArrivalCarRepairItems(houseIds, count);
-        RPC_ShowLocalizedQuestMessage("quest.route_b_new_search", PreMilitaryQuestProgress.RequiredRouteClues, 0);
+        RPC_ShowLocalizedQuestMessage("quest.route_b_new_search",
+            PreMilitaryQuestProgress.RequiredRouteClues, 0, focusPlayer, false);
         return true;
     }
 
@@ -839,13 +841,13 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         if (!AreAllLivingPlayersGatheredForCivilianEscape())
         {
-            RPC_ShowLocalizedQuestMessage("quest.route_a_wait_team", 0, 0);
+            RPC_ShowLocalizedQuestMessage("quest.route_a_wait_team", 0, 0, requester, false);
             return;
         }
 
         if (!AuthorityTryLockEscapeRoute(EscapeEndingRoute.CivilianCar)) return;
         CivilianRouteStageValue = (int)CivilianRouteStage.EscapeRun;
-        RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0);
+        RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0, requester, true);
         // The authored city exit sits beside the gray edge of Main. Begin the
         // visual road loop here at the safe regroup point instead of asking the
         // real network vehicle to drive into the unrendered edge first.
@@ -1015,7 +1017,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         RPC_ShowArrivalCarRepairResult(repairer, true, (int)action,
             GetArrivalCarActionSuccessMessage(action));
         if (ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask))
-            RPC_ShowLocalizedQuestMessage("quest.route_a_ready", 0, 0);
+            RPC_ShowLocalizedQuestMessage("quest.route_a_ready", 0, 0, repairer, true);
     }
 
     private void AuthorityInterruptArrivalCarRepair(PlayerRef repairer, string message)
@@ -1067,7 +1069,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         CivilianRouteStageValue = (int)CivilianRouteStage.CarReady;
         RPC_ShowArrivalCarStartResult(requester, true,
             "quest.arrival.start_success");
-        RPC_ShowLocalizedQuestMessage("quest.route_a_started", 0, 0);
+        RPC_ShowLocalizedQuestMessage("quest.route_a_started", 0, 0, requester, true);
         RPC_ShowCivilianMapUnlocked(CivilianCheckpointPosition, CivilianCityExitPosition);
     }
 
@@ -1134,7 +1136,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if ((RouteClueMask & bit) != 0) return;
         RouteClueMask |= bit;
         RPC_ShowLocalizedQuestMessage("quest.route_clue_count", RouteClueCount,
-            PreMilitaryQuestProgress.RequiredRouteClues);
+            PreMilitaryQuestProgress.RequiredRouteClues, focusPlayer, false);
         if (RouteClueCount == 1)
             RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.FirstSupplyDocument, focusPlayer);
         else if (RouteClueCount == 2)
@@ -1596,7 +1598,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             !HospitalRadioInteractionPoint.TryGetForRole(HospitalRadioInteractionRole.Radio, out _))
         {
             Debug.LogError("[HOSPITAL H2] Thiếu ShiftLog, ShiftLog2, Door hoặc Radio interaction anchor.");
-            RPC_ShowLocalizedQuestMessage("quest.office_missing_points", 0, 0);
+            RPC_ShowLocalizedQuestMessage("quest.office_missing_points", 0, 0, requester, false);
             return;
         }
 
@@ -1622,7 +1624,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             arrivingPlayer.GetComponent<InventorySystem>()?.TryGrantQuestBackpackReward(
                 BackpackQuestRewardRules.HospitalBackpackLevel);
         }
-        RPC_ShowLocalizedQuestMessage("quest.office_new_objective", 0, 0);
+        RPC_ShowLocalizedQuestMessage("quest.office_new_objective", 0, 0, requester, false);
         RPC_ShowOfficeSearchStarted(requester);
     }
 
@@ -1657,7 +1659,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (cachedHospitalRadioKeyLootPoints.Count == 0)
         {
             Debug.LogError("[HOSPITAL H5] Main.unity không có HospitalRadioKeyLootPoint hợp lệ.");
-            RPC_ShowLocalizedQuestMessage("quest.office_missing_points", 0, 0);
+            RPC_ShowLocalizedQuestMessage("quest.office_missing_points", 0, 0, requester, false);
             return false;
         }
 
@@ -1792,7 +1794,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         RPC_ShowOfficeInvestigationProgress(2, requester);
         RPC_ShowCabinetSearchResult(requester, true);
-        RPC_ShowLocalizedQuestMessage("quest.route_b_go_military", 0, 0);
+        RPC_ShowLocalizedQuestMessage("quest.route_b_go_military", 0, 0, requester, false);
     }
 
     public bool IsCabinetChecked(int cabinetId)
@@ -2309,7 +2311,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (!AuthorityTryLockEscapeRoute(EscapeEndingRoute.CivilianCar)) return false;
         AuthorityGatherLivingPlayersAtCivilianCar();
         CivilianRouteStageValue = (int)CivilianRouteStage.EscapeRun;
-        RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0);
+        RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0, Runner.LocalPlayer, true);
         ServerCompleteCivilianEscape();
         return IsCivilianEscapeComplete;
     }
@@ -2425,13 +2427,6 @@ public sealed class MainQuestManager : NetworkBehaviour
         // Either route can unlock the full mission map. The corner minimap is a
         // separate exploration aid and remains disabled for the whole story.
         if (cachedMinimapController != null) cachedMinimapController.SetMapUnlocked(false);
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowQuestMessage(string message)
-    {
-        string localized = GameLocalization.Get(message, fallback: message);
-        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), localized);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -3029,8 +3024,13 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowLocalizedQuestMessage(string localizationKey, int argument0, int argument1)
+    private void RPC_ShowLocalizedQuestMessage(string localizationKey, int argument0, int argument1,
+        PlayerRef targetPlayer, NetworkBool serverWide)
     {
+        if (!serverWide &&
+            (targetPlayer == PlayerRef.None || Runner == null || Runner.LocalPlayer != targetPlayer))
+            return;
+
         string template = GameLocalization.Get(localizationKey, localizationKey);
         AutoChatManager.Instance?.AddMessage(
             GameLocalization.Get("quest.sender"),
@@ -3270,9 +3270,13 @@ public sealed class MainQuestManager : NetworkBehaviour
         {
             fontSize = 16,
             fontStyle = FontStyle.Bold,
-            alignment = TextAnchor.MiddleCenter
+            alignment = TextAnchor.MiddleCenter,
+            wordWrap = true
         };
-        Rect objectiveRect = GameplayHudLayout.GetTopCenterObjectiveRect();
+        Rect baseRect = GameplayHudLayout.GetTopCenterObjectiveRect();
+        float neededHeight = style.CalcHeight(new GUIContent(objective), baseRect.width);
+        float finalHeight = Mathf.Max(baseRect.height, neededHeight + 8f);
+        Rect objectiveRect = new Rect(baseRect.x, baseRect.y, baseRect.width, finalHeight);
         GUI.Box(objectiveRect, objective, style);
     }
 

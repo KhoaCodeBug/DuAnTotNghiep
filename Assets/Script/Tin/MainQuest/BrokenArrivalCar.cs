@@ -275,8 +275,22 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         if (screenPoint.z <= 0f) return;
 
         Vector2 target = new Vector2(screenPoint.x, Screen.height - screenPoint.y);
-        float promptWidth = Mathf.Clamp(Screen.width * 0.105f, 165f, 210f);
-        float promptHeight = Mathf.Clamp(Screen.height * 0.058f, 52f, 64f);
+
+        // Create style first so we can CalcSize to determine prompt dimensions
+        Color accent = new Color(0.22f, 1f, 0.36f, 0.95f);
+        GUIStyle prompt = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.017f), 15, 19),
+            fontStyle = FontStyle.Bold
+        };
+        prompt.normal.textColor = accent;
+
+        string promptText = GameLocalization.Get("quest.arrival.prompt_inspect");
+        Vector2 textSize = prompt.CalcSize(new GUIContent(promptText));
+        float promptWidth = Mathf.Max(Mathf.Clamp(Screen.width * 0.105f, 165f, 210f), textSize.x + 28f);
+        float promptHeight = Mathf.Max(Mathf.Clamp(Screen.height * 0.058f, 52f, 64f), textSize.y + 16f);
+
         float horizontalOffset = Mathf.Clamp(Screen.width * 0.055f, 70f, 105f);
         float verticalOffset = Mathf.Clamp(Screen.height * 0.085f, 62f, 92f);
         float x = Mathf.Clamp(target.x - promptWidth - horizontalOffset, 12f,
@@ -285,7 +299,6 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         float y = Mathf.Clamp(target.y - promptHeight - verticalOffset, 48f, maxBottomY);
         Rect promptRect = new Rect(x, y, promptWidth, promptHeight);
 
-        Color accent = new Color(0.22f, 1f, 0.36f, 0.95f);
         Vector2 lineStart = new Vector2(promptRect.xMax, promptRect.yMax - 10f);
         Vector2 elbow = new Vector2(lineStart.x + Mathf.Clamp(Screen.width * 0.018f, 24f, 36f), lineStart.y);
         DrawGuiLine(lineStart, elbow, accent, 2f);
@@ -302,16 +315,9 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         GUI.DrawTexture(new Rect(promptRect.xMax - borderWidth, promptRect.y, borderWidth, promptRect.height), Texture2D.whiteTexture);
         GUI.color = previousColor;
 
-        GUIStyle prompt = new GUIStyle(GUI.skin.label)
-        {
-            alignment = TextAnchor.MiddleLeft,
-            fontSize = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.017f), 15, 19),
-            fontStyle = FontStyle.Bold
-        };
-        prompt.normal.textColor = accent;
         Rect textRect = new Rect(promptRect.x + 14f, promptRect.y + 4f,
             promptRect.width - 28f, promptRect.height - 8f);
-        GUI.Label(textRect, GameLocalization.Get("quest.arrival.prompt_inspect"), prompt);
+        GUI.Label(textRect, promptText, prompt);
     }
 
     private static void DrawGuiLine(Vector2 start, Vector2 end, Color color, float width)

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 /// <summary>
@@ -326,7 +327,12 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
 
         List<string> ids = new List<string>(count);
         for (int i = 0; i < count; i++) ids.Add(candidates[i].LocationId);
-        manager.TryInitializeNeighborhood(ids);
+        PlayerMovement focusMovement = player.GetComponent<PlayerMovement>();
+        PlayerRef focusPlayer = focusMovement != null && focusMovement.Object != null &&
+            focusMovement.Object.IsValid
+            ? focusMovement.Object.InputAuthority
+            : PlayerRef.None;
+        manager.TryInitializeNeighborhood(ids, focusPlayer);
     }
 
     private void ConfigureSearchZoneFromAuthority(MainQuestManager manager)

@@ -155,6 +155,15 @@ public sealed class ReadinessAndChatEditorTests
         return type;
     }
 
+    private static EventSystem ResolveTestEventSystem()
+    {
+        EventSystem eventSystem = EventSystem.current ??
+            Resources.FindObjectsOfTypeAll<EventSystem>()
+                .FirstOrDefault(system => system != null && system.gameObject.scene.IsValid());
+        Assert.That(eventSystem, Is.Not.Null, "Chat dragging requires an EventSystem.");
+        return eventSystem;
+    }
+
     private static void SetTestLanguage(int langIndex) // 0 = English, 1 = Vietnamese
     {
         Type locType = ResolveGameType("GameLocalization");
@@ -1470,23 +1479,176 @@ public sealed class ReadinessAndChatEditorTests
         Assert.That(input, Is.Not.Null);
         input.gameObject.SetActive(true);
 
-        Component draggable = chatGo.GetComponentsInChildren<Component>(true)
-            .FirstOrDefault(component => component != null && component.GetType().Name == "UIDraggable");
+        Component draggable = Resources.FindObjectsOfTypeAll<MonoBehaviour>()
+            .FirstOrDefault(component => component != null &&
+                component.GetType().Name == "UIDraggable" &&
+                component.gameObject.scene.IsValid() &&
+                component.GetType().GetField("targetToDrag", BindingFlags.Public | BindingFlags.Instance)
+                    ?.GetValue(component) == chatType.GetField("chatPanelRt", BindingFlags.NonPublic | BindingFlags.Instance)
+                        ?.GetValue(chat));
         Assert.That(draggable, Is.Not.Null, "Chat panel must expose a draggable viewport.");
-        Assert.That(EventSystem.current, Is.Not.Null, "Chat dragging requires an EventSystem.");
+        EventSystem eventSystem = ResolveTestEventSystem();
         MethodInfo onBeginDrag = draggable.GetType().GetMethod("OnBeginDrag", BindingFlags.Public | BindingFlags.Instance);
         MethodInfo onEndDrag = draggable.GetType().GetMethod("OnEndDrag", BindingFlags.Public | BindingFlags.Instance);
         Assert.That(onBeginDrag, Is.Not.Null, "Chat draggable must implement OnBeginDrag.");
         Assert.That(onEndDrag, Is.Not.Null, "Chat draggable must implement OnEndDrag.");
-        onBeginDrag.Invoke(draggable, new object[] { new PointerEventData(EventSystem.current) });
+        onBeginDrag.Invoke(draggable, new object[] { new PointerEventData(eventSystem) });
         onEndDrag.Invoke(draggable, new object[] { null });
 
         Assert.That((bool)typingField.GetValue(chat), Is.True,
             "Dragging the chat panel must not close chat input mode.");
-        Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(input.gameObject),
+        Assert.That(eventSystem.currentSelectedGameObject, Is.EqualTo(input.gameObject),
             "After dropping the panel, the input field must be focused without pressing Enter again.");
 
         UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_VisibleTextOnlyPanel_CanBeginDragWithoutEnteringChat()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatTextOnlyDrag");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        MethodInfo addMessage = chatType.GetMethod("AddPlayerMessage", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo applyTextOnly = chatType.GetMethod("ApplyTextOnlyVisuals", BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo panelField = chatType.GetField("chatPanelRt", BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo typingField = chatType.GetField("isTyping", BindingFlags.NonPublic | BindingFlags.Instance);
+        RectTransform panel = panelField?.GetValue(chat) as RectTransform;
+        Assert.That(panel, Is.Not.Null, "Chat panel must exist before it can be dragged.");
+
+        addMessage.Invoke(chat, new object[] { "Survivor", "Visible without opening chat" });
+        applyTextOnly.Invoke(chat, null);
+        Assert.That((bool)typingField.GetValue(chat), Is.False,
+            "An incoming message must remain in text-only mode until the player opens chat.");
+
+        Component draggable = Resources.FindObjectsOfTypeAll<MonoBehaviour>()
+            .FirstOrDefault(component => component != null &&
+                component.GetType().Name == "UIDraggable" &&
+                component.gameObject.scene.IsValid() &&
+                component.GetType().GetField("targetToDrag", BindingFlags.Public | BindingFlags.Instance)
+                    ?.GetValue(component) == panel);
+        Assert.That(draggable, Is.Not.Null, "The visible chat history must expose a drag handler.");
+
+        EventSystem eventSystem = ResolveTestEventSystem();
+        MethodInfo onBeginDrag = draggable.GetType().GetMethod("OnBeginDrag", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo onEndDrag = draggable.GetType().GetMethod("OnEndDrag", BindingFlags.Public | BindingFlags.Instance);
+        PropertyInfo isDragging = draggable.GetType().GetProperty("IsDragging", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(onBeginDrag, Is.Not.Null);
+        Assert.That(onEndDrag, Is.Not.Null);
+        Assert.That(isDragging, Is.Not.Null);
+
+        PointerEventData pointer = new PointerEventData(eventSystem)
+        {
+            position = new Vector2(200f, 200f)
+        };
+        onBeginDrag.Invoke(draggable, new object[] { pointer });
+
+        Assert.That((bool)isDragging.GetValue(draggable), Is.True,
+            "A visible text-only chat panel must be draggable without reopening text input.");
+
+        onEndDrag.Invoke(draggable, new object[] { null });
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_DragEnd_IgnoresDelayedInputFieldEndEdit()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatDelayedEndEdit");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        MethodInfo openMethod = chatType.GetMethod("OpenChat", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo onEndEdit = chatType.GetMethod("OnChatEndEdit", BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo typingField = chatType.GetField("isTyping", BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo panelField = chatType.GetField("chatPanelRt", BindingFlags.NonPublic | BindingFlags.Instance);
+        RectTransform panel = panelField?.GetValue(chat) as RectTransform;
+        Assert.That(panel, Is.Not.Null);
+
+        openMethod.Invoke(chat, null);
+        Assert.That((bool)typingField.GetValue(chat), Is.True);
+
+        Component draggable = Resources.FindObjectsOfTypeAll<MonoBehaviour>()
+            .FirstOrDefault(component => component != null &&
+                component.GetType().Name == "UIDraggable" &&
+                component.gameObject.scene.IsValid() &&
+                component.GetType().GetField("targetToDrag", BindingFlags.Public | BindingFlags.Instance)
+                    ?.GetValue(component) == panel);
+        Assert.That(draggable, Is.Not.Null, "Chat panel must expose a drag handler.");
+
+        MethodInfo onBeginDrag = draggable.GetType().GetMethod("OnBeginDrag", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo onEndDrag = draggable.GetType().GetMethod("OnEndDrag", BindingFlags.Public | BindingFlags.Instance);
+        PointerEventData pointer = new PointerEventData(ResolveTestEventSystem())
+        {
+            position = new Vector2(200f, 200f)
+        };
+        onBeginDrag.Invoke(draggable, new object[] { pointer });
+        onEndDrag.Invoke(draggable, new object[] { null });
+
+        // Model Unity delivering the focus-loss callback after the drag guard's frame window.
+        FieldInfo dragGuardField = chatType.GetField("dragFocusGuardUntilFrame", BindingFlags.NonPublic | BindingFlags.Instance);
+        dragGuardField.SetValue(chat, -1);
+        onEndEdit.Invoke(chat, new object[] { "delayed focus-loss callback" });
+
+        Assert.That((bool)typingField.GetValue(chat), Is.True,
+            "A delayed InputField.onEndEdit callback from dragging must not close the chat panel.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_DragHandle_PreservesFocusBeforeDragCallback()
+    {
+        string chatPath = Path.Combine(Application.dataPath, "Script/Tin/AutoChatManager.cs");
+        string source = File.ReadAllText(chatPath);
+
+        Assert.That(source, Does.Contain("IsPointerOverChatDragHandle"),
+            "Chat end-edit handling must recognize focus loss caused by the drag handle.");
+        Assert.That(source, Does.Match(
+                @"IsPointerOverChatDragHandle\(\)[\s\S]{0,260}dragPointerDown\s*=\s*true"),
+            "Focus loss over the drag handle must arm the drag guard before Unity raises the drag callback.");
+        Assert.That(source, Does.Contain("RectTransformUtility.RectangleContainsScreenPoint"),
+            "The drag-handle hit test must use Unity UI coordinates.");
+        Assert.That(source, Does.Contain("Input.mousePosition"),
+            "The drag-handle hit test must use the current pointer position.");
+        Assert.That(source.Contains("Input.GetMouseButton(0)"), Is.True,
+            "A focus-loss callback delivered after the pointer moved must still be recognized as a drag.");
+        Assert.That(source.Contains("Input.GetAxis(\"Mouse X\")"), Is.True,
+            "The drag fallback must detect mouse movement while the left button is held.");
+    }
+
+    [Test]
+    public void ChatBroadcast_UsesGlobalHostRelay_ForEveryClient()
+    {
+        string playerPath = Path.Combine(Application.dataPath, "Script/Tin/Multiplayer/PlayerInputHandler2D.cs");
+        string spawnerPath = Path.Combine(Application.dataPath, "Script/Tin/Multiplayer/HostModeSpawner.cs");
+        string playerSource = File.ReadAllText(playerPath);
+        string spawnerSource = File.ReadAllText(spawnerPath);
+
+        Assert.That(playerSource, Does.Match(
+                @"HostModeSpawner\s+relay\s*=\s*HostModeSpawner\.Instance[\s\S]{0,320}relay\.RPC_BroadcastChat\(senderName, cleanMsg\);"),
+            "The player object should forward validated chat to the room-level relay.");
+        Assert.That(playerSource, Does.Not.Match(
+                @"\[Rpc\(RpcSources\.StateAuthority, RpcTargets\.All\)\]\s+private void RPC_BroadcastChat"),
+            "A player object must not own the fan-out RPC; its visibility/lifecycle is per player.");
+        Assert.That(spawnerSource, Does.Match(
+                @"\[Rpc\(RpcSources\.StateAuthority, RpcTargets\.All\)\]\s+public void RPC_BroadcastChat\(string senderName, string cleanMessage\)"),
+            "HostModeSpawner is the room-level object that must fan chat messages out to all clients.");
+    }
+
+    [Test]
+    public void AutoChatManager_PersistsManagerWithItsCanvasAcrossSceneTransitions()
+    {
+        string chatPath = Path.Combine(Application.dataPath, "Script/Tin/AutoChatManager.cs");
+        string source = File.ReadAllText(chatPath);
+
+        Assert.That(source, Does.Match(
+                @"if\s*\(Application\.isPlaying\)[\s\S]{0,500}DontDestroyOnLoad\(gameObject\);"),
+            "The manager and its event subscription must survive the network scene transition together with the canvas.");
     }
 
     [Test]
