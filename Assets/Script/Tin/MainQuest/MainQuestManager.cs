@@ -2931,33 +2931,96 @@ public sealed class MainQuestManager : NetworkBehaviour
         ShowLocalQuestEvent(GameLocalization.Get(found ? "quest.cabinet_found_title" : "quest.cabinet_empty_title"), message);
     }
 
+    private struct QuestEventNoticeItem
+    {
+        public string title;
+        public string body;
+        public float holdSeconds;
+    }
+
+    private readonly Queue<QuestEventNoticeItem> pendingQuestEvents = new Queue<QuestEventNoticeItem>();
+    private float currentQuestEventNoticeBottom = 0f;
+
+    public bool IsQuestEventNoticeActive => localQuestEventAlpha > 0.001f;
+    public int PendingQuestEventCount => pendingQuestEvents.Count;
+    public string CurrentQuestEventTitle => localQuestEventTitle;
+    public string CurrentQuestEventBody => localQuestEventBody;
+    public float CurrentQuestEventNoticeBottom => (localQuestEventAlpha > 0.001f) ? currentQuestEventNoticeBottom : 0f;
+
     private void ShowLocalQuestEvent(string title, string body)
     {
         if (this == null || !gameObject || !isActiveAndEnabled)
             return;
-        localQuestEventTitle = title;
-        localQuestEventBody = body;
-        if (questEventRoutine != null)
-            StopCoroutine(questEventRoutine);
-        questEventRoutine = StartCoroutine(QuestEventNoticeRoutine());
+
+        pendingQuestEvents.Enqueue(new QuestEventNoticeItem
+        {
+            title = title,
+            body = body,
+            holdSeconds = questEventHoldSeconds
+        });
+
+        if (questEventRoutine == null)
+            questEventRoutine = StartCoroutine(ProcessQuestEventNoticesRoutine());
     }
 
-    private IEnumerator QuestEventNoticeRoutine()
+    private IEnumerator ProcessQuestEventNoticesRoutine()
     {
-        localQuestEventAlpha = 0f;
-        for (float elapsed = 0f; elapsed < questEventFadeInSeconds; elapsed += Time.unscaledDeltaTime)
+        while (pendingQuestEvents.Count > 0)
         {
-            localQuestEventAlpha = CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeInSeconds));
-            yield return null;
+            // Do not begin displaying while backpack presentation or notification is active, or gameplay is suppressed
+            while (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible || GameplayReadinessCoordinator.IsGameplaySuppressed)
+            {
+                yield return null;
+            }
+
+            QuestEventNoticeItem current = pendingQuestEvents.Dequeue();
+            localQuestEventTitle = current.title;
+            localQuestEventBody = current.body;
+
+            // 1. Fade in
+            localQuestEventAlpha = 0f;
+            for (float elapsed = 0f; elapsed < questEventFadeInSeconds; elapsed += Time.unscaledDeltaTime)
+            {
+                while (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible)
+                {
+                    yield return null;
+                }
+                localQuestEventAlpha = CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeInSeconds));
+                yield return null;
+            }
+            localQuestEventAlpha = 1f;
+
+            // 2. Hold - pause hold timer while backpack notification is active
+            float holdElapsed = 0f;
+            float targetHold = current.holdSeconds > 0f ? current.holdSeconds : questEventHoldSeconds;
+            while (holdElapsed < targetHold)
+            {
+                if (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible)
+                {
+                    yield return null;
+                    continue;
+                }
+                holdElapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            // 3. Fade out
+            for (float elapsed = 0f; elapsed < questEventFadeOutSeconds; elapsed += Time.unscaledDeltaTime)
+            {
+                while (BackpackQuestRewardPresentation.IsVisible || BackpackQuestRewardPresentation.IsNotificationVisible)
+                {
+                    yield return null;
+                }
+                localQuestEventAlpha = 1f - CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeOutSeconds));
+                yield return null;
+            }
+            localQuestEventAlpha = 0f;
+
+            if (pendingQuestEvents.Count > 0)
+            {
+                yield return new WaitForSecondsRealtime(0.2f);
+            }
         }
-        localQuestEventAlpha = 1f;
-        yield return new WaitForSecondsRealtime(questEventHoldSeconds);
-        for (float elapsed = 0f; elapsed < questEventFadeOutSeconds; elapsed += Time.unscaledDeltaTime)
-        {
-            localQuestEventAlpha = 1f - CinematicEase(elapsed / Mathf.Max(0.001f, questEventFadeOutSeconds));
-            yield return null;
-        }
-        localQuestEventAlpha = 0f;
         questEventRoutine = null;
     }
 
@@ -3205,7 +3268,8 @@ public sealed class MainQuestManager : NetworkBehaviour
             fontStyle = FontStyle.Bold,
             alignment = TextAnchor.MiddleCenter
         };
-        GUI.Box(new Rect(Screen.width * 0.5f - 260f, 24f, 520f, 38f), objective, style);
+        Rect objectiveRect = GameplayHudLayout.GetTopCenterObjectiveRect();
+        GUI.Box(objectiveRect, objective, style);
     }
 
     private void DrawQuestEventNotice()
@@ -3236,7 +3300,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         };
         float bodyHeight = Mathf.Max(32f, bodyStyle.CalcHeight(new GUIContent(localQuestEventBody), bodyWidth));
         float height = Mathf.Min(Screen.height * 0.25f, 52f + bodyHeight + 14f);
-        Rect panel = new Rect((Screen.width - width) * 0.5f, 78f, width, height);
+        Rect panel = GameplayHudLayout.GetTopCenterQuestEventNoticeRect(width, height);
+        currentQuestEventNoticeBottom = panel.yMax;
         GUI.color = new Color(0.015f, 0.02f, 0.02f, localQuestEventAlpha * 0.9f);
         GUI.DrawTexture(panel, Texture2D.whiteTexture);
         GUI.color = new Color(1f, 0.67f, 0.14f, localQuestEventAlpha);
@@ -3382,11 +3447,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         };
 
         Vector2 markerPosition;
+        float angle = 0f;
         if (isOnScreen)
         {
             markerPosition = targetGui + new Vector2(0f, -42f + Mathf.Sin(Time.unscaledTime * 3.2f) * 4f);
-            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
-                "▼", arrowStyle, new Color(1f, 0.82f, 0.12f), pulse, 2f);
         }
         else
         {
@@ -3402,11 +3466,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             markerPosition = center + direction * Mathf.Min(scaleX, scaleY);
             markerPosition.y = Mathf.Clamp(markerPosition.y, topMargin, Screen.height - bottomMargin);
 
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            GUIUtility.RotateAroundPivot(angle, markerPosition);
-            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
-                "▶", arrowStyle, new Color(1f, 0.82f, 0.12f), pulse, 2f);
-            GUI.matrix = previousMatrix;
+            angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         }
 
         float distance = PlayerMovement.LocalPlayerInstance != null
@@ -3418,9 +3478,35 @@ public sealed class MainQuestManager : NetworkBehaviour
         float labelWidth = 190f;
         float labelX = Mathf.Clamp(markerPosition.x - labelWidth * 0.5f, 8f, Screen.width - labelWidth - 8f);
         float labelY = isOnScreen ? markerPosition.y - 34f : markerPosition.y + 31f;
-        labelY = Mathf.Clamp(labelY, 50f, Screen.height - 36f);
+        Rect arrowRect = new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f);
+        Rect labelRect = new Rect(labelX, labelY, labelWidth, 28f);
+
+        // Compute union of arrow + label group and clamp together
+        float groupMinX = Mathf.Min(arrowRect.xMin, labelRect.xMin);
+        float groupMaxX = Mathf.Max(arrowRect.xMax, labelRect.xMax);
+        float groupMinY = Mathf.Min(arrowRect.yMin, labelRect.yMin);
+        float groupMaxY = Mathf.Max(arrowRect.yMax, labelRect.yMax);
+        Rect groupRect = new Rect(groupMinX, groupMinY, groupMaxX - groupMinX, groupMaxY - groupMinY);
+        Rect clampedGroup = GameplayHudLayout.ClampWaypointGroupAroundTopCenter(groupRect);
+        float deltaY = clampedGroup.y - groupRect.y;
+
+        markerPosition.y += deltaY;
+        arrowRect.y += deltaY;
+        labelRect.y += deltaY;
+
+        if (isOnScreen)
+        {
+            DrawShadowedLabel(arrowRect, "▼", arrowStyle, new Color(1f, 0.82f, 0.12f), pulse, 2f);
+        }
+        else
+        {
+            GUIUtility.RotateAroundPivot(angle, markerPosition);
+            DrawShadowedLabel(arrowRect, "▶", arrowStyle, new Color(1f, 0.82f, 0.12f), pulse, 2f);
+            GUI.matrix = previousMatrix;
+        }
+
         GUI.color = new Color(0.03f, 0.035f, 0.04f, 0.88f);
-        GUI.Box(new Rect(labelX, labelY, labelWidth, 28f), markerText, markerStyle);
+        GUI.Box(labelRect, markerText, markerStyle);
 
         GUI.matrix = previousMatrix;
         GUI.color = previousColor;
@@ -3468,11 +3554,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         markerStyle.normal.textColor = new Color(0.9f, 1f, 0.97f, 1f);
 
         Vector2 markerPosition;
+        float angle = 0f;
         if (isOnScreen)
         {
             markerPosition = targetGui + new Vector2(0f, -42f + Mathf.Sin(Time.unscaledTime * 3.2f) * 4f);
-            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
-                "▼", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
         }
         else
         {
@@ -3486,11 +3571,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             float scaleY = availableY / Mathf.Max(0.001f, Mathf.Abs(direction.y));
             markerPosition = center + direction * Mathf.Min(scaleX, scaleY);
             markerPosition.y = Mathf.Clamp(markerPosition.y, topMargin, Screen.height - bottomMargin);
-            float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-            GUIUtility.RotateAroundPivot(angle, markerPosition);
-            DrawShadowedLabel(new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f),
-                "▶", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
-            GUI.matrix = previousMatrix;
+            angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         }
 
         float distance = PlayerMovement.LocalPlayerInstance != null
@@ -3502,13 +3583,41 @@ public sealed class MainQuestManager : NetworkBehaviour
         float labelX = Mathf.Clamp(markerPosition.x - labelWidth * 0.5f, 8f, Screen.width - labelWidth - 8f);
         float labelY = isOnScreen ? markerPosition.y - 34f : markerPosition.y + 31f;
         labelY = Mathf.Clamp(labelY, 50f, Screen.height - 36f);
+
+        Rect arrowRect = new Rect(markerPosition.x - 25f, markerPosition.y - 25f, 50f, 50f);
+        Rect labelRect = new Rect(labelX, labelY, labelWidth, 28f);
+
+        // Compute union of arrow + label group and clamp together
+        float groupMinX = Mathf.Min(arrowRect.xMin, labelRect.xMin);
+        float groupMaxX = Mathf.Max(arrowRect.xMax, labelRect.xMax);
+        float groupMinY = Mathf.Min(arrowRect.yMin, labelRect.yMin);
+        float groupMaxY = Mathf.Max(arrowRect.yMax, labelRect.yMax);
+        Rect groupRect = new Rect(groupMinX, groupMinY, groupMaxX - groupMinX, groupMaxY - groupMinY);
+        Rect clampedGroup = GameplayHudLayout.ClampWaypointGroupAroundTopCenter(groupRect);
+        float deltaY = clampedGroup.y - groupRect.y;
+
+        markerPosition.y += deltaY;
+        arrowRect.y += deltaY;
+        labelRect.y += deltaY;
+
+        if (isOnScreen)
+        {
+            DrawShadowedLabel(arrowRect, "▼", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
+        }
+        else
+        {
+            GUIUtility.RotateAroundPivot(angle, markerPosition);
+            DrawShadowedLabel(arrowRect, "▶", arrowStyle, new Color(0.25f, 0.94f, 0.82f), pulse, 2f);
+            GUI.matrix = previousMatrix;
+        }
+
         // GUI.color also multiplies textColor, which made this label nearly
         // black. Tint only the box background and leave the text at full
         // contrast.
         GUI.color = Color.white;
         GUI.backgroundColor = new Color(0.03f, 0.045f, 0.043f, 0.9f);
         GUI.contentColor = Color.white;
-        GUI.Box(new Rect(labelX, labelY, labelWidth, 28f), markerText, markerStyle);
+        GUI.Box(labelRect, markerText, markerStyle);
 
         GUI.matrix = previousMatrix;
         GUI.color = previousColor;
