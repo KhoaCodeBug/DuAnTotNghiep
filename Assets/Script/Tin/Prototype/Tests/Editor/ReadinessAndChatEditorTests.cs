@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 public sealed class ReadinessAndChatEditorTests
 {
@@ -1384,6 +1385,216 @@ public sealed class ReadinessAndChatEditorTests
         Assert.That(cg.blocksRaycasts, Is.False, "blocksRaycasts must be false when chat is closed.");
 
         UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void PlayerDeathContext_FormatLeftMessage_LocalizedProperly()
+    {
+        Type deathContextType = ResolveGameType("PlayerDeathContext");
+        MethodInfo formatLeftMethod = deathContextType.GetMethod("FormatLeftMessage", BindingFlags.Public | BindingFlags.Static);
+        Assert.That(formatLeftMethod, Is.Not.Null);
+
+        string leftEn = (string)formatLeftMethod.Invoke(null, new object[] { "PlayerOne" });
+        Assert.That(leftEn, Does.Contain("PlayerOne"));
+
+        string leftFallback = (string)formatLeftMethod.Invoke(null, new object[] { null });
+        Assert.That(leftFallback, Does.Contain("Survivor"));
+    }
+
+    [Test]
+    public void AutoChatManager_BuildChatUI_AssignsInputTextComponent()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatInputBinding");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo inputField = chatType.GetField("chatInput", BindingFlags.NonPublic | BindingFlags.Instance);
+        UnityEngine.UI.InputField input = inputField?.GetValue(chat) as UnityEngine.UI.InputField;
+
+        Assert.That(input, Is.Not.Null, "Chat InputField must exist.");
+        Assert.That(input.textComponent, Is.Not.Null,
+            "Chat InputField must bind its child Text component so typed messages render correctly.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_LoLStyle_ViewportBackgroundTransparentWhenNotTyping_AndHeaderRemoved()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatLoLStyle");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo vpBgField = chatType.GetField("vpBg", BindingFlags.NonPublic | BindingFlags.Instance);
+        UnityEngine.UI.Image vpBg = vpBgField.GetValue(chat) as UnityEngine.UI.Image;
+        Assert.That(vpBg, Is.Not.Null, "Viewport image must exist.");
+
+        FieldInfo headerField = chatType.GetField("headerBar", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.That(headerField, Is.Null, "BoxChat must not create or retain a separate header bar.");
+
+        MethodInfo openMethod = chatType.GetMethod("OpenChat", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo closeMethod = chatType.GetMethod("CloseChat", BindingFlags.Public | BindingFlags.Instance);
+
+        // Ban đầu (khi đóng chat): nền trong suốt (alpha = 0)
+        Assert.That(vpBg.color.a, Is.EqualTo(0f), "Viewport background must be 100% transparent when idle (LoL style).");
+
+        // Khi mở chat: nền tối mờ (alpha > 0.5)
+        openMethod.Invoke(chat, null);
+        Assert.That(vpBg.color.a, Is.GreaterThan(0.5f), "Viewport background must be visible when typing.");
+
+        // Khi đóng chat: nền lập tức trở về trong suốt 100%
+        closeMethod.Invoke(chat, null);
+        Assert.That(vpBg.color.a, Is.EqualTo(0f), "Viewport background must return to 100% transparent after closing.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_DragEnd_KeepsTypingAndRestoresInputFocus()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatDragFocus");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo typingField = chatType.GetField("isTyping", BindingFlags.NonPublic | BindingFlags.Instance);
+        typingField.SetValue(chat, true);
+
+        FieldInfo inputField = chatType.GetField("chatInput", BindingFlags.NonPublic | BindingFlags.Instance);
+        UnityEngine.UI.InputField input = inputField.GetValue(chat) as UnityEngine.UI.InputField;
+        Assert.That(input, Is.Not.Null);
+        input.gameObject.SetActive(true);
+
+        Component draggable = chatGo.GetComponentsInChildren<Component>(true)
+            .FirstOrDefault(component => component != null && component.GetType().Name == "UIDraggable");
+        Assert.That(draggable, Is.Not.Null, "Chat panel must expose a draggable viewport.");
+        Assert.That(EventSystem.current, Is.Not.Null, "Chat dragging requires an EventSystem.");
+        MethodInfo onBeginDrag = draggable.GetType().GetMethod("OnBeginDrag", BindingFlags.Public | BindingFlags.Instance);
+        MethodInfo onEndDrag = draggable.GetType().GetMethod("OnEndDrag", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(onBeginDrag, Is.Not.Null, "Chat draggable must implement OnBeginDrag.");
+        Assert.That(onEndDrag, Is.Not.Null, "Chat draggable must implement OnEndDrag.");
+        onBeginDrag.Invoke(draggable, new object[] { new PointerEventData(EventSystem.current) });
+        onEndDrag.Invoke(draggable, new object[] { null });
+
+        Assert.That((bool)typingField.GetValue(chat), Is.True,
+            "Dragging the chat panel must not close chat input mode.");
+        Assert.That(EventSystem.current.currentSelectedGameObject, Is.EqualTo(input.gameObject),
+            "After dropping the panel, the input field must be focused without pressing Enter again.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_PositionPersistence_RestoresFromPlayerPrefs()
+    {
+        PlayerPrefs.SetFloat("Chat_PosX", 123.5f);
+        PlayerPrefs.SetFloat("Chat_PosY", 456.7f);
+        PlayerPrefs.Save();
+
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatPrefs");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo panelRtField = chatType.GetField("chatPanelRt", BindingFlags.NonPublic | BindingFlags.Instance);
+        RectTransform panelRt = panelRtField.GetValue(chat) as RectTransform;
+        Assert.That(panelRt, Is.Not.Null);
+
+        Assert.That(panelRt.anchoredPosition.x, Is.EqualTo(123.5f).Within(0.01f));
+        Assert.That(panelRt.anchoredPosition.y, Is.EqualTo(456.7f).Within(0.01f));
+
+        PlayerPrefs.DeleteKey("Chat_PosX");
+        PlayerPrefs.DeleteKey("Chat_PosY");
+        PlayerPrefs.Save();
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_EmptyOrWhitespaceMessage_NotSent()
+    {
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatEmptyMsg");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        MethodInfo openMethod = chatType.GetMethod("OpenChat", BindingFlags.Public | BindingFlags.Instance);
+        openMethod.Invoke(chat, null);
+
+        bool messageSent = false;
+        FieldInfo onSendField = chatType.GetField("onSendMessage", BindingFlags.Public | BindingFlags.Instance);
+        Action<string> capture = (msg) => messageSent = true;
+        Delegate handler = Delegate.CreateDelegate(onSendField.FieldType, capture.Target, capture.Method);
+        onSendField.SetValue(chat, handler);
+
+        MethodInfo onEndEditMethod = chatType.GetMethod("OnChatEndEdit", BindingFlags.NonPublic | BindingFlags.Instance);
+        onEndEditMethod.Invoke(chat, new object[] { "    " });
+
+        Assert.That(messageSent, Is.False, "Whitespace message must not be sent.");
+
+        openMethod.Invoke(chat, null);
+        onEndEditMethod.Invoke(chat, new object[] { "" });
+        Assert.That(messageSent, Is.False, "Empty message must not be sent.");
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void AutoChatManager_PositionPersistence_ClampedWithinCanvasBounds()
+    {
+        PlayerPrefs.SetFloat("Chat_PosX", 99999f);
+        PlayerPrefs.SetFloat("Chat_PosY", -500f);
+        PlayerPrefs.Save();
+
+        Type chatType = ResolveGameType("AutoChatManager");
+        GameObject chatGo = new GameObject("TestAutoChatClamp");
+        Component chat = chatGo.AddComponent(chatType);
+        MethodInfo buildMethod = chatType.GetMethod("BuildChatUI", BindingFlags.Public | BindingFlags.Instance);
+        buildMethod.Invoke(chat, null);
+
+        FieldInfo panelRtField = chatType.GetField("chatPanelRt", BindingFlags.NonPublic | BindingFlags.Instance);
+        RectTransform panelRt = panelRtField.GetValue(chat) as RectTransform;
+        Assert.That(panelRt, Is.Not.Null);
+
+        Assert.That(panelRt.anchoredPosition.x, Is.LessThan(99999f));
+        Assert.That(panelRt.anchoredPosition.y, Is.GreaterThanOrEqualTo(0f));
+
+        PlayerPrefs.DeleteKey("Chat_PosX");
+        PlayerPrefs.DeleteKey("Chat_PosY");
+        PlayerPrefs.Save();
+
+        UnityEngine.Object.DestroyImmediate(chatGo);
+    }
+
+    [Test]
+    public void PlayerSurvival_HasActiveSleepStatusMessage_PropertyWorks()
+    {
+        Type survivalType = ResolveGameType("PlayerSurvival");
+        GameObject go = new GameObject("TestPlayerSurvival");
+        Component survival = go.AddComponent(survivalType);
+
+        PropertyInfo hasActiveProp = survivalType.GetProperty("HasActiveSleepStatusMessage", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(hasActiveProp, Is.Not.Null);
+        Assert.That((bool)hasActiveProp.GetValue(survival), Is.False);
+
+        FieldInfo msgField = survivalType.GetField("sleepStatusMessage", BindingFlags.NonPublic | BindingFlags.Instance);
+        FieldInfo untilField = survivalType.GetField("sleepStatusMessageUntil", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        msgField.SetValue(survival, "You can only sleep from 20:00 to 03:00.");
+        untilField.SetValue(survival, Time.unscaledTime + 5f);
+        Assert.That((bool)hasActiveProp.GetValue(survival), Is.True);
+
+        untilField.SetValue(survival, Time.unscaledTime - 1f);
+        Assert.That((bool)hasActiveProp.GetValue(survival), Is.False);
+
+        UnityEngine.Object.DestroyImmediate(go);
     }
 
     [Test]

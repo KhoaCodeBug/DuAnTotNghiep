@@ -668,8 +668,7 @@ public class LootContainer : NetworkBehaviour
         {
             message = string.Format(GameLocalization.Get("loot.picked_up"), displayName, Mathf.Max(1, amount));
         }
-
-        AutoChatManager.Instance?.AddSystemMessage(message);
+        // Đã bỏ thông báo chat khi lục tủ đồ/thùng theo yêu cầu (chỉ giữ thông báo khi lục xác zombie)
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

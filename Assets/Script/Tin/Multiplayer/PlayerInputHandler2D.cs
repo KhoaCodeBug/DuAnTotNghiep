@@ -82,6 +82,8 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
     public override void Spawned()
     {
+        Debug.Log($"[CHAT-DIAG] PlayerInputHandler2D.Spawned on '{name}': LocalPlayer={Runner?.LocalPlayer}, HasInputAuth={HasInputAuthority}, HasStateAuth={HasStateAuthority}, Object.InputAuth={Object?.InputAuthority}, Object.StateAuth={Object?.StateAuthority}");
+
         if (HasInputAuthority)
         {
             Runner.AddCallbacks(this);
@@ -93,7 +95,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
                 AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
                 AutoChatManager.Instance.onSendMessage += HandleSendMessage;
                 isChatSubscribed = true;
-                Debug.Log($"[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned");
+                Debug.Log($"[CHAT-DIAG] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned trên '{name}'. Listeners={AutoChatManager.Instance.GetSendMessageListenerCount()}");
             }
         }
     }
@@ -103,14 +105,14 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (HasInputAuthority)
         {
             runner.RemoveCallbacks(this);
-            // 🔥 FIX: Luôn reset flag, vì Instance có thể đã bị Destroy trước
             if (isChatSubscribed)
             {
-                if (AutoChatManager.Instance != null)
+                if (AutoChatManager.ExistingInstance != null)
                 {
-                    AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
+                    AutoChatManager.ExistingInstance.onSendMessage -= HandleSendMessage;
                 }
-                isChatSubscribed = false; // Luôn reset để lần sau đăng ký lại
+                isChatSubscribed = false;
+                Debug.Log($"[CHAT-DIAG] 🛑 Đã hủy đăng ký nhận sự kiện gửi chat lúc Despawned trên '{name}'.");
             }
         }
     }
@@ -188,7 +190,7 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
             AutoChatManager.Instance.onSendMessage -= HandleSendMessage;
             AutoChatManager.Instance.onSendMessage += HandleSendMessage;
             isChatSubscribed = true;
-            Debug.Log($"[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat động thành công lúc Update");
+            Debug.Log($"[CHAT-DIAG] ✅ Đã đăng ký nhận sự kiện gửi chat động lúc Update trên '{name}'. Listeners={AutoChatManager.Instance.GetSendMessageListenerCount()}");
         }
 
         // 🔥 TÌM MICROPHONE ĐỘNG NẾU TRƯỚC ĐÓ CHƯA TÌM THẤY
@@ -403,8 +405,16 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
 
     private void HandleSendMessage(string msg)
     {
+        if (!HasInputAuthority)
+        {
+            Debug.LogWarning($"[CHAT-DIAG] HandleSendMessage ignored: '{name}' does not have InputAuthority (LocalPlayer={Runner?.LocalPlayer}, InputAuth={Object?.InputAuthority}).");
+            return;
+        }
+
         PlayerHealth health = GetComponent<PlayerHealth>();
         if (health != null && health.isDead) return;
+
+        Debug.Log($"[CHAT-DIAG] HandleSendMessage on '{name}': LocalPlayer={Runner?.LocalPlayer}, RunnerMode={Runner?.Mode}, Session='{Runner?.SessionInfo.Name}', Players={Runner?.SessionInfo.PlayerCount}/{Runner?.SessionInfo.MaxPlayers}, msg='{msg}'");
 
         if (Object != null && Object.IsValid)
         {
@@ -430,11 +440,13 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (!HasStateAuthority || Object == null || !Object.IsValid)
             return;
 
+        Debug.Log($"[CHAT-DIAG] RPC_RequestSendChat received on Host: rpcSource={info.Source}, targetInputAuth={Object.InputAuthority}, message='{message}'");
+
         // Xác thực người gửi: Nếu là RPC mạng từ xa thì info.Source phải khớp Object.InputAuthority;
         // Nếu là local invocation trên Host/Singleplayer thì info.Source == PlayerRef.None.
         if (info.Source != PlayerRef.None && info.Source != Object.InputAuthority)
         {
-            Debug.LogWarning($"[CHAT] Rejected spoofed chat request from {info.Source} for object with input authority {Object.InputAuthority}.");
+            Debug.LogWarning($"[CHAT-DIAG] Rejected spoofed chat request from {info.Source} for object with input authority {Object.InputAuthority}.");
             return;
         }
 
@@ -464,12 +476,14 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (cleanMsg.Length > 128) cleanMsg = cleanMsg.Substring(0, 128);
         if (string.IsNullOrWhiteSpace(cleanMsg)) return;
 
+        Debug.Log($"[CHAT-DIAG] Host broadcasting chat to All: sender='{senderName}', cleanMsg='{cleanMsg}'");
         RPC_BroadcastChat(senderName, cleanMsg);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_BroadcastChat(string senderName, string cleanMessage)
     {
+        Debug.Log($"[CHAT-DIAG] RPC_BroadcastChat received on instance: LocalPlayer={Runner?.LocalPlayer}, RunnerMode={Runner?.Mode}, sender='{senderName}', message='{cleanMessage}'");
         AutoChatManager.Instance?.AddPlayerMessage(senderName, cleanMessage);
     }
 

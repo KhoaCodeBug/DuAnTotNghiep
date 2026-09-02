@@ -105,6 +105,8 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         Instance = this;
         changeDetector = GetChangeDetector(ChangeDetector.Source.SimulationState);
 
+        Debug.Log($"[CHAT-DIAG] HostModeSpawner.Spawned: RunnerMode={Runner?.Mode}, SessionName='{Runner?.SessionInfo?.Name}', Players={Runner?.SessionInfo?.PlayerCount}/{Runner?.SessionInfo?.MaxPlayers}, LocalPlayer={Runner?.LocalPlayer}, IsServer={Runner?.IsServer}");
+
         if (Runner != null && Runner.IsServer)
         {
             SessionDifficulty = DifficultyRules.ActiveDifficulty;
@@ -651,6 +653,13 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         AutoChatManager.Instance?.AddSystemMessage(joinMsg);
     }
 
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_AnnouncePlayerLeft(string playerName)
+    {
+        string leftMsg = PlayerDeathContext.FormatLeftMessage(playerName);
+        AutoChatManager.Instance?.AddSystemMessage(leftMsg);
+    }
+
     private void SendMessageToChat(string msg)
     {
         if (AutoChatManager.Instance != null)
@@ -710,6 +719,12 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     {
         if (Runner.IsServer)
         {
+            string departingPlayerName = GetPlayerName(player);
+            if (!string.IsNullOrWhiteSpace(departingPlayerName))
+            {
+                RPC_AnnouncePlayerLeft(departingPlayerName);
+            }
+
             // Xóa xác nhân vật
             if (spawnedPlayers.TryGetValue(player, out NetworkObject netObj))
             {

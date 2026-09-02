@@ -1458,6 +1458,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         ShowConnectionPopup(popupMsg);
         isConnecting = true;
 
+        Debug.Log($"[CHAT-DIAG] StartGameAsync: mode={mode}, roomName='{roomName}'");
         Debug.Log($"[MENU FLOW] Cleaning old runners before mode={mode}, room='{roomName}'.");
         await CleanupOldRunnersAsync();
         if (this == null || isMenuDestroyed) return;
@@ -1616,8 +1617,15 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     }
 
     public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
-
     {
+        Debug.Log($"[CHAT-DIAG] OnSessionListUpdated: found {sessionList?.Count ?? 0} sessions.");
+        if (sessionList != null)
+        {
+            foreach (var s in sessionList)
+            {
+                Debug.Log($"[CHAT-DIAG] - Session '{s.Name}': Players={s.PlayerCount}/{s.MaxPlayers}, IsOpen={s.IsOpen}, IsVisible={s.IsVisible}");
+            }
+        }
         UpdateServerListUI(sessionList);
     }
 
