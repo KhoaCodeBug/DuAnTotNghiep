@@ -132,7 +132,7 @@ public sealed class BrokenArrivalCar : MonoBehaviour
             }
 
             elapsed = Mathf.Min(inspectionDuration, elapsed + Time.unscaledDeltaTime);
-            AutoUIManager.Instance?.ShowReloadUI(elapsed, inspectionDuration, "ĐANG KIỂM TRA ĐỘNG CƠ...");
+            AutoUIManager.Instance?.ShowReloadUI(elapsed, inspectionDuration, GameLocalization.Get("quest.arrival.inspecting_engine"));
             yield return null;
         }
 
@@ -311,7 +311,7 @@ public sealed class BrokenArrivalCar : MonoBehaviour
         prompt.normal.textColor = accent;
         Rect textRect = new Rect(promptRect.x + 14f, promptRect.y + 4f,
             promptRect.width - 28f, promptRect.height - 8f);
-        GUI.Label(textRect, "GIỮ [E]\nKIỂM TRA XE", prompt);
+        GUI.Label(textRect, GameLocalization.Get("quest.arrival.prompt_inspect"), prompt);
     }
 
     private static void DrawGuiLine(Vector2 start, Vector2 end, Color color, float width)

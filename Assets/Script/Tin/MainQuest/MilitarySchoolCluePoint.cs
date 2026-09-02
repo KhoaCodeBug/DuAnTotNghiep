@@ -54,7 +54,7 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
             }
 
             elapsed = Mathf.Min(searchDuration, elapsed + Time.unscaledDeltaTime);
-            AutoUIManager.Instance?.ShowReloadUI(elapsed, searchDuration, "ĐANG KIỂM TRA MANH MỐI...");
+            AutoUIManager.Instance?.ShowReloadUI(elapsed, searchDuration, GameLocalization.Get("quest.military.inspecting_clue"));
             yield return null;
         }
 
@@ -100,7 +100,9 @@ public sealed class MilitarySchoolCluePoint : MonoBehaviour
         style.normal.textColor = new Color(1f, 0.86f, 0.38f);
         float x = Mathf.Clamp(screen.x - 145f, 8f, Screen.width - 298f);
         float y = Mathf.Clamp(Screen.height - screen.y - 66f, 8f, Screen.height - 54f);
-        GUI.Box(new Rect(x, y, 290f, 46f), $"{clueName}\nGIỮ [E] ĐỂ KIỂM TRA", style);
+        string displayName = GameLocalization.Get(clueName, GameLocalization.TranslateLiteral(clueName));
+        string prompt = GameLocalization.Get("quest.military.prompt_hold_inspect");
+        GUI.Box(new Rect(x, y, 290f, 46f), $"{displayName}\n{prompt}", style);
     }
 
 }

@@ -151,6 +151,19 @@ public sealed class SiegeHordeDirector : MonoBehaviour
                 NetworkPrefabRef prefab = zombiePrefabs[(prefabOffset + spawnedCount) % zombiePrefabs.Count];
                 NetworkObject spawned = manager.Runner.Spawn(prefab, position, Quaternion.identity);
                 if (spawned == null) continue;
+                var agent = spawned.GetComponent<UnityEngine.AI.NavMeshAgent>();
+                if (agent != null)
+                {
+                    if (UnityEngine.AI.NavMesh.SamplePosition(spawned.transform.position, out UnityEngine.AI.NavMeshHit agentHit, 2f, UnityEngine.AI.NavMesh.AllAreas))
+                    {
+                        agent.enabled = true;
+                        agent.Warp(agentHit.position);
+                    }
+                    else
+                    {
+                        agent.enabled = false;
+                    }
+                }
                 SiegeZombieObjective objective = spawned.GetComponent<SiegeZombieObjective>();
                 if (objective == null) objective = spawned.gameObject.AddComponent<SiegeZombieObjective>();
                 objective.Configure(manager, gate, true);

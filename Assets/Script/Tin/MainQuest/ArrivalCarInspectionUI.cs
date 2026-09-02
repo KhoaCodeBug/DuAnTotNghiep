@@ -42,7 +42,19 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private TextMeshProUGUI selectedPartRecommendation;
     private TextMeshProUGUI overallConditionText;
     private TextMeshProUGUI headerEyebrowText;
+    private TextMeshProUGUI headerTitleText;
     private TextMeshProUGUI vehicleNameText;
+    private TextMeshProUGUI footerHintText;
+    private TextMeshProUGUI diagramLabelText;
+    private TextMeshProUGUI diagramHintText;
+    private TextMeshProUGUI repairClockLabelText;
+    private TextMeshProUGUI repairClockCancelText;
+    private sealed class GroupHeaderView
+    {
+        public TextMeshProUGUI TextComponent;
+        public string Key;
+    }
+    private readonly List<GroupHeaderView> groupHeaderViews = new List<GroupHeaderView>();
     private Image selectedPartActionBackground;
     private TextMeshProUGUI selectedPartActionText;
     private Button selectedPartActionButton;
@@ -77,15 +89,21 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private sealed class VehiclePartView
     {
         public string Id;
-        public string Label;
-        public string Category;
+        public string NameKey;
+        public string CategoryKey;
         public int Condition;
-        public string Description;
-        public string Recommendation;
-        public string Action;
+        public string DescKey;
+        public string RecKey;
+        public string ActionKey;
+        public string Label => GameLocalization.Get(NameKey);
+        public string Category => GameLocalization.Get(CategoryKey);
+        public string Description => GameLocalization.Get(DescKey);
+        public string Recommendation => GameLocalization.Get(RecKey);
+        public string Action => GameLocalization.Get(ActionKey);
         public Vector2 DiagramPosition;
         public Vector2 DiagramSize;
         public Image RowBackground;
+        public TextMeshProUGUI NameText;
         public TextMeshProUGUI ConditionText;
     }
 
@@ -143,9 +161,60 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        GameLocalization.LanguageChanged += OnLanguageChanged;
+    }
+
     private void OnDisable()
     {
+        GameLocalization.LanguageChanged -= OnLanguageChanged;
         if (open) Close(false);
+    }
+
+    private void OnLanguageChanged()
+    {
+        if (!built) return;
+        RefreshStaticLabels();
+        RefreshGroupAndRowLabels();
+        if (open)
+        {
+            SelectVehiclePart(string.IsNullOrEmpty(selectedPartId) ? "engine" : selectedPartId);
+        }
+    }
+
+    private void RefreshStaticLabels()
+    {
+        if (headerEyebrowText != null)
+            headerEyebrowText.text = GameLocalization.Get(policeMode ? "arrival_ui.header_eyebrow_police" : "arrival_ui.header_eyebrow_civilian");
+        if (headerTitleText != null)
+            headerTitleText.text = GameLocalization.Get("arrival_ui.header_title");
+        if (vehicleNameText != null)
+            vehicleNameText.text = GameLocalization.Get(policeMode ? "arrival_ui.vehicle_police" : "arrival_ui.vehicle_civilian");
+        if (footerHintText != null)
+            footerHintText.text = GameLocalization.Get("arrival_ui.footer_hint");
+        if (diagramLabelText != null)
+            diagramLabelText.text = GameLocalization.Get("arrival_ui.diagram_label");
+        if (diagramHintText != null)
+            diagramHintText.text = GameLocalization.Get("arrival_ui.diagram_hint");
+        if (repairClockLabelText != null)
+            repairClockLabelText.text = GameLocalization.Get("arrival_ui.repair_clock_label");
+        if (repairClockCancelText != null)
+            repairClockCancelText.text = GameLocalization.Get("arrival_ui.repair_clock_cancel");
+    }
+
+    private void RefreshGroupAndRowLabels()
+    {
+        for (int i = 0; i < groupHeaderViews.Count; i++)
+        {
+            if (groupHeaderViews[i].TextComponent != null)
+                groupHeaderViews[i].TextComponent.text = GameLocalization.Get(groupHeaderViews[i].Key);
+        }
+        for (int i = 0; i < vehicleParts.Count; i++)
+        {
+            if (vehicleParts[i].NameText != null)
+                vehicleParts[i].NameText.text = vehicleParts[i].Label;
+        }
     }
 
     private void OnDestroy()
@@ -196,10 +265,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         AutoUIManager.Instance?.SetQuestOverlayOpen(true);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        if (headerEyebrowText != null) headerEyebrowText.text = policeMode
-            ? "KIỂM TRA PHƯƠNG TIỆN  //  XE CẢNH SÁT"
-            : "KIỂM TRA PHƯƠNG TIỆN  //  XE DÂN DỤNG";
-        if (vehicleNameText != null) vehicleNameText.text = policeMode ? "XE TUẦN TRA" : "CHEVALIER NYALA";
+        RefreshStaticLabels();
+        RefreshGroupAndRowLabels();
         SelectVehiclePart(string.IsNullOrEmpty(selectedPartId) ? "engine" : selectedPartId);
     }
 
@@ -302,10 +369,10 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             new Vector2(1420f, 820f), Vector2.zero, Background);
         AddBorder(shell, new Color(0.7f, 0.72f, 0.7f, 0.9f), 2f);
         Box("Header Rule", shell, new Vector2(0.5f, 1f), new Vector2(1420f, 3f), new Vector2(0f, -96f), Border);
-        headerEyebrowText = Text(shell, "Header Eyebrow", "KIỂM TRA PHƯƠNG TIỆN  //  XE DÂN DỤNG", 13f, Muted,
+        headerEyebrowText = Text(shell, "Header Eyebrow", GameLocalization.Get("arrival_ui.header_eyebrow_civilian"), 13f, Muted,
             FontStyles.Bold, TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(700f, 22f),
             new Vector2(36f, -18f));
-        Text(shell, "Header Title", "TÌNH TRẠNG XE", 28f, Color.white, FontStyles.Bold,
+        headerTitleText = Text(shell, "Header Title", GameLocalization.Get("arrival_ui.header_title"), 28f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(760f, 38f), new Vector2(36f, -45f));
 
         RectTransform close = Box("Close Button", shell, new Vector2(1f, 1f), new Vector2(52f, 52f),
@@ -319,7 +386,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             new Vector2(220f, 44f), new Vector2(-92f, -50f), new Color(0.12f, 0.13f, 0.125f, 1f));
         AddBorder(start, new Color(0.42f, 0.45f, 0.43f, 0.95f));
         startEngineBackground = start.GetComponent<Image>();
-        startEngineText = Text(start, "Start Engine Text", "CHƯA THỂ KHỞI ĐỘNG", 11f, Muted,
+        startEngineText = Text(start, "Start Engine Text", GameLocalization.Get("arrival_ui.cannot_start_btn"), 11f, Muted,
             FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0.5f),
             new Vector2(204f, 32f), Vector2.zero);
         startEngineButton = MakeClickable(start, InvokeStartEngine);
@@ -330,7 +397,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         BuildRepairClock(shell);
         SelectVehiclePart("engine");
 
-        Text(shell, "Footer Hint", "[E] ĐÓNG     •     [ESC] ĐÓNG     •     HOẶC BẤM  ×", 13f, Muted,
+        footerHintText = Text(shell, "Footer Hint", GameLocalization.Get("arrival_ui.footer_hint"), 13f, Muted,
             FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(760f, 28f),
             new Vector2(0f, 22f));
         overlayRoot.SetActive(false);
@@ -341,7 +408,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         RectTransform panel = Box("Vehicle Diagram Panel", shell, new Vector2(0f, 0.5f),
             new Vector2(520f, 650f), new Vector2(34f, -18f), new Color(0.012f, 0.014f, 0.014f, 1f));
         AddBorder(panel, Border);
-        Text(panel, "Diagram Label", "CHỌN BỘ PHẬN ĐỂ KIỂM TRA", 12f, Muted, FontStyles.Bold,
+        diagramLabelText = Text(panel, "Diagram Label", GameLocalization.Get("arrival_ui.diagram_label"), 12f, Muted, FontStyles.Bold,
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(330f, 24f), new Vector2(20f, -18f));
 
         Texture2D blueprint = LoadTexture("Story/CarUI/VehicleBlueprint");
@@ -383,7 +450,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             MakeClickable(hotspot, () => SelectVehiclePart(capturedPart.Id));
         }
 
-        Text(panel, "Diagram Hint", "BẤM VÀO BIỂU TƯỢNG HOẶC BỘ PHẬN TRÊN XE", 10f, Muted,
+        diagramHintText = Text(panel, "Diagram Hint", GameLocalization.Get("arrival_ui.diagram_hint"), 10f, Muted,
             FontStyles.Bold, TextAlignmentOptions.Center, new Vector2(0.5f, 0f),
             new Vector2(430f, 22f), new Vector2(0f, 10f));
     }
@@ -393,18 +460,19 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         RectTransform panel = Box("Vehicle Status Panel", shell, new Vector2(1f, 1f),
             new Vector2(800f, 650f), new Vector2(-34f, -112f), Panel);
         AddBorder(panel, Border);
-        vehicleNameText = Text(panel, "Vehicle Name", "CHEVALIER NYALA", 21f, Color.white, FontStyles.Bold,
+        vehicleNameText = Text(panel, "Vehicle Name", GameLocalization.Get("arrival_ui.vehicle_civilian"), 21f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(360f, 32f), new Vector2(22f, -18f));
-        overallConditionText = Text(panel, "Overall Condition", "TÌNH TRẠNG TỔNG THỂ: 39%", 13f, Amber, FontStyles.Bold,
+        overallConditionText = Text(panel, "Overall Condition", string.Format(GameLocalization.Get("arrival_ui.overall_condition"), 39), 13f, Amber, FontStyles.Bold,
             TextAlignmentOptions.Right, new Vector2(1f, 1f), new Vector2(300f, 26f), new Vector2(-22f, -23f));
         Box("Status Rule", panel, new Vector2(0.5f, 1f), new Vector2(756f, 1f),
             new Vector2(0f, -62f), Border);
 
-        BuildPartGroup(panel, "KHOANG ĐỘNG CƠ", new[] { "engine", "battery", "exhaust" }, 22f, -82f);
-        BuildPartGroup(panel, "NHIÊN LIỆU", new[] { "fuel" }, 22f, -218f);
-        BuildPartGroup(panel, "BÁNH XE", new[] { "front_left", "rear_left", "front_right", "rear_right" },
+        groupHeaderViews.Clear();
+        BuildPartGroup(panel, "arrival_ui.group_engine", new[] { "engine", "battery", "exhaust" }, 22f, -82f);
+        BuildPartGroup(panel, "arrival_ui.group_fuel", new[] { "fuel" }, 22f, -218f);
+        BuildPartGroup(panel, "arrival_ui.group_wheels", new[] { "front_left", "rear_left", "front_right", "rear_right" },
             412f, -82f);
-        BuildPartGroup(panel, "THÂN XE", new[] { "hood", "windshield", "front_door" }, 412f, -250f);
+        BuildPartGroup(panel, "arrival_ui.group_body", new[] { "hood", "windshield", "front_door" }, 412f, -250f);
 
         RectTransform detail = Box("Selected Part Detail", panel, new Vector2(0f, 0f),
             new Vector2(756f, 150f), new Vector2(22f, 18f), new Color(0.055f, 0.06f, 0.058f, 1f));
@@ -445,7 +513,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             new Vector2(0.5f, 0.5f), new Vector2(250f, 250f), Vector2.zero,
             new Color(0.025f, 0.03f, 0.028f, 0.98f));
         AddBorder(panel, new Color(0.32f, 0.9f, 0.47f, 0.9f), 2f);
-        Text(panel, "Repair Clock Label", "ĐANG SỬA", 15f, Color.white, FontStyles.Bold,
+        repairClockLabelText = Text(panel, "Repair Clock Label", GameLocalization.Get("arrival_ui.repair_clock_label"), 15f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 1f), new Vector2(200f, 28f),
             new Vector2(0f, -20f));
 
@@ -467,7 +535,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
 
         Box("Repair Clock Center", ring, new Vector2(0.5f, 0.5f),
             new Vector2(12f, 12f), Vector2.zero, new Color(0.9f, 1f, 0.92f, 1f));
-        Text(panel, "Repair Clock Cancel Hint", "[E] / [ESC]  HỦY", 11f, Muted, FontStyles.Bold,
+        repairClockCancelText = Text(panel, "Repair Clock Cancel Hint", GameLocalization.Get("arrival_ui.repair_clock_cancel"), 11f, Muted, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0.5f, 0f), new Vector2(200f, 24f),
             new Vector2(0f, 15f));
 
@@ -510,10 +578,11 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         return texture;
     }
 
-    private void BuildPartGroup(Transform parent, string title, string[] partIds, float x, float y)
+    private void BuildPartGroup(Transform parent, string titleKey, string[] partIds, float x, float y)
     {
-        Text(parent, "Group " + title, title, 13f, Color.white, FontStyles.Bold,
+        TextMeshProUGUI header = Text(parent, "Group " + titleKey, GameLocalization.Get(titleKey), 13f, Color.white, FontStyles.Bold,
             TextAlignmentOptions.Left, new Vector2(0f, 1f), new Vector2(320f, 22f), new Vector2(x, y));
+        groupHeaderViews.Add(new GroupHeaderView { TextComponent = header, Key = titleKey });
         for (int i = 0; i < partIds.Length; i++)
         {
             VehiclePartView part = FindPart(partIds[i]);
@@ -521,7 +590,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             RectTransform row = Box("Part Row " + part.Id, parent, new Vector2(0f, 1f),
                 new Vector2(366f, 30f), new Vector2(x, y - 28f - i * 32f), Color.clear);
             part.RowBackground = row.GetComponent<Image>();
-            Text(row, "Part Name", part.Label, 13f, Color.white, FontStyles.Normal,
+            part.NameText = Text(row, "Part Name", part.Label, 13f, Color.white, FontStyles.Normal,
                 TextAlignmentOptions.Left, new Vector2(0f, 0.5f), new Vector2(270f, 24f), new Vector2(10f, 0f));
             Color stateColor = GetConditionColor(part.Condition);
             part.ConditionText = Text(row, "Part Condition", part.Condition + "%", 13f, stateColor, FontStyles.Bold,
@@ -561,7 +630,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (overallConditionText != null && vehicleParts.Count > 0)
         {
             int overall = Mathf.RoundToInt(totalCondition / (float)vehicleParts.Count);
-            overallConditionText.text = "TÌNH TRẠNG TỔNG THỂ: " + overall + "%";
+            overallConditionText.text = string.Format(GameLocalization.Get("arrival_ui.overall_condition"), overall);
             overallConditionText.color = GetConditionColor(overall);
         }
 
@@ -583,18 +652,18 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             selectedPartTitle.color = actionApplied ? Green : conditionColor;
             selectedPartDescription.text = part.Description;
             selectedPartRecommendation.text = repairingSelectedPart
-                ? "ĐANG THỰC HIỆN SỬA CHỮA. GIỮ NGUYÊN VỊ TRÍ CHO TỚI KHI KIM QUAY ĐỦ MỘT VÒNG."
+                ? GameLocalization.Get("arrival_ui.repairing_progress")
                 : actionApplied
-                ? "TRẠNG THÁI: HẠNG MỤC ĐÃ HOÀN THÀNH VÀ ĐƯỢC SERVER XÁC NHẬN."
+                ? GameLocalization.Get("arrival_ui.status_completed_server")
                 : BuildRecommendation(part);
             selectedPartActionText.text = repairingSelectedPart
-                ? "ĐANG SỬA..."
-                : actionApplied ? "ĐÃ HOÀN THÀNH" : part.Action.ToUpperInvariant();
+                ? GameLocalization.Get("arrival_ui.status_repairing")
+                : actionApplied ? GameLocalization.Get("arrival_ui.status_completed") : part.Action.ToUpperInvariant();
             selectedPartActionBackground.color = repairingSelectedPart
                 ? new Color(0.08f, 0.32f, 0.17f, 1f)
                 : actionApplied
                 ? new Color(0.08f, 0.28f, 0.16f, 1f)
-                : part.Action == "Kiểm tra"
+                : part.ActionKey == "arrival_ui.action_inspect"
                 ? new Color(0.18f, 0.19f, 0.185f, 1f)
                 : new Color(0.28f, 0.16f, 0.075f, 1f);
             if (selectedPartActionButton != null)
@@ -611,10 +680,10 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         VehiclePartView part = FindPart(selectedPartId);
         if (part == null || selectedPartRecommendation == null) return;
 
-        if (part.Action == "Kiểm tra")
+        if (part.ActionKey == "arrival_ui.action_inspect")
         {
-            selectedPartRecommendation.text = "KẾT QUẢ KIỂM TRA: " + part.Recommendation;
-            AutoChatManager.Instance?.AddMessage("KIỂM TRA XE", part.Label + ": " + part.Recommendation);
+            selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.inspect_result_prefix") + part.Recommendation;
+            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("arrival_ui.chat_sender_inspect"), part.Label + ": " + part.Recommendation);
             return;
         }
 
@@ -623,11 +692,11 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
             MilitaryBaseQuestManager policeManager = MilitaryBaseQuestManager.Instance;
             if (policeManager == null || !policeManager.IsNetworkReady || policeOwner == null)
             {
-                selectedPartRecommendation.text = "CHƯA THỂ KẾT NỐI VỚI TRẠNG THÁI XE CẢNH SÁT.";
+                selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.police_not_connected");
                 return;
             }
             if (!PoliceCarRepairRules.TryGetAction(part.Id, out PoliceCarRepairAction policeAction)) return;
-            selectedPartRecommendation.text = "ĐANG XÁC NHẬN VẬT PHẨM VỚI SERVER...";
+            selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.verifying_server");
             localRepairPending = true;
             if (!PoliceCarRepairRules.UsesTimedArrivalCarInteraction(policeAction))
                 VehicleRepairSkillCheckUI.PrepareFromInspection(policeManager, policeOwner);
@@ -638,14 +707,14 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         MainQuestManager manager = MainQuestManager.Instance;
         if (manager == null || !manager.IsNetworkReady)
         {
-            selectedPartRecommendation.text = "CHƯA THỂ KẾT NỐI VỚI TRẠNG THÁI NHIỆM VỤ. HÃY THỬ LẠI.";
+            selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.quest_not_connected");
             return;
         }
 
-        selectedPartRecommendation.text = "ĐANG XÁC NHẬN VẬT PHẨM VỚI SERVER...";
+        selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.verifying_server");
         localRepairPending = true;
         if (selectedPartActionButton != null) selectedPartActionButton.interactable = false;
-        if (selectedPartActionText != null) selectedPartActionText.text = "ĐANG XÁC NHẬN...";
+        if (selectedPartActionText != null) selectedPartActionText.text = GameLocalization.Get("arrival_ui.verifying_button");
         manager.RequestRepairArrivalCarPart(part.Id);
     }
 
@@ -656,20 +725,19 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (manager == null || !manager.IsNetworkReady)
         {
             if (selectedPartRecommendation != null)
-                selectedPartRecommendation.text = "CHƯA THỂ KẾT NỐI VỚI SERVER ĐỂ KHỞI ĐỘNG XE.";
+                selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.start_server_not_connected");
             return;
         }
 
         if (!manager.AreArrivalCarRequiredRepairsComplete)
         {
             if (selectedPartRecommendation != null)
-                selectedPartRecommendation.text =
-                    "CHƯA THỂ KHỞI ĐỘNG: CẦN SỬA ĐỘNG CƠ, ĐỔ NHIÊN LIỆU, THAY ẮC QUY VÀ LỐP TRƯỚC TRÁI.";
+                selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.start_missing_parts_warn");
             return;
         }
 
         if (startEngineButton != null) startEngineButton.interactable = false;
-        if (startEngineText != null) startEngineText.text = "ĐANG KHỞI ĐỘNG...";
+        if (startEngineText != null) startEngineText.text = GameLocalization.Get("arrival_ui.starting_button");
         manager.RequestStartArrivalCar();
     }
 
@@ -684,7 +752,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
                 : 0;
             bool complete = repaired >= PoliceCarRepairRules.RequiredActionCount;
             startEngineButton.interactable = false;
-            startEngineText.text = complete ? "SỬA XE HOÀN TẤT" : $"ĐÃ SỬA {repaired}/5";
+            startEngineText.text = complete ? GameLocalization.Get("arrival_ui.police_repair_done") : string.Format(GameLocalization.Get("arrival_ui.police_repaired_count"), repaired);
             startEngineText.color = complete ? Color.white : Muted;
             startEngineBackground.color = complete
                 ? new Color(0.07f, 0.32f, 0.15f, 1f)
@@ -696,8 +764,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         bool ready = networkReady && manager.AreArrivalCarRequiredRepairsComplete;
         startEngineButton.interactable = ready && !started && !localRepairActive && !localRepairPending;
         startEngineText.text = started
-            ? "XE ĐÃ KHỞI ĐỘNG"
-            : ready ? "KHỞI ĐỘNG XE" : "CHƯA THỂ KHỞI ĐỘNG";
+            ? GameLocalization.Get("arrival_ui.vehicle_started_btn")
+            : ready ? GameLocalization.Get("arrival_ui.start_vehicle_btn") : GameLocalization.Get("arrival_ui.cannot_start_btn");
         startEngineText.color = started || ready ? Color.white : Muted;
         startEngineBackground.color = started
             ? new Color(0.07f, 0.32f, 0.15f, 1f)
@@ -718,7 +786,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         {
             SelectVehiclePart(selectedPartId);
             if (selectedPartRecommendation != null)
-                selectedPartRecommendation.text = "KHÔNG THỂ THỰC HIỆN: " + message;
+                selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.failed_prefix") + message;
             return;
         }
 
@@ -748,7 +816,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         {
             SelectVehiclePart(selectedPartId);
             if (selectedPartRecommendation != null)
-                selectedPartRecommendation.text = "KHÔNG THỂ THỰC HIỆN: " + message;
+                selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.failed_prefix") + message;
             return;
         }
 
@@ -771,7 +839,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         EndLocalRepairPresentation();
         if (!open || !policeMode || selectedPartRecommendation == null) return;
         SelectVehiclePart(string.IsNullOrEmpty(partId) ? selectedPartId : partId);
-        selectedPartRecommendation.text = "ĐÃ DỪNG: " + message;
+        selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.stopped_prefix") + message;
     }
 
     public void NotifyPoliceTimedRepairCompleted(bool allComplete)
@@ -781,8 +849,8 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (!open || !policeMode || selectedPartRecommendation == null) return;
         SelectVehiclePart(string.IsNullOrEmpty(partId) ? selectedPartId : partId);
         selectedPartRecommendation.text = allComplete
-            ? "HOÀN TẤT: XE ĐÃ SỬA ĐỦ 5 HẠNG MỤC."
-            : "HOÀN TẤT HẠNG MỤC SỬA CHỮA.";
+            ? GameLocalization.Get("arrival_ui.police_all_repaired_diag")
+            : GameLocalization.Get("arrival_ui.police_part_repaired_diag");
     }
 
     public void NotifyRepairInterrupted(string message)
@@ -791,7 +859,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         EndLocalRepairPresentation();
         if (!open || selectedPartRecommendation == null) return;
         SelectVehiclePart(string.IsNullOrEmpty(partId) ? selectedPartId : partId);
-        selectedPartRecommendation.text = "ĐÃ DỪNG: " + message;
+        selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.stopped_prefix") + message;
     }
 
     public void NotifyRepairResult(ArrivalCarRepairAction action, bool success, string message)
@@ -800,7 +868,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         EndLocalRepairPresentation();
         if (!open || selectedPartRecommendation == null) return;
         SelectVehiclePart(string.IsNullOrEmpty(partId) ? selectedPartId : partId);
-        selectedPartRecommendation.text = (success ? "HOÀN TẤT: " : "KHÔNG THỂ THỰC HIỆN: ") + message;
+        selectedPartRecommendation.text = (success ? GameLocalization.Get("arrival_ui.completed_prefix") : GameLocalization.Get("arrival_ui.failed_prefix")) + message;
     }
 
     private void UpdateRepairClock()
@@ -875,7 +943,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
         if (!open) return;
         RefreshStartEngineButton(MainQuestManager.Instance);
         if (selectedPartRecommendation != null)
-            selectedPartRecommendation.text = (success ? "KHỞI ĐỘNG THÀNH CÔNG: " : "KHÔNG THỂ KHỞI ĐỘNG: ") +
+            selectedPartRecommendation.text = (success ? GameLocalization.Get("arrival_ui.start_success_prefix") : GameLocalization.Get("arrival_ui.failed_prefix")) +
                                               message;
     }
 
@@ -888,7 +956,7 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     {
         if (!open && policeOwner != null) Open(policeOwner);
         if (selectedPartRecommendation != null)
-            selectedPartRecommendation.text = "KHÔNG THỂ THỰC HIỆN: " + message;
+            selectedPartRecommendation.text = GameLocalization.Get("arrival_ui.failed_prefix") + message;
     }
 
     public void ReopenPoliceInspection(RoadsideVehicleRepairStation target, string message)
@@ -918,74 +986,75 @@ public sealed class ArrivalCarInspectionUI : MonoBehaviour
     private string BuildRecommendation(VehiclePartView part)
     {
         if (!policeMode || !PoliceCarRepairRules.TryGetAction(part.Id, out PoliceCarRepairAction action))
-            return "CHẨN ĐOÁN: " + part.Recommendation + "  •  VẬT PHẨM THEO DÕI TRONG [J]";
+            return GameLocalization.Get("arrival_ui.diagnosis_prefix") + part.Recommendation +
+                   GameLocalization.Get("arrival_ui.track_items_hint");
 
         MilitaryBaseQuestManager manager = MilitaryBaseQuestManager.Instance;
         float progress = manager != null && manager.IsNetworkReady ? manager.GetPoliceRepairProgress(action) : 0f;
         ArrivalCarItemKind item = PoliceCarRepairRules.GetRequiredItem(action);
-        return $"CHẨN ĐOÁN: {part.Recommendation}  •  TIẾN ĐỘ: {progress:0.0}%  •  CẦN: " +
-               PoliceCarItemCatalog.GetDisplayName(item).ToUpperInvariant();
+        string itemName = GameLocalization.TranslateLiteral(PoliceCarItemCatalog.GetDisplayName(item)).ToUpperInvariant();
+        return $"{GameLocalization.Get("arrival_ui.diagnosis_prefix")}{part.Recommendation}{GameLocalization.Get("arrival_ui.progress_prefix")}{progress:0.0}%{GameLocalization.Get("arrival_ui.needs_prefix")}{itemName}";
     }
 
     private void EnsureVehiclePartDefinitions()
     {
         if (vehicleParts.Count > 0) return;
-        AddPart("engine", "Động cơ", "KHOANG ĐỘNG CƠ", 0,
-            "Động cơ bị quá nhiệt và bộ đề đang kẹt.",
-            "Làm nguội động cơ, kiểm tra bộ đề và hệ thống đánh lửa.", "Sửa chữa",
+        AddPart("engine", "arrival_ui.part.engine.name", "arrival_ui.group_engine", 0,
+            "arrival_ui.part.engine.desc",
+            "arrival_ui.part.engine.rec", "arrival_ui.action_repair",
             new Vector2(47.09247f, 222.6873f), new Vector2(103f, 63f));
-        AddPart("battery", "Ắc quy", "KHOANG ĐỘNG CƠ", 0,
-            "Ắc quy đã chết hoàn toàn và không còn khả năng cấp điện cho bộ đề.",
-            "Bắt buộc thay ắc quy trước khi thử khởi động.", "Thay linh kiện",
+        AddPart("battery", "arrival_ui.part.battery.name", "arrival_ui.group_engine", 0,
+            "arrival_ui.part.battery.desc",
+            "arrival_ui.part.battery.rec", "arrival_ui.action_replace",
             new Vector2(-47.5f, 218f), new Vector2(46f, 35f));
-        AddPart("exhaust", "Ống xả", "KHOANG ĐỘNG CƠ", 76,
-            "Ống xả còn nguyên, chưa phát hiện rò khí nghiêm trọng.",
-            "Chưa cần can thiệp ngay.", "Kiểm tra", new Vector2(55f, -222f), new Vector2(38f, 69f));
-        AddPart("fuel", "Bình xăng", "NHIÊN LIỆU", 0,
-            "Bình gần như cạn và không còn nhiên liệu dự phòng trên xe.",
-            "Bổ sung nhiên liệu trước khi thử khởi động.", "Đổ nhiên liệu",
+        AddPart("exhaust", "arrival_ui.part.exhaust.name", "arrival_ui.group_engine", 76,
+            "arrival_ui.part.exhaust.desc",
+            "arrival_ui.part.exhaust.rec", "arrival_ui.action_inspect", new Vector2(55f, -222f), new Vector2(38f, 69f));
+        AddPart("fuel", "arrival_ui.part.fuel.name", "arrival_ui.group_fuel", 0,
+            "arrival_ui.part.fuel.desc",
+            "arrival_ui.part.fuel.rec", "arrival_ui.action_refuel",
             new Vector2(-48f, -224.5f), new Vector2(89f, 59f));
-        AddPart("front_left", "Lốp trước trái", "BÁNH XE", 0,
-            "Lốp trước trái đã thủng và không thể chịu tải.",
-            "Bắt buộc thay lốp trước trái trước khi cho xe chạy.", "Thay linh kiện",
+        AddPart("front_left", "arrival_ui.part.front_left.name", "arrival_ui.group_wheels", 0,
+            "arrival_ui.part.front_left.desc",
+            "arrival_ui.part.front_left.rec", "arrival_ui.action_replace",
             new Vector2(-103f, 86.5f), new Vector2(41f, 73f));
-        AddPart("rear_left", "Lốp sau trái", "BÁNH XE", 73,
-            "Lốp sau trái còn sử dụng được.",
-            "Theo dõi áp suất sau khi xe hoạt động.", "Kiểm tra",
+        AddPart("rear_left", "arrival_ui.part.rear_left.name", "arrival_ui.group_wheels", 73,
+            "arrival_ui.part.rear_left.desc",
+            "arrival_ui.part.rear_left.rec", "arrival_ui.action_inspect",
             new Vector2(-103f, -102f), new Vector2(41f, 73f));
-        AddPart("front_right", "Lốp trước phải", "BÁNH XE", 61,
-            "Lốp trước phải có dấu hiệu chai bề mặt.",
-            "Có thể sử dụng tạm thời, tránh tăng tốc gấp.", "Kiểm tra",
+        AddPart("front_right", "arrival_ui.part.front_right.name", "arrival_ui.group_wheels", 61,
+            "arrival_ui.part.front_right.desc",
+            "arrival_ui.part.front_right.rec", "arrival_ui.action_inspect",
             new Vector2(107f, 86.5f), new Vector2(41f, 73f));
-        AddPart("rear_right", "Lốp sau phải", "BÁNH XE", 69,
-            "Lốp sau phải mòn không đều nhưng chưa thủng.",
-            "Có thể tiếp tục sử dụng trong quãng đường ngắn.", "Kiểm tra",
+        AddPart("rear_right", "arrival_ui.part.rear_right.name", "arrival_ui.group_wheels", 69,
+            "arrival_ui.part.rear_right.desc",
+            "arrival_ui.part.rear_right.rec", "arrival_ui.action_inspect",
             new Vector2(107f, -102f), new Vector2(41f, 73f));
-        AddPart("hood", "Nắp capo", "THÂN XE", 0,
-            "Nắp capo biến dạng do nhiệt và đang che khuất điểm kẹt của bộ đề.",
-            "Mở nắp và xử lý cơ cấu khóa trước khi sửa động cơ.", "Sửa chữa",
+        AddPart("hood", "arrival_ui.part.hood.name", "arrival_ui.group_body", 0,
+            "arrival_ui.part.hood.desc",
+            "arrival_ui.part.hood.rec", "arrival_ui.action_repair",
             new Vector2(0f, 119f), new Vector2(110f, 85f));
-        AddPart("windshield", "Kính chắn gió", "THÂN XE", 65,
-            "Kính chắn gió có nhiều vết xước nhưng chưa vỡ.",
-            "Tầm nhìn vẫn chấp nhận được trong điều kiện sáng.", "Kiểm tra",
+        AddPart("windshield", "arrival_ui.part.windshield.name", "arrival_ui.group_body", 65,
+            "arrival_ui.part.windshield.desc",
+            "arrival_ui.part.windshield.rec", "arrival_ui.action_inspect",
             new Vector2(0f, 48f), new Vector2(107f, 52f));
-        AddPart("front_door", "Cửa trước", "THÂN XE", 89,
-            "Cửa trước, bản lề và khóa vẫn hoạt động bình thường.",
-            "Không cần sửa chữa.", "Kiểm tra", new Vector2(0f, -30f), new Vector2(122f, 118f));
+        AddPart("front_door", "arrival_ui.part.front_door.name", "arrival_ui.group_body", 89,
+            "arrival_ui.part.front_door.desc",
+            "arrival_ui.part.front_door.rec", "arrival_ui.action_inspect", new Vector2(0f, -30f), new Vector2(122f, 118f));
     }
 
-    private void AddPart(string id, string label, string category, int condition, string description,
-        string recommendation, string action, Vector2 diagramPosition, Vector2 diagramSize)
+    private void AddPart(string id, string nameKey, string categoryKey, int condition, string descKey,
+        string recKey, string actionKey, Vector2 diagramPosition, Vector2 diagramSize)
     {
         vehicleParts.Add(new VehiclePartView
         {
             Id = id,
-            Label = label,
-            Category = category,
+            NameKey = nameKey,
+            CategoryKey = categoryKey,
             Condition = condition,
-            Description = description,
-            Recommendation = recommendation,
-            Action = action,
+            DescKey = descKey,
+            RecKey = recKey,
+            ActionKey = actionKey,
             DiagramPosition = diagramPosition,
             DiagramSize = diagramSize
         });

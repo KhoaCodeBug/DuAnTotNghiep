@@ -72,8 +72,8 @@ public sealed class MilitaryQuestInteractionPoint : MonoBehaviour
             fontStyle = FontStyle.Bold
         };
         Rect promptRect = GameplayHudLayout.GetBottomCenterPromptRect(450f, 42f);
-        GUI.Box(promptRect,
-            $"[E]  {GetPrompt()}  •  {displayLabel}", prompt);
+        string label = GameLocalization.Get(displayLabel, GameLocalization.TranslateLiteral(displayLabel));
+        GUI.Box(promptRect, $"[E]  {GetPrompt()}  •  {label}", prompt);
     }
 
     private bool IsAvailable()
@@ -115,9 +115,9 @@ public sealed class MilitaryQuestInteractionPoint : MonoBehaviour
 
     private string GetPrompt() => kind switch
     {
-        MilitaryBaseQuestManager.InteractionKind.Generator => "KHỞI ĐỘNG",
-        MilitaryBaseQuestManager.InteractionKind.Armory => "MỞ KHÓA",
-        MilitaryBaseQuestManager.InteractionKind.OfficeSafe => "MỞ KÉT",
-        _ => "THU THẬP"
+        MilitaryBaseQuestManager.InteractionKind.Generator => GameLocalization.Get("quest.military.interact_generator"),
+        MilitaryBaseQuestManager.InteractionKind.Armory => GameLocalization.Get("quest.military.interact_armory"),
+        MilitaryBaseQuestManager.InteractionKind.OfficeSafe => GameLocalization.Get("quest.military.interact_safe"),
+        _ => GameLocalization.Get("quest.military.interact_collect")
     };
 }

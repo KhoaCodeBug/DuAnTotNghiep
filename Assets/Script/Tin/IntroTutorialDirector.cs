@@ -218,9 +218,10 @@ public sealed class IntroTutorialDirector : MonoBehaviour
                 {
                     // Restore gameplay UI only while the screen is fully black.
                     EndCinematicUIGate();
+                    playerSpawner ??= FindFirstObjectByType<HostModeSpawner>();
                     if (playerSpawner == null)
                     {
-                        Debug.LogError("IntroTutorialDirector needs a HostModeSpawner configured for the Intro scene.", this);
+                        Debug.LogError("[TUTORIAL READINESS] IntroTutorialDirector needs a HostModeSpawner configured for the Intro scene. Spawner component not found.", this);
                         EnterState(State.Complete);
                         break;
                     }

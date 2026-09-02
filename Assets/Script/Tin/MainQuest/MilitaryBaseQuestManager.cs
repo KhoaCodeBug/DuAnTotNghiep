@@ -220,10 +220,20 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
         if (Instance == this) Instance = null;
         if (presentationRoot != null) Destroy(presentationRoot);
+        presentationRoot = null;
         if (roadsideRepairStation != null) Destroy(roadsideRepairStation);
+        roadsideRepairStation = null;
         MilitaryRouteVoteUI.Close();
-        cinematicController?.StopImmediate();
-        escapePresentation?.StopImmediate();
+        if (cinematicController != null)
+        {
+            cinematicController.StopImmediate();
+            cinematicController = null;
+        }
+        if (escapePresentation != null)
+        {
+            escapePresentation.StopImmediate();
+            escapePresentation = null;
+        }
     }
 
     public override void Spawned()
@@ -297,8 +307,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (presentationRoot != null) Destroy(presentationRoot);
         presentationRoot = null;
         MilitaryRouteVoteUI.Close();
-        cinematicController?.StopImmediate();
-        escapePresentation?.StopImmediate();
+        if (cinematicController != null)
+        {
+            cinematicController.StopImmediate();
+            cinematicController = null;
+        }
+        if (escapePresentation != null)
+        {
+            escapePresentation.StopImmediate();
+            escapePresentation = null;
+        }
     }
 
     public override void FixedUpdateNetwork()
@@ -318,7 +336,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         {
             MilitaryPhase = (int)Phase.Failed;
             if (RepairSkillCheckSessionActive) AuthorityInterruptRepair(ActiveRepairer,
-                "Việc sửa xe đã dừng.");
+                "quest.military.repair_stopped");
             else ActiveRepairer = PlayerRef.None;
             RPC_ShowLocalizedQuestMessage("quest.military_failed", 0);
         }
@@ -492,7 +510,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
         if (!approve)
         {
-            CancelMilitaryRouteVote("Biểu quyết đã hủy. Có thể kiểm tra xe lại khi cả đội sẵn sàng.");
+            CancelMilitaryRouteVote("quest.military.vote_cancel_ready");
             return;
         }
 
@@ -509,31 +527,37 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
         HashSet<PlayerRef> active = new HashSet<PlayerRef>();
         foreach (PlayerRef player in Runner.ActivePlayers) active.Add(player);
-        List<PlayerRef> removed = new List<PlayerRef>();
-        foreach (PlayerRef participant in voteParticipants)
-            if (!active.Contains(participant)) removed.Add(participant);
-        if (removed.Count == 0) return;
-
-        for (int i = 0; i < removed.Count; i++)
+        foreach (PlayerRef player in voteParticipants)
         {
-            voteParticipants.Remove(removed[i]);
-            voteApprovals.Remove(removed[i]);
-        }
-        if (voteParticipants.Count == 0)
-        {
-            CancelMilitaryRouteVote("Biểu quyết đã hủy vì không còn người chơi hợp lệ.");
-            return;
-        }
+            if (active.Contains(player)) continue;
 
-        MilitaryRouteVoteApprovedCount = voteApprovals.Count;
-        MilitaryRouteVoteRequiredCount = voteParticipants.Count;
-        RPC_UpdateMilitaryRouteVote(MilitaryRouteVoteId, MilitaryRouteVoteApprovedCount,
-            MilitaryRouteVoteRequiredCount);
-        if (voteApprovals.Count == voteParticipants.Count)
-            CommitMilitaryRouteVote();
+            if (IsMilitaryRouteVoteActive && voteApprovals.Count > 0 && voteApprovals.Contains(player))
+            {
+                CancelMilitaryRouteVote("quest.military.vote_cancel_ready");
+                return;
+            }
+
+            if (IsMilitaryRouteVoteActive)
+            {
+                voteParticipants.Remove(player);
+                voteApprovals.Remove(player);
+                if (voteParticipants.Count == 0)
+                {
+                    CancelMilitaryRouteVote("quest.military.vote_cancel_no_players");
+                    return;
+                }
+
+                MilitaryRouteVoteApprovedCount = voteApprovals.Count;
+                MilitaryRouteVoteRequiredCount = voteParticipants.Count;
+                RPC_UpdateMilitaryRouteVote(MilitaryRouteVoteId, MilitaryRouteVoteApprovedCount,
+                    MilitaryRouteVoteRequiredCount);
+                if (voteApprovals.Count == voteParticipants.Count)
+                    CommitMilitaryRouteVote();
+            }
+        }
     }
 
-    private void CancelMilitaryRouteVote(string message)
+    private void CancelMilitaryRouteVote(string messageKey)
     {
         int closedVoteId = MilitaryRouteVoteId;
         IsMilitaryRouteVoteActive = false;
@@ -541,7 +565,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         MilitaryRouteVoteRequiredCount = 0;
         voteParticipants.Clear();
         voteApprovals.Clear();
-        RPC_CloseMilitaryRouteVote(closedVoteId, message);
+        RPC_CloseMilitaryRouteVote(closedVoteId, messageKey);
     }
 
     private void CommitMilitaryRouteVote()
@@ -549,7 +573,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (!HasStateAuthority || !IsMilitaryRouteVoteActive || MainQuestManager.Instance == null ||
             !MainQuestManager.Instance.AuthorityTryLockEscapeRoute(EscapeEndingRoute.MilitaryEvacuation))
         {
-            CancelMilitaryRouteVote("Không thể khóa Tuyến B vì một tuyến kết thúc khác đã được chọn.");
+            CancelMilitaryRouteVote("quest.military.vote_cancel_route_locked");
             return;
         }
 
@@ -691,17 +715,33 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         float deadline = Time.realtimeSinceStartup + 5f;
         while (Time.realtimeSinceStartup < deadline)
         {
+            PlayerMovement movement = null;
             if (Runner != null && Runner.TryGetPlayerObject(requester, out NetworkObject playerObject) &&
-                playerObject != null && playerObject.IsValid &&
-                playerObject.TryGetComponent(out PlayerMovement movement) && movement != null &&
-                playerObject.TryGetComponent(out PlayerHealth health) && !health.isDead && !health.isTransforming)
+                playerObject != null && playerObject.IsValid)
             {
-                // Let Spawned/Render initialize the replacement avatar before
-                // any peer snapshots its renderers for the cinematic clone.
-                yield return null;
-                yield return null;
-                RPC_PlayMilitaryIntroCinematic(requester, spawnPosition);
-                yield break;
+                movement = playerObject.GetComponent<PlayerMovement>();
+            }
+            if (movement == null)
+            {
+                TryGetRequestingPlayer(requester, out movement);
+            }
+            if (movement == null && PlayerMovement.LocalPlayerInstance != null)
+            {
+                movement = PlayerMovement.LocalPlayerInstance;
+            }
+
+            if (movement != null && movement.gameObject != null)
+            {
+                PlayerHealth health = movement.GetComponent<PlayerHealth>();
+                if (health == null || (!health.isDead && !health.isTransforming))
+                {
+                    // Let Spawned/Render initialize the replacement avatar before
+                    // any peer snapshots its renderers for the cinematic clone.
+                    yield return null;
+                    yield return null;
+                    RPC_PlayMilitaryIntroCinematic(requester, spawnPosition);
+                    yield break;
+                }
             }
             yield return null;
         }
@@ -731,24 +771,24 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         NetworkBool firstTeamDiscovery, int collected, int required, NetworkBool grantsFinalMapFragment)
     {
         if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
-        string[] dialogue =
+        string line = clueIndex switch
         {
-            "Nhiều xác chết quá... Liệu trong này thật sự còn ai sống sót không?",
-            "Đây có vẻ là một nhà kho. Quân đội đã tích trữ đủ thứ ở đây, từ đạn dược đến dụng cụ sửa chữa.",
-            "Một mảnh bản đồ mới... Có vẻ căn cứ này đã thất thủ. Quân đội hẳn đã rút toàn bộ lực lượng về vùng nông thôn."
+            0 => GameLocalization.Get("quest.military.clue_dialogue_0"),
+            1 => GameLocalization.Get("quest.military.clue_dialogue_1"),
+            2 => GameLocalization.Get("quest.military.clue_dialogue_2"),
+            _ => GameLocalization.Get("quest.military.clue_dialogue_none")
         };
-        string line = clueIndex >= 0 && clueIndex < dialogue.Length ? dialogue[clueIndex] : "Không có gì khác thường.";
         RouteBRadioBroadcastUI.ShowSelfDialogue(line);
         if (firstTeamDiscovery)
-            AutoChatManager.Instance?.AddMessage("MANH MỐI QUÂN SỰ",
+            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.clues_sender"),
                 collected >= required
-                    ? $"Tiến độ chung: {collected}/{required}. Đã đủ manh mối để rời trường."
-                    : $"Tiến độ chung: {collected}/{required} manh mối.");
+                    ? string.Format(GameLocalization.Get("quest.military.clues_progress_complete"), collected, required)
+                    : string.Format(GameLocalization.Get("quest.military.clues_progress"), collected, required));
         if (grantsFinalMapFragment)
         {
             QuestFlowUIPrototype.Instance?.RegisterFinalMapFragmentForLocalPlayer();
-            AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
-                "Phát hiện manh mối mới - bấm M để kiểm tra");
+            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.new_clue_title"),
+                GameLocalization.Get("quest.military.new_clue_body"));
         }
     }
 
@@ -756,16 +796,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private void RPC_ShowSchoolExitBlocked([RpcTarget] PlayerRef targetPlayer, int collected, int required)
     {
         if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ",
-            $"Chưa thể rời trường. Hãy kiểm tra đủ manh mối ({collected}/{required}).");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"),
+            string.Format(GameLocalization.Get("quest.military.school_exit_blocked"), collected, required));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowPoliceCarObjective(PlayerRef focusPlayer)
     {
         _ = focusPlayer;
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ",
-            "Các manh mối đều nhắc tới chiếc xe cảnh sát trong sân. Hãy tới kiểm tra xe.");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"),
+            GameLocalization.Get("quest.military.police_car_objective"));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -781,7 +821,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
         MilitaryRouteVoteUI.Close(voteId);
         if (!string.IsNullOrWhiteSpace(message))
-            AutoChatManager.Instance?.AddMessage("BIỂU QUYẾT TUYẾN B", message);
+        {
+            string localized = GameLocalization.Get(message, fallback: message);
+            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.vote_sender"), localized);
+        }
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -871,24 +914,24 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         }
 
         InteractionKind target;
-        string targetName;
+        string targetKey;
         switch (CurrentPhase)
         {
             case Phase.NotReached:
                 target = InteractionKind.School;
-                targetName = "lối vào trường học trong khu quân sự";
+                targetKey = "quest.debug.target_school";
                 break;
             case Phase.Investigating:
                 target = InteractionKind.Vehicle;
-                targetName = "xe sơ tán cần kiểm tra";
+                targetKey = "quest.debug.target_inspect_car";
                 break;
             case Phase.SiegeAndRepair:
                 target = InteractionKind.Vehicle;
-                targetName = "Car cần sửa 5 hạng mục";
+                targetKey = "quest.debug.target_repair_car";
                 break;
             case Phase.ReadyToEscape:
                 target = InteractionKind.Vehicle;
-                targetName = "điểm tập kết xe sơ tán";
+                targetKey = "quest.debug.target_regroup_car";
                 break;
             default:
                 Debug.LogWarning("[QUEST TEST] Nhiệm vụ căn cứ không còn mục tiêu dịch chuyển hợp lệ.");
@@ -906,8 +949,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         }
         TeleportPlayer(player, destination);
         Physics2D.SyncTransforms();
-        Debug.Log($"[QUEST TEST] F12: đã dịch chuyển tới {targetName}.");
-        AutoChatManager.Instance?.AddMessage("QUEST TEST", $"Đã dịch chuyển tới {targetName}.");
+        string targetLabel = GameLocalization.Get(targetKey);
+        Debug.Log($"[QUEST TEST] F12: đã dịch chuyển tới {targetLabel}.");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.test_sender"),
+            string.Format(GameLocalization.Get("quest.debug.teleported_to"), targetLabel));
 #endif
     }
 
@@ -1181,34 +1226,34 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             !TryGetRequestingPlayer(requester, out PlayerMovement player) ||
             !roadsideRepairStation.IsPlayerInRepairPosition(player.transform.position))
         {
-            SendRepairSessionResponse(requester, action, false, "Hãy đứng trước mũi xe để sửa chữa.");
+            SendRepairSessionResponse(requester, action, false, "quest.military.repair_stand_front");
             return;
         }
 
         PlayerHealth health = player.GetComponent<PlayerHealth>();
         if (health != null && (health.isDead || health.isTransforming))
         {
-            SendRepairSessionResponse(requester, action, false, "Không thể sửa xe trong trạng thái hiện tại.");
+            SendRepairSessionResponse(requester, action, false, "quest.military.repair_state_invalid");
             return;
         }
 
         if (PoliceCarRepairRules.IsApplied(PoliceCarRepairMask, action))
         {
-            SendRepairSessionResponse(requester, action, false, "Hạng mục này đã được sửa hoàn tất.");
+            SendRepairSessionResponse(requester, action, false, "quest.military.repair_already_complete");
             return;
         }
 
         if (RepairSkillCheckSessionActive && ActiveRepairer != PlayerRef.None && ActiveRepairer != requester)
         {
-            SendRepairSessionResponse(requester, action, false,
-                "XE ĐANG ĐƯỢC SỬA BỞI: " + GetPlayerDisplayName(ActiveRepairer));
+            SendRepairSessionResponse(requester, action, false, "quest.military.repair_in_progress_by",
+                GetPlayerDisplayName(ActiveRepairer));
             return;
         }
 
         if (RepairSkillCheckSessionActive && ActiveRepairer == requester &&
             ActivePoliceRepairAction != (int)action)
         {
-            SendRepairSessionResponse(requester, action, false, "Bạn đang sửa một hạng mục khác.");
+            SendRepairSessionResponse(requester, action, false, "quest.military.repair_busy_other");
             return;
         }
 
@@ -1216,8 +1261,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         ArrivalCarItemKind requiredKind = PoliceCarRepairRules.GetRequiredItem(action);
         if (FindPoliceCarItem(inventory, requiredKind) == null)
         {
-            SendRepairSessionResponse(requester, action, false,
-                "Cần vật phẩm: " + PoliceCarItemCatalog.GetDisplayName(requiredKind) + ".");
+            SendRepairSessionResponse(requester, action, false, "quest.military.repair_item_required",
+                PoliceCarItemCatalog.GetDisplayName(requiredKind));
             return;
         }
 
@@ -1237,11 +1282,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     }
 
     private void SendRepairSessionResponse(PlayerRef requester, PoliceCarRepairAction action,
-        bool accepted, string message)
+        bool accepted, string messageKey, string messageArg = "")
     {
         bool timed = PoliceCarRepairRules.UsesTimedArrivalCarInteraction(action);
         float duration = timed ? PoliceCarRepairRules.GetTimedInteractionDurationSeconds(action) : 0f;
-        RPC_RepairSessionResponse(requester, (int)action, accepted, timed, duration, message);
+        RPC_RepairSessionResponse(requester, (int)action, accepted, timed, duration, messageKey ?? string.Empty, messageArg ?? string.Empty);
     }
 
     private void ServerCancelRepairSkillCheck(PlayerRef requester)
@@ -1271,7 +1316,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (!RepairSkillCheckSessionActive || ActiveRepairer == PlayerRef.None) return;
         if (!TryGetRequestingPlayer(ActiveRepairer, out PlayerMovement player))
         {
-            AuthorityInterruptRepair(ActiveRepairer, "Người sửa xe đã rời trận.");
+            AuthorityInterruptRepair(ActiveRepairer, "quest.military.repair_interrupted_left");
             return;
         }
 
@@ -1283,7 +1328,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if ((health != null && (health.isDead || health.isTransforming)) || roadsideRepairStation == null ||
             !roadsideRepairStation.IsPlayerInRepairPosition(player.transform.position))
         {
-            AuthorityInterruptRepair(ActiveRepairer, "Việc sửa xe bị gián đoạn.");
+            AuthorityInterruptRepair(ActiveRepairer, "quest.military.repair_interrupted_generic");
             return;
         }
 
@@ -1308,7 +1353,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             StoreActivePoliceRepairProgress();
             if (!TryConsumePoliceRepairItem(player, completedAction))
             {
-                AuthorityInterruptRepair(completedBy, "Vật phẩm sửa chữa không còn trong túi đồ.");
+                AuthorityInterruptRepair(completedBy, "quest.military.repair_interrupted_item_missing");
                 return;
             }
             PoliceCarRepairMask |= (int)PoliceCarRepairRules.GetStateBit(completedAction);
@@ -1526,7 +1571,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (!MilitaryStoryFlowRules.ShouldInterruptVehicleRepair(zombieAttack)) return;
         if (RepairSkillCheckSessionActive)
         {
-            AuthorityInterruptRepair(player, "Việc sửa xe bị gián đoạn vì zombie tấn công.");
+            AuthorityInterruptRepair(player, "quest.military.repair_interrupted_zombie");
             return;
         }
 
@@ -1559,25 +1604,28 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private void RPC_ShowEscapeStartDenied(PlayerRef driver, int missingPlayers)
     {
         if (Runner == null || Runner.LocalPlayer != driver) return;
-        string suffix = missingPlayers == 1 ? "1 người còn ở ngoài xe." : $"{missingPlayers} người còn ở ngoài xe.";
-        AutoChatManager.Instance?.AddMessage("XE SƠ TÁN", "Chưa thể khởi động: " + suffix);
+        string message = missingPlayers == 1
+            ? GameLocalization.Get("quest.military.escape_start_denied_single")
+            : string.Format(GameLocalization.Get("quest.military.escape_start_denied_multiple"), missingPlayers);
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.escape_sender"), message);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_EscapeVehicleStarting(PlayerRef driver, float startupSeconds)
     {
         _ = startupSeconds;
-        AutoChatManager.Instance?.AddMessage("XE SƠ TÁN",
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.escape_sender"),
             Runner != null && Runner.LocalPlayer == driver
-                ? "Đang khởi động... giữ đội hình và chuẩn bị lái theo chỉ dẫn."
-                : "Xe đang khởi động. Chuẩn bị rời căn cứ.");
+                ? GameLocalization.Get("quest.military.escape_starting_driver")
+                : GameLocalization.Get("quest.military.escape_starting_team"));
         escapePresentation?.RefreshPresentation();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_EscapeVehicleDriveUnlocked()
     {
-        AutoChatManager.Instance?.AddMessage("XE SƠ TÁN", "Động cơ đã sẵn sàng — đi theo các mũi tên vàng!");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.escape_sender"),
+            GameLocalization.Get("quest.military.escape_unlocked"));
         escapePresentation?.RefreshPresentation();
     }
 
@@ -1604,7 +1652,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
         gateController?.BreakGate();
         hordeDirector?.ReleaseHordeToPlayers();
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", "Cổng đã vỡ! Horde chuyển mục tiêu sang đội sống sót.");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"),
+            GameLocalization.Get("quest.military.gate_broken"));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1612,14 +1661,29 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
         vehicleRepair?.InterruptRepairFor(player);
         if (Runner != null && Runner.LocalPlayer == player)
-            AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", "Việc sửa xe bị gián đoạn vì bạn vừa nhận sát thương.");
+            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"),
+                GameLocalization.Get("quest.military.repair_interrupted_damage"));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_RepairSessionResponse(PlayerRef target, int action, NetworkBool accepted,
-        NetworkBool timedInteraction, float duration, string message)
+        NetworkBool timedInteraction, float duration, string messageKey, string messageArg = "")
     {
         if (Runner == null || Runner.LocalPlayer != target) return;
+        string message = string.Empty;
+        if (!string.IsNullOrEmpty(messageKey))
+        {
+            string format = GameLocalization.Get(messageKey, messageKey);
+            if (!string.IsNullOrEmpty(messageArg))
+            {
+                string localizedArg = GameLocalization.TranslateLiteral(messageArg);
+                message = string.Format(format, localizedArg);
+            }
+            else
+            {
+                message = format;
+            }
+        }
         if (timedInteraction)
             roadsideRepairStation?.NotifyTimedRepairStart((PoliceCarRepairAction)action, accepted, duration, message);
         else
@@ -1640,15 +1704,16 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
         if (Runner == null || Runner.LocalPlayer != target) return;
         if (timedInteraction)
-            roadsideRepairStation?.NotifyTimedRepairInterrupted("Đã dừng sửa xe.");
+            roadsideRepairStation?.NotifyTimedRepairInterrupted(GameLocalization.Get("quest.military.repair_stopped"));
         else
             VehicleRepairSkillCheckUI.NotifyCancelled();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_RepairInterrupted(PlayerRef target, int action, NetworkBool timedInteraction, string message)
+    private void RPC_RepairInterrupted(PlayerRef target, int action, NetworkBool timedInteraction, string messageKey)
     {
         if (Runner == null || Runner.LocalPlayer != target) return;
+        string message = string.IsNullOrEmpty(messageKey) ? string.Empty : GameLocalization.Get(messageKey, messageKey);
         if (timedInteraction)
             roadsideRepairStation?.NotifyTimedRepairInterrupted(message);
         else
@@ -1666,9 +1731,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             else
                 VehicleRepairSkillCheckUI.NotifyCompleted(completedAction, allComplete);
         }
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", allComplete
-            ? "Xe cảnh sát đã hoàn tất đủ 5 hạng mục sửa chữa."
-            : "Đã hoàn tất một hạng mục sửa xe cảnh sát.");
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), allComplete
+            ? GameLocalization.Get("quest.military.repair_complete_all")
+            : GameLocalization.Get("quest.military.repair_complete_single"));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1680,7 +1745,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowQuestMessage(string message) =>
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", message);
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), message);
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowLocalizedQuestMessage(string localizationKey, int itemKind)
@@ -1737,7 +1802,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         exitTrigger.Configure(this);
 
         schoolCluePoints.Clear();
-        string[] labels = { "KHU VỰC TỬ THƯƠNG", "NHÀ KHO QUÂN NHU", "MẢNH BẢN ĐỒ CUỐI" };
+        string[] labels = { "quest.military.clue_label_0", "quest.military.clue_label_1", "quest.military.clue_label_2" };
         for (int i = 0; i < MilitaryStoryFlowRules.RequiredSchoolClues; i++)
         {
             GameObject clue = GameObject.Find($"ManhMoi{i + 1}");
@@ -1815,14 +1880,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             if (FindPoliceCarItem(inventory, kind) != null) continue;
             ItemData item = PoliceCarItemCatalog.GetOrCreate(kind);
             if (item != null && inventory.AddItem(item, 1)) addedCount++;
-            else failedItems.Add(PoliceCarItemCatalog.GetDisplayName(kind));
+            else failedItems.Add(GameLocalization.TranslateLiteral(PoliceCarItemCatalog.GetDisplayName(kind)));
         }
 
         string message = failedItems.Count == 0
-            ? $"F9 đã cấp {addedCount} món còn thiếu. Túi đồ hiện đủ 5/5 vật phẩm sửa xe cảnh sát."
-            : $"F9 không thể cấp: {string.Join(", ", failedItems)}. Hãy dọn ô trống rồi thử lại.";
+            ? string.Format(GameLocalization.Get("quest.debug.f9_granted"), addedCount)
+            : string.Format(GameLocalization.Get("quest.debug.f9_failed"), string.Join(", ", failedItems));
         Debug.Log("[EDITOR TEST] " + message);
-        AutoChatManager.Instance?.AddMessage("EDITOR TEST", message);
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.editor_test_sender"), message);
     }
 #endif
 
@@ -2479,11 +2544,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_AnnounceTeamRespawnUsed(int remainingCharges)
     {
-        bool vietnamese = GameLocalization.IsVietnamese;
-        string body = vietnamese
-            ? $"Đồng đội đã hồi sinh tại căn cứ. Còn {remainingCharges} lượt hồi sinh của đội."
-            : $"A teammate respawned at the base. {remainingCharges} team respawns remaining.";
-        AutoChatManager.Instance?.AddMessage("HỒI SINH QUÂN SỰ", body);
+        string sender = GameLocalization.Get("quest.military.respawn_sender");
+        string body = string.Format(GameLocalization.Get("quest.military.respawn_body"), remainingCharges);
+        AutoChatManager.Instance?.AddMessage(sender, body);
     }
 
     private static bool TryGetRequestingPlayer(PlayerRef requester, out PlayerMovement player)
@@ -2502,10 +2565,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     private static string GetPlayerDisplayName(PlayerRef playerRef)
     {
-        if (!TryGetRequestingPlayer(playerRef, out PlayerMovement player)) return "NGƯỜI CHƠI KHÁC";
+        string fallback = GameLocalization.Get("player.other");
+        if (!TryGetRequestingPlayer(playerRef, out PlayerMovement player)) return fallback;
         PlayerNameTag nameTag = player.GetComponent<PlayerNameTag>();
         string displayName = nameTag != null ? nameTag.PlayerName.ToString() : string.Empty;
-        return string.IsNullOrWhiteSpace(displayName) ? "NGƯỜI CHƠI KHÁC" : displayName.ToUpperInvariant();
+        return string.IsNullOrWhiteSpace(displayName) ? fallback : displayName.ToUpperInvariant();
     }
 
     private static void GrantItem(InventorySystem inventory, string id, int amount)
@@ -2557,8 +2621,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             };
             clueStyle.normal.textColor = new Color(1f, 0.84f, 0.3f);
             string objective = HasAllSchoolClues
-                ? "ĐÃ ĐỦ 3/3 MANH MỐI  •  RỜI KHỎI TRƯỜNG HỌC"
-                : $"KHÁM PHÁ TRƯỜNG HỌC  •  MANH MỐI {SchoolClueCount}/3";
+                ? GameLocalization.Get("quest.military.school_clues_done")
+                : string.Format(GameLocalization.Get("quest.military.school_clues_progress"), SchoolClueCount);
             GUI.Box(new Rect((Screen.width - 430f) * 0.5f, 84f, 430f, 42f), objective, clueStyle);
             return;
         }
@@ -2610,7 +2674,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         label.normal.textColor = Color.white;
         GUI.color = Color.white;
         GUI.Label(new Rect(x + 8f, y + 3f, width - 16f, 25f),
-            $"CỔNG KHU QUÂN SỰ   {Mathf.CeilToInt(GateCurrentHealth):N0} / {Mathf.CeilToInt(GateMaxHealth):N0}   •   {ratio * 100f:0}%",
+            $"{GameLocalization.Get("quest.military.gate_bar_title")}   {Mathf.CeilToInt(GateCurrentHealth):N0} / {Mathf.CeilToInt(GateMaxHealth):N0}   •   {ratio * 100f:0}%",
             label);
         GUI.depth = oldDepth;
         GUI.color = oldColor;
@@ -2637,7 +2701,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
                 roadsideRepairVehicle.transform.position)
             : 0f;
         GUI.Box(new Rect(x - 105f, y - 24f, 210f, 48f),
-            $"XE CẢNH SÁT  •  {distance:0} m\nHÃY KIỂM TRA", style);
+            string.Format(GameLocalization.Get("quest.military.police_car_waypoint"), distance), style);
     }
 
     private bool IsPartInstalled(MilitaryQuestItemKind kind) => kind switch

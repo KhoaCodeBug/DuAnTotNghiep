@@ -190,7 +190,9 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         if (Instance == null || Instance.questUI == null || string.IsNullOrWhiteSpace(clueId)) return;
         if (!QuestRouteClueItemCatalog.TryGetKind(clueId, out QuestRouteClueKind kind))
         {
-            AutoChatManager.Instance?.AddMessage("MANH MỐI", "Đã nhặt: " + displayName + ".");
+            AutoChatManager.Instance?.AddMessage(
+                GameLocalization.Get("quest.clues_sender"),
+                string.Format(GameLocalization.Get("quest.clue_picked_up"), GameLocalization.TranslateLiteral(displayName)));
             return;
         }
 
@@ -361,7 +363,9 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         if (count < PreMilitaryQuestProgress.RequiredDistinctHouses) return;
         ConfigureSelectedSearchHouses(candidates.GetRange(0, count));
         configuredZoneSignature = "LOCAL_FALLBACK";
-        AutoChatManager.Instance?.AddMessage("NHIỆM VỤ", $"Đã khoanh vùng tìm kiếm gồm {count} căn nhà.");
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.Get("quest.sender"),
+            string.Format(GameLocalization.Get("quest.zone_search_configured"), count));
     }
 
     private static List<QuestLocationIdentity> FindSearchHouseCandidates(Vector2 anchor)
@@ -912,7 +916,7 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         float labelY = Mathf.Clamp(markerPosition.y + 27f, 48f, Screen.height - 36f);
         GUI.color = new Color(1f, 1f, 1f, outsideWarningAlpha);
         GUI.Box(new Rect(labelX, labelY, 184f, 28f),
-            $"QUAY LẠI MỤC TIÊU  •  {distance:0} m", labelStyle);
+            string.Format(GameLocalization.Get("quest.return_to_objective"), distance), labelStyle);
         GUI.matrix = previousMatrix;
         GUI.color = Color.white;
     }
@@ -937,8 +941,9 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
     private void HandleMapFragment1Acquired()
     {
         questUI?.QueueMapUnlockReveal();
-        AutoChatManager.Instance?.AddMessage("PHÁT HIỆN MANH MỐI MỚI",
-            "Phát hiện manh mối mới - bấm M để kiểm tra");
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.Get("quest.new_clue_detected_sender"),
+            GameLocalization.Get("quest.new_clue_detected_body"));
         locateOfficeNotificationPending = true;
     }
 
@@ -992,7 +997,9 @@ public sealed class PreMilitaryQuestRuntimeBridge : MonoBehaviour
         bool controllerWasEnabled = controller.enabled;
         controller.enabled = false;
 
-        AutoChatManager.Instance?.AddMessage("MANH MỐI", "Đã xác định văn phòng màu tím.");
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.Get("quest.clues_sender"),
+            GameLocalization.Get("quest.office_revealed_chat"));
         yield return MoveCamera(cameraRig, gameplayCamera, startPosition, focusPosition,
             startZoom, focusZoom, revealTravelDuration);
         yield return new WaitForSecondsRealtime(revealHoldDuration);

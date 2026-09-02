@@ -321,10 +321,10 @@ public class DevCheatManager : MonoBehaviour
         MakeButton(tabHeaderGO.transform, "CHEATS", new Color32(30, 41, 59, 255), () => SelectTab("CHEATS"),
             new Vector2(0.00f, 0f), new Vector2(0.32f, 1f), out t1Txt, out tabBtnCheatsImg);
 
-        MakeButton(tabHeaderGO.transform, "🎒 BACKPACK TEST", new Color32(30, 41, 59, 255), () => SelectTab("BACKPACK"),
+        MakeButton(tabHeaderGO.transform, "[BAG] BACKPACK TEST", new Color32(30, 41, 59, 255), () => SelectTab("BACKPACK"),
             new Vector2(0.34f, 0f), new Vector2(0.66f, 1f), out t2Txt, out tabBtnBackpackImg);
 
-        MakeButton(tabHeaderGO.transform, "📋 SPAWN ITEMS", new Color32(30, 41, 59, 255), () => SelectTab("ITEMS"),
+        MakeButton(tabHeaderGO.transform, "[ITEMS] SPAWN ITEMS", new Color32(30, 41, 59, 255), () => SelectTab("ITEMS"),
             new Vector2(0.68f, 0f), new Vector2(1.00f, 1f), out t3Txt, out tabBtnItemsImg);
 
         // --- Content Area Container ---
@@ -350,7 +350,7 @@ public class DevCheatManager : MonoBehaviour
                 cachedHealth.currentHealth = cachedHealth.maxHealth;
                 cachedHealth.isBleeding = false;
                 cachedHealth.isInPain = false;
-                Debug.Log("[CHEAT] ❤️ Health & status fully restored!");
+                Debug.Log("[CHEAT] [HEAL] Health & status fully restored!");
             }
         });
         AddActionRow(cheatsTabContent.transform, "HEAL MILITARY GATE + RESET SOLO TIMER", "HEAL GATE",
@@ -359,7 +359,7 @@ public class DevCheatManager : MonoBehaviour
                 if (military == null || !military.DebugHealGate())
                     Debug.LogWarning("[CHEAT] Gate heal requires an intact gate during the military siege.");
             });
-        AddActionRow(cheatsTabContent.transform, "📦 GIVE +100 ALL AMMO TYPES", "ADD AMMO", new Color32(245, 158, 11, 255), () => {
+        AddActionRow(cheatsTabContent.transform, "[AMMO] GIVE +100 ALL AMMO TYPES", "ADD AMMO", new Color32(245, 158, 11, 255), () => {
             CachePlayer();
             if (cachedInventory != null)
             {
@@ -367,11 +367,11 @@ public class DevCheatManager : MonoBehaviour
                 ItemData a12 = Resources.Load<ItemData>("Items/Ammo12Gauge");
                 if (a7 != null) cachedInventory.AddItem(a7, 100);
                 if (a12 != null) cachedInventory.AddItem(a12, 100);
-                Debug.Log("[CHEAT] 📦 Granted +100 7.62mm & 12 Gauge Ammo!");
+                Debug.Log("[CHEAT] [AMMO] Granted +100 7.62mm & 12 Gauge Ammo!");
             }
         });
 
-        AddSectionHeader(cheatsTabContent.transform, "📻 ROUTE B FLOW TEST — NO LOOT CONTAINERS");
+        AddSectionHeader(cheatsTabContent.transform, "[ROUTE B] FLOW TEST - NO LOOT CONTAINERS");
         AddActionRow(cheatsTabContent.transform, "NEXT STORY STEP  [F6]", "ADVANCE", new Color32(124, 58, 237, 255),
             () => RunRouteBCheat(AdvanceRouteBStory));
         AddActionRow(cheatsTabContent.transform, "COMPLETE RESIDENTIAL CLUES  [F7]", "3 / 3", new Color32(217, 119, 6, 255),
@@ -386,16 +386,16 @@ public class DevCheatManager : MonoBehaviour
             () => RunRouteBCheat(TeleportToCurrentRouteBObjective));
 
         // --- POPULATE TAB 2: BACKPACK CAPACITY TEST ---
-        AddSectionHeader(backpackTabContent.transform, "🎒 BACKPACK CAPACITY (5 HOTBAR + STORAGE)");
-        AddCapacityRow(backpackTabContent.transform, 20, "Level 0 — 20 total (5 hotbar + 15 storage)");
-        AddCapacityRow(backpackTabContent.transform, 25, "Level 1 — 25 total (5 hotbar + 20 storage)");
-        AddCapacityRow(backpackTabContent.transform, 30, "Level 2 — 30 total (5 hotbar + 25 storage)");
-        AddCapacityRow(backpackTabContent.transform, 35, "Level 3 — 35 total (5 hotbar + 30 storage)");
-        AddCapacityRow(backpackTabContent.transform, 45, "Level 4 — 45 total (5 hotbar + 40 storage)");
-        AddCapacityRow(backpackTabContent.transform, 55, "Level 5 — 55 total (5 hotbar + 50 storage)");
+        AddSectionHeader(backpackTabContent.transform, "[BACKPACK] CAPACITY (5 HOTBAR + STORAGE)");
+        AddCapacityRow(backpackTabContent.transform, 20, "Level 0 - 20 total (5 hotbar + 15 storage)");
+        AddCapacityRow(backpackTabContent.transform, 25, "Level 1 - 25 total (5 hotbar + 20 storage)");
+        AddCapacityRow(backpackTabContent.transform, 30, "Level 2 - 30 total (5 hotbar + 25 storage)");
+        AddCapacityRow(backpackTabContent.transform, 35, "Level 3 - 35 total (5 hotbar + 30 storage)");
+        AddCapacityRow(backpackTabContent.transform, 45, "Level 4 - 45 total (5 hotbar + 40 storage)");
+        AddCapacityRow(backpackTabContent.transform, 55, "Level 5 - 55 total (5 hotbar + 50 storage)");
 
         // --- POPULATE TAB 3: ITEM SPAWNER ---
-        AddSectionHeader(itemsTabContent.transform, "📋 ITEM SPAWNER");
+        AddSectionHeader(itemsTabContent.transform, "[SPAWNER] ITEM SPAWNER");
         foreach (ItemData item in cachedItems)
         {
             if (item == null) continue;
@@ -499,7 +499,7 @@ public class DevCheatManager : MonoBehaviour
             new Vector2(0, 0), new Vector2(0.68f, 1), new Vector2(0, 0.5f),
             Vector2.zero, Vector2.zero);
         labelGO.GetComponent<RectTransform>().offsetMin = new Vector2(14, 0);
-        MakeTMP(labelGO, "🛡️ GOD MODE (INVINCIBILITY)", 14, FontStyles.Bold,
+        MakeTMP(labelGO, "[SHIELD] GOD MODE (INVINCIBILITY)", 14, FontStyles.Bold,
             new Color32(241, 245, 249, 255), TextAlignmentOptions.Left);
 
         Button btn = MakeButton(row.transform, "TOGGLE", new Color32(239, 68, 68, 255), () => {
@@ -511,7 +511,7 @@ public class DevCheatManager : MonoBehaviour
 
             isGodMode = !isGodMode;
             UpdateGodModeButtonStyle();
-            Debug.Log(isGodMode ? "[CHEAT] 🛡️ God Mode ENABLED" : "[CHEAT] 🛡️ God Mode DISABLED");
+            Debug.Log(isGodMode ? "[CHEAT] [SHIELD] God Mode ENABLED" : "[CHEAT] [SHIELD] God Mode DISABLED");
         }, new Vector2(0.70f, 0.12f), new Vector2(0.97f, 0.88f), out godModeBtnText, out godModeBtnImage);
 
         UpdateGodModeButtonStyle();
@@ -618,7 +618,7 @@ public class DevCheatManager : MonoBehaviour
         {
             AutoUIManager.Instance.RefreshUI(cachedInventory.slots, cachedInventory.maxSlots);
         }
-        Debug.Log($"[CHEAT] 🎒 Capacity set to {cachedInventory.maxSlots} slots ({cachedInventory.CurrentBackpackSlots} storage + {InventorySystem.HotbarSlotCount} hotbar).");
+        Debug.Log($"[CHEAT] [BACKPACK] Capacity set to {cachedInventory.maxSlots} slots ({cachedInventory.CurrentBackpackSlots} storage + {InventorySystem.HotbarSlotCount} hotbar).");
         UpdateCapacityButtonStyles();
         UpdateStatusDisplay();
     }
@@ -713,14 +713,14 @@ public class DevCheatManager : MonoBehaviour
                 Debug.LogWarning($"[CHEAT] Backpack '{item.itemName}' is not an upgrade over the current capacity.");
                 return;
             }
-            Debug.Log($"[CHEAT] 🎒 Equipped {item.itemName}: {cachedInventory.CurrentBackpackSlots} storage slots.");
+            Debug.Log($"[CHEAT] [BACKPACK] Equipped {item.itemName}: {cachedInventory.CurrentBackpackSlots} storage slots.");
             UpdateCapacityButtonStyles();
             UpdateStatusDisplay();
             return;
         }
 
         cachedInventory.AddItem(item, amount);
-        Debug.Log($"[CHEAT] 🎁 Spawned +{amount} {item.itemName}");
+        Debug.Log($"[CHEAT] [SPAWN] Spawned +{amount} {item.itemName}");
         UpdateStatusDisplay();
     }
 
@@ -748,7 +748,7 @@ public class DevCheatManager : MonoBehaviour
         int storage = Mathf.Max(0, capacity - 5);
         string godState = isGodMode ? "<color=#22c55e>ON</color>" : "<color=#94a3b8>OFF</color>";
 
-        statusText.text = $"Player: {playerState}  ·  Capacity: <color=#38bdf8>{capacity} Slots</color> (5 Hotbar + {storage} Storage)  ·  GodMode: {godState}";
+        statusText.text = $"Player: {playerState}  |  Capacity: <color=#38bdf8>{capacity} Slots</color> (5 Hotbar + {storage} Storage)  |  GodMode: {godState}";
     }
 
     private void RunRouteBCheat(System.Action action)

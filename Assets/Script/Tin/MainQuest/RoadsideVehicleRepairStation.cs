@@ -96,7 +96,7 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
                 yield break;
             }
             elapsed = Mathf.Min(inspectionDuration, elapsed + Time.unscaledDeltaTime);
-            AutoUIManager.Instance?.ShowReloadUI(elapsed, inspectionDuration, "ĐANG KIỂM TRA XE CẢNH SÁT...");
+            AutoUIManager.Instance?.ShowReloadUI(elapsed, inspectionDuration, GameLocalization.Get("quest.police.inspecting"));
             yield return null;
         }
 
@@ -295,8 +295,8 @@ public sealed class RoadsideVehicleRepairStation : MonoBehaviour
         float x = Mathf.Clamp(point.x - 150f, 8f, Screen.width - 308f);
         float y = Mathf.Clamp(Screen.height - point.y - 66f, 8f, Screen.height - 54f);
         string label = storyInteraction
-            ? "KIỂM TRA XE CẢNH SÁT\nGIỮ [E]"
-            : "KIỂM TRA / SỬA XE\nGIỮ [E]";
+            ? GameLocalization.Get("quest.police.prompt_inspect")
+            : GameLocalization.Get("quest.police.prompt_repair");
         GUI.Box(new Rect(x, y, 300f, 46f), label, prompt);
     }
 }
