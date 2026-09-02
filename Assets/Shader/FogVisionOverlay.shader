@@ -236,30 +236,51 @@ Shader "ProjectZomboid/FogVisionOverlay"
             half4 frag(Varyings input) : SV_Target
             {
                 float2 worldPosition = _FogWorldBottomLeft + input.uv.x * _FogWorldRight + input.uv.y * _FogWorldUp;
-                float2 visibilityPosition = worldPosition;
-                float surfacePixel = 0;
+                float2 projectedSurfacePosition = worldPosition;
+                float2 lightingPosition = worldPosition;
+                float surfaceCoverage = 0;
                 if (_IndoorActive > 0.5 && _IndoorSurfaceActive > 0.5)
                 {
                     float2 atlasUv = (worldPosition - _IndoorSurfaceBounds.xy) / _IndoorSurfaceBounds.zw;
                     if (all(atlasUv >= 0) && all(atlasUv <= 1))
                     {
-                        float4 surface = SAMPLE_TEXTURE2D(_IndoorSurfaceAtlas, sampler_IndoorSurfaceAtlas, atlasUv);
-                        surfacePixel = step(0.5, surface.a);
-                        visibilityPosition = lerp(worldPosition, _IndoorSurfaceBounds.xy + surface.xy * _IndoorSurfaceBounds.zw, surfacePixel);
+                        float4 filteredSurface = SAMPLE_TEXTURE2D(_IndoorSurfaceAtlas,
+                            sampler_IndoorSurfaceAtlas, atlasUv);
+                        // The atlas clears to transparent black, so bilinear RGB at a
+                        // silhouette edge is alpha-weighted. Divide by alpha before
+                        // decoding the projected coordinate; otherwise it is pulled
+                        // toward the atlas origin and creates a large dark scallop.
+                        float atlasAlpha = filteredSurface.g;
+                        float projectedV = filteredSurface.r / max(atlasAlpha, 0.0001);
+                        projectedSurfacePosition = float2(worldPosition.x,
+                            _IndoorSurfaceBounds.y + projectedV * _IndoorSurfaceBounds.w);
+
+                        // Resolve the authored alpha edge over roughly one screen pixel.
+                        // This removes the visible atlas-texel staircase without changing
+                        // ray count/update rate or widening the visibility mask by a world
+                        // texel (which would leak into an adjacent room).
+                        float alphaAa = max(fwidth(atlasAlpha), 0.0001);
+                        surfaceCoverage = smoothstep(0.5 - alphaAa, 0.5 + alphaAa, atlasAlpha);
+                        lightingPosition = lerp(worldPosition, projectedSurfacePosition,
+                            surfaceCoverage);
                     }
                 }
-                float2 offsetFromPlayer = visibilityPosition - _VisionWorldCenter;
+                float2 offsetFromPlayer = lightingPosition - _VisionWorldCenter;
                 float distanceFromPlayer = length(offsetFromPlayer);
                 float2 directionToPixel = distanceFromPlayer > 0.0001 ? offsetFromPlayer / distanceFromPlayer : _VisionDirection;
-                float indoorOcclusionVisibility = IndoorOcclusionVisibility(
-                    visibilityPosition, surfacePixel * _IndoorSurfaceProbe, surfacePixel);
+                float worldOcclusionVisibility = IndoorOcclusionVisibility(worldPosition, 0, 0);
+                float projectedOcclusionVisibility = IndoorOcclusionVisibility(
+                    projectedSurfacePosition, _IndoorSurfaceProbe, 1);
+                // Projection may only repair visibility already accepted by the strict
+                // world sample. Blend the repair result, rather than its input position,
+                // so partially covered edge pixels cannot generate false ray distances.
+                projectedOcclusionVisibility = max(projectedOcclusionVisibility,
+                    worldOcclusionVisibility);
+                float indoorOcclusionVisibility = lerp(worldOcclusionVisibility,
+                    projectedOcclusionVisibility, surfaceCoverage);
                 float originalInside = 0;
                 if (_IndoorActive > 0.5 && _IndoorSurfaceActive > 0.5)
                 {
-                    // Surface projection repairs over-occlusion of tall art. It must not
-                    // carve new black strips into pixels already visible in the accepted map.
-                    indoorOcclusionVisibility = max(indoorOcclusionVisibility,
-                        IndoorOcclusionVisibility(worldPosition, 0, 0));
                     originalInside = IsInsideIndoorPolygon(worldPosition);
                 }
 
@@ -282,7 +303,8 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float insideIndoor = IsInsideIndoorPolygon(worldPosition);
                 if (_IndoorActive > 0.5 && _IndoorSurfaceActive > 0.5)
                 {
-                    insideIndoor = max(originalInside, IsInsideIndoorPolygon(visibilityPosition));
+                    insideIndoor = max(originalInside,
+                        IsInsideIndoorPolygon(projectedSurfacePosition) * surfaceCoverage);
                     float visible = insideIndoor * indoorOcclusionVisibility;
                     // Grade flashlight intensity across the visible floor and projected art.
                     // Keep the accepted dark outer edge; start fading earlier INSIDE the
@@ -293,12 +315,11 @@ Shader "ProjectZomboid/FogVisionOverlay"
                     float illumination = lightCone * flashlightReach * _FlashlightActive;
                     float ambientOpacity = saturate(_IndoorSurfaceLighting.x + (1 - rawConeVisibility) * 0.12);
                     float surfaceOpacity = lerp(ambientOpacity, _IndoorSurfaceLighting.y, illumination);
-                    // Preserve the bright wall face. Only cast-shadow silhouettes
-                    // grade inward; the accepted visibility/cover remains intact.
-                    // Do not multiply by visible here: the blend below already
-                    // applies it. Double weighting creates a bright seam in the
-                    // partially occluded band instead of meeting the dark cover.
-                    float flashlightBoundaryFade = IndoorShadowEdgeFade(visibilityPosition) *
+                    // Preserve the existing inward cast-shadow grading. Reconstruct
+                    // coordinates before evaluating it, then apply authored coverage
+                    // to the result instead of interpolating a false ray position.
+                    float flashlightBoundaryFade = lerp(IndoorShadowEdgeFade(worldPosition),
+                        IndoorShadowEdgeFade(projectedSurfacePosition), surfaceCoverage) *
                         _FlashlightActive * lightCone;
                     surfaceOpacity = lerp(surfaceOpacity, _IndoorWallOccludedOpacity,
                         flashlightBoundaryFade);

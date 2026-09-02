@@ -16,6 +16,48 @@ public static class IndoorFogMainPlayAuthoring
     public const string HousePrefabPath = "Assets/Khoa/House/nhachinhxaydautien.prefab";
     public const string MainScenePath = "Assets/Scenes/Main.unity";
 
+    [MenuItem("Tools/Environment/Indoor Fog/Audit All Main Buildings")]
+    public static void AuditAllMainBuildings()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Authoring audit requires Edit Mode.");
+        Scene scene = SceneManager.GetSceneByPath(MainScenePath);
+        bool opened = !scene.IsValid() || !scene.isLoaded;
+        if (opened) scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Additive);
+        try
+        {
+            Transform mapRoot = FindMapRoot(scene);
+            var report = new System.Text.StringBuilder();
+            foreach (Transform root in mapRoot)
+            {
+                var roofs = root.GetComponentsInChildren<RoofVisibility>(true);
+                if (roofs.Length == 0) continue;
+                report.AppendLine("BUILDING " + root.name);
+                foreach (var roof in roofs)
+                    report.AppendLine(" ROOF " + RelativePath(root, roof.transform) + " hides=" +
+                        string.Join("|", roof.roofTilemaps.Where(t => t != null).Select(t => RelativePath(root, t.transform))));
+                foreach (var volume in root.GetComponentsInChildren<Collider2D>(true).Where(c => c.isTrigger))
+                    report.AppendLine(" TRIGGER " + RelativePath(root, volume.transform) + " " + volume.GetType().Name +
+                        " bounds=" + volume.bounds);
+                foreach (var surface in root.GetComponentsInChildren<IndoorFogSurfaceMap>(true))
+                    report.AppendLine(" FOG " + RelativePath(root, surface.transform) + " volume=" +
+                        (surface.indoorVolume != null ? RelativePath(root, surface.indoorVolume.transform) : "NULL"));
+                foreach (var tilemap in root.GetComponentsInChildren<Tilemap>(true))
+                    report.AppendLine(" TILEMAP " + RelativePath(root, tilemap.transform) + " layer=" +
+                        LayerMask.LayerToName(tilemap.gameObject.layer) + " tiles=" + tilemap.GetUsedTilesCount());
+            }
+            System.IO.Directory.CreateDirectory("QA_Artifacts/IndoorFogAllMain_20260902");
+            System.IO.File.WriteAllText("QA_Artifacts/IndoorFogAllMain_20260902/building-audit.txt", report.ToString());
+            Debug.Log("[IndoorFogAuthoring] All-Main building audit written.");
+        }
+        finally { if (opened) EditorSceneManager.CloseScene(scene, true); }
+    }
+
+    private static string RelativePath(Transform root, Transform child)
+    {
+        if (root == child) return ".";
+        return AnimationUtility.CalculateTransformPath(child, root);
+    }
+
     [MenuItem("Tools/Environment/Indoor Fog/Apply Pilot (House + School + Hospital)")]
     public static void ApplyPilot()
     {

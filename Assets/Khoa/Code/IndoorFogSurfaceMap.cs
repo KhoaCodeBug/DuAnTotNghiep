@@ -32,7 +32,7 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
     public int SurfaceCount { get; private set; }
     public int ScannedCellCount { get; private set; }
     public double LastBuildMilliseconds { get; private set; }
-    public long AtlasMemoryBytes => Atlas != null ? (long)Atlas.width * Atlas.height * 8L : 0L;
+    public long AtlasMemoryBytes => Atlas != null ? (long)Atlas.width * Atlas.height * 4L : 0L;
     private bool attemptedBuild;
 
     private struct Surface
@@ -50,7 +50,7 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         if (attemptedBuild) return false;
         attemptedBuild = true;
         Shader shader = Shader.Find("Hidden/IndoorFogSurfaceAtlas");
-        if (shader == null || !shader.isSupported || !SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGBHalf))
+        if (shader == null || !shader.isSupported || !SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RGHalf))
         {
             Debug.LogWarning("[IndoorFogSurface] Atlas unavailable; preserving legacy Fog.", this);
             return false;
@@ -107,11 +107,25 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
             return false;
         }
 
-        int width = Mathf.Clamp(atlasResolution, 256, 1536);
+        // A fixed 1024-wide atlas turns one School texel into roughly seven pixels at
+        // gameplay zoom, exposing the fog mask as black squares above diagonal walls.
+        // Preserve the authored value as a quality floor, then add resolution only for
+        // large interiors. RGHalf stores the only two required values (projected Y and
+        // coverage), keeping the active-atlas budget bounded while improving the edge.
+        const float targetWorldTexel = 0.02f;
+        const int maxAtlasDimension = 3072;
+        int width = Mathf.Clamp(Mathf.Max(atlasResolution,
+            Mathf.CeilToInt(bounds.size.x / targetWorldTexel)), 256, maxAtlasDimension);
         int height = Mathf.Max(128, Mathf.RoundToInt(width * bounds.size.y / bounds.size.x));
-        Atlas = new RenderTexture(width, height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear)
+        if (height > maxAtlasDimension)
+        {
+            width = Mathf.Max(256, Mathf.RoundToInt(width * (float)maxAtlasDimension / height));
+            height = maxAtlasDimension;
+        }
+        Atlas = new RenderTexture(width, height, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear)
         { name = "Indoor surface projection (local)", hideFlags = HideFlags.DontSave,
-            filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+            filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp,
+            useMipMap = false, autoGenerateMips = false, anisoLevel = 0 };
         Atlas.Create();
         var material = new Material(shader) { hideFlags = HideFlags.DontSave };
         material.SetVector("_AtlasBounds", AtlasBounds);

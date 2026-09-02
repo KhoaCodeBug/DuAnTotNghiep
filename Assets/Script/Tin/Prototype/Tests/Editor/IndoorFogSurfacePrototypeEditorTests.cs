@@ -48,6 +48,23 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
         Type authoring = Type.GetType("IndoorFogMainPlayAuthoring, Assembly-CSharp-Editor");
         Assert.That(authoring, Is.Not.Null);
         authoring.GetMethod("ValidateMainPlay").Invoke(null, null);
+
+        Type surfaceType = Type.GetType("IndoorFogSurfaceMap, Assembly-CSharp");
+        Component[] maps = Resources.FindObjectsOfTypeAll(surfaceType).OfType<Component>()
+            .Where(component => component.gameObject.scene.isLoaded &&
+                component.gameObject.scene.path == "Assets/Scenes/Main.unity").ToArray();
+        Assert.That(maps, Has.Length.EqualTo(16),
+            "Rollout must remain School + two Hospital volumes + thirteen shared-prefab houses only.");
+        Assert.That(maps.Select(map => map.gameObject).Distinct().Count(), Is.EqualTo(maps.Length),
+            "No rollout root may contain duplicate IndoorFogSurfaceMap components.");
+        foreach (Component map in maps)
+        {
+            Assert.That(surfaceType.GetField("indoorVolume").GetValue(map), Is.Not.Null, map.name);
+            var surfaces = (Tilemap[])surfaceType.GetField("surfaces").GetValue(map);
+            Assert.That(surfaces, Is.Not.Null.And.Not.Empty, map.name);
+            Assert.That(surfaces, Has.None.Null, map.name);
+            Assert.That((int)surfaceType.GetField("atlasResolution").GetValue(map), Is.EqualTo(1024), map.name);
+        }
     }
 
     [TestCase("continuous-wall", 0)]
@@ -170,9 +187,17 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
         Assert.That((bool)readiness.GetProperty("IsReleasedToGameplay").GetValue(null), Is.True);
 
         string runId = DateTime.Now.ToString("yyyyMMdd-HHmmss-fff");
-        string[] labels = { "school", "hospital-large", "hospital-small" };
-        string[] roofs = { "__SchoolRoofTrigger_FIXED", "nocnha", "nocnha (1)" };
-        Vector2[] positions = { new Vector2(11.36f, 49.93f), new Vector2(-46.646f, 16.413f), new Vector2(-49.584f, 37.427f) };
+        string[] labels = { "school", "hospital-large", "hospital-small", "house-main" };
+        string[] roofs = { "__SchoolRoofTrigger_FIXED", "nocnha", "nocnha (1)", "nhachinhxaydautien (12)" };
+        Vector2[] positions = { new Vector2(11.36f, 49.93f), new Vector2(-46.646f, 16.413f),
+            new Vector2(-49.584f, 37.427f), new Vector2(-39.2f, 44.3f) };
+        Type cheatType = Type.GetType("DevCheatManager, Assembly-CSharp");
+        object cheat = cheatType.GetProperty("Instance").GetValue(null);
+        FieldInfo godMode = cheatType.GetField("isGodMode");
+        bool previousGodMode = (bool)godMode.GetValue(cheat);
+        // Deterministic visual fixture: hostile AI must not end the authority player
+        // while the four capture sites are exercised. This is restored in finally.
+        godMode.SetValue(cheat, true);
         try
         {
             Component previousSurface = null;
@@ -255,6 +280,11 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
 
                     var atlas = (RenderTexture)surfaceType.GetProperty("Atlas").GetValue(siteSurface);
                     Assert.That(atlas != null && atlas.IsCreated(), Is.True, label);
+                    Assert.That(atlas.filterMode, Is.EqualTo(FilterMode.Bilinear),
+                        label + " must coverage-filter the surface atlas instead of exposing atlas-sized point steps.");
+                    Assert.That(atlas.format, Is.EqualTo(RenderTextureFormat.RGHalf), label);
+                    Assert.That(atlas.wrapMode, Is.EqualTo(TextureWrapMode.Clamp), label);
+                    Assert.That(atlas.useMipMap, Is.False, label);
                     if (siteAtlas == null) siteAtlas = atlas;
                     else Assert.That(atlas, Is.SameAs(siteAtlas), "Day/night and flashlight changes must reuse the site atlas.");
                     int surfaceCount = (int)surfaceType.GetProperty("SurfaceCount").GetValue(siteSurface);
@@ -263,7 +293,7 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
                     double buildMs = (double)surfaceType.GetProperty("LastBuildMilliseconds").GetValue(siteSurface);
                     Assert.That(surfaceCount, Is.GreaterThan(0), label);
                     Assert.That(scannedCells, Is.GreaterThan(0), label);
-                    Assert.That(atlasBytes, Is.GreaterThan(0).And.LessThanOrEqualTo(1024L * 1536L * 8L), label);
+                    Assert.That(atlasBytes, Is.GreaterThan(0).And.LessThanOrEqualTo(3072L * 3072L * 4L), label);
                     Debug.Log("[IndoorFogStress] " + label + " surfaces=" + surfaceCount + " scannedCells=" + scannedCells +
                         " atlasBytes=" + atlasBytes + " buildMs=" + buildMs.ToString("F3"));
                     qa.GetMethod("Capture").Invoke(null, null);
@@ -280,7 +310,11 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
                 Assert.That(siteAtlas == null || !siteAtlas.IsCreated(), Is.True, "Outdoor transition must release " + labels[site] + " atlas.");
             }
         }
-        finally { qa.GetMethod("ClearPoseOverride").Invoke(null, null); }
+        finally
+        {
+            godMode.SetValue(cheat, previousGodMode);
+            qa.GetMethod("ClearPoseOverride").Invoke(null, null);
+        }
         yield return new ExitPlayMode();
         Assert.That(Resources.FindObjectsOfTypeAll<RenderTexture>().Any(t => t.name == "Indoor surface projection (local)"), Is.False);
     }

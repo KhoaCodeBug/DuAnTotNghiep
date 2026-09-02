@@ -30,8 +30,10 @@ Shader "Hidden/IndoorFogSurfaceAtlas"
             float4 frag(Varyings input) : SV_Target
             {
                 clip(SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv).a - 0.4);
-                float2 ground = float2(input.world.x, min(input.world.y, input.foot.y));
-                return float4((ground - _AtlasBounds.xy) / _AtlasBounds.zw, 0, 1);
+                float groundY = min(input.world.y, input.foot.y);
+                // RGHalf payload: projected ground Y, then authored coverage. Projected
+                // X always equals the screen pixel's world X and need not consume a channel.
+                return float4((groundY - _AtlasBounds.y) / _AtlasBounds.w, 1, 0, 0);
             }
             ENDHLSL
         }

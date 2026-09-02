@@ -41,9 +41,11 @@ public static class IndoorFogPrototypeQA
         public bool flashlight = true;
         public bool prototype;
         public string label = "baseline";
+        public float cameraRight;
         public float cameraUp = 1.2f;
         public float flashlightConeFeather = 0.20f;
         public float flashlightBoundaryFadeDistance = 0.65f;
+        public float surfaceProbeInset = -1f;
     }
 
     [MenuItem("Tools/QA/Indoor Fog/Start Solo Automation")]
@@ -111,7 +113,7 @@ public static class IndoorFogPrototypeQA
         var camera = PZ_CameraController.Instance;
         typeof(PZ_CameraController).GetField("targetZoom", Private).SetValue(camera, pose.zoom);
         camera.GetComponentInChildren<Camera>().orthographicSize = pose.zoom;
-        camera.offset = new Vector3(0, pose.cameraUp, -10f);
+        camera.offset = new Vector3(pose.cameraRight, pose.cameraUp, -10f);
         var inventory = player.GetComponent<InventorySystem>();
         for (int i = 0; i < inventory.slots.Count; i++)
         {
@@ -147,6 +149,8 @@ public static class IndoorFogPrototypeQA
             }
             surface.flashlightConeFeather = pose.flashlightConeFeather;
             surface.flashlightBoundaryFadeDistance = pose.flashlightBoundaryFadeDistance;
+            if (pose.surfaceProbeInset >= 0f)
+                surface.surfaceProbeInset = pose.surfaceProbeInset;
             surface.enabled = true;
         }
         else if (surface != null) surface.enabled = false;
@@ -166,6 +170,8 @@ public static class IndoorFogPrototypeQA
         var material = (Material)typeof(FogVisionController).GetField("overlayMaterial", Private).GetValue(fog);
         if (Application.isBatchMode) CaptureBatchScreenshot(screenshotPath, fog, material);
         else ScreenCapture.CaptureScreenshot(screenshotPath);
+        CaptureBatchScreenshot(Folder + "/" + label + "-composite.png", fog, material);
+        CaptureRawWorld(Folder + "/" + label + "-raw.png", fog);
         var surface = vision.ActiveIndoorCollider != null ? vision.ActiveIndoorCollider.GetComponentInParent<IndoorFogSurfaceMap>() : null;
         File.WriteAllText(Folder + "/" + label + "-state.txt", JsonUtility.ToJson(pose, true) +
             "\nactual=" + player.transform.position + " direction=" + vision.VisionWorldDirection +
@@ -179,6 +185,13 @@ public static class IndoorFogPrototypeQA
             " scannedCells=" + (surface != null ? surface.ScannedCellCount : 0) +
             " atlasBytes=" + (surface != null ? surface.AtlasMemoryBytes : 0) +
             " buildMs=" + (surface != null ? surface.LastBuildMilliseconds : 0) +
+            " atlas=" + (surface != null && surface.Atlas != null
+                ? surface.Atlas.width + "x" + surface.Atlas.height +
+                  " filter=" + surface.Atlas.filterMode + " wrap=" + surface.Atlas.wrapMode +
+                  " bounds=" + surface.AtlasBounds +
+                  " texelWorld=" + new Vector2(surface.AtlasBounds.z / surface.Atlas.width,
+                      surface.AtlasBounds.w / surface.Atlas.height)
+                : "none") +
             "\nflashlightConeFeather=" + (surface != null ? surface.flashlightConeFeather : 0) +
             " boundaryFadeDistance=" + (surface != null ? surface.flashlightBoundaryFadeDistance : 0) +
             " shadowEdgeCount=" + material.GetFloat("_IndoorShadowEdgeCount") +
@@ -203,12 +216,41 @@ public static class IndoorFogPrototypeQA
                 meta[i].x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "," + Mathf.RoundToInt(meta[i].w))));
     }
 
+    private static void CaptureRawWorld(string path, FogVisionController fog)
+    {
+        var camera = (Camera)typeof(FogVisionController).GetField("worldCamera", Private).GetValue(fog);
+        if (camera == null) throw new InvalidOperationException("Fog world camera is required for raw capture.");
+        int width = camera.pixelWidth;
+        int height = camera.pixelHeight;
+        var target = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32);
+        RenderTexture previousActive = RenderTexture.active;
+        RenderTexture previousTarget = camera.targetTexture;
+        var screenshot = new Texture2D(width, height, TextureFormat.RGB24, false);
+        try
+        {
+            camera.targetTexture = target;
+            camera.Render();
+            camera.targetTexture = previousTarget;
+            RenderTexture.active = target;
+            screenshot.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            screenshot.Apply();
+            File.WriteAllBytes(path, screenshot.EncodeToPNG());
+        }
+        finally
+        {
+            camera.targetTexture = previousTarget;
+            RenderTexture.active = previousActive;
+            UnityEngine.Object.Destroy(screenshot);
+            RenderTexture.ReleaseTemporary(target);
+        }
+    }
+
     private static void CaptureBatchScreenshot(string path, FogVisionController fog, Material overlayMaterial)
     {
         var camera = (Camera)typeof(FogVisionController).GetField("worldCamera", Private).GetValue(fog);
         if (camera == null) throw new InvalidOperationException("Fog world camera is required for batch capture.");
-        const int width = 1280;
-        const int height = 720;
+        int width = camera.pixelWidth;
+        int height = camera.pixelHeight;
         var scene = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.ARGB32);
         var composite = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
         RenderTexture previousActive = RenderTexture.active;
@@ -270,9 +312,9 @@ public static class IndoorFogPrototypeQA
             for (int i = 0; i < pixels.Length; i++)
             {
                 Color pixel = pixels[i];
-                if (pixel.a < 0.5f) { rawPixels[i] = Color.clear; mappedPixels[i] = Color.clear; continue; }
+                if (pixel.g < 0.5f) { rawPixels[i] = Color.clear; mappedPixels[i] = Color.clear; continue; }
                 rawPixels[i] = new Color(pixel.r, pixel.g, 0f, 1f);
-                mappedPixels[i] = Color.HSVToRGB(Mathf.Repeat(pixel.r * 0.37f + pixel.g * 0.63f, 1f), 0.9f, 1f);
+                mappedPixels[i] = Color.HSVToRGB(Mathf.Repeat(pixel.r, 1f), 0.9f, 1f);
             }
             raw.SetPixels(rawPixels); raw.Apply();
             mapped.SetPixels(mappedPixels); mapped.Apply();
