@@ -408,7 +408,7 @@ public class FogVisionController : MonoBehaviour
         // Explicit opt-in only: unconfigured interiors retain their accepted renderer.
         IndoorFogSurfaceMap surfaceMap = isIndoor
             ? targetVision.ActiveIndoorCollider.GetComponentInParent<IndoorFogSurfaceMap>() : null;
-        if (surfaceMap != null && (!surfaceMap.isActiveAndEnabled || surfaceMap.indoorVolume != targetVision.ActiveIndoorCollider))
+        if (surfaceMap != null && (!surfaceMap.isActiveAndEnabled || !surfaceMap.MatchesIndoorVolume(targetVision.ActiveIndoorCollider)))
             surfaceMap = null;
         SetActiveSurfaceMap(surfaceMap);
         bool useSurfaceMap = surfaceMap != null && surfaceMap.EnsureAtlas();

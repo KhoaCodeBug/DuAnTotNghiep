@@ -20,6 +20,7 @@ public static class IndoorFogPrototypeQA
     private static bool previousMovementEnabled;
     private static float previousDayMinutes;
     private static Vector3 previousCameraOffset;
+    private static Transform previousCameraTarget;
     private const int MotionProbeFrames = 180;
     private static int motionProbeFrame = -1;
     private static int motionProbeUnityFrame = -1;
@@ -100,6 +101,7 @@ public static class IndoorFogPrototypeQA
             previousMovementEnabled = player.enabled;
             previousDayMinutes = DayNightManager.Instance.realMinutesPerDay;
             previousCameraOffset = PZ_CameraController.Instance.offset;
+            previousCameraTarget = PZ_CameraController.Instance.CurrentTarget;
         }
         typeof(MilitaryBaseQuestManager).GetMethod("TeleportPlayer", BindingFlags.NonPublic | BindingFlags.Static)
             .Invoke(null, new object[] { player, new Vector2(pose.x, pose.y) });
@@ -114,6 +116,9 @@ public static class IndoorFogPrototypeQA
         typeof(PZ_CameraController).GetField("targetZoom", Private).SetValue(camera, pose.zoom);
         camera.GetComponentInChildren<Camera>().orthographicSize = pose.zoom;
         camera.offset = new Vector3(pose.cameraRight, pose.cameraUp, -10f);
+        // The normal target is an interpolated visual child, which can lag behind a
+        // QA teleport while movement is paused. Frame the authority pose explicitly.
+        camera.SetTarget(player.transform);
         var inventory = player.GetComponent<InventorySystem>();
         for (int i = 0; i < inventory.slots.Count; i++)
         {
@@ -495,6 +500,7 @@ public static class IndoorFogPrototypeQA
         PlayerMovement.LocalPlayerInstance.enabled = previousMovementEnabled;
         DayNightManager.Instance.realMinutesPerDay = previousDayMinutes;
         PZ_CameraController.Instance.offset = previousCameraOffset;
+        if (previousCameraTarget != null) PZ_CameraController.Instance.SetTarget(previousCameraTarget);
         posePlayer = null;
         Debug.Log("[IndoorFogQA] Manual controls restored; prototype remains in this runtime house only.");
     }

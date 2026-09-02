@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="5" result="Passed" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-09-02 10:33:31Z" end-time="2026-09-02 10:33:52Z" duration="21.7592416">
+  <test-suite type="TestSuite" id="1035" name="DuAnTotNghiep" fullname="DuAnTotNghiep" runstate="Runnable" testcasecount="24" result="Passed" start-time="2026-09-02 10:33:31Z" end-time="2026-09-02 10:33:52Z" duration="21.759242" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="platform" value="PlayMode" />
+    </properties>
+    <test-suite type="Assembly" id="1031" name="ProjectZomboiNhai.QuestFlow.Tests.PlayMode.dll" fullname="E:/Lap_trinh/HocTap/DuAnTotNghiepFIx/My project/Library/ScriptAssemblies/ProjectZomboiNhai.QuestFlow.Tests.PlayMode.dll" runstate="Runnable" testcasecount="24" result="Passed" start-time="2026-09-02 10:33:31Z" end-time="2026-09-02 10:33:52Z" duration="21.751271" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="2764" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="PlayMode" />
+        <property name="EditorOnly" value="False" />
+      </properties>
+      <test-suite type="TestFixture" id="1025" name="VisibilityAndZombieRegressionPlayModeTests" fullname="VisibilityAndZombieRegressionPlayModeTests" classname="VisibilityAndZombieRegressionPlayModeTests" runstate="Runnable" testcasecount="5" result="Passed" start-time="2026-09-02 10:33:31Z" end-time="2026-09-02 10:33:52Z" duration="21.735813" total="5" passed="5" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-case id="1030" name="FogRollback_SoloIndoorOutdoorTransitionDoesNotKeepOutdoorWallMask" fullname="VisibilityAndZombieRegressionPlayModeTests.FogRollback_SoloIndoorOutdoorTransitionDoesNotKeepOutdoorWallMask" methodname="FogRollback_SoloIndoorOutdoorTransitionDoesNotKeepOutdoorWallMask" classname="VisibilityAndZombieRegressionPlayModeTests" runstate="Runnable" seed="170471999" result="Passed" start-time="2026-09-02 10:33:31Z" end-time="2026-09-02 10:33:52Z" duration="21.492506" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="Timeout" value="180000" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[[DEBUG] ShowConnectionPopup called: INITIALIZING SOLO PROTOCOL...
+[MENU FLOW] Cleaning old runners before mode=Single, room='Solo_Normal_5011'.
+[DEBUG] CleanupOldRunnersAsync - Finding all runners...
+[MENU FLOW] Old-runner cleanup complete; creating gameplay runner.
+=== Gọi StartGame(Single) ===
+<color=#73ACE5>[Fusion]</color> [DEBUG] SDK: 2.0.11
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame: [StartGameArgs: GameMode=Single, SessionName=Solo_Normal_5011, IsVisible=, IsOpen=, Address=, CustomPublicAddress=, ObjectProvider=, SceneManager=Prototype Runner(Clone) (Fusion.NetworkSceneManagerDefault), PlayerCount=, Scene=, DisableNATPunchthrough=False, CustomCallbackInterfaces=, ConnectionToken=, SessionProperties=, CustomLobbyName=, CustomSTUNServer=, AuthValues=, CustomPhotonAppSettings=, EnableClientSessionCreation=, HostMigrationToken=]
+<color=#73ACE5>[Fusion]</color> [DEBUG] No Fusion.INetworkObjectProvider provided and there is no matching component, creating Fusion.NetworkObjectProviderDefault, Fusion.Unity
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting with NetworkProjectConfig:
+{"Version":1,"TypeId":"NetworkProjectConfig","PeerMode":0,"LagCompensation":{"Enabled":false,"HitboxBufferLengthInMs":30,"HitboxDefaultCapacity":512,"CachedStaticCollidersSize":64},"EnqueueIncompleteSynchronousSpawns":false,"InvokeRenderInBatchMode":true,"NetworkIdIsObjectName":false,"HideNetworkObjectInactivityGuard":false,"AllowClientServerModesInWebGL":false,"ClientsRecordFrameAndPacketTimingTraces":false,"Simulation":{"InputDataWordCount":11,"ReplicationFeatures":1,"InputTransferMode":0,"SimulationUpdateTimeMode":0,"PlayerCount":1,"TickRateSelection":{"Client":64,"ServerIndex":0,"ClientSendIndex":0,"ServerSendIndex":0},"MaxObjectDestroysSentPerPacket":32,"EnableExperimentalPacketLossRecovery":false,"EnableAdaptivePacketFragmentation":false},"Network":{"ConnectionTimeout":120.0,"ConnectionShutdownTime":1.0,"ReliableDataTransferModes":3},"HostMigration":{"EnableAutoUpdate":false,"UpdateDelay":10},"EncryptionConfig":{"EnableEncryption":false},"NetworkConditions":{"Enabled":false,"DelayShape":0,"DelayMin":0.15,"DelayMax":0.15,"DelayPeriod":0.0,"DelayThreshold":0.0,"AdditionalJitter":0.05,"LossChanceShape":0,"LossChanceMin":0.05,"LossChanceMax":0.05,"LossChanceThreshold":0.0,"LossChancePeriod":0.0,"AdditionalLoss":0.0},"Heap":{"PageShift":15,"PageCount":256,"GlobalsSize":8},"AssembliesToWeave":["Fusion.Unity","Assembly-CSharp","Assembly-CSharp-firstpass","Fusion.Addons.Physics","Fusion.Addons.FSM","PhotonVoice.Fusion"],"UseSerializableDictionary":true,"NullChecksForNetworkedProperties":true,"CheckRpcAttributeUsage":false,"CheckNetworkedPropertiesBeingEmpty":false}
+<color=#73ACE5>[Fusion]</color> [DEBUG] Adding to the default updater
+<color=#73ACE5>[Fusion]</color> [DEBUG] Registering in PlayerLoop, Update:[UnityEngine.PlayerLoop.Update+ScriptRunBehaviourUpdate, Before] Render:[UnityEngine.PlayerLoop.Update+ScriptRunBehaviourUpdate, After]
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:RuntimeConfig] (words: 9)
+<color=#73ACE5>[Fusion]</color> [DEBUG] StartGame Operation Done: Ok
+=== StartGame finished. OK = True | ShutdownReason = Ok ===
+[MENU FLOW] Fusion loading scene index 1 from MainMenu.
+<color=#73ACE5>[Fusion]</color> adding player [Player:1]
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:SceneInfo] (words: 13)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:Physics] (words: 10)
+<color=#73ACE5>[Fusion]</color> [DEBUG] allocating struct [Id:1024] (words: 3)
+[MENU FLOW] OnSceneLoadStart runner='Prototype Runner(Clone)'.
+Scanning - Process took 332 ms to complete
+[LOOT SERVER] Generated Balo dã chiến cấp 3 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (4)'.
+[STARTING LOADOUT] Verified Normal starting loadout for Player [Player:1].
+[VOICE] ✅ Đã tìm thấy Recorder từ FusionVoiceClient trên Runner
+[VOICE] ✅ Recorder sẵn sàng! TransmitEnabled = false (chờ bấm V)
+[CHAT] ✅ Đã đăng ký nhận sự kiện gửi chat thành công lúc Spawned
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen4_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen1_E'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'Prefab_Kitchen7_N'.
+[LOOT SERVER] Generated Balo dã chiến cấp 1 in 'TuLanhTest (9)'.
+[LOOT SERVER] Generated Balo dã chiến cấp 2 in 'Prefab_Kitchen4_N'.
+[MENU FLOW] OnSceneLoadDone runner='Prototype Runner(Clone)', activeScene='Main'.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Player Joined: [Player:1]
+Found Local Player: Player(Clone)
+[MENU FLOW] Fusion scene-load await completed for index 1.
+=== LOADING HOÀN TẤT VÀ GIẢI PHÓNG GAMEPLAY ===
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Removing from the default updater (deferred)
+[DEBUG] OnShutdown called - Reason: Ok
+<color=#73ACE5>[Fusion]</color> [DEBUG] Shutdown complete.
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (True, Ok, False)
+<color=#73ACE5>[Fusion]</color> [DEBUG] Starting to Shutdown with (False, Ok, False)
+]]></output>
+        </test-case>
+        <test-case id="1027" name="IndoorOcclusion_IgnoresExternalFence_AndStopsAtThisBuildingsWall" fullname="VisibilityAndZombieRegressionPlayModeTests.IndoorOcclusion_IgnoresExternalFence_AndStopsAtThisBuildingsWall" methodname="IndoorOcclusion_IgnoresExternalFence_AndStopsAtThisBuildingsWall" classname="VisibilityAndZombieRegressionPlayModeTests" runstate="Runnable" seed="841751342" result="Passed" start-time="2026-09-02 10:33:52Z" end-time="2026-09-02 10:33:52Z" duration="0.068199" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1026" name="StartingWeaponPlacement_IsVerifiedAndIdempotent" fullname="VisibilityAndZombieRegressionPlayModeTests.StartingWeaponPlacement_IsVerifiedAndIdempotent" methodname="StartingWeaponPlacement_IsVerifiedAndIdempotent" classname="VisibilityAndZombieRegressionPlayModeTests" runstate="Runnable" seed="735867263" result="Passed" start-time="2026-09-02 10:33:52Z" end-time="2026-09-02 10:33:52Z" duration="0.003810" asserts="0">
+          <properties>
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1028" name="ZombieMovementSweep_StopsBothBrainsBeforeStaticWall" fullname="VisibilityAndZombieRegressionPlayModeTests.ZombieMovementSweep_StopsBothBrainsBeforeStaticWall" methodname="ZombieMovementSweep_StopsBothBrainsBeforeStaticWall" classname="VisibilityAndZombieRegressionPlayModeTests" runstate="Runnable" seed="2097155458" result="Passed" start-time="2026-09-02 10:33:52Z" end-time="2026-09-02 10:33:52Z" duration="0.097953" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+        </test-case>
+        <test-case id="1029" name="ZombieVisibility_SplitRoofTriggerKeepsNearbyIndoorZombieVisible" fullname="VisibilityAndZombieRegressionPlayModeTests.ZombieVisibility_SplitRoofTriggerKeepsNearbyIndoorZombieVisible" methodname="ZombieVisibility_SplitRoofTriggerKeepsNearbyIndoorZombieVisible" classname="VisibilityAndZombieRegressionPlayModeTests" runstate="Runnable" seed="311153824" result="Passed" start-time="2026-09-02 10:33:52Z" end-time="2026-09-02 10:33:52Z" duration="0.048713" asserts="0">
+          <properties>
+            <property name="_JOINTYPE" value="UnityCombinatorial" />
+            <property name="retryIteration" value="0" />
+            <property name="repeatIteration" value="0" />
+          </properties>
+          <output><![CDATA[<b><color=#2EA3FF>MCP-FOR-UNITY</color></b>: [TestRunnerNoThrottle] Restored Interaction Mode after test run.
+Saving results to: C:/Users/Admin/AppData/LocalLow/DefaultCompany/DuAnTotNghiep\TestResults.xml
+]]></output>
+        </test-case>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

@@ -1,0 +1,24 @@
+{
+    "house": "nocnha (1)",
+    "x": -49.58399963378906,
+    "y": 37.426998138427737,
+    "hour": 21.0,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": true,
+    "prototype": true,
+    "label": "allmain-20260902-172949-Hospital_Small_FIXED-2",
+    "cameraRight": 0.0,
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421,
+    "surfaceProbeInset": -1.0
+}
+actual=(-49.58, 37.43, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/hospital/Hospital_Small_FIXED/nocnha (1)
+mask=1 surface=1 flashlight=1 angle=145
+light=0.8465779 global=0.196875 innerAngle=104.9511 outerAngle=144.951
+surfaces=312 scannedCells=15848 atlasBytes=2985444 buildMs=3.5856 atlas=1077x693 filter=Bilinear wrap=Clamp bounds=(-54.12, 29.27, 21.53, 13.85) texelWorld=(0.02, 0.02)
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=2 shadowCandidateCount=2 movementEnabled=False godMode=True cheatMenuOpen=False

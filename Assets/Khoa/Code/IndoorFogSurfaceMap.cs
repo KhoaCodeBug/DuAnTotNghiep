@@ -12,6 +12,8 @@ using UnityEngine.Tilemaps;
 public sealed class IndoorFogSurfaceMap : MonoBehaviour
 {
     public Collider2D indoorVolume;
+    [Tooltip("Explicit alternate roof triggers for the same interior. Does not change gameplay's active collider.")]
+    public Collider2D[] additionalIndoorVolumes = System.Array.Empty<Collider2D>();
     public Tilemap[] surfaces;
     public SpriteRenderer[] spriteSurfaces;
     [Range(256, 1536)] public int atlasResolution = 1024;
@@ -34,6 +36,16 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
     public double LastBuildMilliseconds { get; private set; }
     public long AtlasMemoryBytes => Atlas != null ? (long)Atlas.width * Atlas.height * 4L : 0L;
     private bool attemptedBuild;
+
+    public bool MatchesIndoorVolume(Collider2D candidate)
+    {
+        if (candidate == null) return false;
+        if (candidate == indoorVolume) return true;
+        if (additionalIndoorVolumes != null)
+            foreach (Collider2D alias in additionalIndoorVolumes)
+                if (alias != null && alias == candidate) return true;
+        return false;
+    }
 
     private struct Surface
     {
@@ -59,6 +71,9 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         var timer = System.Diagnostics.Stopwatch.StartNew();
         var entries = new List<Surface>();
         Bounds bounds = indoorVolume.bounds;
+        if (additionalIndoorVolumes != null)
+            foreach (Collider2D alias in additionalIndoorVolumes)
+                if (alias != null) bounds.Encapsulate(alias.bounds);
         bounds.Expand(new Vector3(4f, 5f, 0f));
         AtlasBounds = new Vector4(bounds.min.x, bounds.min.y, bounds.size.x, bounds.size.y);
         ScannedCellCount = 0;

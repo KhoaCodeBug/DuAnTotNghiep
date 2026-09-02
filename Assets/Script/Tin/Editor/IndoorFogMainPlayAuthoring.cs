@@ -15,6 +15,89 @@ public static class IndoorFogMainPlayAuthoring
 {
     public const string HousePrefabPath = "Assets/Khoa/House/nhachinhxaydautien.prefab";
     public const string MainScenePath = "Assets/Scenes/Main.unity";
+    public const int MainVolumeCount = 78;
+
+    [MenuItem("Tools/Environment/Indoor Fog/Apply All Main Buildings")]
+    public static void ApplyAllMainBuildings()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Authoring requires Edit Mode.");
+        Scene scene = SceneManager.GetSceneByPath(MainScenePath);
+        bool opened = !scene.IsValid() || !scene.isLoaded;
+        if (!opened && scene.isDirty) throw new InvalidOperationException("Save/review existing Main edits first.");
+        if (opened) scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Additive);
+        try
+        {
+            Transform mapRoot = FindMapRoot(scene);
+            var pending = new List<Action>();
+            foreach (Transform root in mapRoot)
+            {
+                if (root.GetComponentsInChildren<RoofVisibility>(true).Length == 0) continue;
+                // Existing pilot references are preserved, including the two Hospital volumes.
+                if (root.GetComponent<IndoorFogSurfaceMap>() != null)
+                { ValidateConfigured(root, root.name); continue; }
+                string family = System.Text.RegularExpressions.Regex.Replace(root.name, @" \(\d+\)$", "");
+                string roof;
+                string[] paths;
+                switch (family)
+                {
+                    case "nhamauxam": roof = "nocnha (4)";
+                        paths = new[] { "tuongnha", "tuongnha/tuongnha1", "decord", "decord/decord1" }; break;
+                    case "nhamauxanhla": roof = "nocnha (5)";
+                        paths = new[] { "tuongnha", "tuongnha (1)", "decord", "decord/decord1", "decord/decord1 (1)" }; break;
+                    case "cannhasieuvipprodachinhsua": roof = "nocnha (3)";
+                        paths = new[] { "tuongnha", "tuongnha/tuongnha2", "tuongnha (1)", "decord", "decord/decord1" }; break;
+                    case "cannhamauxamhoanchinh": roof = "nocnha (4)";
+                        paths = new[] { "tuongnha1", "decord1", "decord" }; break;
+                    case "cannhatotamhoanchinh": roof = "nocnha (4)";
+                        paths = new[] { "tuongnha", "decord", "decord/decord1", "decord/decord1 (1)" }; break;
+                    case "chungcumaucamdachinhsua": roof = "nocnha (5)";
+                        paths = new[] { "tuongnha3", "tuongnha", "decord", "decord/decord2" }; break;
+                    case "SieuThi_FIX": roof = "nocnha (4)";
+                        paths = new[] { "tuong (1)", "decords (1)" }; break;
+                    case "cuahang_FIX": roof = "nocnha (2)";
+                        paths = new[] { "tuongnha", "decord", "decord/decord2", "decord/decord (1)" }; break;
+                    default: throw new InvalidOperationException("Unaudited building family: " + root.name);
+                }
+                Transform target = root;
+                Collider2D volume = RequireComponent<Collider2D>(RequireChild(root, roof));
+                Tilemap[] surfaces = Tilemaps(root, paths);
+                if (!volume.isTrigger) throw new InvalidOperationException(root.name + " roof volume is not a trigger.");
+                SpriteRenderer[] sprites = root.GetComponentsInChildren<SpriteRenderer>(true);
+                pending.Add(() => Configure(target, volume, surfaces, sprites));
+            }
+            // Resolve every audited path before making the first scene edit.
+            foreach (Action apply in pending) apply();
+            // This store has two overlapping authored roof triggers. Physics may pick
+            // either one; share presentation without changing RoofDetector/gameplay.
+            ConfigureConvenienceStore(RequireChild(mapRoot, "cuahang_FIX"));
+            ValidateAllMainBuildings(scene);
+            EditorSceneManager.MarkSceneDirty(scene);
+            if (!EditorSceneManager.SaveScene(scene)) throw new InvalidOperationException("Could not save Main rollout.");
+            Debug.Log("[IndoorFogAuthoring] Applied " + pending.Count + " additional Main volumes; total=" + MainVolumeCount);
+        }
+        finally { if (opened) EditorSceneManager.CloseScene(scene, true); }
+    }
+
+    public static void ValidateAllMainBuildings(Scene scene)
+    {
+        var roots = FindMapRoot(scene).Cast<Transform>()
+            .Where(root => root.GetComponentsInChildren<RoofVisibility>(true).Length > 0).ToArray();
+        var maps = roots.SelectMany(root => root.GetComponentsInChildren<IndoorFogSurfaceMap>(true)).ToArray();
+        if (maps.Length != MainVolumeCount || maps.Select(m => m.indoorVolume).Distinct().Count() != maps.Length)
+            throw new InvalidOperationException("Main must contain exactly " + MainVolumeCount + " unique authored volumes.");
+        foreach (var map in maps)
+        {
+            ValidateConfigured(map.transform, map.name);
+            if (map.additionalIndoorVolumes.Any(c => c == null || !c.isTrigger ||
+                c.GetComponentInParent<IndoorFogSurfaceMap>() != map))
+                throw new InvalidOperationException("Invalid explicit roof alias: " + map.name);
+            if (map.surfaces.Any(t => t.name.StartsWith("__ColliderProxy_") || t.name.StartsWith("nocnha") || t.name.StartsWith("nennha")))
+                throw new InvalidOperationException("Roof/floor/proxy accidentally included: " + map.name);
+        }
+        foreach (Transform root in roots)
+            if (root.GetComponentsInChildren<IndoorFogSurfaceMap>(true).Length != root.GetComponentsInChildren<RoofVisibility>(true).Length)
+                throw new InvalidOperationException("Uncovered roof in " + root.name);
+    }
 
     [MenuItem("Tools/Environment/Indoor Fog/Audit All Main Buildings")]
     public static void AuditAllMainBuildings()
@@ -148,10 +231,11 @@ public static class IndoorFogMainPlayAuthoring
 
     public static void ConfigureConvenienceStore(Transform store)
     {
-        Configure(store,
+        var map = Configure(store,
             RequireComponent<Collider2D>(RequireChild(store, "nocnha (2)")),
             Tilemaps(store, "tuongnha", "decord", "decord/decord2", "decord/decord (1)"),
             Array.Empty<SpriteRenderer>());
+        map.additionalIndoorVolumes = new[] { RequireComponent<Collider2D>(RequireChild(store, "Trigger")) };
     }
 
     private static IndoorFogSurfaceMap Configure(Transform root, Collider2D indoorVolume,
