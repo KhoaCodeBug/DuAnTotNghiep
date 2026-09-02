@@ -7,6 +7,32 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 {
     public static HostModeSpawner Instance { get; private set; }
 
+    public static HostModeSpawner GetAuthoritativeRoomRelay()
+    {
+        if (IsUsableAuthoritativeRelay(Instance))
+            return Instance;
+
+        HostModeSpawner[] candidates = FindObjectsByType<HostModeSpawner>(
+            FindObjectsInactive.Exclude,
+            FindObjectsSortMode.None);
+        for (int i = 0; i < candidates.Length; i++)
+        {
+            if (!IsUsableAuthoritativeRelay(candidates[i])) continue;
+            Instance = candidates[i];
+            return Instance;
+        }
+
+        return null;
+    }
+
+    private static bool IsUsableAuthoritativeRelay(HostModeSpawner relay)
+    {
+        return relay != null &&
+            relay.Object != null &&
+            relay.Object.IsValid &&
+            relay.HasStateAuthority;
+    }
+
     [Header("--- Lò Đẻ Kép (Nam & Nữ) ---")]
     public NetworkPrefabRef[] playerPrefabs;
 
@@ -651,6 +677,13 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
     {
         string joinMsg = PlayerDeathContext.FormatJoinMessage(playerName);
         AutoChatManager.Instance?.AddSystemMessage(joinMsg);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    public void RPC_BroadcastChat(string senderName, string cleanMessage)
+    {
+        Debug.Log($"[CHAT-DIAG] RPC_BroadcastChat received on room relay: LocalPlayer={Runner?.LocalPlayer}, RunnerMode={Runner?.Mode}, sender='{senderName}', message='{cleanMessage}'");
+        AutoChatManager.Instance?.AddPlayerMessage(senderName, cleanMessage);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

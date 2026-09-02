@@ -4,6 +4,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using GameLocalization = QuestUILocalization;
 
 /// <summary>
@@ -286,6 +287,11 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.J))
         {
+            // While the chat input owns the keyboard, J must be treated as
+            // chat text instead of opening the quest journal underneath it.
+            if (IsChatInputFocused())
+                return;
+
             if (mapPrototype != null) mapPrototype.SetOpen(false);
             SetJournalOpen(!journalOpen);
         }
@@ -2477,6 +2483,14 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         nextCarInventoryRefreshAt = 0f;
         if (selectedQuestIndex == 2)
             RefreshCarRepairRequirementStates();
+    }
+
+    private static bool IsChatInputFocused()
+    {
+        GameObject selectedObject = EventSystem.current != null
+            ? EventSystem.current.currentSelectedGameObject
+            : null;
+        return selectedObject != null && selectedObject.GetComponent<InputField>() != null;
     }
 
     private void RequireElement(List<string> errors, string elementName)

@@ -68,12 +68,17 @@ public sealed class SleepInteractable : MonoBehaviour
         GUIStyle style = new GUIStyle(GUI.skin.box)
         {
             alignment = TextAnchor.MiddleCenter,
-            fontSize = 16,
+            fontSize = Mathf.Clamp(Mathf.RoundToInt(16 * GameplayHudLayout.GetUiScale()), 13, 20),
             fontStyle = FontStyle.Bold
         };
-        // Keep the bed hint below the top HUD/FPS area. At the bottom it was
-        // obscured by hotbar/minimap and was easy to miss.
-        GUI.Box(new Rect(Screen.width * 0.5f - 220f, 62f, 440f, 44f), text, style);
+        // Shrink-wrap the box to fit the actual text content instead of
+        // using a hardcoded 440x44 rect that wastes screen space.
+        Vector2 sleepTextSize = style.CalcSize(new GUIContent(text));
+        float boxWidth = sleepTextSize.x + 48f;
+        float boxHeight = sleepTextSize.y + 16f;
+        float boxX = (Screen.width - boxWidth) * 0.5f;
+        float boxY = 62f * GameplayHudLayout.GetUiScale();
+        GUI.Box(new Rect(boxX, boxY, boxWidth, boxHeight), text, style);
     }
 
     private bool IsClosestUsableBed(Transform player)

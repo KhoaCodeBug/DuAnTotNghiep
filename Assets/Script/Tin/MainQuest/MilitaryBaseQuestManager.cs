@@ -343,7 +343,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             if (RepairSkillCheckSessionActive) AuthorityInterruptRepair(ActiveRepairer,
                 "quest.military.repair_stopped");
             else ActiveRepairer = PlayerRef.None;
-            RPC_ShowLocalizedQuestMessage("quest.military_failed", 0);
         }
 
         if (GovernsRespawn) TickAuthorityAutoRespawn();
@@ -641,7 +640,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         IsGeneratorActive = false;
         ActiveRepairer = PlayerRef.None;
         RPC_StartSiegePresentation();
-        RPC_ShowLocalizedQuestMessage("quest.military_siege", 0);
     }
 
     public void RequestSoloMilitaryRetry()
@@ -813,7 +811,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_ShowPoliceCarObjective(PlayerRef focusPlayer)
     {
-        _ = focusPlayer;
+        if (Runner == null || Runner.LocalPlayer != focusPlayer) return;
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"),
             GameLocalization.Get("quest.military.police_car_objective"));
     }
@@ -830,11 +828,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     private void RPC_CloseMilitaryRouteVote(int voteId, string message)
     {
         MilitaryRouteVoteUI.Close(voteId);
-        if (!string.IsNullOrWhiteSpace(message))
-        {
-            string localized = GameLocalization.Get(message, fallback: message);
-            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.vote_sender"), localized);
-        }
+        _ = message;
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1150,7 +1144,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         ItemData key = MilitaryQuestItemCatalog.GetOrCreate(MilitaryQuestItemKind.ArmoryKey);
         if (inventory == null || inventory.GetItemCount(key) < 1)
         {
-            RPC_ShowLocalizedQuestMessage("quest.military_armory_locked", 0);
+            RPC_ShowLocalizedQuestMessage("quest.military_armory_locked", 0, requester, false);
             return;
         }
 
@@ -1160,7 +1154,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GrantItem(inventory, "S12K", 1);
         GrantItem(inventory, "Ammo762", 120);
         GrantItem(inventory, "Ammo12Gauge", 60);
-        RPC_ShowLocalizedQuestMessage("quest.military_armory_open", 0);
+        RPC_ShowLocalizedQuestMessage("quest.military_armory_open", 0, requester, false);
     }
 
     private void ServerClaimOfficeSafe(PlayerRef requester)
@@ -1176,7 +1170,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         GrantItem(inventory, "S12K", 1);
         GrantItem(inventory, "Ammo12Gauge", 24);
         IsOfficeSafeClaimed = true;
-        RPC_ShowLocalizedQuestMessage("quest.military_safe_open", 0);
+        RPC_ShowLocalizedQuestMessage("quest.military_safe_open", 0, requester, false);
     }
 
     private void ServerCollectPart(PlayerRef requester, MilitaryQuestItemKind kind)
@@ -1189,7 +1183,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         if (inventory == null || !inventory.AddItem(MilitaryQuestItemCatalog.GetOrCreate(kind), 1)) return;
 
         SetPartCacheClaimed(kind);
-        RPC_ShowLocalizedQuestMessage("quest.military_collected", (int)kind, requester);
+        RPC_ShowLocalizedQuestMessage("quest.military_collected", (int)kind, requester, false);
     }
 
     private void ServerInstallPart(PlayerRef requester, MilitaryQuestItemKind kind)
@@ -1203,7 +1197,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
         inventory.ConsumeItem(item, 1);
         SetPartInstalled(kind);
-        RPC_ShowLocalizedQuestMessage("quest.military_installed", (int)kind, requester);
+        RPC_ShowLocalizedQuestMessage("quest.military_installed", (int)kind, requester, false);
     }
 
     private void ServerProgressRepair(PlayerRef requester, float deltaSeconds)
@@ -1623,17 +1617,17 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     private void RPC_EscapeVehicleStarting(PlayerRef driver, float startupSeconds)
     {
+        if (Runner == null || Runner.LocalPlayer != driver) return;
         _ = startupSeconds;
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.escape_sender"),
-            Runner != null && Runner.LocalPlayer == driver
-                ? GameLocalization.Get("quest.military.escape_starting_driver")
-                : GameLocalization.Get("quest.military.escape_starting_team"));
+            GameLocalization.Get("quest.military.escape_starting_driver"));
         escapePresentation?.RefreshPresentation();
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_EscapeVehicleDriveUnlocked()
+    private void RPC_EscapeVehicleDriveUnlocked(PlayerRef driver)
     {
+        if (Runner == null || Runner.LocalPlayer != driver) return;
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.military.escape_sender"),
             GameLocalization.Get("quest.military.escape_unlocked"));
         escapePresentation?.RefreshPresentation();
@@ -1662,8 +1656,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     {
         gateController?.BreakGate();
         hordeDirector?.ReleaseHordeToPlayers();
-        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"),
-            GameLocalization.Get("quest.military.gate_broken"));
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1761,9 +1753,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.sender"), message);
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowLocalizedQuestMessage(string localizationKey, int itemKind, PlayerRef focusPlayer = default)
+    private void RPC_ShowLocalizedQuestMessage(string localizationKey, int itemKind,
+        PlayerRef focusPlayer, NetworkBool serverWide)
     {
-        if (focusPlayer != PlayerRef.None && Runner != null && Runner.LocalPlayer != focusPlayer)
+        if (!serverWide &&
+            (focusPlayer == PlayerRef.None || Runner == null || Runner.LocalPlayer != focusPlayer))
             return;
 
         string message = GameLocalization.Get(localizationKey, localizationKey);
@@ -2294,7 +2288,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             if (EscapeVehicleStartupRemaining <= 0f)
             {
                 IsEscapeVehicleDriveUnlocked = true;
-                RPC_EscapeVehicleDriveUnlocked();
+                RPC_EscapeVehicleDriveUnlocked(driver.InputAuthority);
             }
         }
 

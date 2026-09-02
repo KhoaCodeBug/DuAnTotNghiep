@@ -6,8 +6,8 @@ using System.Collections;
 
 /// <summary>
 /// Hệ thống Box Chat Multiplayer - Hoạt động 100% cho mọi người chơi.
-/// Dùng sự kiện onEndEdit của InputField (cách chuẩn Unity) thay vì tự bắt phím Enter.
-/// Điều này tránh hoàn toàn lỗi "chat hiện rồi biến mất ngay".
+/// Enter được xử lý rõ ràng trong Update; onEndEdit chỉ xử lý mất focus.
+/// Lịch sử, nền và ô nhập có vòng đời độc lập theo kiểu chat trong game.
 /// </summary>
 public class AutoChatManager : MonoBehaviour
 {
@@ -34,14 +34,26 @@ public class AutoChatManager : MonoBehaviour
         }
     }
 
-    public static AutoChatManager ExistingInstance => instance;
+    public static AutoChatManager ExistingInstance
+    {
+        get
+        {
+            if (instance == null || instance.gameObject == null)
+                instance = FindFirstObjectByType<AutoChatManager>();
+            return instance;
+        }
+    }
 
     private CanvasGroup chatGroup;
+    private CanvasGroup historyGroup;
     private Text chatHistory;
+    private Text chatPrompt;
     private InputField chatInput;
     private GameObject inputContainer;
     private ScrollRect scrollRect;
     private RectTransform chatPanelRt;
+    private RectTransform dragHandleRt;
+    private Image dragHandleImage;
     private Image vpBg;
     public const string PrefsKeyPosX = "Chat_PosX";
     public const string PrefsKeyPosY = "Chat_PosY";
@@ -51,14 +63,33 @@ public class AutoChatManager : MonoBehaviour
     private static readonly System.Collections.Generic.List<string> PendingPreloadMessages = new System.Collections.Generic.List<string>();
 
     // ========================= CẤU HÌNH =========================
-    private const float SHOW_DURATION = 6f;
-    private const float FADE_SPEED    = 1.5f;
+    private const float BACKGROUND_MAX_ALPHA = 0.82f;
+    private const float BACKGROUND_FADE_SPEED = 4f;
+    private const float DEFAULT_PANEL_WIDTH = 360f;
+    private const float DEFAULT_PANEL_HEIGHT = 200f;
+    private const float DRAG_HANDLE_HEIGHT = 24f;
 
     // ========================= TRẠNG THÁI =========================
-    private float fadeTimer = 0f;
+    private enum ChatDisplayState
+    {
+        Hidden,
+        TextOnly,
+        Hovered,
+        Editing,
+        Dragging
+    }
+
+    private ChatDisplayState displayState = ChatDisplayState.Hidden;
+    private float backgroundAlpha = 0f;
     private bool  isTyping  = false;
     private bool  justClosed = false;
+    private bool  isDragging = false;
+    private bool pointerOverChat = false;
+    private bool inputTransitionInProgress = false;
+    private bool dragPointerDown = false;
     private int dragFocusGuardUntilFrame = -1;
+    private bool pendingVisibilityAfterSuppression = false;
+    private bool wasSuppressed = false;
 
     // ========================= SỰ KIỆN (Cho PlayerInputHandler2D) =========================
     public delegate void OnSendMessage(string message);
@@ -84,6 +115,7 @@ public class AutoChatManager : MonoBehaviour
                 return;
             }
             instance = this;
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -101,7 +133,9 @@ public class AutoChatManager : MonoBehaviour
 
     void OnDestroy()
     {
-        if (instance == this) instance = null;
+        if (instance != this) return;
+
+        instance = null;
         messageHistory.Clear();
         PendingPreloadMessages.Clear();
     }
@@ -110,7 +144,12 @@ public class AutoChatManager : MonoBehaviour
     {
         isTyping = false;
         justClosed = false;
+        isDragging = false;
+        pointerOverChat = false;
+        inputTransitionInProgress = false;
+        dragPointerDown = false;
         dragFocusGuardUntilFrame = -1;
+        displayState = ChatDisplayState.Hidden;
     }
 
     public static void ResetForTests()
@@ -146,7 +185,9 @@ public class AutoChatManager : MonoBehaviour
         }
     }
 
-    public bool IsChatVisible => chatPanelRt != null && chatPanelRt.gameObject.activeSelf && chatGroup != null && chatGroup.alpha > 0.01f;
+    public bool IsChatVisible => chatPanelRt != null && chatPanelRt.gameObject.activeSelf &&
+        ((historyGroup != null && historyGroup.alpha > 0.01f) ||
+         (chatPrompt != null && chatPrompt.gameObject.activeSelf) || isTyping);
 
     public void SetSuppressedByReward(bool suppressed)
     {
@@ -160,6 +201,18 @@ public class AutoChatManager : MonoBehaviour
             chatGroup.alpha = 0f;
             chatGroup.blocksRaycasts = false;
         }
+        if (historyGroup != null && suppressed)
+            historyGroup.alpha = 0f;
+        if (suppressed)
+        {
+            backgroundAlpha = 0f;
+            ApplyBackgroundAlpha();
+        }
+        else if (pendingVisibilityAfterSuppression)
+        {
+            ShowHistoryNow();
+        }
+        RefreshDragHandleVisibility(suppressed);
     }
 
     private static Type ResolveInputSystemUIInputModuleType()
@@ -303,7 +356,7 @@ public class AutoChatManager : MonoBehaviour
     // ============================================================
     public void BuildChatUI()
     {
-        if (chatHistory != null && chatGroup != null) return;
+        if (chatHistory != null && chatGroup != null && historyGroup != null) return;
 
         // --- Đảm bảo có EventSystem ---
         EnsureEventSystem();
@@ -325,7 +378,7 @@ public class AutoChatManager : MonoBehaviour
         // --- Panel tổng (Góc dưới trái, nhích lên tránh đè Ammo UI) ---
         var panel = MakeRect("ChatPanel", canvasGo.transform,
             new Vector2(0, 0), new Vector2(0, 0),
-            new Vector2(20, 95), new Vector2(400, 230));
+        new Vector2(20, 95), new Vector2(DEFAULT_PANEL_WIDTH, DEFAULT_PANEL_HEIGHT));
         panel.pivot = new Vector2(0, 0);
         chatPanelRt = panel;
 
@@ -341,7 +394,7 @@ public class AutoChatManager : MonoBehaviour
         Debug.Log($"[CHAT-DIAG] BuildChatUI: canvas active={canvasGo.activeInHierarchy}, sortingOrder={canvas.sortingOrder}, panelPos={panel.anchoredPosition}");
 
         chatGroup = panel.gameObject.AddComponent<CanvasGroup>();
-        chatGroup.alpha           = 0f;
+        chatGroup.alpha           = 1f;
         chatGroup.blocksRaycasts  = false;
         chatGroup.interactable    = true;
 
@@ -363,12 +416,11 @@ public class AutoChatManager : MonoBehaviour
         var viewport = MakeRectStretch("Viewport", scrollGo.transform);
         vpBg         = viewport.gameObject.AddComponent<Image>();
         vpBg.color   = new Color(0f, 0f, 0f, 0f);
-        var mask     = viewport.gameObject.AddComponent<Mask>();
-        mask.showMaskGraphic = false;
+        // Clip history by rectangle only. A stencil Mask tied to the
+        // background graphic can cull the text when the black background
+        // fades to transparent.
+        viewport.gameObject.AddComponent<RectMask2D>();
         scrollRect.viewport  = viewport;
-
-        var draggable = viewport.gameObject.AddComponent<UIDraggable>();
-        draggable.targetToDrag = panel;
 
         // Content (kéo dài vô hạn theo nội dung)
         var content    = new GameObject("Content");
@@ -380,6 +432,13 @@ public class AutoChatManager : MonoBehaviour
         contentRt.offsetMin = new Vector2(5f, 0f);
         contentRt.offsetMax = new Vector2(-5f, 0f);
         scrollRect.content  = contentRt;
+
+        // Only the history content gets this fade. The viewport background is
+        // controlled independently by vpBg/backgroundAlpha.
+        historyGroup = content.AddComponent<CanvasGroup>();
+        historyGroup.alpha = 0f;
+        historyGroup.blocksRaycasts = false;
+        historyGroup.interactable = false;
 
         var csf = content.AddComponent<ContentSizeFitter>();
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -428,7 +487,7 @@ public class AutoChatManager : MonoBehaviour
         phText.font         = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         phText.fontSize     = 13;
         phText.color        = new Color(0.75f, 0.75f, 0.75f, 0.6f);
-        phText.text         = GameLocalization.Get("chat.placeholder");
+        phText.text         = GameLocalization.Get("chat.input_placeholder");
         phText.fontStyle    = FontStyle.Italic;
         phText.raycastTarget = false;
         chatInput.placeholder = phText;
@@ -451,10 +510,27 @@ public class AutoChatManager : MonoBehaviour
         chatInput.characterLimit  = 120;
         chatInput.lineType        = InputField.LineType.SingleLine;
 
-        // 🔥 Móc sự kiện onEndEdit: Unity tự động gọi khi kết thúc nhập (Enter, ESC hoặc click ra ngoài)
+        // Enter/Escape được xử lý trong Update. onEndEdit chỉ đóng khi mất focus.
         chatInput.onEndEdit.AddListener(OnChatEndEdit);
 
         inputContainer.SetActive(false);
+
+        // Vùng kéo là sibling của ChatPanel nên vẫn nhận chuột khi chatGroup
+        // chuyển sang text-only (blocksRaycasts=false). Chỉ phủ dải mỏng ở
+        // mép trên, không phủ lịch sử hay ô nhập.
+        var dragHandleGo = new GameObject("DragHandle");
+        dragHandleGo.transform.SetParent(canvasGo.transform, false);
+        dragHandleRt = dragHandleGo.AddComponent<RectTransform>();
+        dragHandleRt.anchorMin = Vector2.zero;
+        dragHandleRt.anchorMax = Vector2.zero;
+        dragHandleRt.pivot = new Vector2(0f, 0f);
+        dragHandleImage = dragHandleGo.AddComponent<Image>();
+        dragHandleImage.color = Color.clear;
+        dragHandleImage.raycastTarget = true;
+        var draggable = dragHandleGo.AddComponent<UIDraggable>();
+        draggable.targetToDrag = panel;
+        UpdateDragHandleGeometry();
+        dragHandleGo.SetActive(false);
 
         if (PendingPreloadMessages.Count > 0)
         {
@@ -484,66 +560,151 @@ public class AutoChatManager : MonoBehaviour
     // ============================================================
     void Update()
     {
-        // 1. Bắt phím Enter / KeypadEnter để MỞ chat khi đủ điều kiện
-        if (CanOpenChat() && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
+        bool enterPressed = Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter);
+        bool escapePressed = Input.GetKeyDown(KeyCode.Escape);
+
+        if (isTyping)
+        {
+            if (escapePressed)
+            {
+                if (AutoMainMenuManager.Instance != null)
+                    AutoMainMenuManager.EscapeConsumedThisFrame = true;
+                CloseChat();
+            }
+            else if (enterPressed)
+            {
+                SubmitCurrentMessageOrClose();
+            }
+        }
+        else if (CanOpenChat() && enterPressed)
         {
             OpenChat();
         }
 
-        // 2. ESC để thoát chat
-        if (isTyping && Input.GetKeyDown(KeyCode.Escape))
+        bool suppressed = IsRewardSuppressed;
+        if (suppressed)
         {
-            if (AutoMainMenuManager.Instance != null)
-            {
-                AutoMainMenuManager.EscapeConsumedThisFrame = true;
-            }
-            CloseChat();
-        }
-
-        // 3. Logic hiển thị kiểu LMHT: tin đến chỉ hiện chữ; nền và raycast chỉ bật khi nhập.
-        if (IsRewardSuppressed)
-        {
+            wasSuppressed = true;
             if (chatGroup != null)
             {
                 chatGroup.alpha = 0f;
                 chatGroup.blocksRaycasts = false;
             }
+            if (historyGroup != null)
+                historyGroup.alpha = 0f;
+            backgroundAlpha = 0f;
+            ApplyBackgroundAlpha();
             if (chatPanelRt != null && chatPanelRt.gameObject.activeSelf)
-            {
                 chatPanelRt.gameObject.SetActive(false);
-            }
+            RefreshDragHandleVisibility(true);
             return;
         }
-        else if (chatPanelRt != null && !chatPanelRt.gameObject.activeSelf)
-        {
+
+        if (chatPanelRt != null && !chatPanelRt.gameObject.activeSelf)
             chatPanelRt.gameObject.SetActive(true);
-        }
 
-        if (chatGroup != null)
+        if (wasSuppressed)
         {
-            // Khi đang gõ hoặc vừa kéo panel: hiện nền, nhận input và giữ focus.
-            if (isTyping)
-            {
-                ApplyEditingVisuals();
-                fadeTimer = SHOW_DURATION;
-            }
-            else if (fadeTimer > 0f)
-            {
-                // Khi có tin nhắn đến (chuẩn LoL): Duy trì chữ alpha = 1f, nền trong suốt 100%, không chặn chuột
-                chatGroup.alpha = 1f;
-                ApplyTextOnlyVisuals();
-                fadeTimer -= Time.deltaTime;
-            }
-            else
-            {
-                // Hết thời gian hiển thị -> Làm mờ dần về 0
-                chatGroup.alpha = Mathf.MoveTowards(chatGroup.alpha, 0f, Time.deltaTime * FADE_SPEED);
-                ApplyTextOnlyVisuals();
-            }
+            wasSuppressed = false;
+            if (pendingVisibilityAfterSuppression)
+                ShowHistoryNow();
         }
 
-        // Reset cờ ở cuối frame Update
+        UpdatePointerHover();
+        UpdateDisplayVisuals();
         justClosed = false;
+    }
+
+    private void SubmitCurrentMessageOrClose()
+    {
+        if (!isTyping) return;
+
+        string rawMessage = chatInput != null ? chatInput.text : string.Empty;
+        if (string.IsNullOrWhiteSpace(rawMessage))
+        {
+            CloseChat();
+            return;
+        }
+
+        string clean = rawMessage.Trim();
+        Debug.Log($"[CHAT-DIAG] Submit chat: '{clean}' (listeners={GetSendMessageListenerCount()})");
+        onSendMessage?.Invoke(clean);
+
+        // Keep the input session open after a sent message. A second Enter
+        // only closes the chat when the next input is empty.
+        inputTransitionInProgress = true;
+        dragFocusGuardUntilFrame = Time.frameCount + 1;
+        if (chatInput != null)
+        {
+            chatInput.text = string.Empty;
+            chatInput.ActivateInputField();
+            chatInput.Select();
+        }
+        inputTransitionInProgress = false;
+        ApplyEditingVisuals();
+        if (Application.isPlaying) StartCoroutine(FocusInputFieldRoutine());
+    }
+
+    private void UpdatePointerHover()
+    {
+        if (isDragging)
+        {
+            pointerOverChat = true;
+            return;
+        }
+
+        pointerOverChat = false;
+        if (dragHandleRt == null || chatPanelRt == null || !chatPanelRt.gameObject.activeInHierarchy)
+            return;
+        if (!Cursor.visible || Cursor.lockState == CursorLockMode.Locked)
+            return;
+
+        Canvas canvas = chatPanelRt.GetComponentInParent<Canvas>();
+        Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? canvas.worldCamera
+            : null;
+        pointerOverChat = RectTransformUtility.RectangleContainsScreenPoint(
+            chatPanelRt, Input.mousePosition, eventCamera);
+    }
+
+    private void UpdateDisplayVisuals()
+    {
+        if (chatGroup == null || historyGroup == null) return;
+
+        // The parent group is only for the global reward suppression path.
+        // History opacity is deliberately independent from the black panel.
+        chatGroup.alpha = 1f;
+
+        // Chat history is persistent, like an in-game chat log. Only the
+        // black background is allowed to fade; history is removed only by the
+        // explicit line/character limits in AppendFormattedLine().
+        historyGroup.alpha = messageHistory.Count > 0 ? 1f : 0f;
+
+        // Hovering the passive history must never add a black panel. The
+        // background belongs only to active chat input or panel dragging.
+        bool showBackground = isTyping || isDragging;
+        float targetBackgroundAlpha = showBackground ? BACKGROUND_MAX_ALPHA : 0f;
+        backgroundAlpha = Mathf.MoveTowards(
+            backgroundAlpha,
+            targetBackgroundAlpha,
+            Time.deltaTime * BACKGROUND_FADE_SPEED);
+        ApplyBackgroundAlpha();
+        UpdateDragHandleGeometry();
+
+        if (inputContainer != null && inputContainer.activeSelf != isTyping)
+            inputContainer.SetActive(isTyping);
+
+        chatGroup.blocksRaycasts = isTyping;
+        chatGroup.interactable = isTyping;
+
+        displayState = isDragging ? ChatDisplayState.Dragging :
+            isTyping ? ChatDisplayState.Editing :
+            pointerOverChat ? ChatDisplayState.Hovered :
+            historyGroup.alpha > 0.01f ? ChatDisplayState.TextOnly :
+            ChatDisplayState.Hidden;
+
+        RefreshDragHandleVisibility(false);
+        UpdateChatPromptVisibility();
     }
 
     // ============================================================
@@ -553,7 +714,9 @@ public class AutoChatManager : MonoBehaviour
     {
         if (isTyping) return;
         isTyping = true;
-        fadeTimer = SHOW_DURATION;
+        isDragging = false;
+        dragPointerDown = false;
+        displayState = ChatDisplayState.Editing;
 
         ClampChatPanelPosition();
 
@@ -585,36 +748,96 @@ public class AutoChatManager : MonoBehaviour
         if (chatInput == null || !isTyping || !chatInput.gameObject.activeInHierarchy) return;
 
         EnsureEventSystem();
-        if (EventSystem.current != null && !EventSystem.current.alreadySelecting)
-            EventSystem.current.SetSelectedGameObject(chatInput.gameObject);
+        EventSystem eventSystem = GetUsableEventSystem();
+        if (eventSystem != null && !eventSystem.alreadySelecting)
+            eventSystem.SetSelectedGameObject(chatInput.gameObject);
         chatInput.ActivateInputField();
         chatInput.Select();
     }
 
+    private static EventSystem GetUsableEventSystem()
+    {
+        if (EventSystem.current != null) return EventSystem.current;
+        return UnityEngine.Object.FindFirstObjectByType<EventSystem>();
+    }
+
     internal void NotifyChatDragPointerDown()
     {
-        if (!isTyping) return;
-        // InputField fires onEndEdit when focus is lost on the initial pointer-down.
-        // Keep that event from closing chat while the pointer is being used to drag.
-        dragFocusGuardUntilFrame = Mathf.Max(dragFocusGuardUntilFrame, Time.frameCount + 1);
+        pointerOverChat = true;
+        dragPointerDown = true;
+        if (isTyping)
+        {
+            // InputField can emit onEndEdit as soon as the drag overlay is
+            // selected. Keep that transient focus loss from closing chat.
+            dragFocusGuardUntilFrame = Mathf.Max(dragFocusGuardUntilFrame, Time.frameCount + 1);
+        }
     }
 
     internal void NotifyChatDragStarted()
     {
-        if (!isTyping) return;
+        isDragging = true;
+        pointerOverChat = true;
+        dragPointerDown = true;
         dragFocusGuardUntilFrame = Mathf.Max(dragFocusGuardUntilFrame, Time.frameCount + 1);
+        displayState = ChatDisplayState.Dragging;
+        if (chatGroup != null) chatGroup.alpha = 1f;
+        backgroundAlpha = BACKGROUND_MAX_ALPHA;
+        ApplyBackgroundAlpha();
+        UpdateChatPromptVisibility();
     }
 
     internal void NotifyChatDragEnded()
     {
-        if (!isTyping) return;
+        isDragging = false;
         dragFocusGuardUntilFrame = Time.frameCount + 2;
-        ApplyEditingVisuals();
-        FocusInputFieldNow();
-        if (Application.isPlaying) StartCoroutine(FocusInputFieldRoutine());
+        UpdateDragHandleGeometry();
+        displayState = isTyping ? ChatDisplayState.Editing :
+            pointerOverChat ? ChatDisplayState.Hovered : ChatDisplayState.TextOnly;
+        UpdateChatPromptVisibility();
+
+        if (isTyping)
+        {
+            ApplyEditingVisuals();
+            FocusInputFieldNow();
+            if (Application.isPlaying) StartCoroutine(FocusInputFieldRoutine());
+        }
+    }
+
+    internal void NotifyChatDragPointerUp()
+    {
+        pointerOverChat = true;
+        if (isTyping)
+        {
+            dragFocusGuardUntilFrame = Time.frameCount + 2;
+            FocusInputFieldNow();
+            dragPointerDown = false;
+        }
+        else
+        {
+            dragPointerDown = false;
+        }
+    }
+
+    internal void NotifyChatPanelMoved()
+    {
+        UpdateDragHandleGeometry();
     }
 
     private bool IsChatDragFocusGuardActive => Time.frameCount <= dragFocusGuardUntilFrame;
+
+    private bool IsPointerOverChatDragHandle()
+    {
+        if (dragHandleRt == null || chatPanelRt == null ||
+            !chatPanelRt.gameObject.activeInHierarchy)
+            return false;
+
+        Canvas canvas = dragHandleRt.GetComponentInParent<Canvas>();
+        Camera eventCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? canvas.worldCamera
+            : null;
+        return RectTransformUtility.RectangleContainsScreenPoint(
+            dragHandleRt, Input.mousePosition, eventCamera);
+    }
 
     private void ApplyEditingVisuals()
     {
@@ -625,12 +848,12 @@ public class AutoChatManager : MonoBehaviour
             chatGroup.blocksRaycasts = true;
             chatGroup.interactable = true;
         }
-        if (vpBg != null)
-        {
-            vpBg.color = new Color(0.06f, 0.06f, 0.08f, 0.85f);
-            var mask = vpBg.GetComponent<Mask>();
-            if (mask != null) mask.showMaskGraphic = true;
-        }
+        if (historyGroup != null)
+            historyGroup.alpha = 1f;
+        backgroundAlpha = BACKGROUND_MAX_ALPHA;
+        ApplyBackgroundAlpha();
+        SetDragHandleVisible(true);
+        UpdateChatPromptVisibility();
     }
 
     private void ApplyTextOnlyVisuals()
@@ -641,28 +864,37 @@ public class AutoChatManager : MonoBehaviour
             chatGroup.blocksRaycasts = false;
             chatGroup.interactable = false;
         }
-        if (vpBg != null)
-        {
-            vpBg.color = new Color(0f, 0f, 0f, 0f);
-            var mask = vpBg.GetComponent<Mask>();
-            if (mask != null) mask.showMaskGraphic = false;
-        }
+        displayState = ChatDisplayState.TextOnly;
+        UpdateChatPromptVisibility();
+    }
+
+    private void ApplyBackgroundAlpha()
+    {
+        if (vpBg == null) return;
+
+        vpBg.color = new Color(0.045f, 0.045f, 0.06f, backgroundAlpha);
     }
 
     public void CloseChat()
     {
         isTyping = false;
         justClosed = true;
+        dragPointerDown = false;
+        dragFocusGuardUntilFrame = -1;
+        inputTransitionInProgress = true;
         if (chatInput != null)
         {
             chatInput.text = string.Empty;
             chatInput.DeactivateInputField();
         }
+        inputTransitionInProgress = false;
         if (inputContainer != null) inputContainer.SetActive(false);
         ApplyTextOnlyVisuals();
-        if (EventSystem.current != null && !EventSystem.current.alreadySelecting)
-            EventSystem.current.SetSelectedGameObject(null);
-        fadeTimer = SHOW_DURATION;
+        EventSystem eventSystem = GetUsableEventSystem();
+        if (eventSystem != null && !eventSystem.alreadySelecting)
+            eventSystem.SetSelectedGameObject(null);
+        RefreshDragHandleVisibility(false);
+        UpdateChatPromptVisibility();
         Debug.Log("[CHAT-DIAG] CloseChat completed.");
     }
 
@@ -671,44 +903,28 @@ public class AutoChatManager : MonoBehaviour
     // ============================================================
     private void OnChatEndEdit(string message)
     {
-        if (!isTyping) return;
+        if (!isTyping || inputTransitionInProgress) return;
 
-        if (IsChatDragFocusGuardActive)
+        // Focus can be lost before BeginDrag, or the legacy InputField can
+        // report it after the pointer has already moved. Keep the chat session
+        // alive for that drag path and restore focus on release.
+        if (IsChatDragFocusGuardActive ||
+            (IsPointerOverChatDragHandle() &&
+             (dragPointerDown || Input.GetMouseButton(0) ||
+              Mathf.Abs(Input.GetAxis("Mouse X")) > 0.01f ||
+              Mathf.Abs(Input.GetAxis("Mouse Y")) > 0.01f)))
         {
+            dragPointerDown = true;
             Debug.Log("[CHAT-DIAG] OnChatEndEdit ignored while preserving focus during panel drag.");
             return;
         }
 
-        bool wasCanceled = chatInput != null && chatInput.wasCanceled;
+        bool keyboardClose = Input.GetKeyDown(KeyCode.Return) ||
+            Input.GetKeyDown(KeyCode.KeypadEnter) ||
+            Input.GetKeyDown(KeyCode.Escape);
+        if (keyboardClose) return;
 
-        isTyping = false;
-        justClosed = true;
-
-        int listeners = GetSendMessageListenerCount();
-        Debug.Log($"[CHAT-DIAG] OnChatEndEdit: raw='{message}', wasCanceled={wasCanceled}, listeners={listeners}");
-
-        if (!wasCanceled)
-        {
-            if (!string.IsNullOrWhiteSpace(message))
-            {
-                string clean = message.Trim();
-                Debug.Log($"[CHAT-DIAG] Invoking onSendMessage: '{clean}' (listeners={listeners})");
-                onSendMessage?.Invoke(clean);
-            }
-            else
-            {
-                Debug.Log("[CHAT-DIAG] OnChatEndEdit ignored: message was whitespace/empty.");
-            }
-        }
-        else
-        {
-            Debug.Log("[CHAT-DIAG] OnChatEndEdit canceled by user (Escape).");
-            if (AutoMainMenuManager.Instance != null)
-            {
-                AutoMainMenuManager.EscapeConsumedThisFrame = true;
-            }
-        }
-
+        Debug.Log("[CHAT-DIAG] Chat input lost focus; closing without sending.");
         CloseChat();
     }
 
@@ -805,12 +1021,14 @@ public class AutoChatManager : MonoBehaviour
 
         if (IsRewardSuppressed)
         {
-            fadeTimer = 0f;
+            pendingVisibilityAfterSuppression = true;
             if (chatGroup != null)
             {
                 chatGroup.alpha = 0f;
                 chatGroup.blocksRaycasts = false;
             }
+            if (historyGroup != null)
+                historyGroup.alpha = 0f;
             if (chatPanelRt != null)
             {
                 chatPanelRt.gameObject.SetActive(false);
@@ -818,11 +1036,7 @@ public class AutoChatManager : MonoBehaviour
         }
         else
         {
-            fadeTimer = SHOW_DURATION;
-            if (chatGroup != null)
-            {
-                chatGroup.alpha = 1f;
-            }
+            ShowHistoryNow();
         }
 
         if (isActiveAndEnabled && gameObject.activeInHierarchy && chatPanelRt != null)
@@ -871,6 +1085,60 @@ public class AutoChatManager : MonoBehaviour
         chatPanelRt.anchoredPosition = pos;
     }
 
+    private void ShowHistoryNow()
+    {
+        pendingVisibilityAfterSuppression = false;
+        if (chatPanelRt != null && !chatPanelRt.gameObject.activeSelf)
+            chatPanelRt.gameObject.SetActive(true);
+        if (chatGroup != null)
+            chatGroup.alpha = 1f;
+        if (historyGroup != null)
+            historyGroup.alpha = 1f;
+        if (!isTyping && !isDragging && !pointerOverChat)
+            displayState = ChatDisplayState.TextOnly;
+        RefreshDragHandleVisibility(false);
+    }
+
+    private void UpdateDragHandleGeometry()
+    {
+        if (dragHandleRt == null || chatPanelRt == null) return;
+
+        Vector2 panelSize = chatPanelRt.rect.size;
+        if (panelSize.x <= 0f) panelSize.x = chatPanelRt.sizeDelta.x;
+        if (panelSize.y <= 0f) panelSize.y = chatPanelRt.sizeDelta.y;
+
+        float dragHeight = Mathf.Min(DRAG_HANDLE_HEIGHT, panelSize.y);
+        dragHandleRt.anchoredPosition = chatPanelRt.anchoredPosition +
+            new Vector2(0f, panelSize.y - dragHeight);
+        dragHandleRt.sizeDelta = new Vector2(panelSize.x, dragHeight);
+    }
+
+    private void SetDragHandleVisible(bool visible)
+    {
+        if (dragHandleRt == null) return;
+        UpdateDragHandleGeometry();
+        if (dragHandleRt.gameObject.activeSelf != visible)
+            dragHandleRt.gameObject.SetActive(visible);
+    }
+
+    private void RefreshDragHandleVisibility(bool suppressed)
+    {
+        bool visible = !suppressed &&
+            chatPanelRt != null && chatPanelRt.gameObject.activeSelf &&
+            (isTyping || isDragging || backgroundAlpha > 0.01f);
+        SetDragHandleVisible(visible);
+    }
+
+    private void UpdateChatPromptVisibility()
+    {
+        if (chatPrompt == null) return;
+
+        bool visible = chatPanelRt != null && chatPanelRt.gameObject.activeSelf &&
+            !isTyping && !isDragging;
+        if (chatPrompt.gameObject.activeSelf != visible)
+            chatPrompt.gameObject.SetActive(visible);
+    }
+
     // ============================================================
     // HELPER METHODS
     // ============================================================
@@ -900,7 +1168,7 @@ public class AutoChatManager : MonoBehaviour
     }
 }
 
-public class UIDraggable : MonoBehaviour, IPointerDownHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class UIDraggable : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     public RectTransform targetToDrag;
     private Vector2 dragOffset;
@@ -922,7 +1190,6 @@ public class UIDraggable : MonoBehaviour, IPointerDownHandler, IBeginDragHandler
     {
         if (targetToDrag == null) return;
         AutoChatManager chat = AutoChatManager.ExistingInstance;
-        if (chat != null && !chat.IsTyping()) return;
 
         IsDragging = true;
         chat?.NotifyChatDragStarted();
@@ -946,6 +1213,7 @@ public class UIDraggable : MonoBehaviour, IPointerDownHandler, IBeginDragHandler
             
         targetToDrag.anchoredPosition = localMousePos + dragOffset;
         ClampToParent();
+        AutoChatManager.ExistingInstance?.NotifyChatPanelMoved();
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -959,6 +1227,11 @@ public class UIDraggable : MonoBehaviour, IPointerDownHandler, IBeginDragHandler
             PlayerPrefs.Save();
         }
         AutoChatManager.ExistingInstance?.NotifyChatDragEnded();
+    }
+
+    public void OnPointerUp(PointerEventData eventData)
+    {
+        AutoChatManager.ExistingInstance?.NotifyChatDragPointerUp();
     }
 
     public void ClampToParent()

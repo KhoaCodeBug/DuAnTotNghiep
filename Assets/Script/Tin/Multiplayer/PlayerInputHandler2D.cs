@@ -476,15 +476,20 @@ public class PlayerInputHandler2D : NetworkBehaviour, INetworkRunnerCallbacks
         if (cleanMsg.Length > 128) cleanMsg = cleanMsg.Substring(0, 128);
         if (string.IsNullOrWhiteSpace(cleanMsg)) return;
 
-        Debug.Log($"[CHAT-DIAG] Host broadcasting chat to All: sender='{senderName}', cleanMsg='{cleanMsg}'");
-        RPC_BroadcastChat(senderName, cleanMsg);
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_BroadcastChat(string senderName, string cleanMessage)
-    {
-        Debug.Log($"[CHAT-DIAG] RPC_BroadcastChat received on instance: LocalPlayer={Runner?.LocalPlayer}, RunnerMode={Runner?.Mode}, sender='{senderName}', message='{cleanMessage}'");
-        AutoChatManager.Instance?.AddPlayerMessage(senderName, cleanMessage);
+        HostModeSpawner relay = HostModeSpawner.GetAuthoritativeRoomRelay();
+        if (relay != null)
+        {
+            Debug.Log($"[CHAT-DIAG] Host broadcasting chat through room relay: sender='{senderName}', cleanMsg='{cleanMsg}'");
+            relay.RPC_BroadcastChat(senderName, cleanMsg);
+        }
+        else
+        {
+            // This method only runs on a valid networked player object. A local
+            // echo here would hide a broken room broadcast and mislead the host.
+            Debug.LogError(
+                $"[CHAT] Cannot broadcast '{cleanMsg}' from '{senderName}': " +
+                "no valid State Authority room relay is available.");
+        }
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
