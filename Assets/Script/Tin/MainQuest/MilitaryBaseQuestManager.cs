@@ -38,6 +38,11 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
 
     public static MilitaryBaseQuestManager Instance { get; private set; }
 
+    public bool IsSchoolClueProgressVisible =>
+        CurrentPhase == Phase.Investigating && !HasExitedSchoolAfterClues &&
+        MainQuestManager.Instance != null &&
+        MainQuestManager.Instance.CurrentStage == MainQuestManager.QuestStage.CityMapFound;
+
     [Header("Military base layout")]
     [SerializeField] private Transform militaryBaseAnchor;
     [SerializeField] private Vector2 vehicleOffset = new Vector2(0f, -1.5f);
@@ -2623,7 +2628,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             string objective = HasAllSchoolClues
                 ? GameLocalization.Get("quest.military.school_clues_done")
                 : string.Format(GameLocalization.Get("quest.military.school_clues_progress"), SchoolClueCount);
-            GUI.Box(new Rect((Screen.width - 430f) * 0.5f, 84f, 430f, 42f), objective, clueStyle);
+            Rect schoolRect = GameplayHudLayout.GetTopCenterSchoolClueRect();
+            GUI.Box(schoolRect, objective, clueStyle);
             return;
         }
 
@@ -2700,7 +2706,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             ? Vector2.Distance(PlayerMovement.LocalPlayerInstance.transform.position,
                 roadsideRepairVehicle.transform.position)
             : 0f;
-        GUI.Box(new Rect(x - 105f, y - 24f, 210f, 48f),
+        Rect wpRect = new Rect(x - 105f, y - 24f, 210f, 48f);
+        wpRect = GameplayHudLayout.ClampWaypointGroupAroundTopCenter(wpRect);
+        GUI.Box(wpRect,
             string.Format(GameLocalization.Get("quest.military.police_car_waypoint"), distance), style);
     }
 

@@ -426,8 +426,8 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
 
     private IEnumerator NotificationRoutine()
     {
-        Vector2 targetPos = new Vector2(0f, -68f);
-        Vector2 startPos = new Vector2(0f, -40f);
+        Vector2 targetPos = new Vector2(0f, -GameplayHudLayout.CanonicalToastTargetY1080p);
+        Vector2 startPos = new Vector2(0f, -GameplayHudLayout.CanonicalToastStartY1080p);
         notificationRect.anchoredPosition = startPos;
         notificationGroup.alpha = 0f;
 
@@ -580,7 +580,8 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         // --- NOTIFICATION A: HUD TOAST ---
         notificationRect = CreateRect("Notification HUD", canvasObject.transform,
             new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-            new Vector2(0f, -68f), new Vector2(440f, 88f));
+            new Vector2(0f, -GameplayHudLayout.CanonicalToastTargetY1080p),
+            new Vector2(GameplayHudLayout.CanonicalToastWidth1080p, GameplayHudLayout.CanonicalToastHeight1080p));
         notificationHud = notificationRect.gameObject;
         notificationGroup = notificationHud.AddComponent<CanvasGroup>();
         notificationGroup.blocksRaycasts = false;

@@ -114,6 +114,38 @@ public static class GameLocalization
         { "quest.military_marker", new[] { "MILITARY ZONE", "KHU QUÂN SỰ" } },
         { "quest.route_b_new_search", new[] { "ROUTE B — NEW OBJECTIVE: Find {0} supply and evacuation records in the nearby houses.", "TUYẾN B — MỤC TIÊU MỚI: Tìm {0} tài liệu về tuyến tiếp tế và sơ tán trong các ngôi nhà xung quanh." } },
         { "quest.route_clue_count", new[] { "Route clues: {0}/{1}.", "Manh mối tuyến đường: {0}/{1}." } },
+        { "quest.route_clue.invoice.name", new[] { "Supply Transfer Invoice", "Phiếu điều chuyển vật tư" } },
+        { "quest.route_clue.invoice.short", new[] { "SUPPLIES", "VẬT TƯ" } },
+        { "quest.route_clue.invoice.reading", new[] {
+            "Emergency dispatch note: “All remaining medicines, reserve fuel, and repair tools must be transferred to the Residential Coordination Office before 18:00. Do not deliver directly to the evacuation point.” The delivery person circled a section of the eastern road and added: “purple gate”.",
+            "Phiếu điều chuyển khẩn: “Toàn bộ thuốc, nhiên liệu dự phòng và dụng cụ sửa chữa còn lại được chuyển về Văn phòng Điều phối Khu Dân Cư trước 18:00. Không giao trực tiếp tại điểm sơ tán.” Người giao khoanh một đoạn đường phía đông và ghi thêm: “cổng màu tím”." } },
+        { "quest.route_clue.invoice.inference", new[] {
+            "INFERENCE: Fuel and car repair tools were once gathered at the purple-gate office.",
+            "SUY LUẬN: Nhiên liệu và dụng cụ sửa xe từng được tập kết tại văn phòng cổng tím." } },
+        { "quest.route_clue.diagram.name", new[] { "Evacuation Route Change Notice", "Thông báo đổi tuyến sơ tán" } },
+        { "quest.route_clue.diagram.short", new[] { "EVACUATION", "SƠ TÁN" } },
+        { "quest.route_clue.diagram.reading", new[] {
+            "Operations notice: “The civilian evacuation route has been cancelled. Remaining operational vehicles must pass through the military zone checkpoint. The new route diagram is archived in the Coordination Office.”",
+            "Thông báo vận hành: “Tuyến sơ tán dân sự đã bị hủy. Các chuyến xe còn hoạt động phải chuyển qua trạm kiểm soát khu quân sự. Sơ đồ tuyến mới được lưu tại Văn phòng Điều phối.”" } },
+        { "quest.route_clue.diagram.inference", new[] {
+            "INFERENCE: Reaching the evacuation point requires the route diagram located in the office.",
+            "SUY LUẬN: Muốn đến điểm sơ tán phải tìm sơ đồ tuyến nằm trong văn phòng." } },
+        { "quest.route_clue.note.name", new[] { "Duty Officer's Note", "Ghi chú của nhân viên trực" } },
+        { "quest.route_clue.note.short", new[] { "DUTY OFFICER", "NHÂN VIÊN TRỰC" } },
+        { "quest.route_clue.note.reading", new[] {
+            "Hastily written note: “I locked the final route records in the storage cabinet. The key is still at the dispatch desk; the communication log is in the radio. If no one returns, take the map to the military station.”",
+            "Mảnh giấy viết vội: “Tôi đã khóa hồ sơ tuyến cuối trong tủ lưu trữ. Chìa khóa vẫn ở bàn điều phối; bản ghi liên lạc còn trong radio. Nếu không còn ai quay lại, hãy mang bản đồ đến trạm quân sự.”" } },
+        { "quest.route_clue.note.inference", new[] {
+            "INFERENCE: Inside the office, check the dispatch desk, the radio, and then the storage cabinet.",
+            "SUY LUẬN: Trong văn phòng cần kiểm tra bàn điều phối, radio rồi tủ lưu trữ." } },
+        { "quest.route_clue.eyebrow", new[] { "ROUTE CLUES  //  ", "MANH MỐI TUYẾN ĐƯỜNG  //  " } },
+        { "quest.route_clue.fallback_title", new[] { "UNKNOWN CLUE", "MANH MỐI KHÔNG RÕ" } },
+        { "quest.route_clue.close_hint", new[] { "[SPACE / E]  STORE CLUE", "[SPACE / E]  CẤT MANH MỐI" } },
+        { "quest.hospital.transcript.eyebrow", new[] { "HOSPITAL ARCHIVE  //  SAVED TRANSCRIPT", "LƯU TRỮ BỆNH VIỆN  //  TRANSCRIPT ĐÃ LƯU" } },
+        { "quest.hospital.transcript.title", new[] { "RECOVERED RADIO RECORDING", "BẢN GHI RADIO ĐÃ KHÔI PHỤC" } },
+        { "quest.hospital.transcript.conclusion", new[] {
+            "Conclusion: the convoy withdrew to North Base; the recording does not confirm anyone is alive there.",
+            "Kết luận: đoàn xe đã rút về Căn cứ phía Bắc; bản ghi không xác nhận ở đó còn người sống." } },
         { "quest.route_a_ready", new[] { "ROUTE A — REQUIREMENTS MET: Return to the vehicle condition panel and press START CAR.", "TUYẾN A — ĐÃ ĐỦ ĐIỀU KIỆN: Quay lại bảng tình trạng xe và bấm KHỞI ĐỘNG XE." } },
         { "quest.route_a_started", new[] { "ROUTE A — CAR STARTED: The city map and civilian road exit are now available.", "TUYẾN A — XE ĐÃ KHỞI ĐỘNG: Bản đồ thành phố và lối thoát dân sự đã được mở." } },
         { "quest.route_a_regroup", new[] { "ROUTE A — REGROUP: Bring every living survivor into or close to the repaired car.", "TUYẾN A — TẬP KẾT: Đưa mọi người còn sống lên xe hoặc tập trung sát chiếc xe đã sửa." } },
@@ -579,6 +611,11 @@ public static class GameLocalization
         return value;
     }
 
+    static GameLocalization()
+    {
+        QuestUILocalization.SetStringLookup((k, fb) => Get(k, fb));
+    }
+
     public static void SetLanguage(Language language, bool save = true)
     {
         Current = language;
@@ -588,6 +625,7 @@ public static class GameLocalization
             PlayerPrefs.Save();
         }
         QuestUILocalization.SetVietnamese(IsVietnamese);
+        QuestUILocalization.SetStringLookup((k, fb) => Get(k, fb));
         LanguageChanged?.Invoke();
     }
 
@@ -809,6 +847,9 @@ public static class GameLocalization
             { "arrival_fuel", new[] { "Fuel Can", "Can nhiên liệu" } },
             { "arrival_battery", new[] { "Car Battery", "Ắc quy ô tô" } },
             { "arrival_tire", new[] { "Car Tire", "Lốp ô tô" } },
+            { "route_clue_invoice", new[] { "Supply Transfer Invoice", "Phiếu điều chuyển vật tư" } },
+            { "route_clue_diagram", new[] { "Evacuation Route Change Notice", "Thông báo đổi tuyến sơ tán" } },
+            { "route_clue_note", new[] { "Duty Officer's Note", "Ghi chú của nhân viên trực" } },
         };
     }
 }
