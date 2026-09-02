@@ -5,7 +5,7 @@ Shader "Hidden/IndoorFogSurfaceAtlas"
     {
         Pass
         {
-            ZTest Always ZWrite Off Cull Off Blend Off
+            ZTest Always ZWrite Off Cull Off Blend One OneMinusSrcAlpha
             HLSLPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -29,9 +29,25 @@ Shader "Hidden/IndoorFogSurfaceAtlas"
             }
             float4 frag(Varyings input) : SV_Target
             {
-                clip(SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv).a - 0.4);
-                float2 ground = float2(input.world.x, min(input.world.y, input.foot.y));
-                return float4((ground - _AtlasBounds.xy) / _AtlasBounds.zw, 0, 1);
+                // Integrate sprite alpha over the atlas texel when baking. A single
+                // binary sample permanently quantizes a diagonal wall into atlas-sized
+                // squares; bilinear sampling later cannot recover its true boundary.
+                float2 dx = ddx(input.uv), dy = ddy(input.uv);
+                float coverage = 0;
+                [unroll] for (int y = 0; y < 4; y++)
+                [unroll] for (int x = 0; x < 4; x++)
+                {
+                    float2 uv = input.uv + dx * ((x + 0.5) / 4.0 - 0.5) + dy * ((y + 0.5) / 4.0 - 0.5);
+                    coverage += step(0.4, SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv).a);
+                }
+                coverage *= 1.0 / 16.0;
+                clip(coverage - 0.0001);
+                float groundY = min(input.world.y, input.foot.y);
+                // RGHalf payload: projected ground Y, then authored coverage. Projected
+                // X always equals the screen pixel's world X and need not consume a channel.
+                // Premultiplied composition preserves the underlying surface through
+                // partially covered texels; the overlay normalizes R by G on decode.
+                return float4((groundY - _AtlasBounds.y) / _AtlasBounds.w * coverage, coverage, 0, coverage);
             }
             ENDHLSL
         }

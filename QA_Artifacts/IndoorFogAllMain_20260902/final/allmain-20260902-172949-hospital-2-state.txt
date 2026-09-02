@@ -1,0 +1,24 @@
+{
+    "house": "nocnha",
+    "x": -46.645999908447269,
+    "y": 16.413000106811525,
+    "hour": 21.0,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": true,
+    "prototype": true,
+    "label": "allmain-20260902-172949-hospital-2",
+    "cameraRight": 0.0,
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421,
+    "surfaceProbeInset": -1.0
+}
+actual=(-46.65, 16.41, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/hospital/trangtrisautuong/nocnha
+mask=1 surface=1 flashlight=1 angle=145
+light=0.8478833 global=0.196875 innerAngle=105 outerAngle=145
+surfaces=1521 scannedCells=49151 atlasBytes=9980928 buildMs=12.3854 atlas=2052x1216 filter=Bilinear wrap=Clamp bounds=(-66.63, 9.39, 41.03, 24.31) texelWorld=(0.02, 0.02)
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=9 shadowCandidateCount=9 movementEnabled=False godMode=True cheatMenuOpen=False

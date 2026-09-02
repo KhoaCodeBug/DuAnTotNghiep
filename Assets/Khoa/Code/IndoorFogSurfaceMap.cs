@@ -12,6 +12,8 @@ using UnityEngine.Tilemaps;
 public sealed class IndoorFogSurfaceMap : MonoBehaviour
 {
     public Collider2D indoorVolume;
+    [Tooltip("Explicit alternate roof triggers for the same interior. Does not change gameplay's active collider.")]
+    public Collider2D[] additionalIndoorVolumes = System.Array.Empty<Collider2D>();
     public Tilemap[] surfaces;
     public SpriteRenderer[] spriteSurfaces;
     [Range(256, 1536)] public int atlasResolution = 1024;
@@ -32,8 +34,18 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
     public int SurfaceCount { get; private set; }
     public int ScannedCellCount { get; private set; }
     public double LastBuildMilliseconds { get; private set; }
-    public long AtlasMemoryBytes => Atlas != null ? (long)Atlas.width * Atlas.height * 8L : 0L;
+    public long AtlasMemoryBytes => Atlas != null ? (long)Atlas.width * Atlas.height * 4L : 0L;
     private bool attemptedBuild;
+
+    public bool MatchesIndoorVolume(Collider2D candidate)
+    {
+        if (candidate == null) return false;
+        if (candidate == indoorVolume) return true;
+        if (additionalIndoorVolumes != null)
+            foreach (Collider2D alias in additionalIndoorVolumes)
+                if (alias != null && alias == candidate) return true;
+        return false;
+    }
 
     private struct Surface
     {
@@ -50,7 +62,7 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         if (attemptedBuild) return false;
         attemptedBuild = true;
         Shader shader = Shader.Find("Hidden/IndoorFogSurfaceAtlas");
-        if (shader == null || !shader.isSupported || !SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.ARGBHalf))
+        if (shader == null || !shader.isSupported || !SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RGHalf))
         {
             Debug.LogWarning("[IndoorFogSurface] Atlas unavailable; preserving legacy Fog.", this);
             return false;
@@ -59,6 +71,9 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         var timer = System.Diagnostics.Stopwatch.StartNew();
         var entries = new List<Surface>();
         Bounds bounds = indoorVolume.bounds;
+        if (additionalIndoorVolumes != null)
+            foreach (Collider2D alias in additionalIndoorVolumes)
+                if (alias != null) bounds.Encapsulate(alias.bounds);
         bounds.Expand(new Vector3(4f, 5f, 0f));
         AtlasBounds = new Vector4(bounds.min.x, bounds.min.y, bounds.size.x, bounds.size.y);
         ScannedCellCount = 0;
@@ -107,11 +122,25 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
             return false;
         }
 
-        int width = Mathf.Clamp(atlasResolution, 256, 1536);
+        // A fixed 1024-wide atlas turns one School texel into roughly seven pixels at
+        // gameplay zoom, exposing the fog mask as black squares above diagonal walls.
+        // Preserve the authored value as a quality floor, then add resolution only for
+        // large interiors. RGHalf stores the only two required values (projected Y and
+        // coverage), keeping the active-atlas budget bounded while improving the edge.
+        const float targetWorldTexel = 0.02f;
+        const int maxAtlasDimension = 3072;
+        int width = Mathf.Clamp(Mathf.Max(atlasResolution,
+            Mathf.CeilToInt(bounds.size.x / targetWorldTexel)), 256, maxAtlasDimension);
         int height = Mathf.Max(128, Mathf.RoundToInt(width * bounds.size.y / bounds.size.x));
-        Atlas = new RenderTexture(width, height, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear)
+        if (height > maxAtlasDimension)
+        {
+            width = Mathf.Max(256, Mathf.RoundToInt(width * (float)maxAtlasDimension / height));
+            height = maxAtlasDimension;
+        }
+        Atlas = new RenderTexture(width, height, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear)
         { name = "Indoor surface projection (local)", hideFlags = HideFlags.DontSave,
-            filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+            filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp,
+            useMipMap = false, autoGenerateMips = false, anisoLevel = 0 };
         Atlas.Create();
         var material = new Material(shader) { hideFlags = HideFlags.DontSave };
         material.SetVector("_AtlasBounds", AtlasBounds);

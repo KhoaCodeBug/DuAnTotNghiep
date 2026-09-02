@@ -1,0 +1,24 @@
+{
+    "house": "SieuThi_FIX",
+    "x": -17.454240798950197,
+    "y": 12.03184986114502,
+    "hour": 13.5,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": true,
+    "prototype": true,
+    "label": "allmain-20260902-172949-SieuThi_FIX-0",
+    "cameraRight": 0.0,
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421,
+    "surfaceProbeInset": -1.0
+}
+actual=(-17.45, 12.03, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/SieuThi_FIX/nocnha (4)
+mask=1 surface=1 flashlight=1 angle=145
+light=0.8506433 global=1.391357 innerAngle=104.9546 outerAngle=144.9546
+surfaces=291 scannedCells=956 atlasBytes=4149904 buildMs=4.0228 atlas=1292x803 filter=Bilinear wrap=Clamp bounds=(-30.37, 4.00, 25.84, 16.06) texelWorld=(0.02, 0.02)
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=13 shadowCandidateCount=13 movementEnabled=False godMode=True cheatMenuOpen=False

@@ -1,0 +1,24 @@
+{
+    "house": "__SchoolRoofTrigger_FIXED",
+    "x": 11.359999656677246,
+    "y": 49.93000030517578,
+    "hour": 21.0,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": true,
+    "prototype": true,
+    "label": "allmain-20260902-172949-school-2",
+    "cameraRight": 0.0,
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421,
+    "surfaceProbeInset": -1.0
+}
+actual=(11.36, 49.93, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/school/__SchoolRoofTrigger_FIXED
+mask=1 surface=1 flashlight=1 angle=145
+light=0.8464511 global=0.196875 innerAngle=104.9516 outerAngle=144.9516
+surfaces=840 scannedCells=33788 atlasBytes=14164920 buildMs=10.4659 atlas=2555x1386 filter=Bilinear wrap=Clamp bounds=(-16.03, 36.57, 51.08, 27.72) texelWorld=(0.02, 0.02)
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=18 shadowCandidateCount=18 movementEnabled=False godMode=True cheatMenuOpen=False

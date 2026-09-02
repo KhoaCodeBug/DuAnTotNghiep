@@ -1,0 +1,24 @@
+{
+    "house": "cuahang_FIX",
+    "x": -5.17352294921875,
+    "y": 4.472623825073242,
+    "hour": 13.5,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": false,
+    "prototype": true,
+    "label": "allmain-20260902-172949-cuahang_FIX-1",
+    "cameraRight": 0.0,
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421,
+    "surfaceProbeInset": -1.0
+}
+actual=(-5.17, 4.47, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/cuahang_FIX/Trigger
+mask=1 surface=1 flashlight=0 angle=140
+light=0.1188569 global=1.391357 innerAngle=100.048 outerAngle=140.048
+surfaces=111 scannedCells=1058 atlasBytes=2867200 buildMs=2.8874 atlas=1024x700 filter=Bilinear wrap=Clamp bounds=(-13.96, -1.48, 17.41, 11.90) texelWorld=(0.02, 0.02)
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=0 shadowCandidateCount=0 movementEnabled=False godMode=True cheatMenuOpen=False
