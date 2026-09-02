@@ -141,7 +141,7 @@ public class PlayerHealth : NetworkBehaviour
         hasBroadcastDeathAnnouncement = false;
 
         movementScript = GetComponent<PlayerMovement>();
-        anim = GetComponent<Animator>();
+        anim = GetComponentInChildren<Animator>();
         spriteRend = GetComponentInChildren<SpriteRenderer>();
         survivalSystem = GetComponent<PlayerSurvival>();
 

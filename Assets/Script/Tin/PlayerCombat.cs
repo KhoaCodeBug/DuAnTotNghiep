@@ -74,7 +74,7 @@ public class PlayerCombat : NetworkBehaviour
 
     public override void Spawned()
     {
-        anim = GetComponent<Animator>();
+        anim = GetComponentInChildren<Animator>();
         mainCam = Camera.main;
         playerMove = GetComponent<PlayerMovement>();
         staminaSystem = GetComponent<PlayerStamina>();
@@ -583,7 +583,7 @@ public class PlayerCombat : NetworkBehaviour
         if (muzzleAnimator != null && muzzleFlashRenderer != null)
         {
             // 🔥 THIẾT LẬP SORTING ORDER NỔI LÊN PHÍA TRƯỚC PLAYER Ở BẤT KỲ HƯỚNG NÀO (KỂ CẢ HƯỚNG NAM / SOUTH)
-            SpriteRenderer playerSr = GetComponent<SpriteRenderer>();
+            SpriteRenderer playerSr = GetComponentInChildren<SpriteRenderer>();
             if (playerSr != null)
             {
                 muzzleFlashRenderer.sortingLayerID = playerSr.sortingLayerID;
