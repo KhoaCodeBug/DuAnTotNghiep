@@ -86,6 +86,11 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
     private ContactFilter2D obstacleMovementFilter;
     private readonly RaycastHit2D[] obstacleMovementHits = new RaycastHit2D[8];
     private const float MovementCollisionSkin = 0.02f;
+    private const float NodeLinkWaypointDistance = 0.01f;
+    // The scene link is authored for Thai2's pivot. Khoa's foot collider has a
+    // different local offset, so its Rigidbody pivot must follow this parallel line
+    // to put the actual footprint through the same physical doorway centre.
+    private static readonly Vector3 NodeLinkPivotOffset = new Vector3(0.067f, 0.025f, 0f);
     private Rigidbody2D body;
     private Collider2D bodyCollider;
     private Animator animator;
@@ -109,6 +114,8 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
     private bool targetVisible;
 
     private Path path;
+    private Path clearanceFallbackPath;
+    private ushort clearanceFallbackPathId;
     private int waypointIndex;
     private int pathGeneration;
     private Vector2 requestedGoal;
@@ -417,9 +424,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
                 return;
             }
 
-            while (waypointIndex < path.vectorPath.Count - 1 &&
-                   Vector2.Distance(body.position, path.vectorPath[waypointIndex]) <= nextWaypointDistance)
-                waypointIndex++;
+            AdvancePathWaypoint();
 
             desired = (Vector2)path.vectorPath[waypointIndex] - body.position;
         }
@@ -431,8 +436,9 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         }
 
         float remainingDistance = desired.magnitude;
-        desired = GetSteeredDirection(desired.normalized);
-        facing = Vector2.MoveTowards(facing, desired, turnResponsiveness * Delta).normalized;
+        bool preciseNodeLink = !direct && IsNodeLinkWaypoint(path, waypointIndex);
+        desired = preciseNodeLink ? desired.normalized : GetSteeredDirection(desired.normalized);
+        facing = preciseNodeLink ? desired : Vector2.MoveTowards(facing, desired, turnResponsiveness * Delta).normalized;
         if (facing.sqrMagnitude < 0.001f) facing = desired;
 
         float moveSpeed = speed * speedMultiplier;
@@ -442,8 +448,76 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         CheckProgress(goal);
     }
 
+    private void AdvancePathWaypoint()
+    {
+        RestoreBlockedSimplifiedPath();
+        while (waypointIndex < path.vectorPath.Count - 1 &&
+               Vector2.Distance(body.position, path.vectorPath[waypointIndex]) <= GetWaypointDistance(path, waypointIndex))
+        {
+            // Retain a nearby corner until the whole body can take the shortcut.
+            if (!CanMoveDirectlyToWaypoint(path.vectorPath[waypointIndex + 1])) break;
+            waypointIndex++;
+        }
+    }
+
+    private void RestoreBlockedSimplifiedPath()
+    {
+        if (path.path == null || path.path.Count < 3 ||
+            waypointIndex >= path.vectorPath.Count ||
+            (clearanceFallbackPath == path && clearanceFallbackPathId == path.pathID) ||
+            (!movementOverlapBlocked && CanMoveDirectlyToWaypoint(path.vectorPath[waypointIndex]))) return;
+
+        // Keep graph/goal unchanged; recover the raw route only when its
+        // simplified segment cannot carry the actual body through the corner.
+        clearanceFallbackPath = path;
+        clearanceFallbackPathId = path.pathID;
+        for (int i = 0; i < path.path.Count; i++)
+            if (NodeLink2.GetNodeLink(path.path[i]) != null) return;
+
+        int closest = -1;
+        float closestDistance = float.PositiveInfinity;
+        for (int i = 0; i < path.path.Count; i++)
+        {
+            Vector2 point = (Vector3)path.path[i].position;
+            float distance = (point - body.position).sqrMagnitude;
+            if (distance < closestDistance && CanMoveDirectlyToWaypoint(point))
+            { closest = i; closestDistance = distance; }
+        }
+        if (closest < 0) return;
+
+        Vector3 exactEnd = path.vectorPath[path.vectorPath.Count - 1];
+        path.vectorPath.Clear();
+        path.vectorPath.Add(body.position);
+        for (int i = closest; i < path.path.Count; i++)
+        {
+            Vector3 point = (Vector3)path.path[i].position;
+            if ((point - path.vectorPath[path.vectorPath.Count - 1]).sqrMagnitude > 0.00000001f)
+                path.vectorPath.Add(point);
+        }
+        if ((exactEnd - path.vectorPath[path.vectorPath.Count - 1]).sqrMagnitude > 0.00000001f)
+            path.vectorPath.Add(exactEnd);
+        waypointIndex = Mathf.Min(1, path.vectorPath.Count - 1);
+    }
+
+    private bool CanMoveDirectlyToWaypoint(Vector2 waypoint)
+    {
+        if (bodyCollider == null || !bodyCollider.enabled) return false;
+        Vector2 delta = waypoint - body.position;
+        float distance = delta.magnitude;
+        if (distance <= 0.0001f) return true;
+        int count = body.Cast(delta / distance, obstacleMovementFilter,
+            obstacleMovementHits, distance + MovementCollisionSkin);
+        for (int i = 0; i < count; i++)
+            if (obstacleMovementHits[i].collider != null) return false;
+        return true;
+    }
+
+    private readonly System.Collections.Generic.List<Collider2D> movementOverlaps = new System.Collections.Generic.List<Collider2D>(8);
+    private bool movementOverlapBlocked;
+
     private float MoveWithObstacleSweep(Vector2 movement)
     {
+        movementOverlapBlocked = false;
         float requestedDistance = movement.magnitude;
         if (requestedDistance <= 0.0001f) return 0f;
 
@@ -459,6 +533,23 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
                 Mathf.Max(0f, hit.distance - MovementCollisionSkin));
         }
 
+        // Shape-cast contact tolerances can miss shallow grazing intersections.
+        // Check this tick's destination using the unchanged physical footprint.
+        if (allowedDistance > 0f && bodyCollider.Overlap(body.position + direction * allowedDistance, body.rotation,
+            obstacleMovementFilter, movementOverlaps) > 0)
+        {
+            movementOverlapBlocked = true;
+            float safe = 0f, blocked = allowedDistance;
+            for (int i = 0; i < 10; i++)
+            {
+                float probe = (safe + blocked) * .5f;
+                if (bodyCollider.Overlap(body.position + direction * probe, body.rotation,
+                    obstacleMovementFilter, movementOverlaps) > 0) blocked = probe;
+                else safe = probe;
+            }
+            allowedDistance = Mathf.Max(0f, safe - 0.0001f);
+        }
+
         if (allowedDistance > 0f)
             body.MovePosition(body.position + direction * allowedDistance);
         return allowedDistance;
@@ -468,7 +559,7 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
     {
         bool goalMoved = Vector2.Distance(goal, requestedGoal) >= pathTargetMoveThreshold;
         bool exhausted = path == null || waypointIndex >= path.vectorPath.Count;
-        if (!goalMoved && !exhausted && pathRefreshTimer > 0f) return;
+        if (!goalMoved && !exhausted && (pathRefreshTimer > 0f || IsFollowingNodeLinkWaypoint())) return;
         if (seeker == null || !seeker.IsDone()) return;
 
         requestedGoal = goal;
@@ -480,8 +571,50 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
     private void AcceptPath(Path result, int generation)
     {
         if (!HasStateAuthority || result.error || generation != pathGeneration) return;
+        PreserveNodeLinkWaypoints(result);
         path = result;
         waypointIndex = FindClosestForwardWaypoint(result);
+    }
+
+    private float GetWaypointDistance(Path candidate, int index)
+    {
+        return IsNodeLinkWaypoint(candidate, index) ? NodeLinkWaypointDistance : nextWaypointDistance;
+    }
+
+    private static bool IsNodeLinkWaypoint(Path candidate, int index)
+    {
+        if (candidate == null || index < 0 || index >= candidate.vectorPath.Count) return false;
+        Vector3 waypoint = candidate.vectorPath[index];
+        for (int i = 0; i < candidate.path.Count; i++)
+            if (NodeLink2.GetNodeLink(candidate.path[i]) != null &&
+                ((Vector3)candidate.path[i].position + NodeLinkPivotOffset - waypoint).sqrMagnitude < 0.0004f)
+                return true;
+        return false;
+    }
+
+    private static void PreserveNodeLinkWaypoints(Path candidate)
+    {
+        if (candidate?.path == null || candidate.vectorPath == null) return;
+        bool hasLink = candidate.path.Exists(node => NodeLink2.GetNodeLink(node) != null);
+        if (!hasLink || candidate.vectorPath.Count == 0) return;
+        Vector3 exactStart = candidate.vectorPath[0];
+        Vector3 exactEnd = candidate.vectorPath[candidate.vectorPath.Count - 1];
+        candidate.vectorPath.Clear();
+        candidate.vectorPath.Add(exactStart);
+        for (int i = 0; i < candidate.path.Count; i++)
+        {
+            Vector3 point = (Vector3)candidate.path[i].position;
+            if (NodeLink2.GetNodeLink(candidate.path[i]) != null) point += NodeLinkPivotOffset;
+            if ((candidate.vectorPath[candidate.vectorPath.Count - 1] - point).sqrMagnitude >= 0.0004f)
+                candidate.vectorPath.Add(point);
+        }
+        if ((candidate.vectorPath[candidate.vectorPath.Count - 1] - exactEnd).sqrMagnitude >= 0.0004f)
+            candidate.vectorPath.Add(exactEnd);
+    }
+
+    private bool IsFollowingNodeLinkWaypoint()
+    {
+        return IsNodeLinkWaypoint(path, waypointIndex);
     }
 
     private int FindClosestForwardWaypoint(Path candidate)
@@ -812,10 +945,13 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
             return;
         }
 
+        bool preserveActiveLink = state == BrainState.Investigating &&
+            IsFollowingNodeLinkWaypoint() &&
+            Vector2.Distance(movementGoal, soundPosition) < pathTargetMoveThreshold;
         movementGoal = soundPosition;
         investigateWaitTimer = 3f;
         ChangeState(BrainState.Investigating);
-        InvalidatePath();
+        if (!preserveActiveLink) InvalidatePath();
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]

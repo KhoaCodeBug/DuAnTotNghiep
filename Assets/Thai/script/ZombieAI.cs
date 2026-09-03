@@ -14,8 +14,29 @@ public class ZombieAI : NetworkBehaviour
     public float nextWaypointDistance = 0.5f;
     private Seeker seeker;
     private Path path;
+    private Path clearanceFallbackPath;
+    private ushort clearanceFallbackPathId;
     private int currentWaypoint = 0;
     private Rigidbody2D rb;
+    private Collider2D movementCollider;
+    private ContactFilter2D movementObstacleFilter;
+    private readonly System.Collections.Generic.List<RaycastHit2D> movementHits = new System.Collections.Generic.List<RaycastHit2D>(8);
+    private RaycastHit2D movementHit;
+    private readonly System.Collections.Generic.List<Collider2D> movementOverlaps = new System.Collections.Generic.List<Collider2D>(8);
+    private bool movementOverlapBlocked;
+    private Vector2 movementBlockNormal;
+    // Box2D's shape cast can report contact a few millimetres after a diagonal
+    // capsule has reached a faceted Tilemap edge. Keep enough clearance that
+    // repeated steering/slide ticks cannot accumulate penetration.
+    private const float MovementCollisionSkin = 0.04f;
+    // The sample door has only a few centimetres of lateral foot clearance.
+    // A broad arrival radius cuts the entry corner even with a valid link.
+    private const float NodeLinkWaypointDistance = 0.01f;
+    // Serialize only narrow authored links, leaving open-space avoidance unchanged.
+    private static readonly System.Collections.Generic.Dictionary<NodeLink2, ZombieAI> navigationLinkOwners =
+        new System.Collections.Generic.Dictionary<NodeLink2, ZombieAI>();
+    private NodeLink2 reservedNavigationLink;
+    private bool waitingForNavigationLink;
     private int pathRequestId = 0;
     private Vector2 requestedPathTarget;
     private Vector2 lastMoveDirection;
@@ -30,7 +51,6 @@ public class ZombieAI : NetworkBehaviour
 
     [Header("--- Né Vật Cản (Local) ---")]
     [SerializeField] private LayerMask obstacleMask; // Gán layer Obstacle (Layer 6) vào đây
-    [SerializeField] private float zombieRadius = 0.4f; // Bán kính vòng tròn dò tường của zombie
     [SerializeField] private float obstacleProbeDistance = 0.8f;
     [SerializeField] private float obstacleAvoidanceWeight = 1.8f;
     [SerializeField] private float stuckRepathDelay = 0.75f;
@@ -138,6 +158,16 @@ public class ZombieAI : NetworkBehaviour
     {
         seeker = GetComponent<Seeker>();
         rb = GetComponent<Rigidbody2D>();
+        foreach (Collider2D candidate in GetComponents<Collider2D>())
+        {
+            if (!candidate.isTrigger && candidate.attachedRigidbody == rb)
+            {
+                movementCollider = candidate;
+                break;
+            }
+        }
+        movementObstacleFilter = new ContactFilter2D { useLayerMask = true, useTriggers = false };
+        movementObstacleFilter.SetLayerMask(obstacleMask);
 
         zombieFilter = new ContactFilter2D();
         zombieFilter.useLayerMask = true;
@@ -181,16 +211,18 @@ public class ZombieAI : NetworkBehaviour
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
+        ReleaseNavigationLink();
         if (healthScript != null)
         {
             healthScript.OnStunRequested -= ApplyStun;
         }
     }
 
-    // --- HÀM TRƯỢT TƯỜNG (CẢI TIẾN) ---
-    private bool SafeMove(Vector2 targetDir, float currentSpeed, float maxMoveDistance = float.PositiveInfinity)
+    // Sweep the actual foot collider AFTER steering and turning, including slide/fallback.
+    private bool SafeMove(Vector2 targetDir, float currentSpeed, float maxMoveDistance = float.PositiveInfinity,
+        bool preciseNodeLink = false)
     {
-        targetDir = GetSteeredDirection(targetDir);
+        if (!preciseNodeLink) targetDir = GetSteeredDirection(targetDir);
         float distanceToMove = Mathf.Min(currentSpeed * Runner.DeltaTime, maxMoveDistance);
         if (distanceToMove <= 0f)
         {
@@ -198,40 +230,81 @@ public class ZombieAI : NetworkBehaviour
             return false;
         }
 
-        RaycastHit2D hit = Physics2D.CircleCast(rb.position, zombieRadius, targetDir, distanceToMove, obstacleMask);
-
-        if (hit.collider == null)
+        Vector2 moveDirection = preciseNodeLink
+            ? targetDir.normalized
+            : Vector2.Lerp(lastMoveDirection, targetDir, 10f * Runner.DeltaTime);
+        if (moveDirection.sqrMagnitude < 0.001f) moveDirection = targetDir;
+        moveDirection.Normalize();
+        float movedDistance = MoveWithObstacleSweep(moveDirection * distanceToMove);
+        if (!preciseNodeLink && movedDistance <= 0.0001f && movementBlockNormal.sqrMagnitude > 0.001f)
         {
-            lastMoveDirection = Vector2.Lerp(lastMoveDirection, targetDir, 10f * Runner.DeltaTime);
-            if (lastMoveDirection.sqrMagnitude < 0.001f) lastMoveDirection = targetDir;
-            lastMoveDirection.Normalize();
-            rb.MovePosition(rb.position + lastMoveDirection * distanceToMove);
-            NetMoveDir = lastMoveDirection;
-            NetMoveSpeed = currentSpeed;
-            return true;
-        }
-        else
-        {
-            Vector2 slideDirection = targetDir - Vector2.Dot(targetDir, hit.normal) * hit.normal;
-            slideDirection.Normalize();
-
+            Vector2 slideDirection = targetDir - Vector2.Dot(targetDir, movementBlockNormal) * movementBlockNormal;
             if (slideDirection.sqrMagnitude > 0.01f)
             {
-                float slideDistance = Mathf.Min((currentSpeed * 0.8f) * Runner.DeltaTime, maxMoveDistance);
-                lastMoveDirection = Vector2.Lerp(lastMoveDirection, slideDirection, 10f * Runner.DeltaTime);
-                if (lastMoveDirection.sqrMagnitude < 0.001f) lastMoveDirection = slideDirection;
-                lastMoveDirection.Normalize();
-                rb.MovePosition(rb.position + lastMoveDirection * slideDistance);
-                NetMoveDir = lastMoveDirection;
-                NetMoveSpeed = currentSpeed * 0.8f;
-                return true;
+                moveDirection = Vector2.Lerp(lastMoveDirection, slideDirection.normalized, 10f * Runner.DeltaTime).normalized;
+                // Turning must not reintroduce the blocked normal component.
+                // Otherwise a stationary actor keeps blending from the same
+                // into-wall heading and never starts its safe tangential move.
+                moveDirection -= Vector2.Dot(moveDirection, movementBlockNormal) * movementBlockNormal;
+                moveDirection.Normalize();
+                float slideDistance = Mathf.Min(currentSpeed * 0.8f * Runner.DeltaTime, maxMoveDistance);
+                movedDistance = MoveWithObstacleSweep(moveDirection * slideDistance);
             }
-            else
-            {
-                StopMovement();
-            }
+        }
+        if (movedDistance <= 0.0001f)
+        {
+            StopMovement();
+            NetMoveSpeed = 0f;
             return false;
         }
+        lastMoveDirection = moveDirection;
+        NetMoveDir = moveDirection;
+        NetMoveSpeed = movedDistance / Runner.DeltaTime;
+        return true;
+    }
+
+    private float MoveWithObstacleSweep(Vector2 movement)
+    {
+        movementHit = default;
+        movementOverlapBlocked = false;
+        movementBlockNormal = Vector2.zero;
+        float distance = movement.magnitude;
+        if (distance <= 0.0001f || movementCollider == null || !movementCollider.enabled) return 0f;
+        Vector2 direction = movement / distance;
+        int count = movementCollider.Cast(direction, movementObstacleFilter, movementHits, distance + MovementCollisionSkin);
+        float allowed = distance;
+        for (int i = 0; i < count; i++)
+        {
+            RaycastHit2D hit = movementHits[i];
+            if (hit.collider == null) continue;
+            float clearDistance = Mathf.Max(0f, hit.distance - MovementCollisionSkin);
+            if (clearDistance < allowed)
+            {
+                allowed = clearDistance;
+                movementHit = hit;
+                movementBlockNormal = hit.normal;
+            }
+        }
+        // A grazing shape cast can miss a shallow overlap. Validate the actual
+        // next footprint without moving/scaling the collider, then retain only
+        // the safe part of this tick's movement.
+        if (allowed > 0f && movementCollider.Overlap(rb.position + direction * allowed, rb.rotation,
+            movementObstacleFilter, movementOverlaps) > 0)
+        {
+            movementOverlapBlocked = true;
+            movementBlockNormal = Physics2D.Distance(movementCollider, movementOverlaps[0]).normal;
+            float safe = 0f, blocked = allowed;
+            for (int i = 0; i < 10; i++)
+            {
+                float probe = (safe + blocked) * .5f;
+                if (movementCollider.Overlap(rb.position + direction * probe, rb.rotation,
+                    movementObstacleFilter, movementOverlaps) > 0) blocked = probe;
+                else safe = probe;
+            }
+            allowed = Mathf.Max(0f, safe - 0.0001f);
+        }
+        if (allowed > 0f) rb.MovePosition(rb.position + direction * allowed);
+        return allowed;
     }
 
     private void CalculatePath(Vector2 targetPos, AIMode mode)
@@ -253,6 +326,7 @@ public class ZombieAI : NetworkBehaviour
             && requestId == pathRequestId
             && Vector2.Distance(targetAtRequest, requestedPathTarget) < 0.1f)
         {
+            PreserveNodeLinkWaypoints(p);
             path = p;
             currentWaypoint = 0;
             if (path.vectorPath.Count > 1)
@@ -264,8 +338,10 @@ public class ZombieAI : NetworkBehaviour
 
     private bool MoveAlongPath(float currentSpeed, bool allowDirectChaseFallback = false)
     {
+        waitingForNavigationLink = false;
         if (path == null || currentWaypoint >= path.vectorPath.Count)
         {
+            ReleaseNavigationLink();
             if (allowDirectChaseFallback && HasValidTarget())
             {
                 Vector2 remaining = requestedPathTarget - rb.position;
@@ -276,10 +352,18 @@ public class ZombieAI : NetworkBehaviour
             return false;
         }
 
-        while (currentWaypoint < path.vectorPath.Count &&
-               Vector2.Distance(rb.position, path.vectorPath[currentWaypoint]) < nextWaypointDistance)
+        AdvancePathWaypoint();
+
+        NodeLink2 nextLink = useBlindV2Rules ? GetWaypointLink(path, currentWaypoint) : null;
+        if (nextLink != reservedNavigationLink) ReleaseNavigationLink();
+        if (nextLink != null && !TryReserveNavigationLink(nextLink))
         {
-            currentWaypoint++;
+            waitingForNavigationLink = true;
+            // Waiting is not a path failure: retain the waypoint and avoid a
+            // new path request for every queued simulation tick.
+            if (rb != null) rb.linearVelocity = Vector2.zero;
+            NetMoveSpeed = 0f;
+            return false;
         }
 
         if (currentWaypoint >= path.vectorPath.Count)
@@ -297,7 +381,155 @@ public class ZombieAI : NetworkBehaviour
         Vector2 currentWp = (Vector2)path.vectorPath[currentWaypoint];
         Vector2 targetMoveDir = (currentWp - rb.position).normalized;
 
-        return SafeMove(targetMoveDir, currentSpeed);
+        bool preciseLink = IsNodeLinkWaypoint(path, currentWaypoint);
+        return SafeMove(targetMoveDir, currentSpeed,
+            preciseLink ? Vector2.Distance(rb.position, currentWp) : float.PositiveInfinity, preciseLink);
+    }
+
+    private void AdvancePathWaypoint()
+    {
+        RestoreBlockedSimplifiedPath();
+        while (currentWaypoint < path.vectorPath.Count &&
+               Vector2.Distance(rb.position, path.vectorPath[currentWaypoint]) < GetWaypointDistance(path, currentWaypoint))
+        {
+            // Distance alone can skip the corner while the foot is still behind
+            // the wall. Keep approaching it until the next leg is sweep-clear.
+            if (currentWaypoint + 1 < path.vectorPath.Count &&
+                !CanMoveDirectlyToWaypoint(path.vectorPath[currentWaypoint + 1]))
+                break;
+            currentWaypoint++;
+        }
+    }
+
+    private void RestoreBlockedSimplifiedPath()
+    {
+        if (path.path == null || path.path.Count < 3 ||
+            currentWaypoint >= path.vectorPath.Count ||
+            (clearanceFallbackPath == path && clearanceFallbackPathId == path.pathID) ||
+            (!movementOverlapBlocked && CanMoveDirectlyToWaypoint(path.vectorPath[currentWaypoint]))) return;
+
+        // A modifier's straight segment may fit a point but not the movement
+        // collider. Try the same route's raw nodes once, without another search.
+        clearanceFallbackPath = path;
+        clearanceFallbackPathId = path.pathID;
+        for (int i = 0; i < path.path.Count; i++)
+            if (NodeLink2.GetNodeLink(path.path[i]) != null) return;
+
+        int closest = -1;
+        float closestDistance = float.PositiveInfinity;
+        for (int i = 0; i < path.path.Count; i++)
+        {
+            Vector2 point = (Vector3)path.path[i].position;
+            float distance = (point - rb.position).sqrMagnitude;
+            if (distance < closestDistance && CanMoveDirectlyToWaypoint(point))
+            { closest = i; closestDistance = distance; }
+        }
+        if (closest < 0) return;
+
+        Vector3 exactEnd = path.vectorPath[path.vectorPath.Count - 1];
+        path.vectorPath.Clear();
+        path.vectorPath.Add(rb.position);
+        for (int i = closest; i < path.path.Count; i++)
+        {
+            Vector3 point = (Vector3)path.path[i].position;
+            if ((point - path.vectorPath[path.vectorPath.Count - 1]).sqrMagnitude > 0.00000001f)
+                path.vectorPath.Add(point);
+        }
+        if ((exactEnd - path.vectorPath[path.vectorPath.Count - 1]).sqrMagnitude > 0.00000001f)
+            path.vectorPath.Add(exactEnd);
+        currentWaypoint = Mathf.Min(1, path.vectorPath.Count - 1);
+    }
+
+    private bool CanMoveDirectlyToWaypoint(Vector2 waypoint)
+    {
+        if (movementCollider == null || !movementCollider.enabled) return false;
+        Vector2 delta = waypoint - rb.position;
+        float distance = delta.magnitude;
+        if (distance <= 0.0001f) return true;
+        int count = movementCollider.Cast(delta / distance, movementObstacleFilter,
+            movementHits, distance + MovementCollisionSkin);
+        for (int i = 0; i < count; i++)
+            if (movementHits[i].collider != null) return false;
+        return true;
+    }
+
+    private static bool IsNodeLinkWaypoint(Path candidate, int index)
+    {
+        return GetWaypointLink(candidate, index) != null;
+    }
+
+    private static NodeLink2 GetWaypointLink(Path candidate, int index)
+    {
+        if (candidate?.path == null || candidate.vectorPath == null || index < 0 || index >= candidate.vectorPath.Count) return null;
+        Vector3 waypoint = candidate.vectorPath[index];
+        for (int i = 0; i < candidate.path.Count; i++)
+            if (NodeLink2.GetNodeLink(candidate.path[i]) != null &&
+                ((Vector3)candidate.path[i].position - waypoint).sqrMagnitude < 0.0004f)
+                return NodeLink2.GetNodeLink(candidate.path[i]);
+        return null;
+    }
+
+    private bool TryReserveNavigationLink(NodeLink2 link)
+    {
+        if (navigationLinkOwners.TryGetValue(link, out ZombieAI owner) && owner != null && owner != this &&
+            owner.isActiveAndEnabled && owner.reservedNavigationLink == link &&
+            (owner.healthScript == null || !owner.healthScript.isDead)) return false;
+        navigationLinkOwners[link] = this;
+        reservedNavigationLink = link;
+        return true;
+    }
+
+    private void ReleaseNavigationLink()
+    {
+        if (reservedNavigationLink != null && navigationLinkOwners.TryGetValue(reservedNavigationLink, out ZombieAI owner) && owner == this)
+            navigationLinkOwners.Remove(reservedNavigationLink);
+        reservedNavigationLink = null;
+        waitingForNavigationLink = false;
+    }
+
+    private void OnDisable() => ReleaseNavigationLink();
+
+    private float GetWaypointDistance(Path candidate, int index)
+    {
+        return IsNodeLinkWaypoint(candidate, index) ? NodeLinkWaypointDistance : nextWaypointDistance;
+    }
+
+    private static void PreserveNodeLinkWaypoints(Path candidate)
+    {
+        if (candidate?.path == null || candidate.vectorPath == null) return;
+        bool hasLink = candidate.path.Exists(node => NodeLink2.GetNodeLink(node) != null);
+        if (!hasLink || candidate.vectorPath.Count == 0) return;
+        Vector3 exactStart = candidate.vectorPath[0];
+        Vector3 exactEnd = candidate.vectorPath[candidate.vectorPath.Count - 1];
+        candidate.vectorPath.Clear();
+        candidate.vectorPath.Add(exactStart);
+        for (int i = 0; i < candidate.path.Count; i++)
+        {
+            Vector3 point = (Vector3)candidate.path[i].position;
+            if ((candidate.vectorPath[candidate.vectorPath.Count - 1] - point).sqrMagnitude >= 0.0004f)
+                candidate.vectorPath.Add(point);
+        }
+        if ((candidate.vectorPath[candidate.vectorPath.Count - 1] - exactEnd).sqrMagnitude >= 0.0004f)
+            candidate.vectorPath.Add(exactEnd);
+    }
+
+    private bool IsFollowingNodeLinkWaypoint()
+    {
+        return IsNodeLinkWaypoint(path, currentWaypoint);
+    }
+
+    private bool ShouldRequestPath(Vector2 destination, float directMoveTolerance)
+    {
+        bool missingOrExhausted = path == null || currentWaypoint >= path.vectorPath.Count;
+        if (!missingOrExhausted)
+            return Vector2.Distance(destination, requestedPathTarget) >= 0.2f;
+
+        // Close to the final target, MoveAlongPath's swept direct fallback is both
+        // cheaper and safer than rebuilding the same exhausted path every 0.25 s.
+        // CheckForStuck still requests a path if a nearby structural wall blocks it.
+        if (Vector2.Distance(rb.position, destination) > directMoveTolerance) return true;
+        requestedPathTarget = destination;
+        return false;
     }
 
     private Vector2 GetSeparationForce()
@@ -370,6 +602,12 @@ public class ZombieAI : NetworkBehaviour
 
     private void CheckForStuck(Vector2 pathTarget)
     {
+        if (waitingForNavigationLink)
+        {
+            stuckTimer = 0f;
+            lastStuckCheckPosition = rb.position;
+            return;
+        }
         float movedDistance = Vector2.Distance(rb.position, lastStuckCheckPosition);
         if (movedDistance < 0.025f)
         {
@@ -394,6 +632,7 @@ public class ZombieAI : NetworkBehaviour
 
     private void StopMovement()
     {
+        ReleaseNavigationLink();
         if (rb != null) rb.linearVelocity = Vector2.zero;
         path = null;
         NetMoveSpeed = 0f;
@@ -525,7 +764,9 @@ public class ZombieAI : NetworkBehaviour
         {
             Vector2 chaseDestination = lastHeardPosition;
             pathUpdateTimer -= Runner.DeltaTime;
-            if (pathUpdateTimer <= 0 && seeker.IsDone())
+            float directMoveTolerance = Mathf.Max(nextWaypointDistance, attackStartRange + 0.1f);
+            if (pathUpdateTimer <= 0 && seeker.IsDone() && !IsFollowingNodeLinkWaypoint() &&
+                ShouldRequestPath(chaseDestination, directMoveTolerance))
             {
                 CalculatePath(chaseDestination, AIMode.Chase);
                 pathUpdateTimer = 0.25f;
@@ -728,7 +969,7 @@ public class ZombieAI : NetworkBehaviour
         Vector2 investigatePos = lastHeardPosition;
 
         pathUpdateTimer -= Runner.DeltaTime;
-        if (pathUpdateTimer <= 0 && seeker.IsDone())
+        if (pathUpdateTimer <= 0 && seeker.IsDone() && !IsFollowingNodeLinkWaypoint())
         {
             CalculatePath(investigatePos, AIMode.Investigate);
             pathUpdateTimer = 0.5f;
@@ -831,7 +1072,7 @@ public class ZombieAI : NetworkBehaviour
         if (Vector2.Distance(rb.position, currentSearchTarget) > nextWaypointDistance + 0.1f)
         {
             pathUpdateTimer -= Runner.DeltaTime;
-            if (pathUpdateTimer <= 0 && seeker.IsDone())
+            if (pathUpdateTimer <= 0 && seeker.IsDone() && !IsFollowingNodeLinkWaypoint())
             {
                 CalculatePath(currentSearchTarget, AIMode.Search);
                 pathUpdateTimer = 0.5f;
