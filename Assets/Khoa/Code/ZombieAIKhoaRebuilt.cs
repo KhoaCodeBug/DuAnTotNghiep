@@ -1046,7 +1046,9 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         // dodges; the authoritative timer and Animation Event share this guard.
         attackDamageApplied = true;
         if (distance <= attackRange &&
-            HasLineOfSight(from, to, distance, lockedTargetHealth) &&
+            // Range is the surface gap; LOS starts at the centre and must reach
+            // the target centre, including any thin obstacle between the bodies.
+            HasLineOfSight(from, to, Vector2.Distance(from, to), lockedTargetHealth) &&
             Vector2.Angle(lockedAttackDirection, directionFromOrigin) <= attackHitAngle * 0.5f)
         {
             lockedTargetHealth.TakeDamageNetworked(zombieDamage, false, true);
