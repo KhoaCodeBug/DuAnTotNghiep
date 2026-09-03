@@ -104,6 +104,7 @@ public class PlayerHealth : NetworkBehaviour
     [Networked] public DeathCause LastDeathCause { get; set; }
     [Networked] public PlayerRef LastAttackerPlayerRef { get; set; }
     private bool hasBroadcastDeathAnnouncement;
+    private bool hasPlayedDeathSFX;
 
     [Header("--- Body State SFX ---")]
     public AudioClip deathSFX;
@@ -139,6 +140,7 @@ public class PlayerHealth : NetworkBehaviour
             RecalculateWoundFlags();
         }
         hasBroadcastDeathAnnouncement = false;
+        hasPlayedDeathSFX = false;
 
         movementScript = GetComponent<PlayerMovement>();
         anim = GetComponentInChildren<Animator>();
@@ -842,6 +844,10 @@ public class PlayerHealth : NetworkBehaviour
 
     private void PlayHurtGruntSFX()
     {
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Hurt,
+                HasInputAuthority)) return;
+
         EnsureAudioSource();
 
         // Nạp tự động từ Resources nếu chưa gán Inspector
@@ -884,10 +890,16 @@ public class PlayerHealth : NetworkBehaviour
 
     private void PlayDeathSFX()
     {
+        if (hasPlayedDeathSFX ||
+            !GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Death,
+                HasInputAuthority)) return;
+
         if (deathSFX == null) deathSFX = Resources.Load<AudioClip>("Sound/BodyState/player_death");
 
         if (deathSFX != null)
         {
+            hasPlayedDeathSFX = true;
             float sfxVol = GetSFXVolume();
             GameObject soundObj = new GameObject("Temp_PlayerDeathSFX");
             soundObj.transform.position = transform.position;

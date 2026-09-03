@@ -331,8 +331,16 @@ public class PlayerCombat : NetworkBehaviour
         shootDirection.Normalize();
 
         if (HasStateAuthority)
+        {
             shootDirection = ResolvePointBlankShootDirection(shootDirection);
-        RPC_ShowMuzzleFlash(shootDirection);
+            if (Runner.IsForward) RPC_ShowMuzzleFlash(shootDirection);
+        }
+        else if (HasInputAuthority && Runner.IsForward)
+        {
+            // Predict only the owner's audio. State Authority is the sole RPC
+            // fan-out, and its echo is suppressed for this owner below.
+            PlayAK47ShootSFX();
+        }
 
         if (HasStateAuthority)
         {
@@ -476,7 +484,10 @@ public class PlayerCombat : NetworkBehaviour
             AutoUIManager.Instance?.CancelTimedGameplayAction();
 
         int randomAttack = Random.Range(2, 5);
-        RPC_PlayBashAnimation(randomAttack);
+        // Bash is simulated by both the input and state peers. Only authority
+        // may fan out its animation, otherwise its event can broadcast the
+        // melee swing twice.
+        if (HasStateAuthority && Runner.IsForward) RPC_PlayBashAnimation(randomAttack);
 
         if (playerMove != null) playerMove.LockMovementForAttack(bashDuration);
         if (staminaSystem != null) staminaSystem.ConsumeStamina(bashStaminaCost);
@@ -575,8 +586,13 @@ public class PlayerCombat : NetworkBehaviour
         if (HasInputAuthority)
             AutoUIManager.Instance?.CancelTimedGameplayAction();
 
-        // 🔥 PHÁT ÂM THANH BẮN SÚNG AK47
-        PlayAK47ShootSFX();
+        // A remote teammate and a Host owner play the authoritative event.
+        // A client owner already played the predicted cue in Shoot().
+        if (GameplayAudioSpatializer.ShouldPlayAuthoritativeCue(
+                GameplayAudioSpatializer.PlayerCue.Gunshot,
+                HasInputAuthority,
+                HasStateAuthority))
+            PlayAK47ShootSFX();
 
         if (HasInputAuthority) AutoNoiseMeter.ReportTransientNoise(0.92f, "SÚNG NỔ");
 
@@ -783,6 +799,10 @@ public class PlayerCombat : NetworkBehaviour
 
     private void PlayAK47ShootSFX()
     {
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Gunshot,
+                HasInputAuthority)) return;
+
         AutoAssignAK47AudioClips();
         ItemData equipped = GetEquippedWeapon();
         AudioClip shootClip = (equipped != null && equipped.customSingleShootSFX != null) ? equipped.customSingleShootSFX : null;
@@ -808,6 +828,10 @@ public class PlayerCombat : NetworkBehaviour
         if (!gameObject.activeInHierarchy) return;
         if (HasInputAuthority)
             AutoUIManager.Instance?.CancelTimedGameplayAction();
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.DryFire,
+                HasInputAuthority)) return;
+
         AutoAssignAK47AudioClips();
         ItemData equipped = GetEquippedWeapon();
         AudioClip dryClip = (equipped != null && equipped.customDryFireSFX != null) ? equipped.customDryFireSFX : null;
@@ -829,6 +853,10 @@ public class PlayerCombat : NetworkBehaviour
     public void RPC_PlayReloadSFX()
     {
         if (!gameObject.activeInHierarchy) return;
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Reload,
+                HasInputAuthority)) return;
+
         AutoAssignAK47AudioClips();
         ItemData equipped = GetEquippedWeapon();
         AudioClip customReload = (equipped != null && equipped.customReloadSFX != null) ? equipped.customReloadSFX : null;
@@ -849,6 +877,10 @@ public class PlayerCombat : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
     public void RPC_StopReloadSFX()
     {
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Reload,
+                HasInputAuthority)) return;
+
         if (weaponAudioSource != null && weaponAudioSource.isPlaying)
         {
             weaponAudioSource.Stop();
@@ -865,6 +897,10 @@ public class PlayerCombat : NetworkBehaviour
     public void RPC_PlayMeleeSwingSFX()
     {
         if (!gameObject.activeInHierarchy) return;
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Melee,
+                HasInputAuthority)) return;
+
         AutoAssignAK47AudioClips();
         if (swingSFX == null) swingSFX = Resources.Load<AudioClip>("Sound/Melee/melee_swing");
         if (swingSFX == null || weaponAudioSource == null) return;
@@ -884,6 +920,10 @@ public class PlayerCombat : NetworkBehaviour
     public void RPC_PlayMeleeHitFleshSFX()
     {
         if (!gameObject.activeInHierarchy) return;
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Melee,
+                HasInputAuthority)) return;
+
         AutoAssignAK47AudioClips();
         if (hitFleshSFX == null) hitFleshSFX = Resources.Load<AudioClip>("Sound/Melee/melee_hit_flesh");
         if (hitFleshSFX == null || weaponAudioSource == null) return;
