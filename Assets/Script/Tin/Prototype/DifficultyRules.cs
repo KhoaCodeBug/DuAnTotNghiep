@@ -145,10 +145,12 @@ public static class DifficultyRules
     }
 
     /// <summary>
+    /// Flashlights are intentionally excluded from every starter loadout:
+    /// survivors must find one through ordinary world loot.
     /// Easy: random weapon + one matching magazine, 3 Water, 3 Meat,
-    /// 1 Flashlight, 5 Bandage, and 1 PainKiller.
-    /// Normal: random weapon + one matching magazine, 1 Flashlight, and 3 Bandage.
-    /// Hard: 1 Flashlight.
+    /// 5 Bandage, and 1 PainKiller.
+    /// Normal: random weapon + one matching magazine and 3 Bandage.
+    /// Hard: no starting gear.
     /// </summary>
     public static StarterItem[] GetStarterGearLoadout(int difficulty)
     {
@@ -159,20 +161,15 @@ public static class DifficultyRules
                 new StarterItem(RandomStarterWeaponId, 1, preferHotbar: true),
                 new StarterItem("Water", 3, preferHotbar: false),
                 new StarterItem("Meat", 3, preferHotbar: false),
-                new StarterItem("Flashlight", 1, preferHotbar: false),
                 new StarterItem("Bandage", 5, preferHotbar: false),
                 new StarterItem("PainKiller", 1, preferHotbar: false)
             },
             1 => new StarterItem[]
             {
                 new StarterItem(RandomStarterWeaponId, 1, preferHotbar: true),
-                new StarterItem("Flashlight", 1, preferHotbar: false),
                 new StarterItem("Bandage", 3, preferHotbar: false)
             },
-            2 => new StarterItem[]
-            {
-                new StarterItem("Flashlight", 1, preferHotbar: false)
-            },
+            2 => Array.Empty<StarterItem>(),
             _ => Array.Empty<StarterItem>()
         };
     }

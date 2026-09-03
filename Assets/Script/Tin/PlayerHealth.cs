@@ -532,6 +532,11 @@ public class PlayerHealth : NetworkBehaviour
         CleanupParanoia();
         isDead = true;
 
+        // Flashlights are consumable survival gear: death destroys them rather
+        // than allowing a later avatar/respawn to inherit a charged torch.
+        if (HasStateAuthority)
+            GetComponent<InventorySystem>()?.AuthorityRemoveAllFlashlightsOnDeath();
+
         if (HasStateAuthority && !hasBroadcastDeathAnnouncement)
         {
             hasBroadcastDeathAnnouncement = true;

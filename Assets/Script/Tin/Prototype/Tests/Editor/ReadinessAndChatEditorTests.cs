@@ -505,21 +505,21 @@ public sealed class ReadinessAndChatEditorTests
         Assert.That((float)getLootMethod.Invoke(null, new object[] { 0 }), Is.EqualTo(1.5f));
         Assert.That((float)getDamageMethod.Invoke(null, new object[] { 0 }), Is.EqualTo(0.7f));
         Array easyLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 0 });
-        Assert.That(easyLoadout.Length, Is.EqualTo(6));
+        Assert.That(easyLoadout.Length, Is.EqualTo(5));
 
         // 2. Normal Mode (1)
         Assert.That((float)getDensityMethod.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Assert.That((float)getLootMethod.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Assert.That((float)getDamageMethod.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Array normalLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 1 });
-        Assert.That(normalLoadout.Length, Is.EqualTo(3));
+        Assert.That(normalLoadout.Length, Is.EqualTo(2));
 
         // 3. Hard Mode (2)
         Assert.That((float)getDensityMethod.Invoke(null, new object[] { 2 }), Is.EqualTo(2.5f));
         Assert.That((float)getLootMethod.Invoke(null, new object[] { 2 }), Is.EqualTo(0.4f));
         Assert.That((float)getDamageMethod.Invoke(null, new object[] { 2 }), Is.EqualTo(1.5f));
         Array hardLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 2 });
-        Assert.That(hardLoadout.Length, Is.EqualTo(1));
+        Assert.That(hardLoadout.Length, Is.Zero);
 
         // 4. Session Difficulty Canonical Override
         resetSessionDiffMethod.Invoke(null, null);
@@ -563,7 +563,7 @@ public sealed class ReadinessAndChatEditorTests
             Assert.That((float)getLootMethod.Invoke(null, new object[] { effectiveDiff }), Is.EqualTo(0.4f));
             Assert.That((float)getDamageMethod.Invoke(null, new object[] { effectiveDiff }), Is.EqualTo(1.5f));
             Array hardLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { effectiveDiff });
-            Assert.That(hardLoadout.Length, Is.EqualTo(1), "Hard difficulty must yield flashlight only.");
+            Assert.That(hardLoadout.Length, Is.Zero, "Hard difficulty must not grant a flashlight.");
 
             // Scenario 2: Client has local PlayerPrefs = Hard (2), but Host broadcasts Easy (0)
             resetSessionDiffMethod.Invoke(null, null);
@@ -580,7 +580,7 @@ public sealed class ReadinessAndChatEditorTests
             Assert.That((float)getLootMethod.Invoke(null, new object[] { effectiveDiff }), Is.EqualTo(1.5f));
             Assert.That((float)getDamageMethod.Invoke(null, new object[] { effectiveDiff }), Is.EqualTo(0.7f));
             Array easyLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { effectiveDiff });
-            Assert.That(easyLoadout.Length, Is.EqualTo(6), "Easy difficulty must yield six starter entries.");
+            Assert.That(easyLoadout.Length, Is.EqualTo(5), "Easy difficulty must yield five starter entries.");
         }
         finally
         {
@@ -675,7 +675,7 @@ public sealed class ReadinessAndChatEditorTests
 
         // Test Easy loadout fixed entries; the weapon entry is resolved by State Authority.
         Array easyLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 0 });
-        Assert.That(easyLoadout.Length, Is.EqualTo(6));
+        Assert.That(easyLoadout.Length, Is.EqualTo(5));
         for (int i = 0; i < easyLoadout.Length; i++)
         {
             object entry = easyLoadout.GetValue(i);
@@ -694,7 +694,7 @@ public sealed class ReadinessAndChatEditorTests
 
         // Test Normal loadout fixed entries; the weapon entry is resolved by State Authority.
         Array normalLoadout = (Array)getLoadoutMethod.Invoke(null, new object[] { 1 });
-        Assert.That(normalLoadout.Length, Is.EqualTo(3));
+        Assert.That(normalLoadout.Length, Is.EqualTo(2));
         for (int i = 0; i < normalLoadout.Length; i++)
         {
             object entry = normalLoadout.GetValue(i);

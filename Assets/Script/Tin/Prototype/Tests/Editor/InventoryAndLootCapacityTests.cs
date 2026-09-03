@@ -714,26 +714,26 @@ public sealed class InventoryAndLootCapacityTests
         MethodInfo getDamage = RequireMethod(diffRulesType, "GetIncomingDamageMultiplier", typeof(int));
         MethodInfo getLoadout = RequireMethod(diffRulesType, "GetStarterGearLoadout", typeof(int));
 
-        // EASY MODE (0): Density 0.5x, Loot 1.5x, Damage 0.7x, six starter entries.
+        // EASY MODE (0): Density 0.5x, Loot 1.5x, Damage 0.7x, five starter entries.
         Assert.That((float)getDensity.Invoke(null, new object[] { 0 }), Is.EqualTo(0.5f));
         Assert.That((float)getLoot.Invoke(null, new object[] { 0 }), Is.EqualTo(1.5f));
         Assert.That((float)getDamage.Invoke(null, new object[] { 0 }), Is.EqualTo(0.7f));
         Array easyLoadout = (Array)getLoadout.Invoke(null, new object[] { 0 });
-        Assert.That(easyLoadout.Length, Is.EqualTo(6));
+        Assert.That(easyLoadout.Length, Is.EqualTo(5));
 
-        // NORMAL MODE (1): Density 1.0x, Loot 1.0x, Damage 1.0x, three starter entries.
+        // NORMAL MODE (1): Density 1.0x, Loot 1.0x, Damage 1.0x, two starter entries.
         Assert.That((float)getDensity.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Assert.That((float)getLoot.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Assert.That((float)getDamage.Invoke(null, new object[] { 1 }), Is.EqualTo(1.0f));
         Array normLoadout = (Array)getLoadout.Invoke(null, new object[] { 1 });
-        Assert.That(normLoadout.Length, Is.EqualTo(3));
+        Assert.That(normLoadout.Length, Is.EqualTo(2));
 
-        // HARD MODE (2): Density 2.5x, Loot 0.4x, Damage 1.5x, flashlight only.
+        // HARD MODE (2): Density 2.5x, Loot 0.4x, Damage 1.5x, no starting gear.
         Assert.That((float)getDensity.Invoke(null, new object[] { 2 }), Is.EqualTo(2.5f));
         Assert.That((float)getLoot.Invoke(null, new object[] { 2 }), Is.EqualTo(0.4f));
         Assert.That((float)getDamage.Invoke(null, new object[] { 2 }), Is.EqualTo(1.5f));
         Array hardLoadout = (Array)getLoadout.Invoke(null, new object[] { 2 });
-        Assert.That(hardLoadout.Length, Is.EqualTo(1));
+        Assert.That(hardLoadout.Length, Is.Zero);
     }
 
     [Test]
@@ -751,13 +751,17 @@ public sealed class InventoryAndLootCapacityTests
 
         AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "Water", 3);
         AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "Meat", 3);
-        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "Flashlight", 1);
         AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "Bandage", 5);
         AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 0 }), "PainKiller", 1);
 
-        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 1 }), "Flashlight", 1);
         AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 1 }), "Bandage", 3);
-        AssertStarterFixedAmount((Array)getLoadout.Invoke(null, new object[] { 2 }), "Flashlight", 1);
+
+        foreach (int difficulty in new[] { 0, 1, 2 })
+        {
+            Array loadout = (Array)getLoadout.Invoke(null, new object[] { difficulty });
+            Assert.That(loadout.Cast<object>().Select(entry => (string)entry.GetType().GetField("ItemId").GetValue(entry)),
+                Does.Not.Contain("Flashlight"), "Flashlight must only be obtained through loot.");
+        }
 
         foreach (int difficulty in new[] { 0, 1 })
         {

@@ -6,6 +6,8 @@ public class ItemPickup : MonoBehaviour // 🔥 ĐÃ ĐỔI: Trở lại làm Mo
 {
     public ItemData item;
     public int amount = 1;
+    [Range(FlashlightController.MinimumLootBattery01, 1f)]
+    public float flashlightBattery01 = 1f;
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
@@ -31,7 +33,7 @@ public class ItemPickup : MonoBehaviour // 🔥 ĐÃ ĐỔI: Trở lại làm Mo
                     return;
                 }
 
-                bool pickedUp = inventory.AddItem(item, amount);
+                bool pickedUp = inventory.AddItem(item, amount, flashlightBattery01);
 
                 if (pickedUp)
                 {
