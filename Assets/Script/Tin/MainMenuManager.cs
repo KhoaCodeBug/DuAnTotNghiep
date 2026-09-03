@@ -1691,8 +1691,12 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     {
         float displayedProgress = 0.05f;
         float elapsedLoadingTime = 0f;
+        float readinessStallTime = 0f;
         float tipTimer = 0f;
-        float globalLoadingTimeout = 35f;
+        float readinessStallTimeout = 35f;
+        GameplayReadinessCoordinator.ReadinessStage observedReadinessStage =
+            GameplayReadinessCoordinator.CurrentStage;
+        float observedReadinessProgress = GameplayReadinessCoordinator.CurrentProgress;
         currentLoadingTipIndex = UnityEngine.Random.Range(1, 6);
         UpdateLoadingTipDisplay();
 
@@ -1728,8 +1732,26 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 break;
             }
 
-            elapsedLoadingTime += Time.unscaledDeltaTime;
-            tipTimer += Time.unscaledDeltaTime;
+            float unscaledDeltaTime = Time.unscaledDeltaTime;
+            elapsedLoadingTime += unscaledDeltaTime;
+            tipTimer += unscaledDeltaTime;
+
+            GameplayReadinessCoordinator.ReadinessStage currentReadinessStage =
+                GameplayReadinessCoordinator.CurrentStage;
+            float currentReadinessProgress = GameplayReadinessCoordinator.CurrentProgress;
+            bool readinessAdvanced = currentReadinessStage != observedReadinessStage ||
+                currentReadinessProgress > observedReadinessProgress + 0.0001f;
+            if (readinessAdvanced)
+            {
+                observedReadinessStage = currentReadinessStage;
+                observedReadinessProgress = currentReadinessProgress;
+                readinessStallTime = 0f;
+            }
+            else
+            {
+                readinessStallTime += unscaledDeltaTime;
+            }
+
             if (tipTimer >= 4f)
             {
                 tipTimer = 0f;
@@ -1742,15 +1764,18 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
                 loadingSpinnerRect.Rotate(0f, 0f, -240f * Time.unscaledDeltaTime);
             }
 
-            // Global Timeout: Nếu quá 35s mà chưa vào game, kích hoạt lỗi
-            if (elapsedLoadingTime >= globalLoadingTimeout)
+            // Chỉ fail khi readiness thực sự không tiến triển. Một frame scene-load
+            // đồng bộ dài không được phép làm hết timeout ngay sau khi stage vừa tiến lên.
+            if (readinessStallTime >= readinessStallTimeout)
             {
                 string blockedReason = !isLocalSceneLoaded ? "Scene/Runner Loading" :
                     (GameplayReadinessCoordinator.CurrentStage < GameplayReadinessCoordinator.ReadinessStage.PlayerSpawnWaiting ? "Player Spawn Wait" :
                     (GameplayReadinessCoordinator.CurrentStage < GameplayReadinessCoordinator.ReadinessStage.LocalAvatarBinding ? "Avatar Binding" :
                     (GameplayReadinessCoordinator.CurrentStage < GameplayReadinessCoordinator.ReadinessStage.HUDAndSystemsReady ? "HUD & Systems" :
                     "Host Release Signal")));
-                Debug.LogError($"[LOADING TIMEOUT] Global loading timeout reached ({elapsedLoadingTime:F1}s) at stage '{GameplayReadinessCoordinator.CurrentStage}'. Blocked component: {blockedReason}. Failing readiness attempt.");
+                Debug.LogError($"[LOADING TIMEOUT] Readiness made no progress for {readinessStallTime:F1}s " +
+                    $"({elapsedLoadingTime:F1}s total) at stage '{GameplayReadinessCoordinator.CurrentStage}'. " +
+                    $"Blocked component: {blockedReason}. Failing readiness attempt.");
                 GameplayReadinessCoordinator.Fail(string.Format(GameLocalization.Get("loading.failed"), $"Timeout: {blockedReason}"));
                 break;
             }
