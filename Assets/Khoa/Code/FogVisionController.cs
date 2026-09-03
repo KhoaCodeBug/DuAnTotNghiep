@@ -102,6 +102,9 @@ public class FogVisionController : MonoBehaviour
     private static readonly int IndoorShadowEdgeCountId = Shader.PropertyToID("_IndoorShadowEdgeCount");
     private static readonly int IndoorShadowEdgesId = Shader.PropertyToID("_IndoorShadowEdges");
     private static readonly int IndoorShadowEdgeMetaId = Shader.PropertyToID("_IndoorShadowEdgeMeta");
+    private static readonly int NearZombieAwarenessCountId = Shader.PropertyToID("_NearZombieAwarenessCount");
+    private static readonly int NearZombieAwarenessBoundsId = Shader.PropertyToID("_NearZombieAwarenessBounds");
+    private static readonly int NearZombieAwarenessStrengthsId = Shader.PropertyToID("_NearZombieAwarenessStrengths");
     private static readonly int FogWorldBottomLeftId = Shader.PropertyToID("_FogWorldBottomLeft");
     private static readonly int FogWorldRightId = Shader.PropertyToID("_FogWorldRight");
     private static readonly int FogWorldUpId = Shader.PropertyToID("_FogWorldUp");
@@ -142,6 +145,9 @@ public class FogVisionController : MonoBehaviour
     private readonly Vector4[] indoorShadowEdges = new Vector4[MaxIndoorShadowEdges];
     private readonly Vector4[] indoorShadowTargetEdges = new Vector4[MaxIndoorShadowEdges];
     private readonly Vector4[] indoorShadowEdgeMeta = new Vector4[MaxIndoorShadowEdges];
+    private readonly Vector4[] nearZombieAwarenessBounds = new Vector4[PlayerVision.MaxNearAwarenessFogMasks];
+    private readonly float[] nearZombieAwarenessStrengths = new float[PlayerVision.MaxNearAwarenessFogMasks];
+    public int NearZombieAwarenessCount { get; private set; }
     private readonly float[] indoorShadowEdgeStrengths = new float[MaxIndoorShadowEdges];
     private readonly float[] indoorShadowTargetStrengths = new float[MaxIndoorShadowEdges];
     private readonly float[] indoorShadowTargetWeights = new float[MaxIndoorShadowEdges];
@@ -475,6 +481,18 @@ public class FogVisionController : MonoBehaviour
         overlayMaterial.SetVector(IndoorOcclusionOriginId, lastOcclusionOrigin);
         overlayMaterial.SetFloat(IndoorOcclusionEdgeSoftnessId, indoorOcclusionEdgeSoftness);
         overlayMaterial.SetFloat(IndoorWallOccludedOpacityId, indoorWallOccludedOpacity);
+        NearZombieAwarenessCount = isIndoor
+            ? targetVision.FillNearAwarenessFogMasks(nearZombieAwarenessBounds, nearZombieAwarenessStrengths)
+            : 0;
+        for (int awarenessIndex = NearZombieAwarenessCount;
+             awarenessIndex < PlayerVision.MaxNearAwarenessFogMasks; awarenessIndex++)
+        {
+            nearZombieAwarenessBounds[awarenessIndex] = Vector4.zero;
+            nearZombieAwarenessStrengths[awarenessIndex] = 0f;
+        }
+        overlayMaterial.SetFloat(NearZombieAwarenessCountId, NearZombieAwarenessCount);
+        overlayMaterial.SetVectorArray(NearZombieAwarenessBoundsId, nearZombieAwarenessBounds);
+        overlayMaterial.SetFloatArray(NearZombieAwarenessStrengthsId, nearZombieAwarenessStrengths);
         overlayMaterial.SetFloat(QuestBoundaryActiveId, IsQuestSearchBoundaryActive ? 1f : 0f);
         overlayMaterial.SetVector(QuestBoundaryOriginId, questBoundaryOrigin);
         overlayMaterial.SetVector(QuestBoundaryRightId, questBoundaryRight);

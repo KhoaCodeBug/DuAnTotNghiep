@@ -47,6 +47,25 @@ public sealed class IndoorFogSurfaceMap : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Stable containment for one authored interior. The primary volume and every
+    /// explicit alias share one identity, so crossing between split roof triggers
+    /// does not briefly classify an actor as exterior.
+    /// </summary>
+    public bool ContainsIndoorPoint(Vector2 point)
+    {
+        if (indoorVolume != null && indoorVolume.enabled && indoorVolume.gameObject.activeInHierarchy &&
+            indoorVolume.OverlapPoint(point))
+            return true;
+
+        if (additionalIndoorVolumes == null) return false;
+        foreach (Collider2D alias in additionalIndoorVolumes)
+            if (alias != null && alias.enabled && alias.gameObject.activeInHierarchy &&
+                alias.OverlapPoint(point))
+                return true;
+        return false;
+    }
+
     private struct Surface
     {
         public Sprite sprite;

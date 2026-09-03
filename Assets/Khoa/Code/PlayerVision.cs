@@ -30,7 +30,7 @@ public class PlayerVision : NetworkBehaviour
     public LayerMask zombieLayer;
     public LayerMask obstacleLayer;
 
-    [Tooltip("Khoảng cách cảm nhận 360 độ quanh Player. Zombie phía sau vẫn hiện, nhưng tường kín vẫn chặn cảm nhận.")]
+    [Tooltip("Khoảng cách cảm nhận 360 độ quanh Player. Chỉ bỏ LOS nội bộ khi Player và zombie cùng một indoor area ổn định.")]
     public float passiveVisionRadius = 1.5f;
 
     [Range(0.05f, 1f)]
@@ -72,6 +72,9 @@ public class PlayerVision : NetworkBehaviour
     private Material localPlayerUnlitMaterial;
     private SpriteRenderer localPlayerXRayRenderer;
     private readonly Dictionary<SpriteRenderer, float> zombieOriginalAlphas = new Dictionary<SpriteRenderer, float>();
+    private readonly Dictionary<SpriteRenderer, float> nearAwarenessMaskAlphas = new Dictionary<SpriteRenderer, float>();
+    private readonly HashSet<SpriteRenderer> nearAwarenessUpdated = new HashSet<SpriteRenderer>();
+    internal const int MaxNearAwarenessFogMasks = 16;
 
     public float CurrentVisionRadius { get; private set; }
     public float AmbientVisionRadius { get; private set; }
@@ -231,6 +234,7 @@ public class PlayerVision : NetworkBehaviour
 
         if (!isTarget)
         {
+            ClearNearAwarenessMasksImmediate();
             return;
         }
 
@@ -403,6 +407,7 @@ public class PlayerVision : NetworkBehaviour
         int zombieCount = Physics2D.OverlapCircle(visionOrigin, 40f, zombieFilter, zombiesInRadius);
         Collider2D indoorCollider = ActiveIndoorCollider;
         bool isInside = indoorCollider != null;
+        nearAwarenessUpdated.Clear();
 
         for (int i = 0; i < zombieCount; i++)
         {
@@ -413,6 +418,8 @@ public class PlayerVision : NetworkBehaviour
             Vector2 dirToZombie = (Vector2)zCollider.bounds.center - visionOrigin;
             float dstToZombie = dirToZombie.magnitude;
             dirToZombie.Normalize();
+            bool sameIndoorNear = isInside && dstToZombie <= passiveVisionRadius &&
+                IsPointInsideActiveIndoorArea(indoorCollider, visionOrigin, zCollider.bounds.center);
 
             bool isVisible = false;
 
@@ -425,20 +432,20 @@ public class PlayerVision : NetworkBehaviour
                 isVisible = true;
             }
 
-            // Without a flashlight, indoor vision cannot reveal exterior zombie silhouettes.
+            // Near awareness is observer-local, but only actors inside the same stable
+            // indoor identity may ignore internal LOS. Exterior actors keep the old
+            // doorway/cone/LOS rules even when they are physically close.
+            else if (sameIndoorNear || (!isInside && dstToZombie <= passiveVisionRadius))
+            {
+                isVisible = true;
+            }
+            // Without a flashlight, indoor vision cannot reveal distant exterior zombie silhouettes.
             // With one, the regular radius/cone/LOS checks below may see through an open doorway.
             else if (isInside &&
                      !IsPointInsideActiveIndoorArea(indoorCollider, visionOrigin, zCollider.bounds.center) &&
                      !IsFlashlightActive)
             {
                 isVisible = false;
-            }
-            // Vùng cảm nhận 360 độ luôn hoạt động: zombie sát người không thể biến mất
-            // chỉ vì ở sau lưng hoặc đứng phía bên kia ranh giới indoor.
-            else if (dstToZombie <= passiveVisionRadius &&
-                     !IsSightBlocked(visionOrigin, dirToZombie, dstToZombie))
-            {
-                isVisible = true;
             }
             // B. NHÌN TRỰC TIẾP TRONG BÁN KÍNH ĐÈN PIN
             else if (dstToZombie <= visionRadius)
@@ -459,9 +466,13 @@ public class PlayerVision : NetworkBehaviour
             // camera target và vùng nhìn riêng.
             foreach (var sr in srs)
             {
-                if (sr != null) SetZombieRendererVisibility(sr, isVisible, false);
+                if (sr == null) continue;
+                SetZombieRendererVisibility(sr, isVisible, false);
+                UpdateNearAwarenessMask(sr, sameIndoorNear);
             }
         }
+
+        FadeUnusedNearAwarenessMasks();
     }
 
     private bool IsSightBlocked(Vector2 origin, Vector2 direction, float distance)
@@ -486,6 +497,11 @@ public class PlayerVision : NetworkBehaviour
         Vector2 playerPosition, Vector2 targetPosition)
     {
         if (indoorCollider == null) return false;
+
+        IndoorFogSurfaceMap stableArea = indoorCollider.GetComponentInParent<IndoorFogSurfaceMap>();
+        if (stableArea != null && stableArea.MatchesIndoorVolume(indoorCollider))
+            return stableArea.ContainsIndoorPoint(targetPosition);
+
         if (indoorCollider.OverlapPoint(targetPosition)) return true;
 
         // Roof triggers generated from several roof-tile islands can overlap the
@@ -525,5 +541,62 @@ public class PlayerVision : NetworkBehaviour
         renderer.color = color;
         if (!visible && color.a <= 0.001f)
             renderer.enabled = false;
+    }
+
+    private void UpdateNearAwarenessMask(SpriteRenderer source, bool sameIndoorNear)
+    {
+        nearAwarenessUpdated.Add(source);
+        if (!nearAwarenessMaskAlphas.TryGetValue(source, out float alpha)) alpha = 0f;
+        float targetAlpha = sameIndoorNear ? 1f : 0f;
+        nearAwarenessMaskAlphas[source] = zombieVisibilityFadeDuration <= 0.001f
+            ? targetAlpha
+            : Mathf.MoveTowards(alpha, targetAlpha, Time.deltaTime / zombieVisibilityFadeDuration);
+    }
+
+    private void FadeUnusedNearAwarenessMasks()
+    {
+        if (nearAwarenessMaskAlphas.Count == 0) return;
+        var sources = new List<SpriteRenderer>(nearAwarenessMaskAlphas.Keys);
+        foreach (SpriteRenderer source in sources)
+        {
+            if (source == null)
+            {
+                nearAwarenessMaskAlphas.Remove(source);
+                continue;
+            }
+            bool unused = !nearAwarenessUpdated.Contains(source);
+            if (unused) UpdateNearAwarenessMask(source, false);
+            if (nearAwarenessMaskAlphas[source] <= 0.001f && unused)
+                nearAwarenessMaskAlphas.Remove(source);
+        }
+    }
+
+    private void ClearNearAwarenessMasksImmediate()
+    {
+        if (nearAwarenessMaskAlphas.Count == 0) return;
+        var sources = new List<SpriteRenderer>(nearAwarenessMaskAlphas.Keys);
+        foreach (SpriteRenderer source in sources)
+            if (source == null) nearAwarenessMaskAlphas.Remove(source);
+            else nearAwarenessMaskAlphas[source] = 0f;
+    }
+
+    internal int FillNearAwarenessFogMasks(Vector4[] bounds, float[] strengths)
+    {
+        if (bounds == null || strengths == null) return 0;
+        int capacity = Mathf.Min(MaxNearAwarenessFogMasks, Mathf.Min(bounds.Length, strengths.Length));
+        int count = 0;
+        foreach (KeyValuePair<SpriteRenderer, float> entry in nearAwarenessMaskAlphas)
+        {
+            SpriteRenderer renderer = entry.Key;
+            float alpha = entry.Value;
+            if (renderer == null || alpha <= 0.001f || !renderer.gameObject.activeInHierarchy || count >= capacity)
+                continue;
+            Bounds rendererBounds = renderer.bounds;
+            bounds[count] = new Vector4(rendererBounds.center.x, rendererBounds.center.y,
+                Mathf.Max(0.06f, rendererBounds.extents.x), Mathf.Max(0.08f, rendererBounds.extents.y));
+            strengths[count] = Mathf.Clamp01(alpha);
+            count++;
+        }
+        return count;
     }
 }

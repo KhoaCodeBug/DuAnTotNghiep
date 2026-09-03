@@ -68,6 +68,9 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 float _IndoorShadowEdgeCount;
                 float4 _IndoorShadowEdges[32];
                 float4 _IndoorShadowEdgeMeta[32];
+                float _NearZombieAwarenessCount;
+                float4 _NearZombieAwarenessBounds[16];
+                float _NearZombieAwarenessStrengths[16];
                 float _QuestBoundaryActive;
                 float2 _QuestBoundaryOrigin;
                 float2 _QuestBoundaryRight;
@@ -233,6 +236,23 @@ Shader "ProjectZomboid/FogVisionOverlay"
                 return fade;
             }
 
+            float NearZombieAwareness(float2 worldPosition)
+            {
+                float reveal = 0.0;
+                [loop]
+                for (int i = 0; i < (int)_NearZombieAwarenessCount; i++)
+                {
+                    float4 bounds = _NearZombieAwarenessBounds[i];
+                    float2 normalizedOffset = (worldPosition - bounds.xy) / max(bounds.zw, float2(0.02, 0.02));
+                    // Keep the fog opening close to the actual sprite bounds. The soft
+                    // ellipse only changes fog alpha; the original lit SpriteRenderer
+                    // remains the sole colour/material/sorting source.
+                    float silhouette = 1.0 - smoothstep(0.76, 1.0, length(normalizedOffset));
+                    reveal = max(reveal, silhouette * saturate(_NearZombieAwarenessStrengths[i]));
+                }
+                return saturate(reveal);
+            }
+
             half4 frag(Varyings input) : SV_Target
             {
                 float2 worldPosition = _FogWorldBottomLeft + input.uv.x * _FogWorldRight + input.uv.y * _FogWorldUp;
@@ -330,6 +350,9 @@ Shader "ProjectZomboid/FogVisionOverlay"
                     opacity *= 1 - exitAwareness * (1 - insideIndoor) * _IndoorExitAwarenessClearance;
                     opacity *= 1 - flashlightVisibility * (1 - insideIndoor) * _IndoorExteriorFlashlightClearance;
                     float3 color = lerp(_IndoorExteriorColor.rgb, _IndoorAmbientColor.rgb, visible);
+                    float nearZombieAwareness = NearZombieAwareness(worldPosition) * insideIndoor;
+                    opacity = lerp(opacity, surfaceOpacity, nearZombieAwareness);
+                    color = lerp(color, _IndoorAmbientColor.rgb, nearZombieAwareness);
                     return half4(color, saturate(opacity));
                 }
                 if (_IndoorActive > 0.5)
@@ -365,6 +388,9 @@ Shader "ProjectZomboid/FogVisionOverlay"
                     float3 flashlightFogTint = float3(0.22, 0.20, 0.15);
                     indoorColor = lerp(indoorColor, flashlightFogTint,
                                        flashlightVisibility * _FlashlightIllumination);
+                    float nearZombieAwareness = NearZombieAwareness(worldPosition) * insideIndoor;
+                    indoorOpacity = lerp(indoorOpacity, _IndoorAmbientOpacity, nearZombieAwareness);
+                    indoorColor = lerp(indoorColor, _IndoorAmbientColor.rgb, nearZombieAwareness);
                     return half4(indoorColor, saturate(indoorOpacity));
                 }
 
