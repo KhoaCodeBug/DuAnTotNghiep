@@ -31,6 +31,10 @@ public class LootContainer : NetworkBehaviour
     [Header("Hệ Thống Random Đồ (Chỉ Host xử lý)")]
     public LootTableSO lootTable;
 
+    [Header("Đèn pin trong loot thường")]
+    [Tooltip("Cơ hội một tủ loot thường có thêm đèn pin. Mỗi chiếc có pin ngẫu nhiên từ 25% đến 100%.")]
+    [SerializeField, Range(0f, 100f)] private float flashlightDropChance = 15f;
+
     [Header("Route B Military Repair Loot")]
     [SerializeField]
     [Tooltip("Only the military siege may open or transact with this container.")]
@@ -136,11 +140,13 @@ public class LootContainer : NetworkBehaviour
                 {
                     int spawnAmount = LootQuantityRules.RollRandomAmount(
                         lootRule.itemPrefab, lootRule.minAmount, lootRule.maxAmount);
-                    StoreItemLocal(lootRule.itemPrefab, spawnAmount, RandomLootSlotLimit);
+                    StoreItemLocal(lootRule.itemPrefab, spawnAmount, RandomLootSlotLimit,
+                        RollFlashlightBattery01(lootRule.itemPrefab));
                 }
             }
         }
 
+        TryGenerateFlashlightLoot(lootMultiplier);
         TryGenerateBackpackLoot(lootMultiplier);
 
         // The existing loot table does not contain AK47/S12K.  Roll one
@@ -149,6 +155,33 @@ public class LootContainer : NetworkBehaviour
         TryGenerateBonusWeapon(lootMultiplier);
         hasGeneratedLoot = true;
     }
+
+    private void TryGenerateFlashlightLoot(float lootMultiplier)
+    {
+        // A configured table may already contain Flashlight.  Never add a
+        // second one through the generic bonus roll in that case.
+        foreach (InventorySlot slot in itemsInContainer)
+        {
+            if (slot != null && InventorySystem.IsFlashlight(slot.item) && slot.amount > 0) return;
+        }
+
+        float effectiveChance = Mathf.Clamp(flashlightDropChance * lootMultiplier, 0f, 100f);
+        if (Random.Range(0f, 100f) >= effectiveChance) return;
+
+        ItemData flashlight = ItemDataLoader.LoadItem(FlashlightController.ItemId);
+        if (flashlight == null)
+        {
+            Debug.LogWarning("[LOOT SERVER] Flashlight item is missing from Resources/Items.");
+            return;
+        }
+
+        StoreItemLocal(flashlight, 1, RandomLootSlotLimit, RollFlashlightBattery01(flashlight));
+    }
+
+    private static float RollFlashlightBattery01(ItemData itemData) =>
+        InventorySystem.IsFlashlight(itemData)
+            ? Random.Range(FlashlightController.MinimumLootBattery01, 1f)
+            : 1f;
 
     private void TryGenerateBackpackLoot(float lootMultiplier)
     {
@@ -276,7 +309,7 @@ public class LootContainer : NetworkBehaviour
         return remaining <= availableNewSlots * stackLimit;
     }
 
-    private bool StoreItemLocal(ItemData itemData, int amount, int slotLimit = -1)
+    private bool StoreItemLocal(ItemData itemData, int amount, int slotLimit = -1, float flashlightBattery01 = 1f)
     {
         int effectiveSlotLimit = slotLimit > 0 ? Mathf.Min(slotLimit, MaxSlots) : MaxSlots;
         if (!CanStoreItem(itemData, amount, effectiveSlotLimit)) return false;
@@ -307,7 +340,8 @@ public class LootContainer : NetworkBehaviour
         while (amount > 0 && itemsInContainer.Count < effectiveSlotLimit)
         {
             int amountToStore = Mathf.Min(amount, stackLimit);
-            itemsInContainer.Add(new InventorySlot(itemData, amountToStore));
+            itemsInContainer.Add(new InventorySlot(itemData, amountToStore,
+                InventorySystem.IsFlashlight(itemData) ? flashlightBattery01 : 1f));
             amount -= amountToStore;
         }
 
@@ -456,7 +490,7 @@ public class LootContainer : NetworkBehaviour
 
         foreach (var slot in itemsInContainer)
         {
-            RPC_SyncAddItemToTarget(requestingPlayer, slot.item.itemName, slot.amount);
+            RPC_SyncAddItemToTarget(requestingPlayer, slot.item.itemName, slot.amount, slot.battery01);
         }
     }
 
@@ -470,12 +504,13 @@ public class LootContainer : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_SyncAddItemToTarget([RpcTarget] PlayerRef targetPlayer, string itemName, int amount)
+    public void RPC_SyncAddItemToTarget([RpcTarget] PlayerRef targetPlayer, string itemName, int amount,
+        float flashlightBattery01 = 1f)
     {
         if (Runner.LocalPlayer == targetPlayer && !HasStateAuthority)
         {
             ItemData itemData = ItemDataLoader.LoadItem(itemName);
-            if (itemData != null) StoreItemLocal(itemData, amount);
+            if (itemData != null) StoreItemLocal(itemData, amount, -1, flashlightBattery01);
         }
 
         if (Runner.LocalPlayer == targetPlayer && AutoUIManager.Instance != null && AutoUIManager.Instance.IsContainerOpen(this))
@@ -559,7 +594,7 @@ public class LootContainer : NetworkBehaviour
         // Canonical transaction: add on State Authority first.  Only remove
         // from the container if the inventory accepted the full stack.  The
         // inventory's existing RPC sync then updates the owning client.
-        if (!playerInventory.AddItem(slot.item, amount))
+        if (!playerInventory.AddItem(slot.item, amount, slot.battery01))
         {
             RPC_NotifyLootDenied(playerTryingToLoot, "Túi đồ không đủ chỗ để nhận vật phẩm này.");
             return;
@@ -736,16 +771,43 @@ public class LootContainer : NetworkBehaviour
             return;
         }
 
-        int consumed = playerInventory.ConsumeItem(itemData, amount);
-        if (consumed != amount || !StoreItemLocal(itemData, amount))
+        float flashlightBattery01 = 1f;
+        if (InventorySystem.IsFlashlight(itemData))
         {
-            if (consumed > 0) playerInventory.AddItem(itemData, consumed);
+            // Flashlights are non-stackable; preserve their individual charge
+            // when a player moves one back into a loot container.
+            if (amount != 1 || !TryGetPlayerFlashlightBattery(playerInventory, itemData, out flashlightBattery01))
+            {
+                RPC_NotifyLootDenied(playerTryingToStore, "Không tìm thấy đèn pin hợp lệ để cất vào tủ.");
+                return;
+            }
+        }
+
+        int consumed = playerInventory.ConsumeItem(itemData, amount);
+        if (consumed != amount || !StoreItemLocal(itemData, amount, -1, flashlightBattery01))
+        {
+            if (consumed > 0) playerInventory.AddItem(itemData, consumed, flashlightBattery01);
             RPC_NotifyLootDenied(playerTryingToStore, "Không thể hoàn tất giao dịch cất đồ; vật phẩm đã được hoàn lại.");
             return;
         }
 
         if (militaryRepairLootContainer) MilitaryLootHasItems = true;
-        RPC_SyncAddItem(itemName, amount, false);
+        RPC_SyncAddItem(itemName, amount, false, flashlightBattery01);
+    }
+
+    private static bool TryGetPlayerFlashlightBattery(InventorySystem inventory, ItemData flashlight,
+        out float battery01)
+    {
+        battery01 = 1f;
+        if (inventory == null || flashlight == null) return false;
+        foreach (InventorySlot slot in inventory.slots)
+        {
+            if (slot == null || slot.item != flashlight || slot.amount <= 0) continue;
+            battery01 = Mathf.Clamp01(slot.battery01);
+            return true;
+        }
+
+        return false;
     }
 
     private void OnGUI()
@@ -804,14 +866,14 @@ public class LootContainer : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    public void RPC_SyncAddItem(string itemName, int amount, bool isFullSync)
+    public void RPC_SyncAddItem(string itemName, int amount, bool isFullSync, float flashlightBattery01 = 1f)
     {
         if (!HasStateAuthority)
         {
             // Vẫn giữ isFullSync phòng hờ các trường hợp ép nạp mới khác
             if (isFullSync) itemsInContainer.Clear();
             ItemData itemData = ItemDataLoader.LoadItem(itemName);
-            if (itemData != null) StoreItemLocal(itemData, amount);
+            if (itemData != null) StoreItemLocal(itemData, amount, -1, flashlightBattery01);
         }
 
         if (AutoUIManager.Instance != null && AutoUIManager.Instance.IsContainerOpen(this))

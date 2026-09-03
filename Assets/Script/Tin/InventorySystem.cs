@@ -7,11 +7,15 @@ public class InventorySlot
 {
     public ItemData item;
     public int amount;
+    // Flashlight is non-stackable. This value is meaningful only for that item
+    // and lets every looted flashlight retain its own charge.
+    [Range(0f, 1f)] public float battery01 = 1f;
 
-    public InventorySlot(ItemData item, int amount)
+    public InventorySlot(ItemData item, int amount, float battery01 = 1f)
     {
         this.item = item;
         this.amount = amount;
+        this.battery01 = Mathf.Clamp01(battery01);
     }
     public void AddAmount(int value) { amount += value; }
 }
@@ -64,8 +68,6 @@ public class InventorySystem : NetworkBehaviour
     [Networked] private NetworkBool HasStartingWeapon { get; set; }
     [Networked] private NetworkString<_64> StartingWeaponId { get; set; }
     private bool hasAppliedStartingWeaponLocally;
-    [Networked] private NetworkBool HasStartingFlashlight { get; set; }
-    private bool hasAppliedStartingFlashlightLocally;
     [Networked] private NetworkBool StartingLoadoutResolved { get; set; }
     private float nextStartingLoadoutRetryTime;
 
@@ -108,6 +110,63 @@ public class InventorySystem : NetworkBehaviour
             ? backpackItem.backpackLevel
             : BackpackCapacityRules.GetLevelForBackpackSlots(BackpackCapacityRules.GetStorageSlots(backpackItem));
         return itemLevel > CurrentBackpackLevel;
+    }
+
+    public static bool IsFlashlight(ItemData item) => item != null &&
+        (item.name == FlashlightController.ItemId || item.itemName == FlashlightController.ItemId);
+
+    public bool TryGetFlashlightBattery(int slotIndex, out float battery01)
+    {
+        battery01 = 0f;
+        if (slotIndex < 0 || slotIndex >= slots.Count) return false;
+        InventorySlot slot = slots[slotIndex];
+        if (slot == null || slot.amount <= 0 || !IsFlashlight(slot.item)) return false;
+        battery01 = Mathf.Clamp01(slot.battery01);
+        return true;
+    }
+
+    public bool IsFlashlightInHotbarSlot(int slotIndex) =>
+        slotIndex >= 0 && slotIndex < HotbarSlotCount && TryGetFlashlightBattery(slotIndex, out _);
+
+    public void SetFlashlightBatteryLocal(int slotIndex, float battery01)
+    {
+        if (!TryGetFlashlightBattery(slotIndex, out _)) return;
+        slots[slotIndex].battery01 = Mathf.Clamp01(battery01);
+    }
+
+    /// <summary>Death destroys all personal flashlights; they are never restored by a respawn snapshot.</summary>
+    public void AuthorityRemoveAllFlashlightsOnDeath()
+    {
+        if (!HasStateAuthority) return;
+        bool removed = false;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot == null || !IsFlashlight(slot.item) || slot.amount <= 0) continue;
+            slot.item = null;
+            slot.amount = 0;
+            slot.battery01 = 0f;
+            removed = true;
+        }
+
+        if (!removed) return;
+        GetComponent<FlashlightController>()?.AuthorityClearFlashlightState();
+        UpdateUI();
+        if (!HasInputAuthority) RPC_RemoveAllFlashlightsOnDeath();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_RemoveAllFlashlightsOnDeath()
+    {
+        for (int i = 0; i < slots.Count; i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot == null || !IsFlashlight(slot.item) || slot.amount <= 0) continue;
+            slot.item = null;
+            slot.amount = 0;
+            slot.battery01 = 0f;
+        }
+        UpdateUI();
     }
 
     public bool HasClaimedQuestBackpackReward(int level) =>
@@ -419,7 +478,6 @@ public class InventorySystem : NetworkBehaviour
         }
 
         ApplyReplicatedStartingWeapon();
-        ApplyReplicatedStartingFlashlight();
 
         if (HasStateAuthority)
         {
@@ -433,7 +491,6 @@ public class InventorySystem : NetworkBehaviour
         // Spawned, so retry here until their starting gear is applied.
         ApplyReplicatedBackpackState();
         ApplyReplicatedStartingWeapon();
-        ApplyReplicatedStartingFlashlight();
 
         if (HasInputAuthority && !hasPendingRadioBackpackHandoffTriggered)
         {
@@ -557,22 +614,9 @@ public class InventorySystem : NetworkBehaviour
             }
             else
             {
-                if (data.name == FlashlightController.ItemId || data.itemName == FlashlightController.ItemId)
-                {
-                    if (!PlaceStartingFlashlightInBackpack())
-                    {
-                        fullyApplied = false;
-                        continue;
-                    }
-                    HasStartingFlashlight = true;
-                    hasAppliedStartingFlashlightLocally = true;
-                }
-                else
-                {
-                    int missingAmount = Mathf.Max(0, item.Amount - GetItemAmount(data));
-                    if (missingAmount > 0 && !AddItem(data, missingAmount))
-                        fullyApplied = false;
-                }
+                int missingAmount = Mathf.Max(0, item.Amount - GetItemAmount(data));
+                if (missingAmount > 0 && !AddItem(data, missingAmount))
+                    fullyApplied = false;
             }
         }
 
@@ -707,32 +751,6 @@ public class InventorySystem : NetworkBehaviour
         return true;
     }
 
-    private void ApplyReplicatedStartingFlashlight()
-    {
-        if (!HasInputAuthority || hasAppliedStartingFlashlightLocally || !HasStartingFlashlight) return;
-        hasAppliedStartingFlashlightLocally = PlaceStartingFlashlightInBackpack();
-    }
-
-    private bool PlaceStartingFlashlightInBackpack()
-    {
-        ItemData flashlight = ItemDataLoader.LoadItem(FlashlightController.ItemId);
-        if (flashlight == null) return false;
-        if (HasItemNamed(FlashlightController.ItemId)) return true;
-
-        while (slots.Count < maxSlots) slots.Add(new InventorySlot(null, 0));
-        for (int i = 5; i < maxSlots; i++)
-        {
-            if (slots[i] != null && slots[i].item != null && slots[i].amount > 0) continue;
-            if (slots[i] == null) slots[i] = new InventorySlot(flashlight, 1);
-            else { slots[i].item = flashlight; slots[i].amount = 1; }
-            UpdateUI();
-            return true;
-        }
-
-        Debug.LogWarning("[FLASHLIGHT] Backpack is full; starting flashlight could not be placed.");
-        return false;
-    }
-
     private int GetItemAmount(ItemData item)
     {
         if (item == null) return 0;
@@ -759,6 +777,7 @@ public class InventorySystem : NetworkBehaviour
         {
             InventorySlot slot = slots[i];
             if (slot == null || slot.item == null || slot.amount <= 0) continue;
+            if (IsFlashlight(slot.item)) continue;
             snapshot.ItemIds[i] = slot.item.name;
             snapshot.Amounts[i] = slot.amount;
         }
@@ -891,9 +910,11 @@ public class InventorySystem : NetworkBehaviour
     // ==========================================
     // HỆ THỐNG THÊM VÀ DÙNG ĐỒ
     // ==========================================
-    public bool AddItem(ItemData itemToAdd, int amountToAdd)
+    public bool AddItem(ItemData itemToAdd, int amountToAdd, float flashlightBattery01 = 1f)
     {
         if (itemToAdd == null || amountToAdd <= 0) return false;
+        flashlightBattery01 = Mathf.Clamp(flashlightBattery01,
+            FlashlightController.MinimumLootBattery01, 1f);
         int originalAmount = amountToAdd;
 
         // 1. Nối chồng đạn/đồ gộp (Stacking): Ưu tiên tìm trong Ba lô (Slot 5->maxSlots) trước, rồi mới đến Hotbar (0->4)
@@ -976,6 +997,7 @@ public class InventorySystem : NetworkBehaviour
                 int amountToStore = Mathf.Min(amountToAdd, stackLimit);
                 slots[emptyIndex].item = itemToAdd;
                 slots[emptyIndex].amount = amountToStore;
+                slots[emptyIndex].battery01 = IsFlashlight(itemToAdd) ? flashlightBattery01 : 1f;
                 amountToAdd -= amountToStore;
             }
             else
@@ -992,7 +1014,8 @@ public class InventorySystem : NetworkBehaviour
         if (!isSyncing && amountAdded > 0)
         {
             isSyncing = true;
-            if (HasStateAuthority && !HasInputAuthority) RPC_SyncItemToClient(itemToAdd.itemName, amountAdded, true);
+            if (HasStateAuthority && !HasInputAuthority)
+                RPC_SyncItemToClient(itemToAdd.itemName, amountAdded, true, flashlightBattery01);
             isSyncing = false;
         }
 
@@ -1108,6 +1131,7 @@ public class InventorySystem : NetworkBehaviour
 
         InventorySlot slot = slots[index];
         ItemData itemToDrop = slot.item;
+        float droppedBattery01 = slot.battery01;
 
         slot.amount--;
         if (slot.amount <= 0)
@@ -1137,7 +1161,12 @@ public class InventorySystem : NetworkBehaviour
             if (sr != null) sr.sprite = itemToDrop.icon;
 
             ItemPickup pickup = droppedGO.GetComponent<ItemPickup>();
-            if (pickup != null) { pickup.item = itemToDrop; pickup.amount = 1; }
+            if (pickup != null)
+            {
+                pickup.item = itemToDrop;
+                pickup.amount = 1;
+                pickup.flashlightBattery01 = droppedBattery01;
+            }
 
             Destroy(droppedGO, dropLifeTime);
         }
@@ -1148,12 +1177,7 @@ public class InventorySystem : NetworkBehaviour
         for (int i = 0; i < Mathf.Min(5, slots.Count); i++)
         {
             if (slots[i] != null && slots[i].item != null && slots[i].amount > 0) continue;
-            InventorySlot source = slots[inventoryIndex];
-            if (slots[i] == null) slots[i] = new InventorySlot(source.item, source.amount);
-            else { slots[i].item = source.item; slots[i].amount = source.amount; }
-            source.item = null;
-            source.amount = 0;
-            UpdateUI();
+            SwapSlots(inventoryIndex, i);
             return;
         }
 
@@ -1165,12 +1189,40 @@ public class InventorySystem : NetworkBehaviour
         if (fromIndex < 0 || fromIndex >= slots.Count || toIndex < 0 || toIndex >= slots.Count) return;
         if (fromIndex == toIndex) return;
 
+        // Inventory layout must agree on the State Authority before a
+        // flashlight's per-slot charge can be used in co-op.
+        if (IsNetworkObjectReady && !HasStateAuthority)
+        {
+            RPC_RequestSwapSlots(fromIndex, toIndex);
+            return;
+        }
+
+        SwapSlotsLocal(fromIndex, toIndex);
+        if (IsNetworkObjectReady && HasStateAuthority && !HasInputAuthority)
+            RPC_ApplySlotSwap(fromIndex, toIndex);
+    }
+
+    private void SwapSlotsLocal(int fromIndex, int toIndex)
+    {
+        if (fromIndex < 0 || fromIndex >= slots.Count || toIndex < 0 || toIndex >= slots.Count) return;
+        if (fromIndex == toIndex) return;
+
         InventorySlot temp = slots[fromIndex];
         slots[fromIndex] = slots[toIndex];
         slots[toIndex] = temp;
 
         UpdateUI();
     }
+
+    [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
+    private void RPC_RequestSwapSlots(int fromIndex, int toIndex)
+    {
+        SwapSlotsLocal(fromIndex, toIndex);
+        RPC_ApplySlotSwap(fromIndex, toIndex);
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_ApplySlotSwap(int fromIndex, int toIndex) => SwapSlotsLocal(fromIndex, toIndex);
 
     private void UpdateUI()
     {
@@ -1281,7 +1333,7 @@ public class InventorySystem : NetworkBehaviour
             return;
         }
 
-        if (AddItem(pickup.item, pickup.amount))
+        if (AddItem(pickup.item, pickup.amount, pickup.flashlightBattery01))
             Runner.Despawn(itemNetObj);
     }
 
@@ -1311,13 +1363,13 @@ public class InventorySystem : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
-    private void RPC_SyncItemToClient(string itemName, int amount, bool isAdding)
+    private void RPC_SyncItemToClient(string itemName, int amount, bool isAdding, float flashlightBattery01 = 1f)
     {
         ItemData data = ItemDataLoader.LoadItem(itemName);
         if (data != null)
         {
             isSyncing = true; // Bật cờ để Client không gọi ngược lại lên Server gây lặp vô hạn
-            if (isAdding) AddItem(data, amount);
+            if (isAdding) AddItem(data, amount, flashlightBattery01);
             else ConsumeItem(data, amount);
             isSyncing = false;
         }

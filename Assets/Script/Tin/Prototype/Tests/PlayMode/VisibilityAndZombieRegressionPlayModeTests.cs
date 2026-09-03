@@ -289,8 +289,14 @@ public sealed class VisibilityAndZombieRegressionPlayModeTests
             Type inventoryType = Type.GetType("InventorySystem, Assembly-CSharp");
             Component inventory = player.GetComponent(inventoryType);
             var slots = (System.Collections.IList)inventoryType.GetField("slots").GetValue(inventory);
+            Type itemLoaderType = Type.GetType("ItemDataLoader, Assembly-CSharp");
+            UnityEngine.Object flashlightItem = itemLoaderType.GetMethod("LoadItem")
+                .Invoke(null, new object[] { "Flashlight" }) as UnityEngine.Object;
+            Assert.That(flashlightItem, Is.Not.Null, "Production flashlight asset must exist for visual QA.");
+            Assert.That((bool)inventoryType.GetMethod("AddItem").Invoke(inventory,
+                new object[] { flashlightItem, 1, 1f }), Is.True);
             int flashlightSlot = FindVisionQaFlashlight(slots);
-            Assert.That(flashlightSlot, Is.GreaterThanOrEqualTo(0), "Medium must grant its production flashlight.");
+            Assert.That(flashlightSlot, Is.GreaterThanOrEqualTo(0), "Visual QA must be able to add a production flashlight.");
             if (flashlightSlot >= 5)
                 inventoryType.GetMethod("EquipFlashlightToHotbar", BindingFlags.NonPublic | BindingFlags.Instance)
                     .Invoke(inventory, new object[] { flashlightSlot });

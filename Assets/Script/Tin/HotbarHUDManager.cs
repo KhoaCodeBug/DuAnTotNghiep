@@ -390,16 +390,17 @@ public class HotbarHUDManager : MonoBehaviour
                     }
                     else slotAmounts[i].gameObject.SetActive(false);
 
-                    bool isFlashlight = localInventory.slots[i].item.name == FlashlightController.ItemId ||
-                                       localInventory.slots[i].item.itemName == FlashlightController.ItemId;
+                    bool isFlashlight = InventorySystem.IsFlashlight(localInventory.slots[i].item);
                     slotBatteryFills[i].gameObject.SetActive(isFlashlight && flashlight != null);
                     if (isFlashlight && flashlight != null)
                     {
-                        float battery01 = flashlight.DisplayBattery01;
+                        float battery01 = flashlight.GetDisplayBattery01(i);
                         slotBatteryFills[i].fillAmount = battery01;
-                        slotBatteryFills[i].color = battery01 > 0.25f
-                            ? new Color(0.35f, 0.95f, 0.45f, 0.95f)
-                            : new Color(1f, 0.35f, 0.2f, 0.95f);
+                        slotBatteryFills[i].color = battery01 >= 0.50f
+                            ? new Color(0.35f, 0.95f, 0.45f, 0.95f) // Green: 50–100%
+                            : battery01 >= 0.25f
+                                ? new Color(1f, 0.62f, 0.12f, 0.95f) // Orange: 25–49%
+                                : new Color(1f, 0.25f, 0.18f, 0.95f); // Red: below 25%
                     }
                 }
                 else
@@ -429,7 +430,28 @@ public class HotbarHUDManager : MonoBehaviour
 
         if (itemNameText != null)
         {
-            if (itemNameTimer > 0f)
+            // The selected flashlight keeps its exact charge visible so a
+            // ten-minute drain is readable instead of relying on a subtle bar.
+            bool showingSelectedFlashlightBattery = false;
+            if (localInventory != null && selectedSlotIndex >= 0 && selectedSlotIndex < localInventory.slots.Count)
+            {
+                InventorySlot selectedSlot = localInventory.slots[selectedSlotIndex];
+                FlashlightController selectedFlashlight = localInventory.GetComponent<FlashlightController>();
+                if (selectedSlot != null && selectedSlot.amount > 0 &&
+                    InventorySystem.IsFlashlight(selectedSlot.item) && selectedFlashlight != null)
+                {
+                    int batteryPercent = Mathf.RoundToInt(selectedFlashlight.GetDisplayBattery01(selectedSlotIndex) * 100f);
+                    itemNameText.text = $"{GameLocalization.TranslateLiteral(selectedSlot.item.itemName)} — PIN: {batteryPercent}%";
+                    itemNameText.gameObject.SetActive(true);
+                    showingSelectedFlashlightBattery = true;
+                }
+            }
+
+            if (showingSelectedFlashlightBattery)
+            {
+                // Keep the value on-screen and refresh it every HUD frame.
+            }
+            else if (itemNameTimer > 0f)
             {
                 itemNameTimer -= Time.deltaTime;
                 if (localInventory != null && selectedSlotIndex >= 0 && selectedSlotIndex < localInventory.slots.Count)
