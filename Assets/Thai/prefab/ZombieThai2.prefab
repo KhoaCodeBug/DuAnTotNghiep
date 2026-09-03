@@ -76,6 +76,10 @@ PrefabInstance:
       propertyPath: blockQuietSoundsThroughWallsV2
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4104682700520458656, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
+      propertyPath: thickRaycastRadius
+      value: 0.085
+      objectReference: {fileID: 0}
     - target: {fileID: 4396508338874752408, guid: 48db9dc4bc9fee74a9f6c3b53f835a83, type: 3}
       propertyPath: m_Name
       value: ZombieThai2
