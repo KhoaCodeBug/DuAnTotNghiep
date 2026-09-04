@@ -70,6 +70,12 @@ public class InventorySystem : NetworkBehaviour
     private bool hasAppliedStartingWeaponLocally;
     [Networked] private NetworkBool StartingLoadoutResolved { get; set; }
     private float nextStartingLoadoutRetryTime;
+    private bool postRestoreEntitlementsReconciled;
+    private bool pendingSpawnFlashlightGrant;
+    private bool pendingSpawnFlashlightWarningLogged;
+    private float nextSpawnEntitlementRetryTime;
+
+    public bool HasPendingSpawnFlashlightGrant => pendingSpawnFlashlightGrant;
 
     /// <summary>
     /// Exact fixed-slot inventory state captured by State Authority before a
@@ -214,6 +220,11 @@ public class InventorySystem : NetworkBehaviour
 
         SetQuestBackpackRewardClaimMask(
             BackpackQuestRewardRules.MarkClaimed(currentMask, level));
+
+        HostModeSpawner.Instance?.RecordQuestBackpackEntitlement(Object != null && Object.IsValid
+                ? Object.InputAuthority : PlayerRef.None,
+            level, QuestBackpackRewardClaimMask,
+            BackpackQuestRewardRules.GetClaimBit(level));
 
         if (level == BackpackQuestRewardRules.RadioBackpackLevel)
         {
@@ -454,6 +465,9 @@ public class InventorySystem : NetworkBehaviour
 
     public override void Spawned()
     {
+        postRestoreEntitlementsReconciled = false;
+        pendingSpawnFlashlightGrant = false;
+        pendingSpawnFlashlightWarningLogged = false;
         InitializeReplicatedBackpackState();
         ApplyReplicatedBackpackState();
 
@@ -465,12 +479,10 @@ public class InventorySystem : NetworkBehaviour
         {
             StartingLoadoutResolved = true;
             ApplyMilitaryRespawnSnapshot(snapshot);
-            return;
         }
-
-        // Grant starting gear based strictly on canonical difficulty rules on State Authority
-        if (HasStateAuthority && !StartingLoadoutResolved)
+        else if (HasStateAuthority && !StartingLoadoutResolved)
         {
+            // Grant starting gear based strictly on canonical difficulty rules on State Authority.
             if (TutorialSession.IsActive)
                 MarkTutorialLoadoutReady();
             else
@@ -481,8 +493,108 @@ public class InventorySystem : NetworkBehaviour
 
         if (HasStateAuthority)
         {
+            TryReconcilePostRestoreEntitlements();
             ReconcileLateJoinRadioBackpackReward();
         }
+    }
+
+    private void TryReconcilePostRestoreEntitlements()
+    {
+        if (!HasStateAuthority || postRestoreEntitlementsReconciled || !StartingLoadoutResolved) return;
+
+        ReconcileDurableQuestBackpackEntitlement();
+        if (!AuthorityGrantFreshSpawnFlashlight()) return;
+
+        pendingSpawnFlashlightGrant = false;
+        postRestoreEntitlementsReconciled = true;
+    }
+
+    private void ReconcileDurableQuestBackpackEntitlement()
+    {
+        HostModeSpawner spawner = HostModeSpawner.Instance;
+        if (spawner == null || Object == null || !Object.IsValid ||
+            !spawner.TryGetQuestBackpackEntitlement(Object.InputAuthority, out int level,
+                out int claimMask, out _))
+            return;
+
+        if (level > CurrentBackpackLevel)
+        {
+            ItemData backpack = BackpackItemCatalog.GetOrCreate(level);
+            if (backpack != null) ApplyBackpackUpgradeLocal(backpack);
+        }
+        SetQuestBackpackRewardClaimMask(QuestBackpackRewardClaimMask | claimMask);
+    }
+
+    private bool AuthorityGrantFreshSpawnFlashlight()
+    {
+        EnsureStableSlotStorage();
+        bool[] occupied = new bool[MaxTotalSlots];
+        for (int i = 0; i < Mathf.Min(maxSlots, slots.Count); i++)
+        {
+            InventorySlot slot = slots[i];
+            occupied[i] = slot != null && slot.item != null && slot.amount > 0 && !IsFlashlight(slot.item);
+        }
+
+        int targetSlot = SpawnFlashlightGrantRules.FindGrantSlot(occupied, maxSlots, HotbarSlotCount);
+        if (targetSlot == SpawnFlashlightGrantRules.PendingSlot)
+        {
+            pendingSpawnFlashlightGrant = true;
+            if (!pendingSpawnFlashlightWarningLogged)
+            {
+                pendingSpawnFlashlightWarningLogged = true;
+                Debug.LogWarning($"[FLASHLIGHT] Inventory full for {Object.InputAuthority}; spawn grant remains pending.");
+            }
+            return false;
+        }
+
+        ItemData flashlight = ItemDataLoader.LoadItem(FlashlightController.ItemId);
+        if (flashlight == null)
+        {
+            pendingSpawnFlashlightGrant = true;
+            if (!pendingSpawnFlashlightWarningLogged)
+            {
+                pendingSpawnFlashlightWarningLogged = true;
+                Debug.LogError("[FLASHLIGHT] Missing Resources/Items/Flashlight; spawn grant remains pending.");
+            }
+            return false;
+        }
+
+        ApplyFreshSpawnFlashlightLocal(flashlight, targetSlot);
+        if (!HasInputAuthority)
+            RPC_ApplyFreshSpawnFlashlight(targetSlot, flashlight.name);
+        return true;
+    }
+
+    private void ApplyFreshSpawnFlashlightLocal(ItemData flashlight, int targetSlot)
+    {
+        EnsureStableSlotStorage();
+        for (int i = 0; i < slots.Count; i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot == null || !IsFlashlight(slot.item)) continue;
+            slot.item = null;
+            slot.amount = 0;
+            slot.battery01 = 0f;
+        }
+
+        if (targetSlot < 0 || targetSlot >= maxSlots || targetSlot >= slots.Count) return;
+        if (slots[targetSlot] == null) slots[targetSlot] = new InventorySlot(flashlight, 1, 1f);
+        else
+        {
+            slots[targetSlot].item = flashlight;
+            slots[targetSlot].amount = 1;
+            slots[targetSlot].battery01 = 1f;
+        }
+        GetComponent<FlashlightController>()?.AuthorityClearFlashlightState();
+        UpdateUI();
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.InputAuthority)]
+    private void RPC_ApplyFreshSpawnFlashlight(int targetSlot, NetworkString<_64> flashlightId)
+    {
+        ItemData flashlight = ItemDataLoader.LoadItem(flashlightId.ToString());
+        if (flashlight == null || targetSlot < 0 || targetSlot >= maxSlots) return;
+        ApplyFreshSpawnFlashlightLocal(flashlight, targetSlot);
     }
 
     public override void Render()
@@ -874,6 +986,13 @@ public class InventorySystem : NetworkBehaviour
         {
             nextStartingLoadoutRetryTime = Time.unscaledTime + 0.5f;
             TryGrantDifficultyStartingLoadout();
+        }
+
+        if (HasStateAuthority && !postRestoreEntitlementsReconciled && StartingLoadoutResolved &&
+            Time.unscaledTime >= nextSpawnEntitlementRetryTime)
+        {
+            nextSpawnEntitlementRetryTime = Time.unscaledTime + 0.5f;
+            TryReconcilePostRestoreEntitlements();
         }
 
         if (!HasInputAuthority) return;

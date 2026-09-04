@@ -384,7 +384,14 @@ public class AutoHealthPanel : MonoBehaviour
 
     private void FindLocalPlayerCache()
     {
-        if (PlayerHealth.LocalHealthInstance != null)
+        if (localPlayerHealth != null && localPlayerHealth.Object != null &&
+            localPlayerHealth.Object.IsValid && localPlayerHealth.HasInputAuthority)
+            return;
+
+        localPlayerHealth = null;
+        localInventory = null;
+        if (PlayerHealth.LocalHealthInstance != null && PlayerHealth.LocalHealthInstance.Object != null &&
+            PlayerHealth.LocalHealthInstance.Object.IsValid && PlayerHealth.LocalHealthInstance.HasInputAuthority)
         {
             localPlayerHealth = PlayerHealth.LocalHealthInstance;
             localInventory = localPlayerHealth.GetComponent<InventorySystem>();
@@ -394,7 +401,7 @@ public class AutoHealthPanel : MonoBehaviour
             // Fallback: Tìm PlayerHealth có InputAuthority
             foreach (var ph in FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None))
             {
-                if (ph != null && ph.Object != null && ph.HasInputAuthority)
+                if (ph != null && ph.Object != null && ph.Object.IsValid && ph.HasInputAuthority)
                 {
                     PlayerHealth.LocalHealthInstance = ph;
                     localPlayerHealth = ph;
@@ -413,9 +420,26 @@ public class AutoHealthPanel : MonoBehaviour
         if (playerHealth == null || !playerHealth.HasInputAuthority) return;
         localPlayerHealth = playerHealth;
         localInventory = playerHealth.GetComponent<InventorySystem>();
+        currentDisplayedHealth = playerHealth.CurrentHealthSafe;
         lastWoundRevision = int.MinValue;
         SyncFromAuthoritativeWounds(true);
         if (isOpen) UpdateAllUI();
+    }
+
+    public static void UnbindIfCurrent(PlayerHealth playerHealth)
+    {
+        if (instance != null) instance.UnbindLocalPlayer(playerHealth);
+    }
+
+    private void UnbindLocalPlayer(PlayerHealth playerHealth)
+    {
+        if (playerHealth == null || localPlayerHealth != playerHealth) return;
+        StopAllCoroutines();
+        EndHealAction();
+        HideContextMenu();
+        localPlayerHealth = null;
+        localInventory = null;
+        lastWoundRevision = int.MinValue;
     }
 
     private void SyncFromAuthoritativeWounds(bool force = false)
@@ -624,7 +648,9 @@ public class AutoHealthPanel : MonoBehaviour
 
     void Update()
     {
-        if (localPlayerHealth == null) FindLocalPlayerCache();
+        if (localPlayerHealth == null || localPlayerHealth.Object == null ||
+            !localPlayerHealth.Object.IsValid || !localPlayerHealth.HasInputAuthority)
+            FindLocalPlayerCache();
         SyncFromAuthoritativeWounds();
 
         if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
@@ -698,6 +724,8 @@ public class AutoHealthPanel : MonoBehaviour
 
         if (isOpen)
         {
+            FindLocalPlayerCache();
+            SyncFromAuthoritativeWounds(true);
             UpdateAllUI();
         }
     }

@@ -65,6 +65,8 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         new Dictionary<PlayerRef, InventorySystem.MilitaryRespawnSnapshot>();
     private readonly Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot> soloMilitaryCheckpointCombat =
         new Dictionary<PlayerRef, PlayerCombat.MilitaryRespawnCombatSnapshot>();
+    private readonly Dictionary<PlayerRef, PlayerLifecycleEntitlementRecord> lifecycleEntitlementByPlayer =
+        new Dictionary<PlayerRef, PlayerLifecycleEntitlementRecord>();
     private bool spawnRoutineStarted;
 
     // 🔥 CÁC BIẾN ĐỒNG BỘ MẠNG
@@ -422,7 +424,18 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
 
         InventorySystem inventory = playerObject.GetComponent<InventorySystem>();
         if (inventory != null)
+        {
             militaryInventoryByPlayer[player] = inventory.CaptureMilitaryRespawnSnapshot();
+            int claimMask = inventory.QuestBackpackRewardClaimMask;
+            int entitlementLevel = BackpackQuestRewardRules.IsClaimed(claimMask,
+                BackpackQuestRewardRules.RadioBackpackLevel)
+                ? BackpackQuestRewardRules.RadioBackpackLevel
+                : BackpackQuestRewardRules.IsClaimed(claimMask, BackpackQuestRewardRules.HospitalBackpackLevel)
+                    ? BackpackQuestRewardRules.HospitalBackpackLevel
+                    : 0;
+            if (entitlementLevel > 0)
+                RecordQuestBackpackEntitlement(player, entitlementLevel, claimMask, claimMask);
+        }
 
         PlayerCombat combat = playerObject.GetComponent<PlayerCombat>();
         if (combat != null)
@@ -479,6 +492,34 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         }
         snapshot = default;
         return false;
+    }
+
+    public void RecordQuestBackpackEntitlement(PlayerRef player, int level, int claimMask,
+        int presentationReceiptMask)
+    {
+        if (Runner == null || !Runner.IsServer || player == PlayerRef.None) return;
+        if (!lifecycleEntitlementByPlayer.TryGetValue(player, out PlayerLifecycleEntitlementRecord record))
+        {
+            record = new PlayerLifecycleEntitlementRecord();
+            lifecycleEntitlementByPlayer.Add(player, record);
+        }
+        record.MergeQuestBackpackState(level, claimMask, presentationReceiptMask);
+    }
+
+    public bool TryGetQuestBackpackEntitlement(PlayerRef player, out int level, out int claimMask,
+        out int presentationReceiptMask)
+    {
+        level = 0;
+        claimMask = 0;
+        presentationReceiptMask = 0;
+        if (Runner == null || !Runner.IsServer || player == PlayerRef.None ||
+            !lifecycleEntitlementByPlayer.TryGetValue(player, out PlayerLifecycleEntitlementRecord record))
+            return false;
+
+        level = record.QuestBackpackLevel;
+        claimMask = record.QuestBackpackClaimMask;
+        presentationReceiptMask = record.BackpackPresentationReceiptMask;
+        return level > 0 || claimMask != 0 || presentationReceiptMask != 0;
     }
 
     private void SpawnCharacter(PlayerRef player, int characterID, string playerName,
@@ -781,6 +822,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             militaryCombatByPlayer.Remove(player);
             soloMilitaryCheckpointInventory.Remove(player);
             soloMilitaryCheckpointCombat.Remove(player);
+            lifecycleEntitlementByPlayer.Remove(player);
             playersLoadedSet.Remove(player);
             lateJoinAnnouncedPlayers.Remove(player);
 

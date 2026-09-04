@@ -760,7 +760,8 @@ public sealed class InventoryAndLootCapacityTests
         {
             Array loadout = (Array)getLoadout.Invoke(null, new object[] { difficulty });
             Assert.That(loadout.Cast<object>().Select(entry => (string)entry.GetType().GetField("ItemId").GetValue(entry)),
-                Does.Not.Contain("Flashlight"), "Flashlight must only be obtained through loot.");
+                Does.Not.Contain("Flashlight"),
+                "Difficulty loadout tables must not duplicate the separate per-avatar flashlight entitlement.");
         }
 
         foreach (int difficulty in new[] { 0, 1 })
