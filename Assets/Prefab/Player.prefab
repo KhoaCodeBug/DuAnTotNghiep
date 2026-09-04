@@ -757,6 +757,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2ad4a628701191468b200a6f1b9b22b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  anim: {fileID: 1076361577852689860}
   muzzleAnimator: {fileID: 6160437081971209414}
   muzzleFlashRenderer: {fileID: 6790703689816908153}
   muzzleFlashDuration: 0.1
@@ -817,6 +818,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2217d06c07bb87041a63779eb7b0d99c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  anim: {fileID: 1076361577852689860}
+  spriteRend: {fileID: 7303843107417862552}
   maxHealth: 100
   _currentHealth: 0
   _IsMilitaryOutroProtected:
