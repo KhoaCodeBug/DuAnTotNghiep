@@ -129,6 +129,7 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
     public Vector2 CurrentRasterPlayerPoint => rasterPlayerMarker == null ? Vector2.zero : rasterPlayerMarker.anchoredPosition;
     public int SearchZoneHouseCount => searchZoneHouseCount;
     public bool HasPendingUnlockReveal => unlockRevealPending;
+    public bool HasPendingMilitaryReveal => militaryRevealQueued || militaryRevealPending;
     public int ActiveRestrictedFogCount => civilianCityMapUnlocked ? 0 : activeRasterFogCount;
     public bool IsMilitaryDestinationVisible => militaryMarker != null && militaryMarker.activeSelf;
     public bool IsOfficeDestinationVisible => officeMarker != null && officeMarker.activeSelf;

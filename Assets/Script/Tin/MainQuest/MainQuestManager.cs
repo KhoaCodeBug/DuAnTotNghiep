@@ -2914,6 +2914,14 @@ public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
     public bool IsMilitaryMapRewardSequenceRunning => isMilitaryMapRewardSequenceRunning;
     private System.Action pendingLevelFiveBackpackClaims;
 
+    public void CancelLocalAvatarPresentationForDeath()
+    {
+        isMilitaryMapRewardSequenceRunning = false;
+        pendingLevelFiveBackpackClaims = null;
+        BackpackQuestRewardPresentation.CancelForAvatarReplacement();
+        CloseStaleRouteIntroduction(QuestFlowUIPrototype.Instance);
+    }
+
     public void TriggerLevelFiveRewardSequence(bool introduceRouteChoice = true)
     {
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
@@ -2942,12 +2950,12 @@ public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
         {
             flow.PlayMilitaryMapRewardAfterDialogue(() =>
             {
-                flow.PlayMilitaryMapReveal(() =>
-                {
-                    isMilitaryMapRewardSequenceRunning = false;
-                    CloseStaleRouteIntroduction(flow);
-                    OnMilitaryMapSequenceComplete(introduceRouteChoice);
-                });
+                // Radio completion only queues the newly discovered region.
+                // Opening/focusing the map belongs exclusively to this client's
+                // later M input, so teammates are never pulled into a map reveal.
+                isMilitaryMapRewardSequenceRunning = false;
+                CloseStaleRouteIntroduction(flow);
+                OnMilitaryMapSequenceComplete(introduceRouteChoice);
             });
         }
         else

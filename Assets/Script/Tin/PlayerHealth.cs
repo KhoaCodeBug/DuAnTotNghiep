@@ -105,6 +105,7 @@ public class PlayerHealth : NetworkBehaviour
     [Networked] public PlayerRef LastAttackerPlayerRef { get; set; }
     private bool hasBroadcastDeathAnnouncement;
     private bool hasPlayedDeathSFX;
+    private bool hasClosedLocalQuestPresentationForDeath;
 
     [Header("--- Body State SFX ---")]
     public AudioClip deathSFX;
@@ -141,6 +142,7 @@ public class PlayerHealth : NetworkBehaviour
         }
         hasBroadcastDeathAnnouncement = false;
         hasPlayedDeathSFX = false;
+        hasClosedLocalQuestPresentationForDeath = false;
 
         movementScript = GetComponent<PlayerMovement>();
         anim = GetComponentInChildren<Animator>();
@@ -181,6 +183,8 @@ public class PlayerHealth : NetworkBehaviour
         // collider alive and block physics/LOS forever on any peer.
         if (!terminalLocalSafetyApplied && (isDead || isTransforming))
             ApplyTerminalLocalSafety();
+        if (isDead || isTransforming)
+            CloseLocalQuestPresentationForDeath();
     }
 
     private void SetupParanoiaUI()
@@ -929,6 +933,7 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayConvulseEffect()
     {
+        CloseLocalQuestPresentationForDeath();
         if (anim != null) anim.SetBool("IsDead", true);
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
@@ -943,6 +948,7 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayDeathEffect()
     {
+        CloseLocalQuestPresentationForDeath();
         if (anim != null) anim.SetBool("IsDead", true);
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
@@ -970,6 +976,25 @@ public class PlayerHealth : NetworkBehaviour
         foreach (Collider2D coll in GetComponentsInChildren<Collider2D>(true))
             coll.enabled = false;
         if (movementScript != null) movementScript.enabled = false;
+    }
+
+    private void CloseLocalQuestPresentationForDeath()
+    {
+        if (hasClosedLocalQuestPresentationForDeath) return;
+        bool ownsLocalAvatar = LocalHealthInstance == this ||
+                               (Object != null && Object.IsValid && HasInputAuthority);
+        if (!ownsLocalAvatar) return;
+
+        hasClosedLocalQuestPresentationForDeath = true;
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager != null)
+            manager.CancelLocalAvatarPresentationForDeath();
+        else
+        {
+            BackpackQuestRewardPresentation.CancelForAvatarReplacement();
+            QuestFlowUIPrototype.Instance?.CloseAllQuestOverlays();
+            AutoUIManager.Instance?.SetQuestOverlayOpen(false);
+        }
     }
 
     public void Heal(float amount)

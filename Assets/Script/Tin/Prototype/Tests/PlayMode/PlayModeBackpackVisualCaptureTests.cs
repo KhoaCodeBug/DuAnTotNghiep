@@ -210,7 +210,8 @@ public sealed class PlayModeBackpackVisualCaptureTests
         Debug.Log($"[TEST PLAYMODE] Captured L5 previousLevel={l5PrevLevel} from InventorySystem (expected 4 post-L4).");
         Assert.That(l5PrevLevel, Is.EqualTo(4), "Player backpack level before L5 grant must be 4.");
 
-        // Authoritative sequence: Map Fragment Reward -> Map Reveal -> Map Closes -> Level-5 Claim/Presentation -> Effect B -> Notification A
+        // Authoritative sequence: Map Fragment Reward -> Level-5 Claim/Presentation -> Effect B -> Notification A.
+        // The military map reveal is queued and waits for the owner's later M input.
         Type questManagerType = Type.GetType("MainQuestManager, Assembly-CSharp");
         Assert.That(questManagerType, Is.Not.Null, "MainQuestManager must exist.");
         Component mainQuest = (Component)UnityEngine.Object.FindAnyObjectByType(questManagerType);
@@ -231,35 +232,23 @@ public sealed class PlayModeBackpackVisualCaptureTests
         Assert.That((bool)isNotifVisibleProp.GetValue(null), Is.False, "Notification A must NOT be visible during map reward dialogue.");
         yield return CaptureDeterministicScreen(Path.Combine(ScreenshotDir, "runtime_level5_01_map_reward.png"));
 
-        // Stage 2: Wait for map reward dialogue to complete and map reveal to open
+        // Stage 2: Wait for map reward dialogue to complete and Effect B to start.
         QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
-        float revealWaitStart = Time.realtimeSinceStartup;
-        while (flow != null && !flow.IsMapOpen && Time.realtimeSinceStartup - revealWaitStart < 8f)
+        float effectBWaitStart = Time.realtimeSinceStartup;
+        while (!(bool)isVisibleProp.GetValue(null) && Time.realtimeSinceStartup - effectBWaitStart < 8f)
         {
             yield return null;
         }
         yield return new WaitForSecondsRealtime(0.4f);
-        Assert.That((bool)isVisibleProp.GetValue(null), Is.False, "Backpack presenter must NOT be visible during map reveal.");
-        yield return CaptureDeterministicScreen(Path.Combine(ScreenshotDir, "runtime_level5_02_map_reveal.png"));
+        Assert.That(flow == null || flow.IsMapOpen, Is.False,
+            "Radio completion must not force-open the owner's map.");
+        Assert.That(flow != null && flow.HasPendingMilitaryMapReveal, Is.True,
+            "The military reveal must stay queued until local M input.");
+        yield return CaptureDeterministicScreen(Path.Combine(ScreenshotDir, "runtime_level5_02_map_reveal_queued.png"));
 
-        // Stage 3: Wait for map reveal to finish and map to close
-        float mapCloseWaitStart = Time.realtimeSinceStartup;
-        while (flow != null && flow.IsMapOpen && Time.realtimeSinceStartup - mapCloseWaitStart < 8f)
-        {
-            yield return null;
-        }
-        yield return new WaitForSecondsRealtime(0.3f);
-        AssertZeroOverlaysDuringBackpackRewardFlow(duringEffectB: true);
-        yield return CaptureDeterministicScreen(Path.Combine(ScreenshotDir, "runtime_level5_03_map_closed.png"));
-
-        // Stage 4: Map has closed -> OnMilitaryMapSequenceComplete has called ClaimAndPresentLevelFiveBackpack!
-        // Backpack Level 5 presenter (Effect B) becomes active!
-        float effectBWaitStart = Time.realtimeSinceStartup;
-        while (!(bool)isVisibleProp.GetValue(null) && Time.realtimeSinceStartup - effectBWaitStart < 6f)
-        {
-            yield return null;
-        }
-        Assert.That((bool)isVisibleProp.GetValue(null), Is.True, "Backpack Level 5 presentation must become active after map closes.");
+        // Stage 3: Level-5 Effect B is active while the map remains closed.
+        Assert.That((bool)isVisibleProp.GetValue(null), Is.True,
+            "Backpack Level 5 presentation must become active while the opt-in map stays closed.");
         Assert.That((bool)isNotifVisibleProp.GetValue(null), Is.False, "Notification A must not be visible during Effect B.");
 
         if (presenterInstance == null)

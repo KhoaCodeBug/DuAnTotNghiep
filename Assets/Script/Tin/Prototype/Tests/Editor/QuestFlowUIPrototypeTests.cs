@@ -67,6 +67,20 @@ public sealed class QuestFlowUIPrototypeTests
     }
 
     [Test]
+    public void MilitaryRevealWaitsForExplicitLocalMapOpen()
+    {
+        prototype.QueueMilitaryMapUnlockReveal();
+
+        Assert.That(prototype.HasPendingMilitaryMapReveal, Is.True);
+        Assert.That(prototype.IsMapOpen, Is.False,
+            "Receiving the Radio milestone must not open the local map.");
+
+        prototype.SetMapOpenForPreview(true);
+        Assert.That(prototype.IsMapOpen, Is.True,
+            "The player can opt in to the queued reveal by opening the map locally.");
+    }
+
+    [Test]
     public void TrackingButtonChangesVisualStateAndBecomesCancelTracking()
     {
         prototype.SelectQuestForPreview(0);
