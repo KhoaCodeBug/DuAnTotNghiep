@@ -9,7 +9,44 @@ public static class GameplayAudioSpatializer
 {
     public enum Profile { Gunshot, Footstep, Body, Melee, Voice, Zombie }
 
+    /// <summary>
+    /// Player-owned presentation cues are intentionally separate from spatial
+    /// profiles. A Body profile, for example, contains both an essential death
+    /// cue and a muted-on-teammates hurt cue.
+    /// </summary>
+    public enum PlayerCue
+    {
+        Gunshot,
+        Death,
+        Footstep,
+        Consumable,
+        Hurt,
+        Reload,
+        DryFire,
+        Melee,
+        HeavyBreathing
+    }
+
     private static Transform cachedListenerTransform;
+
+    public static bool ShouldPlayPlayerCue(PlayerCue cue, bool isOwnedAvatar)
+    {
+        if (isOwnedAvatar) return true;
+        return cue == PlayerCue.Gunshot || cue == PlayerCue.Death;
+    }
+
+    /// <summary>
+    /// Client owners predict gunshot audio once; the later authority RPC must
+    /// remain audible to teammates and Host owners without echoing locally.
+    /// </summary>
+    public static bool ShouldPlayAuthoritativeCue(
+        PlayerCue cue,
+        bool isOwnedAvatar,
+        bool hasStateAuthority)
+    {
+        if (!ShouldPlayPlayerCue(cue, isOwnedAvatar)) return false;
+        return cue != PlayerCue.Gunshot || !isOwnedAvatar || hasStateAuthority;
+    }
 
     public static void Configure(AudioSource source, Profile profile)
     {
@@ -65,24 +102,57 @@ public static class GameplayAudioSpatializer
     {
         if (source == null || unattenuatedVolume <= 0f) return 0f;
 
-        // The caller is opting into planar attenuation, so disable Unity's 3D
-        // distance curve to avoid attenuating the same sound twice.
-        source.spatialBlend = 0f;
-        source.panStereo = 0f;
-        if (forceFullVolume) return unattenuatedVolume;
+        if (forceFullVolume)
+        {
+            // Owner feedback is intentionally centered and unattenuated.
+            source.spatialBlend = 0f;
+            source.panStereo = 0f;
+            return unattenuatedVolume;
+        }
+
+        // Remote emitters retain Unity's 3D direction, while a flat native
+        // rolloff prevents double attenuation on top of the planar policy.
+        source.spatialBlend = 1f;
+        source.rolloffMode = AudioRolloffMode.Custom;
+        source.SetCustomCurve(
+            AudioSourceCurveType.CustomRolloff,
+            AnimationCurve.Linear(0f, 1f, 1f, 1f));
 
         Transform listener = GetListenerTransform();
         if (listener == null) return unattenuatedVolume;
 
-        GetPlanarRange(profile, out float fullVolumeRadius, out float audibleRadius);
         float planarDistance = Vector2.Distance(source.transform.position, listener.position);
+        return unattenuatedVolume * GetAttenuation(profile, planarDistance);
+    }
 
-        if (planarDistance <= fullVolumeRadius) return unattenuatedVolume;
+    /// <summary>
+    /// Pure distance policy used by runtime audio and narrow rule tests.
+    /// </summary>
+    public static float GetAttenuation(Profile profile, float planarDistance)
+    {
+        planarDistance = Mathf.Max(0f, planarDistance);
+        if (profile == Profile.Gunshot)
+        {
+            if (planarDistance <= 3f) return 1f;
+            if (planarDistance <= 10f) return LerpSegment(planarDistance, 3f, 10f, 1f, 0.72f);
+            if (planarDistance <= 20f) return LerpSegment(planarDistance, 10f, 20f, 0.72f, 0.42f);
+            if (planarDistance <= 32f) return LerpSegment(planarDistance, 20f, 32f, 0.42f, 0.20f);
+            if (planarDistance <= 48f) return LerpSegment(planarDistance, 32f, 48f, 0.20f, 0f);
+            return 0f;
+        }
+
+        GetPlanarRange(profile, out float fullVolumeRadius, out float audibleRadius);
+        if (planarDistance <= fullVolumeRadius) return 1f;
         if (planarDistance >= audibleRadius) return 0f;
 
         float t = Mathf.InverseLerp(fullVolumeRadius, audibleRadius, planarDistance);
-        float attenuation = 1f - Mathf.SmoothStep(0f, 1f, t);
-        return unattenuatedVolume * attenuation;
+        return 1f - Mathf.SmoothStep(0f, 1f, t);
+    }
+
+    private static float LerpSegment(float distance, float fromDistance, float toDistance, float fromVolume, float toVolume)
+    {
+        float t = Mathf.InverseLerp(fromDistance, toDistance, distance);
+        return Mathf.Lerp(fromVolume, toVolume, t);
     }
 
     private static Transform GetListenerTransform()
@@ -108,7 +178,7 @@ public static class GameplayAudioSpatializer
         {
             case Profile.Gunshot:
                 fullVolumeRadius = 3f;
-                audibleRadius = 42f;
+                audibleRadius = 48f;
                 break;
             case Profile.Footstep:
                 fullVolumeRadius = 1.5f;

@@ -141,6 +141,15 @@ public class PlayerStamina : NetworkBehaviour
 
     private void UpdateBreathingAudio()
     {
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.HeavyBreathing,
+                HasInputAuthority))
+        {
+            if (breathingAudioSource != null && breathingAudioSource.isPlaying)
+                breathingAudioSource.Stop();
+            return;
+        }
+
         PlayerHealth health = GetComponent<PlayerHealth>();
         bool isDead = health != null && health.isDead;
 

@@ -104,6 +104,8 @@ public class PlayerHealth : NetworkBehaviour
     [Networked] public DeathCause LastDeathCause { get; set; }
     [Networked] public PlayerRef LastAttackerPlayerRef { get; set; }
     private bool hasBroadcastDeathAnnouncement;
+    private bool hasPlayedDeathSFX;
+    private bool hasClosedLocalQuestPresentationForDeath;
 
     [Header("--- Body State SFX ---")]
     public AudioClip deathSFX;
@@ -139,6 +141,8 @@ public class PlayerHealth : NetworkBehaviour
             RecalculateWoundFlags();
         }
         hasBroadcastDeathAnnouncement = false;
+        hasPlayedDeathSFX = false;
+        hasClosedLocalQuestPresentationForDeath = false;
 
         movementScript = GetComponent<PlayerMovement>();
         anim = GetComponentInChildren<Animator>();
@@ -167,6 +171,7 @@ public class PlayerHealth : NetworkBehaviour
         {
             Destroy(paranoiaCanvas.gameObject);
         }
+        AutoHealthPanel.UnbindIfCurrent(this);
         // 🔥 FIX: Reset static reference khi bị Despawn để ván sau tìm lại đúng player
         if (LocalHealthInstance == this) LocalHealthInstance = null;
     }
@@ -178,6 +183,8 @@ public class PlayerHealth : NetworkBehaviour
         // collider alive and block physics/LOS forever on any peer.
         if (!terminalLocalSafetyApplied && (isDead || isTransforming))
             ApplyTerminalLocalSafety();
+        if (isDead || isTransforming)
+            CloseLocalQuestPresentationForDeath();
     }
 
     private void SetupParanoiaUI()
@@ -842,6 +849,10 @@ public class PlayerHealth : NetworkBehaviour
 
     private void PlayHurtGruntSFX()
     {
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Hurt,
+                HasInputAuthority)) return;
+
         EnsureAudioSource();
 
         // Nạp tự động từ Resources nếu chưa gán Inspector
@@ -884,10 +895,16 @@ public class PlayerHealth : NetworkBehaviour
 
     private void PlayDeathSFX()
     {
+        if (hasPlayedDeathSFX ||
+            !GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Death,
+                HasInputAuthority)) return;
+
         if (deathSFX == null) deathSFX = Resources.Load<AudioClip>("Sound/BodyState/player_death");
 
         if (deathSFX != null)
         {
+            hasPlayedDeathSFX = true;
             float sfxVol = GetSFXVolume();
             GameObject soundObj = new GameObject("Temp_PlayerDeathSFX");
             soundObj.transform.position = transform.position;
@@ -916,6 +933,7 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayConvulseEffect()
     {
+        CloseLocalQuestPresentationForDeath();
         if (anim != null) anim.SetBool("IsDead", true);
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
@@ -930,6 +948,7 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayDeathEffect()
     {
+        CloseLocalQuestPresentationForDeath();
         if (anim != null) anim.SetBool("IsDead", true);
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
@@ -957,6 +976,25 @@ public class PlayerHealth : NetworkBehaviour
         foreach (Collider2D coll in GetComponentsInChildren<Collider2D>(true))
             coll.enabled = false;
         if (movementScript != null) movementScript.enabled = false;
+    }
+
+    private void CloseLocalQuestPresentationForDeath()
+    {
+        if (hasClosedLocalQuestPresentationForDeath) return;
+        bool ownsLocalAvatar = LocalHealthInstance == this ||
+                               (Object != null && Object.IsValid && HasInputAuthority);
+        if (!ownsLocalAvatar) return;
+
+        hasClosedLocalQuestPresentationForDeath = true;
+        MainQuestManager manager = MainQuestManager.Instance;
+        if (manager != null)
+            manager.CancelLocalAvatarPresentationForDeath();
+        else
+        {
+            BackpackQuestRewardPresentation.CancelForAvatarReplacement();
+            QuestFlowUIPrototype.Instance?.CloseAllQuestOverlays();
+            AutoUIManager.Instance?.SetQuestOverlayOpen(false);
+        }
     }
 
     public void Heal(float amount)

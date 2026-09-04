@@ -100,6 +100,27 @@ public sealed class BackpackQuestRewardPresentation : MonoBehaviour
         if (instance != null) instance.DismissNotificationInternal();
     }
 
+    public static void CancelForAvatarReplacement()
+    {
+        if (instance != null) instance.CancelForAvatarReplacementInternal();
+    }
+
+    private void CancelForAvatarReplacementInternal()
+    {
+        if (presentationRoutine != null) StopCoroutine(presentationRoutine);
+        if (notificationRoutine != null) StopCoroutine(notificationRoutine);
+        presentationRoutine = null;
+        notificationRoutine = null;
+        isPresentationActive = false;
+        isNotificationActive = false;
+        onPresentationCompleted = null;
+        onPostNotificationAction = null;
+        if (root != null) root.SetActive(false);
+        if (notificationHud != null) notificationHud.SetActive(false);
+        if (AutoChatManager.ExistingInstance != null)
+            AutoChatManager.ExistingInstance.SetSuppressedByReward(false);
+    }
+
     private static int completedEffectBLevel = -1;
     public static event System.Action OnNotificationDismissed;
     private static System.Action onPostNotificationAction;

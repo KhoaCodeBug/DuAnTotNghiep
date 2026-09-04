@@ -8,7 +8,7 @@ using UnityEngine;
 /// Network-authoritative spine for the Main scene story. Attach this to an
 /// existing scene NetworkObject (Day_Night_System is the current host).
 /// </summary>
-public sealed class MainQuestManager : NetworkBehaviour
+public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
 {
     public enum QuestStage
     {
@@ -148,6 +148,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     [Networked] public NetworkBool IsHospitalRadioRecovered { get; private set; }
     [Networked] public int HospitalRadioCheckpointCount { get; private set; }
     [Networked] public int HospitalRadioThreatSpawnCount { get; private set; }
+    [Networked] private int SharedQuestPresentationRevision { get; set; }
 
     private MapController cachedMapController;
     private MinimapController cachedMinimapController;
@@ -169,6 +170,10 @@ public sealed class MainQuestManager : NetworkBehaviour
     private readonly List<HospitalRadioKeyLootPoint> cachedHospitalRadioKeyLootPoints =
         new List<HospitalRadioKeyLootPoint>();
     private readonly Dictionary<int, int> cabinetIndexById = new Dictionary<int, int>();
+    private readonly SharedQuestPresentationReceiptLedger sharedPresentationReceipts =
+        new SharedQuestPresentationReceiptLedger();
+    private readonly StoryCheckpointProgressLedger<PlayerRef> storyProgressByPlayer =
+        new StoryCheckpointProgressLedger<PlayerRef>();
     private bool hasSpawned;
     private bool hasGeneratedCivilianEscapeFallback;
     private bool localMilitaryDestinationReached;
@@ -271,6 +276,10 @@ public sealed class MainQuestManager : NetworkBehaviour
     {
         // Set this before the first networked-property access in this method.
         hasSpawned = true;
+        // This scene manager owns receipts for exactly one runner session. Avatar
+        // replacement leaves it intact; respawning the manager starts a new ledger.
+        sharedPresentationReceipts.ResetForNewSession();
+        storyProgressByPlayer.ResetForNewSession();
 
         if (HasStateAuthority)
         {
@@ -315,6 +324,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             IsHospitalRadioRecovered = false;
             HospitalRadioCheckpointCount = 0;
             HospitalRadioThreatSpawnCount = 0;
+            SharedQuestPresentationRevision = 0;
             activeHospitalEntryTrigger = null;
             nextHospitalBackpackRewardScanTime = 0f;
         }
@@ -342,6 +352,12 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (questEventRoutine != null) StopCoroutine(questEventRoutine);
         questEventRoutine = null;
         ApplyMapAccess();
+    }
+
+    public void PlayerLeft(PlayerRef player)
+    {
+        if (!HasStateAuthority || player == PlayerRef.None) return;
+        storyProgressByPlayer.Remove(player);
     }
 
     private void Update()
@@ -375,8 +391,8 @@ public sealed class MainQuestManager : NetworkBehaviour
                 if (checkpointDistance <= civilianEscapeTriggerRadius)
                 {
                     CivilianRouteStageValue = (int)CivilianRouteStage.AwaitingTeam;
-                    RPC_ShowLocalizedQuestMessage("quest.route_a_regroup", 0, 0,
-                        RepairedArrivalCarObject.InputAuthority, false);
+                    RPC_ShowPrivateLocalizedQuestMessage(RepairedArrivalCarObject.InputAuthority,
+                        "quest.route_a_regroup", 0, 0);
                 }
                 break;
             case CivilianRouteStage.AwaitingTeam:
@@ -567,7 +583,8 @@ public sealed class MainQuestManager : NetworkBehaviour
                 if (!IsArrivalCarInspected)
                 {
                     IsArrivalCarInspected = true;
-                    RPC_ShowArrivalCarInspected(requester);
+                    BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.ArrivalCarInspected,
+                        instigator: requester);
                     Debug.Log("[QUEST TEST] F6: đã hoàn tất kiểm tra xe. Chờ khu dân cư khởi tạo rồi nhấn F6 tiếp.");
                 }
                 break;
@@ -639,7 +656,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         InsuredRouteClueMask |= completeClueMask;
         RouteClueDryOpenCount = 0;
         NetworkQuestStage = (int)QuestStage.LocateOffice;
-        RPC_ShowAllRouteCluesFound(requester);
+        BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.AllRouteCluesFound,
+            instigator: requester);
 
         const string message = "F7 đã thu thập đủ 3/3 manh mối; bắt đầu chuỗi hội thoại nhiệm vụ.";
         Debug.Log("[QUEST TEST] " + message);
@@ -746,8 +764,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         IsNeighborhoodConfigured = true;
         NetworkQuestStage = (int)QuestStage.SearchNeighborhood;
         DistributeArrivalCarRepairItems(houseIds, count);
-        RPC_ShowLocalizedQuestMessage("quest.route_b_new_search",
-            PreMilitaryQuestProgress.RequiredRouteClues, 0, focusPlayer, false);
+        BroadcastSharedLocalizedQuestMessage("quest.route_b_new_search",
+            PreMilitaryQuestProgress.RequiredRouteClues, 0, focusPlayer);
         return true;
     }
 
@@ -773,7 +791,8 @@ public sealed class MainQuestManager : NetworkBehaviour
             return;
 
         IsArrivalCarInspected = true;
-        RPC_ShowArrivalCarInspected(requester);
+        BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.ArrivalCarInspected,
+            instigator: requester);
     }
 
     public void RequestRepairArrivalCarPart(string partId)
@@ -841,13 +860,13 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         if (!AreAllLivingPlayersGatheredForCivilianEscape())
         {
-            RPC_ShowLocalizedQuestMessage("quest.route_a_wait_team", 0, 0, requester, false);
+            RPC_ShowPrivateLocalizedQuestMessage(requester, "quest.route_a_wait_team", 0, 0);
             return;
         }
 
         if (!AuthorityTryLockEscapeRoute(EscapeEndingRoute.CivilianCar)) return;
         CivilianRouteStageValue = (int)CivilianRouteStage.EscapeRun;
-        RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0, requester, true);
+        BroadcastSharedLocalizedQuestMessage("quest.ending_a_locked", 0, 0, requester);
         // The authored city exit sits beside the gray edge of Main. Begin the
         // visual road loop here at the safe regroup point instead of asking the
         // real network vehicle to drive into the unrendered edge first.
@@ -1017,7 +1036,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         RPC_ShowArrivalCarRepairResult(repairer, true, (int)action,
             GetArrivalCarActionSuccessMessage(action));
         if (ArrivalCarRepairRules.IsRequiredRepairComplete(ArrivalCarRepairMask))
-            RPC_ShowLocalizedQuestMessage("quest.route_a_ready", 0, 0, repairer, true);
+            BroadcastSharedLocalizedQuestMessage("quest.route_a_ready", 0, 0, repairer);
     }
 
     private void AuthorityInterruptArrivalCarRepair(PlayerRef repairer, string message)
@@ -1069,7 +1088,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         CivilianRouteStageValue = (int)CivilianRouteStage.CarReady;
         RPC_ShowArrivalCarStartResult(requester, true,
             "quest.arrival.start_success");
-        RPC_ShowLocalizedQuestMessage("quest.route_a_started", 0, 0, requester, true);
+        BroadcastSharedLocalizedQuestMessage("quest.route_a_started", 0, 0, requester);
         RPC_ShowCivilianMapUnlocked(CivilianCheckpointPosition, CivilianCityExitPosition);
     }
 
@@ -1135,18 +1154,17 @@ public sealed class MainQuestManager : NetworkBehaviour
         int bit = 1 << (int)kind;
         if ((RouteClueMask & bit) != 0) return;
         RouteClueMask |= bit;
-        RPC_ShowLocalizedQuestMessage("quest.route_clue_count", RouteClueCount,
-            PreMilitaryQuestProgress.RequiredRouteClues, focusPlayer, false);
-        if (RouteClueCount == 1)
-            RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.FirstSupplyDocument, focusPlayer);
-        else if (RouteClueCount == 2)
-            RPC_ShowRouteBAudioCue((int)RouteBAudioCueId.SecondEvacuationDocument, focusPlayer);
+        int routeAudioCue = RouteClueCount == 1 ? (int)RouteBAudioCueId.FirstSupplyDocument :
+            RouteClueCount == 2 ? (int)RouteBAudioCueId.SecondEvacuationDocument : -1;
+        BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.RouteClueFound,
+            RouteClueCount, routeAudioCue, focusPlayer, "quest.route_clue_count");
         if (RouteClueCount >= PreMilitaryQuestProgress.RequiredRouteClues)
         {
             if (consumeCollectedDocuments)
                 ConsumeCollectedRouteCluesAuthoritatively();
             NetworkQuestStage = (int)QuestStage.LocateOffice;
-            RPC_ShowAllRouteCluesFound(focusPlayer);
+            BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.AllRouteCluesFound,
+                instigator: focusPlayer);
         }
     }
 
@@ -1258,6 +1276,17 @@ public sealed class MainQuestManager : NetworkBehaviour
         else RPC_RequestStartMapSearch(triggerId);
     }
 
+    /// <summary>
+    /// Requests a personal checkpoint arrival. Clients send only the scene
+    /// trigger ID; State Authority derives identity from RpcInfo.Source.
+    /// </summary>
+    public void RequestStoryCheckpointArrival(int triggerId)
+    {
+        if (!IsNetworkReady || Runner.LocalPlayer == PlayerRef.None) return;
+        if (HasStateAuthority) ServerRecordStoryCheckpointArrival(triggerId, Runner.LocalPlayer);
+        else RPC_RequestStoryCheckpointArrival(triggerId);
+    }
+
     /// <summary>Called by the closest highlighted quest-search point when E is pressed.</summary>
     public void RequestSearchCabinet(int cabinetId)
     {
@@ -1303,6 +1332,12 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void RPC_RequestStartMapSearch(int triggerId, RpcInfo info = default)
     {
         ServerStartMapSearch(triggerId, info.Source);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestStoryCheckpointArrival(int triggerId, RpcInfo info = default)
+    {
+        ServerRecordStoryCheckpointArrival(triggerId, info.Source);
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -1588,6 +1623,51 @@ public sealed class MainQuestManager : NetworkBehaviour
         AuthorityStartOfficeInvestigation(requester);
     }
 
+    private void ServerRecordStoryCheckpointArrival(int triggerId, PlayerRef requester)
+    {
+        if (!HasStateAuthority || requester == PlayerRef.None ||
+            !StoryCheckpointArrivalTrigger.TryGet(triggerId, out StoryCheckpointArrivalTrigger trigger) ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) || !IsLivingPlayer(player) ||
+            !trigger.Contains(player.transform.position))
+            return;
+
+        bool sharedMilestoneEligible = trigger.Checkpoint switch
+        {
+            StoryCheckpoint.OfficeHospital => HasMapFragment1,
+            StoryCheckpoint.SchoolMilitary => IsHospitalRadioRecoveredState,
+            _ => false
+        };
+        if (!sharedMilestoneEligible) return;
+
+        bool advanced = storyProgressByPlayer.TryRecordVerifiedArrival(requester, trigger.Checkpoint, true,
+            out StoryCheckpointProgressRecord progress);
+        if (progress == null) return;
+        if (progress.HighestCheckpoint < trigger.Checkpoint) return;
+
+        RPC_ConfirmStoryCheckpointArrival(requester, triggerId);
+        if (advanced)
+            Debug.Log($"[STORY CHECKPOINT] {requester} unlocked {progress.HighestCheckpoint}.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ConfirmStoryCheckpointArrival([RpcTarget] PlayerRef targetPlayer, int triggerId)
+    {
+        if (targetPlayer == PlayerRef.None || Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        if (StoryCheckpointArrivalTrigger.TryGet(triggerId, out StoryCheckpointArrivalTrigger trigger))
+            trigger.ConfirmLocalArrivalAccepted();
+    }
+
+    public bool TryGetStoryRespawnCheckpoint(PlayerRef player, out StoryCheckpoint checkpoint)
+    {
+        checkpoint = StoryCheckpoint.Start;
+        if (!HasStateAuthority || player == PlayerRef.None ||
+            !storyProgressByPlayer.TryGet(player, out StoryCheckpointProgressRecord progress))
+            return false;
+
+        checkpoint = progress.HighestCheckpoint;
+        return checkpoint > StoryCheckpoint.Start;
+    }
+
     private void AuthorityStartOfficeInvestigation(PlayerRef requester)
     {
         if (!HasStateAuthority || CurrentStage != QuestStage.LocateOffice) return;
@@ -1598,7 +1678,7 @@ public sealed class MainQuestManager : NetworkBehaviour
             !HospitalRadioInteractionPoint.TryGetForRole(HospitalRadioInteractionRole.Radio, out _))
         {
             Debug.LogError("[HOSPITAL H2] Thiếu ShiftLog, ShiftLog2, Door hoặc Radio interaction anchor.");
-            RPC_ShowLocalizedQuestMessage("quest.office_missing_points", 0, 0, requester, false);
+            RPC_ShowPrivateLocalizedQuestMessage(requester, "quest.office_missing_points", 0, 0);
             return;
         }
 
@@ -1624,8 +1704,9 @@ public sealed class MainQuestManager : NetworkBehaviour
             arrivingPlayer.GetComponent<InventorySystem>()?.TryGrantQuestBackpackReward(
                 BackpackQuestRewardRules.HospitalBackpackLevel);
         }
-        RPC_ShowLocalizedQuestMessage("quest.office_new_objective", 0, 0, requester, false);
-        RPC_ShowOfficeSearchStarted(requester);
+        BroadcastSharedLocalizedQuestMessage("quest.office_new_objective", 0, 0, requester);
+        BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.OfficeSearchStarted,
+            instigator: requester);
     }
 
     private void AuthorityCompleteHospitalClue(HospitalQuestClueRole role, PlayerRef requester)
@@ -1659,7 +1740,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (cachedHospitalRadioKeyLootPoints.Count == 0)
         {
             Debug.LogError("[HOSPITAL H5] Main.unity không có HospitalRadioKeyLootPoint hợp lệ.");
-            RPC_ShowLocalizedQuestMessage("quest.office_missing_points", 0, 0, requester, false);
+            RPC_ShowPrivateLocalizedQuestMessage(requester, "quest.office_missing_points", 0, 0);
             return false;
         }
 
@@ -1739,17 +1820,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         NetworkQuestStage = (int)QuestStage.CityMapFound;
         IsMilitaryRevealPlaying = false;
 
-        HashSet<PlayerRef> notified = new HashSet<PlayerRef>();
-        PlayerMovement[] players = FindObjectsByType<PlayerMovement>(FindObjectsSortMode.None);
-        for (int i = 0; i < players.Length; i++)
-        {
-            PlayerMovement player = players[i];
-            if (player == null || player.Object == null || !player.Object.IsValid || !IsLivingPlayer(player)) continue;
-            PlayerRef target = player.Object.InputAuthority;
-            if (target == PlayerRef.None || notified.Contains(target)) continue;
-            notified.Add(target);
-            RPC_PlayHospitalRadioRecording(target, target == completedBy);
-        }
+        BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.HospitalRadioRecording,
+            instigator: completedBy);
 
         Debug.Log("[HOSPITAL H3] Radio recovered; Fragment 2 and the North Base route are now shared team state.");
     }
@@ -1783,7 +1855,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (investigationStep < 2)
         {
             MapCabinetId = investigationOrder[investigationStep + 1].CabinetId;
-            RPC_ShowOfficeInvestigationProgress(investigationStep, requester);
+            BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.OfficeInvestigationProgress,
+                investigationStep, instigator: requester);
             return;
         }
 
@@ -1792,9 +1865,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         NetworkQuestStage = (int)QuestStage.CityMapFound;
         IsMilitaryRevealPlaying = false;
 
-        RPC_ShowOfficeInvestigationProgress(2, requester);
+        BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.OfficeInvestigationProgress,
+            2, instigator: requester);
         RPC_ShowCabinetSearchResult(requester, true);
-        RPC_ShowLocalizedQuestMessage("quest.route_b_go_military", 0, 0, requester, false);
+        BroadcastSharedLocalizedQuestMessage("quest.route_b_go_military", 0, 0, requester);
     }
 
     public bool IsCabinetChecked(int cabinetId)
@@ -2311,7 +2385,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (!AuthorityTryLockEscapeRoute(EscapeEndingRoute.CivilianCar)) return false;
         AuthorityGatherLivingPlayersAtCivilianCar();
         CivilianRouteStageValue = (int)CivilianRouteStage.EscapeRun;
-        RPC_ShowLocalizedQuestMessage("quest.ending_a_locked", 0, 0, Runner.LocalPlayer, true);
+        BroadcastSharedLocalizedQuestMessage("quest.ending_a_locked", 0, 0, Runner.LocalPlayer);
         ServerCompleteCivilianEscape();
         return IsCivilianEscapeComplete;
     }
@@ -2430,7 +2504,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowHospitalRadioH1Result(PlayerRef focusPlayer, int roleValue)
+    private void RPC_ShowHospitalRadioH1Result([RpcTarget] PlayerRef focusPlayer, int roleValue)
     {
         if (Runner == null || Runner.LocalPlayer != focusPlayer) return;
         HospitalRadioInteractionRole role = (HospitalRadioInteractionRole)roleValue;
@@ -2445,15 +2519,106 @@ public sealed class MainQuestManager : NetworkBehaviour
         Debug.Log("[HOSPITAL H2] " + message);
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_PlayHospitalRadioRecording([RpcTarget] PlayerRef targetPlayer, bool ownsMilitaryReveal)
+    private void BroadcastSharedLocalizedQuestMessage(string localizationKey, int argument0,
+        int argument1, PlayerRef instigator)
     {
-        if (Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        BroadcastSharedQuestPresentation(SharedQuestPresentationEventId.LocalizedMessage,
+            argument0, argument1, instigator, localizationKey);
+    }
+
+    private void BroadcastSharedQuestPresentation(SharedQuestPresentationEventId eventId,
+        int argument0 = 0, int argument1 = 0, PlayerRef instigator = default,
+        string localizationKey = "")
+    {
+        if (!HasStateAuthority || Runner == null) return;
+
+        // Capture the recipient set at the authoritative trigger. A later joiner
+        // receives replicated quest state, but never a historical presentation RPC.
+        List<PlayerRef> recipients = new List<PlayerRef>();
+        foreach (PlayerRef player in Runner.ActivePlayers)
+        {
+            if (player != PlayerRef.None)
+                recipients.Add(player);
+        }
+
+        int revision = SharedQuestPresentationRevision + 1;
+        SharedQuestPresentationRevision = revision;
+        for (int i = 0; i < recipients.Count; i++)
+        {
+            RPC_ReceiveSharedQuestPresentation(recipients[i], (int)eventId, revision,
+                argument0, argument1, instigator, localizationKey);
+        }
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ReceiveSharedQuestPresentation([RpcTarget] PlayerRef targetPlayer,
+        int eventIdValue, int revision, int argument0, int argument1,
+        PlayerRef instigator, string localizationKey)
+    {
+        if (Runner == null || Runner.LocalPlayer != targetPlayer ||
+            !System.Enum.IsDefined(typeof(SharedQuestPresentationEventId), eventIdValue))
+            return;
+
+        SharedQuestPresentationEventId eventId = (SharedQuestPresentationEventId)eventIdValue;
+        // Receiving this targeted RPC proves this client belonged to the trigger snapshot.
+        if (!sharedPresentationReceipts.TryAccept(eventId, revision, true)) return;
+
+        switch (eventId)
+        {
+            case SharedQuestPresentationEventId.LocalizedMessage:
+                PresentLocalizedQuestMessage(localizationKey, argument0, argument1);
+                break;
+            case SharedQuestPresentationEventId.ArrivalCarInspected:
+                PresentArrivalCarInspected(instigator);
+                break;
+            case SharedQuestPresentationEventId.RouteClueFound:
+                PresentRouteClueFound(localizationKey, argument0, argument1);
+                break;
+            case SharedQuestPresentationEventId.AllRouteCluesFound:
+                PresentAllRouteCluesFound();
+                break;
+            case SharedQuestPresentationEventId.OfficeSearchStarted:
+                PresentOfficeSearchStarted();
+                break;
+            case SharedQuestPresentationEventId.OfficeInvestigationProgress:
+                PresentOfficeInvestigationProgress(argument0, instigator);
+                break;
+            case SharedQuestPresentationEventId.HospitalRadioRecording:
+                PresentHospitalRadioRecording(instigator);
+                break;
+        }
+    }
+
+    private static void PresentLocalizedQuestMessage(string localizationKey, int argument0, int argument1)
+    {
+        string template = GameLocalization.Get(localizationKey, localizationKey);
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.Get("quest.sender"),
+            string.Format(template, argument0, argument1));
+    }
+
+    private static void PresentRouteClueFound(string localizationKey, int clueCount, int cueId)
+    {
+        string template = GameLocalization.Get(localizationKey, localizationKey);
+        AutoChatManager.Instance?.AddMessage(
+            GameLocalization.Get("quest.sender"),
+            string.Format(template, clueCount, PreMilitaryQuestProgress.RequiredRouteClues));
+
+        if (cueId >= (int)RouteBAudioCueId.OpeningEmergencyBroadcast &&
+            cueId <= (int)RouteBAudioCueId.MilitaryEvacuationComplete)
+        {
+            RouteBRadioBroadcastUI.ShowCue((RouteBAudioCueId)cueId);
+        }
+    }
+
+    private void PresentHospitalRadioRecording(PlayerRef instigator)
+    {
         QuestFlowUIPrototype.Instance?.NotifyAuthoritativeQuestStage((int)QuestStage.CityMapFound);
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.radio.restored_sender"),
             GameLocalization.Get("quest.radio.restored_body"));
         ShowLocalQuestEvent(GameLocalization.Get("quest.radio.map_fragment_title"),
             GameLocalization.Get("quest.radio.map_fragment_body"));
+        bool ownsMilitaryReveal = Runner != null && Runner.LocalPlayer == instigator;
         RouteBRadioBroadcastUI.ShowHospitalRecording(() => HandleMilitaryMapFragmentFound(ownsMilitaryReveal));
     }
 
@@ -2518,21 +2683,18 @@ public sealed class MainQuestManager : NetworkBehaviour
         ShowLocalQuestEvent(GameLocalization.Get("quest.hospital.radio_key_title"), body);
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowOfficeSearchStarted(PlayerRef focusPlayer)
+    private void PresentOfficeSearchStarted()
     {
-        _ = focusPlayer;
         QuestFlowUIPrototype.Instance?.NotifyAuthoritativeQuestStage((int)QuestStage.FindCityMap);
         ShowLocalQuestEvent(
             GameLocalization.Get("quest.office_area_title"),
             GameLocalization.Get("quest.office_area_body"));
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowArrivalCarInspected(PlayerRef focusPlayer)
+    private void PresentArrivalCarInspected(PlayerRef instigator)
     {
         ArrivalCarInspectionUI.ActiveInstance?.Close();
-        StartCoroutine(ShowArrivalCarInspectedNoticeNextFrame(focusPlayer));
+        StartCoroutine(ShowArrivalCarInspectedNoticeNextFrame(instigator));
     }
 
     public void RequestReturnPlayerToSearchZone()
@@ -2572,7 +2734,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         Physics2D.SyncTransforms();
     }
 
-    private IEnumerator ShowArrivalCarInspectedNoticeNextFrame(PlayerRef focusPlayer)
+    private IEnumerator ShowArrivalCarInspectedNoticeNextFrame(PlayerRef instigator)
     {
         // The modal canvas must finish closing before the global quest notice is
         // drawn, including when another client was still inspecting the car.
@@ -2580,8 +2742,10 @@ public sealed class MainQuestManager : NetworkBehaviour
         AutoChatManager.Instance?.AddMessage(
             GameLocalization.Get("quest.vehicle_sender"),
             GameLocalization.Get("quest.vehicle_signal"));
-        if (Runner != null && Runner.LocalPlayer == focusPlayer)
-            RouteBRadioBroadcastUI.ShowOpeningSequence(EscapeRouteDecisionUI.ShowInitialChoice);
+        System.Action onCompleted = Runner != null && Runner.LocalPlayer == instigator
+            ? EscapeRouteDecisionUI.ShowInitialChoice
+            : null;
+        RouteBRadioBroadcastUI.ShowOpeningSequence(onCompleted);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -2685,8 +2849,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         }
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowOfficeInvestigationProgress(int completedStep, PlayerRef focusPlayer)
+    private void PresentOfficeInvestigationProgress(int completedStep, PlayerRef instigator)
     {
         QuestFlowUIPrototype.Instance?.NotifyAuthoritativeQuestStage((int)(
             completedStep >= 2 ? QuestStage.CityMapFound : QuestStage.FindCityMap));
@@ -2694,22 +2857,17 @@ public sealed class MainQuestManager : NetworkBehaviour
             completedStep == 1 ? "quest.office_step1" : "quest.office_step2";
         string title = GameLocalization.Get(key + "_title");
         string body = GameLocalization.Get(key + "_body");
-        bool isMilestoneComplete = completedStep >= 2;
-        if (isMilestoneComplete || (Runner != null && Runner.LocalPlayer == focusPlayer))
-        {
-            AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.investigation_sender"), body);
-        }
-        if (Runner != null && Runner.LocalPlayer == focusPlayer)
-        {
-            if (completedStep == 0)
-                RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.DispatchDeskLog);
-            else if (completedStep == 1)
-                RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.OfficeRadioRecording);
-            else
-                RouteBRadioBroadcastUI.ShowCue(
-                    RouteBAudioCueId.MilitaryRouteRevealed,
-                    ShowMilitaryMapRewardThenReveal);
-        }
+        AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.investigation_sender"), body);
+        if (completedStep == 0)
+            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.DispatchDeskLog);
+        else if (completedStep == 1)
+            RouteBRadioBroadcastUI.ShowCue(RouteBAudioCueId.OfficeRadioRecording);
+        else
+            RouteBRadioBroadcastUI.ShowCue(
+                RouteBAudioCueId.MilitaryRouteRevealed,
+                Runner != null && Runner.LocalPlayer == instigator
+                    ? ShowMilitaryMapRewardThenReveal
+                    : null);
         ShowLocalQuestEvent(title, body);
     }
 
@@ -2756,6 +2914,14 @@ public sealed class MainQuestManager : NetworkBehaviour
     public bool IsMilitaryMapRewardSequenceRunning => isMilitaryMapRewardSequenceRunning;
     private System.Action pendingLevelFiveBackpackClaims;
 
+    public void CancelLocalAvatarPresentationForDeath()
+    {
+        isMilitaryMapRewardSequenceRunning = false;
+        pendingLevelFiveBackpackClaims = null;
+        BackpackQuestRewardPresentation.CancelForAvatarReplacement();
+        CloseStaleRouteIntroduction(QuestFlowUIPrototype.Instance);
+    }
+
     public void TriggerLevelFiveRewardSequence(bool introduceRouteChoice = true)
     {
         PlayerMovement localPlayer = PlayerMovement.LocalPlayerInstance;
@@ -2784,12 +2950,12 @@ public sealed class MainQuestManager : NetworkBehaviour
         {
             flow.PlayMilitaryMapRewardAfterDialogue(() =>
             {
-                flow.PlayMilitaryMapReveal(() =>
-                {
-                    isMilitaryMapRewardSequenceRunning = false;
-                    CloseStaleRouteIntroduction(flow);
-                    OnMilitaryMapSequenceComplete(introduceRouteChoice);
-                });
+                // Radio completion only queues the newly discovered region.
+                // Opening/focusing the map belongs exclusively to this client's
+                // later M input, so teammates are never pulled into a map reveal.
+                isMilitaryMapRewardSequenceRunning = false;
+                CloseStaleRouteIntroduction(flow);
+                OnMilitaryMapSequenceComplete(introduceRouteChoice);
             });
         }
         else
@@ -2893,10 +3059,8 @@ public sealed class MainQuestManager : NetworkBehaviour
         AutoUIManager.Instance?.SetQuestOverlayOpen(false);
     }
 
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowAllRouteCluesFound(PlayerRef focusPlayer)
+    private void PresentAllRouteCluesFound()
     {
-        _ = focusPlayer;
         QuestFlowUIPrototype flow = QuestFlowUIPrototype.Instance;
         flow?.NotifyAuthoritativeQuestStage((int)QuestStage.LocateOffice);
         flow?.PrepareForMapFragmentDialogue();
@@ -2920,7 +3084,7 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowCabinetSearchResult(PlayerRef requester, bool found)
+    private void RPC_ShowCabinetSearchResult([RpcTarget] PlayerRef requester, bool found)
     {
         if (!IsNetworkReady || Runner.LocalPlayer != requester)
             return;
@@ -3024,27 +3188,13 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowLocalizedQuestMessage(string localizationKey, int argument0, int argument1,
-        PlayerRef targetPlayer, NetworkBool serverWide)
+    private void RPC_ShowPrivateLocalizedQuestMessage([RpcTarget] PlayerRef targetPlayer,
+        string localizationKey, int argument0, int argument1)
     {
-        if (!serverWide &&
-            (targetPlayer == PlayerRef.None || Runner == null || Runner.LocalPlayer != targetPlayer))
+        if (targetPlayer == PlayerRef.None || Runner == null || Runner.LocalPlayer != targetPlayer)
             return;
 
-        string template = GameLocalization.Get(localizationKey, localizationKey);
-        AutoChatManager.Instance?.AddMessage(
-            GameLocalization.Get("quest.sender"),
-            string.Format(template, argument0, argument1));
-    }
-
-    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
-    private void RPC_ShowRouteBAudioCue(int cueId, PlayerRef focusPlayer)
-    {
-        if (cueId < (int)RouteBAudioCueId.OpeningEmergencyBroadcast ||
-            cueId > (int)RouteBAudioCueId.MilitaryEvacuationComplete)
-            return;
-        if (Runner != null && Runner.LocalPlayer == focusPlayer)
-            RouteBRadioBroadcastUI.ShowCue((RouteBAudioCueId)cueId);
+        PresentLocalizedQuestMessage(localizationKey, argument0, argument1);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

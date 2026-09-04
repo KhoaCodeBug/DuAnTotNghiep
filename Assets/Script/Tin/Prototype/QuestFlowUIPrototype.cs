@@ -240,6 +240,7 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
     public bool IsMapOfficeDestinationVisible => mapPrototype != null &&
                                                   mapPrototype.IsOfficeDestinationVisible;
     public bool HasPendingMapUnlockReveal => mapPrototype != null && mapPrototype.HasPendingUnlockReveal;
+    public bool HasPendingMilitaryMapReveal => mapPrototype != null && mapPrototype.HasPendingMilitaryReveal;
     public int ActiveMapRestrictedFogCount => mapPrototype == null ? 0 : mapPrototype.ActiveRestrictedFogCount;
     public string CurrentRewardLabel => rewardLabel == null ? string.Empty : rewardLabel.text;
     public string CurrentRewardText => rewardText == null ? string.Empty : rewardText.text;
@@ -298,6 +299,9 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.M))
         {
+            if (IsChatInputFocused())
+                return;
+
             SetJournalOpen(false);
             if (mapPrototype != null)
             {

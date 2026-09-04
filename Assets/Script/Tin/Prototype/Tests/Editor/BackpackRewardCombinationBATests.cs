@@ -422,11 +422,12 @@ public sealed class BackpackRewardCombinationBATests
     }
 
     [Test]
-    public void LevelFiveBackpack_StrictSequence_MapReward_ThenMapReveal_ThenBackpack_ThenNotification_DeterministicTrace()
+    public void LevelFiveBackpack_MapRewardThenBackpack_LeavesMilitaryMapRevealQueuedForLocalInput()
     {
         // Behavioral trace: In all branches (including LockedEscapeRoute != None),
         // the required sequence must be strictly enforced:
-        // map reward -> map reveal -> map close -> claim/present level-5 backpack -> Effect B complete -> Notification A.
+        // map reward -> claim/present level-5 backpack -> Effect B complete -> Notification A.
+        // The military map reveal stays queued until this client later presses M.
         GameObject host = new GameObject("Test_DeterministicTrace_Host");
         try
         {
@@ -468,29 +469,26 @@ public sealed class BackpackRewardCombinationBATests
             flow.CompleteMilitaryMapRewardForTests();
             trace.Add("3_MapReward_Finished");
 
-            // Now map reveal must be pending, and map must be open
-            Assert.That(flow.PendingMilitaryMapRevealCallback, Is.Not.Null, "Map reveal callback must be pending.");
-            Assert.That((bool)isPresenterVisible.GetValue(null), Is.False, "Backpack presenter must NOT be visible during map reveal.");
-            trace.Add("4_MapReveal_Active");
+            // Radio completion must not force-open a local map or create an auto-reveal callback.
+            Assert.That(flow.PendingMilitaryMapRevealCallback, Is.Null);
+            Assert.That(flow.IsMapOpen, Is.False);
+            Assert.That(flow.HasPendingMilitaryMapReveal, Is.True,
+                "The discovered military region must remain queued for later local M input.");
+            trace.Add("4_MapReveal_Queued");
 
-            // Step 3: Map reveal finishes, map close callback executes
-            // This invokes flow.CompleteMilitaryMapRevealForTests() -> map close -> OnMilitaryMapSequenceComplete -> ClaimAndPresentLevelFiveBackpack
-            flow.CompleteMilitaryMapRevealForTests();
-            trace.Add("5_MapReveal_Closed");
-
-            // Now backpack presentation (Effect B) MUST have started!
+            // Backpack presentation (Effect B) can now start without coupling reward progress to map input.
             Assert.That((bool)isMapRunningProp.GetValue(manager), Is.False, "Map sequence must no longer be running.");
             Assert.That((bool)isPresenterVisible.GetValue(null), Is.True, "Backpack presenter must be visible (Effect B active).");
             Assert.That((bool)isNotifVisible.GetValue(null), Is.False, "Notification A must NOT be visible while Effect B is active.");
-            trace.Add("6_Backpack_EffectB_Active");
+            trace.Add("5_Backpack_EffectB_Active");
 
-            // Step 4: Finish Effect B presentation
+            // Step 3: Finish Effect B presentation
             MethodInfo finishPres = presenterType.GetMethod("FinishPresentation", BindingFlags.NonPublic | BindingFlags.Instance);
             Component presenterInstance = (Component)presenterType.GetField("instance", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
             finishPres.Invoke(presenterInstance, null);
-            trace.Add("7_EffectB_Completed");
+            trace.Add("6_EffectB_Completed");
 
-            // Step 5: Notification A must now be visible with exact Level 5 before->after capacity
+            // Step 4: Notification A must now be visible with exact Level 5 before->after capacity
             Assert.That((bool)isPresenterVisible.GetValue(null), Is.False, "Effect B must be closed after completion.");
             Assert.That((bool)isNotifVisible.GetValue(null), Is.True, "Notification A must be visible after Effect B completes.");
             string notifBody = (string)notifBodyProp.GetValue(null);
@@ -506,7 +504,7 @@ public sealed class BackpackRewardCombinationBATests
             string expectedL5Name = (string)getLocalizedDisplayName.Invoke(null, new object[] { bp5Item });
             Assert.That(notifBody, Does.Contain(expectedL5Name), "Notification body must include Level 5 backpack display name.");
             Assert.That(notifBody.ToLowerInvariant().Contains("radio"), Is.True, "Notification body must include radio reward reason.");
-            trace.Add("8_NotificationA_Shown");
+            trace.Add("7_NotificationA_Shown");
 
             // Verify full deterministic trace order
             System.Collections.Generic.List<string> expectedTrace = new System.Collections.Generic.List<string>
@@ -514,13 +512,50 @@ public sealed class BackpackRewardCombinationBATests
                 "1_MapSequence_Triggered",
                 "2_Premature_Claim_Blocked",
                 "3_MapReward_Finished",
-                "4_MapReveal_Active",
-                "5_MapReveal_Closed",
-                "6_Backpack_EffectB_Active",
-                "7_EffectB_Completed",
-                "8_NotificationA_Shown"
+                "4_MapReveal_Queued",
+                "5_Backpack_EffectB_Active",
+                "6_EffectB_Completed",
+                "7_NotificationA_Shown"
             };
             Assert.That(trace, Is.EqualTo(expectedTrace), "Deterministic callback sequence must match exact order.");
+        }
+        finally
+        {
+            Object.DestroyImmediate(host);
+            QuestFlowUIPrototype.ResetInstanceForTests();
+            presenterType?.GetMethod("ResetForTests", BindingFlags.Public | BindingFlags.Static)?.Invoke(null, null);
+        }
+    }
+
+    [Test]
+    public void AvatarReplacementCancelsLocalRewardPresentationAndUnsticksRadioSequence()
+    {
+        GameObject host = new GameObject("Test_AvatarReplacement_RadioSequence");
+        try
+        {
+            QuestFlowUIPrototype flow = host.AddComponent<QuestFlowUIPrototype>();
+            flow.EnsureBuiltForTests();
+            Component manager = host.AddComponent(questManagerType);
+            MethodInfo handleMapFound = questManagerType.GetMethod("HandleMilitaryMapFragmentFound",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo cancel = questManagerType.GetMethod("CancelLocalAvatarPresentationForDeath",
+                BindingFlags.Public | BindingFlags.Instance);
+            PropertyInfo running = questManagerType.GetProperty("IsMilitaryMapRewardSequenceRunning",
+                BindingFlags.Public | BindingFlags.Instance);
+
+            handleMapFound.Invoke(manager, new object[] { true });
+            Assert.That((bool)running.GetValue(manager), Is.True);
+            Assert.That(flow.IsQuestOverlayOpen, Is.True);
+
+            cancel.Invoke(manager, null);
+            Assert.That((bool)running.GetValue(manager), Is.False);
+            Assert.That(flow.IsQuestOverlayOpen, Is.False);
+            Assert.That((bool)presenterType.GetProperty("IsVisible",
+                BindingFlags.Public | BindingFlags.Static).GetValue(null), Is.False);
+
+            handleMapFound.Invoke(manager, new object[] { true });
+            Assert.That((bool)running.GetValue(manager), Is.True,
+                "A replacement avatar must be able to restart a presentation that death interrupted.");
         }
         finally
         {

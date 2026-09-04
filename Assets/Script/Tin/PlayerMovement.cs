@@ -482,6 +482,14 @@ public class PlayerMovement : NetworkBehaviour
         // 🔥 VÌ ĐÃ DÙNG ANIMATION EVENT NÊN ÂM THANH DO CÁC EVENT TRÊN CLIP TỰ KÍCH HOẠT.
         // Hàm này chỉ đảm bảo ngắt âm thanh lập tức khi nhân vật đứng yên / bị chết / bị stun / rón rén.
         if (footstepAudioSource == null) return;
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Footstep,
+                HasInputAuthority))
+        {
+            if (footstepAudioSource.isPlaying) footstepAudioSource.Stop();
+            return;
+        }
+
         bool isDeadOrStunned = (healthSystem != null && (healthSystem.isDead || healthSystem.isTransforming)) || NetStunTimer > 0;
         if (!NetIsMoving || isDeadOrStunned || NetIsCrouching)
         {
@@ -545,6 +553,10 @@ public class PlayerMovement : NetworkBehaviour
     private void PlaySpecificFootstep(AudioClip clip, float baseVol)
     {
         if (cinematicPresentationSuppressed) return;
+        if (!GameplayAudioSpatializer.ShouldPlayPlayerCue(
+                GameplayAudioSpatializer.PlayerCue.Footstep,
+                HasInputAuthority)) return;
+
         // 🔥 CHỈ PHÁT ÂM THANH CHO PLAYER BẢN THÂN (Tránh máy khách/proxy phát đúp 2 lần)
         if (footstepAudioSource == null) footstepAudioSource = GetComponent<AudioSource>();
         if (footstepAudioSource == null) return;
