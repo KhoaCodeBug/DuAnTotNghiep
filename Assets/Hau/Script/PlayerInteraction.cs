@@ -41,10 +41,14 @@ public class PlayerInteraction : NetworkBehaviour
     private void Awake()
     {
         body = GetComponent<Rigidbody2D>();
-        sprite = GetComponent<SpriteRenderer>();
+        // The character renderer/animator live on the Visual child in the
+        // networked player prefab, not on the NetworkObject root.
+        sprite = PlayerVisualResolver.ResolveVisualSpriteRenderer(gameObject) ??
+                 GetComponent<SpriteRenderer>();
         nameTag = transform.Find("NameTagCanvas");
         muzzleFlash = transform.Find("MuzzleFlash");
-        playerAnimator = GetComponent<Animator>();
+        playerAnimator = PlayerVisualResolver.ResolveVisualAnimator(gameObject) ??
+                         GetComponent<Animator>();
         if (playerAnimator != null)
         {
             foreach (AnimatorControllerParameter parameter in playerAnimator.parameters)
@@ -99,7 +103,15 @@ public class PlayerInteraction : NetworkBehaviour
         if (!Input.GetKeyDown(KeyCode.F)) return;
         if (NetworkIsInVehicle)
         {
-            if (CurrentVehicle != null) RPC_RequestExitVehicle(CurrentVehicle);
+            // CurrentVehicle can briefly be unavailable on the input peer
+            // while the replicated vehicle state is catching up. Resolve the
+            // local occupant as a fallback so F always reaches the authority.
+            NetworkObject vehicleObject = CurrentVehicle;
+            if (vehicleObject == null || !vehicleObject.IsValid)
+                vehicleObject = FindLocalVehicleForExit()?.Object;
+
+            if (vehicleObject != null && vehicleObject.IsValid)
+                RPC_RequestExitVehicle(vehicleObject);
         }
         else
         {
@@ -301,6 +313,21 @@ public class PlayerInteraction : NetworkBehaviour
             closest = vehicle;
         }
         return closest;
+    }
+
+    private VehicleControllerFusion FindLocalVehicleForExit()
+    {
+        if (currentVehicle != null && currentVehicle.HasLocalOccupant)
+            return currentVehicle;
+
+        foreach (VehicleControllerFusion vehicle in
+                 FindObjectsByType<VehicleControllerFusion>(FindObjectsSortMode.None))
+        {
+            if (vehicle != null && vehicle.HasLocalOccupant)
+                return vehicle;
+        }
+
+        return null;
     }
 
     private void SetPhysicsEnabled(bool enabled)

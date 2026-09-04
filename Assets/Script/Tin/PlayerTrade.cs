@@ -16,6 +16,7 @@ public class PlayerTrade : NetworkBehaviour
     private void Update()
     {
         if (!HasInputAuthority) return;
+        if (Object == null || !Object.IsValid) return;
         if (Input.GetKeyDown(KeyCode.T) && !IsTrading)
         {
             // Block initiating trade if Inventory, Loot, or Health is open
@@ -30,24 +31,53 @@ public class PlayerTrade : NetworkBehaviour
     private void SendTradeRequest()
     {
         PlayerTrade[] allPlayers = FindObjectsByType<PlayerTrade>(FindObjectsSortMode.None);
+        PlayerTrade closestPlayer = null;
+        float closestDistance = float.MaxValue;
+
         foreach (PlayerTrade otherPlayer in allPlayers)
         {
-            if (otherPlayer == this) continue;
-            if (Vector2.Distance(transform.position, otherPlayer.transform.position) <= tradeRadius && !otherPlayer.IsTrading)
-            {
-                RPC_SendRequest(otherPlayer.Object.InputAuthority);
-                break;
-            }
+            if (otherPlayer == null || otherPlayer == this ||
+                otherPlayer.Object == null || !otherPlayer.Object.IsValid ||
+                otherPlayer.Object.InputAuthority == PlayerRef.None || otherPlayer.IsTrading)
+                continue;
+
+            float distance = Vector2.Distance(transform.position, otherPlayer.transform.position);
+            if (!IsWithinTradeRadius(transform.position, tradeRadius,
+                                     otherPlayer.transform.position, otherPlayer.tradeRadius) ||
+                distance >= closestDistance)
+                continue;
+
+            closestDistance = distance;
+            closestPlayer = otherPlayer;
         }
+
+        if (closestPlayer != null)
+            RPC_SendRequest(closestPlayer.Object.InputAuthority);
+    }
+
+    public static bool IsWithinTradeRadius(
+        Vector2 firstPosition,
+        float firstRadius,
+        Vector2 secondPosition,
+        float secondRadius)
+    {
+        float radius = Mathf.Min(firstRadius, secondRadius);
+        if (radius <= 0f || float.IsNaN(radius) || float.IsInfinity(radius)) return false;
+
+        Vector2 delta = firstPosition - secondPosition;
+        return delta.sqrMagnitude <= radius * radius;
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_SendRequest(PlayerRef target, RpcInfo info = default)
     {
-        PlayerTrade senderTrade = GetPlayerTrade(info.Source);
+        if (!HasStateAuthority || target == PlayerRef.None) return;
+
+        PlayerRef sender = ResolveRpcSource(info.Source);
+        PlayerTrade senderTrade = GetPlayerTrade(sender);
         PlayerTrade targetTrade = GetPlayerTrade(target);
-        if (!CanStartTrade(senderTrade, targetTrade)) return;
-        RPC_ShowTradeRequest(info.Source, target);
+        if (senderTrade != this || !CanStartTrade(senderTrade, targetTrade)) return;
+        RPC_ShowTradeRequest(sender, target);
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -63,7 +93,8 @@ public class PlayerTrade : NetworkBehaviour
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_AcceptTrade(PlayerRef sender, RpcInfo info = default)
     {
-        PlayerRef receiver = info.Source;
+        PlayerRef receiver = ResolveRpcSource(info.Source);
+        if (receiver == PlayerRef.None) return;
         PlayerTrade p1 = GetPlayerTrade(sender);
         PlayerTrade p2 = GetPlayerTrade(receiver);
 
@@ -84,14 +115,15 @@ public class PlayerTrade : NetworkBehaviour
             !receiver.Object.IsValid || sender.IsTrading || receiver.IsTrading)
             return false;
 
-        return Vector2.Distance(sender.transform.position, receiver.transform.position) <=
-               Mathf.Min(sender.tradeRadius, receiver.tradeRadius);
+        return IsWithinTradeRadius(sender.transform.position, sender.tradeRadius,
+                                   receiver.transform.position, receiver.tradeRadius);
     }
 
     [Rpc(RpcSources.InputAuthority, RpcTargets.StateAuthority)]
     public void RPC_DeclineTrade(PlayerRef sender, RpcInfo info = default)
     {
-        PlayerTrade receiver = GetPlayerTrade(info.Source);
+        PlayerRef receiverRef = ResolveRpcSource(info.Source);
+        PlayerTrade receiver = GetPlayerTrade(receiverRef);
         PlayerTrade senderTrade = GetPlayerTrade(sender);
         if (receiver != this || senderTrade == null) return;
         RPC_NotifyTradeDeclined(sender);
@@ -180,7 +212,10 @@ public class PlayerTrade : NetworkBehaviour
 
     private void ExecuteTrade(PlayerTrade p1, PlayerTrade p2)
     {
-        if (!HasStateAuthority || p1 == null || p2 == null || !p1.IsTrading || !p2.IsTrading ||
+        if (!HasStateAuthority || p1 == null || p2 == null ||
+            p1.Object == null || p2.Object == null ||
+            !p1.Object.IsValid || !p2.Object.IsValid ||
+            !p1.IsTrading || !p2.IsTrading ||
             p1.TradePartner != p2.Object.InputAuthority || p2.TradePartner != p1.Object.InputAuthority ||
             !TryResolveOffer(p1, out InventorySystem p1Inv, out ItemData data1, out int amount1) ||
             !TryResolveOffer(p2, out InventorySystem p2Inv, out ItemData data2, out int amount2))
@@ -253,22 +288,33 @@ public class PlayerTrade : NetworkBehaviour
         {
             p1.IsTrading = false;
             p1.ResetTradeData();
-            RPC_CloseTradeWindow(p1.Object.InputAuthority);
+            if (p1.Object != null && p1.Object.IsValid)
+                RPC_CloseTradeWindow(p1.Object.InputAuthority);
         }
         if (p2 != null)
         {
             p2.IsTrading = false;
             p2.ResetTradeData();
-            RPC_CloseTradeWindow(p2.Object.InputAuthority);
+            if (p2.Object != null && p2.Object.IsValid)
+                RPC_CloseTradeWindow(p2.Object.InputAuthority);
         }
+    }
+
+    private PlayerRef ResolveRpcSource(PlayerRef rpcSource)
+    {
+        if (rpcSource != PlayerRef.None) return rpcSource;
+        return Object != null && Object.IsValid ? Object.InputAuthority : PlayerRef.None;
     }
 
     public PlayerTrade GetPlayerTrade(PlayerRef playerRef)
     {
+        if (playerRef == PlayerRef.None) return null;
+
         foreach (var p in FindObjectsByType<PlayerTrade>(FindObjectsSortMode.None))
         {
-            // 🔥 ĐÃ FIX LỖI SỐ 1: Thêm khiên bảo vệ `p.Object != null` chống NullReference
-            if (p != null && p.Object != null && p.Object.InputAuthority == playerRef) return p;
+            if (p != null && p.Object != null && p.Object.IsValid &&
+                p.Object.InputAuthority == playerRef)
+                return p;
         }
         return null;
     }
