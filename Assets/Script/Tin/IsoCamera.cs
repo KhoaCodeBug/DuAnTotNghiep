@@ -40,6 +40,8 @@ public class PZ_CameraController : MonoBehaviour
 
     private Camera cam;
     private Vector3 velocity;
+    private Vector3 currentPanOffset = Vector3.zero;
+    private Vector3 panVelocity = Vector3.zero;
     private float targetZoom;
     private float zoomVelocity;
 
@@ -53,6 +55,8 @@ public class PZ_CameraController : MonoBehaviour
         hasTarget = true;
         isSpectatingMode = false;
         velocity = Vector3.zero;
+        currentPanOffset = Vector3.zero;
+        panVelocity = Vector3.zero;
         zoomVelocity = 0f;
         transform.position = player.position + offset;
     }
@@ -64,6 +68,8 @@ public class PZ_CameraController : MonoBehaviour
         hasTarget = targetTransform != null;
         isSpectatingMode = targetTransform != null;
         velocity = Vector3.zero;
+        currentPanOffset = Vector3.zero;
+        panVelocity = Vector3.zero;
     }
 
     private float baseMaxLookAhead = 6f;
@@ -136,7 +142,7 @@ public class PZ_CameraController : MonoBehaviour
 
     private void HandleCameraFollowAndPan()
     {
-        Vector3 targetPos = player.position + offset;
+        Vector3 targetPan = Vector3.zero;
 
         if (Input.GetMouseButton(1) && !IsPlayerBusyWithUI() && !isSpectatingMode)
         {
@@ -147,12 +153,14 @@ public class PZ_CameraController : MonoBehaviour
             Vector3 panOffset = Vector3.ClampMagnitude(directionToMouse, maxLookAhead);
 
             float sensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 1.0f);
-            targetPos += (panOffset / 2f) * sensitivity;
+            targetPan = (panOffset / 2f) * sensitivity;
         }
 
         float deltaTime = Time.unscaledDeltaTime > 0f ? Time.unscaledDeltaTime : Time.deltaTime;
-        transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref velocity,
+        currentPanOffset = Vector3.SmoothDamp(currentPanOffset, targetPan, ref panVelocity,
             smoothFollow, Mathf.Infinity, deltaTime);
+
+        transform.position = player.position + offset + currentPanOffset;
     }
 
     private void HandleZoom()

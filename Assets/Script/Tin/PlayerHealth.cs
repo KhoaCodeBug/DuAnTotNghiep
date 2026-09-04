@@ -925,6 +925,7 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayHitEffect()
     {
+        PlayerMovementDiagnostic.RecordHit(HasStateAuthority);
         if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
         if (anim != null) PlayerVisualResolver.SafeTrigger(anim, "TakeDamage");
         if (spriteRend == null) spriteRend = PlayerVisualResolver.ResolveVisualSpriteRenderer(gameObject);
@@ -936,6 +937,7 @@ public class PlayerHealth : NetworkBehaviour
     public void RPC_PlayConvulseEffect()
     {
         CloseLocalQuestPresentationForDeath();
+        PlayerMovementDiagnostic.RecordDeath(HasStateAuthority);
         if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
         if (anim != null) PlayerVisualResolver.SafeSetBool(anim, "IsDead", true);
 
@@ -952,6 +954,7 @@ public class PlayerHealth : NetworkBehaviour
     public void RPC_PlayDeathEffect()
     {
         CloseLocalQuestPresentationForDeath();
+        PlayerMovementDiagnostic.RecordDeath(HasStateAuthority);
         if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
         if (anim != null) PlayerVisualResolver.SafeSetBool(anim, "IsDead", true);
 

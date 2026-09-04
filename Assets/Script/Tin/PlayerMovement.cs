@@ -606,14 +606,20 @@ public class PlayerMovement : NetworkBehaviour
 
     public void LockMovement(float duration)
     {
-        NetStunTimer = duration;
-        rb.linearVelocity = Vector2.zero;
+        if (duration > NetStunTimer)
+        {
+            NetStunTimer = duration;
+        }
+        if (rb != null) rb.linearVelocity = Vector2.zero;
     }
 
     public void LockMovementForAttack(float duration)
     {
-        NetAttackLockTimer = duration;
-        rb.linearVelocity = Vector2.zero;
+        if (duration > NetAttackLockTimer)
+        {
+            NetAttackLockTimer = duration;
+        }
+        if (rb != null) rb.linearVelocity = Vector2.zero;
     }
 
     public void MakeNoise(float radius, bool useThaiEnhancedHearing = true, int thaiResponderLimit = -1, float thaiBaseRadiusOverride = -1f, float thaiNoiseUrgency = -1f)
