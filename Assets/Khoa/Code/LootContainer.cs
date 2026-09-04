@@ -17,7 +17,7 @@ public class LootContainer : NetworkBehaviour
     private int reservedQuestSlots = 2;
 
     public int MaxSlots => Mathf.Max(1, maxSlots);
-    private int RandomLootSlotLimit => Mathf.Max(1, MaxSlots - reservedQuestSlots);
+    private int RandomLootSlotLimit => LootDropRules.GetRandomLootSlotLimit(MaxSlots, reservedQuestSlots);
 
     [Header("Chống Loot Xuyên Tường")]
     [Tooltip("Chọn layer của các bức tường hoặc vật cản (Wall)")]
@@ -33,7 +33,7 @@ public class LootContainer : NetworkBehaviour
 
     [Header("Đèn pin trong loot thường")]
     [Tooltip("Cơ hội một tủ loot thường có thêm đèn pin. Mỗi chiếc có pin ngẫu nhiên từ 25% đến 100%.")]
-    [SerializeField, Range(0f, 100f)] private float flashlightDropChance = 15f;
+    [SerializeField, Range(0f, 100f)] private float flashlightDropChance = LootDropRules.FlashlightBaseChancePercent;
 
     [Header("Route B Military Repair Loot")]
     [SerializeField]
@@ -57,6 +57,7 @@ public class LootContainer : NetworkBehaviour
     // Opening a house or an ordinary cabinet never advances quest progress.
     [Networked] private NetworkBool RouteClueRollResolved { get; set; }
     [Networked] private NetworkBool MilitaryLootHasItems { get; set; }
+    [Networked] private NetworkBool RandomLootRollResolved { get; set; }
 
     private bool hasGeneratedLoot = false;
     private PlayerMovement cachedLocalPlayer;
@@ -93,9 +94,9 @@ public class LootContainer : NetworkBehaviour
 
     public override void Spawned()
     {
-        if (HasStateAuthority && !hasGeneratedLoot && !militaryRepairLootContainer)
+        if (!militaryRepairLootContainer)
         {
-            GenerateRandomLoot();
+            AuthorityTryGenerateRandomLoot();
         }
     }
 
@@ -125,8 +126,13 @@ public class LootContainer : NetworkBehaviour
         return true;
     }
 
-    private void GenerateRandomLoot()
+    private bool AuthorityTryGenerateRandomLoot()
     {
+        if (!LootDropRules.CanBeginAuthorityGeneration(HasStateAuthority, RandomLootRollResolved)) return false;
+
+        // Resolve first so no duplicate callback/resimulation path can roll this
+        // physical container a second time on State Authority.
+        RandomLootRollResolved = true;
         itemsInContainer.Clear();
 
         float lootMultiplier = DifficultyRules.GetLootRateMultiplier(DifficultyRules.ActiveDifficulty);
@@ -135,8 +141,7 @@ public class LootContainer : NetworkBehaviour
             foreach (var lootRule in lootTable.lootRules)
             {
                 if (lootRule.itemPrefab == null) continue;
-                float roll = Random.Range(0f, 100f);
-                if (roll <= lootRule.dropChance * lootMultiplier)
+                if (LootDropRules.PassesRoll(Random.value, lootRule.dropChance, lootMultiplier))
                 {
                     int spawnAmount = LootQuantityRules.RollRandomAmount(
                         lootRule.itemPrefab, lootRule.minAmount, lootRule.maxAmount);
@@ -154,6 +159,7 @@ public class LootContainer : NetworkBehaviour
         // can still discover a different second weapon in the world.
         TryGenerateBonusWeapon(lootMultiplier);
         hasGeneratedLoot = true;
+        return true;
     }
 
     private void TryGenerateFlashlightLoot(float lootMultiplier)
@@ -165,8 +171,7 @@ public class LootContainer : NetworkBehaviour
             if (slot != null && InventorySystem.IsFlashlight(slot.item) && slot.amount > 0) return;
         }
 
-        float effectiveChance = Mathf.Clamp(flashlightDropChance * lootMultiplier, 0f, 100f);
-        if (Random.Range(0f, 100f) >= effectiveChance) return;
+        if (!LootDropRules.PassesRoll(Random.value, flashlightDropChance, lootMultiplier)) return;
 
         ItemData flashlight = ItemDataLoader.LoadItem(FlashlightController.ItemId);
         if (flashlight == null)
@@ -185,8 +190,7 @@ public class LootContainer : NetworkBehaviour
 
     private void TryGenerateBackpackLoot(float lootMultiplier)
     {
-        float effectiveChance = Mathf.Clamp(backpackDropChance * lootMultiplier, 0f, 100f);
-        if (Random.Range(0f, 100f) >= effectiveChance) return;
+        if (!LootDropRules.PassesRoll(Random.value, backpackDropChance, lootMultiplier)) return;
 
         int rolledTier = BackpackLootRules.RollTier();
         if (rolledTier < 1 || rolledTier > 3) return;
@@ -266,8 +270,7 @@ public class LootContainer : NetworkBehaviour
 
     private void TryGenerateBonusWeapon(float lootMultiplier)
     {
-        float effectiveChance = Mathf.Clamp(bonusWeaponDropChance * lootMultiplier, 0f, 100f);
-        if (Random.Range(0f, 100f) >= effectiveChance) return;
+        if (!LootDropRules.PassesRoll(Random.value, bonusWeaponDropChance, lootMultiplier)) return;
 
         List<ItemData> weaponPool = new List<ItemData>();
         foreach (ItemData item in Resources.LoadAll<ItemData>("Items"))
@@ -311,7 +314,7 @@ public class LootContainer : NetworkBehaviour
 
     private bool StoreItemLocal(ItemData itemData, int amount, int slotLimit = -1, float flashlightBattery01 = 1f)
     {
-        int effectiveSlotLimit = slotLimit > 0 ? Mathf.Min(slotLimit, MaxSlots) : MaxSlots;
+        int effectiveSlotLimit = slotLimit >= 0 ? Mathf.Min(slotLimit, MaxSlots) : MaxSlots;
         if (!CanStoreItem(itemData, amount, effectiveSlotLimit)) return false;
 
         int stackLimit = itemData.isStackable ? Mathf.Max(1, itemData.maxStack) : 1;
