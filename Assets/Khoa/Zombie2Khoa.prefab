@@ -228,8 +228,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6e56929e897ae7e458e5081001c76265, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   speed: 1.5
   nextWaypointDistance: 1
   trackingDuration: 3
@@ -241,11 +241,18 @@ MonoBehaviour:
   zombieDamage: 10
   detectionRange: 2
   viewAngle: 180
+  alertViewAngle: 200
+  closeAwarenessRange: 2.25
   obstacleMask:
     serializedVersion: 2
     m_Bits: 64
+  searchPointCount: 3
+  searchRadius: 2.25
+  searchWaitDuration: 1.1
   attackRange: 0.12
-  attackDuration: 1.3
+  attackHitAngle: 120
+  attack1Duration: 1.0833334
+  attack2Duration: 1.25
   attackCooldown: 1.5
   maxHealth: 100
   stunDuration: 1.2
@@ -258,6 +265,13 @@ MonoBehaviour:
   _NetAttackIndex: 0
   _NetSpeed: 0
   _NetMoveDir: {x: 0, y: 0}
+  _TutorialStationary:
+    _value: 0
+  _TutorialForceVisible:
+    _value: 0
+  obstacleProbeDistance: 0.8
+  obstacleAvoidanceWeight: 1.8
+  stuckRepathDelay: 0.75
 --- !u!70 &7691760954418496845
 CapsuleCollider2D:
   m_ObjectHideFlags: 0
@@ -305,8 +319,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: -1552182283, guid: e725a070cec140c4caffb81624c8c787, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   SortKey: 1346771753
   ObjectInterest: 1
   Flags: 262145
@@ -460,6 +474,75 @@ AudioSource:
   BypassEffects: 0
   BypassListenerEffects: 0
   BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!114 &9010000000000000013
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -474,3 +557,13 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   wanderSound: {fileID: 8300000, guid: 2bfa8e12b0ddc534a8f218abdbb91bb4, type: 3}
   chaseSound: {fileID: 8300000, guid: 4d3b379ca5bdb6546bc45f211a79b68e, type: 3}
+  wanderVolume: 0.34
+  chaseVolume: 0.78
+  chaseAudibleStart: 0.31
+  chaseAudibleEnd: 2.42
+  initialWanderDelayMin: 2
+  initialWanderDelayMax: 10
+  wanderBurstDurationMin: 1.5
+  wanderBurstDurationMax: 3.2
+  wanderIntervalMin: 5
+  wanderIntervalMax: 12

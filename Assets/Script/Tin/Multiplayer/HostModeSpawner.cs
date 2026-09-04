@@ -602,7 +602,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         }
 
         position = checkpoint.transform.position;
-        Debug.Log($"[SPAWNER] Respawn theo tiến độ nhiệm vụ tại '{checkpointName}' {position}.");
+        Debug.Log($"[SPAWNER] Respawn {player} theo checkpoint chung của đội tại '{checkpointName}' {position}.");
         return true;
     }
 

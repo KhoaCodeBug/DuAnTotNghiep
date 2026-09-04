@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.Tilemaps;
 using Fusion;
 using System.Collections.Generic;
 
@@ -57,6 +58,10 @@ public class PlayerVision : NetworkBehaviour
 
     public Color localPlayerXRayColor = new Color(0.55f, 0.92f, 1f, 1f);
 
+    [SerializeField]
+    [Tooltip("Material unlit dành riêng cho silhouette X-Ray. Phải được prefab tham chiếu để shader không bị strip khỏi Player build.")]
+    private Material localPlayerXRayMaterial;
+
     private Collider2D[] zombiesInRadius = new Collider2D[100];
     private ContactFilter2D zombieFilter;
     private ContactFilter2D obstacleFilter;
@@ -71,6 +76,12 @@ public class PlayerVision : NetworkBehaviour
     private Color originalPlayerColor;
     private Material localPlayerUnlitMaterial;
     private SpriteRenderer localPlayerXRayRenderer;
+    private readonly Collider2D[] localPlayerOcclusionHits = new Collider2D[24];
+    private ContactFilter2D localPlayerOcclusionFilter;
+    private float nextLocalPlayerOcclusionCheckTime;
+    private bool isLocalPlayerOccluded;
+    private const float LocalPlayerOcclusionCheckInterval = 0.05f;
+    private const float LocalPlayerOcclusionProbeScale = 0.72f;
     private readonly Dictionary<SpriteRenderer, ZombieRenderState> zombieRenderStates =
         new Dictionary<SpriteRenderer, ZombieRenderState>();
     private readonly Dictionary<SpriteRenderer, float> nearAwarenessMaskAlphas = new Dictionary<SpriteRenderer, float>();
@@ -130,6 +141,8 @@ public class PlayerVision : NetworkBehaviour
         obstacleFilter.useLayerMask = true;
         obstacleFilter.useTriggers = false;
         obstacleFilter.SetLayerMask(obstacleLayer);
+        localPlayerOcclusionFilter = new ContactFilter2D();
+        localPlayerOcclusionFilter.NoFilter();
 
         pMove = GetComponent<PlayerMovement>();
         playerHealth = GetComponent<PlayerHealth>();
@@ -174,23 +187,33 @@ public class PlayerVision : NetworkBehaviour
         if (unlitShader == null)
             unlitShader = Shader.Find("Sprites/Default");
 
-        if (unlitShader == null)
+        if (unlitShader != null)
+        {
+            localPlayerUnlitMaterial = new Material(unlitShader)
+            {
+                name = "Local Player Readability (Runtime)",
+                hideFlags = HideFlags.DontSave
+            };
+        }
+        else
         {
             Debug.LogWarning("[PlayerVision] No unlit sprite shader found; local Player readability fallback is disabled.");
-            return;
         }
 
-        localPlayerUnlitMaterial = new Material(unlitShader)
+        // Keep the X-Ray path independent from the runtime readability shader.
+        // Shader.Find-only assets can be stripped from a standalone Player build;
+        // the prefab's serialized material reference guarantees this shader is kept.
+        if (localPlayerXRayMaterial == null)
         {
-            name = "Local Player Readability (Runtime)",
-            hideFlags = HideFlags.DontSave
-        };
+            Debug.LogWarning("[PlayerVision] Local Player X-Ray material is missing; silhouette is disabled.", this);
+            return;
+        }
 
         GameObject xrayObject = new GameObject("LocalPlayerXRaySilhouette");
         xrayObject.hideFlags = HideFlags.DontSave;
         xrayObject.transform.SetParent(playerBodyRenderer.transform, false);
         localPlayerXRayRenderer = xrayObject.AddComponent<SpriteRenderer>();
-        localPlayerXRayRenderer.sharedMaterial = localPlayerUnlitMaterial;
+        localPlayerXRayRenderer.sharedMaterial = localPlayerXRayMaterial;
         localPlayerXRayRenderer.enabled = false;
 
         SortingLayer[] layers = SortingLayer.layers;
@@ -224,7 +247,7 @@ public class PlayerVision : NetworkBehaviour
         if (playerHealth != null && playerHealth.Object != null && playerHealth.Object.IsValid &&
             (playerHealth.isDead || playerHealth.isTransforming))
         {
-            SetLocalPlayerReadability(false);
+            SetLocalPlayerReadability(false, false);
             if (playerLight != null) playerLight.gameObject.SetActive(false);
             RestoreTrackedZombieRenderers();
             return;
@@ -245,7 +268,8 @@ public class PlayerVision : NetworkBehaviour
         }
 
         bool useVehicleVision = IsUsingVehicleVision;
-        SetLocalPlayerReadability(isTarget && !useVehicleVision);
+        SetLocalPlayerReadability(isTarget && !useVehicleVision,
+            isTarget && HasInputAuthority && !useVehicleVision);
 
         if (playerLight != null)
         {
@@ -356,13 +380,13 @@ public class PlayerVision : NetworkBehaviour
         }
     }
 
-    private void SetLocalPlayerReadability(bool isLocalViewTarget)
+    private void SetLocalPlayerReadability(bool isLocalViewTarget, bool allowLocalXRay)
     {
-        if (playerBodyRenderer == null || localPlayerUnlitMaterial == null) return;
+        if (playerBodyRenderer == null) return;
 
         if (isLocalViewTarget)
         {
-            if (playerBodyRenderer.sharedMaterial != localPlayerUnlitMaterial)
+            if (localPlayerUnlitMaterial != null && playerBodyRenderer.sharedMaterial != localPlayerUnlitMaterial)
                 playerBodyRenderer.sharedMaterial = localPlayerUnlitMaterial;
 
             Color readableColor = originalPlayerColor;
@@ -370,6 +394,16 @@ public class PlayerVision : NetworkBehaviour
             readableColor.g *= localPlayerReadableBrightness;
             readableColor.b *= localPlayerReadableBrightness;
             playerBodyRenderer.color = readableColor;
+
+            if (allowLocalXRay && Time.unscaledTime >= nextLocalPlayerOcclusionCheckTime)
+            {
+                nextLocalPlayerOcclusionCheckTime = Time.unscaledTime + LocalPlayerOcclusionCheckInterval;
+                isLocalPlayerOccluded = IsLocalPlayerVisuallyOccluded();
+            }
+            else if (!allowLocalXRay)
+            {
+                isLocalPlayerOccluded = false;
+            }
             SyncLocalPlayerXRaySilhouette();
         }
         else
@@ -379,6 +413,7 @@ public class PlayerVision : NetworkBehaviour
                 playerBodyRenderer.sharedMaterial = originalPlayerMaterial;
                 playerBodyRenderer.color = originalPlayerColor;
             }
+            isLocalPlayerOccluded = false;
             if (localPlayerXRayRenderer != null)
                 localPlayerXRayRenderer.enabled = false;
         }
@@ -388,7 +423,7 @@ public class PlayerVision : NetworkBehaviour
     {
         if (localPlayerXRayRenderer == null || playerBodyRenderer == null) return;
 
-        localPlayerXRayRenderer.enabled = playerBodyRenderer.enabled;
+        localPlayerXRayRenderer.enabled = playerBodyRenderer.enabled && isLocalPlayerOccluded;
         localPlayerXRayRenderer.sprite = playerBodyRenderer.sprite;
         localPlayerXRayRenderer.flipX = playerBodyRenderer.flipX;
         localPlayerXRayRenderer.flipY = playerBodyRenderer.flipY;
@@ -398,6 +433,83 @@ public class PlayerVision : NetworkBehaviour
         Color tint = localPlayerXRayColor;
         tint.a = localPlayerXRayAlpha;
         localPlayerXRayRenderer.color = tint;
+    }
+
+    private bool IsLocalPlayerVisuallyOccluded()
+    {
+        if (playerBodyRenderer == null || !playerBodyRenderer.enabled || playerBodyRenderer.sprite == null)
+            return false;
+
+        Bounds playerBounds = playerBodyRenderer.bounds;
+        Vector2 probeSize = new Vector2(
+            Mathf.Max(0.05f, playerBounds.size.x * LocalPlayerOcclusionProbeScale),
+            Mathf.Max(0.05f, playerBounds.size.y * LocalPlayerOcclusionProbeScale));
+        int hitCount = Physics2D.OverlapBox(playerBounds.center, probeSize, 0f,
+            localPlayerOcclusionFilter, localPlayerOcclusionHits);
+
+        for (int i = 0; i < hitCount; i++)
+        {
+            Collider2D hit = localPlayerOcclusionHits[i];
+            if (hit == null || !hit.enabled || !hit.gameObject.activeInHierarchy ||
+                hit.transform == transform || hit.transform.IsChildOf(transform))
+                continue;
+
+            // Other actors must never make a local-only presentation leak look like
+            // shared state. X-Ray is reserved for environmental cover.
+            if (hit.GetComponentInParent<PlayerMovement>() != null ||
+                IsLayerInMask(hit.gameObject.layer, zombieLayer))
+                continue;
+
+            Renderer cover = FindCoverRenderer(hit);
+            if (IsActiveOpaqueCover(cover, playerBounds))
+                return true;
+        }
+
+        return false;
+    }
+
+    private Renderer FindCoverRenderer(Collider2D hit)
+    {
+        Renderer cover = hit.GetComponent<Renderer>();
+        if (cover == null) cover = hit.GetComponentInParent<Renderer>();
+        if (cover == null) cover = hit.GetComponentInChildren<Renderer>();
+        return cover;
+    }
+
+    private bool IsActiveOpaqueCover(Renderer cover, Bounds playerBounds)
+    {
+        if (cover == null || cover == playerBodyRenderer || !cover.enabled ||
+            !cover.gameObject.activeInHierarchy || !cover.bounds.Intersects(playerBounds))
+            return false;
+
+        float alpha = 1f;
+        if (cover is SpriteRenderer spriteRenderer)
+        {
+            if (spriteRenderer.sprite == null) return false;
+            alpha = spriteRenderer.color.a;
+        }
+        else if (cover is TilemapRenderer)
+        {
+            Tilemap tilemap = cover.GetComponent<Tilemap>();
+            if (tilemap != null) alpha = tilemap.color.a;
+        }
+
+        if (alpha <= 0.05f) return false;
+
+        int playerLayer = SortingLayer.GetLayerValueFromID(playerBodyRenderer.sortingLayerID);
+        int coverLayer = SortingLayer.GetLayerValueFromID(cover.sortingLayerID);
+        if (coverLayer != playerLayer) return coverLayer > playerLayer;
+        if (cover.sortingOrder != playerBodyRenderer.sortingOrder)
+            return cover.sortingOrder > playerBodyRenderer.sortingOrder;
+
+        // Renderer2D uses the project's custom Y sort axis. With equal layer/order,
+        // the lower sorting pivot is drawn later and can cover the Player.
+        return cover.transform.position.y < playerBodyRenderer.transform.position.y - 0.01f;
+    }
+
+    private static bool IsLayerInMask(int layer, LayerMask mask)
+    {
+        return layer >= 0 && (mask.value & (1 << layer)) != 0;
     }
 
     private void OnDestroy()

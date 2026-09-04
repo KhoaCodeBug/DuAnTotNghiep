@@ -8,7 +8,7 @@ using UnityEngine;
 /// Network-authoritative spine for the Main scene story. Attach this to an
 /// existing scene NetworkObject (Day_Night_System is the current host).
 /// </summary>
-public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
+public sealed class MainQuestManager : NetworkBehaviour
 {
     public enum QuestStage
     {
@@ -172,8 +172,7 @@ public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
     private readonly Dictionary<int, int> cabinetIndexById = new Dictionary<int, int>();
     private readonly SharedQuestPresentationReceiptLedger sharedPresentationReceipts =
         new SharedQuestPresentationReceiptLedger();
-    private readonly StoryCheckpointProgressLedger<PlayerRef> storyProgressByPlayer =
-        new StoryCheckpointProgressLedger<PlayerRef>();
+    private StoryCheckpointProgressRecord teamStoryProgress = new StoryCheckpointProgressRecord();
     private bool hasSpawned;
     private bool hasGeneratedCivilianEscapeFallback;
     private bool localMilitaryDestinationReached;
@@ -276,10 +275,10 @@ public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
     {
         // Set this before the first networked-property access in this method.
         hasSpawned = true;
-        // This scene manager owns receipts for exactly one runner session. Avatar
-        // replacement leaves it intact; respawning the manager starts a new ledger.
+        // This scene manager owns receipts/progress for exactly one runner session.
+        // Avatar replacement leaves it intact; respawning the manager starts a new team record.
         sharedPresentationReceipts.ResetForNewSession();
-        storyProgressByPlayer.ResetForNewSession();
+        teamStoryProgress = new StoryCheckpointProgressRecord();
 
         if (HasStateAuthority)
         {
@@ -352,12 +351,6 @@ public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
         if (questEventRoutine != null) StopCoroutine(questEventRoutine);
         questEventRoutine = null;
         ApplyMapAccess();
-    }
-
-    public void PlayerLeft(PlayerRef player)
-    {
-        if (!HasStateAuthority || player == PlayerRef.None) return;
-        storyProgressByPlayer.Remove(player);
     }
 
     private void Update()
@@ -1277,7 +1270,7 @@ public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
     }
 
     /// <summary>
-    /// Requests a personal checkpoint arrival. Clients send only the scene
+    /// Requests a team checkpoint arrival. Clients send only the scene
     /// trigger ID; State Authority derives identity from RpcInfo.Source.
     /// </summary>
     public void RequestStoryCheckpointArrival(int triggerId)
@@ -1639,14 +1632,12 @@ public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
         };
         if (!sharedMilestoneEligible) return;
 
-        bool advanced = storyProgressByPlayer.TryRecordVerifiedArrival(requester, trigger.Checkpoint, true,
-            out StoryCheckpointProgressRecord progress);
-        if (progress == null) return;
-        if (progress.HighestCheckpoint < trigger.Checkpoint) return;
+        bool advanced = teamStoryProgress.TryRecordVerifiedArrival(trigger.Checkpoint, true);
+        if (teamStoryProgress.HighestCheckpoint < trigger.Checkpoint) return;
 
         RPC_ConfirmStoryCheckpointArrival(requester, triggerId);
         if (advanced)
-            Debug.Log($"[STORY CHECKPOINT] {requester} unlocked {progress.HighestCheckpoint}.");
+            Debug.Log($"[STORY CHECKPOINT] {requester} unlocked {teamStoryProgress.HighestCheckpoint} for the team.");
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
@@ -1660,11 +1651,10 @@ public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
     public bool TryGetStoryRespawnCheckpoint(PlayerRef player, out StoryCheckpoint checkpoint)
     {
         checkpoint = StoryCheckpoint.Start;
-        if (!HasStateAuthority || player == PlayerRef.None ||
-            !storyProgressByPlayer.TryGet(player, out StoryCheckpointProgressRecord progress))
+        if (!HasStateAuthority || player == PlayerRef.None)
             return false;
 
-        checkpoint = progress.HighestCheckpoint;
+        checkpoint = teamStoryProgress.HighestCheckpoint;
         return checkpoint > StoryCheckpoint.Start;
     }
 

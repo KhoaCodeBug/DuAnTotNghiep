@@ -12,6 +12,8 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
     private Seeker seeker;
     private Path path;
+    private Path clearanceFallbackPath;
+    private ushort clearanceFallbackPathId;
     private int currentWaypoint = 0;
     private float pathRecalcTimer = 0f;
 
@@ -29,6 +31,9 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
     private ContactFilter2D zombieFilter; // Thêm dòng này để fix lỗi Obsolete
     private ContactFilter2D obstacleMovementFilter;
     private readonly RaycastHit2D[] obstacleMovementHits = new RaycastHit2D[8];
+    private readonly System.Collections.Generic.List<Collider2D> movementOverlaps =
+        new System.Collections.Generic.List<Collider2D>(8);
+    private bool movementOverlapBlocked;
     private const float MovementCollisionSkin = 0.02f;
 
 
@@ -637,6 +642,9 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
 
     private void MoveAlongPath(float speedMultiplier, bool noWall)
     {
+        if (path != null)
+            AdvancePathWaypoint();
+
         bool hasReachedEnd = path == null || currentWaypoint >= path.vectorPath.Count;
 
         if (hasReachedEnd)
@@ -670,17 +678,80 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         NetSpeed = MoveWithObstacleSweep(lastMoveDirection * currentSpeed * Runner.DeltaTime) /
                    Mathf.Max(Runner.DeltaTime, 0.0001f);
         CheckForStuck(currentWp);
+    }
 
-        float distToWp = Vector2.Distance(rb.position, currentWp);
-
-        if (distToWp < nextWaypointDistance)
+    private void AdvancePathWaypoint()
+    {
+        RestoreBlockedSimplifiedPath();
+        while (currentWaypoint < path.vectorPath.Count - 1 &&
+               Vector2.Distance(rb.position, path.vectorPath[currentWaypoint]) <= nextWaypointDistance)
         {
+            // A nearby corner is not reached if skipping it would make the
+            // actual Khoa collider cut through a wall on the following leg.
+            if (!CanMoveDirectlyToWaypoint(path.vectorPath[currentWaypoint + 1])) break;
             currentWaypoint++;
         }
     }
 
+    private void RestoreBlockedSimplifiedPath()
+    {
+        if (path.path == null || path.path.Count < 3 ||
+            currentWaypoint >= path.vectorPath.Count ||
+            (clearanceFallbackPath == path && clearanceFallbackPathId == path.pathID) ||
+            (!movementOverlapBlocked && CanMoveDirectlyToWaypoint(path.vectorPath[currentWaypoint]))) return;
+
+        // Keep Khoa's goal and AI state unchanged. Only restore the raw A* node
+        // route when a modifier-produced straight segment cannot carry its body.
+        clearanceFallbackPath = path;
+        clearanceFallbackPathId = path.pathID;
+        for (int i = 0; i < path.path.Count; i++)
+            if (NodeLink2.GetNodeLink(path.path[i]) != null) return;
+
+        int closest = -1;
+        float closestDistance = float.PositiveInfinity;
+        for (int i = 0; i < path.path.Count; i++)
+        {
+            Vector2 point = (Vector3)path.path[i].position;
+            float distance = (point - rb.position).sqrMagnitude;
+            if (distance < closestDistance && CanMoveDirectlyToWaypoint(point))
+            {
+                closest = i;
+                closestDistance = distance;
+            }
+        }
+        if (closest < 0) return;
+
+        Vector3 exactEnd = path.vectorPath[path.vectorPath.Count - 1];
+        path.vectorPath.Clear();
+        path.vectorPath.Add(rb.position);
+        for (int i = closest; i < path.path.Count; i++)
+        {
+            Vector3 point = (Vector3)path.path[i].position;
+            if ((point - path.vectorPath[path.vectorPath.Count - 1]).sqrMagnitude > 0.00000001f)
+                path.vectorPath.Add(point);
+        }
+        if ((exactEnd - path.vectorPath[path.vectorPath.Count - 1]).sqrMagnitude > 0.00000001f)
+            path.vectorPath.Add(exactEnd);
+        currentWaypoint = Mathf.Min(1, path.vectorPath.Count - 1);
+    }
+
+    private bool CanMoveDirectlyToWaypoint(Vector2 waypoint)
+    {
+        if (myCol == null || !myCol.enabled) return false;
+        Vector2 delta = waypoint - rb.position;
+        float distance = delta.magnitude;
+        if (distance <= 0.0001f) return true;
+
+        int count = rb.Cast(delta / distance, obstacleMovementFilter,
+            obstacleMovementHits, distance + MovementCollisionSkin);
+        for (int i = 0; i < count; i++)
+            if (obstacleMovementHits[i].collider != null) return false;
+        return true;
+    }
+
     private float MoveWithObstacleSweep(Vector2 movement)
     {
+        movementOverlapBlocked = false;
         float requestedDistance = movement.magnitude;
         if (requestedDistance <= 0.0001f) return 0f;
 
@@ -694,6 +765,27 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
             if (hit.collider == null) continue;
             allowedDistance = Mathf.Min(allowedDistance,
                 Mathf.Max(0f, hit.distance - MovementCollisionSkin));
+        }
+
+        // A shape cast can miss a very shallow grazing contact. Validate the
+        // destination with the unchanged Khoa collider and back off to the last
+        // non-overlapping point instead of ever accepting wall penetration.
+        if (allowedDistance > 0f && myCol.Overlap(rb.position + direction * allowedDistance, rb.rotation,
+            obstacleMovementFilter, movementOverlaps) > 0)
+        {
+            movementOverlapBlocked = true;
+            float safe = 0f;
+            float blocked = allowedDistance;
+            for (int i = 0; i < 10; i++)
+            {
+                float probe = (safe + blocked) * 0.5f;
+                if (myCol.Overlap(rb.position + direction * probe, rb.rotation,
+                    obstacleMovementFilter, movementOverlaps) > 0)
+                    blocked = probe;
+                else
+                    safe = probe;
+            }
+            allowedDistance = Mathf.Max(0f, safe - 0.0001f);
         }
 
         if (allowedDistance > 0f)

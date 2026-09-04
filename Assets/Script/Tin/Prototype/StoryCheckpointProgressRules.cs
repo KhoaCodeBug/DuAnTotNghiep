@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 public enum StoryCheckpoint
 {
     Start = 0,
@@ -8,9 +6,9 @@ public enum StoryCheckpoint
 }
 
 /// <summary>
-/// Authority-owned progress for one session player. The runtime dictionary is
-/// keyed by PlayerRef; this pure record keeps checkpoint advancement explicit
-/// and testable without tying durable progress to a replaceable avatar.
+/// Authority-owned checkpoint progress for the current team/session. This
+/// record lives on the scene quest manager, so replacing an avatar does not
+/// reset the team's latest verified checkpoint.
 /// </summary>
 public sealed class StoryCheckpointProgressRecord
 {
@@ -21,7 +19,7 @@ public sealed class StoryCheckpointProgressRecord
     public StoryCheckpoint HighestCheckpoint { get; private set; }
 
     /// <summary>
-    /// Records an arrival only when the corresponding shared milestone is
+    /// Records a team member's verified arrival only when the corresponding shared milestone is
     /// currently valid. Checkpoint two cannot skip checkpoint one.
     /// Returns true only when the highest checkpoint advances.
     /// </summary>
@@ -53,40 +51,4 @@ public sealed class StoryCheckpointProgressRecord
 
         return HighestCheckpoint > previous;
     }
-}
-
-/// <summary>
-/// Session-scoped owner map. Removing a player deletes the complete record so
-/// a recycled network identity cannot inherit another participant's progress.
-/// </summary>
-public sealed class StoryCheckpointProgressLedger<TPlayer>
-{
-    private readonly Dictionary<TPlayer, StoryCheckpointProgressRecord> records =
-        new Dictionary<TPlayer, StoryCheckpointProgressRecord>();
-
-    public bool TryRecordVerifiedArrival(TPlayer player, StoryCheckpoint arrival,
-        bool sharedMilestoneEligible, out StoryCheckpointProgressRecord progress)
-    {
-        if (!records.TryGetValue(player, out progress))
-        {
-            progress = new StoryCheckpointProgressRecord();
-            if (!progress.TryRecordVerifiedArrival(arrival, sharedMilestoneEligible))
-            {
-                progress = null;
-                return false;
-            }
-
-            records.Add(player, progress);
-            return true;
-        }
-
-        return progress.TryRecordVerifiedArrival(arrival, sharedMilestoneEligible);
-    }
-
-    public bool TryGet(TPlayer player, out StoryCheckpointProgressRecord progress) =>
-        records.TryGetValue(player, out progress);
-
-    public bool Remove(TPlayer player) => records.Remove(player);
-
-    public void ResetForNewSession() => records.Clear();
 }

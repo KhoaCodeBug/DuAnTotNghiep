@@ -50,6 +50,10 @@ public class ZombieNavigationRecoveryTests
     public IEnumerator Khoa_ReachPlayerAroundClearCorner() => FollowClearCorner(false);
 
     [UnityTest]
+    public IEnumerator KhoaLegacy_ReachPlayerAroundClearCorner() =>
+        FollowClearCorner(false, khoaTypeName: "ZOmbieAI_Khoa");
+
+    [UnityTest]
     public IEnumerator Thai_ClearRouteDoesNotStall() => FollowClearCorner(true, false);
 
     [UnityTest]
@@ -66,6 +70,10 @@ public class ZombieNavigationRecoveryTests
 
     [UnityTest]
     public IEnumerator Khoa_RecoverBlockedSimplifiedRoute() => FollowClearCorner(false, true, false, true);
+
+    [UnityTest]
+    public IEnumerator KhoaLegacy_RecoverBlockedSimplifiedRoute() =>
+        FollowClearCorner(false, true, false, true, khoaTypeName: "ZOmbieAI_Khoa");
 
     [UnityTest]
     public IEnumerator Thai_RecoverSubdividedShortcut() => FollowClearCorner(true, true, false, true, true);
@@ -167,7 +175,11 @@ public class ZombieNavigationRecoveryTests
     [UnityTest]
     public IEnumerator Khoa_GrazingWallDoesNotPenetrate() => GrazeWall(false);
 
-    IEnumerator GrazeWall(bool thai)
+    [UnityTest]
+    public IEnumerator KhoaLegacy_GrazingWallDoesNotPenetrate() =>
+        GrazeWall(false, "ZOmbieAI_Khoa");
+
+    IEnumerator GrazeWall(bool thai, string khoaTypeName = "ZombieAIKhoaRebuilt")
     {
         var origin = new Vector2(1000f, 1000f);
         var actor = Make("Grazing capsule", origin);
@@ -176,7 +188,7 @@ public class ZombieNavigationRecoveryTests
         var foot = actor.AddComponent<CapsuleCollider2D>();
         foot.size = thai ? new Vector2(.092514716f, .19389847f) : new Vector2(.13788795f, .15211296f);
         foot.offset = thai ? new Vector2(.02890889f, -.18735819f) : new Vector2(-.022027016f, -.17303038f);
-        var brainType = FindType(thai ? "ZombieAI" : "ZombieAIKhoaRebuilt");
+        var brainType = FindType(thai ? "ZombieAI" : khoaTypeName);
         var brain = (Behaviour)actor.AddComponent(brainType);
         brain.enabled = false;
         var filter = new ContactFilter2D { useLayerMask = true, useTriggers = false };
@@ -210,7 +222,8 @@ public class ZombieNavigationRecoveryTests
     }
 
     IEnumerator FollowClearCorner(bool thai, bool cornerBlocked = true, bool replaceRoute = false,
-        bool simplifiedRoute = false, bool subdividedRoute = false)
+        bool simplifiedRoute = false, bool subdividedRoute = false,
+        string khoaTypeName = "ZombieAIKhoaRebuilt")
     {
         // FakePath uses the normal path pool, whose Reset needs AstarPath.active.
         // Configure before Awake: no graph scan or worker thread for this fixture.
@@ -237,7 +250,7 @@ public class ZombieNavigationRecoveryTests
         var foot = actor.AddComponent<CapsuleCollider2D>();
         foot.size = thai ? new Vector2(.092514716f, .19389847f) : new Vector2(.13788795f, .15211296f);
         foot.offset = thai ? new Vector2(.02890889f, -.18735819f) : new Vector2(-.022027016f, -.17303038f);
-        var brainType = FindType(thai ? "ZombieAI" : "ZombieAIKhoaRebuilt");
+        var brainType = FindType(thai ? "ZombieAI" : khoaTypeName);
         var brain = (Behaviour)actor.AddComponent(brainType);
         brain.enabled = false;
         Set(brain, thai ? "movementObstacleFilter" : "obstacleMovementFilter", filter);
@@ -295,7 +308,9 @@ public class ZombieNavigationRecoveryTests
         var path = FindType("Pathfinding.ABPath").GetMethod("FakePath")
             .Invoke(null, new object[] { vectorRoute, rawNodes });
         Set(brain, "path", path);
-        string indexName = thai ? "currentWaypoint" : "waypointIndex";
+        string indexName = thai || brainType.Name == "ZOmbieAI_Khoa"
+            ? "currentWaypoint"
+            : "waypointIndex";
         Set(brain, indexName, 1);
         var advance = brainType.GetMethod("AdvancePathWaypoint", Private);
         var motor = brainType.GetMethod("MoveWithObstacleSweep", Private);
