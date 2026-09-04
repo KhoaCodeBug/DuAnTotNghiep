@@ -825,6 +825,13 @@ public sealed class ZombieAIKhoaRebuilt : NetworkBehaviour
         // The Host's Collider2D.enabled change is not replicated automatically.
         // Apply the replicated death state locally on every peer.
         SetBodyCollisionEnabled(!NetIsDead);
+        if (NetIsDead && spriteRenderer != null)
+        {
+            // Death disables the body collider, so PlayerVision stops owning the
+            // fade on this actor. Normalize the corpse presentation on every peer.
+            spriteRenderer.color = originalColor;
+            spriteRenderer.enabled = true;
+        }
 
         if (animator == null) return;
         renderMoveX = Mathf.Lerp(renderMoveX, NetMoveDir.x, Time.deltaTime * 12f);

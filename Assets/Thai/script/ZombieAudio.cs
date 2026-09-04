@@ -1,7 +1,7 @@
 using UnityEngine;
 using Fusion;
 
-[RequireComponent(typeof(AudioSource), typeof(ZombieAI))]
+[RequireComponent(typeof(AudioSource))]
 public class ZombieAudio : NetworkBehaviour
 {
     [Header("--- Cấu hình Âm thanh ---")]
@@ -26,7 +26,10 @@ public class ZombieAudio : NetworkBehaviour
     [Min(0f)] public float wanderIntervalMax = 12f;
 
     private AudioSource audioSource;
-    private ZombieAI aiScript;
+    private ZombieAI thaiAI;
+    private ZombieHealth thaiHealth;
+    private ZOmbieAI_Khoa khoaAI;
+    private ZombieAIKhoaRebuilt rebuiltKhoaAI;
     private float nextWanderTime;
     private float wanderStopTime;
     private bool wasEngaged;
@@ -34,7 +37,7 @@ public class ZombieAudio : NetworkBehaviour
     private void Awake()
     {
         audioSource = GetComponent<AudioSource>();
-        aiScript = GetComponent<ZombieAI>();
+        CacheZombieStateSources();
 
         GameplayAudioSpatializer.Configure(audioSource, GameplayAudioSpatializer.Profile.Zombie);
         audioSource.loop = false;
@@ -42,15 +45,40 @@ public class ZombieAudio : NetworkBehaviour
         ScheduleNextWander(initialWanderDelayMin, initialWanderDelayMax);
     }
 
+    public override void Spawned()
+    {
+        CacheZombieStateSources();
+        if (IsDead()) StopAndClearAudio();
+    }
+
+    public override void Despawned(NetworkRunner runner, bool hasState)
+    {
+        StopAndClearAudio();
+    }
+
+    private void OnDisable()
+    {
+        StopAndClearAudio();
+    }
+
     public override void Render()
     {
-        if (aiScript == null || audioSource == null) return;
+        if (audioSource == null) return;
+
+        // Death is replicated by each zombie implementation. Presentation must
+        // consume that state on every peer; an RPC-only stop would miss late
+        // joiners and clients that receive a corpse in their first snapshot.
+        if (IsDead())
+        {
+            StopAndClearAudio();
+            return;
+        }
 
         float sfxVolume = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
 
         // Chase vẫn là loop, nhưng mỗi zombie bắt đầu ở một đoạn ngẫu nhiên
         // để cả đàn không gầm cùng đúng một nhịp.
-        bool isEngaged = aiScript.NetIsChasing || aiScript.NetIsAttacking;
+        bool isEngaged = IsEngaged();
 
         if (isEngaged && chaseSound != null)
         {
@@ -126,6 +154,40 @@ public class ZombieAudio : NetworkBehaviour
         }
 
         wasEngaged = isEngaged;
+    }
+
+    private void CacheZombieStateSources()
+    {
+        thaiAI = GetComponent<ZombieAI>();
+        thaiHealth = GetComponent<ZombieHealth>();
+        khoaAI = GetComponent<ZOmbieAI_Khoa>();
+        rebuiltKhoaAI = GetComponent<ZombieAIKhoaRebuilt>();
+    }
+
+    private bool IsDead()
+    {
+        if (thaiHealth != null) return thaiHealth.isDead;
+        if (khoaAI != null) return khoaAI.NetIsDead;
+        return rebuiltKhoaAI != null && rebuiltKhoaAI.NetIsDead;
+    }
+
+    private bool IsEngaged()
+    {
+        if (thaiAI != null) return thaiAI.NetIsChasing || thaiAI.NetIsAttacking;
+        if (khoaAI != null) return khoaAI.NetIsAttacking || khoaAI.NetSpeed > 0.05f;
+        return rebuiltKhoaAI != null &&
+            (rebuiltKhoaAI.NetIsAttacking || rebuiltKhoaAI.NetSpeed > 0.05f);
+    }
+
+    private void StopAndClearAudio()
+    {
+        if (audioSource == null) return;
+        audioSource.Stop();
+        audioSource.loop = false;
+        audioSource.clip = null;
+        wasEngaged = false;
+        nextWanderTime = float.PositiveInfinity;
+        wanderStopTime = 0f;
     }
 
     private void PlayWanderSound(float sfxVolume)
