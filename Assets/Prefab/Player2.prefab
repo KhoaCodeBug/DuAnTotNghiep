@@ -670,6 +670,7 @@ GameObject:
   - component: {fileID: 439164608495678969}
   - component: {fileID: 7138400065112945722}
   - component: {fileID: 7073858749232302105}
+  - component: {fileID: 7427023000866017176}
   m_Layer: 9
   m_Name: Player2
   m_TagString: Player
@@ -792,6 +793,7 @@ MonoBehaviour:
   - {fileID: 3952259690615374297}
   - {fileID: 439164608495678969}
   - {fileID: 7138400065112945722}
+  - {fileID: 7427023000866017176}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &2519491336483240416
 MonoBehaviour:
@@ -883,7 +885,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2ad4a628701191468b200a6f1b9b22b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  anim: {fileID: 3437975875179805981}
   muzzleAnimator: {fileID: 4563747685043692148}
   muzzleFlashRenderer: {fileID: 7426856373905042478}
   muzzleFlashDuration: 0.1
@@ -907,6 +908,7 @@ MonoBehaviour:
   bashNoiseRadius: 0.5
   bashStaminaCost: 10
   bashDuration: 1.5
+  anim: {fileID: 3437975875179805981}
 --- !u!114 &9194421945948448757
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -944,8 +946,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2217d06c07bb87041a63779eb7b0d99c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  anim: {fileID: 3437975875179805981}
-  spriteRend: {fileID: 6999448674435621552}
   maxHealth: 100
   _currentHealth: 0
   _IsMilitaryOutroProtected:
@@ -973,6 +973,8 @@ MonoBehaviour:
   paramMoveX: MoveX
   paramMoveY: MoveY
   paramSpeed: Speed
+  anim: {fileID: 3437975875179805981}
+  spriteRend: {fileID: 6999448674435621552}
   _isDead:
     _value: 0
   _LastDeathCause: 0
@@ -1412,6 +1414,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   LogLevel: 1
+--- !u!114 &7427023000866017176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4040414594068316635}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a4104b8fd38e964891a785a84d63632, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6651938154531201759
 GameObject:
   m_ObjectHideFlags: 0

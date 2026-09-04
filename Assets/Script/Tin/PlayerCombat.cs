@@ -483,25 +483,27 @@ public class PlayerCombat : NetworkBehaviour
         if (HasInputAuthority)
             AutoUIManager.Instance?.CancelTimedGameplayAction();
 
-        int randomAttack = Random.Range(2, 5);
         // Bash presentation:
-        // Local owner predicts and plays immediately on forward tick to guarantee responsive feedback.
-        // StateAuthority broadcasts RPC so remote peers replicate the exact same animation.
+        // Variant is deterministically derived from simulation tick so owner prediction and
+        // authoritative broadcast generate the exact same animation variant (2, 3, or 4).
+        int attackVariant = 2 + (Runner.Tick.Raw % 3);
         if (Runner.IsForward)
         {
             if (HasInputAuthority)
             {
-                TriggerBashVisual(randomAttack);
+                TriggerBashVisual(attackVariant);
+                PlayerMovementDiagnostic.RecordBashTrigger(attackVariant, isLocalPrediction: !HasStateAuthority, isAuthority: HasStateAuthority);
             }
 
             if (HasStateAuthority)
             {
-                RPC_PlayBashAnimation(randomAttack);
+                RPC_PlayBashAnimation(attackVariant);
+                PlayerMovementDiagnostic.RecordBashTrigger(attackVariant, isLocalPrediction: false, isAuthority: true);
             }
         }
 
         if (playerMove != null) playerMove.LockMovementForAttack(bashDuration);
-        if (staminaSystem != null) staminaSystem.ConsumeStamina(bashStaminaCost);
+        if (Runner.IsForward && staminaSystem != null) staminaSystem.ConsumeStamina(bashStaminaCost);
 
         if (HasStateAuthority)
         {
@@ -581,8 +583,13 @@ public class PlayerCombat : NetworkBehaviour
     public void RPC_PlayBashAnimation(int randomAttack)
     {
         // Suppress echo on the predicting owner (Host or Client)
-        if (HasInputAuthority) return;
+        if (HasInputAuthority)
+        {
+            PlayerMovementDiagnostic.RecordBashRPC(randomAttack, isEchoOnOwner: true);
+            return;
+        }
 
+        PlayerMovementDiagnostic.RecordBashRPC(randomAttack, isEchoOnOwner: false);
         TriggerBashVisual(randomAttack);
     }
 

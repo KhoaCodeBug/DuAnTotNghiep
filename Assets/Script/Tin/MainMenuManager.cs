@@ -14,6 +14,8 @@ using UnityEngine.UI;
 
 public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
 {
+    private const string TutorialScenePath = "Assets/Scenes/Intro_Cinematic.unity";
+
     public static AutoMainMenuManager Instance { get; private set; }
     public static bool EscapeConsumedThisFrame = false;
     public bool IsPauseMenuOrOptionsOpen => isPauseMenuOpen || isPauseOptionsOpen ||
@@ -40,7 +42,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     public NetworkRunner runnerPrefab;
     public int mainSceneIndex = 1;
     [Tooltip("Standalone solo tutorial; it never runs as a multiplayer room.")]
-    public int tutorialSceneIndex = 5;
+    public int tutorialSceneIndex = 2;
 
     [Header("Hình ảnh Nhân vật")]
     public GameObject[] previewImages;
@@ -1585,7 +1587,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             {
                 ShowLoadingScreen();
                 playersLoaded = 0;
-                int sceneIndex = TutorialSession.IsActive ? tutorialSceneIndex : mainSceneIndex;
+                int sceneIndex = TutorialSession.IsActive ? ResolveTutorialSceneIndex() : mainSceneIndex;
                 Debug.Log($"[MENU FLOW] Fusion loading scene index {sceneIndex} from MainMenu.");
                 await activeRunner.LoadScene(SceneRef.FromIndex(sceneIndex));
                 Debug.Log($"[MENU FLOW] Fusion scene-load await completed for index {sceneIndex}.");
@@ -1629,6 +1631,16 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
             ShowError(errorMsg);
             OpenPanel(characterSelectPanel.GetComponent<CanvasGroup>());
         }
+    }
+
+    private int ResolveTutorialSceneIndex()
+    {
+        int resolvedIndex = SceneUtility.GetBuildIndexByScenePath(TutorialScenePath);
+        if (resolvedIndex >= 0)
+            return resolvedIndex;
+
+        throw new System.InvalidOperationException(
+            $"Standalone tutorial scene is not enabled in Build Settings: {TutorialScenePath}");
     }
 
     private void ResetLoadingForNewSession()

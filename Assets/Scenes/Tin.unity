@@ -1380,7 +1380,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _physicsAuthority: 2
   _physicsTiming: 3
-  ClientPhysicsSimulation: 2
+  ClientPhysicsSimulation: 3
   DeltaTimeMultiplier: 1
   SetUnityFixedTimestep: 0
 --- !u!114 &722484867
