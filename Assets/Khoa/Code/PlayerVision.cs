@@ -71,10 +71,29 @@ public class PlayerVision : NetworkBehaviour
     private Color originalPlayerColor;
     private Material localPlayerUnlitMaterial;
     private SpriteRenderer localPlayerXRayRenderer;
-    private readonly Dictionary<SpriteRenderer, float> zombieOriginalAlphas = new Dictionary<SpriteRenderer, float>();
+    private readonly Dictionary<SpriteRenderer, ZombieRenderState> zombieRenderStates =
+        new Dictionary<SpriteRenderer, ZombieRenderState>();
     private readonly Dictionary<SpriteRenderer, float> nearAwarenessMaskAlphas = new Dictionary<SpriteRenderer, float>();
     private readonly HashSet<SpriteRenderer> nearAwarenessUpdated = new HashSet<SpriteRenderer>();
     internal const int MaxNearAwarenessFogMasks = 16;
+
+    private readonly struct ZombieRenderState
+    {
+        public readonly Material Material;
+        public readonly Color Color;
+        public readonly int SortingLayerId;
+        public readonly int SortingOrder;
+        public readonly bool Enabled;
+
+        public ZombieRenderState(SpriteRenderer renderer)
+        {
+            Material = renderer.sharedMaterial;
+            Color = renderer.color;
+            SortingLayerId = renderer.sortingLayerID;
+            SortingOrder = renderer.sortingOrder;
+            Enabled = renderer.enabled;
+        }
+    }
 
     public float CurrentVisionRadius { get; private set; }
     public float AmbientVisionRadius { get; private set; }
@@ -207,6 +226,7 @@ public class PlayerVision : NetworkBehaviour
         {
             SetLocalPlayerReadability(false);
             if (playerLight != null) playerLight.gameObject.SetActive(false);
+            RestoreTrackedZombieRenderers();
             return;
         }
 
@@ -234,6 +254,10 @@ public class PlayerVision : NetworkBehaviour
 
         if (!isTarget)
         {
+            // A different PlayerVision (for example the new spectate target)
+            // now owns observer-local presentation. Never let it capture this
+            // view's partially faded renderer state as its new baseline.
+            RestoreTrackedZombieRenderers();
             ClearNearAwarenessMasksImmediate();
             return;
         }
@@ -387,15 +411,7 @@ public class PlayerVision : NetworkBehaviour
         if (localPlayerUnlitMaterial != null)
             Destroy(localPlayerUnlitMaterial);
 
-        foreach (KeyValuePair<SpriteRenderer, float> entry in zombieOriginalAlphas)
-        {
-            if (entry.Key == null) continue;
-            Color color = entry.Key.color;
-            color.a = entry.Value;
-            entry.Key.color = color;
-            entry.Key.enabled = true;
-        }
-        zombieOriginalAlphas.Clear();
+        RestoreTrackedZombieRenderers();
     }
 
     private void UpdateZombieVisibility(float currentLogicAngle)
@@ -518,13 +534,14 @@ public class PlayerVision : NetworkBehaviour
 
     private void SetZombieRendererVisibility(SpriteRenderer renderer, bool visible, bool immediate)
     {
-        if (!zombieOriginalAlphas.TryGetValue(renderer, out float originalAlpha))
+        if (!zombieRenderStates.TryGetValue(renderer, out ZombieRenderState originalState))
         {
-            originalAlpha = renderer.color.a;
-            zombieOriginalAlphas.Add(renderer, originalAlpha);
+            originalState = new ZombieRenderState(renderer);
+            zombieRenderStates.Add(renderer, originalState);
         }
 
         Color color = renderer.color;
+        float originalAlpha = originalState.Color.a;
         float targetAlpha = visible ? originalAlpha : 0f;
         if (visible && !renderer.enabled)
         {
@@ -541,6 +558,24 @@ public class PlayerVision : NetworkBehaviour
         renderer.color = color;
         if (!visible && color.a <= 0.001f)
             renderer.enabled = false;
+    }
+
+    private void RestoreTrackedZombieRenderers()
+    {
+        foreach (KeyValuePair<SpriteRenderer, ZombieRenderState> entry in zombieRenderStates)
+        {
+            SpriteRenderer renderer = entry.Key;
+            if (renderer == null) continue;
+
+            ZombieRenderState state = entry.Value;
+            renderer.sharedMaterial = state.Material;
+            renderer.color = state.Color;
+            renderer.sortingLayerID = state.SortingLayerId;
+            renderer.sortingOrder = state.SortingOrder;
+            renderer.enabled = state.Enabled;
+        }
+
+        zombieRenderStates.Clear();
     }
 
     private void UpdateNearAwarenessMask(SpriteRenderer source, bool sameIndoorNear)
