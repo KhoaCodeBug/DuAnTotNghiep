@@ -791,16 +791,83 @@ public sealed class InventoryAndLootCapacityTests
     {
         AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Ammo762", 20f, 15, 30);
         AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Bandage", 35f, 1, 1);
-        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "EnergyWater", 20f, 1, 1);
-        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Meat", 40f, 1, 1);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "EnergyWater", 30f, 1, 1);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Meat", 55f, 1, 1);
         AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "PainKiller", 15f, 1, 1);
-        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Water", 45f, 1, 1);
+        AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Water", 60f, 1, 1);
         AssertLootTableRule("Assets/Khoa/Code/LootTableS/MacDinh_KhuSanh.asset", "Ammo12Gauge", 15f, 5, 5);
 
         // The tutorial intentionally authors a 12-round shotgun stack.  The
         // ordinary/default policy must not rewrite this authored exception.
         AssertLootTableRule("Assets/Resources/Tutorial/TutorialKitchenLootTable.asset",
             "Ammo12Gauge", 100f, 12, 12);
+    }
+
+    [Test]
+    public void OrdinaryLootRules_UseLockedRatesOneMultiplierAndDeterministicSeed()
+    {
+        Type rulesType = RequireType("LootDropRules");
+        MethodInfo effectiveChance = RequireMethod(rulesType, "GetEffectiveChancePercent", typeof(float), typeof(float));
+        MethodInfo simulate = RequireMethod(rulesType, "SimulateHits", typeof(float), typeof(float), typeof(int), typeof(int));
+
+        Assert.That((float)effectiveChance.Invoke(null, new object[] { 55f, 1.5f }), Is.EqualTo(82.5f));
+        Assert.That((float)effectiveChance.Invoke(null, new object[] { 60f, 0.4f }), Is.EqualTo(24f));
+        Assert.That((float)effectiveChance.Invoke(null, new object[] { 100f, 1.5f }), Is.EqualTo(100f));
+
+        const int attempts = 10000;
+        AssertSeededRate(simulate, 25f, 1101, attempts);
+        AssertSeededRate(simulate, 55f, 1102, attempts);
+        AssertSeededRate(simulate, 60f, 1103, attempts);
+        AssertSeededRate(simulate, 30f, 1104, attempts);
+
+        int first = (int)simulate.Invoke(null, new object[] { 55f, 1f, 2048, attempts });
+        int repeated = (int)simulate.Invoke(null, new object[] { 55f, 1f, 2048, attempts });
+        Assert.That(repeated, Is.EqualTo(first), "The same seed must reproduce the same runtime-contract result.");
+    }
+
+    [Test]
+    public void LootGenerationContract_IsAuthorityOnlyOneShotAndPreservesQuestSlots()
+    {
+        Type rulesType = RequireType("LootDropRules");
+        MethodInfo canBegin = RequireMethod(rulesType, "CanBeginAuthorityGeneration", typeof(bool), typeof(bool));
+        MethodInfo slotLimit = RequireMethod(rulesType, "GetRandomLootSlotLimit", typeof(int), typeof(int));
+
+        Assert.That((bool)canBegin.Invoke(null, new object[] { false, false }), Is.False);
+        Assert.That((bool)canBegin.Invoke(null, new object[] { true, false }), Is.True);
+        Assert.That((bool)canBegin.Invoke(null, new object[] { true, true }), Is.False);
+        Assert.That((int)slotLimit.Invoke(null, new object[] { 20, 2 }), Is.EqualTo(18));
+        Assert.That((int)slotLimit.Invoke(null, new object[] { 1, 2 }), Is.EqualTo(0),
+            "Ordinary loot must not consume a slot reserved for quest loot.");
+
+        Type containerType = RequireType("LootContainer");
+        PropertyInfo resolvedProperty = containerType.GetProperty("RandomLootRollResolved",
+            BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.That(resolvedProperty, Is.Not.Null);
+        Assert.That(resolvedProperty.GetCustomAttributes(false)
+            .Any(attribute => attribute.GetType().Name == "NetworkedAttribute"), Is.True,
+            "The one-shot marker must be replicated instead of living only in a local bool.");
+
+        FieldInfo flashlightChance = RequireField(containerType, "flashlightDropChance");
+        GameObject host = new GameObject("Loot Contract Test");
+        try
+        {
+            host.AddComponent<BoxCollider2D>();
+            host.AddComponent<SpriteRenderer>();
+            Component container = host.AddComponent(containerType);
+            Assert.That((float)flashlightChance.GetValue(container), Is.EqualTo(25f));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(host);
+        }
+    }
+
+    private static void AssertSeededRate(MethodInfo simulate, float expectedPercent, int seed, int attempts)
+    {
+        int hits = (int)simulate.Invoke(null, new object[] { expectedPercent, 1f, seed, attempts });
+        float observedPercent = hits * 100f / attempts;
+        Assert.That(observedPercent, Is.EqualTo(expectedPercent).Within(2f),
+            $"Seed {seed} observed {observedPercent:F2}% for target {expectedPercent:F2}%.");
     }
 
     private static void AssertStarterFixedAmount(Array loadout, string itemId, int expectedAmount)
