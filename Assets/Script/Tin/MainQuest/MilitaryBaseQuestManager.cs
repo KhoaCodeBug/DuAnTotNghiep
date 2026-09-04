@@ -860,9 +860,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     /// </summary>
     public void DebugAdvanceMilitaryRoute()
     {
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-        return;
-#else
         if (!IsNetworkReady || !HasStateAuthority)
         {
             Debug.LogWarning("[QUEST TEST] NEXT BASE STEP chỉ dùng được trên Solo/Host đang có authority.");
@@ -920,14 +917,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
                 Debug.LogWarning("[QUEST TEST] Tuyến B đang Failed; cần bắt đầu session mới để chạy lại đầy đủ.");
                 break;
         }
-#endif
     }
 
     public void DebugTeleportToCurrentObjective()
     {
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-        return;
-#else
         if (!IsNetworkReady || !HasStateAuthority ||
             !TryGetRequestingPlayer(Runner.LocalPlayer, out PlayerMovement player))
         {
@@ -975,17 +968,14 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         Debug.Log($"[QUEST TEST] F12: đã dịch chuyển tới {targetLabel}.");
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.test_sender"),
             string.Format(GameLocalization.Get("quest.debug.teleported_to"), targetLabel));
-#endif
     }
 
     private void DebugConfirmMilitaryFinale()
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!IsNetworkReady || !HasStateAuthority || CurrentPhase != Phase.Investigating) return;
         BeginMilitaryRouteVote(Runner.LocalPlayer);
         if (IsMilitaryRouteVoteActive)
             ServerSubmitMilitaryRouteVote(Runner.LocalPlayer, MilitaryRouteVoteId, true);
-#endif
     }
 
     public void RequestTriggerAlarm()
@@ -1573,7 +1563,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     /// <summary>Host-only developer action. A broken gate is intentionally not resurrected.</summary>
     public bool DebugHealGate()
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!HasStateAuthority || CurrentPhase != Phase.SiegeAndRepair || IsGateBroken) return false;
         GateCurrentHealth = GateMaxHealth;
         if (IsSoloSiege)
@@ -1582,9 +1571,6 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         }
         Debug.Log("[MILITARY GATE] Cheat healed the intact gate to full health and reset its Solo timer.");
         return true;
-#else
-        return false;
-#endif
     }
 
     public void NotifyPlayerDamaged(PlayerRef player, bool zombieAttack)

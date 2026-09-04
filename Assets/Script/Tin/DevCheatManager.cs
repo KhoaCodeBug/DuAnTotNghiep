@@ -82,12 +82,7 @@ public class DevCheatManager : MonoBehaviour
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoInit()
     {
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-        // A developer console must never exist in a release build.
-        return;
-#else
         var _ = Instance;
-#endif
     }
 
     private void Awake()
@@ -132,9 +127,19 @@ public class DevCheatManager : MonoBehaviour
     // ============================
     private void Update()
     {
+        // This manager survives scene/session transitions. Revoke local cheat
+        // state immediately if this process changes from Solo/Host to Client.
+        if ((isMenuOpen || isGodMode) && !CanUseDevCheats())
+        {
+            isGodMode = false;
+            UpdateGodModeButtonStyle();
+            HideCheatMenu();
+            Debug.LogWarning("[CHEAT] Developer console state was revoked because this peer is not Host/server authority.");
+        }
+
         if (RouteBRadioBroadcastUI.BlocksLocalGameplayInput ||
             VehicleRepairSkillCheckUI.BlocksGameplayInput) return;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+
         // The cheat is a modal UI.  Consume Escape before other menus see it.
         if (isMenuOpen && Input.GetKeyDown(KeyCode.Escape))
         {
@@ -169,13 +174,13 @@ public class DevCheatManager : MonoBehaviour
             RunRouteBCheat(ReplayCurrentRouteBAudio);
         else if (Input.GetKeyDown(KeyCode.F12))
             RunRouteBCheat(TeleportToCurrentRouteBObjective);
-#endif
 
         // God Mode Update Loop
         if (isGodMode)
         {
             CachePlayer();
-            if (cachedHealth != null && cachedHealth.Object != null && cachedHealth.Object.IsValid)
+            if (cachedHealth != null && cachedHealth.Object != null && cachedHealth.Object.IsValid &&
+                cachedHealth.HasStateAuthority)
             {
                 cachedHealth.currentHealth = cachedHealth.maxHealth;
                 cachedHealth.isBleeding = false;
@@ -345,7 +350,8 @@ public class DevCheatManager : MonoBehaviour
         AddGodModeRow(cheatsTabContent.transform);
         AddActionRow(cheatsTabContent.transform, "RESTORE 100% HP & STATUS", "HEAL NOW", new Color32(16, 185, 129, 255), () => {
             CachePlayer();
-            if (cachedHealth != null && cachedHealth.Object != null && cachedHealth.Object.IsValid)
+            if (cachedHealth != null && cachedHealth.Object != null && cachedHealth.Object.IsValid &&
+                cachedHealth.HasStateAuthority)
             {
                 cachedHealth.currentHealth = cachedHealth.maxHealth;
                 cachedHealth.isBleeding = false;
@@ -753,7 +759,6 @@ public class DevCheatManager : MonoBehaviour
 
     private void RunRouteBCheat(System.Action action)
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (AutoChatManager.Instance != null && AutoChatManager.Instance.IsTyping()) return;
         if (!CanUseDevCheats())
         {
@@ -765,7 +770,6 @@ public class DevCheatManager : MonoBehaviour
         // cheat first prevents its fullscreen raycast blocker from covering them.
         HideCheatMenu();
         action?.Invoke();
-#endif
     }
 
     private static void AdvanceRouteBStory()
@@ -982,15 +986,30 @@ public class DevCheatManager : MonoBehaviour
 
     private bool CanUseDevCheats()
     {
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-        return false;
-#else
-        NetworkRunner runner = FindFirstObjectByType<NetworkRunner>();
+        NetworkRunner localPlayerRunner = PlayerMovement.LocalPlayerInstance != null &&
+                                          PlayerMovement.LocalPlayerInstance.Object != null &&
+                                          PlayerMovement.LocalPlayerInstance.Object.IsValid
+            ? PlayerMovement.LocalPlayerInstance.Runner
+            : null;
+        if (localPlayerRunner != null && localPlayerRunner.IsRunning)
+            return IsCheatAuthorityAllowed(true, localPlayerRunner.IsServer);
 
-        // No runner means an offline development test, where this machine is
-        // the only authority.  In Fusion, IsServer is true for Host and Server
-        // modes and false for regular clients.
-        return runner == null || runner.IsServer;
-#endif
+        bool hasRunningRunner = false;
+        bool allRunningRunnersAreServers = true;
+        foreach (NetworkRunner runner in FindObjectsByType<NetworkRunner>(FindObjectsSortMode.None))
+        {
+            if (runner == null || !runner.IsRunning) continue;
+            hasRunningRunner = true;
+            allRunningRunnersAreServers &= runner.IsServer;
+        }
+
+        // With no running Fusion session this is an offline/Solo setup. Once a
+        // session is running, only Host/Server peers may use local cheat input.
+        return IsCheatAuthorityAllowed(hasRunningRunner, allRunningRunnersAreServers);
+    }
+
+    private static bool IsCheatAuthorityAllowed(bool hasRunningRunner, bool isServer)
+    {
+        return !hasRunningRunner || isServer;
     }
 }

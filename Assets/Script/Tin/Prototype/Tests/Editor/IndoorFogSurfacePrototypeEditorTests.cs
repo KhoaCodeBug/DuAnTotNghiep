@@ -104,7 +104,7 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
                 component.gameObject.scene.path == "Assets/Scenes/Main.unity").ToArray();
         authoring.GetMethod("ValidateAllMainBuildings").Invoke(null,
             new object[] { UnityEngine.SceneManagement.SceneManager.GetSceneByPath("Assets/Scenes/Main.unity") });
-        Assert.That(maps, Has.Length.EqualTo(78), "All 77 Main buildings / 78 roof volumes must be covered.");
+        Assert.That(maps, Has.Length.EqualTo(79), "All 78 Main buildings / 79 roof volumes must be covered.");
         Assert.That(maps.Select(map => map.gameObject).Distinct().Count(), Is.EqualTo(maps.Length),
             "No rollout root may contain duplicate IndoorFogSurfaceMap components.");
         foreach (Component map in maps)
@@ -119,6 +119,15 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
             foreach (var alias in aliases)
                 Assert.That((bool)surfaceType.GetMethod("MatchesIndoorVolume").Invoke(map, new object[] { alias }), Is.True);
         }
+    }
+
+    [Test]
+    public void Phase2ApartmentSharedPrefab_ReferencesAreComplete()
+    {
+        Type authoring = Type.GetType("IndoorFogMainPlayAuthoring, Assembly-CSharp-Editor");
+        Assert.That(authoring, Is.Not.Null);
+        Assert.That(authoring.GetMethod("ValidateApartmentPrefab"), Is.Not.Null);
+        authoring.GetMethod("ValidateApartmentPrefab").Invoke(null, null);
     }
 
     [TestCase("continuous-wall", 0)]
@@ -414,7 +423,7 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
         {
             var maps = UnityEngine.Object.FindObjectsByType(surfaceType, FindObjectsInactive.Exclude, FindObjectsSortMode.None)
                 .OfType<Component>().OrderBy(m => m.name).ToArray();
-            Assert.That(maps, Has.Length.EqualTo(78));
+            Assert.That(maps, Has.Length.EqualTo(79));
             foreach (Component map in maps)
             {
                 var volume = (Collider2D)surfaceType.GetField("indoorVolume").GetValue(map);
@@ -482,7 +491,7 @@ public sealed class IndoorFogSurfacePrototypeEditorTests
                 yield return new WaitForSecondsRealtime(0.3f);
                 Assert.That(firstAtlas == null || !firstAtlas.IsCreated(), Is.True, map.name + " must release on exit.");
             }
-            Assert.That(families.Count, Is.EqualTo(12));
+            Assert.That(families.Count, Is.EqualTo(13));
         }
         finally
         {

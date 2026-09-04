@@ -396,9 +396,9 @@ public sealed class MainQuestManager : NetworkBehaviour
     }
 
     /// <summary>
-    /// Runtime test shortcut that completes the residential clue-search
-    /// objective. Clients forward the request to State Authority so F7 behaves
-    /// consistently in Solo, Host and multiplayer builds.
+    /// Runtime cheat that completes the residential clue-search objective.
+    /// It is deliberately Host/State-Authority only; regular clients never
+    /// forward cheat requests to the server.
     /// </summary>
     public void DebugCompleteClueSearch()
     {
@@ -408,10 +408,13 @@ public sealed class MainQuestManager : NetworkBehaviour
             return;
         }
 
-        if (HasStateAuthority)
-            ServerDebugCompleteClueSearch(Runner.LocalPlayer);
-        else
-            RPC_RequestDebugCompleteClueSearch();
+        if (!HasStateAuthority)
+        {
+            Debug.LogWarning("[QUEST TEST] F7 chỉ dùng được trên Solo/Host đang có authority.");
+            return;
+        }
+
+        ServerDebugCompleteClueSearch(Runner.LocalPlayer);
     }
 
     /// <summary>
@@ -420,9 +423,6 @@ public sealed class MainQuestManager : NetworkBehaviour
     /// </summary>
     public void DebugTeleportToCurrentObjective()
     {
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-        return;
-#else
         if (!IsNetworkReady || !HasStateAuthority ||
             !TryGetRequestingPlayer(Runner.LocalPlayer, out PlayerMovement player))
         {
@@ -498,7 +498,6 @@ public sealed class MainQuestManager : NetworkBehaviour
         Debug.Log($"[QUEST TEST] F12: đã dịch chuyển tới {targetName}.");
         AutoChatManager.Instance?.AddMessage(GameLocalization.Get("quest.test_sender"),
             string.Format(GameLocalization.Get("quest.debug.teleported_to"), targetName));
-#endif
     }
 
     private static void DebugTeleportPlayer(PlayerMovement player, Vector2 destination)
@@ -560,9 +559,6 @@ public sealed class MainQuestManager : NetworkBehaviour
     /// </summary>
     public void DebugAdvanceRouteB()
     {
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-        return;
-#else
         if (!IsNetworkReady || !HasStateAuthority)
         {
             Debug.LogWarning("[QUEST TEST] NEXT ROUTE B chỉ dùng được trên Solo/Host đang có authority.");
@@ -624,13 +620,6 @@ public sealed class MainQuestManager : NetworkBehaviour
                 RPC_ShowDebugShortcutMessage(requester, "quest.debug.route_b_military_unlocked");
                 break;
         }
-#endif
-    }
-
-    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
-    private void RPC_RequestDebugCompleteClueSearch(RpcInfo info = default)
-    {
-        ServerDebugCompleteClueSearch(info.Source);
     }
 
     private void ServerDebugCompleteClueSearch(PlayerRef requester)
@@ -1752,9 +1741,7 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void AuthorityDebugCollectHospitalRadioKey(PlayerRef requester)
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         AuthorityGrantHospitalRadioKey(requester);
-#endif
     }
 
     private void AuthorityOpenHospitalRadioRoom(PlayerRef requester)
@@ -1772,7 +1759,6 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     private void AuthorityDebugAdvanceHospitalRadioStage(PlayerRef requester)
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         if (!HasStateAuthority || CurrentStage != QuestStage.FindCityMap ||
             CurrentHospitalInvestigationStage != HospitalInvestigationStage.RadioReady) return;
         Vector3 radioPosition = HospitalRadioInteractionPoint.TryGetForRole(
@@ -1794,7 +1780,6 @@ public sealed class MainQuestManager : NetworkBehaviour
         HospitalRadioCheckpointCount = HospitalRadioRoomRules.RestoreSegmentCount;
         AuthorityCompleteHospitalRadio(requester, radioPosition);
         Debug.Log("[QUEST TEST] F6 hoàn tất chặng Radio 3/3 qua production completion path.");
-#endif
     }
 
     private void AuthorityCompleteHospitalRadio(PlayerRef completedBy, Vector3 radioPosition)
@@ -2868,9 +2853,6 @@ public sealed class MainQuestManager : NetworkBehaviour
 
     public void DebugUnlockHospitalAndMilitaryMapRegions()
     {
-#if !UNITY_EDITOR && !DEVELOPMENT_BUILD
-        return;
-#else
         if (!IsNetworkReady || !HasStateAuthority)
         {
             Debug.LogWarning("[QUEST TEST] Cheat mở bản đồ cần Solo/Host authority.");
@@ -2889,7 +2871,6 @@ public sealed class MainQuestManager : NetworkBehaviour
         IsCityMapUnlocked = true;
         NetworkQuestStage = (int)QuestStage.CityMapFound;
         RPC_DebugUnlockHospitalAndMilitaryMapRegions();
-#endif
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
