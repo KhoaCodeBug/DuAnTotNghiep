@@ -1,0 +1,24 @@
+{
+    "house": "nhamauxam",
+    "x": -5.488699913024902,
+    "y": -5.2202959060668949,
+    "hour": 13.5,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": false,
+    "prototype": true,
+    "label": "allmain-20260904-105316-nhamauxam-1",
+    "cameraRight": 0.0,
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421,
+    "surfaceProbeInset": -1.0
+}
+actual=(-5.49, -5.22, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/nhamauxam/nocnha (4)
+mask=1 surface=1 flashlight=0 angle=140
+light=0.115526 global=1.391357 innerAngle=100 outerAngle=140
+surfaces=54 scannedCells=243 atlasBytes=3899392 buildMs=3.0381 atlas=1024x952 filter=Bilinear wrap=Clamp bounds=(-10.50, -9.88, 10.03, 9.32) texelWorld=(0.01, 0.01)
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=0 shadowCandidateCount=0 movementEnabled=False godMode=True cheatMenuOpen=False

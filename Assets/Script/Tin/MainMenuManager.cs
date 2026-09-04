@@ -94,6 +94,70 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
     private float tempMasterVolume = 1.0f;
     private float tempMusicVolume = 0.5f;
     private float tempSFXVolume = 0.8f;
+    private bool _isSyncingAudioSliders = false;
+
+    private void OnMasterVolumeSliderChanged(float val, bool fromPauseMenu)
+    {
+        if (_isSyncingAudioSliders) return;
+        _isSyncingAudioSliders = true;
+        try
+        {
+            tempMasterVolume = val;
+            GameAudioSettings.SetMasterVolume(val);
+            UpdateVolumeText();
+            if (fromPauseMenu && sliderMasterVolume != null)
+                sliderMasterVolume.SetValueWithoutNotify(val);
+            else if (!fromPauseMenu && pSliderMasterVolume != null)
+                pSliderMasterVolume.SetValueWithoutNotify(val);
+        }
+        finally
+        {
+            _isSyncingAudioSliders = false;
+        }
+    }
+
+    private void OnMusicVolumeSliderChanged(float val, bool fromPauseMenu)
+    {
+        if (_isSyncingAudioSliders) return;
+        _isSyncingAudioSliders = true;
+        try
+        {
+            tempMusicVolume = val;
+            bgmVolume = val;
+            GameAudioSettings.SetMusicVolume(val);
+            if (bgmSource != null) bgmSource.volume = GameAudioSettings.EffectiveMusicVolume;
+            UpdateMusicVolumeText();
+            if (fromPauseMenu && sliderMusicVolume != null)
+                sliderMusicVolume.SetValueWithoutNotify(val);
+            else if (!fromPauseMenu && pSliderMusicVolume != null)
+                pSliderMusicVolume.SetValueWithoutNotify(val);
+        }
+        finally
+        {
+            _isSyncingAudioSliders = false;
+        }
+    }
+
+    private void OnSFXVolumeSliderChanged(float val, bool fromPauseMenu)
+    {
+        if (_isSyncingAudioSliders) return;
+        _isSyncingAudioSliders = true;
+        try
+        {
+            tempSFXVolume = val;
+            sfxVolume = val;
+            GameAudioSettings.SetSFXVolume(val);
+            UpdateSFXVolumeText();
+            if (fromPauseMenu && sliderSFXVolume != null)
+                sliderSFXVolume.SetValueWithoutNotify(val);
+            else if (!fromPauseMenu && pSliderSFXVolume != null)
+                pSliderSFXVolume.SetValueWithoutNotify(val);
+        }
+        finally
+        {
+            _isSyncingAudioSliders = false;
+        }
+    }
 
     // Các biến tạm thời mới
     private int tempQualityLevel = 2;       // 0=Low, 1=Medium, 2=High
@@ -631,29 +695,19 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // 1. Master Volume (Slider)
         CreateLabel(pAudioTab, "MASTER VOLUME:", new Vector2(0.05f, pStartYAud - 0.04f), new Vector2(0.4f, pStartYAud + 0.02f));
         GameObject pVolSliderObj = CreateSlider(pAudioTab, "MASTER VOLUME", new Vector2(0.45f, pStartYAud - 0.05f), new Vector2(0.95f, pStartYAud + 0.03f),
-            0f, 1.0f, () => tempMasterVolume, (val) => {
-                tempMasterVolume = val;
-                AudioListener.volume = val;
-            }, out pVolText, "%");
+            0f, 1.0f, () => tempMasterVolume, (val) => OnMasterVolumeSliderChanged(val, true), out pVolText, "%");
         pSliderMasterVolume = pVolSliderObj.GetComponent<Slider>();
 
         // 2. Music Volume (Slider)
         CreateLabel(pAudioTab, "MUSIC VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud + 0.02f));
         GameObject pMusSliderObj = CreateSlider(pAudioTab, "MUSIC VOLUME", new Vector2(0.45f, pStartYAud - pSpacingAud - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud + 0.03f),
-            0f, 1.0f, () => tempMusicVolume, (val) => {
-                tempMusicVolume = val;
-                bgmVolume = val;
-                if (bgmSource != null) bgmSource.volume = bgmVolume;
-            }, out pMusText, "%");
+            0f, 1.0f, () => tempMusicVolume, (val) => OnMusicVolumeSliderChanged(val, true), out pMusText, "%");
         pSliderMusicVolume = pMusSliderObj.GetComponent<Slider>();
 
         // 3. SFX Volume (Slider)
         CreateLabel(pAudioTab, "SFX VOLUME:", new Vector2(0.05f, pStartYAud - pSpacingAud*2 - 0.04f), new Vector2(0.4f, pStartYAud - pSpacingAud*2 + 0.02f));
         GameObject pSfxSliderObj = CreateSlider(pAudioTab, "SFX VOLUME", new Vector2(0.45f, pStartYAud - pSpacingAud*2 - 0.05f), new Vector2(0.95f, pStartYAud - pSpacingAud*2 + 0.03f),
-            0f, 1.0f, () => tempSFXVolume, (val) => {
-                tempSFXVolume = val;
-                sfxVolume = val;
-            }, out pSfxText, "%");
+            0f, 1.0f, () => tempSFXVolume, (val) => OnSFXVolumeSliderChanged(val, true), out pSfxText, "%");
         pSliderSFXVolume = pSfxSliderObj.GetComponent<Slider>();
 
         string[] pLanguageLabels = new string[] { "ENGLISH", "TIẾNG VIỆT" };
@@ -2575,29 +2629,19 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         // 1. Master Volume (Slider)
         CreateLabel(audioTabArea, "MASTER VOLUME:", new Vector2(0.05f, startYAud - 0.04f), new Vector2(0.4f, startYAud + 0.02f));
         GameObject volSliderObj = CreateSlider(audioTabArea, "MASTER VOLUME", new Vector2(0.45f, startYAud - 0.05f), new Vector2(0.95f, startYAud + 0.03f),
-            0f, 1.0f, () => tempMasterVolume, (val) => {
-                tempMasterVolume = val;
-                AudioListener.volume = val;
-            }, out volValText, "%");
+            0f, 1.0f, () => tempMasterVolume, (val) => OnMasterVolumeSliderChanged(val, false), out volValText, "%");
         sliderMasterVolume = volSliderObj.GetComponent<Slider>();
 
         // 2. Music Volume (Slider)
         CreateLabel(audioTabArea, "MUSIC VOLUME:", new Vector2(0.05f, startYAud - spacingYAud - 0.04f), new Vector2(0.4f, startYAud - spacingYAud + 0.02f));
         GameObject musSliderObj = CreateSlider(audioTabArea, "MUSIC VOLUME", new Vector2(0.45f, startYAud - spacingYAud - 0.05f), new Vector2(0.95f, startYAud - spacingYAud + 0.03f),
-            0f, 1.0f, () => tempMusicVolume, (val) => {
-                tempMusicVolume = val;
-                bgmVolume = val;
-                if (bgmSource != null) bgmSource.volume = bgmVolume;
-            }, out musicValText, "%");
+            0f, 1.0f, () => tempMusicVolume, (val) => OnMusicVolumeSliderChanged(val, false), out musicValText, "%");
         sliderMusicVolume = musSliderObj.GetComponent<Slider>();
 
         // 3. SFX Volume (Slider)
         CreateLabel(audioTabArea, "SFX VOLUME:", new Vector2(0.05f, startYAud - spacingYAud*2 - 0.04f), new Vector2(0.4f, startYAud - spacingYAud*2 + 0.02f));
         GameObject sfxSliderObj = CreateSlider(audioTabArea, "SFX VOLUME", new Vector2(0.45f, startYAud - spacingYAud*2 - 0.05f), new Vector2(0.95f, startYAud - spacingYAud*2 + 0.03f),
-            0f, 1.0f, () => tempSFXVolume, (val) => {
-                tempSFXVolume = val;
-                sfxVolume = val;
-            }, out sfxValText, "%");
+            0f, 1.0f, () => tempSFXVolume, (val) => OnSFXVolumeSliderChanged(val, false), out sfxValText, "%");
         sliderSFXVolume = sfxSliderObj.GetComponent<Slider>();
 
         string[] languageLabels = new string[] { "ENGLISH", "TIẾNG VIỆT" };
@@ -3289,9 +3333,10 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         }
 
         tempSensitivity = PlayerPrefs.GetFloat("MouseSensitivity", 1.0f);
-        tempMasterVolume = PlayerPrefs.GetFloat("GameMasterVolume", 1.0f);
-        tempMusicVolume = PlayerPrefs.GetFloat("GameMusicVolume", 0.5f);
-        tempSFXVolume = PlayerPrefs.GetFloat("GameSFXVolume", 0.8f);
+        GameAudioSettings.Revert();
+        tempMasterVolume = GameAudioSettings.MasterVolume;
+        tempMusicVolume = GameAudioSettings.MusicVolume;
+        tempSFXVolume = GameAudioSettings.SFXVolume;
 
         // Load các cấu hình đồ họa/zoom mới
         tempQualityLevel = Mathf.Clamp(PlayerPrefs.GetInt("GameQualityLevel", 2), 0, 2);
@@ -3366,9 +3411,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         PlayerPrefs.SetFloat("GameBrightness", tempBrightness);
         PlayerPrefs.SetInt("GameFPSLimit", fpsOptions[tempFpsIndex]);
         PlayerPrefs.SetFloat("MouseSensitivity", tempSensitivity);
-        PlayerPrefs.SetFloat("GameMasterVolume", tempMasterVolume);
-        PlayerPrefs.SetFloat("GameMusicVolume", tempMusicVolume);
-        PlayerPrefs.SetFloat("GameSFXVolume", tempSFXVolume);
+        GameAudioSettings.Save();
 
         // Lưu các cấu hình đồ họa/zoom mới
         PlayerPrefs.SetInt("GameQualityLevel", tempQualityLevel);
@@ -3408,9 +3451,7 @@ public class AutoMainMenuManager : MonoBehaviour, INetworkRunnerCallbacks
         if (tempFpsIndex != savedFpsIndex) return true;
 
         if (Mathf.Abs(tempSensitivity - PlayerPrefs.GetFloat("MouseSensitivity", 1.0f)) > 0.01f) return true;
-        if (Mathf.Abs(tempMasterVolume - PlayerPrefs.GetFloat("GameMasterVolume", 1.0f)) > 0.01f) return true;
-        if (Mathf.Abs(tempMusicVolume - PlayerPrefs.GetFloat("GameMusicVolume", 0.5f)) > 0.01f) return true;
-        if (Mathf.Abs(tempSFXVolume - PlayerPrefs.GetFloat("GameSFXVolume", 0.8f)) > 0.01f) return true;
+        if (GameAudioSettings.HasUnsavedChanges()) return true;
 
         // Check các cài đặt mới
         if (tempQualityLevel != PlayerPrefs.GetInt("GameQualityLevel", 2)) return true;

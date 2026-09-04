@@ -86,7 +86,7 @@ public sealed class GameplayMusicController : MonoBehaviour
     private void Update()
     {
         if (musicSource == null || settings == null) return;
-        float playerMusicVolume = PlayerPrefs.GetFloat("GameMusicVolume", 0.5f);
+        float playerMusicVolume = GameAudioSettings.MusicVolume;
         float targetVolume = Mathf.Clamp01(playerMusicVolume) * settings.RelativeVolume;
         musicSource.volume = Mathf.MoveTowards(musicSource.volume, targetVolume, Time.unscaledDeltaTime * 0.25f);
     }

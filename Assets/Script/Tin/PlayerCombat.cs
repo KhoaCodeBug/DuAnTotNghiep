@@ -59,7 +59,7 @@ public class PlayerCombat : NetworkBehaviour
     public float bashStaminaCost = 15f;
     public float bashDuration = 0.5f;
 
-    private Animator anim;
+    [SerializeField] private Animator anim;
     private Camera mainCam;
     private PlayerMovement playerMove;
     private PlayerStamina staminaSystem;
@@ -74,7 +74,7 @@ public class PlayerCombat : NetworkBehaviour
 
     public override void Spawned()
     {
-        anim = GetComponentInChildren<Animator>();
+        if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
         mainCam = Camera.main;
         playerMove = GetComponent<PlayerMovement>();
         staminaSystem = GetComponent<PlayerStamina>();
@@ -484,10 +484,21 @@ public class PlayerCombat : NetworkBehaviour
             AutoUIManager.Instance?.CancelTimedGameplayAction();
 
         int randomAttack = Random.Range(2, 5);
-        // Bash is simulated by both the input and state peers. Only authority
-        // may fan out its animation, otherwise its event can broadcast the
-        // melee swing twice.
-        if (HasStateAuthority && Runner.IsForward) RPC_PlayBashAnimation(randomAttack);
+        // Bash presentation:
+        // Local owner predicts and plays immediately on forward tick to guarantee responsive feedback.
+        // StateAuthority broadcasts RPC so remote peers replicate the exact same animation.
+        if (Runner.IsForward)
+        {
+            if (HasInputAuthority)
+            {
+                TriggerBashVisual(randomAttack);
+            }
+
+            if (HasStateAuthority)
+            {
+                RPC_PlayBashAnimation(randomAttack);
+            }
+        }
 
         if (playerMove != null) playerMove.LockMovementForAttack(bashDuration);
         if (staminaSystem != null) staminaSystem.ConsumeStamina(bashStaminaCost);
@@ -566,15 +577,24 @@ public class PlayerCombat : NetworkBehaviour
         }
     }
 
-    [Rpc(RpcSources.StateAuthority | RpcSources.InputAuthority, RpcTargets.All)]
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayBashAnimation(int randomAttack)
     {
+        // Suppress echo on the predicting owner (Host or Client)
+        if (HasInputAuthority) return;
+
+        TriggerBashVisual(randomAttack);
+    }
+
+    private void TriggerBashVisual(int randomAttack)
+    {
+        if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
         if (HasInputAuthority) AutoNoiseMeter.ReportTransientNoise(0.48f, "CẬN CHIẾN");
 
         if (anim != null)
         {
-            anim.SetInteger("RandomBash", randomAttack);
-            anim.SetTrigger("GunBash");
+            PlayerVisualResolver.SafeSetInteger(anim, "RandomBash", randomAttack);
+            PlayerVisualResolver.SafeTrigger(anim, "GunBash");
         }
     }
 
@@ -599,7 +619,7 @@ public class PlayerCombat : NetworkBehaviour
         if (muzzleAnimator != null && muzzleFlashRenderer != null)
         {
             // 🔥 THIẾT LẬP SORTING ORDER NỔI LÊN PHÍA TRƯỚC PLAYER Ở BẤT KỲ HƯỚNG NÀO (KỂ CẢ HƯỚNG NAM / SOUTH)
-            SpriteRenderer playerSr = GetComponentInChildren<SpriteRenderer>();
+            SpriteRenderer playerSr = PlayerVisualResolver.ResolveVisualSpriteRenderer(gameObject);
             if (playerSr != null)
             {
                 muzzleFlashRenderer.sortingLayerID = playerSr.sortingLayerID;

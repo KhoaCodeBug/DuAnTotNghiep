@@ -179,7 +179,7 @@ public class PlayerMovement : NetworkBehaviour
 
         if (anim == null)
         {
-            anim = GetComponentInChildren<Animator>();
+            anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
         }
 
         Fusion.Addons.Physics.NetworkRigidbody2D netRb = GetComponent<Fusion.Addons.Physics.NetworkRigidbody2D>();
@@ -192,7 +192,7 @@ public class PlayerMovement : NetworkBehaviour
             }
             else
             {
-                SpriteRenderer sprite = GetComponentInChildren<SpriteRenderer>();
+                SpriteRenderer sprite = PlayerVisualResolver.ResolveVisualSpriteRenderer(gameObject);
                 if (sprite != null && sprite.transform != this.transform)
                 {
                     netRb.InterpolationTarget = sprite.transform;
@@ -841,15 +841,23 @@ public class PlayerMovement : NetworkBehaviour
 
         if (cameraController != null && targetPlayer != null)
         {
-            SpriteRenderer targetSprite = targetPlayer.GetComponentInChildren<SpriteRenderer>();
-            if (targetSprite != null)
+            Transform visual = targetPlayer.transform.Find("Visual");
+            if (visual != null)
             {
-                // 🔥 Dùng hàm SpectateTarget mới tạo để Camera biết là đang xem ké
-                cameraController.SpectateTarget(targetSprite.transform);
+                cameraController.SpectateTarget(visual);
             }
             else
             {
-                cameraController.SpectateTarget(targetPlayer.transform);
+                SpriteRenderer targetSprite = PlayerVisualResolver.ResolveVisualSpriteRenderer(targetPlayer.gameObject);
+                if (targetSprite != null)
+                {
+                    // 🔥 Dùng hàm SpectateTarget mới tạo để Camera biết là đang xem ké
+                    cameraController.SpectateTarget(targetSprite.transform);
+                }
+                else
+                {
+                    cameraController.SpectateTarget(targetPlayer.transform);
+                }
             }
         }
     }

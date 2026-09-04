@@ -93,8 +93,8 @@ public class PlayerHealth : NetworkBehaviour
     private bool isFakeZombieVisible = false;
 
     private PlayerMovement movementScript;
-    private Animator anim;
-    private SpriteRenderer spriteRend;
+    [SerializeField] private Animator anim;
+    [SerializeField] private SpriteRenderer spriteRend;
     private Color originalColor;
     private bool isFlashing = false;
 
@@ -145,8 +145,8 @@ public class PlayerHealth : NetworkBehaviour
         hasClosedLocalQuestPresentationForDeath = false;
 
         movementScript = GetComponent<PlayerMovement>();
-        anim = GetComponentInChildren<Animator>();
-        spriteRend = GetComponentInChildren<SpriteRenderer>();
+        if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
+        if (spriteRend == null) spriteRend = PlayerVisualResolver.ResolveVisualSpriteRenderer(gameObject);
         survivalSystem = GetComponent<PlayerSurvival>();
 
         if (spriteRend != null) originalColor = spriteRend.color;
@@ -925,7 +925,9 @@ public class PlayerHealth : NetworkBehaviour
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
     public void RPC_PlayHitEffect()
     {
-        if (anim != null) anim.SetTrigger("TakeDamage");
+        if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
+        if (anim != null) PlayerVisualResolver.SafeTrigger(anim, "TakeDamage");
+        if (spriteRend == null) spriteRend = PlayerVisualResolver.ResolveVisualSpriteRenderer(gameObject);
         if (spriteRend != null && !isFlashing) StartCoroutine(FlashHurtRoutine());
         PlayHurtGruntSFX();
     }
@@ -934,7 +936,8 @@ public class PlayerHealth : NetworkBehaviour
     public void RPC_PlayConvulseEffect()
     {
         CloseLocalQuestPresentationForDeath();
-        if (anim != null) anim.SetBool("IsDead", true);
+        if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
+        if (anim != null) PlayerVisualResolver.SafeSetBool(anim, "IsDead", true);
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null) rb.linearVelocity = Vector2.zero;
@@ -949,7 +952,8 @@ public class PlayerHealth : NetworkBehaviour
     public void RPC_PlayDeathEffect()
     {
         CloseLocalQuestPresentationForDeath();
-        if (anim != null) anim.SetBool("IsDead", true);
+        if (anim == null) anim = PlayerVisualResolver.ResolveVisualAnimator(gameObject);
+        if (anim != null) PlayerVisualResolver.SafeSetBool(anim, "IsDead", true);
 
         Rigidbody2D rb = GetComponent<Rigidbody2D>();
         if (rb != null)
@@ -1088,7 +1092,7 @@ public class PlayerHealth : NetworkBehaviour
         {
             if (player == this) continue;
 
-            Animator teammateAnim = player.GetComponentInChildren<Animator>();
+            Animator teammateAnim = PlayerVisualResolver.ResolveVisualAnimator(player.gameObject);
             PlayerNameTag nameTag = player.GetComponent<PlayerNameTag>();
             PlayerMovement pm = player.GetComponent<PlayerMovement>();
 

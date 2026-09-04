@@ -1,0 +1,24 @@
+{
+    "house": "cannhasieuvipprodachinhsua",
+    "x": 21.268840789794923,
+    "y": -5.266263008117676,
+    "hour": 21.0,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": false,
+    "prototype": true,
+    "label": "allmain-20260904-105316-cannhasieuvipprodachinhsua-3",
+    "cameraRight": 0.0,
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421,
+    "surfaceProbeInset": -1.0
+}
+actual=(21.27, -5.27, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/cannhasieuvipprodachinhsua/nocnha (3)
+mask=1 surface=1 flashlight=0 angle=140
+light=0.02991998 global=0.196875 innerAngle=100 outerAngle=140
+surfaces=80 scannedCells=570 atlasBytes=3530752 buildMs=11.4406 atlas=1024x862 filter=Bilinear wrap=Clamp bounds=(15.33, -10.27, 11.88, 10.00) texelWorld=(0.01, 0.01)
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=0 shadowCandidateCount=0 movementEnabled=False godMode=True cheatMenuOpen=False
