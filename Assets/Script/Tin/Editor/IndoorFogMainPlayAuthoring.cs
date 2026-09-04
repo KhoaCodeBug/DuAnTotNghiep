@@ -14,8 +14,47 @@ using UnityEngine.Tilemaps;
 public static class IndoorFogMainPlayAuthoring
 {
     public const string HousePrefabPath = "Assets/Khoa/House/nhachinhxaydautien.prefab";
+    public const string ApartmentPrefabPath = "Assets/Khoa/House/chungcumaucamdachinhsua_FIXED.prefab";
     public const string MainScenePath = "Assets/Scenes/Main.unity";
-    public const int MainVolumeCount = 78;
+    public const int MainVolumeCount = 79;
+
+    private const string ApartmentRoofPath = "nocnha (5)";
+    private static readonly string[] ApartmentSurfacePaths =
+        { "tuongnha3", "tuongnha", "decord", "decord2" };
+
+    [MenuItem("Tools/Environment/Indoor Fog/Apply Phase 2 Shared Apartment Prefab")]
+    public static void ApplyPhase2ApartmentPrefab()
+    {
+        if (EditorApplication.isPlaying) throw new InvalidOperationException("Authoring requires Edit Mode.");
+        ConfigureApartmentPrefab();
+        ValidateApartmentPrefab();
+        AssetDatabase.SaveAssets();
+        Debug.Log("[IndoorFogAuthoring] Applied Phase 2 authoring to the shared apartment prefab.");
+    }
+
+    public static void ConfigureApartmentPrefab()
+    {
+        GameObject root = PrefabUtility.LoadPrefabContents(ApartmentPrefabPath);
+        try
+        {
+            Configure(root.transform,
+                RequireComponent<Collider2D>(RequireChild(root.transform, ApartmentRoofPath)),
+                Tilemaps(root.transform, ApartmentSurfacePaths),
+                root.GetComponentsInChildren<SpriteRenderer>(true));
+            ValidateApartmentPrefabRoot(root.transform);
+            if (PrefabUtility.SaveAsPrefabAsset(root, ApartmentPrefabPath) == null)
+                throw new InvalidOperationException("Could not save the shared apartment Indoor Fog authoring.");
+        }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
+
+    [MenuItem("Tools/Environment/Indoor Fog/Validate Phase 2 Shared Apartment Prefab")]
+    public static void ValidateApartmentPrefab()
+    {
+        GameObject root = PrefabUtility.LoadPrefabContents(ApartmentPrefabPath);
+        try { ValidateApartmentPrefabRoot(root.transform); }
+        finally { PrefabUtility.UnloadPrefabContents(root); }
+    }
 
     [MenuItem("Tools/Environment/Indoor Fog/Apply All Main Buildings")]
     public static void ApplyAllMainBuildings()
@@ -177,6 +216,8 @@ public static class IndoorFogMainPlayAuthoring
         try { ValidateConfigured(houseRoot.transform, "Shared house prefab"); }
         finally { PrefabUtility.UnloadPrefabContents(houseRoot); }
 
+        ValidateApartmentPrefab();
+
         Scene scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
         Transform mapRoot = FindMapRoot(scene);
         ValidateConfigured(RequireChild(mapRoot, "school"), "School");
@@ -296,5 +337,31 @@ public static class IndoorFogMainPlayAuthoring
             throw new InvalidOperationException(label + " Indoor Fog references are incomplete.");
         if (!map.indoorVolume.isTrigger)
             throw new InvalidOperationException(label + " indoor volume must remain a trigger.");
+    }
+
+    private static void ValidateApartmentPrefabRoot(Transform root)
+    {
+        const string label = "Shared apartment prefab";
+        ValidateConfigured(root, label);
+
+        IndoorFogSurfaceMap[] maps = root.GetComponentsInChildren<IndoorFogSurfaceMap>(true);
+        if (maps.Length != 1 || maps[0].transform != root)
+            throw new InvalidOperationException(label + " must own exactly one root IndoorFogSurfaceMap.");
+
+        IndoorFogSurfaceMap map = maps[0];
+        Collider2D expectedVolume = RequireComponent<Collider2D>(RequireChild(root, ApartmentRoofPath));
+        Tilemap[] expectedSurfaces = Tilemaps(root, ApartmentSurfacePaths);
+        SpriteRenderer[] expectedSprites = root.GetComponentsInChildren<SpriteRenderer>(true);
+        if (map.indoorVolume != expectedVolume)
+            throw new InvalidOperationException(label + " must use " + ApartmentRoofPath + " as its indoor volume.");
+        if (!map.surfaces.SequenceEqual(expectedSurfaces))
+            throw new InvalidOperationException(label + " surface references do not match the audited apartment paths.");
+        if (!map.spriteSurfaces.SequenceEqual(expectedSprites))
+            throw new InvalidOperationException(label + " sprite references do not cover the shared prefab.");
+        if (map.additionalIndoorVolumes == null || map.additionalIndoorVolumes.Length != 0)
+            throw new InvalidOperationException(label + " must not inherit scene-only roof aliases.");
+        if (map.surfaces.Any(surface => surface.name.StartsWith("nocnha") ||
+            surface.name.StartsWith("nennha") || surface.name.StartsWith("__ColliderProxy_")))
+            throw new InvalidOperationException(label + " must not project roof, floor, or collider proxy tilemaps.");
     }
 }

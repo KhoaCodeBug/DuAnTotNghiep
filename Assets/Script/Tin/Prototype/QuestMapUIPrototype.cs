@@ -237,7 +237,6 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
 
     public void DebugRevealHospitalAndMilitaryImmediately()
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         unlockRevealPending = false;
         unlockRevealCompleted = true;
         officeRegionRevealVisualComplete = true;
@@ -248,7 +247,6 @@ public sealed class QuestMapUIPrototype : MonoBehaviour
         SetRasterMilitaryRevealProgress(1f);
         UpdateRasterMapMarkers();
         Refresh();
-#endif
     }
 
     public void SetCivilianCityMapUnlocked(bool unlocked)

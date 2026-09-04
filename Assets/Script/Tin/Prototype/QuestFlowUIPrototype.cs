@@ -848,7 +848,6 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
 
     public void DebugUnlockHospitalAndMilitaryMapRegions()
     {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
         EnsureBuiltForTests();
         for (int i = 0; i < PreMilitaryQuestProgress.RequiredRouteClues; i++)
             mainQuestProgress.RegisterRouteClue("DEBUG_MAP_CLUE_" + i);
@@ -857,7 +856,6 @@ public sealed class QuestFlowUIPrototype : MonoBehaviour
         mainQuestProgress.RegisterMapFragment2AddedToInventory();
         mapPrototype.DebugRevealHospitalAndMilitaryImmediately();
         RefreshQuestPresentation();
-#endif
     }
 
     public void SetCivilianCityMapUnlocked(bool unlocked)
