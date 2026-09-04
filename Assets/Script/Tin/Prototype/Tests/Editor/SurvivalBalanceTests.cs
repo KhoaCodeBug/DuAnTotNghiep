@@ -14,9 +14,9 @@ public sealed class SurvivalBalanceTests
             "The shared Resources balance asset must be available to spawned players.");
     }
 
-    [TestCase(0, 0.15f, 0.1875f, 0.225f, 35f, 666.667f, 533.333f)]
-    [TestCase(1, 0.20f, 0.25f, 0.30f, 25f, 500f, 400f)]
-    [TestCase(2, 0.25f, 0.3125f, 0.375f, 15f, 400f, 320f)]
+    [TestCase(0, 0.12f, 0.15f, 0.225f, 35f, 833.333f, 666.667f)]
+    [TestCase(1, 0.16f, 0.20f, 0.30f, 25f, 625f, 500f)]
+    [TestCase(2, 0.20f, 0.25f, 0.375f, 15f, 500f, 400f)]
     public void ProfilesProduceExpectedRatesAndFullBarDurations(int difficulty,
         float expectedHungerRate, float expectedThirstRate, float expectedDamage,
         float expectedGrace, float expectedHungerSeconds, float expectedThirstSeconds)
@@ -58,13 +58,13 @@ public sealed class SurvivalBalanceTests
     }
 
     [Test]
-    public void WellFedRequiresBothNeedsAndPreservesFourTiers()
+    public void WellFedUsesHungerAndPreservesFourTiers()
     {
-        Assert.That(InvokeRule<int>("GetWellFedTier", 1f, 0.79f), Is.Zero);
-        Assert.That(InvokeRule<int>("GetWellFedTier", 0.82f, 1f), Is.EqualTo(1));
-        Assert.That(InvokeRule<int>("GetWellFedTier", 0.87f, 1f), Is.EqualTo(2));
-        Assert.That(InvokeRule<int>("GetWellFedTier", 0.92f, 1f), Is.EqualTo(3));
-        Assert.That(InvokeRule<int>("GetWellFedTier", 1f, 1f), Is.EqualTo(4));
+        Assert.That(InvokeRule<int>("GetWellFedTier", 0.79f), Is.Zero);
+        Assert.That(InvokeRule<int>("GetWellFedTier", 0.82f), Is.EqualTo(1));
+        Assert.That(InvokeRule<int>("GetWellFedTier", 0.87f), Is.EqualTo(2));
+        Assert.That(InvokeRule<int>("GetWellFedTier", 0.92f), Is.EqualTo(3));
+        Assert.That(InvokeRule<int>("GetWellFedTier", 1f), Is.EqualTo(4));
     }
 
     private static Type RequireType(string name)
