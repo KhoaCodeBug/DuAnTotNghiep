@@ -1311,15 +1311,17 @@ public class ZombieAI : NetworkBehaviour
 
     private void ExecuteDamage(float damageAmount, int attackIndex)
     {
-        if (hasDealtDamageThisAttack) return;
-        if (!HasStateAuthority) return;
+        if (hasDealtDamageThisAttack || !HasStateAuthority || !NetIsAttacking || healthScript == null ||
+            healthScript.isDead) return;
+        // Consume this authoritative impact window even when validation fails;
+        // duplicate animation events cannot turn one swing into a later hit.
+        hasDealtDamageThisAttack = true;
 
         if (TryGetPlayerInDamageRange(out PlayerHealth pHealth))
         {
             if (!pHealth.isDead)
             {
                 pHealth.TakeDamage(damageAmount, false, true);
-                hasDealtDamageThisAttack = true;
                 if (attackIndex == 2) pHealth.SetBitten();
             }
         }
@@ -1341,14 +1343,6 @@ public class ZombieAI : NetworkBehaviour
             ? Mathf.Max(Physics2D.Distance(myCollider, targetCollider).distance, 0f)
             : Vector2.Distance(attackCenter, targetCollider.bounds.center);
         Vector2 targetCenter = targetCollider.bounds.center;
-
-        // V2 validates range/angle when StartAttack is called. Keep only current
-        // line-of-sight here so the 0.33-0.58s animation event cannot turn every
-        // committed attack into a miss against an ordinarily walking player.
-        if (useBlindV2Rules && lockCommittedHitV2)
-        {
-            return HasLineOfSight(attackCenter, targetCenter, Vector2.Distance(attackCenter, targetCenter), targetHealth);
-        }
 
         Vector2 directionFromAttackOrigin = (targetCenter - attackOrigin).normalized;
         if (directionFromAttackOrigin.sqrMagnitude < 0.001f)

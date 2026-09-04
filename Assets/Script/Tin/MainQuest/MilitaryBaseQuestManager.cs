@@ -138,6 +138,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
     [Networked] public float EscapeVehicleStartupRemaining { get; private set; }
     [Networked] public int EscapeWaypointIndex { get; private set; }
     [Networked] public NetworkBool IsEscapeOutroActive { get; private set; }
+    [Networked] public int RecoveryBatteryCount { get; private set; }
+    [Networked] public int RecoveryFuelCount { get; private set; }
+    [Networked] public int RecoveryRepairKitCount { get; private set; }
 
     private bool hasSpawned;
     private GameObject presentationRoot;
@@ -213,6 +216,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         : PoliceCarPosition + (roadsideRepairVehicle != null ? roadsideRepairVehicle.VisionDirection : Vector2.up) * 24f;
 
     private readonly Dictionary<PlayerRef, float> militaryDeathObservedAt = new();
+    private readonly HashSet<PlayerRef> recoveredPermanentEliminations = new();
     private float soloRetryCheckpointSurvivalSeconds;
 
     private void Awake()
@@ -301,6 +305,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         ResetEscapeVehicleState();
         soloRetryCheckpointSurvivalSeconds = 0f;
         militaryDeathObservedAt.Clear();
+        recoveredPermanentEliminations.Clear();
+        RecoveryBatteryCount = 0;
+        RecoveryFuelCount = 0;
+        RecoveryRepairKitCount = 0;
         voteParticipants.Clear();
         voteApprovals.Clear();
         nextMilitaryBackpackRewardScanTime = 0f;
@@ -336,6 +344,8 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         TickSoloGateDps();
         TickEscapeVehicleFlow();
         if (IsEscapeOutroActive) TickMilitaryOutroFollowers();
+        if (CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape)
+            TickPermanentEliminationRecovery();
 
         if ((CurrentPhase == Phase.SiegeAndRepair || CurrentPhase == Phase.ReadyToEscape) && !AnyLivingPlayer())
         {
@@ -637,6 +647,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         SoloGateDpsElapsed = 0f;
         ResetEscapeVehicleState();
         militaryDeathObservedAt.Clear();
+        recoveredPermanentEliminations.Clear();
+        RecoveryBatteryCount = 0;
+        RecoveryFuelCount = 0;
+        RecoveryRepairKitCount = 0;
         IsGeneratorActive = false;
         ActiveRepairer = PlayerRef.None;
         RPC_StartSiegePresentation();
@@ -672,6 +686,10 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
         repairLootCoordinator?.AuthorityResetForRetry();
         ClearRepairSkillCheckSession();
         militaryDeathObservedAt.Clear();
+        recoveredPermanentEliminations.Clear();
+        RecoveryBatteryCount = 0;
+        RecoveryFuelCount = 0;
+        RecoveryRepairKitCount = 0;
 
         MilitaryPhase = (int)Phase.Investigating;
         GateMaxHealth = Mathf.Max(1f, baseGateHealth);
@@ -1193,9 +1211,9 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             !IsNear(player.transform.position, InteractionKind.Vehicle)) return;
         InventorySystem inventory = player.GetComponent<InventorySystem>();
         ItemData item = MilitaryQuestItemCatalog.GetOrCreate(kind);
-        if (inventory == null || inventory.GetItemCount(item) < 1) return;
-
-        inventory.ConsumeItem(item, 1);
+        if (inventory == null) return;
+        if (inventory.GetItemCount(item) >= 1) inventory.ConsumeItem(item, 1);
+        else if (!TryConsumeRecoveryPool(kind)) return;
         SetPartInstalled(kind);
         RPC_ShowLocalizedQuestMessage("quest.military_installed", (int)kind, requester, false);
     }
@@ -2522,6 +2540,7 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
             for (int i = 0; i < departed.Count; i++) militaryDeathObservedAt.Remove(departed[i]);
 
         if (readyToRespawn == null) return;
+        readyToRespawn.Sort((left, right) => left.PlayerId.CompareTo(right.PlayerId));
         for (int i = 0; i < readyToRespawn.Count; i++)
         {
             PlayerRef player = readyToRespawn[i];
@@ -2542,6 +2561,115 @@ public sealed class MilitaryBaseQuestManager : NetworkBehaviour
                       $"{TeamRespawnsRemaining} lượt đội. Kết quả: {respawned}.");
             RPC_AnnounceTeamRespawnUsed(TeamRespawnsRemaining);
         }
+    }
+
+    private void TickPermanentEliminationRecovery()
+    {
+        if (!HasStateAuthority || TeamRespawnsRemaining > 0) return;
+        PlayerHealth[] avatars = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+        for (int i = 0; i < avatars.Length; i++)
+        {
+            PlayerHealth health = avatars[i];
+            if (health == null || health.Object == null || !health.Object.IsValid ||
+                (!health.isDead && !health.isTransforming)) continue;
+            PlayerRef owner = health.Object.InputAuthority;
+            if (owner == PlayerRef.None || recoveredPermanentEliminations.Contains(owner)) continue;
+            RecoverEssentialItemsFromEliminatedPlayer(owner, health.GetComponent<InventorySystem>());
+            recoveredPermanentEliminations.Add(owner);
+        }
+
+        TryAssignRecoveryPoolToLivingSurvivors();
+    }
+
+    private void RecoverEssentialItemsFromEliminatedPlayer(PlayerRef owner, InventorySystem source)
+    {
+        if (source == null) return;
+        MilitaryQuestItemKind[] kinds =
+        {
+            MilitaryQuestItemKind.Battery,
+            MilitaryQuestItemKind.FuelCanister,
+            MilitaryQuestItemKind.RepairKit
+        };
+        for (int i = 0; i < kinds.Length; i++)
+        {
+            MilitaryQuestItemKind kind = kinds[i];
+            if (IsPartInstalled(kind)) continue;
+            ItemData item = MilitaryQuestItemCatalog.GetOrCreate(kind);
+            int amount = source.GetItemCount(item);
+            if (amount <= 0) continue;
+            int removed = source.ConsumeItem(item, amount);
+            if (removed <= 0) continue;
+            AddToRecoveryPool(kind, removed);
+            Debug.Log($"[MILITARY RECOVERY] Authority recovered {removed}x {item.name} from {owner}.");
+        }
+    }
+
+    private void TryAssignRecoveryPoolToLivingSurvivors()
+    {
+        MilitaryQuestItemKind[] kinds =
+        {
+            MilitaryQuestItemKind.Battery,
+            MilitaryQuestItemKind.FuelCanister,
+            MilitaryQuestItemKind.RepairKit
+        };
+        for (int i = 0; i < kinds.Length; i++)
+        {
+            MilitaryQuestItemKind kind = kinds[i];
+            while (GetRecoveryPoolCount(kind) > 0)
+            {
+                ItemData item = MilitaryQuestItemCatalog.GetOrCreate(kind);
+                InventorySystem recipient = FindDeterministicRecoveryRecipient(item);
+                if (recipient == null || !recipient.AddItem(item, 1)) break;
+                AddToRecoveryPool(kind, -1);
+            }
+        }
+    }
+
+    private InventorySystem FindDeterministicRecoveryRecipient(ItemData item)
+    {
+        PlayerHealth[] players = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+        InventorySystem selected = null;
+        float bestDistance = float.PositiveInfinity;
+        int bestPlayerId = int.MaxValue;
+        Vector2 objective = GetInteractionPosition(InteractionKind.Vehicle);
+        for (int i = 0; i < players.Length; i++)
+        {
+            PlayerHealth health = players[i];
+            if (health == null || health.isDead || health.isTransforming || health.Object == null ||
+                !health.Object.IsValid) continue;
+            InventorySystem inventory = health.GetComponent<InventorySystem>();
+            if (inventory == null || !inventory.CanAcceptItemAmount(item, 1)) continue;
+            float distance = Vector2.SqrMagnitude((Vector2)health.transform.position - objective);
+            int playerId = health.Object.InputAuthority.PlayerId;
+            if (distance > bestDistance || (Mathf.Approximately(distance, bestDistance) && playerId >= bestPlayerId))
+                continue;
+            selected = inventory;
+            bestDistance = distance;
+            bestPlayerId = playerId;
+        }
+        return selected;
+    }
+
+    private int GetRecoveryPoolCount(MilitaryQuestItemKind kind) => kind switch
+    {
+        MilitaryQuestItemKind.Battery => RecoveryBatteryCount,
+        MilitaryQuestItemKind.FuelCanister => RecoveryFuelCount,
+        MilitaryQuestItemKind.RepairKit => RecoveryRepairKitCount,
+        _ => 0
+    };
+
+    private void AddToRecoveryPool(MilitaryQuestItemKind kind, int delta)
+    {
+        if (kind == MilitaryQuestItemKind.Battery) RecoveryBatteryCount = Mathf.Max(0, RecoveryBatteryCount + delta);
+        else if (kind == MilitaryQuestItemKind.FuelCanister) RecoveryFuelCount = Mathf.Max(0, RecoveryFuelCount + delta);
+        else if (kind == MilitaryQuestItemKind.RepairKit) RecoveryRepairKitCount = Mathf.Max(0, RecoveryRepairKitCount + delta);
+    }
+
+    private bool TryConsumeRecoveryPool(MilitaryQuestItemKind kind)
+    {
+        if (GetRecoveryPoolCount(kind) <= 0) return false;
+        AddToRecoveryPool(kind, -1);
+        return true;
     }
 
     [Rpc(RpcSources.StateAuthority, RpcTargets.All)]

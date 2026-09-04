@@ -1097,13 +1097,20 @@ public sealed class MainMenuToMilitaryQuestFlowTests
             (float)computeSiegeGateMaxHealth.Invoke(null, new object[] { 1, 0 });
         Assert.That((float)ReadProperty(military, "GateMaxHealth"),
             Is.EqualTo(expectedSoloGateMaxHealth).Within(0.01f),
-            "Easy Solo siege must use the five-minute hold pool; legacy serialization must not lower it.");
+            "Easy Solo siege must use the approved six-minute hold pool; legacy serialization must not lower it.");
         float gateHealthBefore = (float)ReadProperty(military, "GateCurrentHealth");
         Type gateType = Type.GetType("MilitaryGateController, Assembly-CSharp");
         Assert.That(gateType, Is.Not.Null);
+        MethodInfo acquireGateSlot = gateType.GetMethod("TryAcquireAttackSlot");
         MethodInfo tryGateHit = gateType.GetMethod("TryApplyHordeHit");
+        Assert.That(acquireGateSlot, Is.Not.Null);
         Assert.That(tryGateHit, Is.Not.Null);
-        for (int i = 0; i < 100; i++) tryGateHit.Invoke(closedGate.GetComponent(gateType), null);
+        const int testAttackerId = 101;
+        Component gateController = closedGate.GetComponent(gateType);
+        Assert.That((bool)acquireGateSlot.Invoke(gateController, new object[] { testAttackerId }), Is.True);
+        Vector2 attackerPosition = closedGateCollider.bounds.center;
+        for (int i = 0; i < 100; i++)
+            tryGateHit.Invoke(gateController, new object[] { testAttackerId, attackerPosition });
         float gateHealthAfter = (float)ReadProperty(military, "GateCurrentHealth");
         Assert.That(gateHealthBefore - gateHealthAfter, Is.LessThanOrEqualTo(48.01f),
             "Even 100 simultaneous attack requests must be capped to four 12-HP beats per second.");

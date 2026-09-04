@@ -944,13 +944,13 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         float currentDist = Mathf.Max(hitDistance.distance, 0f);
         Vector2 directionFromAttackOrigin = (to - attackOrigin).normalized;
 
-        // Dùng đúng khoảng cách giữa collider như điều kiện bắt đầu animation, tránh đánh trúng từ xa.
+        // Consume the authority impact window even on a legitimate dodge.
+        hasAppliedDamage = true;
         if (currentDist <= attackRange
-            && HasLineOfSight(from, to, currentDist, attackTargetHealth)
+            && HasLineOfSight(from, to, Vector2.Distance(from, to), attackTargetHealth)
             && Vector2.Angle(lockedAttackDirection, directionFromAttackOrigin) <= attackHitAngle * 0.5f)
         {
             attackTargetHealth.TakeDamage(zombieDamage, false, true);
-            hasAppliedDamage = true;
         }
     }
 }

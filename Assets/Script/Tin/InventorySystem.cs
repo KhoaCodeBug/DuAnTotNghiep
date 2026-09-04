@@ -1029,6 +1029,34 @@ public class InventorySystem : NetworkBehaviour
     // ==========================================
     // HỆ THỐNG THÊM VÀ DÙNG ĐỒ
     // ==========================================
+    public bool CanAcceptItemAmount(ItemData item, int amount)
+    {
+        if (item == null || amount <= 0) return false;
+        int remaining = amount;
+        int limit = Mathf.Min(maxSlots, slots.Count);
+        if (item.isStackable)
+        {
+            for (int i = 0; i < limit; i++)
+            {
+                InventorySlot slot = slots[i];
+                if (slot == null || slot.item == null || slot.amount <= 0 ||
+                    slot.item.itemName != item.itemName) continue;
+                remaining -= Mathf.Max(0, item.maxStack - slot.amount);
+                if (remaining <= 0) return true;
+            }
+        }
+
+        int perEmptySlot = item.isStackable ? Mathf.Max(1, item.maxStack) : 1;
+        for (int i = 0; i < limit; i++)
+        {
+            InventorySlot slot = slots[i];
+            if (slot != null && slot.item != null && slot.amount > 0) continue;
+            remaining -= perEmptySlot;
+            if (remaining <= 0) return true;
+        }
+        return false;
+    }
+
     public bool AddItem(ItemData itemToAdd, int amountToAdd, float flashlightBattery01 = 1f)
     {
         if (itemToAdd == null || amountToAdd <= 0) return false;

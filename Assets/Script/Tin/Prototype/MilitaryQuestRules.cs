@@ -17,9 +17,9 @@ public static class MilitaryQuestRules
     // difficulty-scaled countdown so the player can divide attention between
     // defense and repairs. Difficulty IDs follow MainMenuManager/PlayerPrefs:
     // Easy = 0, Normal = 1, Hard = 2.
-    public const float SoloGateHoldSecondsEasy = 300f;
-    public const float SoloGateHoldSecondsNormal = 240f;
-    public const float SoloGateHoldSecondsHard = 180f;
+    public const float SoloGateHoldSecondsEasy = 360f;
+    public const float SoloGateHoldSecondsNormal = 300f;
+    public const float SoloGateHoldSecondsHard = 240f;
     public const float SoloGateHoldSeconds = SoloGateHoldSecondsNormal;
 
     public static bool HasAllParts(bool hasBattery, bool hasFuel, bool hasRepairKit) =>
@@ -40,8 +40,13 @@ public static class MilitaryQuestRules
         ComputeSiegeGateMaxHealthForDifficulty(activePlayerCount, 1);
 
     public static float ComputeSiegeGateMaxHealthForDifficulty(int activePlayerCount, int difficulty) =>
-        activePlayerCount > 1 ? BaseGateHealth :
+        activePlayerCount >= 5 ? 9000f : activePlayerCount > 1 ? 7500f :
         Mathf.Max(BaseGateHealth, GateDamagePerHit * GateMaxHitsPerSecond * GetSoloGateHoldSeconds(difficulty));
+
+    public static bool IsAuthorityAttackValid(bool hasStateAuthority, bool phaseAllowsAttack,
+        bool attackWindowOpen, float surfaceDistance, float maximumRange, bool hasLineOfSight) =>
+        hasStateAuthority && phaseAllowsAttack && attackWindowOpen && hasLineOfSight &&
+        Mathf.Max(0f, surfaceDistance) <= Mathf.Max(0f, maximumRange);
 
     public static float GetSoloGateHealthAtElapsed(float maxHealth, float elapsedSeconds) =>
         GetSoloGateHealthAtElapsedForDifficulty(maxHealth, elapsedSeconds, 1);

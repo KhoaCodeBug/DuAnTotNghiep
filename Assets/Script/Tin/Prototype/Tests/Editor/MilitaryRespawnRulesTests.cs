@@ -8,9 +8,9 @@ public sealed class MilitaryRespawnRulesTests
     {
         float fullAssaultDamagePerSecond = MilitaryQuestRules.GateDamagePerHit *
             MilitaryQuestRules.GateMaxHitsPerSecond;
-        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(0), Is.EqualTo(300f));
-        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(1), Is.EqualTo(240f));
-        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(2), Is.EqualTo(180f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(0), Is.EqualTo(360f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(1), Is.EqualTo(300f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(2), Is.EqualTo(240f));
         for (int difficulty = 0; difficulty <= 2; difficulty++)
         {
             float deadline = MilitaryQuestRules.GetSoloGateHoldSeconds(difficulty);
@@ -33,12 +33,16 @@ public sealed class MilitaryRespawnRulesTests
     }
 
     [Test]
-    public void MultiplayerGateKeepsCanonicalBaseHealth()
+    public void MultiplayerGateUsesApprovedTeamTierHealth()
     {
         Assert.That(MilitaryQuestRules.ComputeSiegeGateMaxHealth(2),
-            Is.EqualTo(MilitaryQuestRules.BaseGateHealth));
+            Is.EqualTo(7500f));
         Assert.That(MilitaryQuestRules.ComputeSiegeGateMaxHealth(4),
-            Is.EqualTo(MilitaryQuestRules.BaseGateHealth));
+            Is.EqualTo(7500f));
+        Assert.That(MilitaryQuestRules.ComputeSiegeGateMaxHealth(5),
+            Is.EqualTo(9000f));
+        Assert.That(MilitaryQuestRules.ComputeSiegeGateMaxHealth(10),
+            Is.EqualTo(9000f));
     }
 
     [Test]
