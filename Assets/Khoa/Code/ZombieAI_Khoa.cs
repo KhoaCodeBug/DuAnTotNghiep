@@ -726,6 +726,13 @@ public class ZOmbieAI_Khoa : NetworkBehaviour
         // The Host's Collider2D.enabled change is not replicated automatically.
         // Apply the replicated death state locally on every peer.
         SetBodyCollisionEnabled(!NetIsDead);
+        if (NetIsDead && spriteRend != null)
+        {
+            // Death disables the body collider, so PlayerVision stops owning the
+            // fade on this actor. Normalize the corpse presentation on every peer.
+            spriteRend.color = originalColor;
+            spriteRend.enabled = true;
+        }
 
         if (anim != null)
         {

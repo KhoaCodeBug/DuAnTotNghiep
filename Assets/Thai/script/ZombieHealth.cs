@@ -46,6 +46,14 @@ public class ZombieHealth : NetworkBehaviour
         // The Host's Collider2D.enabled change is not replicated automatically.
         // Apply the replicated death state locally on every peer.
         SetBodyCollisionEnabled(!isDead);
+        if (isDead) RestoreCorpseVisual();
+    }
+
+    private void RestoreCorpseVisual()
+    {
+        if (spriteRend == null) return;
+        spriteRend.color = originalColor;
+        spriteRend.enabled = true;
     }
 
     private void SetBodyCollisionEnabled(bool enabled)
