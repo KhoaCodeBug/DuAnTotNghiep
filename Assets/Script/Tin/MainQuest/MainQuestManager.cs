@@ -8,7 +8,7 @@ using UnityEngine;
 /// Network-authoritative spine for the Main scene story. Attach this to an
 /// existing scene NetworkObject (Day_Night_System is the current host).
 /// </summary>
-public sealed class MainQuestManager : NetworkBehaviour
+public sealed class MainQuestManager : NetworkBehaviour, IPlayerLeft
 {
     public enum QuestStage
     {
@@ -172,6 +172,8 @@ public sealed class MainQuestManager : NetworkBehaviour
     private readonly Dictionary<int, int> cabinetIndexById = new Dictionary<int, int>();
     private readonly SharedQuestPresentationReceiptLedger sharedPresentationReceipts =
         new SharedQuestPresentationReceiptLedger();
+    private readonly StoryCheckpointProgressLedger<PlayerRef> storyProgressByPlayer =
+        new StoryCheckpointProgressLedger<PlayerRef>();
     private bool hasSpawned;
     private bool hasGeneratedCivilianEscapeFallback;
     private bool localMilitaryDestinationReached;
@@ -277,6 +279,7 @@ public sealed class MainQuestManager : NetworkBehaviour
         // This scene manager owns receipts for exactly one runner session. Avatar
         // replacement leaves it intact; respawning the manager starts a new ledger.
         sharedPresentationReceipts.ResetForNewSession();
+        storyProgressByPlayer.ResetForNewSession();
 
         if (HasStateAuthority)
         {
@@ -349,6 +352,12 @@ public sealed class MainQuestManager : NetworkBehaviour
         if (questEventRoutine != null) StopCoroutine(questEventRoutine);
         questEventRoutine = null;
         ApplyMapAccess();
+    }
+
+    public void PlayerLeft(PlayerRef player)
+    {
+        if (!HasStateAuthority || player == PlayerRef.None) return;
+        storyProgressByPlayer.Remove(player);
     }
 
     private void Update()
@@ -1267,6 +1276,17 @@ public sealed class MainQuestManager : NetworkBehaviour
         else RPC_RequestStartMapSearch(triggerId);
     }
 
+    /// <summary>
+    /// Requests a personal checkpoint arrival. Clients send only the scene
+    /// trigger ID; State Authority derives identity from RpcInfo.Source.
+    /// </summary>
+    public void RequestStoryCheckpointArrival(int triggerId)
+    {
+        if (!IsNetworkReady || Runner.LocalPlayer == PlayerRef.None) return;
+        if (HasStateAuthority) ServerRecordStoryCheckpointArrival(triggerId, Runner.LocalPlayer);
+        else RPC_RequestStoryCheckpointArrival(triggerId);
+    }
+
     /// <summary>Called by the closest highlighted quest-search point when E is pressed.</summary>
     public void RequestSearchCabinet(int cabinetId)
     {
@@ -1312,6 +1332,12 @@ public sealed class MainQuestManager : NetworkBehaviour
     private void RPC_RequestStartMapSearch(int triggerId, RpcInfo info = default)
     {
         ServerStartMapSearch(triggerId, info.Source);
+    }
+
+    [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
+    private void RPC_RequestStoryCheckpointArrival(int triggerId, RpcInfo info = default)
+    {
+        ServerRecordStoryCheckpointArrival(triggerId, info.Source);
     }
 
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
@@ -1595,6 +1621,51 @@ public sealed class MainQuestManager : NetworkBehaviour
 
         activeHospitalEntryTrigger = trigger;
         AuthorityStartOfficeInvestigation(requester);
+    }
+
+    private void ServerRecordStoryCheckpointArrival(int triggerId, PlayerRef requester)
+    {
+        if (!HasStateAuthority || requester == PlayerRef.None ||
+            !StoryCheckpointArrivalTrigger.TryGet(triggerId, out StoryCheckpointArrivalTrigger trigger) ||
+            !TryGetRequestingPlayer(requester, out PlayerMovement player) || !IsLivingPlayer(player) ||
+            !trigger.Contains(player.transform.position))
+            return;
+
+        bool sharedMilestoneEligible = trigger.Checkpoint switch
+        {
+            StoryCheckpoint.OfficeHospital => HasMapFragment1,
+            StoryCheckpoint.SchoolMilitary => IsHospitalRadioRecoveredState,
+            _ => false
+        };
+        if (!sharedMilestoneEligible) return;
+
+        bool advanced = storyProgressByPlayer.TryRecordVerifiedArrival(requester, trigger.Checkpoint, true,
+            out StoryCheckpointProgressRecord progress);
+        if (progress == null) return;
+        if (progress.HighestCheckpoint < trigger.Checkpoint) return;
+
+        RPC_ConfirmStoryCheckpointArrival(requester, triggerId);
+        if (advanced)
+            Debug.Log($"[STORY CHECKPOINT] {requester} unlocked {progress.HighestCheckpoint}.");
+    }
+
+    [Rpc(RpcSources.StateAuthority, RpcTargets.All)]
+    private void RPC_ConfirmStoryCheckpointArrival([RpcTarget] PlayerRef targetPlayer, int triggerId)
+    {
+        if (targetPlayer == PlayerRef.None || Runner == null || Runner.LocalPlayer != targetPlayer) return;
+        if (StoryCheckpointArrivalTrigger.TryGet(triggerId, out StoryCheckpointArrivalTrigger trigger))
+            trigger.ConfirmLocalArrivalAccepted();
+    }
+
+    public bool TryGetStoryRespawnCheckpoint(PlayerRef player, out StoryCheckpoint checkpoint)
+    {
+        checkpoint = StoryCheckpoint.Start;
+        if (!HasStateAuthority || player == PlayerRef.None ||
+            !storyProgressByPlayer.TryGet(player, out StoryCheckpointProgressRecord progress))
+            return false;
+
+        checkpoint = progress.HighestCheckpoint;
+        return checkpoint > StoryCheckpoint.Start;
     }
 
     private void AuthorityStartOfficeInvestigation(PlayerRef requester)

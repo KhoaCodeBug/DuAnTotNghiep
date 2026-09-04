@@ -378,7 +378,7 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
             spawnedPlayers.Remove(player);
         }
 
-        Vector2? storyCheckpoint = TryResolveStoryRespawnPosition(out Vector2 checkpointPosition)
+        Vector2? storyCheckpoint = TryResolveStoryRespawnPosition(player, out Vector2 checkpointPosition)
             ? checkpointPosition : null;
         SpawnCharacter(player, characterID, playerName, storyCheckpoint);
     }
@@ -540,15 +540,17 @@ public class HostModeSpawner : NetworkBehaviour, IPlayerLeft
         }
     }
 
-    private static bool TryResolveStoryRespawnPosition(out Vector2 position)
+    private static bool TryResolveStoryRespawnPosition(PlayerRef player, out Vector2 position)
     {
         position = default;
         MainQuestManager quest = MainQuestManager.Instance;
-        if (quest == null || !quest.IsNetworkReady) return false;
+        if (quest == null || !quest.IsNetworkReady ||
+            !quest.TryGetStoryRespawnCheckpoint(player, out StoryCheckpoint storyCheckpoint))
+            return false;
 
-        string checkpointName = quest.IsHospitalRadioRecoveredState
+        string checkpointName = storyCheckpoint == StoryCheckpoint.SchoolMilitary
             ? "Save-Respawn 2"
-            : quest.HasMapFragment1 ? "Save-Respawn" : string.Empty;
+            : storyCheckpoint == StoryCheckpoint.OfficeHospital ? "Save-Respawn" : string.Empty;
         if (string.IsNullOrEmpty(checkpointName)) return false;
 
         GameObject checkpoint = GameObject.Find(checkpointName);
