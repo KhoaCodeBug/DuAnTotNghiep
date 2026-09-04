@@ -314,13 +314,13 @@ public class PlayerSurvival : NetworkBehaviour
 
     /// <summary>
     /// 0 = không có hiệu ứng No, 1..4 = bốn cấp nền xanh từ 80% đến 100%.
-    /// Cả thức ăn và nước đều phải đạt 80% để cơ thể có thể hồi phục.
+    /// Hiệu ứng No dựa trên chỉ số no; khát vẫn là một nhu cầu độc lập và vẫn
+    /// gây mất máu nếu tụt về 0.
     /// </summary>
     public int GetWellFedTier()
     {
         float hungerRatio = SafeRatio(currentHunger, maxHunger);
-        float thirstRatio = SafeRatio(currentThirst, maxThirst);
-        return SurvivalBalanceRules.GetWellFedTier(hungerRatio, thirstRatio);
+        return SurvivalBalanceRules.GetWellFedTier(hungerRatio);
     }
 
     private static float SafeRatio(float current, float maximum)

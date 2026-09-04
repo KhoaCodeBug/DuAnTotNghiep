@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 054aa3114a7741ba8ce0b91b031e37a9, type: 3}
   m_Name: SurvivalBalanceSettings
   m_EditorClassIdentifier: 
-  normalHungerDrainRate: 0.2
-  normalThirstDrainRate: 0.25
+  normalHungerDrainRate: 0.16
+  normalThirstDrainRate: 0.2
   normalDamagePerSecond: 0.3
   easyMultiplier: 0.75
   hardMultiplier: 1.25

@@ -20,7 +20,7 @@ MonoBehaviour:
   isStackable: 1
   maxStack: 30
   healAmount: 0
-  hungerRestore: 30
+  hungerRestore: 60
   thirstRestore: 0
   buffDuration: 0
   speedMultiplier: 0

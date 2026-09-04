@@ -21,7 +21,7 @@ MonoBehaviour:
   maxStack: 5
   healAmount: 0
   hungerRestore: 0
-  thirstRestore: 0
+  thirstRestore: 25
   buffDuration: 20
   speedMultiplier: 1.5
   maxStaminaBoost: 50

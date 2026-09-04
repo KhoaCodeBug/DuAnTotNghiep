@@ -20,8 +20,8 @@ public readonly struct SurvivalBalanceProfile
 /// <summary>Single source of truth for hunger/thirst tuning across both player prefabs.</summary>
 public static class SurvivalBalanceRules
 {
-    public const float NormalHungerDrainRate = 0.20f;
-    public const float NormalThirstDrainRate = 0.25f;
+    public const float NormalHungerDrainRate = 0.16f;
+    public const float NormalThirstDrainRate = 0.20f;
     public const float NormalDamagePerSecond = 0.30f;
 
     public const float EasyMultiplier = 0.75f;
@@ -68,11 +68,15 @@ public static class SurvivalBalanceRules
         return Mathf.Clamp(current + Mathf.Max(0f, amount), 0f, safeMaximum);
     }
 
-    public static int GetWellFedTier(float hungerRatio, float thirstRatio)
+    /// <summary>
+    /// "No" is earned from food alone. Thirst still drains and can still cause
+    /// dehydration damage, but it must not hide the food feedback or prevent
+    /// the well-fed regeneration granted by a meal.
+    /// </summary>
+    public static int GetWellFedTier(float hungerRatio)
     {
         hungerRatio = Mathf.Clamp01(hungerRatio);
-        thirstRatio = Mathf.Clamp01(thirstRatio);
-        if (hungerRatio < 0.8f || thirstRatio < 0.8f) return 0;
+        if (hungerRatio < 0.8f) return 0;
         if (hungerRatio < 0.85f) return 1;
         if (hungerRatio < 0.90f) return 2;
         if (hungerRatio < 0.95f) return 3;
