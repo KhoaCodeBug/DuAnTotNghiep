@@ -867,20 +867,44 @@ public sealed class QuestFlowUIPrototypeTests
     [Test]
     public void MilitaryHordeScalesForSoloSmallAndLargeMultiplayerTeams()
     {
+        Assert.That(MilitaryStoryFlowRules.SiegeTotalBudget, Is.EqualTo(200));
+        Assert.That(MilitaryStoryFlowRules.HordeCheckIntervalSeconds, Is.EqualTo(2.5f));
+        Assert.That(MilitaryStoryFlowRules.PostBreachRetargetIntervalSeconds, Is.EqualTo(5f));
         Assert.That(MilitaryStoryFlowRules.GetBatchSize(1), Is.EqualTo(8));
         Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(1), Is.EqualTo(24));
         Assert.That(MilitaryStoryFlowRules.GetHardSafetyCap(1), Is.EqualTo(36));
+        Assert.That(MilitaryStoryFlowRules.GetGateAttackSlotCap(1), Is.EqualTo(8));
         Assert.That(MilitaryStoryFlowRules.GetBatchSize(4), Is.EqualTo(16));
         Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(4), Is.EqualTo(50));
         Assert.That(MilitaryStoryFlowRules.GetHardSafetyCap(4), Is.EqualTo(72));
+        Assert.That(MilitaryStoryFlowRules.GetGateAttackSlotCap(4), Is.EqualTo(12));
         Assert.That(MilitaryStoryFlowRules.GetBatchSize(5), Is.EqualTo(24));
         Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(5), Is.EqualTo(80));
         Assert.That(MilitaryStoryFlowRules.GetHardSafetyCap(5), Is.EqualTo(112));
+        Assert.That(MilitaryStoryFlowRules.GetGateAttackSlotCap(5), Is.EqualTo(16));
         Assert.That(MilitaryStoryFlowRules.GetBatchSize(10), Is.EqualTo(24));
         Assert.That(MilitaryStoryFlowRules.GetNearbyTarget(10), Is.EqualTo(80));
         Assert.That(MilitaryStoryFlowRules.GetHardSafetyCap(10), Is.EqualTo(112));
         Assert.That(MilitaryStoryFlowRules.ShouldSpawnBatch(10, 79), Is.True);
         Assert.That(MilitaryStoryFlowRules.ShouldSpawnBatch(10, 80), Is.False);
+        Assert.That(MilitaryStoryFlowRules.GetAvailableSiegeSpawnSlots(1, 35, 199), Is.EqualTo(1));
+        Assert.That(MilitaryStoryFlowRules.GetAvailableSiegeSpawnSlots(4, 10, 200), Is.Zero);
+    }
+
+    [Test]
+    public void MilitaryGateBaselineAndAuthorityHitValidationMatchApprovedContract()
+    {
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(0), Is.EqualTo(360f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(1), Is.EqualTo(300f));
+        Assert.That(MilitaryQuestRules.GetSoloGateHoldSeconds(2), Is.EqualTo(240f));
+        Assert.That(MilitaryQuestRules.ComputeSiegeGateMaxHealth(4), Is.EqualTo(7500f));
+        Assert.That(MilitaryQuestRules.ComputeSiegeGateMaxHealth(5), Is.EqualTo(9000f));
+        Assert.That(MilitaryQuestRules.IsAuthorityAttackValid(true, true, true, 0.9f, 1f, true), Is.True);
+        Assert.That(MilitaryQuestRules.IsAuthorityAttackValid(false, true, true, 0.9f, 1f, true), Is.False);
+        Assert.That(MilitaryQuestRules.IsAuthorityAttackValid(true, false, true, 0.9f, 1f, true), Is.False);
+        Assert.That(MilitaryQuestRules.IsAuthorityAttackValid(true, true, false, 0.9f, 1f, true), Is.False);
+        Assert.That(MilitaryQuestRules.IsAuthorityAttackValid(true, true, true, 1.01f, 1f, true), Is.False);
+        Assert.That(MilitaryQuestRules.IsAuthorityAttackValid(true, true, true, 0.9f, 1f, false), Is.False);
     }
 
     [Test]

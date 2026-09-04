@@ -77,6 +77,51 @@ public sealed class InventoryAndLootCapacityTests
     }
 
     [Test]
+    public void EssentialRecoveryCapacityCheckRejectsFullInventoryWithoutPartialMutation()
+    {
+        Type inventoryType = RequireType("InventorySystem, Assembly-CSharp");
+        Type itemType = RequireType("ItemData, Assembly-CSharp");
+        GameObject host = new GameObject("Recovery Capacity Test");
+        ScriptableObject filler = ScriptableObject.CreateInstance(itemType);
+        ScriptableObject essential = ScriptableObject.CreateInstance(itemType);
+        try
+        {
+            Component inventory = host.AddComponent(inventoryType);
+            InvokePrivate(inventory, "Awake");
+            SetField(filler, "itemName", "Filler");
+            SetField(filler, "maxStack", 1);
+            SetField(filler, "isStackable", false);
+            SetField(essential, "itemName", "MilitaryRepairKit");
+            SetField(essential, "maxStack", 1);
+            SetField(essential, "isStackable", false);
+
+            int capacity = (int)RequireField(inventoryType, "maxSlots").GetValue(inventory);
+            IList slots = (IList)RequireField(inventoryType, "slots").GetValue(inventory);
+            for (int i = 0; i < capacity; i++)
+            {
+                SetField(slots[i], "item", filler);
+                SetField(slots[i], "amount", 1);
+            }
+
+            MethodInfo canAccept = RequireMethod(inventoryType, "CanAcceptItemAmount", itemType, typeof(int));
+            Assert.That((bool)canAccept.Invoke(inventory, new object[] { essential, 1 }), Is.False);
+            Assert.That(slots.Cast<object>().Take(capacity).Count(slot =>
+                ReferenceEquals(ReadField(slot, "item"), filler)), Is.EqualTo(capacity),
+                "Capacity validation must not partially mutate a full survivor inventory.");
+
+            SetField(slots[capacity - 1], "item", null);
+            SetField(slots[capacity - 1], "amount", 0);
+            Assert.That((bool)canAccept.Invoke(inventory, new object[] { essential, 1 }), Is.True);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(host);
+            UnityEngine.Object.DestroyImmediate(filler);
+            UnityEngine.Object.DestroyImmediate(essential);
+        }
+    }
+
+    [Test]
     public void BackpackTiersMapToFifteenThroughFiftyStorageSlots()
     {
         Type rulesType = RequireType("BackpackCapacityRules, Assembly-CSharp");

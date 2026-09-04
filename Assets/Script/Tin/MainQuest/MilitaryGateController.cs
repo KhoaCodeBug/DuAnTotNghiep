@@ -21,6 +21,8 @@ public sealed class MilitaryGateController : MonoBehaviour
 
     [SerializeField, Min(0.1f)] private float gateDamagePerHit = 12f;
     [SerializeField, Min(1)] private int maximumDamageHitsPerSecond = 4;
+    [SerializeField, Min(0.1f)] private float maximumHordeHitRange = 1.1f;
+    [SerializeField] private LayerMask hordeHitObstacleMask;
 
     private readonly List<AuthoredTile> authoredTiles = new();
     private MilitaryBaseQuestManager manager;
@@ -33,6 +35,7 @@ public sealed class MilitaryGateController : MonoBehaviour
     private float gateLength = 4.4f;
     private float damageWindowStartedAt;
     private int damageHitsThisWindow;
+    private readonly HashSet<int> attackSlotOwners = new();
 
     public static MilitaryGateController Create(Transform runtimeParent, Vector2 position,
         MilitaryBaseQuestManager targetManager)
@@ -57,9 +60,29 @@ public sealed class MilitaryGateController : MonoBehaviour
 
     public void TakeGateDamage(float damage) => manager?.TakeGateDamage(damage);
 
-    public bool TryApplyHordeHit()
+    public bool TryAcquireAttackSlot(int stableId)
     {
-        if (manager == null || !manager.HasStateAuthority || manager.IsGateBroken) return false;
+        if (attackSlotOwners.Contains(stableId)) return true;
+        int playerCount = manager != null ? manager.CountActivePlayers() : 1;
+        if (attackSlotOwners.Count >= MilitaryStoryFlowRules.GetGateAttackSlotCap(playerCount)) return false;
+        attackSlotOwners.Add(stableId);
+        return true;
+    }
+
+    public void ReleaseAttackSlot(int stableId) => attackSlotOwners.Remove(stableId);
+
+    public bool TryApplyHordeHit(int stableId, Vector2 attackerPosition)
+    {
+        bool phaseAllowsAttack = manager != null &&
+            (manager.CurrentPhase == MilitaryBaseQuestManager.Phase.SiegeAndRepair ||
+             manager.CurrentPhase == MilitaryBaseQuestManager.Phase.ReadyToEscape) && !manager.IsGateBroken;
+        float surfaceDistance = gateCollider != null
+            ? Vector2.Distance(attackerPosition, gateCollider.ClosestPoint(attackerPosition))
+            : float.PositiveInfinity;
+        bool hasLineOfSight = HasValidHordeLineOfSight(attackerPosition);
+        if (!MilitaryQuestRules.IsAuthorityAttackValid(manager != null && manager.HasStateAuthority,
+                phaseAllowsAttack, attackSlotOwners.Contains(stableId), surfaceDistance,
+                maximumHordeHitRange, hasLineOfSight)) return false;
         // Solo damage becomes a deterministic three-minute DPS countdown after
         // the first visible zombie strike. Later strikes remain visual beats.
         if (manager.IsSoloSiege) return manager.TryStartSoloGateDps();
@@ -72,6 +95,18 @@ public sealed class MilitaryGateController : MonoBehaviour
         damageHitsThisWindow++;
         TakeGateDamage(gateDamagePerHit);
         return true;
+    }
+
+    private bool HasValidHordeLineOfSight(Vector2 attackerPosition)
+    {
+        if (gateCollider == null || !gateCollider.enabled) return false;
+        Vector2 target = gateCollider.ClosestPoint(attackerPosition);
+        int mask = hordeHitObstacleMask.value != 0
+            ? hordeHitObstacleMask.value
+            : LayerMask.GetMask("Obstacle");
+        if (mask == 0) return true;
+        RaycastHit2D hit = Physics2D.Linecast(attackerPosition, target, mask);
+        return hit.collider == null || hit.collider == gateCollider || hit.collider.transform.IsChildOf(transform);
     }
 
     public void RefreshPresentation()
@@ -92,6 +127,7 @@ public sealed class MilitaryGateController : MonoBehaviour
 
     public void BreakGate()
     {
+        attackSlotOwners.Clear();
         SetColliderEnabled(false);
         SetGateVisible(false);
         if (gameObject.activeSelf) gameObject.SetActive(false);

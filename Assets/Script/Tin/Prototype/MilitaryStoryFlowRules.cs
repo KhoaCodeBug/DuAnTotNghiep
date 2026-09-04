@@ -7,7 +7,9 @@ using UnityEngine;
 public static class MilitaryStoryFlowRules
 {
     public const int RequiredSchoolClues = 3;
-    public const float HordeCheckIntervalSeconds = 5f;
+    public const int SiegeTotalBudget = 200;
+    public const float HordeCheckIntervalSeconds = 2.5f;
+    public const float PostBreachRetargetIntervalSeconds = 5f;
     public const int SmallMultiplayerNearbyTarget = 50;
     public const int LargeMultiplayerNearbyTarget = 80;
     public const int SoloNearbyTarget = 24;
@@ -17,6 +19,9 @@ public static class MilitaryStoryFlowRules
     public const int SoloHardSafetyCap = 36;
     public const int SmallMultiplayerHardSafetyCap = 72;
     public const int LargeMultiplayerHardSafetyCap = 112;
+    public const int SoloGateAttackSlots = 8;
+    public const int SmallMultiplayerGateAttackSlots = 12;
+    public const int LargeMultiplayerGateAttackSlots = 16;
     public const int SpawnPointCount = 4;
     public const float EscapeGatherRadius = 6f;
     public const float EndingMapCameraTravelSeconds = 6f;
@@ -47,6 +52,24 @@ public static class MilitaryStoryFlowRules
         <= 4 => SmallMultiplayerHardSafetyCap,
         _ => LargeMultiplayerHardSafetyCap
     };
+
+    public static int GetGateAttackSlotCap(int activePlayerCount) => activePlayerCount switch
+    {
+        <= 1 => SoloGateAttackSlots,
+        <= 4 => SmallMultiplayerGateAttackSlots,
+        _ => LargeMultiplayerGateAttackSlots
+    };
+
+    public static int GetAvailableSiegeSpawnSlots(int activePlayerCount, int activeCount,
+        int participatedCount)
+    {
+        int activeSlots = Mathf.Max(0, GetHardSafetyCap(activePlayerCount) - Mathf.Max(0, activeCount));
+        int budgetSlots = Mathf.Max(0, SiegeTotalBudget - Mathf.Max(0, participatedCount));
+        return Mathf.Min(activeSlots, budgetSlots);
+    }
+
+    public static bool IsPostBreachRetargetDue(float now, float nextRetargetAt) =>
+        now >= nextRetargetAt;
 
     /// <summary>
     /// A living survivor is extraction-ready when occupying the canonical

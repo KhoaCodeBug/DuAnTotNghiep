@@ -20,6 +20,7 @@ public sealed class SiegeHordeDirector : MonoBehaviour
     private Coroutine siegeRoutine;
     private bool siegeActive;
     private bool releasedToPlayers;
+    private int participatedCount;
 
     public void Configure(MilitaryBaseQuestManager targetManager, MilitaryGateController targetGate)
     {
@@ -32,9 +33,10 @@ public sealed class SiegeHordeDirector : MonoBehaviour
 
     public void BeginSiege()
     {
+        if (manager == null || !manager.HasStateAuthority || siegeRoutine != null) return;
         siegeActive = true;
         releasedToPlayers = false;
-        if (manager == null || !manager.HasStateAuthority || siegeRoutine != null) return;
+        participatedCount = 0;
         int adopted = AuthorityAdoptExistingCityZombies();
         Debug.Log($"[MILITARY HORDE] Điều động {adopted} zombie đang sống trong thành phố về cổng.");
         siegeRoutine = StartCoroutine(SiegeRoutine());
@@ -54,6 +56,7 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         if (manager == null || !manager.HasStateAuthority || manager.Runner == null)
         {
             activeObjectives.Clear();
+            participatedCount = 0;
             return;
         }
 
@@ -73,6 +76,7 @@ public sealed class SiegeHordeDirector : MonoBehaviour
             }
         }
         activeObjectives.Clear();
+        participatedCount = 0;
     }
 
     public void ReleaseHordeToPlayers()
@@ -123,8 +127,8 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         int nearbyCount = CountSiegeZombiesNearGate();
         if (!MilitaryStoryFlowRules.ShouldSpawnBatch(playerCount, nearbyCount)) return;
 
-        int hardCap = MilitaryStoryFlowRules.GetHardSafetyCap(playerCount);
-        int availableSlots = Mathf.Max(0, hardCap - activeObjectives.Count);
+        int availableSlots = MilitaryStoryFlowRules.GetAvailableSiegeSpawnSlots(playerCount,
+            activeObjectives.Count, participatedCount);
         if (availableSlots <= 0) return;
 
         int perPoint = MilitaryStoryFlowRules.GetSpawnPerPoint(playerCount);
@@ -171,6 +175,7 @@ public sealed class SiegeHordeDirector : MonoBehaviour
                     objective.ReleaseToPlayers();
                 activeObjectives.Add(objective);
                 spawnedCount++;
+                participatedCount++;
                 availableSlots--;
             }
         }
@@ -185,7 +190,9 @@ public sealed class SiegeHordeDirector : MonoBehaviour
         NetworkObject[] networkObjects = FindObjectsByType<NetworkObject>(
             FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         int adopted = 0;
-        for (int i = 0; i < networkObjects.Length; i++)
+        int availableSlots = MilitaryStoryFlowRules.GetAvailableSiegeSpawnSlots(GetActivePlayerCount(),
+            activeObjectives.Count, participatedCount);
+        for (int i = 0; i < networkObjects.Length && availableSlots > 0; i++)
         {
             NetworkObject networkObject = networkObjects[i];
             if (networkObject == null || !networkObject.IsValid || !networkObject.HasStateAuthority) continue;
@@ -198,7 +205,12 @@ public sealed class SiegeHordeDirector : MonoBehaviour
             SiegeZombieObjective objective = root.GetComponent<SiegeZombieObjective>();
             if (objective != null)
             {
-                if (!activeObjectives.Contains(objective)) activeObjectives.Add(objective);
+                if (!activeObjectives.Contains(objective))
+                {
+                    activeObjectives.Add(objective);
+                    participatedCount++;
+                    availableSlots--;
+                }
                 continue;
             }
 
@@ -206,6 +218,8 @@ public sealed class SiegeHordeDirector : MonoBehaviour
             objective.Configure(manager, gate, false);
             activeObjectives.Add(objective);
             adopted++;
+            participatedCount++;
+            availableSlots--;
         }
         return adopted;
     }
@@ -322,6 +336,8 @@ public sealed class SiegeZombieObjective : MonoBehaviour
     private float attackAnimationRemaining;
     private bool? zombieAIEnabled;
     private bool spawnedBySiegeDirector;
+    private float nextRetargetAt;
+    private bool ownsGateAttackSlot;
     private int attackIndex;
     private int attackSequence;
 
@@ -366,6 +382,8 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         if (released)
         {
             if (IsZombieDead) RetireDeadZombie();
+            else if (MilitaryStoryFlowRules.IsPostBreachRetargetDue(Time.time, nextRetargetAt))
+                RefreshLivingPlayerTarget();
             return;
         }
         if (IsZombieDead)
@@ -389,9 +407,19 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         float distance = Vector2.Distance(position, target);
         if (distance > 0.9f)
         {
+            ReleaseGateAttackSlot();
             SetGateAttackAnimation(false);
             Vector2 velocity = (target - position).normalized * assaultMoveSpeed;
             MoveWithChaseSpeed(velocity, distance - 0.9f);
+            return;
+        }
+
+        if (!ownsGateAttackSlot) ownsGateAttackSlot = gate.TryAcquireAttackSlot(GetInstanceID());
+        if (!ownsGateAttackSlot)
+        {
+            SetGateAttackAnimation(false);
+            ApplyAnimationState(Vector2.zero);
+            if (body != null) body.linearVelocity = Vector2.zero;
             return;
         }
 
@@ -401,7 +429,7 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         {
             attackIndex = attackIndex % 2 + 1;
             SetGateAttackAnimation(true);
-            gate.TryApplyHordeHit();
+            gate.TryApplyHordeHit(GetInstanceID(), position);
             gateAttackCooldown = Mathf.Lerp(1.15f, 1.65f,
                 StableHash01(GetInstanceID(), ++attackSequence * 31));
             attackAnimationRemaining = 0.62f;
@@ -420,15 +448,19 @@ public sealed class SiegeZombieObjective : MonoBehaviour
             return;
         }
         released = true;
+        ReleaseGateAttackSlot();
         SetGateAttackAnimation(false);
         ApplyAnimationState(Vector2.zero);
         SetZombieAIEnabled(true);
+        nextRetargetAt = 0f;
+        RefreshLivingPlayerTarget();
     }
 
     public void RetireDeadZombie()
     {
         if (released && !enabled) return;
         released = true;
+        ReleaseGateAttackSlot();
         SetGateAttackAnimation(false);
         ApplyAnimationState(Vector2.zero);
         if (body != null) body.linearVelocity = Vector2.zero;
@@ -449,6 +481,46 @@ public sealed class SiegeZombieObjective : MonoBehaviour
         SetGateAttackAnimation(false);
         SetZombieAIEnabled(true);
     }
+
+    private void RefreshLivingPlayerTarget()
+    {
+        nextRetargetAt = Time.time + MilitaryStoryFlowRules.PostBreachRetargetIntervalSeconds;
+        PlayerHealth[] players = FindObjectsByType<PlayerHealth>(FindObjectsSortMode.None);
+        PlayerHealth selected = null;
+        float bestDistance = float.PositiveInfinity;
+        int bestPlayerId = int.MaxValue;
+        Vector2 origin = body != null ? body.position : transform.position;
+        for (int i = 0; i < players.Length; i++)
+        {
+            PlayerHealth candidate = players[i];
+            if (candidate == null || candidate.isDead || candidate.isTransforming ||
+                candidate.Object == null || !candidate.Object.IsValid ||
+                PlayerInteraction.IsProtectedOccupant(candidate)) continue;
+            float distance = Vector2.SqrMagnitude((Vector2)candidate.transform.position - origin);
+            int playerId = candidate.Object.InputAuthority.PlayerId;
+            if (distance > bestDistance || (Mathf.Approximately(distance, bestDistance) && playerId >= bestPlayerId))
+                continue;
+            selected = candidate;
+            bestDistance = distance;
+            bestPlayerId = playerId;
+        }
+
+        if (selected == null) return;
+        thaiZombie?.ForceSiegeTarget(selected);
+        khoaZombie?.ForceSiegeTarget(selected);
+        rebuiltZombie?.ForceSiegeTarget(selected);
+    }
+
+    private void ReleaseGateAttackSlot()
+    {
+        if (!ownsGateAttackSlot) return;
+        gate?.ReleaseAttackSlot(GetInstanceID());
+        ownsGateAttackSlot = false;
+    }
+
+    private void OnDisable() => ReleaseGateAttackSlot();
+
+    private void OnDestroy() => ReleaseGateAttackSlot();
 
     private static bool IsSpawned(NetworkBehaviour behaviour)
     {
