@@ -76,8 +76,16 @@ public sealed class ReadinessAndChatEditorTests
             Type zombieType = ResolveGameType(typeName);
             MethodInfo sweep = zombieType.GetMethod("MoveWithObstacleSweep",
                 BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo advance = zombieType.GetMethod("AdvancePathWaypoint",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo clearance = zombieType.GetMethod("CanMoveDirectlyToWaypoint",
+                BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.That(sweep, Is.Not.Null, $"{typeName} must sweep its body before MovePosition.");
             Assert.That(sweep.ReturnType, Is.EqualTo(typeof(float)));
+            Assert.That(advance, Is.Not.Null,
+                $"{typeName} must keep a corner until the next swept segment is clear.");
+            Assert.That(clearance, Is.Not.Null,
+                $"{typeName} must validate path shortcuts with its own collider.");
         }
 
         foreach (string prefabPath in new[]
@@ -94,6 +102,72 @@ public sealed class ReadinessAndChatEditorTests
             Assert.That(body, Is.Not.Null, prefabPath);
             Assert.That(body.collisionDetectionMode, Is.EqualTo(CollisionDetectionMode2D.Continuous), prefabPath);
         }
+    }
+
+    [TestCase("Assets/Khoa/Zombie2Khoa.prefab", "ZOmbieAI_Khoa")]
+    [TestCase("Assets/Khoa/ZombieKhoaRebuilt.prefab", "ZombieAIKhoaRebuilt")]
+    public void ZombieKhoaPrefab_KeepsOwnBrainAndReusesThaiAudio(
+        string prefabPath, string expectedBrainType)
+    {
+        GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
+        GameObject thaiPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+            "Assets/Thai/prefab/ZombieThai2.prefab");
+        Assert.That(prefab, Is.Not.Null, prefabPath);
+        Assert.That(thaiPrefab, Is.Not.Null);
+
+        MonoBehaviour[] behaviours = prefab.GetComponents<MonoBehaviour>();
+        string[] brainTypeNames = behaviours
+            .Where(component => component != null &&
+                (component.GetType().Name == "ZombieAI" ||
+                 component.GetType().Name == "ZOmbieAI_Khoa" ||
+                 component.GetType().Name == "ZombieAIKhoaRebuilt"))
+            .Select(component => component.GetType().Name)
+            .ToArray();
+        Assert.That(brainTypeNames, Is.EqualTo(new[] { expectedBrainType }),
+            $"{prefabPath} must have exactly its own Khoa brain, never the Thai movement brain.");
+
+        MonoBehaviour khoaBrain = behaviours.Single(component =>
+            component != null && component.GetType().Name == expectedBrainType);
+        SerializedProperty obstacleMask =
+            new SerializedObject(khoaBrain).FindProperty("obstacleMask");
+        Assert.That(obstacleMask, Is.Not.Null);
+        Assert.That(obstacleMask.intValue,
+            Is.EqualTo(1 << LayerMask.NameToLayer("Obstacle")),
+            $"{prefabPath} must sweep against the authored Obstacle layer.");
+
+        MonoBehaviour khoaAudio = behaviours.SingleOrDefault(component =>
+            component != null && component.GetType().Name == "ZombieAudio");
+        MonoBehaviour thaiAudio = thaiPrefab.GetComponents<MonoBehaviour>().SingleOrDefault(component =>
+            component != null && component.GetType().Name == "ZombieAudio");
+        Assert.That(khoaAudio, Is.Not.Null, $"{prefabPath} must keep shared zombie audio.");
+        Assert.That(thaiAudio, Is.Not.Null);
+
+        SerializedObject khoaAudioData = new SerializedObject(khoaAudio);
+        SerializedObject thaiAudioData = new SerializedObject(thaiAudio);
+        foreach (string clipField in new[] { "wanderSound", "chaseSound" })
+        {
+            Assert.That(khoaAudioData.FindProperty(clipField).objectReferenceValue,
+                Is.EqualTo(thaiAudioData.FindProperty(clipField).objectReferenceValue),
+                $"{prefabPath} must reuse Thai's {clipField} without reusing Thai movement.");
+        }
+
+        MonoBehaviour networkObject = behaviours.Single(component =>
+            component != null && component.GetType().Name == "NetworkObject");
+        SerializedProperty networkedBehaviours =
+            new SerializedObject(networkObject).FindProperty("NetworkedBehaviours");
+        Assert.That(networkedBehaviours, Is.Not.Null);
+
+        var registeredTypes = new List<string>();
+        for (int i = 0; i < networkedBehaviours.arraySize; i++)
+        {
+            MonoBehaviour registered =
+                networkedBehaviours.GetArrayElementAtIndex(i).objectReferenceValue as MonoBehaviour;
+            if (registered != null) registeredTypes.Add(registered.GetType().Name);
+        }
+        Assert.That(registeredTypes, Does.Contain(expectedBrainType));
+        Assert.That(registeredTypes, Does.Contain("ZombieAudio"));
+        Assert.That(registeredTypes, Does.Not.Contain("ZombieAI"),
+            $"{prefabPath} must not register Thai movement with Fusion.");
     }
 
     [Test]

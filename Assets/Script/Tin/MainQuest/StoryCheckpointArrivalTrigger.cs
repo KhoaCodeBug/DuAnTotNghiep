@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Client-side detector for a personal story checkpoint. It never mutates
+/// Client-side detector for a shared team story checkpoint. It never mutates
 /// progress directly: State Authority re-resolves this trigger and validates
 /// the requesting player's authoritative avatar position.
 /// </summary>
