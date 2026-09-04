@@ -1,0 +1,24 @@
+{
+    "house": "cannhamauxamhoanchinh",
+    "x": 1.642022967338562,
+    "y": -11.023799896240235,
+    "hour": 21.0,
+    "directionX": 0.0,
+    "directionY": 1.0,
+    "zoom": 3.0,
+    "flashlight": false,
+    "prototype": true,
+    "label": "allmain-20260904-105316-cannhamauxamhoanchinh-3",
+    "cameraRight": 0.0,
+    "cameraUp": 1.2000000476837159,
+    "flashlightConeFeather": 0.20000000298023225,
+    "flashlightBoundaryFadeDistance": 0.6499999761581421,
+    "surfaceProbeInset": -1.0
+}
+actual=(1.64, -11.02, -0.03) direction=(0.00, 1.00)
+health=100 dead=false
+indoor===========Map========== /Map/cannhamauxamhoanchinh/nocnha (4)
+mask=1 surface=1 flashlight=0 angle=140
+light=0.02895293 global=0.196875 innerAngle=100 outerAngle=140
+surfaces=39 scannedCells=1518 atlasBytes=3895296 buildMs=24.864 atlas=1024x951 filter=Bilinear wrap=Clamp bounds=(-3.32, -15.63, 9.93, 9.22) texelWorld=(0.01, 0.01)
+flashlightConeFeather=0.2 boundaryFadeDistance=0.65 shadowEdgeCount=0 shadowCandidateCount=0 movementEnabled=False godMode=True cheatMenuOpen=False
